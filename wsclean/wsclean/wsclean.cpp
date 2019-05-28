@@ -186,6 +186,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry, GriddingResult& result
 	_infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
 	_infoPerChannel[entry.outputChannelIndex].normalizationFactor = result.normalizationFactor;
 	
+	_observationInfo = result.observationInfo;
+	
 	// If no PSF is made, also set the beam size. If the PSF was made, these would already be set
 	// after imaging the PSF.
 	if(updateBeamInfo)
