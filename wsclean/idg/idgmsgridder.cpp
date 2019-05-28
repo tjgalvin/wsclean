@@ -159,8 +159,8 @@ void IdgMsGridder::Invert()
 
 std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSData& msData)
 {
-	casacore::MeasurementSet ms = msData.msProvider->MS();
-	size_t nr_stations = ms.antenna().nrow();
+	SynchronizedMS ms = msData.msProvider->MS();
+	size_t nr_stations = ms->antenna().nrow();
 	std::unique_ptr<ATermBase> aTermMaker;
 	ao::uvector<std::complex<float>> aTermBuffer;
 	if(!_settings.atermConfigFilename.empty() || _settings.gridWithBeam)
@@ -172,24 +172,24 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 		size_t subgridsize = _bufferset->get_subgridsize();
 		if(!_settings.atermConfigFilename.empty())
 		{
-			std::unique_ptr<ATermConfig> config(new ATermConfig(ms, nr_stations, subgridsize, subgridsize, PhaseCentreRA(), PhaseCentreDec(), dl, dm, pdl, pdm, _settings));
+			std::unique_ptr<ATermConfig> config(new ATermConfig(*ms, nr_stations, subgridsize, subgridsize, PhaseCentreRA(), PhaseCentreDec(), dl, dm, pdl, pdm, _settings));
 			config->SetSaveATerms(_settings.saveATerms);
 			config->Read(_settings.atermConfigFilename);
 			return std::move(config);
 		}
 		else {
-			switch(Telescope::GetType(ms))
+			switch(Telescope::GetType(*ms))
 			{
 				case Telescope::AARTFAAC:
 				case Telescope::LOFAR: {
-					std::unique_ptr<LofarBeamTerm> beam(new LofarBeamTerm(ms, subgridsize, subgridsize, dl, dm, pdl, pdm, _settings.dataColumnName));
+					std::unique_ptr<LofarBeamTerm> beam(new LofarBeamTerm(*ms, subgridsize, subgridsize, dl, dm, pdl, pdm, _settings.dataColumnName));
 					beam->SetUseDifferentialBeam(_settings.useDifferentialLofarBeam);
 					beam->SetSaveATerms(_settings.saveATerms);
 					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
 					return std::move(beam);
 				}
 				case Telescope::MWA: {
-					std::unique_ptr<MWABeamTerm> beam(new MWABeamTerm(ms, subgridsize, subgridsize, PhaseCentreRA(), PhaseCentreDec(), dl, dm, pdl, pdm));
+					std::unique_ptr<MWABeamTerm> beam(new MWABeamTerm(*ms, subgridsize, subgridsize, PhaseCentreRA(), PhaseCentreDec(), dl, dm, pdl, pdm));
 					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
 					beam->SetSearchPath(_settings.mwaPath);
 					return std::move(beam);
@@ -216,7 +216,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 
 	// TODO for now we map the ms antennas directly to the gridder's antenna,
 	// including non-selected antennas. Later this can be made more efficient.
-	size_t nr_stations = msData.msProvider->MS().antenna().nrow();
+	size_t nr_stations = msData.msProvider->MS()->antenna().nrow();
 	
 	std::vector<std::vector<double>> bands;
 	for(size_t i=0; i!=_selectedBands.BandCount(); ++i)
@@ -371,7 +371,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
 	_selectedBands = msData.SelectedBand();
 	_outputProvider = msData.msProvider;
 	
-	size_t nr_stations = msData.msProvider->MS().antenna().nrow();
+	size_t nr_stations = msData.msProvider->MS()->antenna().nrow();
 
 	std::vector<std::vector<double>> bands;
 	for(size_t i=0; i!=_selectedBands.BandCount(); ++i)
