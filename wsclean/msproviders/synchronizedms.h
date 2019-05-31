@@ -41,20 +41,20 @@ private:
 			_openFiles.insert(filename);
 			lock.unlock();
 			
-			_ms = casacore::MeasurementSet(_filename);
+			_ms.reset(new casacore::MeasurementSet(_filename));
 		}
 		
 		MSLock(const MSLock&) = delete;
 		
-		MSLock(MSLock&& other) :
-			// the other must have access, so grab & release the other
+		MSLock(MSLock&& other)
+		{
+			// the other must already have access, so the ms can be directly claimed.
 			// (unless the other was an empty object, in which case the
 			//  copy will also be an empty object)
-			_filename(std::move(other._filename)),
-			_ms(std::move(other._ms))
-		{
+			_filename = std::move(other._filename);
+			_ms = std::move(other._ms);
 			other._filename = std::string();
-			other._ms = casacore::MeasurementSet();
+			other._ms.reset();
 		}
 		
 		~MSLock()
@@ -73,13 +73,14 @@ private:
 			return *this;
 		}
 		
-		casacore::MeasurementSet& MS() { return _ms; }
+		casacore::MeasurementSet& MS() { return *_ms; }
 		
 	private:
 		void release()
 		{
 			if(!_filename.empty())
 			{
+				_ms.reset();
 				std::lock_guard<std::mutex> lock(_mutex);
 				_openFiles.erase(_filename);
 				_condition.notify_all();
@@ -91,7 +92,7 @@ private:
 		static std::mutex _mutex;
 		
 		std::string _filename;
-		casacore::MeasurementSet _ms;
+		std::unique_ptr<casacore::MeasurementSet> _ms;
 	};
 	
 	std::shared_ptr<MSLock> _lock;
