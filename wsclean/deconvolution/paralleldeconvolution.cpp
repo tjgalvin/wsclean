@@ -79,7 +79,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 	
 	std::unique_ptr<ImageSet> subModel, subData;
 	{
-		std::unique_lock<std::mutex> lock(*mutex);
+		std::lock_guard<std::mutex> lock(*mutex);
 		subModel = modelImage.Trim(
 			subImg.x, subImg.y, subImg.x+subImg.width, subImg.y+subImg.height, width);
 		subData = dataImage.Trim(

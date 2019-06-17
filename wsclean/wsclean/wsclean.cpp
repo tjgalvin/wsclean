@@ -327,7 +327,10 @@ std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(const ImagingTable
 	else {
 		std::shared_ptr<ImageWeights> weights = _imageWeightCache->Get(msList, entry.outputChannelIndex, entry.outputIntervalIndex);
 		if(_settings.isWeightImageSaved)
-			weights->Save(_settings.prefixName+"-weights.fits");
+		{
+			std::string prefix = ImageFilename::GetPSFPrefix(_settings, entry.outputChannelIndex, entry.outputIntervalIndex);
+			weights->Save(prefix+"-weights.fits");
+		}
 		return weights;
 	}
 }
@@ -1329,10 +1332,10 @@ void WSClean::makeImagingTableEntry(const std::vector<ChannelInfo>& channels, si
 				double splitFreqLow = (i==0) ? 0.0 : _settings.divideChannelFrequencies[i-1];
 				double splitFreqHigh = (i==nSplits) ? std::numeric_limits<double>::max() : _settings.divideChannelFrequencies[i];
 				std::vector<ChannelInfo> splittedChannels;
-				for(const ChannelInfo& info : groupChannels)
+				for(const ChannelInfo& channel : groupChannels)
 				{
-					if(info.Frequency() >= splitFreqLow && info.Frequency() < splitFreqHigh)
-						splittedChannels.emplace_back(info);
+					if(channel.Frequency() >= splitFreqLow && channel.Frequency() < splitFreqHigh)
+						splittedChannels.emplace_back(channel);
 				}
 				size_t nOutChannels = outChannelEnd - outChannelStart;
 				makeImagingTableEntryChannelSettings(splittedChannels, outIntervalIndex, outChannelIndex-outChannelStart, nOutChannels, entry);
@@ -1371,7 +1374,7 @@ void WSClean::makeImagingTableEntryChannelSettings(const std::vector<ChannelInfo
 		{
 			double left = channels[i-1].Frequency();
 			double right = channels[i].Frequency();
-			gaps.insert(std::make_pair(right-left, i));
+			gaps.emplace(right-left, i);
 		}
 		std::vector<size_t> orderedGaps;
 		auto iter = gaps.rbegin();

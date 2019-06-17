@@ -104,10 +104,10 @@ void Deconvolution::Perform(const class ImagingTable& groupTable, bool& reachedM
 		_parallelDeconvolution.SetThreshold(std::max(stddev * _settings.autoDeconvolutionThresholdSigma, _settings.deconvolutionThreshold));
 	integrated.reset();
 	
-	std::vector<ao::uvector<double>> psfVecs(groupTable.SquaredGroupCount());
+	std::vector<ao::uvector<double>> psfVecs(residualSet.PSFCount());
 	residualSet.LoadAndAveragePSFs(*_psfImages, psfVecs, _psfPolarization);
 	
-	ao::uvector<const double*> psfs(groupTable.SquaredGroupCount());
+	ao::uvector<const double*> psfs(residualSet.PSFCount());
 	for(size_t i=0; i!=psfVecs.size(); ++i)
 		psfs[i] = psfVecs[i].data();
 	
