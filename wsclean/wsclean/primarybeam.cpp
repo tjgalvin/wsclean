@@ -48,7 +48,9 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 		
 		{
 			SynchronizedMS ms(_msProviders.front().first->MS());
-			switch(Telescope::GetType(*ms))
+			Telescope::TelescopeType type = Telescope::GetType(*ms);
+			ms.Reset();
+			switch(type)
 			{
 				case Telescope::LOFAR:
 				case Telescope::AARTFAAC:

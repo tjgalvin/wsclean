@@ -523,14 +523,13 @@ public:
 	{
 		Matrix2x2::EigenValues(_values, e1, e2);
 	}
-	bool HasNaN() const
+	bool IsFinite() const
 	{
-		return !(
+		return
 			std::isfinite(_values[0].real()) && std::isfinite(_values[0].imag()) &&
 			std::isfinite(_values[1].real()) && std::isfinite(_values[1].imag()) &&
 			std::isfinite(_values[2].real()) && std::isfinite(_values[2].imag()) &&
-			std::isfinite(_values[3].real()) && std::isfinite(_values[3].imag())
-		);
+			std::isfinite(_values[3].real()) && std::isfinite(_values[3].imag());
 	}
 	/**
 	 * Calculates L, the lower triangle of the Cholesky decomposition, such that

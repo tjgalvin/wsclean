@@ -64,7 +64,6 @@ private:
 	ao::uvector<bool> _cleanMask;
 	
 	bool _autoMaskIsFinished;
-	size_t _summedCount, _squaredCount;
 	ao::uvector<double> _channelFrequencies, _channelWeights;
 	std::set<PolarizationEnum> _polarizations;
 	PolarizationEnum _psfPolarization;
