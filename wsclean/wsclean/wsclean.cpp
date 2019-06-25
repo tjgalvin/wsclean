@@ -1128,6 +1128,7 @@ void WSClean::runFirstInversion(ImagingTableEntry& entry, std::unique_ptr<class 
 			double ra, dec, dl, dm;
 			SynchronizedMS ms(pbmsList.front().first->MS());
 			MSGridderBase::GetPhaseCentreInfo(*ms, _settings.fieldId, ra, dec, dl, dm);
+			ms.Reset();
 			primaryBeam->SetPhaseCentre(ra, dec, dl, dm);
 			primaryBeam->MakeBeamImages(imageName, entry, std::move(weights), _imageAllocator);
 		}
