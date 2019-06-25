@@ -177,7 +177,7 @@ void ImageOperations::RenderMFSImage(const WSCleanSettings& settings, const Outp
 	bool hasWarned = false;
 	for(double& v : modelImage)
 	{
-		if(!std::isfinite(v) || v > 1.0e9)
+		if(!std::isfinite(v) || std::fabs(v) > 1.0e9)
 		{
 			if(!hasWarned)
 			{
