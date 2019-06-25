@@ -166,15 +166,13 @@ void LBeamImageMaker::makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider&
 		intervalCount = timestepCount;
 	Logger::Debug << "MS spans " << totalSeconds << " seconds, dividing in " << intervalCount << " intervals.\n";
 	
-	casacore::MEpoch::ROScalarColumn timeColumn(*ms, ms->columnName(casacore::MSMainEnums::TIME));
+	casacore::MEpoch::ScalarColumn timeColumn(*ms, ms->columnName(casacore::MSMainEnums::TIME));
 	casacore::MEpoch midTime(casacore::MVEpoch((0.5/86400.0) * (startTime + endTime)), timeColumn(0).getRef());
 	Logger::Debug << "Mid time for full selection: " << midTime << '\n';
 	casacore::MeasFrame midFrame(arrayPos, midTime);
 	const casacore::MDirection::Ref hadecRef(casacore::MDirection::HADEC, midFrame);
 	const casacore::MDirection::Ref azelgeoRef(casacore::MDirection::AZELGEO, midFrame);
 	const casacore::MDirection::Ref midJ2000Ref(casacore::MDirection::J2000, midFrame);
-	
-	ms.Reset(); // release lock on measurement set so that functions below can access it.
 	
 	double refIntervalWeight = 0.0;
 	msProvider.Reset();
@@ -197,7 +195,7 @@ void LBeamImageMaker::makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider&
 		double intervalWeight = 0.0;
 		ao::uvector<double> stationWeights(stations.size(), 0.0);
 		WeightMatrix baselineWeights(stations.size());
-		calculateStationWeights(*_imageWeights, intervalWeight, stationWeights, baselineWeights, msProvider, selection, lastTime);
+		calculateStationWeights(*_imageWeights, intervalWeight, stationWeights, baselineWeights, ms, msProvider, selection, lastTime);
 		
 		if(refIntervalWeight == 0.0)
 			refIntervalWeight = intervalWeight;
@@ -337,9 +335,8 @@ void LBeamImageMaker::makeBeamSnapshot(const std::vector<Station::Ptr>& stations
 	progressBar.SetProgress(_sampledHeight, _sampledHeight);
 }
 
-void LBeamImageMaker::calculateStationWeights(const ImageWeights& imageWeights, double& totalWeight, ao::uvector<double>& weights, WeightMatrix& baselineWeights, MSProvider& msProvider, const MSSelection& selection, double endTime)
+void LBeamImageMaker::calculateStationWeights(const ImageWeights& imageWeights, double& totalWeight, ao::uvector<double>& weights, WeightMatrix& baselineWeights, SynchronizedMS& ms, MSProvider& msProvider, const MSSelection& selection, double endTime)
 {
-	SynchronizedMS ms = msProvider.MS();
 	casacore::MSAntenna antTable(ms->antenna());
 	totalWeight = 0.0;
 	weights.assign(antTable.nrow(), 0.0);

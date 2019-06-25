@@ -177,12 +177,13 @@ void ImageOperations::RenderMFSImage(const WSCleanSettings& settings, const Outp
 	bool hasWarned = false;
 	for(double& v : modelImage)
 	{
-		if(!std::isfinite(v))
+		if(!std::isfinite(v) || v > 1.0e9)
 		{
 			if(!hasWarned)
 			{
 				Logger::Warn <<
-					"\nWarning: Some beam corrected model components are NaN. These won't be restored on the pb mf image.\n"
+					"\nWarning: Some beam corrected model components are NaN or of extremely high flux (> 10^9). These won't\n"
+					"be restored on the pb mf image.\n"
 					"This can be caused by an undefined or zero beam inside the FOV. Be sure to check the individual model\n"
 					"images to check if the mf image is as expected.\n";
 				hasWarned = true;

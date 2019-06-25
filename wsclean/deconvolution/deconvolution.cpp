@@ -172,8 +172,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTa
 	_autoMaskIsFinished = false;
 	FreeDeconvolutionAlgorithms();
 	_parallelDeconvolution.SetAllocator(imageAllocator);
-	_summedCount = groupTable.SquaredGroupCount();
-	if(_summedCount == 0)
+	if(groupTable.SquaredGroupCount() == 0)
 		throw std::runtime_error("Nothing to clean");
 	
 	if(!std::isfinite(_beamSize))
@@ -183,9 +182,9 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTa
 	}
 	
 	ImagingTable firstSquaredGroup = groupTable.GetSquaredGroup(0);
-	_squaredCount = firstSquaredGroup.EntryCount();
+	size_t squaredCount = firstSquaredGroup.EntryCount();
 	_polarizations.clear();
-	for(size_t p=0; p!=_squaredCount; ++p)
+	for(size_t p=0; p!=squaredCount; ++p)
 	{
 		if(_polarizations.count(firstSquaredGroup[p].polarization) != 0)
 			throw std::runtime_error("Two equal polarizations were given to the deconvolution algorithm within a single polarized group");

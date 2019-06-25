@@ -89,7 +89,7 @@ private:
 
 	void makeBeamSnapshot(const std::vector<LOFAR::StationResponse::Station::Ptr>& stations, const ao::uvector<double>& weights, double** imgPtr, double time, double frequency, double subbandFrequency, const casacore::MeasFrame& frame);
 	
-	void calculateStationWeights(const class ImageWeights& imageWeights, double& totalWeight, ao::uvector<double>& weights, WeightMatrix& baselineWeights, MSProvider& msProvider, const MSSelection& selection, double endTime);
+	void calculateStationWeights(const class ImageWeights& imageWeights, double& totalWeight, ao::uvector<double>& weights, WeightMatrix& baselineWeights, SynchronizedMS& ms, MSProvider& msProvider, const MSSelection& selection, double endTime);
 	
 	void logWeights(casacore::MeasurementSet& ms, const ao::uvector<double>& weights);
 #endif
