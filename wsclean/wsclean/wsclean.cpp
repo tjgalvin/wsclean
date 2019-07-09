@@ -980,11 +980,13 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry)
 		std::string prefix = ImageFilename::GetPrefix(_settings, entry.polarization, entry.outputChannelIndex, entry.outputIntervalIndex, i==1);
 		FitsReader reader(prefix + "-model.fits");
 		Logger::Info << "Reading " << reader.Filename() << "...\n";
+		bool resetGridder = false;
 		if(_settings.trimmedImageWidth == 0 && _settings.trimmedImageHeight == 0)
 		{
 			_settings.trimmedImageWidth = reader.ImageWidth();
 			_settings.trimmedImageHeight = reader.ImageHeight();
 			_settings.RecalculatePaddedDimensions();
+			resetGridder = true;
 		}
 		else if(reader.ImageWidth()!=_settings.trimmedImageWidth || reader.ImageHeight()!=_settings.trimmedImageHeight)
 		{
@@ -1000,6 +1002,7 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry)
 			_settings.pixelScaleX = reader.PixelSizeX();
 			_settings.pixelScaleY = reader.PixelSizeY();
 			Logger::Debug << "Using pixel size of " << Angle::ToNiceString(_settings.pixelScaleX) << " x " << Angle::ToNiceString(_settings.pixelScaleY) << ".\n";
+			resetGridder = true;
 		}
 		// Check if image corresponds with image dimensions of the settings
 		// Here I require the pixel scale to be accurate enough so that the image is at most 1/10th pixel larger/smaller.
@@ -1016,6 +1019,9 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry)
 		}
 		
 		// TODO check phase centre
+		
+		if(resetGridder)
+			_griddingTaskManager.reset(new GriddingTaskManager(_settings, _imageAllocator));
 		
 		if(!_imageWeightCache)
 		{

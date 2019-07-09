@@ -424,7 +424,11 @@ private:
 	
 	size_t channelToSqIndex(size_t channel) const
 	{
-		return channel * _imagingTable.SquaredGroupCount() / _channelsInDeconvolution;
+		// Calculate reverse of (outChannel*_channelsInDeconvolution)/_imagingTable.SquaredGroupCount();
+		size_t fromFloor = channel * _imagingTable.SquaredGroupCount() / _channelsInDeconvolution;
+		while(fromFloor * _channelsInDeconvolution / _imagingTable.SquaredGroupCount() != channel)
+			++fromFloor;
+		return fromFloor;
 	}
 	
 	ao::uvector<double*> _images;

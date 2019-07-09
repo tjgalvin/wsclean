@@ -390,6 +390,24 @@ BOOST_FIXTURE_TEST_CASE( deconvchannels_zeroweight , ImageSetFixtureBase )
 	checkSquaredValue(0, 6.0, dset);
 }
 
+BOOST_FIXTURE_TEST_CASE( deconvchannels_divisor , ImageSetFixtureBase )
+{
+	for(size_t ch=0; ch!=16; ++ch)
+		addToImageSet(table, ch, 0, ch, ch, Polarization::StokesI, 100 + ch, 1);
+	table.Update();
+	settings.deconvolutionChannelCount = 3;
+	settings.linkedPolarizations = std::set<PolarizationEnum>{ Polarization::StokesI };
+	ImageSet dset(&table, allocator, settings, 2, 2);
+	for(size_t ch=0; ch!=3; ++ch)
+		dset[ch][0] = 7.0;
+	checkLinearValue(0, 7.0, dset);
+	checkSquaredValue(0, 7.0, dset);
+	
+	BOOST_CHECK_EQUAL(dset.PSFIndex(0), 0);
+	BOOST_CHECK_EQUAL(dset.PSFIndex(1), 1);
+	BOOST_CHECK_EQUAL(dset.PSFIndex(2), 2);
+}
+
 BOOST_FIXTURE_TEST_CASE( psfindex , ImageSetFixtureBase )
 {
 	for(size_t ch=0; ch!=4; ++ch)
