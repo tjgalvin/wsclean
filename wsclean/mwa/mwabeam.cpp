@@ -54,6 +54,7 @@ void MWABeam::Make(PrimaryBeamImageSet& beamImages)
 		const MSSelection& selection = *msProviderInfo.selection;
 		SynchronizedMS ms = msProviderInfo.provider->MS();
 		MultiBandData band(ms->spectralWindow(), ms->dataDescription());
+		ms.Reset();
 		double centralFrequency = 0.0;
 		for(size_t dataDescId=0; dataDescId!=band.DataDescCount(); ++dataDescId)
 		{
