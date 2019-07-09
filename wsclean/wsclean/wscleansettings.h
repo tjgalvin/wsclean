@@ -98,7 +98,7 @@ public:
 	bool saveSourceList;
 	size_t deconvolutionIterationCount, majorIterationCount;
 	bool allowNegativeComponents, stopOnNegativeComponents;
-	bool useMultiscale, useClarkOptimization, squaredJoins;
+	bool useMultiscale, useSubMinorOptimization, squaredJoins;
 	double spectralCorrectionFrequency;
 	ao::uvector<double> spectralCorrection;
 	bool multiscaleFastSubMinorLoop;
@@ -231,7 +231,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	allowNegativeComponents(true), 
 	stopOnNegativeComponents(false),
 	useMultiscale(false),
-	useClarkOptimization(true),
+	useSubMinorOptimization(true),
 	squaredJoins(false),
 	spectralCorrectionFrequency(0.0),
 	spectralCorrection(),

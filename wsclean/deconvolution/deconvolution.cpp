@@ -221,7 +221,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTa
 	}
 	else
 	{
-		algorithm.reset(new GenericClean(*_imageAllocator, _parallelDeconvolution.GetFFTWManager(), _settings.useClarkOptimization));
+		algorithm.reset(new GenericClean(*_imageAllocator, _parallelDeconvolution.GetFFTWManager(), _settings.useSubMinorOptimization));
 	}
 	
 	algorithm->SetMaxNIter(_settings.deconvolutionIterationCount);

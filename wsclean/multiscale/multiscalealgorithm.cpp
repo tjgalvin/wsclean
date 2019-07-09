@@ -2,9 +2,9 @@
 
 #include "multiscaletransforms.h"
 
-#include "../deconvolution/clarkloop.h"
 #include "../deconvolution/componentlist.h"
 #include "../deconvolution/simpleclean.h"
+#include "../deconvolution/subminorloop.h"
 
 #include "../fftwmanager.h"
 
@@ -12,14 +12,11 @@
 
 #include "../units/fluxdensity.h"
 
-
 MultiScaleAlgorithm::MultiScaleAlgorithm(ImageBufferAllocator& allocator, FFTWManager& fftwManager, double beamSize, double pixelScaleX, double pixelScaleY) :
 	_allocator(allocator),
 	_fftwManager(fftwManager),
 	_width(0),
 	_height(0),
-	_convolutionWidth(0),
-	_convolutionHeight(0),
 	_convolutionPadding(1.1),
 	_beamSizeInPixels(beamSize / std::max(pixelScaleX, pixelScaleY)),
 	_multiscaleScaleBias(0.6),
@@ -71,12 +68,6 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 		_allowNegativeComponents = true;
 	_width = width;
 	_height = height;
-	_convolutionWidth = ceil(_convolutionPadding * _width);
-	_convolutionHeight = ceil(_convolutionPadding * _height);
-	if(_convolutionWidth%2 != 0)
-		++_convolutionWidth;
-	if(_convolutionHeight%2 != 0)
-		++_convolutionHeight;
 	// The threads always need to be stopped at the end of this function, so we use a scoped
 	// unique ptr.
 	std::unique_ptr<ThreadedDeconvolutionTools> tools(new ThreadedDeconvolutionTools(_threadCount));
@@ -106,8 +97,13 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 	size_t thresholdCountdown = std::max(size_t(8), _scaleInfos.size()*3/2);
 	
 	ImageBufferAllocator::Ptr scratch, scratchB, integratedScratch;
-	_allocator.Allocate(_convolutionWidth*_convolutionHeight, scratch);
-	_allocator.Allocate(_convolutionWidth*_convolutionHeight, scratchB);
+	// scratch and scratchB are used by the subminorloop, which convolves the images
+	// and requires therefore more space. This space depends on the scale, so here
+	// the required size for the largest scale is calculated.
+	size_t scratchWidth, scratchHeight;
+	getConvolutionDimensions(_scaleInfos.size()-1, scratchWidth, scratchHeight);
+	_allocator.Allocate(scratchWidth*scratchHeight, scratch);
+	_allocator.Allocate(scratchWidth*scratchHeight, scratchB);
 	_allocator.Allocate(_width*_height, integratedScratch);
 	std::unique_ptr<std::unique_ptr<ImageBufferAllocator::Ptr[]>[]> convolvedPSFs(
 		new std::unique_ptr<ImageBufferAllocator::Ptr[]>[dirtySet.PSFCount()]);
@@ -212,7 +208,9 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 		{
 			FFTWManager::ThreadingScope fftwMT(_fftwManager);
 			size_t subMinorStartIteration = _iterationNumber;
-			ClarkLoop clarkLoop(_width, _height, _convolutionWidth, _convolutionHeight);
+			size_t convolutionWidth, convolutionHeight;
+			getConvolutionDimensions(scaleWithPeak, convolutionWidth, convolutionHeight);
+			SubMinorLoop clarkLoop(_width, _height, convolutionWidth, convolutionHeight);
 			clarkLoop.SetIterationInfo(_iterationNumber, MaxNIter());
 			clarkLoop.SetThreshold(firstSubIterationThreshold / _scaleInfos[scaleWithPeak].biasFactor, subIterationGainThreshold / _scaleInfos[scaleWithPeak].biasFactor);
 			clarkLoop.SetGain(_scaleInfos[scaleWithPeak].gain);
@@ -587,4 +585,22 @@ void MultiScaleAlgorithm::findPeakDirect(const double* image, double* scratch, s
 		scaleInfo.maxNormalizedImageValue = get_optional_value_or(maxValue, 0.0);
 	else
 		scaleInfo.maxNormalizedImageValue = get_optional_value_or(maxValue, 0.0) / _rmsFactorImage[scaleInfo.maxImageValueX + scaleInfo.maxImageValueY * _width];
+}
+
+void MultiScaleAlgorithm::getConvolutionDimensions(size_t scaleIndex, size_t& width, size_t& height) const
+{
+	double scale = _scaleInfos[scaleIndex].scale;
+	// The factor of 1.5 comes from some superficial experience with diverging runs.
+	// It's supposed to be a balance between diverging runs caused by
+	// insufficient padding on one hand, and taking up too much memory on the other.
+	// I've seen divergence when padding=1.1, _width=1500, max scale=726 and conv width=1650.
+	// Diverged occurred on scale 363.
+	// Was solved with conv width=2250. 2250 = 1.1*(363*factor + 1500)  --> factor = 1.5
+	// And solved with conv width=2000. 2000 = 1.1*(363*factor + 1500)  --> factor = 0.8
+	width = ceil(_convolutionPadding * (scale*1.5 + _width));
+	height = ceil(_convolutionPadding * (scale*1.5 + _height));
+	if(width%2 != 0)
+		++width;
+	if(height%2 != 0)
+		++height;
 }

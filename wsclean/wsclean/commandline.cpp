@@ -290,10 +290,11 @@ void CommandLine::printHelp()
 		"   This can e.g. avoid downweighting higher frequencies because of\n"
 		"   reduced flux density. 1st term is total flux, 2nd is si, 3rd curvature, etc. \n"
 		"   Example: -spectral-correction 150e6 83.084,-0.699,-0.110\n"
+		"-no-fast-subminor\n"
+		"   Do not use the subminor loop optimization during (non-multiscale) cleaning. Default: use the optimization.\n"
 		"-multiscale\n"
 		"   Clean on different scales. This is a new algorithm. Default: off.\n"
-		"   This parameter invokes the v1.9 multiscale algorithm, which is slower but more accurate\n"
-		"   compared to the older algorithm, and therefore the recommended one to use.\n"
+		"   This parameter invokes the optimized multiscale algorithm published by Offringa & Smirnov (2017).\n"
 		"-multiscale-scale-bias\n"
 		"   Parameter to prevent cleaning small scales in the large-scale iterations. A higher\n"
 		"   bias will give more focus to larger scales. Default: 0.6\n"
@@ -894,6 +895,10 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 		else if(param == "store-imaging-weights")
 		{
 			settings.writeImagingWeightSpectrumColumn = true;
+		}
+		else if(param == "no-fast-subminor")
+		{
+			settings.useSubMinorOptimization = false;
 		}
 		else if(param == "multiscale")
 		{

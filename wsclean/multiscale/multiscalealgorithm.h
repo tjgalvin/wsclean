@@ -86,7 +86,7 @@ public:
 private:
 	class ImageBufferAllocator& _allocator;
 	FFTWManager& _fftwManager;
-	size_t _width, _height, _convolutionWidth, _convolutionHeight;
+	size_t _width, _height;
 	double _convolutionPadding;
 	double _beamSizeInPixels;
 	double _multiscaleScaleBias;
@@ -142,7 +142,7 @@ private:
 	void findPeakDirect(const double *image, double* scratch, size_t scaleIndex);
 	
 	double* getConvolvedPSF(size_t psfIndex, size_t scaleIndex, const std::unique_ptr<std::unique_ptr<ImageBufferAllocator::Ptr[]>[]>& convolvedPSFs);
-	
+	void getConvolutionDimensions(size_t scaleIndex, size_t& width, size_t& height) const;
 };
 
 #endif

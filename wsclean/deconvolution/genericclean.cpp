@@ -1,6 +1,6 @@
 #include "genericclean.h"
 
-#include "clarkloop.h"
+#include "subminorloop.h"
 
 #include "../lane.h"
 
@@ -10,9 +10,9 @@
 
 #include <boost/thread/thread.hpp>
 
-GenericClean::GenericClean(ImageBufferAllocator& allocator, class FFTWManager& fftwManager, bool clarkOptimization) :
+GenericClean::GenericClean(ImageBufferAllocator& allocator, class FFTWManager& fftwManager, bool useSubMinorOptimization) :
 	_convolutionPadding(1.1),
-	_useClarkOptimization(clarkOptimization),
+	_useSubMinorOptimization(useSubMinorOptimization),
 	_allocator(allocator),
 	_fftwManager(fftwManager)
 {
@@ -59,38 +59,38 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 		Logger::Info << "Major iteration threshold reached global threshold of " << FluxDensity::ToNiceString(this->_threshold) << ": final major iteration.\n";
 	}
 	
-	if(_useClarkOptimization)
+	if(_useSubMinorOptimization)
 	{
 		size_t startIteration = _iterationNumber;
-		ClarkLoop clarkLoop(_width, _height, _convolutionWidth, _convolutionHeight);
-		clarkLoop.SetIterationInfo(_iterationNumber, MaxNIter());
-		clarkLoop.SetThreshold(firstThreshold, firstThreshold*0.99);
-		clarkLoop.SetGain(Gain());
-		clarkLoop.SetAllowNegativeComponents(AllowNegativeComponents());
-		clarkLoop.SetStopOnNegativeComponent(StopOnNegativeComponents());
-		clarkLoop.SetSpectralFitter(&Fitter());
+		SubMinorLoop subMinorLoop(_width, _height, _convolutionWidth, _convolutionHeight);
+		subMinorLoop.SetIterationInfo(_iterationNumber, MaxNIter());
+		subMinorLoop.SetThreshold(firstThreshold, firstThreshold*0.99);
+		subMinorLoop.SetGain(Gain());
+		subMinorLoop.SetAllowNegativeComponents(AllowNegativeComponents());
+		subMinorLoop.SetStopOnNegativeComponent(StopOnNegativeComponents());
+		subMinorLoop.SetSpectralFitter(&Fitter());
 		if(!_rmsFactorImage.empty())
-			clarkLoop.SetRMSFactorImage(_rmsFactorImage);
+			subMinorLoop.SetRMSFactorImage(_rmsFactorImage);
 		if(_cleanMask)
-			clarkLoop.SetMask(_cleanMask);
+			subMinorLoop.SetMask(_cleanMask);
 		const size_t
 			horBorderSize = round(_width * CleanBorderRatio()),
 			vertBorderSize = round(_height * CleanBorderRatio());
-		clarkLoop.SetCleanBorders(horBorderSize, vertBorderSize);
+		subMinorLoop.SetCleanBorders(horBorderSize, vertBorderSize);
 		
-		maxValue = clarkLoop.Run(dirtySet, psfs);
+		maxValue = subMinorLoop.Run(dirtySet, psfs);
 		
-		_iterationNumber = clarkLoop.CurrentIteration();
+		_iterationNumber = subMinorLoop.CurrentIteration();
 		
-		Logger::Info << "Performed " << _iterationNumber << " iterations in total, " << (_iterationNumber - startIteration) << " in this major iteration with Clark optimization.\n";
+		Logger::Info << "Performed " << _iterationNumber << " iterations in total, " << (_iterationNumber - startIteration) << " in this major iteration with sub-minor optimization.\n";
 		
 		for(size_t imageIndex=0; imageIndex!=dirtySet.size(); ++imageIndex)
 		{
 			// TODO this can be multi-threaded if each thread has its own temporaries
 			const double *psf = psfs[dirtySet.PSFIndex(imageIndex)];
-			clarkLoop.CorrectResidualDirty(_fftwManager, scratchA.data(), scratchB.data(), integrated.data(), imageIndex, dirtySet[imageIndex],  psf);
+			subMinorLoop.CorrectResidualDirty(_fftwManager, scratchA.data(), scratchB.data(), integrated.data(), imageIndex, dirtySet[imageIndex],  psf);
 			
-			clarkLoop.GetFullIndividualModel(imageIndex, scratchA.data());
+			subMinorLoop.GetFullIndividualModel(imageIndex, scratchA.data());
 			double* model = modelSet[imageIndex];
 			for(size_t i=0; i!=_width*_height; ++i)
 				model[i] += scratchA.data()[i];

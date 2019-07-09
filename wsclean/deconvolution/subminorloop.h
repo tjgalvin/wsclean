@@ -1,5 +1,5 @@
-#ifndef CLARK_LOOP_H
-#define CLARK_LOOP_H
+#ifndef SUB_MINOR_LOOP_H
+#define SUB_MINOR_LOOP_H
 
 #include <cstring>
 #include <vector>
@@ -10,7 +10,7 @@
 #include "../deconvolution/imageset.h"
 
 /**
- * In multi-scale, a subminor Clark-optimized loop looks like this:
+ * In multi-scale, a subminor optimized loop looks like this:
  * 
  * IterateAndMakeModel():
  * - Make a set S with positions of all the components larger than 'threshold', which are also in the mask
@@ -33,12 +33,16 @@
  * - Put the model components from S onto a full image (using GetFullIndividualModel())
  * - Convolve the model image with the scale kernel
  * - Add the model components to the full model
+ * 
+ * A subminor loop has some correspondance with the so-called Clark optimization. However, this
+ * implementation has some differences, e.g. by collecting a list of threshold components prior
+ * of entering the subminor loop.
  */
 
-class ClarkModel
+class SubMinorModel
 {
 public:
-	ClarkModel(size_t width, size_t /*height*/) :
+	SubMinorModel(size_t width, size_t /*height*/) :
 		_width(width)
 	{ }
 	
@@ -78,24 +82,24 @@ private:
 	size_t _width;
 };
 
-class ClarkLoop
+class SubMinorLoop
 {
 public:
-	ClarkLoop(size_t width, size_t height, size_t convolutionWidth, size_t convolutionHeight) :
+	SubMinorLoop(size_t width, size_t height, size_t convolutionWidth, size_t convolutionHeight) :
 		_width(width), _height(height),
-		_untrimmedWidth(convolutionWidth), _untrimmedHeight(convolutionHeight),
+		_paddedWidth(convolutionWidth), _paddedHeight(convolutionHeight),
 		_threshold(0.0), _consideredPixelThreshold(0.0), _gain(0.0),
 		_horizontalBorder(0), _verticalBorder(0),
 		_currentIteration(0), _maxIterations(0),
 		_allowNegativeComponents(true),
 		_stopOnNegativeComponent(false),
 		_mask(0), _fitter(0),
-		_clarkModel(width, height),
+		_subMinorModel(width, height),
 		_fluxCleaned(0.0)
 	{ }
 	
 	/**
-	 * @param threshold The threshold to which this clark run should clean
+	 * @param threshold The threshold to which this subminor run should clean
 	 * @param consideredPixelThreshold The threshold that is used to determine whether a pixel
 	 * is considered. Typically, this is similar to threshold, but it can be set lower if
 	 * it is important that all peak values are below the threshold, as otherwise some pixels
@@ -137,7 +141,7 @@ public:
 	/**
 	 * The produced model is convolved with the given psf, and the result is subtracted from the given residual image.
 	 * To be called after Run().
-	 * After this method, the residual will hold the result of the Clark loop run.
+	 * After this method, the residual will hold the result of the subminor loop run.
 	 * scratchA and scratchB need to be able to store the full padded image (_untrimmedWidth x _untrimmedHeight).
 	 * scratchC only needs to store the trimmed size (_width x _height).
 	 */
@@ -152,14 +156,14 @@ public:
 private:
 	void findPeakPositions(ImageSet& convolvedResidual);
 	
-	size_t _width, _height, _untrimmedWidth, _untrimmedHeight;
+	size_t _width, _height, _paddedWidth, _paddedHeight;
 	double _threshold, _consideredPixelThreshold, _gain;
 	size_t _horizontalBorder, _verticalBorder;
 	size_t _currentIteration, _maxIterations;
 	bool _allowNegativeComponents, _stopOnNegativeComponent;
 	const bool* _mask;
 	const SpectralFitter* _fitter;
-	ClarkModel _clarkModel;
+	SubMinorModel _subMinorModel;
 	double _fluxCleaned;
 	Image _rmsFactorImage;
 };
