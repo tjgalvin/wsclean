@@ -10,9 +10,23 @@
 
 #include "../image.h"
 
+#include "componentlist.h"
 #include "subdivision.h"
 
 #include "../aocommon/parallelfor.h"
+
+ParallelDeconvolution::ParallelDeconvolution(const class WSCleanSettings& settings) :
+	_horImages(0),
+	_verImages(0),
+	_settings(settings),
+	_allocator(nullptr),
+	_mask(nullptr),
+	_trackPerScaleMasks(false),
+	_usePerScaleMasks(false)
+{ }
+
+ParallelDeconvolution::~ParallelDeconvolution()
+{ }
 
 void ParallelDeconvolution::SetAlgorithm(std::unique_ptr<class DeconvolutionAlgorithm> algorithm)
 {
@@ -143,6 +157,17 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 		}
 	}
 	
+	if(_settings.saveSourceList && _settings.useMultiscale)
+	{
+		std::lock_guard<std::mutex> lock(*mutex);
+		MultiScaleAlgorithm& algorithm =
+			static_cast<MultiScaleAlgorithm&>(*_algorithms[subImg.index]);
+		if(!_componentList)
+			_componentList.reset(new ComponentList(width, height, algorithm.ScaleCount(), dataImage.size(), *_allocator));
+		_componentList->Add(algorithm.GetComponentList(), subImg.x, subImg.y);
+		algorithm.GetComponentList().Clear();
+	}
+	
 	if(findPeakOnly)
 		_algorithms[subImg.index]->SetMaxNIter(maxNIter);
 	
@@ -256,9 +281,27 @@ void ParallelDeconvolution::ExecuteMajorIteration(class ImageSet& dataImage, cla
 			runSubImage(subImages[index], dataImage, modelImage, psfImages, mIterThreshold, false, &mutex);
 		});
 		
+		size_t subImagesFinished = 0;
 		reachedMajorThreshold = false;
+		bool reachedMaxNIter = false;
 		for(SubImage& img : subImages)
-			reachedMajorThreshold = reachedMajorThreshold || img.reachedMajorThreshold;
+		{
+			if(!img.reachedMajorThreshold)
+				++subImagesFinished;
+			if(_algorithms[img.index]->IterationNumber() >= _algorithms[img.index]->MaxNIter())
+				reachedMaxNIter = true;
+		}
+		Logger::Info << subImagesFinished << " / " << subImages.size() << " sub-images finished";
+		reachedMajorThreshold = (subImagesFinished!=subImages.size());
+		if(reachedMajorThreshold && !reachedMaxNIter)
+			Logger::Info << ": Continue next major iteration.\n";
+		else if(reachedMajorThreshold && reachedMaxNIter)
+		{
+			Logger::Info << ", but NIter reached at least once: Deconvolution finished.\n";
+			reachedMajorThreshold = false;
+		}
+		else
+			Logger::Info << ": Deconvolution finished.\n";
 	}
 }
 
@@ -267,13 +310,9 @@ void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages, const Im
 	std::string filename = _settings.prefixName + "-sources.txt";
 	if(_settings.useMultiscale)
 	{
-		// TODO correct for parallel case
-		MultiScaleAlgorithm& algorithm =
-			static_cast<MultiScaleAlgorithm&>(*_algorithms.front());
-		algorithm.GetComponentList().Write(filename, algorithm, _settings.pixelScaleX, _settings.pixelScaleY, phaseCentreRA, phaseCentreDec);
+		writeSourceList(*_componentList, filename, phaseCentreRA, phaseCentreDec);
 	}
 	else {
-		// TODO correct for parallel case
 		_allocator->FreeUnused();
 		const size_t
 			w = _settings.trimmedImageWidth,
@@ -281,7 +320,7 @@ void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages, const Im
 		ImageSet modelSet(&table, *_allocator, _settings, w, h);
 		modelSet.LoadAndAverage(modelImages);
 		ComponentList componentList(w, h, modelSet);
-		componentList.WriteSingleScale(filename, *_algorithms.front(), _settings.pixelScaleX, _settings.pixelScaleY, phaseCentreRA, phaseCentreDec);
+		writeSourceList(componentList, filename, phaseCentreRA, phaseCentreDec);
 	}
 }
 
@@ -305,9 +344,7 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages, const 
 		h = _settings.trimmedImageHeight;
 	if(_settings.useMultiscale)
 	{
-		MultiScaleAlgorithm& algorithm =
-			static_cast<MultiScaleAlgorithm&>(*_algorithms.front());
-		list.reset(new ComponentList(algorithm.GetComponentList()));
+		list.reset(new ComponentList(*_componentList));
 	}
 	else {
 		_allocator->FreeUnused();
@@ -337,14 +374,25 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages, const 
 	}
 	
 	std::string filename = _settings.prefixName + "-sources-pb.txt";
+	writeSourceList(*list, filename, phaseCentreRA, phaseCentreDec);
+}
+
+void ParallelDeconvolution::writeSourceList(ComponentList& componentList, const std::string& filename, long double phaseCentreRA, long double phaseCentreDec) const
+{
 	if(_settings.useMultiscale)
 	{
-		MultiScaleAlgorithm& algorithm =
-			static_cast<MultiScaleAlgorithm&>(*_algorithms.front());
-		list->Write(filename, algorithm, _settings.pixelScaleX, _settings.pixelScaleY, phaseCentreRA, phaseCentreDec);
+		MultiScaleAlgorithm* maxAlgorithm =
+			static_cast<MultiScaleAlgorithm*>(_algorithms.front().get());
+		for(size_t i=1; i!=_algorithms.size(); ++i)
+		{
+			MultiScaleAlgorithm* mAlg = static_cast<MultiScaleAlgorithm*>(_algorithms[i].get());
+			if(mAlg->ScaleCount() > maxAlgorithm->ScaleCount())
+				maxAlgorithm = mAlg;
+		}
+		componentList.Write(filename, *maxAlgorithm, _settings.pixelScaleX, _settings.pixelScaleY, phaseCentreRA, phaseCentreDec);
 	}
 	else {
-		list->WriteSingleScale(filename, *_algorithms.front(), _settings.pixelScaleX, _settings.pixelScaleY, phaseCentreRA, phaseCentreDec);
+		componentList.WriteSingleScale(filename, *_algorithms.front(), _settings.pixelScaleX, _settings.pixelScaleY, phaseCentreRA, phaseCentreDec);
 	}
 }
 

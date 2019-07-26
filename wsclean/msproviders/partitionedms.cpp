@@ -65,7 +65,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex, Polarizatio
 			throw std::runtime_error("Error opening temporary model data file");
 		size_t length = _partHeader.channelCount * _metaHeader.selectedRowCount * _polarizationCountInFile * sizeof(std::complex<float>);
 		if(length == 0)
-			_modelFileMap = 0;
+			_modelFileMap = nullptr;
 		else {
 			_modelFileMap = reinterpret_cast<char*>( mmap(NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NORESERVE, _fd, 0) );
 			if(_modelFileMap == MAP_FAILED)

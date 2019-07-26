@@ -18,7 +18,7 @@ public:
 	 */
 	ComponentList(size_t width, size_t height, ImageSet& imageSet) :
 		_width(width), _height(height),
-		_nScales(1), _nFrequencies(imageSet.size()),
+		_nFrequencies(imageSet.size()),
 		_componentsAddedSinceLastMerge(0),
 		_maxComponentsBeforeMerge(100000),
 		_listPerScale(1),
@@ -32,7 +32,7 @@ public:
 	 */
 	ComponentList(size_t width, size_t height, size_t nScales, size_t nFrequencies, ImageBufferAllocator& allocator) :
 		_width(width), _height(height),
-		_nScales(nScales), _nFrequencies(nFrequencies),
+		_nFrequencies(nFrequencies),
 		_componentsAddedSinceLastMerge(0),
 		_maxComponentsBeforeMerge(100000),
 		_listPerScale(nScales),
@@ -49,17 +49,42 @@ public:
 			MergeDuplicates();
 	}
 	
+	void Add(const ComponentList& other, int offsetX, int offsetY)
+	{
+		if(other._nFrequencies != _nFrequencies)
+			throw std::runtime_error("Add(ComponentList...) called with incorrect frequency count");
+		if(other.NScales() > NScales())
+			SetNScales(other.NScales());
+		for(size_t scale=0; scale!=other.NScales(); ++scale)
+		{
+			const ScaleList& list = other._listPerScale[scale];
+			for(size_t i=0; i!=list.positions.size(); ++i)
+			{
+				Add(list.positions[i].x+offsetX, list.positions[i].y+offsetY, scale, &list.values[i*_nFrequencies]);
+			}
+		}
+	}
+	
 	void Write(const std::string& filename, const class MultiScaleAlgorithm& multiscale, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec);
 
 	void WriteSingleScale(const std::string& filename, const class DeconvolutionAlgorithm& algorithm, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec);
 
 	void MergeDuplicates()
 	{
-		for(size_t scaleIndex=0; scaleIndex!=_nScales; ++scaleIndex)
+		for(size_t scaleIndex=0; scaleIndex!=_listPerScale.size(); ++scaleIndex)
 		{
 			mergeDuplicates(scaleIndex);
 		}
 		_componentsAddedSinceLastMerge = 0;
+	}
+	
+	void Clear()
+	{
+		for(ScaleList& list : _listPerScale)
+		{
+			list.positions.clear();
+			list.values.clear();
+		}
 	}
 	
 	size_t ComponentCount(size_t scaleIndex) const
@@ -74,6 +99,13 @@ public:
 	}
 	
 	void CorrectForBeam(class PrimaryBeamImageSet& beam, size_t channel);
+	
+	size_t NScales() const { return _listPerScale.size(); }
+	
+	void SetNScales(size_t nScales)
+	{
+		_listPerScale.resize(nScales);
+	}
 	
 private:
 	struct Position {
@@ -145,7 +177,7 @@ private:
 		std::swap(_listPerScale[scaleIndex].positions, newPositions);
 	}
 	const size_t _width, _height;
-	size_t _nScales, _nFrequencies;
+	size_t _nFrequencies;
 	size_t _componentsAddedSinceLastMerge;
 	size_t _maxComponentsBeforeMerge;
 	std::vector<ScaleList> _listPerScale;

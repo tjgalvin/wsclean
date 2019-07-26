@@ -10,8 +10,8 @@
 
 void ComponentList::Write(const std::string& filename, const MultiScaleAlgorithm& multiscale, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec)
 {
-	ao::uvector<double> scaleSizes(_nScales);
-	for(size_t scaleIndex=0; scaleIndex!=_nScales; ++scaleIndex)
+	ao::uvector<double> scaleSizes(NScales());
+	for(size_t scaleIndex=0; scaleIndex!=NScales(); ++scaleIndex)
 		scaleSizes[scaleIndex] = multiscale.ScaleSize(scaleIndex);
 	write(filename, multiscale, scaleSizes, pixelScaleX, pixelScaleY, phaseCentreRA, phaseCentreDec);
 }
@@ -45,7 +45,7 @@ void ComponentList::write(const std::string& filename, const class Deconvolution
 	}
 	NDPPP::WriteHeaderForSpectralTerms(file, fitter.ReferenceFrequency());
 	ao::uvector<double> terms;
-	for(size_t scaleIndex=0; scaleIndex!=_nScales; ++scaleIndex)
+	for(size_t scaleIndex=0; scaleIndex!=NScales(); ++scaleIndex)
 	{
 		ScaleList& list = _listPerScale[scaleIndex];
 		size_t componentIndex = 0;

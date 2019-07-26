@@ -11,15 +11,9 @@
 class ParallelDeconvolution
 {
 public:
-	ParallelDeconvolution(const class WSCleanSettings& settings) :
-		_horImages(0),
-		_verImages(0),
-		_settings(settings),
-		_allocator(nullptr),
-		_mask(nullptr),
-		_trackPerScaleMasks(false),
-		_usePerScaleMasks(false)
-	{ }
+	ParallelDeconvolution(const class WSCleanSettings& settings);
+	
+	~ParallelDeconvolution();
 	
 	class DeconvolutionAlgorithm& FirstAlgorithm()
 	{
@@ -78,6 +72,8 @@ private:
 	
 	void loadAveragePrimaryBeam(class PrimaryBeamImageSet& beamImages, size_t imageIndex, const class ImagingTable& table) const;
 	
+	void writeSourceList(ComponentList& componentList, const std::string& filename, long double phaseCentreRA, long double phaseCentreDec) const;
+	
 	FFTWManager _fftwManager;
 	std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
 	size_t _horImages, _verImages;
@@ -86,6 +82,7 @@ private:
 	const bool* _mask;
 	bool _trackPerScaleMasks, _usePerScaleMasks;
 	std::vector<ao::uvector<bool>> _scaleMasks;
+	std::unique_ptr<class ComponentList> _componentList;
 };
 
 #endif

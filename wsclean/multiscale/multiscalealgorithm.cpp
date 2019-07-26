@@ -88,9 +88,10 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 			_scaleMasks.emplace_back(_width*_height, false);
 		}
 	}
-	if(_trackComponents && _componentList == nullptr)
+	if(_trackComponents)
 	{
-		_componentList.reset(new ComponentList(_width, _height, _scaleInfos.size(), dirtySet.size(), _allocator));
+		if(_componentList == nullptr)
+			_componentList.reset(new ComponentList(_width, _height, _scaleInfos.size(), dirtySet.size(), _allocator));
 	}
 	
 	bool hasHitThresholdInSubLoop = false;
