@@ -335,6 +335,9 @@ void CommandLine::printHelp()
 		"   Use the specified fits-file as mask during cleaning.\n"
 		"-casa-mask <mask>\n"
 		"   Use the specified CASA mask as mask during cleaning.\n"
+		"-horizon-mask <distance>\n"
+		"   Use a mask that avoids cleaning emission beyond the horizon. Distance is an angle (e.g. \"5deg\")\n"
+		"   that (when positive) decreases the size of the mask to stay further away from the horizon.\n"
 		"-no-negative\n"
 		"   Do not allow negative components during cleaning. Not the default.\n"
 		"-negative\n"
@@ -978,6 +981,12 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 			settings.casaDeconvolutionMask = argv[argi];
 			if(param == "casamask")
 				deprecated(param, "casa-mask");
+		}
+		else if(param == "horizon-mask")
+		{
+			++argi;
+			settings.horizonMask = true;
+			settings.horizonMaskDistance = Angle::Parse(argv[argi], "horizon mask distance", Angle::Degrees);
 		}
 		else if(param == "fit-spectral-pol")
 		{

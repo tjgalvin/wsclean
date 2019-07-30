@@ -243,6 +243,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTa
 
 void Deconvolution::readMask(const ImagingTable& groupTable)
 {
+	bool hasMask = false;
 	if(!_settings.fitsDeconvolutionMask.empty())
 	{
 		FitsReader maskReader(_settings.fitsDeconvolutionMask, true, true);
@@ -266,7 +267,8 @@ void Deconvolution::readMask(const ImagingTable& groupTable)
 		_cleanMask.assign(_imgWidth*_imgHeight, false);
 		for(size_t i=0; i!=_imgWidth*_imgHeight; ++i)
 			_cleanMask[i] = (maskData[i]!=0.0);
-		_parallelDeconvolution.SetCleanMask(_cleanMask.data());
+		
+		hasMask = true;
 	} else if(!_settings.casaDeconvolutionMask.empty())
 	{
 		if(_cleanMask.empty())
@@ -278,6 +280,46 @@ void Deconvolution::readMask(const ImagingTable& groupTable)
 				throw std::runtime_error("Specified CASA mask did not have same dimensions as output image!");
 			maskReader.Read(_cleanMask.data());
 		}
-		_parallelDeconvolution.SetCleanMask(_cleanMask.data());
+		
+		hasMask = true;
 	}
+	
+	if(_settings.horizonMask)
+	{
+		if(!hasMask)
+		{
+			_cleanMask.assign(_imgWidth*_imgHeight, true);
+			hasMask = true;
+		}
+
+		double fovSq = M_PI*0.5 - _settings.horizonMaskDistance;
+		if(fovSq < 0.0) fovSq = 0.0;
+		fovSq = std::sin(fovSq);
+		fovSq = fovSq * fovSq;
+		bool* ptr = _cleanMask.data();
+		
+		for(size_t y=0; y!=_imgHeight; ++y)
+		{
+			for(size_t x=0; x!=_imgWidth; ++x)
+			{
+				double l, m;
+				ImageCoordinates::XYToLM(x, y, _pixelScaleX, _pixelScaleY, _imgWidth, _imgHeight, l, m);
+				if(l*l + m*m >= fovSq)
+					*ptr = false;
+				++ptr;
+			}
+		}
+		
+		Logger::Info << "Saving horizon mask...\n";
+		Image image(_imgWidth, _imgHeight, *_imageAllocator);
+		for(size_t i=0; i!=_imgWidth*_imgHeight; ++i)
+			image[i] = _cleanMask[i] ? 1.0 : 0.0;
+		
+		FitsWriter writer;
+		writer.SetImageDimensions(_imgWidth, _imgHeight,  _settings.pixelScaleX, _settings.pixelScaleY);
+		writer.Write(_settings.prefixName + "-horizon-mask.fits", image.data());
+	}
+	
+	if(hasMask)
+		_parallelDeconvolution.SetCleanMask(_cleanMask.data());
 }

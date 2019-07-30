@@ -110,6 +110,8 @@ public:
 	
 	double deconvolutionBorderRatio;
 	std::string fitsDeconvolutionMask, casaDeconvolutionMask;
+	bool horizonMask;
+	double horizonMaskDistance;
 	std::string localRMSImage;
 	bool useMoreSaneDeconvolution, useIUWTDeconvolution, iuwtSNRTest;
 	std::string moreSaneLocation, moreSaneArgs;
@@ -245,6 +247,8 @@ inline WSCleanSettings::WSCleanSettings() :
 	deconvolutionBorderRatio(0.0),
 	fitsDeconvolutionMask(),
 	casaDeconvolutionMask(),
+	horizonMask(false),
+	horizonMaskDistance(0.0),
 	useMoreSaneDeconvolution(false),
 	useIUWTDeconvolution(false),
 	iuwtSNRTest(false),
