@@ -294,7 +294,8 @@ void Deconvolution::readMask(const ImagingTable& groupTable)
 
 		double fovSq = M_PI*0.5 - _settings.horizonMaskDistance;
 		if(fovSq < 0.0) fovSq = 0.0;
-		fovSq = std::sin(fovSq);
+		if(fovSq <= M_PI*0.5)
+			fovSq = std::sin(fovSq);
 		fovSq = fovSq * fovSq;
 		bool* ptr = _cleanMask.data();
 		
