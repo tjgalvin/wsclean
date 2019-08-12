@@ -64,7 +64,15 @@ public:
 		return image;
 	}
 	
-	static void TrimBox(bool* output, size_t x1, size_t y1, size_t boxWidth, size_t boxHeight, const bool* input, size_t inWidth, size_t inHeight);
+	Image TrimBox(size_t x1, size_t y1, size_t boxWidth, size_t boxHeight) const
+	{
+		Image image(boxWidth, boxHeight, *_allocator);
+		TrimBox(image.data(), x1, y1, boxWidth, boxHeight, data(), Width(), Height());
+		return image;
+	}
+	
+	template<typename T>
+	static void TrimBox(T* output, size_t x1, size_t y1, size_t boxWidth, size_t boxHeight, const T* input, size_t inWidth, size_t inHeight);
 	
 	template<typename T>
 	static void CopyMasked(T* to, size_t toX, size_t toY, size_t toWidth, const T* from, size_t fromWidth, size_t fromHeight, const bool* fromMask);
@@ -123,6 +131,16 @@ private:
 	
 	static double median_with_copy(const double* data, size_t size, ao::uvector<double>& copy);
 };
+
+template<typename T>
+void Image::TrimBox(T* output, size_t x1, size_t y1, size_t boxWidth, size_t boxHeight, const T* input, size_t inWidth, size_t /*inHeight*/)
+{
+	size_t endY = y1 + boxHeight;
+	for(size_t y=y1; y!=endY; ++y)
+	{
+		std::copy_n(&input[y*inWidth + x1], boxWidth, &output[(y-y1)*boxWidth]);
+	}
+}
 
 template<typename T>
 void Image::CopyMasked(T* to, size_t toX, size_t toY, size_t toWidth, const T* from, size_t fromWidth, size_t fromHeight, const bool* fromMask)

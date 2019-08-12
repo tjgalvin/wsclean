@@ -87,6 +87,9 @@ public:
 		}
 	}
 	
+	size_t Width() const { return _width; }
+	size_t Height() const { return _height; }
+	
 	size_t ComponentCount(size_t scaleIndex) const
 	{ return _listPerScale[scaleIndex].positions.size(); }
 	

@@ -2,6 +2,7 @@
 #define PARALLEL_DECONVOLUTION_H
 
 #include "../fftwmanager.h"
+#include "../image.h"
 #include "../uvector.h"
 
 #include <memory>
@@ -59,6 +60,8 @@ public:
 	class FFTWManager& GetFFTWManager() { return _fftwManager; }
 	
 private:
+	void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage, const ao::uvector<const double*>& psfImages, bool& reachedMajorThreshold);
+	
 	struct SubImage {
 		size_t index, x, y, width, height;
 		ao::uvector<bool> mask;
@@ -83,6 +86,7 @@ private:
 	bool _trackPerScaleMasks, _usePerScaleMasks;
 	std::vector<ao::uvector<bool>> _scaleMasks;
 	std::unique_ptr<class ComponentList> _componentList;
+	Image _rmsImage;
 };
 
 #endif

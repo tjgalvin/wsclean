@@ -7,7 +7,10 @@
 #include "../uvector.h"
 
 #include <boost/optional/optional.hpp>
-#include <boost/thread/thread.hpp>
+
+#include <cmath>
+#include <thread>
+#include <vector>
 
 class ThreadedDeconvolutionTools
 {
@@ -37,7 +40,7 @@ public:
 		double result = 0.0;
 		for(size_t i=0; i!=n; ++i)
 			result += image[i] * image[i];
-		return sqrt(result/double(n));
+		return std::sqrt(result/double(n));
 	}
 	
 private:
@@ -94,7 +97,7 @@ private:
 	std::vector<ao::lane<ThreadTask*>*> _taskLanes;
 	std::vector<ao::lane<ThreadResult*>*> _resultLanes;
 	size_t _threadCount;
-	boost::thread_group _threadGroup;
+	std::vector<std::thread> _threadGroup;
 	
 	void threadFunc(ao::lane<ThreadTask*>* taskLane, ao::lane<ThreadResult*>* resultLane)
 	{

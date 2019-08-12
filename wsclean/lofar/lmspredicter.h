@@ -8,10 +8,11 @@
 #include "../lane.h"
 #include "../buffered_lane.h"
 
+#include "../aocommon/barrier.h"
+
 #include "lbeamevaluator.h"
 
 #include <boost/asio/io_service.hpp>
-#include <boost/thread/barrier.hpp>
 
 #include <complex>
 #include <memory>
@@ -91,7 +92,7 @@ private:
 	
 	DFTPredictionInput _dftInput;
 	std::mutex _mutex;
-	boost::barrier _barrier;
+	ao::Barrier _barrier;
 	boost::asio::io_service _ioService;
 	
 	const size_t _laneSize;

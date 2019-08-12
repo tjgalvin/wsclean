@@ -28,9 +28,9 @@ public:
 		return _frequency < rhs._frequency;
 	}
 	
-	/** Whether the frequency of the lhs is less than that of the rhs.
+	/** Whether the frequency of the lhs is greater than that of the rhs.
 	 * @param rhs ChannelInfo to compare with.
-	 * @returns lhs.Frequency() < rhs.Frequency()
+	 * @returns lhs.Frequency() > rhs.Frequency()
 	 */
 	constexpr bool operator>(const ChannelInfo& rhs) const
 	{

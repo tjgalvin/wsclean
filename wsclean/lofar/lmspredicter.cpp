@@ -3,8 +3,6 @@
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 
-#include <boost/bind.hpp>
-
 LMSPredicter::~LMSPredicter()
 {
 	if(_readThread != nullptr)
@@ -97,8 +95,8 @@ void LMSPredicter::ReadThreadFunc()
 			actualThreadCount = 1;
 		for(size_t i=0; i!=actualThreadCount; ++i)
 		{
-			_workThreadGroup.emplace_back(boost::bind(&boost::asio::io_service::run, &_ioService));
-			_ioService.post(boost::bind(&LMSPredicter::PredictThreadFunc, this));
+			_workThreadGroup.emplace_back([&](){ _ioService.run(); });
+			_ioService.post(std::bind(&LMSPredicter::PredictThreadFunc, this));
 		}
 	}
 	
@@ -154,7 +152,7 @@ void LMSPredicter::ReadThreadFunc()
 				_beamEvaluator->SetTime(time);
 				_predicter->UpdateBeam(*_beamEvaluator, _startChannel, _endChannel);
 				for(size_t i=0; i!=actualThreadCount; ++i)
-					_ioService.post(boost::bind(&LMSPredicter::PredictThreadFunc, this));
+					_ioService.post(std::bind(&LMSPredicter::PredictThreadFunc, this));
 			}
 			
 			_availableBufferLane.read(rowData);

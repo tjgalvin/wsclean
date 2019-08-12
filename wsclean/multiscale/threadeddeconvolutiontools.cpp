@@ -14,7 +14,7 @@ ThreadedDeconvolutionTools::ThreadedDeconvolutionTools(size_t threadCount) :
 	{
 		_taskLanes[i] = new ao::lane<ThreadTask*>(1);
 		_resultLanes[i] = new ao::lane<ThreadResult*>(1);
-		_threadGroup.add_thread(new boost::thread(&ThreadedDeconvolutionTools::threadFunc, this, _taskLanes[i], _resultLanes[i]));
+		_threadGroup.emplace_back(&ThreadedDeconvolutionTools::threadFunc, this, _taskLanes[i], _resultLanes[i]);
 	}
 }
 
@@ -25,7 +25,8 @@ ThreadedDeconvolutionTools::~ThreadedDeconvolutionTools()
 		_taskLanes[i]->write_end();
 	}
 	
-	_threadGroup.join_all();
+	for(std::thread& t : _threadGroup)
+		t.join();
 	
 	for(size_t i=0; i!=_threadCount; ++i)
 	{

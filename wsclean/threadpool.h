@@ -3,10 +3,10 @@
 
 #include "system.h"
 
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/function.hpp>
+#include <functional>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #include <queue>
 
@@ -20,27 +20,27 @@ public:
 	
 	~ThreadPool()
 	{
-		boost::mutex::scoped_lock lock(_mutex);
+		std::unique_lock<std::mutex> lock(_mutex);
 		_finish = true;
 		_change.notify_all();
 		lock.unlock();
 		for(size_t i=0; i!=_threads.size(); ++i)
 		{
-			_threads[i]->join();
+			_threads[i].join();
 		}
 	}
 	
 	template<typename func>
 	void queue(func f)
 	{
-		boost::mutex::scoped_lock lock(_mutex);
+		std::lock_guard<std::mutex> lock(_mutex);
 		_queuedTasks.push(f);
 		_change.notify_all();
 	}
 	
 	void wait_for_all_tasks()
 	{
-		boost::mutex::scoped_lock lock(_mutex);
+		std::unique_lock<std::mutex> lock(_mutex);
 		while(_activeThreads!=0 || !_queuedTasks.empty())
 			_change.wait(lock);
 	}
@@ -53,14 +53,14 @@ private:
 		_threads.resize(n);
 		for(size_t i=0; i!=n; ++i)
 		{
-			_threads[i] = new boost::thread(
+			_threads[i] = std::thread(
 				std::mem_fun(&ThreadPool::thread_function), this);
 		}
 	}
 	
 	void thread_function()
 	{
-		boost::mutex::scoped_lock lock(_mutex);
+		std::unique_lock<std::mutex> lock(_mutex);
 		while(!_finish)
 		{
 			while(_queuedTasks.empty() && !_finish)
@@ -69,7 +69,7 @@ private:
 			if(!_finish)
 			{
 				++_activeThreads;
-				boost::function<void()> f = _queuedTasks.front();
+				auto f = _queuedTasks.front();
 				_queuedTasks.pop();
 				lock.unlock();
 				f();
@@ -81,13 +81,13 @@ private:
 		}
 	}
 	
-	std::vector<boost::thread*> _threads;
+	std::vector<std::thread> _threads;
 	std::size_t _activeThreads;
-	std::queue<boost::function<void()> > _queuedTasks;
+	std::queue<std::function<void()> > _queuedTasks;
 	bool _finish;
 	
-	boost::mutex _mutex;
-	boost::condition _change;
+	std::mutex _mutex;
+	std::condition_variable _change;
 };
 
 #endif

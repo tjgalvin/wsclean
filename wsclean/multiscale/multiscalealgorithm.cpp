@@ -92,7 +92,13 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 	{
 		if(_componentList == nullptr)
 			_componentList.reset(new ComponentList(_width, _height, _scaleInfos.size(), dirtySet.size(), _allocator));
+		else if(_componentList->Width() != _width || _componentList->Height() != _height)
+		{
+			throw std::runtime_error("Error in component list dimensions!");
+		}
 	}
+	if(!_rmsFactorImage.empty() && (_rmsFactorImage.Width() != _width || _rmsFactorImage.Height() != _height))
+			throw std::runtime_error("Error in RMS factor image dimensions!");
 	
 	bool hasHitThresholdInSubLoop = false;
 	size_t thresholdCountdown = std::max(size_t(8), _scaleInfos.size()*3/2);
@@ -335,9 +341,9 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 
 void MultiScaleAlgorithm::initializeScaleInfo()
 {
-	if(_scaleInfos.empty())
+	if(_manualScaleList.empty())
 	{
-		if(_manualScaleList.empty())
+		if(_scaleInfos.empty())
 		{
 			size_t scaleIndex = 0;
 			double scale = _beamSizeInPixels * 2.0;
@@ -355,14 +361,22 @@ void MultiScaleAlgorithm::initializeScaleInfo()
 			} while(scale < std::min(_width, _height)*0.5);
 		}
 		else {
-			std::sort(_manualScaleList.begin(), _manualScaleList.end());
-			for(size_t scaleIndex = 0; scaleIndex != _manualScaleList.size(); ++scaleIndex)
+			while(!_scaleInfos.empty() && _scaleInfos.back().scale >= std::min(_width, _height) * 0.5)
 			{
-				_scaleInfos.push_back(ScaleInfo());
-				ScaleInfo& newEntry = _scaleInfos.back();
-				newEntry.scale = _manualScaleList[scaleIndex];
-				newEntry.kernelPeak = MultiScaleTransforms::KernelPeakValue(newEntry.scale, std::min(_width, _height), _scaleShape);
+				Logger::Info << "Scale size " << _scaleInfos.back().scale << " does not fit in cleaning region: removing scale.\n";
+				_scaleInfos.erase(_scaleInfos.begin() + _scaleInfos.size() - 1);
 			}
+		}
+	}
+	if(!_manualScaleList.empty() && _scaleInfos.empty())
+	{
+		std::sort(_manualScaleList.begin(), _manualScaleList.end());
+		for(size_t scaleIndex = 0; scaleIndex != _manualScaleList.size(); ++scaleIndex)
+		{
+			_scaleInfos.push_back(ScaleInfo());
+			ScaleInfo& newEntry = _scaleInfos.back();
+			newEntry.scale = _manualScaleList[scaleIndex];
+			newEntry.kernelPeak = MultiScaleTransforms::KernelPeakValue(newEntry.scale, std::min(_width, _height), _scaleShape);
 		}
 	}
 }

@@ -4,9 +4,9 @@
 #include "lane.h"
 
 #include <vector>
+#include <thread>
 
 #include <fftw3.h>
-#include <boost/thread/thread.hpp>
 
 #include "uvector.h"
 #include "windowfunction.h"
@@ -36,14 +36,15 @@ public:
 	{
 		for(size_t i=0; i!=_tasks.capacity(); ++i)
 		{
-			_threads.add_thread(new boost::thread(&FFTResampler::runThread, this));
+			_threads.emplace_back(&FFTResampler::runThread, this);
 		}
 	}
 	
 	void Finish()
 	{
 		_tasks.write_end();
-		_threads.join_all();
+		for(std::thread& t : _threads)
+			t.join();
 		_tasks.clear();
 	}
 	
@@ -100,7 +101,7 @@ private:
 	fftw_plan _inToFPlan, _fToOutPlan;
 	
 	ao::lane<Task> _tasks;
-	boost::thread_group _threads;
+	std::vector<std::thread> _threads;
 	bool _verbose;
 };
 
