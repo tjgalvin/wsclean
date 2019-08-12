@@ -31,6 +31,10 @@ public:
 	{
 		_ptr = std::move(other._ptr);
 	}
+	void reset() noexcept
+	{
+		_ptr.reset();
+	}
 	void reset(T* object) noexcept  
 	{
 		_ptr.reset(object);

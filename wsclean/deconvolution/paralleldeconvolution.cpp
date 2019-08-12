@@ -178,7 +178,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 		if(!_componentList)
 			_componentList.reset(new ComponentList(width, height, algorithm.ScaleCount(), dataImage.size(), *_allocator));
 		_componentList->Add(algorithm.GetComponentList(), subImg.x, subImg.y);
-		algorithm.GetComponentList().Clear();
+		algorithm.ClearComponentList();
 	}
 	
 	if(findPeakOnly)

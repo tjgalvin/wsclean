@@ -67,6 +67,10 @@ public:
 	{
 		return _scaleInfos.size();
 	}
+	void ClearComponentList() 
+	{
+		_componentList.reset();
+	}
 	ComponentList& GetComponentList() 
 	{
 		return *_componentList;
