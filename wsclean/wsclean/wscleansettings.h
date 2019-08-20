@@ -43,7 +43,9 @@ public:
 	bool fittedBeam, theoreticBeam, circularBeam;
 	double beamFittingBoxSize;
 	bool continuedRun;
-	double memFraction, absMemLimit, minUVWInMeters, maxUVWInMeters, minUVInLambda, maxUVInLambda, wLimit, rankFilterLevel;
+	double memFraction, absMemLimit;
+	bool directAllocation;
+	double minUVWInMeters, maxUVWInMeters, minUVInLambda, maxUVInLambda, wLimit, rankFilterLevel;
 	size_t rankFilterSize;
 	double gaussianTaperBeamSize, tukeyTaperInLambda, tukeyInnerTaperInLambda, edgeTaperInLambda, edgeTukeyTaperInLambda;
 	bool useWeightsAsTaper;
@@ -166,6 +168,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	beamFittingBoxSize(10.0),
 	continuedRun(false),
 	memFraction(1.0), absMemLimit(0.0),
+	directAllocation(false),
 	minUVWInMeters(0.0), maxUVWInMeters(0.0),
 	minUVInLambda(0.0), maxUVInLambda(0.0), wLimit(0.0),
 	rankFilterLevel(3.0), rankFilterSize(16),

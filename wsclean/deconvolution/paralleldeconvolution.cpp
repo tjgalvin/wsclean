@@ -138,7 +138,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 			for(size_t i=0; i!=msAlg.ScaleCount(); ++i)
 			{
 				ao::uvector<bool>& output = msAlg.GetScaleMask(i);
-				output.resize(subImg.width * subImg.height);
+				output.assign(subImg.width * subImg.height, false);
 				if(i < _scaleMasks.size())
 					Image::TrimBox(output.data(), subImg.x, subImg.y, subImg.width, subImg.height, _scaleMasks[i].data(), width, height);
 			}

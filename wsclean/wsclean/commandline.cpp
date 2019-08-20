@@ -39,6 +39,9 @@ void CommandLine::printHelp()
 		"   Default: 100.\n"
 		"-abs-mem <memory limit>\n"
 		"   Like -mem, but this specifies a fixed amount of memory in gigabytes.\n"
+		"-direct-allocation\n"
+		"   Enabled direct allocation, which changes memory usage. Not recommended for general usage, but when\n"
+		"   using extremely large images that barely fit in memory it might improve memory usage in rare cases.\n"
 		"-verbose (or -v)\n"
 		"   Increase verbosity of output.\n"
 		"-log-time\n"
@@ -1169,6 +1172,10 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 			settings.absMemLimit = parse_double(argv[argi], 0.0, "abs-mem", false);
 			if(param == "absmem")
 				deprecated(param, "abs-mem");
+		}
+		else if(param == "direct-allocation")
+		{
+			settings.directAllocation = true;
 		}
 		else if(param == "maxuvw-m")
 		{

@@ -94,41 +94,43 @@ public:
 		ImageBufferAllocator* _allocator;
 	};
 	
-	ImageBufferAllocator() : _buffers(), _nReal(0), _nComplex(0), _nRealMax(0), _nComplexMax(0), _previousSize(0)
+	ImageBufferAllocator() : _buffers(), _nReal(0), _nComplex(0), _nRealMax(0), _nComplexMax(0), _previousSize(0), _direct(false)
 	{ }
+	
+	ImageBufferAllocator(bool direct) : _buffers(), _nReal(0), _nComplex(0), _nRealMax(0), _nComplexMax(0), _previousSize(0), _direct(direct)
+	{ }
+	
+	ImageBufferAllocator(const ImageBufferAllocator& source) = delete;
+	
+	ImageBufferAllocator(ImageBufferAllocator&& source) = default;
+	
+	ImageBufferAllocator& operator=(const ImageBufferAllocator& source) = delete;
+	
+	ImageBufferAllocator& operator=(ImageBufferAllocator&& source)
+	{
+		clear();
+		std::swap(_buffers, source._buffers);
+		std::swap(_nReal, source._nReal);
+		std::swap(_nComplex, source._nComplex);
+		std::swap(_nRealMax, source._nRealMax);
+		std::swap(_nComplexMax, source._nComplexMax);
+		std::swap(_previousSize, source._previousSize);
+		std::swap(_direct, source._direct);
+		return *this;
+	}
 	
 	~ImageBufferAllocator()
 	{
-		std::lock_guard<std::mutex> guard(_mutex);
-		size_t usedCount = 0;
-		std::ostringstream str;
-		for(std::vector<Buffer>::iterator i=_buffers.begin(); i!=_buffers.end(); ++i)
-		{
-			if(i->isFirstHalfUsed) {
-				++usedCount;
-				str << "Still used: buffer of " << i->size << '\n';
-			}
-			if(i->isSecondHalfUsed) {
-				++usedCount;
-				str << "Still used: buffer of " << i->size << '\n';
-			}
-			// In case of leak, leave this allocated so that e.g. valgrind can diagnose it as well.
-			if(!i->isFirstHalfUsed && !i->isSecondHalfUsed)
-				free(i->ptr);
-		}
-		if(usedCount != 0)
-		{
-			std::cerr << usedCount << " image buffer(s) were still in use when image buffer allocator was destroyed!\n" << str.str();
-		}
+		clear();
 	}
 	
 	void ReportStatistics() const
 	{
 		std::lock_guard<std::mutex> guard(_mutex);
 		double totalSize = 0.0;
-		for(std::vector<Buffer>::const_iterator i=_buffers.begin(); i!=_buffers.end(); ++i)
+		for(const Buffer& buffer : _buffers)
 		{
-			totalSize += double(i->size) * double(sizeof(double)*2);
+			totalSize += double(buffer.size) * double(sizeof(double)*2);
 		}
 		Logger::Info << "Image buf alloc stats:\n"
 			"         max alloc'd images = " << _nRealMax << " real + " << _nComplexMax << " complex\n"
@@ -148,74 +150,84 @@ public:
 	
 	double* Allocate(size_t size)
 	{
-		if(size == 0) size=2;
-		else if(size%2==1) ++size;
-		std::lock_guard<std::mutex> guard(_mutex);
-		
-		if(size != _previousSize)
-		{
-			FreeUnused();
-			_previousSize = size;
-		}
-		
-		++_nReal;
-		if(_nReal > _nRealMax) _nRealMax = _nReal;
-		for(std::vector<Buffer>::iterator i=_buffers.begin(); i!=_buffers.end(); ++i)
-		{
-			if(i->size == size)
+		if(_direct)
+			return directAllocate(size);
+		else {
+			if(size == 0) size=2;
+			else if(size%2==1) ++size;
+			std::lock_guard<std::mutex> guard(_mutex);
+			
+			if(size != _previousSize)
 			{
-				if(!i->isFirstHalfUsed)
+				FreeUnused();
+				_previousSize = size;
+			}
+			
+			++_nReal;
+			if(_nReal > _nRealMax) _nRealMax = _nReal;
+			for(std::vector<Buffer>::iterator i=_buffers.begin(); i!=_buffers.end(); ++i)
+			{
+				if(i->size == size)
 				{
-					i->isFirstHalfUsed = true;
-					return i->ptr;
-				}
-				if(!i->isSecondHalfUsed)
-				{
-					i->isSecondHalfUsed = true;
-					return i->ptr + size;
+					if(!i->isFirstHalfUsed)
+					{
+						i->isFirstHalfUsed = true;
+						return i->ptr;
+					}
+					if(!i->isSecondHalfUsed)
+					{
+						i->isSecondHalfUsed = true;
+						return i->ptr + size;
+					}
 				}
 			}
+			Buffer* newBuffer = allocateNewBuffer(size);
+			newBuffer->isFirstHalfUsed = true;
+			return newBuffer->ptr;
 		}
-		Buffer* newBuffer = allocateNewBuffer(size);
-		newBuffer->isFirstHalfUsed = true;
-		return newBuffer->ptr;
 	}
 	
 	std::complex<double>* AllocateComplex(size_t size)
 	{
-		if(size == 0) size=2;
-		else if(size%2==1) ++size;
-		std::lock_guard<std::mutex> guard(_mutex);
-		
-		if(size != _previousSize)
-		{
-			FreeUnused();
-			_previousSize = size;
-		}
-		
-		++_nComplex;
-		if(_nComplex > _nComplexMax) _nComplexMax = _nComplex;
-		for(std::vector<Buffer>::iterator i=_buffers.begin(); i!=_buffers.end(); ++i)
-		{
-			if(i->size == size)
+		if(_direct)
+			return reinterpret_cast<std::complex<double>*>(directAllocate(size*2));
+		else {
+			if(size == 0) size=2;
+			else if(size%2==1) ++size;
+			std::lock_guard<std::mutex> guard(_mutex);
+			
+			if(size != _previousSize)
 			{
-				if(!i->isFirstHalfUsed && !i->isSecondHalfUsed)
+				FreeUnused();
+				_previousSize = size;
+			}
+			
+			++_nComplex;
+			if(_nComplex > _nComplexMax) _nComplexMax = _nComplex;
+			for(std::vector<Buffer>::iterator i=_buffers.begin(); i!=_buffers.end(); ++i)
+			{
+				if(i->size == size)
 				{
-					i->isFirstHalfUsed = true;
-					i->isSecondHalfUsed = true;
-					return reinterpret_cast<std::complex<double>*>(i->ptr);
+					if(!i->isFirstHalfUsed && !i->isSecondHalfUsed)
+					{
+						i->isFirstHalfUsed = true;
+						i->isSecondHalfUsed = true;
+						return reinterpret_cast<std::complex<double>*>(i->ptr);
+					}
 				}
 			}
+			Buffer* newBuffer = allocateNewBuffer(size);
+			newBuffer->isFirstHalfUsed = true;
+			newBuffer->isSecondHalfUsed = true;
+			return reinterpret_cast<std::complex<double>*>(newBuffer->ptr);
 		}
-		Buffer* newBuffer = allocateNewBuffer(size);
-		newBuffer->isFirstHalfUsed = true;
-		newBuffer->isSecondHalfUsed = true;
-		return reinterpret_cast<std::complex<double>*>(newBuffer->ptr);
 	}
 	
 	void Free(double* buffer)
 	{
-		if(buffer != 0)
+		if(_direct)
+			free(buffer);
+		else if(buffer != nullptr)
 		{
 			std::lock_guard<std::mutex> guard(_mutex);
 			bool found = false;
@@ -245,7 +257,9 @@ public:
 	
 	void Free(std::complex<double>* buffer)
 	{
-		if(buffer != 0)
+		if(_direct)
+			free(buffer);
+		else if(buffer != nullptr)
 		{
 			std::lock_guard<std::mutex> guard(_mutex);
 			bool found = false;
@@ -302,7 +316,17 @@ private:
 	{
 		_buffers.push_back(Buffer());
 		Buffer* buffer = &_buffers.back();
-		int errVal = posix_memalign(reinterpret_cast<void**>(&buffer->ptr), sizeof(double)*2, size*sizeof(double) * 2);
+		buffer->ptr = directAllocate(size*2);
+		buffer->size = size;
+		buffer->isFirstHalfUsed = false;
+		buffer->isSecondHalfUsed = false;
+		return buffer;
+	}
+	
+	double* directAllocate(size_t size)
+	{
+		double* ptr;
+		int errVal = posix_memalign(reinterpret_cast<void**>(&ptr), sizeof(double), size*sizeof(double));
 		if(errVal != 0)
 		{
 			std::ostringstream msg;
@@ -321,14 +345,39 @@ private:
 			}
 			throw std::runtime_error(msg.str());
 		}
-		buffer->size = size;
-		buffer->isFirstHalfUsed = false;
-		buffer->isSecondHalfUsed = false;
-		return buffer;
+		return ptr;
+	}
+	
+	void clear()
+	{
+		std::lock_guard<std::mutex> guard(_mutex);
+		size_t usedCount = 0;
+		std::ostringstream str;
+		for(Buffer& buffer : _buffers)
+		{
+			if(buffer.isFirstHalfUsed) {
+				++usedCount;
+				str << "Still used: buffer of " << buffer.size << '\n';
+				buffer.isFirstHalfUsed = false;
+			}
+			if(buffer.isSecondHalfUsed) {
+				++usedCount;
+				str << "Still used: buffer of " << buffer.size << '\n';
+				buffer.isSecondHalfUsed = false;
+			}
+			// In case of leak, leave this allocated so that e.g. valgrind can diagnose it as well.
+			if(!buffer.isFirstHalfUsed && !buffer.isSecondHalfUsed)
+				free(buffer.ptr);
+		}
+		if(usedCount != 0)
+		{
+			std::cerr << usedCount << " image buffer(s) were still in use when image buffer allocator was destroyed!\n" << str.str();
+		}
 	}
 	
 	std::vector<Buffer> _buffers;
 	size_t _nReal, _nComplex, _nRealMax, _nComplexMax, _previousSize;
+	bool _direct;
 	mutable std::mutex _mutex;
 };
 

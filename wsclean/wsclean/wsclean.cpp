@@ -450,6 +450,9 @@ void WSClean::RunClean()
 
 	_settings.Propogate();
 	
+	if(_settings.directAllocation)
+		_imageAllocator = ImageBufferAllocator(true);
+	
 	_globalSelection = _settings.GetMSSelection();
 	MSSelection fullSelection = _globalSelection;
 	

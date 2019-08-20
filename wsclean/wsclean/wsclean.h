@@ -67,7 +67,6 @@ private:
 	void imagePSF(ImagingTableEntry& entry);
 	void imagePSFCallback(ImagingTableEntry& entry, struct GriddingResult& result);
 	
-	void imageGridding();
 	void imageMain(ImagingTableEntry& entry, bool isFirst, bool updateBeamInfo, bool isInitialInversion);
 	void imageMainCallback(ImagingTableEntry& entry, struct GriddingResult& result, bool updateBeamInfo, bool isInitialInversion);
 	
