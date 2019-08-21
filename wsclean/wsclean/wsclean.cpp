@@ -546,6 +546,9 @@ void WSClean::RunClean()
 				}
 			}
 		}
+		
+		// This will erase the temporary files
+		_partitionedMSHandles.clear();
 	}
 }
 
