@@ -78,7 +78,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 	{
 		// Note that in a second round the nr of scales can be different (due to different width/height,
 		// e.g. caused by a different subdivision in parallel cleaning).
-		for(const ao::uvector<bool>& mask :_scaleMasks)
+		for(const ao::uvector<bool>& mask : _scaleMasks)
 		{
 			if(mask.size() != _width*_height)
 				throw std::runtime_error("Invalid automask size in multiscale algorithm");

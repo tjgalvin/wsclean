@@ -83,6 +83,14 @@ public:
 	{
 		return _scaleInfos[scaleIndex].scale; 
 	}
+	size_t GetScaleMaskCount() const
+	{
+		return _scaleMasks.size();
+	}
+	void SetScaleMaskCount(size_t n)
+	{
+		_scaleMasks.resize(n);
+	}
 	ao::uvector<bool>& GetScaleMask(size_t index)
 	{
 		return _scaleMasks[index];

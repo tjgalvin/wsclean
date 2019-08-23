@@ -131,11 +131,15 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 	{
 		std::lock_guard<std::mutex> lock(*mutex);
 		MultiScaleAlgorithm& msAlg = static_cast<class MultiScaleAlgorithm&>(*_algorithms[subImg.index]);
+		// During the first iteration, msAlg will not have scales/masks yet and the nr scales has also not
+		// been determined yet.
 		if(!_scaleMasks.empty())
 		{
-			// During the first iteration, msAlg will not have scales/masks yet and the nr scales has also not
-			// been determined yet.
-			for(size_t i=0; i!=msAlg.ScaleCount(); ++i)
+			// Here we set the scale mask for the multiscale algorithm.
+			// The maximum number of scales in the previous iteration can be found by _scaleMasks.size()
+			// Not all msAlgs might have used that many scales, so we have to take this into account
+			msAlg.SetScaleMaskCount(std::max(msAlg.GetScaleMaskCount(), _scaleMasks.size()));
+			for(size_t i=0; i!=msAlg.GetScaleMaskCount(); ++i)
 			{
 				ao::uvector<bool>& output = msAlg.GetScaleMask(i);
 				output.assign(subImg.width * subImg.height, false);
