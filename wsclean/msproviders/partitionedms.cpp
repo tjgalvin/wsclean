@@ -374,8 +374,11 @@ PartitionedMS::Handle PartitionedMS::Partition(const string& msPath, const std::
 		else
 			rowProvider.reset(new DirectMSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName, initialModelRequired));
 	}
-	else
+	else {
+		if(initialModelRequired)
+			throw std::runtime_error("Baseline-dependent averaging is enabled together with a model that requires the model data (e.g. -continue or -subtract-model). This is not possible.");
 		rowProvider.reset(new AveragingMSRowProvider(settings.baselineDependentAveragingInWavelengths, msPath, selection, selectedDataDescIds, dataColumnName, initialModelRequired));
+	}
 	
 	std::vector<PolarizationEnum> msPolarizations = GetMSPolarizations(rowProvider->MS());
 	
