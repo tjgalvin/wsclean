@@ -355,6 +355,38 @@ class lane
 			return n - n_left;
 		}
 		
+		/**
+		 * This method does the same thing as read(buffer, n) but discards the data.
+		 * This eliminates the requirement to specify a buffer if the data is not necessary
+		 * anyway, and avoids a copy of the data.
+		 */
+		size_t discard(size_t n)
+		{
+			size_t n_left = n;
+			
+			std::unique_lock<std::mutex> lock(_mutex);
+			LANE_REGISTER_DEBUG_INFO;
+			
+			size_t free_space = free_read_space();
+			size_t read_size = free_space > n ? n : free_space;
+			immediate_discard(read_size);
+			n_left -= read_size;
+			
+			while(n_left != 0 && _status == status_normal)
+			{
+				do {
+					LANE_REGISTER_DEBUG_READ_WAIT;
+					_reading_possible_condition.wait(lock);
+				} while(free_read_space() == 0 && _status == status_normal);
+				
+				free_space = free_read_space();
+				read_size = free_space > n_left ? n_left : free_space;
+				immediate_discard(read_size);
+				n_left -= read_size;
+			}
+			return n - n_left;
+		}
+		
 		void write_end()
 		{
 			std::lock_guard<std::mutex> lock(_mutex);
@@ -540,6 +572,18 @@ class lane
 				_writing_possible_condition.notify_all();
 			}
 		}
+		
+		void immediate_discard(size_t n) noexcept
+		{
+			if(n > 0)
+			{
+				_free_write_space += n;
+				
+				// Now that there is more free write space, writers can possibly continue.
+				_writing_possible_condition.notify_all();
+			}
+		}
+		
 #ifdef LANE_DEBUG_MODE
 		void registerDebugInfo() noexcept
 		{

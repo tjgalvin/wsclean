@@ -170,6 +170,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTa
 	_psfPolarization = psfPolarization;
 	_beamSize = beamSize;
 	_autoMaskIsFinished = false;
+	_autoMask.clear();
 	FreeDeconvolutionAlgorithms();
 	_parallelDeconvolution.SetAllocator(imageAllocator);
 	if(groupTable.SquaredGroupCount() == 0)

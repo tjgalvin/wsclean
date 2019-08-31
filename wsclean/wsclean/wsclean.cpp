@@ -1313,19 +1313,19 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex)
 
 void WSClean::makeImagingTableEntry(const std::vector<ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, ImagingTableEntry& entry)
 {
-	size_t startCh, width;
+	size_t startCh, endCh;
 	if(_settings.endChannel != 0)
 	{
 		if(_settings.endChannel > channels.size())
 			throw std::runtime_error("Bad channel selection -- more channels selected than available");
 		startCh = _settings.startChannel;
-		width = _settings.endChannel-startCh;
+		endCh = _settings.endChannel;
 	}
 	else {
 		startCh = 0;
-		width = channels.size();
+		endCh = channels.size();
 	}
-	std::vector<ChannelInfo> groupChannels(channels.begin()+startCh, channels.begin()+width);
+	std::vector<ChannelInfo> groupChannels(channels.begin()+startCh, channels.begin()+endCh);
 	
 	if(_settings.divideChannelFrequencies.empty())
 	{
