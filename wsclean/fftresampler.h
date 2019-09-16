@@ -45,6 +45,7 @@ public:
 		_tasks.write_end();
 		for(std::thread& t : _threads)
 			t.join();
+		_threads.clear();
 		_tasks.clear();
 	}
 	
