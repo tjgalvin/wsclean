@@ -50,12 +50,12 @@ void MSGridderBase::GetPhaseCentreInfo(casacore::MeasurementSet& ms, size_t fiel
 	casacore::MSAntenna aTable = ms.antenna();
 	size_t antennaCount = aTable.nrow();
 	if(antennaCount == 0) throw std::runtime_error("No antennae in set");
-	casacore::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
+	casacore::MPosition::ScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
 	casacore::MPosition ant1Pos = antPosColumn(0);
 	
-	casacore::MEpoch::ROScalarColumn timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
+	casacore::MEpoch::ScalarColumn timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
 	casacore::MSField fTable(ms.field());
-	casacore::MDirection::ROScalarColumn phaseDirColumn(fTable, fTable.columnName(casacore::MSFieldEnums::PHASE_DIR));
+	casacore::MDirection::ScalarColumn phaseDirColumn(fTable, fTable.columnName(casacore::MSFieldEnums::PHASE_DIR));
 	casacore::MDirection phaseDir = phaseDirColumn(fieldId);
 	casacore::MEpoch curtime = timeColumn(0);
 	casacore::MeasFrame frame(ant1Pos, curtime);
@@ -204,13 +204,13 @@ void MSGridderBase::initializeMetaData(casacore::MeasurementSet& ms, size_t fiel
 	casacore::MSObservation oTable = ms.observation();
 	size_t obsCount = oTable.nrow();
 	if(obsCount == 0) throw std::runtime_error("No observations in set");
-	casacore::ROScalarColumn<casacore::String> telescopeNameColumn(oTable, oTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
-	casacore::ROScalarColumn<casacore::String> observerColumn(oTable, oTable.columnName(casacore::MSObservation::OBSERVER));
+	casacore::ScalarColumn<casacore::String> telescopeNameColumn(oTable, oTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
+	casacore::ScalarColumn<casacore::String> observerColumn(oTable, oTable.columnName(casacore::MSObservation::OBSERVER));
 	_telescopeName = telescopeNameColumn(0);
 	_observer = observerColumn(0);
 	
 	casacore::MSField fTable = ms.field();
-	casacore::ROScalarColumn<casacore::String> fieldNameColumn(fTable, fTable.columnName(casacore::MSField::NAME));
+	casacore::ScalarColumn<casacore::String> fieldNameColumn(fTable, fTable.columnName(casacore::MSField::NAME));
 	_fieldName = fieldNameColumn(fieldId);
 }
 

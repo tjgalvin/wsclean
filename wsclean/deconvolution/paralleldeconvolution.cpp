@@ -324,7 +324,7 @@ void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class 
 		Logger::Info << ": Continue next major iteration.\n";
 	else if(reachedMajorThreshold && reachedMaxNIter)
 	{
-		Logger::Info << ", but NIter reached at least once: Deconvolution finished.\n";
+		Logger::Info << ", but nr. of iterations reached at least once: Deconvolution finished.\n";
 		reachedMajorThreshold = false;
 	}
 	else

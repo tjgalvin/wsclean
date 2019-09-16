@@ -194,7 +194,7 @@ public:
 						<< c.MinorAxis()*(180*3600.0/M_PI) << ", " 
 						<< c.PositionAngle()*(180.0/M_PI) << '\n';
 				}
-				else file << ", , ,\n";
+				else file << ", ,\n";
 			}
 		}
 	}

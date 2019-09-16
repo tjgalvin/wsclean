@@ -599,14 +599,14 @@ void PartitionedMS::unpartition(const PartitionedMS::Handle::HandleData& handle)
 		casacore::MeasurementSet ms(handle._msPath, casacore::Table::Update);
 		const std::vector<PolarizationEnum> msPolarizations = GetMSPolarizations(ms);
 		initializeModelColumn(ms);
-		casacore::ROScalarColumn<int> antenna1Column(ms, ms.columnName(casacore::MSMainEnums::ANTENNA1));
-		casacore::ROScalarColumn<int> antenna2Column(ms, ms.columnName(casacore::MSMainEnums::ANTENNA2));
-		casacore::ROScalarColumn<int> fieldIdColumn(ms, ms.columnName(casacore::MSMainEnums::FIELD_ID));
-		casacore::ROScalarColumn<double> timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
-		casacore::ROScalarColumn<int> dataDescIdColumn(ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
-		casacore::ROArrayColumn<casacore::Complex> dataColumn(ms, handle._dataColumnName);
+		casacore::ScalarColumn<int> antenna1Column(ms, ms.columnName(casacore::MSMainEnums::ANTENNA1));
+		casacore::ScalarColumn<int> antenna2Column(ms, ms.columnName(casacore::MSMainEnums::ANTENNA2));
+		casacore::ScalarColumn<int> fieldIdColumn(ms, ms.columnName(casacore::MSMainEnums::FIELD_ID));
+		casacore::ScalarColumn<double> timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
+		casacore::ScalarColumn<int> dataDescIdColumn(ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
+		casacore::ArrayColumn<casacore::Complex> dataColumn(ms, handle._dataColumnName);
 		casacore::ArrayColumn<casacore::Complex> modelColumn(ms, ms.columnName(casacore::MSMainEnums::MODEL_DATA));
-		casacore::ROArrayColumn<double> uvwColumn(ms, ms.columnName(casacore::MSMainEnums::UVW));
+		casacore::ArrayColumn<double> uvwColumn(ms, ms.columnName(casacore::MSMainEnums::UVW));
 		
 		const casacore::IPosition shape(dataColumn.shape(0));
 		size_t channelCount = shape[1];
