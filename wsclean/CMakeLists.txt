@@ -29,7 +29,7 @@ find_library(FFTW3_LIB fftw3 REQUIRED)
 find_library(FFTW3_THREADS_LIB fftw3_threads REQUIRED)
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem thread system program_options REQUIRED)
+find_package(Boost COMPONENTS date_time filesystem system program_options REQUIRED)
 find_library(PTHREAD_LIB pthread REQUIRED)
 find_library(DL_LIB dl REQUIRED)
 find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h)
