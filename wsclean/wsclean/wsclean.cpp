@@ -840,7 +840,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 		if(_settings.saveSourceList)
     {
 			_deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec);
-			if(_settings.applyPrimaryBeam)
+			if(_settings.applyPrimaryBeam || _settings.gridWithBeam || !_settings.atermConfigFilename.empty())
 			{
 				_deconvolution.SavePBSourceList(groupTable, _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec);
 			}
@@ -907,18 +907,7 @@ void WSClean::saveRestoredImagesForGroup(const ImagingTableEntry& tableEntry, st
 		if(curPol == *_settings.polarizations.rbegin())
 		{
 			ImageFilename imageName = ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
-			if(_settings.applyPrimaryBeam)
-			{
-				primaryBeam->CorrectImages(writer.Writer(), imageName, "image", _imageAllocator);
-				if(_settings.savePsfPb)
-					primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", _imageAllocator);
-				if(_settings.deconvolutionIterationCount != 0)
-				{
-					primaryBeam->CorrectImages(writer.Writer(), imageName, "residual", _imageAllocator);
-					primaryBeam->CorrectImages(writer.Writer(), imageName, "model", _imageAllocator);
-				}
-			}
-			else if(_settings.gridWithBeam || !_settings.atermConfigFilename.empty())
+			if(_settings.gridWithBeam || !_settings.atermConfigFilename.empty())
 			{
 				IdgMsGridder& idg = static_cast<IdgMsGridder&>(*_griddingTaskManager->Gridder());
 				idg.SavePBCorrectedImages(writer.Writer(), imageName, "image", _imageAllocator);
@@ -928,6 +917,17 @@ void WSClean::saveRestoredImagesForGroup(const ImagingTableEntry& tableEntry, st
 				{
 					idg.SavePBCorrectedImages(writer.Writer(), imageName, "residual", _imageAllocator);
 					idg.SavePBCorrectedImages(writer.Writer(), imageName, "model", _imageAllocator);
+				}
+			}
+			else if(_settings.applyPrimaryBeam)
+			{
+				primaryBeam->CorrectImages(writer.Writer(), imageName, "image", _imageAllocator);
+				if(_settings.savePsfPb)
+					primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", _imageAllocator);
+				if(_settings.deconvolutionIterationCount != 0)
+				{
+					primaryBeam->CorrectImages(writer.Writer(), imageName, "residual", _imageAllocator);
+					primaryBeam->CorrectImages(writer.Writer(), imageName, "model", _imageAllocator);
 				}
 			}
 		}
@@ -1098,9 +1098,7 @@ void WSClean::initializeCurMSProviders(const ImagingTableEntry& entry, GriddingT
 			MSSelection selection(_globalSelection);
 			if(selectChannels(selection, i, d, entry))
 			{
-				std::unique_ptr<MSProvider> msProvider(
-					initializeMSProvider(entry, selection, i, d));
-				task.msList.emplace_back(std::move(msProvider), selection);
+				task.msList.emplace_back(initializeMSProvider(entry, selection, i, d), selection);
 			}
 		}
 	}

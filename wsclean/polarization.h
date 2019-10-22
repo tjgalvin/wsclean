@@ -29,6 +29,7 @@
  * CASA's importuvfits does not swap the polarizations, hence Measurement
  * Sets exist that have the polarizations labelled wrong.
  * The IEEE definition is to have X be N-S.
+ * See also: http://adsabs.harvard.edu/abs/1996A%26AS..117..161H
  */
 class Polarization
 {

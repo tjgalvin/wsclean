@@ -338,6 +338,8 @@ void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages, const Im
 	if(_settings.useMultiscale)
 	{
 		ComponentList *list;
+		// If no parallel deconvolution was used, the component list must be retrieved from
+		// the deconvolution algorithm.
 		if(_algorithms.size() == 1)
 			list = & static_cast<MultiScaleAlgorithm*>(_algorithms.front().get())->GetComponentList();
 		else
@@ -376,7 +378,12 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages, const 
 		h = _settings.trimmedImageHeight;
 	if(_settings.useMultiscale)
 	{
-		list.reset(new ComponentList(*_componentList));
+		// If no parallel deconvolution was used, the component list must be retrieved from
+		// the deconvolution algorithm.
+		if(_algorithms.size() == 1)
+			list.reset(new ComponentList(static_cast<MultiScaleAlgorithm*>(_algorithms.front().get())->GetComponentList()));
+		else
+			list.reset(new ComponentList(*_componentList));
 	}
 	else {
 		_allocator->FreeUnused();
