@@ -15,7 +15,9 @@
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+
 #include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/TableRecord.h>
 
 MSGridderBase::MSData::MSData() : msIndex(0), matchingRows(0), totalRowsProcessed(0)
 { }
