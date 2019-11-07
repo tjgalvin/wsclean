@@ -62,7 +62,12 @@ void FitsATerm::initializeFromFile()
 		const FitsReader& reader = _readers[readerIndex];
 		if(_nFrequencies != reader.NFrequencies())
 			throw std::runtime_error("A-term FITS files have inconsistent number of frequencies");
-		if(reader.NAntennas() != _nAntenna)
+		if(reader.NAntennas() == 1 && _nAntenna != 1)
+		{
+			Logger::Debug << "A-term fits file has length of one in antenna direction:\n"
+				"Using single item for all " << _nAntenna << " antennas.";
+		}
+		else if(reader.NAntennas() != _nAntenna)
 		{
 			std::ostringstream str;
 			str << "FITS file for A-terms has incorrect number of antennas. Measurement set has "
@@ -158,6 +163,12 @@ void FitsATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 	// parallel when a window is used.
 	for(size_t antennaIndex = 0; antennaIndex != _nAntenna; ++antennaIndex)
 	{
+		// In case there is only one antenna in the measurement set, copy it
+		// to all antennas. This is not very efficient as the single image
+		// is still read + resampled NAnt times, but it's a border case.
+		size_t antennaFileIndex = antennaIndex;
+		if(reader.NAntennas() == 1)
+			antennaFileIndex = 0;
 		std::complex<float>* antennaBuffer = buffer + antennaIndex * _width*_height*4;
 		
 		switch(_mode)
@@ -166,7 +177,7 @@ void FitsATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 				// TODO When we are in the same timestep but at a different frequency, it would
 				// be possible to skip reading and resampling, and immediately call evaluateTEC()
 				// with the "scratch" data still there.
-				reader.ReadIndex(image.data(), antennaIndex + imgIndex*_nAntenna);
+				reader.ReadIndex(image.data(), antennaFileIndex + imgIndex*_nAntenna);
 				resample(reader, _scratchA.data(), image.data());
 				_resampler->Resample(_scratchA.data(), _scratchB.data());
 				evaluateTEC(antennaBuffer, _scratchB.data(), frequency);
@@ -175,12 +186,12 @@ void FitsATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 			case DiagonalMode: {
 				for(size_t p=0; p!=2; ++p)
 				{
-					reader.ReadIndex(image.data(), (antennaIndex + imgIndex*_nAntenna) * 4 + p*2);
+					reader.ReadIndex(image.data(), (antennaFileIndex + imgIndex*_nAntenna) * 4 + p*2);
 					resample(reader, _scratchA.data(), image.data());
 					_resampler->Resample(_scratchA.data(), _scratchB.data());
 					copyToRealPolarization(antennaBuffer, _scratchB.data(), p*3);
 					
-					reader.ReadIndex(image.data(), (antennaIndex + imgIndex*_nAntenna) * 4 + p*2 + 1);
+					reader.ReadIndex(image.data(), (antennaFileIndex + imgIndex*_nAntenna) * 4 + p*2 + 1);
 					resample(reader, _scratchA.data(), image.data());
 					_resampler->Resample(_scratchA.data(), _scratchB.data());
 					copyToImaginaryPolarization(antennaBuffer, _scratchB.data(), p*3);
