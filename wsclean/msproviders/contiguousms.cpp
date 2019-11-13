@@ -11,18 +11,24 @@ ContiguousMS::ContiguousMS(const string& msPath, const std::string& dataColumnNa
 	_selection(selection),
 	_polOut(polOut),
 	_msPath(msPath),
-	_ms(msPath),
-	_antenna1Column(*_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1)),
-	_antenna2Column(*_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2)),
-	_fieldIdColumn(*_ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID)),
-	_dataDescIdColumn(*_ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID)),
-	_timeColumn(*_ms, casacore::MS::columnName(casacore::MSMainEnums::TIME)),
-	_uvwColumn(*_ms, casacore::MS::columnName(casacore::MSMainEnums::UVW)),
-	_dataColumnName(dataColumnName),
-	_dataColumn(*_ms, dataColumnName),
-	_flagColumn(*_ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG))
+	_dataColumnName(dataColumnName)
 {
-	Logger::Info << "Opening " << msPath << ", spw " << _dataDescId << " with contiguous MS reader.\n";
+	open();
+}
+
+void ContiguousMS::open()
+{
+	Logger::Info << "Opening " << _msPath << ", spw " << _dataDescId << " with contiguous MS reader.\n";
+	
+	_ms = SynchronizedMS(_msPath);
+	_antenna1Column = casacore::ScalarColumn<int>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
+	_antenna2Column = casacore::ScalarColumn<int>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
+	_fieldIdColumn = casacore::ScalarColumn<int>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
+	_dataDescIdColumn = casacore::ScalarColumn<int>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID));
+	_timeColumn = casacore::ScalarColumn<double>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
+	_uvwColumn = casacore::ArrayColumn<double>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
+	_dataColumn = casacore::ArrayColumn<casacore::Complex>(*_ms, _dataColumnName);
+	_flagColumn = casacore::ArrayColumn<bool>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
 	
 	_inputPolarizations = GetMSPolarizations(*_ms);
  
@@ -33,15 +39,20 @@ ContiguousMS::ContiguousMS(const string& msPath, const std::string& dataColumnNa
 	_flagArray = casacore::Array<bool>(shape);
 	_bandData = MultiBandData(_ms->spectralWindow(), _ms->dataDescription());
 	
+	if(_bandData.BandCount() > 1)
+	{
+		throw std::runtime_error("This set contains multiple spws, and can therefore not be opened directly due to possible synchronization issues between spws. You can force reordering of the measurement by adding -reorder to the command line.");
+	}
+	
 	_msHasWeightSpectrum = openWeightSpectrumColumn(*_ms, _weightSpectrumColumn, shape);
 	if(!_msHasWeightSpectrum)
 	{
 		casacore::IPosition scalarShape(1, shape[0]);
 		_weightScalarArray = casacore::Array<float>(scalarShape);
-		_weightScalarColumn.reset(new casacore::ROArrayColumn<float>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
+		_weightScalarColumn.reset(new casacore::ArrayColumn<float>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
 	}
 	
-	getRowRangeAndIDMap(*_ms, selection, _startRow, _endRow, std::set<size_t>{dataDescId}, _idToMSRow);
+	getRowRangeAndIDMap(*_ms, _selection, _startRow, _endRow, std::set<size_t>{size_t(_dataDescId)}, _idToMSRow);
 	Reset();
 }
 

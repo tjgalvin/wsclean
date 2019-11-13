@@ -61,6 +61,8 @@ public:
 	
 	PolarizationEnum Polarization() final override { return _polOut; }
 private:
+	void open();
+	
 	size_t _row, _rowId;
 	size_t _timestep;
 	double _time;
@@ -83,8 +85,8 @@ private:
 	std::unique_ptr<casacore::ArrayColumn<float>> _weightSpectrumColumn;
 	std::unique_ptr<casacore::ArrayColumn<float>> _weightScalarColumn;
 	std::string _dataColumnName;
-	casacore::ROArrayColumn<casacore::Complex> _dataColumn;
-	casacore::ROArrayColumn<bool> _flagColumn;
+	casacore::ArrayColumn<casacore::Complex> _dataColumn;
+	casacore::ArrayColumn<bool> _flagColumn;
 	std::unique_ptr<casacore::ArrayColumn<casacore::Complex>> _modelColumn;
 	std::unique_ptr<casacore::ArrayColumn<float>> _imagingWeightsColumn;
 	
