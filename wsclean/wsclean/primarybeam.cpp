@@ -154,9 +154,10 @@ void PrimaryBeam::load(PrimaryBeamImageSet& beamImages, const ImageFilename& ima
 		// This is a bit wasteful so might require a better strategy for big images.
 		ImageFilename polName(imageName);
 		polName.SetPolarization(Polarization::StokesI);
-		polName.SetIsImaginary(false);
 		FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
 		reader.Read(beamImages[0].data());
+		for(size_t i=0; i!=settings.trimmedImageWidth*settings.trimmedImageHeight; ++i)
+			beamImages[0][i] = std::sqrt(beamImages[0][i]);
 		std::copy_n(beamImages[0].data(), settings.trimmedImageWidth*settings.trimmedImageHeight, beamImages[6].data());
 		for(size_t i=1; i!=8; ++i)
 		{
