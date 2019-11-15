@@ -147,16 +147,35 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 
 void PrimaryBeam::load(PrimaryBeamImageSet& beamImages, const ImageFilename& imageName, const WSCleanSettings& settings)
 {
-	PolarizationEnum
-		linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
-	for(size_t i=0; i!=8; ++i)
+	if(settings.useIDG)
 	{
-		PolarizationEnum p = linPols[i/2];
+		// IDG produces only a Stokes I beam, and has already corrected for the rest.
+		// Currently we just load that beam into real component of XX and YY, and set the other 6 images to zero.
+		// This is a bit wasteful so might require a better strategy for big images.
 		ImageFilename polName(imageName);
-		polName.SetPolarization(p);
-		polName.SetIsImaginary(i%2 != 0);
+		polName.SetPolarization(Polarization::StokesI);
+		polName.SetIsImaginary(false);
 		FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
-		reader.Read(beamImages[i].data());
+		reader.Read(beamImages[0].data());
+		std::copy_n(beamImages[0].data(), settings.trimmedImageWidth*settings.trimmedImageHeight, beamImages[6].data());
+		for(size_t i=1; i!=8; ++i)
+		{
+			if(i != 6)
+				std::fill_n(beamImages[i].data(), settings.trimmedImageWidth*settings.trimmedImageHeight, 0.0);
+		}
+	}
+	else {
+		PolarizationEnum
+			linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
+		for(size_t i=0; i!=8; ++i)
+		{
+			PolarizationEnum p = linPols[i/2];
+			ImageFilename polName(imageName);
+			polName.SetPolarization(p);
+			polName.SetIsImaginary(i%2 != 0);
+			FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
+			reader.Read(beamImages[i].data());
+		}
 	}
 }
 
