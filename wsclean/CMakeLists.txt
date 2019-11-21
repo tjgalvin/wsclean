@@ -117,6 +117,23 @@ add_library(wsclean-object OBJECT
   wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
   ${LBEAM_FILES} ${IDG_FILES})
 
+# A number of files perform the 'core' high-performance floating point
+# operations. In these files, NaNs are avoided and thus -ffast-math is
+# allowed. Note that visibilities can be NaN hence this can not be turned
+# on for all files.
+set_source_files_properties(
+	deconvolution/subminorloop.cpp
+	deconvolution/genericclean.cpp
+	deconvolution/imageset.cpp
+	deconvolution/simpleclean.cpp
+	deconvolution/spectralfitter.cpp
+	multiscale/multiscalealgorithm.cpp
+	multiscale/multiscaletransforms.cpp
+	multiscale/threadeddeconvolutiontools.cpp
+	wsclean/wstackinggridder.cpp
+	wgridder/wgriddinggridder_simple.cpp
+	PROPERTIES COMPILE_FLAGS -ffast-math)
+
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
