@@ -467,7 +467,7 @@ class Baselines
 
   public:
     template<typename T> Baselines(const const_mav<T,2> &coord_,
-      const const_mav<T,1> &freq)
+      const const_mav<T,1> &freq, bool negate_v=false)
       {
       constexpr double speedOfLight = 299792458.;
       myassert(coord_.shape(1)==3, "dimension mismatch");
@@ -488,8 +488,12 @@ class Baselines
         f_over_c[i] = freq(i)/speedOfLight;
         }
       coord.resize(nrows);
-      for (size_t i=0; i<coord.size(); ++i)
-        coord[i] = UVW(coord_(i,0), coord_(i,1), coord_(i,2));
+      if (negate_v)
+        for (size_t i=0; i<coord.size(); ++i)
+          coord[i] = UVW(coord_(i,0), -coord_(i,1), coord_(i,2));
+      else
+        for (size_t i=0; i<coord.size(); ++i)
+          coord[i] = UVW(coord_(i,0), coord_(i,1), coord_(i,2));
       }
 
     RowChan getRowChan(idx_t index) const
@@ -559,7 +563,7 @@ class GridderConfig
     double ushift, vshift;
     int maxiu0, maxiv0;
 
-    complex<double> NOINLINE wscreen(double x, double y, double w, bool adjoint) const
+    complex<double> wscreen(double x, double y, double w, bool adjoint) const
       {
       constexpr double pi = 3.141592653589793238462643383279502884197;
       double tmp = 1-x-y;
@@ -651,7 +655,7 @@ class GridderConfig
       grid2dirty_post(tmav, dirty);
       }
 
-    template<typename T> void grid2dirty_c(const mav<const complex<T>,2> &grid, mav<complex<T>,2> &dirty) const
+    template<typename T> void grid2dirty_c(const const_mav<complex<T>,2> &grid, mav<complex<T>,2> &dirty) const
       {
       checkShape(grid.shape(), {nu,nv});
       tmpStorage<complex<T>,2> tmpdat({nu,nv});
@@ -661,6 +665,16 @@ class GridderConfig
         {tmp.stride(0)*sc, tmp.stride(1)*sc}, {0,1}, pocketfft::BACKWARD,
         grid.data(), tmp.data(), T(1), nthreads);
       grid2dirty_post(tmp, dirty);
+      }
+
+    template<typename T> void grid2dirty_c_overwrite(const mav<complex<T>,2> &grid, mav<complex<T>,2> &dirty) const
+      {
+      checkShape(grid.shape(), {nu,nv});
+      constexpr auto sc = ptrdiff_t(sizeof(complex<T>));
+      pocketfft::c2c({nu,nv},{grid.stride(0)*sc,grid.stride(1)*sc},
+        {grid.stride(0)*sc, grid.stride(1)*sc}, {0,1}, pocketfft::BACKWARD,
+        grid.data(), grid.data(), T(1), nthreads);
+      grid2dirty_post(grid, dirty);
       }
 
     template<typename T> void dirty2grid_pre(const const_mav<T,2> &dirty, mav<T,2> &grid) const
@@ -1448,7 +1462,7 @@ template<typename T, typename Serv> void x2dirty(
       if (hlp.Nvis()==0) continue;
       grid.fill(0);
       x2grid_c(gconf, hlp.getSubserv(), grid, hlp.W(), dw);
-      gconf.grid2dirty_c(cmav(grid), tdirty);
+      gconf.grid2dirty_c_overwrite(grid, tdirty);
       gconf.apply_wscreen(cmav(tdirty), tdirty, hlp.W(), true);
 #pragma omp parallel for num_threads(nthreads)
       for (size_t i=0; i<gconf.Nxdirty(); ++i)
@@ -1609,7 +1623,7 @@ void fillIdx(const Baselines &baselines,
   size_t lo, hi;
   calc_share(nthr, id, nrow, lo, hi);
   vector<idx_t> &lacc(acc[id]);
-  lacc.resize(nbu*nbv+1, 0);
+  lacc.assign(nbu*nbv+1, 0);
 
   for (idx_t irow=lo, idx=lo*(chend-chbegin); irow<hi; ++irow)
     for (int ichan=chbegin; ichan<chend; ++ichan, ++idx)
@@ -1656,13 +1670,16 @@ void fillIdx(const Baselines &baselines,
   }
 
 template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
-  const GridderConfig &gconf, const const_mav<T,2> &wgt)
+  const GridderConfig &gconf, const const_mav<T,2> &wgt,
+  const const_mav<complex<T>,2> &ms)
   {
   size_t nrow=baselines.Nrows(),
          nchan=baselines.Nchannels(),
          nsafe=gconf.Nsafe();
   bool have_wgt=wgt.size()!=0;
   if (have_wgt) checkShape(wgt.shape(),{nrow,nchan});
+  bool have_ms=ms.size()!=0;
+  if (have_ms) checkShape(ms.shape(), {nrow,nchan});
   constexpr int side=1<<logsquare;
   size_t nbu = (gconf.Nu()+1+side-1) >> logsquare,
          nbv = (gconf.Nv()+1+side-1) >> logsquare;
@@ -1680,10 +1697,11 @@ template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
   size_t lo, hi;
   calc_share(nthr, id, nrow, lo, hi);
   vector<idx_t> &lacc(acc[id]);
-  lacc.resize(nbu*nbv+1, 0);
+  lacc.assign(nbu*nbv+1, 0);
   for (idx_t irow=lo, idx=lo*nchan; irow<hi; ++irow)
     for (idx_t ichan=0; ichan<nchan; ++ichan, ++idx)
-      if ((!have_wgt) || (wgt(irow,ichan)!=0))
+      if (((!have_ms ) || (norm(ms (irow,ichan))!=0)) &&
+          ((!have_wgt) || (wgt(irow,ichan)!=0)))
         {
         auto uvw = baselines.effectiveCoord(RowChan{irow,idx_t(ichan)});
         if (uvw.w<0) uvw.Flip();
@@ -1725,11 +1743,11 @@ template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
 template<typename T> void ms2dirty(const const_mav<double,2> &uvw,
   const const_mav<double,1> &freq, const const_mav<complex<T>,2> &ms,
   const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, double epsilon,
-  bool do_wstacking, size_t nthreads, const mav<T,2> &dirty, size_t verbosity)
+  bool do_wstacking, size_t nthreads, const mav<T,2> &dirty, size_t verbosity, bool negate_v=false)
   {
-  Baselines baselines(uvw, freq);
+  Baselines baselines(uvw, freq, negate_v);
   GridderConfig gconf(dirty.shape(0), dirty.shape(1), epsilon, pixsize_x, pixsize_y, nthreads);
-  auto idx = getWgtIndices(baselines, gconf, wgt);
+  auto idx = getWgtIndices(baselines, gconf, wgt, ms);
   auto idx2 = const_mav<idx_t,1>(idx.data(),{idx.size()});
   x2dirty(gconf, makeMsServ(baselines,idx2,ms,wgt), dirty, do_wstacking, verbosity);
   }
@@ -1737,11 +1755,12 @@ template<typename T> void ms2dirty(const const_mav<double,2> &uvw,
 template<typename T> void dirty2ms(const const_mav<double,2> &uvw,
   const const_mav<double,1> &freq, const const_mav<T,2> &dirty,
   const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, double epsilon,
-  bool do_wstacking, size_t nthreads, const mav<complex<T>,2> &ms, size_t verbosity)
+  bool do_wstacking, size_t nthreads, const mav<complex<T>,2> &ms, size_t verbosity, bool negate_v=false)
   {
-  Baselines baselines(uvw, freq);
+  Baselines baselines(uvw, freq, negate_v);
   GridderConfig gconf(dirty.shape(0), dirty.shape(1), epsilon, pixsize_x, pixsize_y, nthreads);
-  auto idx = getWgtIndices(baselines, gconf, wgt);
+  const_mav<complex<T>,2> null_ms(nullptr, {0,0});
+  auto idx = getWgtIndices(baselines, gconf, wgt, null_ms);
   auto idx2 = const_mav<idx_t,1>(idx.data(),{idx.size()});
   ms.fill(0);
   dirty2x(gconf, dirty, makeMsServ(baselines,idx2,ms,wgt), do_wstacking, verbosity);

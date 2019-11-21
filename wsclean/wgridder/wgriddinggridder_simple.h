@@ -25,8 +25,8 @@ class WGriddingGridder_Simple
 
 	public:
 		/** Construct a new gridder with given settings.
-		 * @param width The width of the image in pixels
-		 * @param height The height of the image in pixels.
+		 * @param width The width of the untrimmed image in pixels
+		 * @param height The height of the untrimmed image in pixels.
 		 * @param pixelSizeX The angular width of a pixel in radians.
 		 * @param pixelSizeY The angular height of a pixel in radians.
 		 * @param nthreads The number of threads to use
@@ -84,7 +84,7 @@ class WGriddingGridder_Simple
 		void FinalizeImage(double multiplicationFactor, bool correctFFTFactor);
 
 		/**
-		 * Get the image result of inversion. This is an array of size width x height, and can be
+		 * Get the untrimmed image result of inversion. This is an array of size width x height, and can be
 		 * indexed with [x + y*width]. It is allowed to change this image, e.g. set the horizon
 		 * to zero before saving to fits. This call is only valid once @ref FinalizeImage() has
 		 * been called.
@@ -93,7 +93,7 @@ class WGriddingGridder_Simple
 
 		/**
 		 * Initialize gridder for prediction and specify image to predict for.
-		 * @param image The model image that is to be predicted for. This is an
+		 * @param image The (untrimmed) model image that is to be predicted for. This is an
 		 * array of width * height size, index by (x + width*y).
 		 */
 		void InitializePrediction(std::vector<float> &&image);
