@@ -19,8 +19,8 @@ void WGriddingGridder_Simple::memUsage(size_t &constant, size_t &per_vis) const
   constant = width_*height_
              *sizeof(complex<float>)
              *2 // sometimes we have two arrays in memory
-           + width_*height_
-             *sizeof(float); // untrimmed dirty image
+           + width_*height_/4
+             *sizeof(float); // trimmed dirty image
   per_vis = sizeof(gridder::detail::idx_t)*2; // overestimation, but the best we can do here
   }
 

@@ -193,14 +193,6 @@ void BufferedMSGridder::Invert()
 	{
 		std::vector<float> imageFloat = _gridder->RealImage();
                 for (size_t i=0; i<imageFloat.size(); ++i) _image[i] = imageFloat[i];
-// 		for(size_t y=0; y!=_actualInversionHeight; ++y)
-// 		{
-// 			size_t invY = _actualInversionHeight - y - 1;
-// 			for(size_t x=0; x!=_actualInversionWidth; ++x)
-// 			{
-// 				_image[y*_actualInversionWidth + x] = imageFloat[x*_actualInversionHeight + invY];
-// 			}
-// 		}
 	}
 
 	if(ImageWidth()!=_actualInversionWidth || ImageHeight()!=_actualInversionHeight)
@@ -254,14 +246,6 @@ void BufferedMSGridder::Predict(ImageBufferAllocator::Ptr image)
 	std::vector<float> imageFloat(_actualInversionWidth  * _actualInversionHeight);
         for (size_t i=0; i<imageFloat.size(); ++i)
           imageFloat[i] = image[i];
-// 	for(size_t y=0; y!=_actualInversionHeight; ++y)
-// 	{
-// 		size_t invY = _actualInversionHeight - y - 1;
-// 		for(size_t x=0; x!=_actualInversionWidth; ++x)
-// 		{
-// 			imageFloat[x*_actualInversionHeight + invY] = image[y*_actualInversionWidth + x];
-// 		}
-// 	}
 	image.reset();
 
 	_gridder->InitializePrediction(std::move(imageFloat));
