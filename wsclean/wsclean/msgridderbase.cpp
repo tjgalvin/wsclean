@@ -47,6 +47,31 @@ MSGridderBase::MSGridderBase() :
 MSGridderBase::~MSGridderBase()
 { }
 
+int64_t MSGridderBase::getAvailableMemory(double memFraction, double absMemLimit)
+{
+	long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
+	int64_t memory = (int64_t) pageCount * (int64_t) pageSize;
+	double memSizeInGB = (double) memory / (1024.0*1024.0*1024.0);
+	if(memFraction == 1.0 && absMemLimit == 0.0) {
+		Logger::Info << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory, usage not limited.\n";
+	}
+	else {
+		double limitInGB = memSizeInGB*memFraction;
+		if(absMemLimit!=0.0 && limitInGB > absMemLimit)
+			limitInGB = absMemLimit;
+		Logger::Info << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory, usage limited to " << round(limitInGB*10.0)/10.0 << " GB (frac=" << round(memFraction*1000.0)/10.0 << "%, ";
+		if(absMemLimit == 0.0)
+			Logger::Info << "no limit)\n";
+		else
+			Logger::Info << "limit=" << round(absMemLimit*10.0)/10.0 << "GB)\n";
+		
+		memory = int64_t((double) pageCount * (double) pageSize * memFraction);
+		if(absMemLimit!=0.0 && double(memory) > double(1024.0*1024.0*1024.0) * absMemLimit)
+			memory = int64_t(double(absMemLimit) * double(1024.0*1024.0*1024.0));
+	}
+	return memory;
+}
+
 void MSGridderBase::GetPhaseCentreInfo(casacore::MeasurementSet& ms, size_t fieldId, double& ra, double& dec, double& dl, double& dm)
 {
 	casacore::MSAntenna aTable = ms.antenna();

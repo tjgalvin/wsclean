@@ -202,6 +202,8 @@ void CommandLine::printHelp()
 		"   Use the 'image-domain gridder' (Van der Tol et al.) to do the inversions and predictions.\n"
 		"-idg-mode [cpu/gpu/hybrid]\n"
 		"   Sets the IDG mode. Default: cpu. Hybrid is recommended when a GPU is available.\n"
+		"-use-wgridder\n"
+		"   Use the w-gridding gridder developed by Martin Reinecke.\n"
 		"\n"
 		"  ** A-TERM GRIDDING **\n"
 		"-aterm-config <filename>\n"
@@ -1291,6 +1293,10 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 			else if(mode == "hybrid")
 				settings.idgMode = WSCleanSettings::IDG_HYBRID;
 			else throw std::runtime_error("Unknown IDG mode: " + mode);
+		}
+		else if(param == "use-wgridder")
+		{
+			settings.useWGridder = true;
 		}
 		else if(param == "no-dirty")
 		{

@@ -86,6 +86,8 @@ public:
 	void SetMetaDataCache(MetaDataCache* cache) { _metaDataCache = cache; }
 	
 protected:
+	int64_t getAvailableMemory(double memFraction, double absMemLimit);
+	
 	struct MSData
 	{
 		public:

@@ -23,7 +23,7 @@ void WGriddingGridder_Simple::memUsage(size_t &constant, size_t &per_vis) const
 
 void WGriddingGridder_Simple::InitializeInversion()
   {
-  img.resize(pixelSizeX_*pixelSizeY_,0);
+  img.assign(width_*height_,0);
   }
 
 void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,

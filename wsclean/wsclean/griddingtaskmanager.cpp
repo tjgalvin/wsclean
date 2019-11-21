@@ -5,6 +5,7 @@
 #include "directmsgridder.h"
 
 #include "../idg/idgmsgridder.h"
+#include "../wgridder/bufferedmsgridder.h"
 
 GriddingTaskManager::GriddingTaskManager(const class WSCleanSettings& settings, ImageBufferAllocator& allocator) :
 	_taskList(settings.parallelGridding),
@@ -25,6 +26,8 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const
 {
 	if(_settings.useIDG)
 		return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings, _allocator));
+	else if(_settings.useWGridder)
+		return std::unique_ptr<MSGridderBase>(new BufferedMSGridder(&_allocator, _settings.threadCount, _settings.memFraction, _settings.absMemLimit));
 	else if(_settings.directFT)
 	{
 		switch(_settings.directFTPrecision) {

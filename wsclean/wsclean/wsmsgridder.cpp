@@ -12,7 +12,6 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include <iostream>
 #include <stdexcept>
 
 WSMSGridder::WSMSGridder(ImageBufferAllocator* imageAllocator, size_t threadCount, double memFraction, double absMemLimit) :
@@ -21,28 +20,9 @@ WSMSGridder::WSMSGridder(ImageBufferAllocator* imageAllocator, size_t threadCoun
 	_laneBufferSize(std::max<size_t>(_cpuCount*2,1024)),
 	_imageBufferAllocator(imageAllocator)
 {
-	long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
-	_memSize = (int64_t) pageCount * (int64_t) pageSize;
-	double memSizeInGB = (double) _memSize / (1024.0*1024.0*1024.0);
-	if(memFraction == 1.0 && absMemLimit == 0.0) {
-		Logger::Info << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory, usage not limited.\n";
-	}
-	else {
-		double limitInGB = memSizeInGB*memFraction;
-		if(absMemLimit!=0.0 && limitInGB > absMemLimit)
-			limitInGB = absMemLimit;
-		Logger::Info << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory, usage limited to " << round(limitInGB*10.0)/10.0 << " GB (frac=" << round(memFraction*1000.0)/10.0 << "%, ";
-		if(absMemLimit == 0.0)
-			Logger::Info << "no limit)\n";
-		else
-			Logger::Info << "limit=" << round(absMemLimit*10.0)/10.0 << "GB)\n";
-		
-		_memSize = int64_t((double) pageCount * (double) pageSize * memFraction);
-		if(absMemLimit!=0.0 && double(_memSize) > double(1024.0*1024.0*1024.0) * absMemLimit)
-			_memSize = int64_t(double(absMemLimit) * double(1024.0*1024.0*1024.0));
-	}
+	_memSize = getAvailableMemory(memFraction, absMemLimit);
 }
-		
+
 void WSMSGridder::countSamplesPerLayer(MSData& msData)
 {
 	ao::uvector<size_t> sampleCount(ActualWGridSize(), 0);
@@ -69,9 +49,9 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData)
 		msData.msProvider->NextRow();
 	}
 	Logger::Debug << "Visibility count per layer: ";
-	for(ao::uvector<size_t>::const_iterator i=sampleCount.begin(); i!=sampleCount.end(); ++i)
+	for(size_t& count : sampleCount)
 	{
-		Logger::Debug << *i << ' ';
+		Logger::Debug << count << ' ';
 	}
 	Logger::Debug << "\nTotal nr. of visibilities to be gridded: " << total << '\n';
 }

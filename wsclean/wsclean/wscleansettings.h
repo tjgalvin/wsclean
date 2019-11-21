@@ -75,7 +75,7 @@ public:
 	size_t primaryBeamUndersampling;
 	bool directFT;
 	DirectFTPrecision directFTPrecision;
-	bool useIDG;
+	bool useIDG, useWGridder;
 	std::string atermConfigFilename;
 	double atermKernelSize;
 	bool gridWithBeam;
@@ -208,6 +208,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	directFT(false),
 	directFTPrecision(DirectFTPrecision::Double),
 	useIDG(false),
+	useWGridder(false),
 	atermConfigFilename(),
 	atermKernelSize(5.0),
 	gridWithBeam(false),
