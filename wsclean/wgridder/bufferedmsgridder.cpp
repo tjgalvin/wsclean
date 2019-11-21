@@ -23,6 +23,31 @@ BufferedMSGridder::BufferedMSGridder(ImageBufferAllocator* imageAllocator, size_
 	_memSize = getAvailableMemory(memFraction, absMemLimit);
 }
 
+size_t BufferedMSGridder::calculateMaxNRowsInMemory(size_t channelCount) const
+{
+	size_t constantMem, perVisMem;
+	_gridder->memUsage(constantMem, perVisMem);
+	if(int64_t(constantMem) >= _memSize)
+	{
+		constantMem = _memSize / 2;
+		Logger::Warn << 
+			"Not enough memory available for doing the gridding:\n"
+			"swapping might occur!\n";
+	}
+	uint64_t memForBuffers = _memSize - constantMem;
+	
+	uint64_t memPerRow =
+		(perVisMem + sizeof(std::complex<float>)) * channelCount // vis themselves
+		+ sizeof(double)*3; // uvw
+	size_t maxNRows = std::max(memForBuffers / memPerRow, uint64_t(100));
+	if(maxNRows < 1000)
+	{
+		Logger::Warn << "Less than 1000 data rows fit in memory: this probably means performance is going to be very poor!\n";
+	}
+	
+	return maxNRows;
+}
+
 void BufferedMSGridder::gridMeasurementSet(MSData &msData)
 {
 	const MultiBandData selectedBands(msData.SelectedBand());
@@ -30,10 +55,6 @@ void BufferedMSGridder::gridMeasurementSet(MSData &msData)
 	ao::uvector<std::complex<float>> modelBuffer(selectedBands.MaxChannels());
 	ao::uvector<float> weightBuffer(selectedBands.MaxChannels());
 	ao::uvector<bool> isSelected(selectedBands.MaxChannels(), true);
-	
-	size_t constantMem, perVisMem;
-	_gridder->memUsage(constantMem, perVisMem);
-	uint64_t memForBuffers = _memSize - constantMem;
 	
 	size_t totalNRows = 0;
 	for(size_t dataDescId=0; dataDescId!=selectedBands.DataDescCount(); ++dataDescId)
@@ -43,49 +64,51 @@ void BufferedMSGridder::gridMeasurementSet(MSData &msData)
 		for(size_t i=0; i!=frequencies.size(); ++i)
 			frequencies[i] = band.Channel(i).Frequency();
 		
-		uint64_t memPerRow =
-			(perVisMem + sizeof(std::complex<float>)) * band.ChannelCount() // vis themselves
-			+ sizeof(double)*3; // uvw
-		size_t maxNRows = memForBuffers / memPerRow;
-		
-		Logger::Info << "Loading max " << maxNRows << " rows in memory...\n";
+		size_t maxNRows = calculateMaxNRowsInMemory(band.ChannelCount());
 		
 		ao::uvector<std::complex<float>> visBuffer(maxNRows * band.ChannelCount());
 		ao::uvector<double> uvwBuffer(maxNRows * 3);
 		
-		size_t nRows = 0;
-		InversionRow newRowData;
-		ao::uvector<std::complex<float>> newItemData(band.ChannelCount());
-		newRowData.data = newItemData.data();
 		msData.msProvider->Reset();
-		while(msData.msProvider->CurrentRowAvailable() && nRows < maxNRows)
+		ao::uvector<std::complex<float>> newItemData(band.ChannelCount());
+		InversionRow newRowData;
+		newRowData.data = newItemData.data();
+		
+		// Iterate over chunks until all data has been gridded
+		while(msData.msProvider->CurrentRowAvailable())
 		{
-			size_t rowDataDescId;
-			double uInMeters, vInMeters, wInMeters;
-			msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters, rowDataDescId);
-			if(rowDataDescId == dataDescId)
+			Logger::Info << "Loading max " << maxNRows << " rows in memory...\n";
+		
+			size_t nRows = 0;
+			
+			// Read / fill the chunk
+			while(msData.msProvider->CurrentRowAvailable() && nRows < maxNRows)
 			{
-				newRowData.uvw[0] = uInMeters;
-				newRowData.uvw[1] = vInMeters;
-				newRowData.uvw[2] = wInMeters;
-				newRowData.dataDescId = dataDescId;
-				readAndWeightVisibilities<1>(*msData.msProvider, newRowData, band, weightBuffer.data(), modelBuffer.data(), isSelected.data());
-				
-				std::copy_n(newRowData.data, band.ChannelCount(), &visBuffer[nRows * band.ChannelCount()]);
-				std::copy_n(newRowData.uvw, 3, &uvwBuffer[nRows * 3]);
-				
-				++nRows;
+				size_t rowDataDescId;
+				double uInMeters, vInMeters, wInMeters;
+				msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters, rowDataDescId);
+				if(rowDataDescId == dataDescId)
+				{
+					newRowData.uvw[0] = uInMeters;
+					newRowData.uvw[1] = vInMeters;
+					newRowData.uvw[2] = wInMeters;
+					newRowData.dataDescId = dataDescId;
+					readAndWeightVisibilities<1>(*msData.msProvider, newRowData, band, weightBuffer.data(), modelBuffer.data(), isSelected.data());
+					
+					std::copy_n(newRowData.data, band.ChannelCount(), &visBuffer[nRows * band.ChannelCount()]);
+					std::copy_n(newRowData.uvw, 3, &uvwBuffer[nRows * 3]);
+					
+					++nRows;
+				}
+				msData.msProvider->NextRow();
 			}
-			msData.msProvider->NextRow();
-		}
-		
-		Logger::Info << "Gridding " << nRows << " rows...\n";
-		_gridder->AddInversionData(nRows, band.ChannelCount(), uvwBuffer.data(), frequencies.data(), visBuffer.data());
-		
-		// TODO iterate if more data available
-		
-		totalNRows += nRows;
-	}
+			
+			Logger::Info << "Gridding " << nRows << " rows...\n";
+			_gridder->AddInversionData(nRows, band.ChannelCount(), uvwBuffer.data(), frequencies.data(), visBuffer.data());
+			
+			totalNRows += nRows;
+		} // end of chunk
+	} // finished all chunks
 	
 	msData.totalRowsProcessed += totalNRows;
 }
@@ -95,10 +118,6 @@ void BufferedMSGridder::predictMeasurementSet(MSData &msData)
 	msData.msProvider->ReopenRW();
 	const MultiBandData selectedBands(msData.SelectedBand());
 	
-	size_t constantMem, perVisMem;
-	_gridder->memUsage(constantMem, perVisMem);
-	uint64_t memForBuffers = _memSize - constantMem;
-	
 	size_t totalNRows = 0;
 	for(size_t dataDescId=0; dataDescId!=selectedBands.DataDescCount(); ++dataDescId)
 	{
@@ -107,43 +126,42 @@ void BufferedMSGridder::predictMeasurementSet(MSData &msData)
 		for(size_t i=0; i!=frequencies.size(); ++i)
 			frequencies[i] = band.Channel(i).Frequency();
 		
-		uint64_t memPerRow =
-			(perVisMem + sizeof(std::complex<float>)) * band.ChannelCount() // vis themselves
-			+ sizeof(double)*3; // uvw
-		size_t maxNRows = memForBuffers / memPerRow;
+		size_t maxNRows = calculateMaxNRowsInMemory(band.ChannelCount());
 		
 		ao::uvector<double> uvwBuffer(maxNRows * 3);
-		size_t nRows = 0;
+		// Iterate over chunks until all data has been gridded
 		msData.msProvider->Reset();
-		while(msData.msProvider->CurrentRowAvailable() && nRows < maxNRows)
+		while(msData.msProvider->CurrentRowAvailable())
 		{
-			size_t rowDataDescId;
-			double uInMeters, vInMeters, wInMeters;
-			msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters, rowDataDescId);
-			if(rowDataDescId == dataDescId)
+			size_t nRows = 0;
+			// Read / fill the chunk
+			while(msData.msProvider->CurrentRowAvailable() && nRows < maxNRows)
 			{
-				uvwBuffer[nRows * 3] = uInMeters;
-				uvwBuffer[nRows * 3+1] = vInMeters;
-				uvwBuffer[nRows * 3+2] = wInMeters;
-				++nRows;
+				size_t rowDataDescId;
+				double uInMeters, vInMeters, wInMeters;
+				msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters, rowDataDescId);
+				if(rowDataDescId == dataDescId)
+				{
+					uvwBuffer[nRows * 3] = uInMeters;
+					uvwBuffer[nRows * 3+1] = vInMeters;
+					uvwBuffer[nRows * 3+2] = wInMeters;
+					++nRows;
+				}
+				msData.msProvider->NextRow();
 			}
-			msData.msProvider->NextRow();
-		}
-		
-		Logger::Info << "Predicting " << nRows << " rows...\n";
-		ao::uvector<std::complex<float>> visBuffer(maxNRows * band.ChannelCount());
-		_gridder->PredictVisibilities(nRows, band.ChannelCount(), uvwBuffer.data(), frequencies.data(), visBuffer.data());
-		
-		Logger::Info << "Writing...\n";
-		for(size_t row=0; row!=nRows; ++row)
-		{
-			msData.msProvider->WriteModel(row, &visBuffer[row * band.ChannelCount()]);
-		}
-		
-		// TODO iterate if more data available
-		
-		totalNRows += nRows;
-	}
+			
+			Logger::Info << "Predicting " << nRows << " rows...\n";
+			ao::uvector<std::complex<float>> visBuffer(maxNRows * band.ChannelCount());
+			_gridder->PredictVisibilities(nRows, band.ChannelCount(), uvwBuffer.data(), frequencies.data(), visBuffer.data());
+			
+			Logger::Info << "Writing...\n";
+			for(size_t row=0; row!=nRows; ++row)
+			{
+				msData.msProvider->WriteModel(row + totalNRows, &visBuffer[row * band.ChannelCount()]);
+			}
+			totalNRows += nRows;
+		} // end of chunk
+	} // end of all chunks
 	
 	msData.totalRowsProcessed += totalNRows;
 }
