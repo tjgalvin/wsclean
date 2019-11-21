@@ -8,12 +8,12 @@ include(CMakeVersionInfo.txt)
 #  set(CMAKE_BUILD_TYPE "Release")
 #endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -DNDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -fopenmp -DNDEBUG")
 
 if(PORTABLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native") 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif(PORTABLE)
 
 # Casacore has a separate CMake file in this directory
@@ -85,7 +85,7 @@ add_definitions(-DHAVE_GSL)
 SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 # when building, don't use the install RPATH already
 # (but later on when installing)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) 
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 # add the automatically determined parts of the RPATH
 # which point to directories outside the build tree to the install RPATH
@@ -176,7 +176,7 @@ if(Boost_FOUND)
 		tests/test.cpp
 		tests/testbanddata.cpp
 		tests/testbaselinedependentaveraging.cpp
-		tests/testclean.cpp 
+		tests/testclean.cpp
 		tests/testcomponentlist.cpp
 		tests/testfitsdateobstime.cpp
 		tests/testfluxdensity.cpp
