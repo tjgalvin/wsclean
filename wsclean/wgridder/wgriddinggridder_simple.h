@@ -22,6 +22,7 @@ class WGriddingGridder_Simple
                 size_t width_, height_, nthreads_;
                 double pixelSizeX_, pixelSizeY_, epsilon_;
                 std::vector<float> img;
+                size_t verbosity_;
 
 	public:
 		/** Construct a new gridder with given settings.
@@ -33,10 +34,14 @@ class WGriddingGridder_Simple
 		 * @param epsilon The requested accuracy of the gridding process.
                  *   Affects the support of the employed kernel. Useful values
                  *   range between 1e-2 and 1e-6 (for single-precision visibilities).
+                 * @param verbosity The amount of diagnostic output printed
+                 *   0: no output
+                 *   1: print short overview for every inversion/prediction
+                 *   2: print information for every processed w-plane
 		 */
 		WGriddingGridder_Simple(size_t width, size_t height,
                   double pixelSizeX, double pixelSizeY, size_t nthreads,
-                  double epsilon=1e-5);
+                  double epsilon=1e-5, size_t verbosity=0);
 
 		WGriddingGridder_Simple(const WGriddingGridder_Simple&) = delete;
 		WGriddingGridder_Simple& operator=(const WGriddingGridder_Simple&) = delete;

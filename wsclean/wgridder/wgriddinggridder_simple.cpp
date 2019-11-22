@@ -6,12 +6,15 @@ using gridder::detail::CodeLocation;
 using namespace std;
 
 WGriddingGridder_Simple::WGriddingGridder_Simple(size_t width, size_t height,
-  double pixelSizeX, double pixelSizeY, size_t nthreads, double epsilon)
+  double pixelSizeX, double pixelSizeY, size_t nthreads, double epsilon,
+  size_t verbosity)
   : width_(width), height_(height), nthreads_(nthreads),
-    pixelSizeX_(pixelSizeX), pixelSizeY_(pixelSizeY), epsilon_(epsilon)
+    pixelSizeX_(pixelSizeX), pixelSizeY_(pixelSizeY), epsilon_(epsilon),
+    verbosity_(verbosity)
   {
   myassert((width&3)==0, "width not divisible by 4");
   myassert((height&3)==0, "height not divisible by 4");
+  myassert(verbosity<=2, "verbosity must be 0, 1, or 2");
   }
 
 void WGriddingGridder_Simple::memUsage(size_t &constant, size_t &per_vis) const
@@ -39,7 +42,7 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   gridder::mav<float,2> tdirty(tmp.data(), {width_/2, height_/2});
   gridder::const_mav<float,2> twgt(nullptr, {0,0});
   gridder::ms2dirty(uvw2, freq2, ms, twgt,
-    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, tdirty, 0, true);
+    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, tdirty, verbosity_, true);
   for (size_t i=0; i<width_/2*height_/2; ++i)
     img[i] += tmp[i];
   }
@@ -81,5 +84,5 @@ void WGriddingGridder_Simple::PredictVisibilities(size_t nrows, size_t nchan,
   gridder::const_mav<float,2> tdirty(img.data(), {width_/2, height_/2});
   gridder::const_mav<float,2> twgt(nullptr, {0,0});
   gridder::dirty2ms(uvw2, freq2, tdirty, twgt,
-    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, ms, 0, true);
+    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, ms, verbosity_, true);
   }
