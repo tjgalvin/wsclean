@@ -39,7 +39,7 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   gridder::mav<float,2> tdirty(tmp.data(), {width_/2, height_/2});
   gridder::const_mav<float,2> twgt(nullptr, {0,0});
   gridder::ms2dirty(uvw2, freq2, ms, twgt,
-    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, tdirty, 2, true);
+    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, tdirty, 0, true);
   for (size_t i=0; i<width_/2*height_/2; ++i)
     img[i] += tmp[i];
   }
@@ -81,5 +81,5 @@ void WGriddingGridder_Simple::PredictVisibilities(size_t nrows, size_t nchan,
   gridder::const_mav<float,2> tdirty(img.data(), {width_/2, height_/2});
   gridder::const_mav<float,2> twgt(nullptr, {0,0});
   gridder::dirty2ms(uvw2, freq2, tdirty, twgt,
-    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, ms, 2, true);
+    pixelSizeX_, pixelSizeY_, epsilon_, true, nthreads_, ms, 0, true);
   }
