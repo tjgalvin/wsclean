@@ -49,7 +49,7 @@ namespace ao {
      * support recursion. For non-recursive loop, this function will be
      * faster.
      */
-    void Run(Iter start, Iter end, std::function<void(size_t, size_t)> function)
+    void Run(Iter start, Iter end, std::function<void(Iter, size_t)> function)
     {
       if(end == start+1)
       {

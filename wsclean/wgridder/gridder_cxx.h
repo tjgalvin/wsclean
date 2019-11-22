@@ -33,6 +33,9 @@
 #include <omp.h>
 #endif
 
+#include "../aocommon/parallelfor.h"
+#include "../aocommon/staticfor.h"
+
 #include "pocketfft_hdronly.h"
 
 #if defined(__GNUC__)
@@ -254,15 +257,11 @@ void legendre_prep(int n, vector<double> &x, vector<double> &w, size_t nthreads)
   x.resize(m);
   w.resize(m);
 
-  double t0 = 1 - (1-1./n) / (8.*n*n);
-  double t1 = 1./(4.*n+2.);
+  const double t0 = 1 - (1-1./n) / (8.*n*n);
+  const double t1 = 1./(4.*n+2.);
 
-#pragma omp parallel num_threads(nthreads)
-{
-  int i;
-#pragma omp for schedule(dynamic,100)
-  for (i=1; i<=m; ++i)
-    {
+  ao::ParallelFor<int> loop(nthreads);
+  loop.Run(1, m+1, [&](int i, size_t) {
     double x0 = cos(pi * ((i<<2)-1) * t1) * t0;
 
     int dobreak=0;
@@ -296,8 +295,7 @@ void legendre_prep(int n, vector<double> &x, vector<double> &w, size_t nthreads)
 
     x[m-i] = x0;
     w[m-i] = 2. / (one_minus_x2(x0) * dpdx * dpdx);
-    }
-} // end of parallel region
+}); // end of parallel region
   }
 
 //
@@ -310,8 +308,9 @@ template<typename T> void complex2hartley
   checkShape(grid.shape(), grid2.shape());
   size_t nu=grid.shape(0), nv=grid.shape(1);
 
-#pragma omp parallel for num_threads(nthreads)
-  for (size_t u=0; u<nu; ++u)
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, nu, [&](size_t start, size_t end) {
+    for(size_t u=start; u!=end; ++u)
     {
     size_t xu = (u==0) ? 0 : nu-u;
     for (size_t v=0; v<nv; ++v)
@@ -321,7 +320,8 @@ template<typename T> void complex2hartley
                             grid(xu,xv).real()-grid(xu,xv).imag());
       }
     }
-  }
+  });
+}
 
 template<typename T> void hartley2complex
   (const const_mav<T,2> &grid, const mav<complex<T>,2> &grid2, size_t nthreads)
@@ -329,8 +329,9 @@ template<typename T> void hartley2complex
   checkShape(grid.shape(), grid2.shape());
   size_t nu=grid.shape(0), nv=grid.shape(1);
 
-#pragma omp parallel for num_threads(nthreads)
-  for (size_t u=0; u<nu; ++u)
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, nu, [&](size_t start, size_t end) {
+  for (size_t u=start; u!=end; ++u)
     {
     size_t xu = (u==0) ? 0 : nu-u;
     for (size_t v=0; v<nv; ++v)
@@ -341,7 +342,8 @@ template<typename T> void hartley2complex
       grid2(u,v) = std::complex<T>(v1+v2, v1-v2);
       }
     }
-  }
+  });
+}
 
 template<typename T> void hartley2_2D(const const_mav<T,2> &in,
   const mav<T,2> &out, size_t nthreads)
@@ -355,8 +357,9 @@ template<typename T> void hartley2_2D(const const_mav<T,2> &in,
   auto ptmp = out.data();
   pocketfft::r2r_separable_hartley({nu, nv}, stri, stro, {0,1}, d_i, ptmp, T(1),
     nthreads);
-#pragma omp parallel for num_threads(nthreads)
-  for(size_t i=1; i<(nu+1)/2; ++i)
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(1, (nu+1)/2, [&](size_t start, size_t end) {
+  for(size_t i=start; i!=end; ++i)
     for(size_t j=1; j<(nv+1)/2; ++j)
        {
        T a = ptmp[i*nv+j];
@@ -368,6 +371,7 @@ template<typename T> void hartley2_2D(const const_mav<T,2> &in,
        ptmp[i*nv+nv-j] = T(0.5)*(a+c+d-b);
        ptmp[(nu-i)*nv+nv-j] = T(0.5)*(b+c+d-a);
        }
+    });  
   }
 
 
@@ -428,9 +432,11 @@ vector<double> correction_factors(size_t n, size_t nval, size_t supp,
   ES_Kernel kernel(supp, nthreads);
   vector<double> res(nval);
   double xn = 1./n;
-#pragma omp parallel for schedule(static) num_threads(nthreads)
-  for (size_t k=0; k<nval; ++k)
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, nval, [&](size_t start, size_t end) {
+  for (size_t k=start; k!=end; ++k)
     res[k] = kernel.corfac(k*xn);
+  });
   return res;
   }
 
@@ -528,12 +534,14 @@ class Baselines
       checkShape(ms.shape(), {nrows, nchan});
       size_t nvis = idx.shape(0);
       checkShape(vis.shape(), {nvis});
-#pragma omp parallel for num_threads(nthreads)
-      for (size_t i=0; i<nvis; ++i)
+      ao::StaticFor<size_t> loop(nthreads);
+      loop.Run(0, nvis, [&](size_t start, size_t end) {
+      for (size_t i=start; i!=end; ++i)
         {
         auto rc = getRowChan(idx(i));
         vis[i] = ms(rc.row, rc.chan);
         }
+      });
       }
 
     template<typename T> void vis2ms(const mav<const T,1> &vis,
@@ -542,12 +550,14 @@ class Baselines
       size_t nvis = vis.shape(0);
       checkShape(idx.shape(), {nvis});
       checkShape(ms.shape(), {nrows, nchan});
-#pragma omp parallel for num_threads(nthreads)
-      for (size_t i=0; i<nvis; ++i)
+      ao::StaticFor<size_t> loop(nthreads);
+      loop.Run(0, nvis, [&](size_t start, size_t end) {
+      for (size_t i=start; i!=end; ++i)
         {
         auto rc = getRowChan(idx(i));
         ms(rc.row, rc.chan) += vis(i);
         }
+      });
       }
   };
 
@@ -726,8 +736,9 @@ class GridderConfig
       checkShape(dirty2.shape(), {nx_dirty, ny_dirty});
       double x0 = -0.5*nx_dirty*psx,
              y0 = -0.5*ny_dirty*psy;
-#pragma omp parallel for num_threads(nthreads) schedule(static)
-      for (size_t i=0; i<=nx_dirty/2; ++i)
+      ao::StaticFor<size_t> loop(nthreads);
+      loop.Run(0, nx_dirty/2+1, [&](size_t start, size_t end) {
+      for (size_t i=start; i!=end; ++i)
         {
         double fx = x0+i*psx;
         fx *= fx;
@@ -746,43 +757,11 @@ class GridderConfig
           if ((j>0)&&(j<j2))
             dirty2(i,j2) = dirty(i,j2)*ws; // upper left
           }
-        }
+        }});
       }
   };
 
 constexpr int logsquare=4;
-
-#ifdef _OPENMP
-class Lock
-  {
-  private:
-    omp_lock_t lck;
-
-    Lock(const Lock &) = delete;
-    Lock& operator=(const Lock &) = delete;
-
-  public:
-    Lock() { omp_init_lock(&lck); }
-    ~Lock() { omp_destroy_lock(&lck); }
-    void lock() { omp_set_lock(&lck); }
-    void unlock() { omp_unset_lock(&lck); }
-  };
-int my_max_threads() { return omp_get_max_threads(); }
-int my_num_threads() { return omp_get_num_threads(); }
-int my_thread_num() { return omp_get_thread_num(); }
-#else
-class Lock
-  {
-  public:
-    Lock() {}
-    ~Lock() {}
-    void lock() {}
-    void unlock() {}
-  };
-int my_max_threads() { return 1; }
-int my_num_threads() { return 1; }
-int my_thread_num() { return 0; }
-#endif
 
 template<typename T, typename T2=complex<T>> class Helper
   {
@@ -801,29 +780,27 @@ template<typename T, typename T2=complex<T>> class Helper
     double w0, xdw;
     size_t nexp;
     size_t nvecs;
-    vector<Lock> &locks;
+    vector<std::mutex> &locks;
 
     void dump() const
       {
       if (bu0<-nsafe) return; // nothing written into buffer yet
 
-#pragma omp critical (gridder_writing_to_grid)
-{
       int idxu = (bu0+nu)%nu;
       int idxv0 = (bv0+nv)%nv;
       for (int iu=0; iu<su; ++iu)
         {
         int idxv = idxv0;
-        locks[idxu].lock();
+        {
+        std::lock_guard<std::mutex> lock(locks[idxu]);
         for (int iv=0; iv<sv; ++iv)
           {
           grid_w[idxu*nv + idxv] += wbuf[iu*sv + iv];
           if (++idxv>=nv) idxv=0;
           }
-        locks[idxu].unlock();
+        }
         if (++idxu>=nu) idxu=0;
         }
-}
       }
 
     void load()
@@ -848,7 +825,7 @@ template<typename T, typename T2=complex<T>> class Helper
     T kernel[64] ALIGNED(64);
 
     Helper(const GridderConfig &gconf_, const T2 *grid_r_, T2 *grid_w_,
-      vector<Lock> &locks_, double w0_=-1, double dw_=-1)
+      vector<std::mutex> &locks_, double w0_=-1, double dw_=-1)
       : gconf(gconf_), nu(gconf.Nu()), nv(gconf.Nv()), nsafe(gconf.Nsafe()),
         supp(gconf.Supp()), beta(T(gconf.Beta())), grid_r(grid_r_),
         grid_w(grid_w_), su(2*nsafe+(1<<logsquare)), sv(2*nsafe+(1<<logsquare)),
@@ -1019,19 +996,17 @@ template<typename T, typename Serv> void x2grid_c
   size_t supp = gconf.Supp();
   size_t nthreads = gconf.Nthreads();
   bool do_w_gridding = dw>0;
-  vector<Lock> locks(gconf.Nu());
+  vector<std::mutex> locks(gconf.Nu());
 
-#pragma omp parallel num_threads(nthreads)
-{
+  size_t np = srv.Nvis();
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, np, [&](size_t start, size_t end) {
   Helper<T> hlp(gconf, nullptr, grid.data(), locks, w0, dw);
   int jump = hlp.lineJump();
   const T * RESTRICT ku = hlp.kernel;
   const T * RESTRICT kv = hlp.kernel+supp;
-  size_t np = srv.Nvis();
 
-  // Loop over sampling points
-#pragma omp for schedule(guided,100)
-  for (size_t ipart=0; ipart<np; ++ipart)
+  for (size_t ipart=start; ipart!=end; ++ipart)
     {
     UVW coord = srv.getCoord(ipart);
     auto flip = coord.FixW();
@@ -1055,8 +1030,7 @@ template<typename T, typename Serv> void x2grid_c
         ptr[cv] += tmp*kv[cv];
       ptr+=jump;
       }
-    }
-} // end of parallel region
+    } });
   }
 
 template<typename T> void vis2grid_c
@@ -1080,19 +1054,18 @@ template<typename T, typename Serv> void grid2x_c
   size_t supp = gconf.Supp();
   size_t nthreads = gconf.Nthreads();
   bool do_w_gridding = dw>0;
-  vector<Lock> locks(gconf.Nu());
+  vector<std::mutex> locks(gconf.Nu());
 
   // Loop over sampling points
-#pragma omp parallel num_threads(nthreads)
-{
+  ao::StaticFor<size_t> loop(nthreads);
+  size_t np = srv.Nvis();
+  loop.Run(0, np, [&](size_t start, size_t end) {
   Helper<T> hlp(gconf, grid.data(), nullptr, locks, w0, dw);
   int jump = hlp.lineJump();
   const T * RESTRICT ku = hlp.kernel;
   const T * RESTRICT kv = hlp.kernel+supp;
-  size_t np = srv.Nvis();
 
-#pragma omp for schedule(guided,100)
-  for (size_t ipart=0; ipart<np; ++ipart)
+  for (size_t ipart=start; ipart!=end; ++ipart)
     {
     UVW coord = srv.getCoord(ipart);
     auto flip = coord.FixW();
@@ -1116,8 +1089,7 @@ template<typename T, typename Serv> void grid2x_c
     if (flip) r=conj(r);
     if (do_w_gridding) r*=hlp.Wfac();
     srv.addVis(ipart, r);
-    }
-}
+    }});
   }
 template<typename T> void grid2vis_c
   (const Baselines &baselines, const GridderConfig &gconf,
@@ -1144,18 +1116,17 @@ template<typename T> void apply_holo
   checkShape(ogrid.shape(), grid.shape());
   ogrid.fill(0);
   size_t supp = gconf.Supp();
-  vector<Lock> locks(gconf.Nu());
+  vector<std::mutex> locks(gconf.Nu());
 
   // Loop over sampling points
-#pragma omp parallel num_threads(nthreads)
-{
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, nvis, [&](size_t start, size_t end) {
   Helper<T> hlp(gconf, grid.data(), ogrid.data(), locks);
   int jump = hlp.lineJump();
   const T * RESTRICT ku = hlp.kernel;
   const T * RESTRICT kv = hlp.kernel+supp;
 
-#pragma omp for schedule(guided,100)
-  for (size_t ipart=0; ipart<nvis; ++ipart)
+  for (size_t ipart=start; ipart!=end; ++ipart)
     {
     UVW coord = baselines.effectiveCoord(idx(ipart));
     coord.FixW();
@@ -1198,7 +1169,7 @@ template<typename T> void apply_holo
       wptr += jump;
       }
     }
-}
+});
   }
 
 template<typename T> void get_correlations
@@ -1215,7 +1186,7 @@ template<typename T> void get_correlations
   myassert(size_t(abs(dv))<supp, "|dv| must be smaller than Supp");
   size_t nthreads = gconf.Nthreads();
   ogrid.fill(0);
-  vector<Lock> locks(gconf.Nu());
+  vector<std::unique_ptr<std::mutex>> locks(gconf.Nu());
 
   size_t u0, u1, v0, v1;
   if (du>=0)
@@ -1228,15 +1199,14 @@ template<typename T> void get_correlations
     { v0=-dv; v1=supp; }
 
   // Loop over sampling points
-#pragma omp parallel num_threads(nthreads)
-{
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, nvis, [&](size_t start, size_t end) {
   Helper<T,T> hlp(gconf, nullptr, ogrid.data(), locks);
   int jump = hlp.lineJump();
   const T * RESTRICT ku = hlp.kernel;
   const T * RESTRICT kv = hlp.kernel+supp;
 
-#pragma omp for schedule(guided,100)
-  for (size_t ipart=0; ipart<nvis; ++ipart)
+  for (size_t ipart=start; ipart!=end; ++ipart)
     {
     UVW coord = baselines.effectiveCoord(idx(ipart));
     coord.FixW();
@@ -1256,7 +1226,7 @@ template<typename T> void get_correlations
       wptr += jump;
       }
     }
-}
+});
   }
 
 
@@ -1270,8 +1240,9 @@ template<typename T> void apply_wcorr(const GridderConfig &gconf,
   auto psy=gconf.Pixsize_y();
   double x0 = -0.5*nx_dirty*psx,
          y0 = -0.5*ny_dirty*psy;
-#pragma omp parallel for schedule(static) num_threads(nthreads)
-  for (size_t i=0; i<=nx_dirty/2; ++i)
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, nx_dirty/2+1, [&](size_t start, size_t end) {
+  for (size_t i=start; i!=end; ++i)
     {
     double fx = x0+i*psx;
     fx *= fx;
@@ -1297,7 +1268,7 @@ template<typename T> void apply_wcorr(const GridderConfig &gconf,
       if ((j>0)&&(j<j2))
         dirty(i,j2)*=fct;
       }
-    }
+    }});
   }
 
 template<typename Serv> class WgridHelper
@@ -1312,16 +1283,13 @@ template<typename Serv> class WgridHelper
     int curplane;
     vector<idx_t> subidx;
 
-    static void wminmax(const GridderConfig &gconf,
+    static void wminmax(const GridderConfig &,
       const Serv &srv, double &wmin, double &wmax)
       {
       size_t nvis = srv.Nvis();
-      size_t nthreads = gconf.Nthreads();
-
+ 
       wmin= 1e38;
       wmax=-1e38;
-      // FIXME maybe this can be done more intelligently
-#pragma omp parallel for num_threads(nthreads) reduction(min:wmin) reduction(max:wmax)
       for (size_t ipart=0; ipart<nvis; ++ipart)
         {
         auto wval = abs(srv.getCoord(ipart).w);
@@ -1365,12 +1333,9 @@ template<typename Serv> class WgridHelper
       double wmax;
 
       wminmax(gconf, srv, wmin, wmax);
-#ifdef _OPENMP
       if (verbosity>0) cout << "Using " << nthreads << " threads" << endl;
-#else
-      if (verbosity>0) cout << "Using single-threaded mode" << endl;
-#endif
       if (verbosity>0) cout << "W range: " << wmin << " to " << wmax << endl;
+      nthreads = 1; // not thread safe
       double x0 = -0.5*gconf.Nxdirty()*gconf.Pixsize_x(),
              y0 = -0.5*gconf.Nydirty()*gconf.Pixsize_y();
       double nmin = sqrt(max(1.-x0*x0-y0*y0,0.))-1.;
@@ -1386,41 +1351,35 @@ template<typename Serv> class WgridHelper
       if (verbosity>0) cout << "nplanes: " << nplanes << endl;
 
       minplane.resize(nplanes);
-      vector<size_t> tcnt(max<int>(nthreads, my_max_threads())*nplanes,0);
-#pragma omp parallel num_threads(nthreads)
-{
-      vector<size_t> mytcnt(nplanes,0);
-      auto mythread = my_thread_num();
-#pragma omp for schedule(static)
-      for (size_t ipart=0; ipart<nvis; ++ipart)
-        {
+      vector<size_t> tcnt(nthreads*nplanes,0);
+      ao::StaticTFor<size_t> loop(nthreads);
+      loop.Run(0, nvis, [&](size_t start, size_t end, size_t thread) {
+      for(size_t ipart=start; ipart!=end; ++ipart) {
         int plane0 = max(0,int(1+(abs(srv.getCoord(ipart).w)-(0.5*supp*dw)-wmin)/dw));
-        ++mytcnt[plane0];
-        }
-#pragma omp critical (wstack_common)
-      for (size_t i=0; i<nplanes; ++i)
-        tcnt[mythread*nplanes+i] = mytcnt[i];
-#pragma omp barrier
-#pragma omp single
+        ++tcnt[plane0 + thread*nplanes];
+      }});
       for (size_t j=0; j<nplanes; ++j)
         {
         size_t l=0;
-        for (int i=0; i<my_num_threads(); ++i)
+        for (size_t i=0; i<nthreads; ++i)
           l+=tcnt[i*nplanes+j];
         minplane[j].resize(l);
         }
-#pragma omp barrier
-      vector<size_t> myofs(nplanes, 0);
-      for (size_t j=0; j<nplanes; ++j)
-        for (int i=0; i<mythread; ++i)
-          myofs[j]+=tcnt[i*nplanes+j];
-#pragma omp for schedule(static)
-      for (size_t ipart=0; ipart<nvis; ++ipart)
+
+      vector<vector<size_t>> myofs(nthreads, vector<size_t>(nplanes, 0));
+      for (size_t thread=0; thread!=nthreads; ++thread)
+        {
+        for (size_t j=0; j!=nplanes; ++j)
+          for (size_t i=0; i!=thread; ++i)
+            myofs[thread][j]+=tcnt[i*nplanes+j];
+        }
+      loop.Run(0, nvis, [&](size_t start, size_t end, size_t thread) {
+      for (size_t ipart=start; ipart!=end; ++ipart)
         {
         int plane0 = max(0,int(1+(abs(srv.getCoord(ipart).w)-(0.5*supp*dw)-wmin)/dw));
-        minplane[plane0][myofs[plane0]++]=idx_t(ipart);
+        minplane[plane0][myofs[thread][plane0]++]=idx_t(ipart); // race condition
         }
-}
+});
       }
 
     typename Serv::Tsub getSubserv() const
@@ -1464,11 +1423,13 @@ template<typename T, typename Serv> void x2dirty(
       x2grid_c(gconf, hlp.getSubserv(), grid, hlp.W(), dw);
       gconf.grid2dirty_c_overwrite(grid, tdirty);
       gconf.apply_wscreen(cmav(tdirty), tdirty, hlp.W(), true);
-#pragma omp parallel for num_threads(nthreads)
-      for (size_t i=0; i<gconf.Nxdirty(); ++i)
+      ao::StaticFor<size_t> loop(nthreads);
+      loop.Run(0, gconf.Nxdirty(), [&](size_t start, size_t end) {
+      for (size_t i=start; i!=end; ++i)
         for (size_t j=0; j<gconf.Nydirty(); ++j)
           dirty(i,j) += tdirty(i,j).real();
-      }
+      });
+    }
     // correct for w gridding
     apply_wcorr(gconf, dirty, ES_Kernel(gconf.Supp(), nthreads), dw);
     }
@@ -1524,10 +1485,12 @@ template<typename T, typename Serv> void dirty2x(
       {
       if (hlp.Nvis()==0) continue;
 
-#pragma omp parallel for num_threads(nthreads)
-      for (size_t i=0; i<nx_dirty; ++i)
+      ao::StaticFor<size_t> loop(nthreads);
+      loop.Run(0, nx_dirty, [&](size_t start, size_t end) {
+      for (size_t i=start; i!=end; ++i)
         for (size_t j=0; j<ny_dirty; ++j)
           tdirty2(i,j) = tdirty(i,j);
+      });
       gconf.apply_wscreen(cmav(tdirty2), tdirty2, hlp.W(), false);
       gconf.dirty2grid_c(cmav(tdirty2), grid);
 
@@ -1572,8 +1535,9 @@ size_t getIdxSize(const Baselines &baselines,
   myassert(wmax>wmin, "empty w range selected");
   checkShape(flags.shape(), {nrow, nchan});
   size_t res=0;
-#pragma omp parallel for num_threads(nthreads) reduction(+:res)
-  for (idx_t irow=0; irow<nrow; ++irow)
+  ao::StaticFor<size_t> loop(nthreads);
+  loop.Run(0, nrow, [&](size_t start, size_t end) {
+  for (idx_t irow=start; irow!=end; ++irow)
     for (int ichan=chbegin; ichan<chend; ++ichan)
       if (!flags(irow,ichan))
         {
@@ -1581,6 +1545,7 @@ size_t getIdxSize(const Baselines &baselines,
         if ((w>=wmin) && (w<wmax))
           ++res;
         }
+  });
   return res;
   }
 
@@ -1612,17 +1577,13 @@ void fillIdx(const Baselines &baselines,
   vector<vector<idx_t>> acc;
   vector<idx_t> tmp(nrow*(chend-chbegin));
 
-#pragma omp parallel num_threads(gconf.Nthreads())
-{
-  auto nthr = my_num_threads();
-  auto id = my_thread_num();
-#pragma omp single
+  auto nthr = gconf.Nthreads();
   acc.resize(nthr);
-#pragma omp barrier
-
+  ao::ParallelFor<size_t> loop(nthr);
+  loop.Run(0, nthr, [&](size_t, size_t thread) {
   size_t lo, hi;
-  calc_share(nthr, id, nrow, lo, hi);
-  vector<idx_t> &lacc(acc[id]);
+  calc_share(nthr, thread, nrow, lo, hi);
+  vector<idx_t> &lacc(acc[thread]);
   lacc.assign(nbu*nbv+1, 0);
 
   for (idx_t irow=lo, idx=lo*(chend-chbegin); irow<hi; ++irow)
@@ -1645,18 +1606,21 @@ void fillIdx(const Baselines &baselines,
           }
         }
       }
+  });
 
-#pragma omp barrier
+  //loop.Run(0, nthr, [&](size_t, size_t thread) {
+	for(size_t thread=0; thread!=nthr; ++thread) {
   size_t lo2, hi2;
-  calc_share(nthr, id, nbu*nbv, lo2, hi2);
+  calc_share(nthr, thread, nbu*nbv, lo2, hi2);
   for (size_t i=lo2+1; i<hi2+1; ++i)
     {
     idx_t sum=0;
-    for (int j=0; j<nthr; ++j)
+    for (size_t j=0; j<nthr; ++j)
       sum += acc[j][i];
     acc[0][i]=sum;
     }
-}
+  }  
+  //});
 
   auto &acc0(acc[0]);
   for (size_t i=1; i<acc0.size(); ++i)
@@ -1686,17 +1650,15 @@ template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
   vector<vector<idx_t>> acc;
   vector<idx_t> tmp(nrow*nchan);
 
-#pragma omp parallel num_threads(gconf.Nthreads())
-{
-  auto nthr = my_num_threads();
-  auto id = my_thread_num();
-#pragma omp single
+  auto nthr = gconf.Nthreads();
   acc.resize(nthr);
-#pragma omp barrier
+  //ao::ParallelFor<size_t> loop(nthr);
+  //loop.Run(0, nthr, [&](size_t, size_t thread) {
+  for(size_t thread=0; thread!=nthr; ++thread) {
 
   size_t lo, hi;
-  calc_share(nthr, id, nrow, lo, hi);
-  vector<idx_t> &lacc(acc[id]);
+  calc_share(nthr, thread, nrow, lo, hi);
+  vector<idx_t> &lacc(acc[thread]);
   lacc.assign(nbu*nbv+1, 0);
   for (idx_t irow=lo, idx=lo*nchan; irow<hi; ++irow)
     for (idx_t ichan=0; ichan<nchan; ++ichan, ++idx)
@@ -1711,22 +1673,23 @@ template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
         iu0 = (iu0+nsafe)>>logsquare;
         iv0 = (iv0+nsafe)>>logsquare;
         ++lacc[nbv*iu0 + iv0 + 1];
-        tmp[idx] = nbv*iu0 + iv0;
+        tmp[idx] = nbv*iu0 + iv0; // not allowed in parallel
         }
       else
         tmp[idx] = ~idx_t(0);
 
-#pragma omp barrier
+  }
+  for(size_t thread=0; thread!=nthr; ++thread) {
   size_t lo2, hi2;
-  calc_share(nthr, id, nbu*nbv, lo2, hi2);
+  calc_share(nthr, thread, nbu*nbv, lo2, hi2);
   for (size_t i=lo2+1; i<hi2+1; ++i)
     {
     idx_t sum=0;
-    for (int j=0; j<nthr; ++j)
+    for (size_t j=0; j!=nthr; ++j)
       sum += acc[j][i];
-    acc[0][i]=sum;
+    acc[0][i]=sum; // Not allowed in parallel
     }
-}
+  }
 
   auto &acc0(acc[0]);
   for (size_t i=1; i<acc0.size(); ++i)
