@@ -19,7 +19,7 @@
 class WGriddingGridder_Simple
 {
         private:
-                size_t width_, height_, nthreads_;
+                size_t width_, height_, width_t_, height_t_, nthreads_;
                 double pixelSizeX_, pixelSizeY_, epsilon_;
                 std::vector<float> img;
                 size_t verbosity_;
@@ -28,6 +28,8 @@ class WGriddingGridder_Simple
 		/** Construct a new gridder with given settings.
 		 * @param width The width of the untrimmed image in pixels
 		 * @param height The height of the untrimmed image in pixels.
+		 * @param width_t The width of the trimmed image in pixels
+		 * @param height_t The height of the trimmed image in pixels.
 		 * @param pixelSizeX The angular width of a pixel in radians.
 		 * @param pixelSizeY The angular height of a pixel in radians.
 		 * @param nthreads The number of threads to use
@@ -39,7 +41,7 @@ class WGriddingGridder_Simple
                  *   1: print short overview for every inversion/prediction
                  *   2: print information for every processed w-plane
 		 */
-		WGriddingGridder_Simple(size_t width, size_t height,
+		WGriddingGridder_Simple(size_t width, size_t height, size_t width_t, size_t height_t,
                   double pixelSizeX, double pixelSizeY, size_t nthreads,
                   double epsilon=1e-5, size_t verbosity=0);
 

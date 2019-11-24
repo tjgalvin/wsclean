@@ -371,7 +371,7 @@ template<typename T> void hartley2_2D(const const_mav<T,2> &in,
        ptmp[i*nv+nv-j] = T(0.5)*(a+c+d-b);
        ptmp[(nu-i)*nv+nv-j] = T(0.5)*(b+c+d-a);
        }
-    });  
+    });
   }
 
 
@@ -385,14 +385,17 @@ class ES_Kernel
     size_t supp;
 
   public:
-    ES_Kernel(size_t supp_, size_t nthreads)
-      : beta(get_beta(supp_)*supp_), p(int(1.5*supp_+2)), supp(supp_)
+    ES_Kernel(size_t supp_, double ofactor, size_t nthreads)
+      : beta(get_beta(supp_,ofactor)*supp_), p(int(1.5*supp_+2)), supp(supp_)
       {
       legendre_prep(2*p,x,wgt,nthreads);
       psi=x;
       for (auto &v:psi)
         v=operator()(v);
       }
+    ES_Kernel(size_t supp_, size_t nthreads)
+      : ES_Kernel(supp_, 2., nthreads){}
+
     double operator()(double v) const { return exp(beta*(sqrt(1.-v*v)-1.)); }
     /* Compute correction factors for the ES gridding kernel
        This implementation follows eqs. (3.8) to (3.10) of Barnett et al. 2018 */
@@ -403,33 +406,59 @@ class ES_Kernel
         tmp += wgt[i]*psi[i]*cos(pi*supp*v*x[i]);
       return 1./(supp*tmp);
       }
-    static double get_beta(size_t supp)
+    static double get_beta(size_t supp, double ofactor=2)
       {
-      static const vector<double> opt_beta {-1, 0.14, 1.70, 2.08, 2.205, 2.26,
-        2.29, 2.307, 2.316, 2.3265, 2.3324, 2.282, 2.294, 2.304, 2.3138, 2.317};
-      myassert(supp<opt_beta.size(), "bad support size");
-      return opt_beta[supp];
+      myassert((supp>=2) && (supp<=15), "unsupported support size");
+      if (ofactor>=2)
+        {
+        static const vector<double> opt_beta {-1, 0.14, 1.70, 2.08, 2.205, 2.26,
+          2.29, 2.307, 2.316, 2.3265, 2.3324, 2.282, 2.294, 2.304, 2.3138, 2.317};
+        myassert(supp<opt_beta.size(), "bad support size");
+        return opt_beta[supp];
+        }
+      if (ofactor>=1.2)
+        {
+        // empirical, but pretty accurate approximation
+        static const array<double,16> betacorr{0,0,-0.51,-0.21,-0.1,-0.05,-0.025,-0.0125,0,0,0,0,0,0,0,0};
+        auto x0 = 1./(2*ofactor);
+        auto bcstrength=1.+(x0-0.25)*2.5;
+        return 2.32+bcstrength*betacorr[supp]+(0.25-x0)*3.1;
+        }
+      myfail("oversampling factor is too small");
       }
 
-    static size_t get_supp(double epsilon)
+    static size_t get_supp(double epsilon, double ofactor=2)
       {
-      static const vector<double> maxmaperr { 1e8, 0.19, 2.98e-3, 5.98e-5,
-        1.11e-6, 2.01e-8, 3.55e-10, 5.31e-12, 8.81e-14, 1.34e-15, 2.17e-17,
-        2.12e-19, 2.88e-21, 3.92e-23, 8.21e-25, 7.13e-27 };
       double epssq = epsilon*epsilon;
+      if (ofactor>=2)
+        {
+        static const vector<double> maxmaperr { 1e8, 0.19, 2.98e-3, 5.98e-5,
+          1.11e-6, 2.01e-8, 3.55e-10, 5.31e-12, 8.81e-14, 1.34e-15, 2.17e-17,
+          2.12e-19, 2.88e-21, 3.92e-23, 8.21e-25, 7.13e-27 };
 
-      for (size_t i=1; i<maxmaperr.size(); ++i)
-        if (epssq>maxmaperr[i]) return i;
-      myfail("requested epsilon too small - minimum is 1e-13");
+        for (size_t i=1; i<maxmaperr.size(); ++i)
+          if (epssq>maxmaperr[i]) return i;
+        myfail("requested epsilon too small - minimum is 1e-13");
+        }
+      if (ofactor>=1.2)
+        {
+        for (size_t w=2; w<16; ++w)
+          {
+          auto estimate = 12*exp(-2.*w*ofactor); // empirical, not very good approximation
+          if (epssq>estimate) return w;
+          }
+        myfail("requested epsilon too small");
+        }
+      myfail("oversampling factor is too small");
       }
   };
 
 /* Compute correction factors for the ES gridding kernel
    This implementation follows eqs. (3.8) to (3.10) of Barnett et al. 2018 */
-vector<double> correction_factors(size_t n, size_t nval, size_t supp,
+vector<double> correction_factors(size_t n, double ofactor, size_t nval, size_t supp,
   size_t nthreads)
   {
-  ES_Kernel kernel(supp, nthreads);
+  ES_Kernel kernel(supp, ofactor, nthreads);
   vector<double> res(nval);
   double xn = 1./n;
   ao::StaticFor<size_t> loop(nthreads);
@@ -564,9 +593,9 @@ class Baselines
 class GridderConfig
   {
   protected:
-    size_t nx_dirty, ny_dirty;
-    double eps, psx, psy;
-    size_t supp, nsafe, nu, nv;
+    size_t nx_dirty, ny_dirty, nu, nv;
+    double ofactor, eps, psx, psy;
+    size_t supp, nsafe;
     double beta;
     vector<double> cfu, cfv;
     size_t nthreads;
@@ -586,34 +615,44 @@ class GridderConfig
       }
 
   public:
-    GridderConfig(size_t nxdirty, size_t nydirty, double epsilon,
-      double pixsize_x, double pixsize_y, size_t nthreads_)
-      : nx_dirty(nxdirty), ny_dirty(nydirty), eps(epsilon),
+    GridderConfig(size_t nxdirty, size_t nydirty, size_t nu_, size_t nv_,
+      double epsilon, double pixsize_x, double pixsize_y, size_t nthreads_)
+      : nx_dirty(nxdirty), ny_dirty(nydirty), nu(nu_), nv(nv_),
+        ofactor(min(double(nu)/nxdirty, double(nv)/nydirty)),
+        eps(epsilon),
         psx(pixsize_x), psy(pixsize_y),
-        supp(ES_Kernel::get_supp(epsilon)), nsafe((supp+1)/2),
-        nu(max(2*nsafe,2*nx_dirty)), nv(max(2*nsafe,2*ny_dirty)),
-        beta(ES_Kernel::get_beta(supp)*supp),
+        supp(ES_Kernel::get_supp(epsilon, ofactor)), nsafe((supp+1)/2),
+        beta(ES_Kernel::get_beta(supp, ofactor)*supp),
         cfu(nx_dirty), cfv(ny_dirty), nthreads(nthreads_),
         ushift(supp*(-0.5)+1+nu), vshift(supp*(-0.5)+1+nv),
         maxiu0((nu+nsafe)-supp), maxiv0((nv+nsafe)-supp)
       {
+      myassert(nu>=2*nsafe, "nu too small");
+      myassert(nv>=2*nsafe, "nv too small");
       myassert((nx_dirty&1)==0, "nx_dirty must be even");
       myassert((ny_dirty&1)==0, "ny_dirty must be even");
+      myassert((nu&1)==0, "nu must be even");
+      myassert((nv&1)==0, "nv must be even");
       myassert(epsilon>0, "epsilon must be positive");
       myassert(pixsize_x>0, "pixsize_x must be positive");
       myassert(pixsize_y>0, "pixsize_y must be positive");
+      myassert(ofactor>=1.2, "oversampling factor smaller than 1.2");
 
-      auto tmp = correction_factors(nu, nx_dirty/2+1, supp, nthreads);
+      auto tmp = correction_factors(nu, ofactor, nx_dirty/2+1, supp, nthreads);
       cfu[nx_dirty/2]=tmp[0];
       cfu[0]=tmp[nx_dirty/2];
       for (size_t i=1; i<nx_dirty/2; ++i)
         cfu[nx_dirty/2-i] = cfu[nx_dirty/2+i] = tmp[i];
-      tmp = correction_factors(nv, ny_dirty/2+1, supp, nthreads);
+      tmp = correction_factors(nv, ofactor, ny_dirty/2+1, supp, nthreads);
       cfv[ny_dirty/2]=tmp[0];
       cfv[0]=tmp[ny_dirty/2];
       for (size_t i=1; i<ny_dirty/2; ++i)
         cfv[ny_dirty/2-i] = cfv[ny_dirty/2+i] = tmp[i];
       }
+    GridderConfig(size_t nxdirty, size_t nydirty,
+      double epsilon, double pixsize_x, double pixsize_y, size_t nthreads_)
+      : GridderConfig(nxdirty, nydirty, 2*nxdirty, 2*nydirty, epsilon,
+                      pixsize_x, pixsize_y, nthreads_) {}
     size_t Nxdirty() const { return nx_dirty; }
     size_t Nydirty() const { return ny_dirty; }
     double Epsilon() const { return eps; }
@@ -625,6 +664,7 @@ class GridderConfig
     size_t Nsafe() const { return nsafe; }
     double Beta() const { return beta; }
     size_t Nthreads() const { return nthreads; }
+    double Ofactor() const{ return ofactor; }
 
     template<typename T> void apply_taper(const mav<const T,2> &img, mav<T,2> &img2, bool divide) const
       {
@@ -1287,7 +1327,7 @@ template<typename Serv> class WgridHelper
       const Serv &srv, double &wmin, double &wmax)
       {
       size_t nvis = srv.Nvis();
- 
+
       wmin= 1e38;
       wmax=-1e38;
       for (size_t ipart=0; ipart<nvis; ++ipart)
@@ -1431,7 +1471,7 @@ template<typename T, typename Serv> void x2dirty(
       });
     }
     // correct for w gridding
-    apply_wcorr(gconf, dirty, ES_Kernel(gconf.Supp(), nthreads), dw);
+    apply_wcorr(gconf, dirty, ES_Kernel(gconf.Supp(), gconf.Ofactor(), nthreads), dw);
     }
   else
     {
@@ -1476,7 +1516,7 @@ template<typename T, typename Serv> void dirty2x(
       for (size_t j=0; j<ny_dirty; ++j)
         tdirty(i,j) = dirty(i,j);
     // correct for w gridding
-    apply_wcorr(gconf, tdirty, ES_Kernel(gconf.Supp(), nthreads), dw);
+    apply_wcorr(gconf, tdirty, ES_Kernel(gconf.Supp(), gconf.Ofactor(), nthreads), dw);
     tmpStorage<complex<T>,2> grid_({gconf.Nu(),gconf.Nv()});
     auto grid=grid_.getMav();
     tmpStorage<complex<T>,2> tdirty2_({nx_dirty, ny_dirty});
@@ -1619,7 +1659,7 @@ void fillIdx(const Baselines &baselines,
       sum += acc[j][i];
     acc[0][i]=sum;
     }
-  }  
+  }
   //});
 
   auto &acc0(acc[0]);
@@ -1703,30 +1743,48 @@ template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
   return res;
   }
 
-template<typename T> void ms2dirty(const const_mav<double,2> &uvw,
+template<typename T> void ms2dirty_general(const const_mav<double,2> &uvw,
   const const_mav<double,1> &freq, const const_mav<complex<T>,2> &ms,
-  const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, double epsilon,
-  bool do_wstacking, size_t nthreads, const mav<T,2> &dirty, size_t verbosity, bool negate_v=false)
+  const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, size_t nu, size_t nv, double epsilon,
+  bool do_wstacking, size_t nthreads, const mav<T,2> &dirty, size_t verbosity)
   {
-  Baselines baselines(uvw, freq, negate_v);
-  GridderConfig gconf(dirty.shape(0), dirty.shape(1), epsilon, pixsize_x, pixsize_y, nthreads);
+  Baselines baselines(uvw, freq);
+  GridderConfig gconf(dirty.shape(0), dirty.shape(1), nu, nv, epsilon, pixsize_x, pixsize_y, nthreads);
   auto idx = getWgtIndices(baselines, gconf, wgt, ms);
   auto idx2 = const_mav<idx_t,1>(idx.data(),{idx.size()});
   x2dirty(gconf, makeMsServ(baselines,idx2,ms,wgt), dirty, do_wstacking, verbosity);
   }
-
-template<typename T> void dirty2ms(const const_mav<double,2> &uvw,
-  const const_mav<double,1> &freq, const const_mav<T,2> &dirty,
+template<typename T> void ms2dirty(const const_mav<double,2> &uvw,
+  const const_mav<double,1> &freq, const const_mav<complex<T>,2> &ms,
   const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, double epsilon,
-  bool do_wstacking, size_t nthreads, const mav<complex<T>,2> &ms, size_t verbosity, bool negate_v=false)
+  bool do_wstacking, size_t nthreads, const mav<T,2> &dirty, size_t verbosity)
   {
-  Baselines baselines(uvw, freq, negate_v);
-  GridderConfig gconf(dirty.shape(0), dirty.shape(1), epsilon, pixsize_x, pixsize_y, nthreads);
+  ms2dirty_general(uvw, freq, ms, wgt, pixsize_x, pixsize_y,
+    2*dirty.shape(0), 2*dirty.shape(1), epsilon, do_wstacking, nthreads,
+    dirty, verbosity);
+  }
+
+template<typename T> void dirty2ms_general(const const_mav<double,2> &uvw,
+  const const_mav<double,1> &freq, const const_mav<T,2> &dirty,
+  const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, size_t nu, size_t nv,double epsilon,
+  bool do_wstacking, size_t nthreads, const mav<complex<T>,2> &ms, size_t verbosity)
+  {
+  Baselines baselines(uvw, freq);
+  GridderConfig gconf(dirty.shape(0), dirty.shape(1), nu, nv, epsilon, pixsize_x, pixsize_y, nthreads);
   const_mav<complex<T>,2> null_ms(nullptr, {0,0});
   auto idx = getWgtIndices(baselines, gconf, wgt, null_ms);
   auto idx2 = const_mav<idx_t,1>(idx.data(),{idx.size()});
   ms.fill(0);
   dirty2x(gconf, dirty, makeMsServ(baselines,idx2,ms,wgt), do_wstacking, verbosity);
+  }
+template<typename T> void dirty2ms(const const_mav<double,2> &uvw,
+  const const_mav<double,1> &freq, const const_mav<T,2> &dirty,
+  const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, double epsilon,
+  bool do_wstacking, size_t nthreads, const mav<complex<T>,2> &ms, size_t verbosity)
+  {
+  dirty2ms_general(uvw, freq, dirty, wgt, pixsize_x, pixsize_y,
+    2*dirty.shape(0), 2*dirty.shape(1), epsilon, do_wstacking, nthreads, ms,
+    verbosity);
   }
 
 } // namespace detail
@@ -1744,6 +1802,8 @@ using detail::vis2dirty;
 using detail::dirty2vis;
 using detail::ms2dirty;
 using detail::dirty2ms;
+using detail::ms2dirty_general;
+using detail::dirty2ms_general;
 using detail::streamDump__;
 using detail::CodeLocation;
 } // namespace gridder

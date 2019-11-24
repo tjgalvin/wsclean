@@ -171,7 +171,13 @@ void BufferedMSGridder::Invert()
 	std::vector<MSData> msDataVector;
 	initializeMSDataVector(msDataVector);
 
-	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
+        // FIXME: hackery to determine the size of the untrimmed image. Replace with something more sane
+        double ofct = double(ImageWidth())/TrimWidth();
+        size_t w2 = int(round(_actualInversionWidth/ofct));
+        size_t h2 = int(round(_actualInversionHeight/ofct));
+        if (w2&1) ++w2;
+        if (h2&1) ++h2;
+	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, w2, h2, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
 	_gridder->InitializeInversion();
 
 	resetVisibilityCounters();
@@ -222,7 +228,13 @@ void BufferedMSGridder::Predict(ImageBufferAllocator::Ptr image)
 	std::vector<MSData> msDataVector;
 	initializeMSDataVector(msDataVector);
 
-	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
+        // FIXME: hackery to determine the size of the untrimmed image. Replace with something more sane
+        double ofct = double(ImageWidth())/TrimWidth();
+        size_t w2 = int(round(_actualInversionWidth/ofct));
+        size_t h2 = int(round(_actualInversionHeight/ofct));
+        if (w2&1) ++w2;
+        if (h2&1) ++h2;
+	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, w2, h2, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
 
 	if(TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight())
 	{
