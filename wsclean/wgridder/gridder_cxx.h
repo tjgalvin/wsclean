@@ -28,15 +28,10 @@
 #include <cmath>
 #include <vector>
 #include <array>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include <fftw3.h>
 
 #include "../aocommon/parallelfor.h"
 #include "../aocommon/staticfor.h"
-
-#include "pocketfft_hdronly.h"
 
 #if defined(__GNUC__)
 #define NOINLINE __attribute__((noinline))
@@ -155,27 +150,6 @@ template<typename T, size_t ndim> const_mav<T, ndim> nullmav()
   shp.fill(0);
   return const_mav<T, ndim>(nullptr, shp);
   }
-template<typename T, size_t ndim> class tmpStorage
-  {
-  private:
-    vector<T> d;
-    mav<T,ndim> mav_;
-
-    static size_t prod(const array<size_t,ndim> &shp)
-      {
-      size_t res=1;
-      for (auto v: shp) res*=v;
-      return res;
-      }
-
-  public:
-    tmpStorage(const array<size_t,ndim> &shp)
-      : d(prod(shp)), mav_(d.data(), shp) {}
-    mav<T,ndim> &getMav() { return mav_; }
-    const_mav<T,ndim> getCmav() { return cmav(mav_); }
-    void fill(const T & val)
-      { std::fill(d.begin(), d.end(), val); }
-  };
 
 //
 // basic utilities
@@ -242,6 +216,58 @@ template<size_t ndim> void checkShape
 template<typename T> inline T fmod1 (T v)
   { return v-floor(v); }
 
+template<typename T> class aligned_data
+  {
+  private:
+    T *d;
+    size_t s;
+  public:
+    aligned_data(size_t s_)
+      : d(reinterpret_cast<T *>(fftw_malloc(s_*sizeof(T)))), s(s_)
+      { myassert(d!=nullptr, "allocation failed"); }
+    ~aligned_data()
+      { fftw_free(d); }
+    T *data() { return d; }
+    const T *data() const { return d; }
+    size_t size() const { return s; }
+    T *begin() { return d; }
+    T *end() { return d+s; }
+  };
+
+template<typename T, size_t ndim> class tmpStorage
+  {
+  private:
+    aligned_data<T> d;
+    mav<T,ndim> mav_;
+
+    static size_t prod(const array<size_t,ndim> &shp)
+      {
+      size_t res=1;
+      for (auto v: shp) res*=v;
+      return res;
+      }
+
+  public:
+    tmpStorage(const array<size_t,ndim> &shp)
+      : d(prod(shp)), mav_(d.data(), shp) {}
+    mav<T,ndim> &getMav() { return mav_; }
+    const_mav<T,ndim> getCmav() { return cmav(mav_); }
+    void fill(const T & val)
+      { std::fill(d.begin(), d.end(), val); }
+  };
+
+template<typename T> void exec_fft(const mav<complex<T>, 2> &arr, bool fwd, size_t nthreads)
+  { myfail("not implemented"); }
+template<> void exec_fft(const mav<complex<float>, 2> &arr, bool fwd, size_t nthreads)
+  {
+  auto d = reinterpret_cast<fftwf_complex *>(arr.data());
+  fftwf_plan_with_nthreads(nthreads);
+  auto plan = fftwf_plan_dft_2d(arr.shape(0), arr.shape(1),
+    d, d, fwd ? FFTW_FORWARD : FFTW_BACKWARD, FFTW_ESTIMATE);
+  fftwf_execute(plan);
+  fftwf_destroy_plan(plan);
+  }
+
 //
 // Utilities for Gauss-Legendre quadrature
 //
@@ -301,78 +327,6 @@ void legendre_prep(int n, vector<double> &x, vector<double> &w, size_t nthreads)
 //
 // Start of real gridder functionality
 //
-
-template<typename T> void complex2hartley
-  (const const_mav<complex<T>, 2> &grid, const mav<T,2> &grid2, size_t nthreads)
-  {
-  checkShape(grid.shape(), grid2.shape());
-  size_t nu=grid.shape(0), nv=grid.shape(1);
-
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, nu, [&](size_t start, size_t end) {
-    for(size_t u=start; u!=end; ++u)
-    {
-    size_t xu = (u==0) ? 0 : nu-u;
-    for (size_t v=0; v<nv; ++v)
-      {
-      size_t xv = (v==0) ? 0 : nv-v;
-      grid2(u,v) += T(0.5)*(grid( u, v).real()+grid( u, v).imag()+
-                            grid(xu,xv).real()-grid(xu,xv).imag());
-      }
-    }
-  });
-}
-
-template<typename T> void hartley2complex
-  (const const_mav<T,2> &grid, const mav<complex<T>,2> &grid2, size_t nthreads)
-  {
-  checkShape(grid.shape(), grid2.shape());
-  size_t nu=grid.shape(0), nv=grid.shape(1);
-
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, nu, [&](size_t start, size_t end) {
-  for (size_t u=start; u!=end; ++u)
-    {
-    size_t xu = (u==0) ? 0 : nu-u;
-    for (size_t v=0; v<nv; ++v)
-      {
-      size_t xv = (v==0) ? 0 : nv-v;
-      T v1 = T(0.5)*grid( u, v);
-      T v2 = T(0.5)*grid(xu,xv);
-      grid2(u,v) = std::complex<T>(v1+v2, v1-v2);
-      }
-    }
-  });
-}
-
-template<typename T> void hartley2_2D(const const_mav<T,2> &in,
-  const mav<T,2> &out, size_t nthreads)
-  {
-  checkShape(in.shape(), out.shape());
-  size_t nu=in.shape(0), nv=in.shape(1);
-  ptrdiff_t sz=ptrdiff_t(sizeof(T));
-  pocketfft::stride_t stri{sz*in.stride(0), sz*in.stride(1)};
-  pocketfft::stride_t stro{sz*out.stride(0), sz*out.stride(1)};
-  auto d_i = in.data();
-  auto ptmp = out.data();
-  pocketfft::r2r_separable_hartley({nu, nv}, stri, stro, {0,1}, d_i, ptmp, T(1),
-    nthreads);
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(1, (nu+1)/2, [&](size_t start, size_t end) {
-  for(size_t i=start; i!=end; ++i)
-    for(size_t j=1; j<(nv+1)/2; ++j)
-       {
-       T a = ptmp[i*nv+j];
-       T b = ptmp[(nu-i)*nv+j];
-       T c = ptmp[i*nv+nv-j];
-       T d = ptmp[(nu-i)*nv+nv-j];
-       ptmp[i*nv+j] = T(0.5)*(a+b+c-d);
-       ptmp[(nu-i)*nv+j] = T(0.5)*(a+b+d-c);
-       ptmp[i*nv+nv-j] = T(0.5)*(a+c+d-b);
-       ptmp[(nu-i)*nv+nv-j] = T(0.5)*(b+c+d-a);
-       }
-    });
-  }
 
 
 class ES_Kernel
@@ -556,38 +510,6 @@ class Baselines
         res(i,2) = uvw.w;
         }
       }
-
-    template<typename T> void ms2vis(const mav<const T,2> &ms,
-      const mav<const idx_t,1> &idx, mav<T,1> &vis, size_t nthreads) const
-      {
-      checkShape(ms.shape(), {nrows, nchan});
-      size_t nvis = idx.shape(0);
-      checkShape(vis.shape(), {nvis});
-      ao::StaticFor<size_t> loop(nthreads);
-      loop.Run(0, nvis, [&](size_t start, size_t end) {
-      for (size_t i=start; i!=end; ++i)
-        {
-        auto rc = getRowChan(idx(i));
-        vis[i] = ms(rc.row, rc.chan);
-        }
-      });
-      }
-
-    template<typename T> void vis2ms(const mav<const T,1> &vis,
-      const mav<const idx_t,1> &idx, mav<T,2> &ms, size_t nthreads) const
-      {
-      size_t nvis = vis.shape(0);
-      checkShape(idx.shape(), {nvis});
-      checkShape(ms.shape(), {nrows, nchan});
-      ao::StaticFor<size_t> loop(nthreads);
-      loop.Run(0, nvis, [&](size_t start, size_t end) {
-      for (size_t i=start; i!=end; ++i)
-        {
-        auto rc = getRowChan(idx(i));
-        ms(rc.row, rc.chan) += vis(i);
-        }
-      });
-      }
   };
 
 class GridderConfig
@@ -666,20 +588,6 @@ class GridderConfig
     size_t Nthreads() const { return nthreads; }
     double Ofactor() const{ return ofactor; }
 
-    template<typename T> void apply_taper(const mav<const T,2> &img, mav<T,2> &img2, bool divide) const
-      {
-      checkShape(img.shape(), {nx_dirty, ny_dirty});
-      checkShape(img2.shape(), {nx_dirty, ny_dirty});
-      if (divide)
-        for (size_t i=0; i<nx_dirty; ++i)
-          for (size_t j=0; j<ny_dirty; ++j)
-            img2(i,j) = img(i,j)/(cfu[i]*cfv[j]);
-      else
-        for (size_t i=0; i<nx_dirty; ++i)
-          for (size_t j=0; j<ny_dirty; ++j)
-            img2(i,j) = img(i,j)*cfu[i]*cfv[j];
-      }
-
     template<typename T> void grid2dirty_post(const mav<T,2> &tmav, const mav<T,2> &dirty) const
       {
       checkShape(dirty.shape(), {nx_dirty,ny_dirty});
@@ -696,34 +604,10 @@ class GridderConfig
           }
       }
 
-    template<typename T> void grid2dirty(const const_mav<T,2> &grid, const mav<T,2> &dirty) const
-      {
-      checkShape(grid.shape(), {nu,nv});
-      tmpStorage<T,2> tmpdat({nu,nv});
-      auto tmav = tmpdat.getMav();
-      hartley2_2D<T>(grid, tmav, nthreads);
-      grid2dirty_post(tmav, dirty);
-      }
-
-    template<typename T> void grid2dirty_c(const const_mav<complex<T>,2> &grid, mav<complex<T>,2> &dirty) const
-      {
-      checkShape(grid.shape(), {nu,nv});
-      tmpStorage<complex<T>,2> tmpdat({nu,nv});
-      auto tmp = tmpdat.getMav();
-      constexpr auto sc = ptrdiff_t(sizeof(complex<T>));
-      pocketfft::c2c({nu,nv},{grid.stride(0)*sc,grid.stride(1)*sc},
-        {tmp.stride(0)*sc, tmp.stride(1)*sc}, {0,1}, pocketfft::BACKWARD,
-        grid.data(), tmp.data(), T(1), nthreads);
-      grid2dirty_post(tmp, dirty);
-      }
-
     template<typename T> void grid2dirty_c_overwrite(const mav<complex<T>,2> &grid, mav<complex<T>,2> &dirty) const
       {
       checkShape(grid.shape(), {nu,nv});
-      constexpr auto sc = ptrdiff_t(sizeof(complex<T>));
-      pocketfft::c2c({nu,nv},{grid.stride(0)*sc,grid.stride(1)*sc},
-        {grid.stride(0)*sc, grid.stride(1)*sc}, {0,1}, pocketfft::BACKWARD,
-        grid.data(), grid.data(), T(1), nthreads);
+      exec_fft(grid, false, nthreads);
       grid2dirty_post(grid, dirty);
       }
 
@@ -745,20 +629,11 @@ class GridderConfig
           }
       }
 
-    template<typename T> void dirty2grid(const const_mav<T,2> &dirty, mav<T,2> &grid) const
-      {
-      dirty2grid_pre(dirty, grid);
-      hartley2_2D<T>(cmav(grid), grid, nthreads);
-      }
-
     template<typename T> void dirty2grid_c(const const_mav<complex<T>,2> &dirty,
       mav<complex<T>,2> &grid) const
       {
       dirty2grid_pre(dirty, grid);
-      constexpr auto sc = ptrdiff_t(sizeof(complex<T>));
-      pocketfft::stride_t strides{grid.stride(0)*sc,grid.stride(1)*sc};
-      pocketfft::c2c({nu,nv}, strides, strides, {0,1}, pocketfft::FORWARD,
-        grid.data(), grid.data(), T(1), nthreads);
+      exec_fft(grid, true, nthreads);
       }
 
     void getpix(double u_in, double v_in, double &u, double &v, int &iu0, int &iv0) const
@@ -935,46 +810,6 @@ template<class T, class Serv> class SubServ
       { srv.addVis(subidx[i], v); }
   };
 
-template<class T, class T2> class VisServ
-  {
-  private:
-    const Baselines &baselines;
-    const_mav<idx_t,1> idx;
-    T2 vis;
-    const_mav<T,1> wgt;
-    size_t nvis;
-    bool have_wgt;
-
-  public:
-    using Tsub = SubServ<T, VisServ>;
-
-    VisServ(const Baselines &baselines_,
-      const const_mav<idx_t,1> &idx_, T2 vis_, const const_mav<T,1> &wgt_)
-      : baselines(baselines_), idx(idx_), vis(vis_), wgt(wgt_),
-        nvis(vis.shape(0)), have_wgt(wgt.size()!=0)
-      {
-      checkShape(idx.shape(), {nvis});
-      if (have_wgt) checkShape(wgt.shape(), {nvis});
-      }
-    Tsub getSubserv(const const_mav<idx_t,1> &subidx) const
-      { return Tsub(*this, subidx); }
-    size_t Nvis() const { return nvis; }
-    const Baselines &getBaselines() const { return baselines; }
-    UVW getCoord(size_t i) const
-      { return baselines.effectiveCoord(idx[i]); }
-    complex<T> getVis(size_t i) const
-      { return have_wgt ? vis(i)*wgt(i) : vis(i); }
-    idx_t getIdx(size_t i) const { return idx[i]; }
-    void setVis (size_t i, const complex<T> &v) const
-      { vis(i) = have_wgt ? v*wgt(i) : v; }
-    void addVis (size_t i, const complex<T> &v) const
-      { vis(i) += have_wgt ? v*wgt(i) : v; }
-  };
-template<class T, class T2> VisServ<T, T2> makeVisServ
-  (const Baselines &baselines,
-   const const_mav<idx_t,1> &idx, const T2 &vis, const const_mav<T,1> &wgt)
-  { return VisServ<T, T2>(baselines, idx, vis, wgt); }
-
 template<class T, class T2> class MsServ
   {
   private:
@@ -1073,12 +908,6 @@ template<typename T, typename Serv> void x2grid_c
     } });
   }
 
-template<typename T> void vis2grid_c
-  (const Baselines &baselines, const GridderConfig &gconf,
-  const const_mav<idx_t,1> &idx, const const_mav<complex<T>,1> &vis,
-  mav<complex<T>,2> &grid, const const_mav<T,1> &wgt, double w0=-1, double dw=-1)
-  { x2grid_c(gconf, makeVisServ(baselines, idx, vis, wgt), grid, w0, dw); }
-
 template<typename T> void ms2grid_c
   (const Baselines &baselines, const GridderConfig &gconf,
   const const_mav<idx_t,1> &idx, const const_mav<complex<T>,2> &ms,
@@ -1131,143 +960,11 @@ template<typename T, typename Serv> void grid2x_c
     srv.addVis(ipart, r);
     }});
   }
-template<typename T> void grid2vis_c
-  (const Baselines &baselines, const GridderConfig &gconf,
-  const const_mav<idx_t,1> &idx, const const_mav<complex<T>,2> &grid,
-  mav<complex<T>,1> &vis, const const_mav<T,1> &wgt, double w0=-1, double dw=-1)
-  { grid2x_c(gconf, grid, makeVisServ(baselines, idx, vis, wgt), w0, dw); }
-
 template<typename T> void grid2ms_c
   (const Baselines &baselines, const GridderConfig &gconf,
   const const_mav<idx_t,1> &idx, const const_mav<complex<T>,2> &grid,
   mav<complex<T>,2> &ms, const const_mav<T,2> &wgt)
   { grid2x_c(gconf, grid, makeMsServ(baselines, idx, ms, wgt)); }
-
-template<typename T> void apply_holo
-  (const Baselines &baselines, const GridderConfig &gconf,
-  const const_mav<idx_t,1> &idx, const const_mav<complex<T>,2> &grid,
-  mav<complex<T>,2> &ogrid, const const_mav<T,1> &wgt)
-  {
-  checkShape(grid.shape(), {gconf.Nu(), gconf.Nv()});
-  size_t nvis = idx.shape(0);
-  size_t nthreads = gconf.Nthreads();
-  bool have_wgt = wgt.size()!=0;
-  if (have_wgt) checkShape(wgt.shape(), {nvis});
-  checkShape(ogrid.shape(), grid.shape());
-  ogrid.fill(0);
-  size_t supp = gconf.Supp();
-  vector<std::mutex> locks(gconf.Nu());
-
-  // Loop over sampling points
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, nvis, [&](size_t start, size_t end) {
-  Helper<T> hlp(gconf, grid.data(), ogrid.data(), locks);
-  int jump = hlp.lineJump();
-  const T * RESTRICT ku = hlp.kernel;
-  const T * RESTRICT kv = hlp.kernel+supp;
-
-  for (size_t ipart=start; ipart!=end; ++ipart)
-    {
-    UVW coord = baselines.effectiveCoord(idx(ipart));
-    coord.FixW();
-    hlp.prep(coord);
-    complex<T> r = 0;
-    const auto * RESTRICT ptr = hlp.p0r;
-    for (size_t cu=0; cu<supp; ++cu)
-      {
-      complex<T> tmp(0);
-      size_t cv=0;
-      for (;cv+3<supp; cv+=4)
-        tmp += ptr[cv  ]*kv[cv  ]
-              +ptr[cv+1]*kv[cv+1]
-              +ptr[cv+2]*kv[cv+2]
-              +ptr[cv+3]*kv[cv+3];
-      for (; cv<supp; ++cv)
-        tmp += ptr[cv] * kv[cv];
-      r += tmp*ku[cu];
-      ptr += jump;
-      }
-    if (have_wgt)
-      {
-      auto twgt = wgt(ipart);
-      r*=twgt*twgt;
-      }
-    auto * RESTRICT wptr = hlp.p0w;
-    for (size_t cu=0; cu<supp; ++cu)
-      {
-      complex<T> tmp(r*ku[cu]);
-      size_t cv=0;
-      for (;cv+3<supp; cv+=4)
-        {
-        wptr[cv  ] += tmp*kv[cv  ];
-        wptr[cv+1] += tmp*kv[cv+1];
-        wptr[cv+2] += tmp*kv[cv+2];
-        wptr[cv+3] += tmp*kv[cv+3];
-        }
-      for (; cv<supp; ++cv)
-        wptr[cv] += tmp*kv[cv];
-      wptr += jump;
-      }
-    }
-});
-  }
-
-template<typename T> void get_correlations
-  (const Baselines &baselines, const GridderConfig &gconf,
-  const const_mav<idx_t,1> &idx, int du, int dv,
-  mav<T,2> &ogrid, const const_mav<T,1> &wgt)
-  {
-  size_t nvis = idx.shape(0);
-  bool have_wgt = wgt.size()!=0;
-  if (have_wgt) checkShape(wgt.shape(), {nvis});
-  checkShape(ogrid.shape(), {gconf.Nu(), gconf.Nv()});
-  size_t supp = gconf.Supp();
-  myassert(size_t(abs(du))<supp, "|du| must be smaller than Supp");
-  myassert(size_t(abs(dv))<supp, "|dv| must be smaller than Supp");
-  size_t nthreads = gconf.Nthreads();
-  ogrid.fill(0);
-  vector<std::unique_ptr<std::mutex>> locks(gconf.Nu());
-
-  size_t u0, u1, v0, v1;
-  if (du>=0)
-    { u0=0; u1=supp-du; }
-  else
-    { u0=-du; u1=supp; }
-  if (dv>=0)
-    { v0=0; v1=supp-dv; }
-  else
-    { v0=-dv; v1=supp; }
-
-  // Loop over sampling points
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, nvis, [&](size_t start, size_t end) {
-  Helper<T,T> hlp(gconf, nullptr, ogrid.data(), locks);
-  int jump = hlp.lineJump();
-  const T * RESTRICT ku = hlp.kernel;
-  const T * RESTRICT kv = hlp.kernel+supp;
-
-  for (size_t ipart=start; ipart!=end; ++ipart)
-    {
-    UVW coord = baselines.effectiveCoord(idx(ipart));
-    coord.FixW();
-    hlp.prep(coord);
-    auto * RESTRICT wptr = hlp.p0w + u0*jump;
-    auto f0 = T(1);
-    if (have_wgt)
-      {
-      auto twgt = wgt(ipart);
-      f0*=twgt*twgt;
-      }
-    for (size_t cu=u0; cu<u1; ++cu)
-      {
-      auto f1=ku[cu]*ku[cu+du]*f0;
-      for (size_t cv=v0; cv<v1; ++cv)
-        wptr[cv] += f1*kv[cv]*kv[cv+dv];
-      wptr += jump;
-      }
-    }
-});
-  }
 
 
 template<typename T> void apply_wcorr(const GridderConfig &gconf,
@@ -1474,29 +1171,7 @@ template<typename T, typename Serv> void x2dirty(
     apply_wcorr(gconf, dirty, ES_Kernel(gconf.Supp(), gconf.Ofactor(), nthreads), dw);
     }
   else
-    {
-    if (verbosity>0)
-      cout << "Gridding without w-stacking: " << srv.Nvis()
-           << " visibilities" << endl;
-    if (verbosity>0) cout << "Using " << gconf.Nthreads() << " threads" << endl;
-
-    tmpStorage<complex<T>,2> grid_({gconf.Nu(), gconf.Nv()});
-    auto grid=grid_.getMav();
-    grid_.fill(0.);
-    x2grid_c(gconf, srv, grid);
-    tmpStorage<T,2> rgrid_(grid.shape());
-    auto rgrid=rgrid_.getMav();
-    complex2hartley(cmav(grid), rgrid, gconf.Nthreads());
-    gconf.grid2dirty(cmav(rgrid), dirty);
-    }
-  }
-template<typename T> void vis2dirty(const Baselines &baselines,
-  const GridderConfig &gconf, const const_mav<idx_t,1> &idx,
-  const const_mav<complex<T>,1> &vis, const const_mav<T,1> &wgt,
-  mav<T,2> &dirty, bool do_wstacking, size_t verbosity)
-  {
-  x2dirty(gconf, makeVisServ(baselines, idx, vis, wgt), dirty, do_wstacking,
-    verbosity);
+    myfail("not supported");
   }
 
 template<typename T, typename Serv> void dirty2x(
@@ -1538,56 +1213,9 @@ template<typename T, typename Serv> void dirty2x(
       }
     }
   else
-    {
-    if (verbosity>0)
-      cout << "Degridding without w-stacking: " << srv.Nvis()
-           << " visibilities" << endl;
-    if (verbosity>0) cout << "Using " << gconf.Nthreads() << " threads" << endl;
-
-    tmpStorage<T,2> grid_({gconf.Nu(), gconf.Nv()});
-    auto grid=grid_.getMav();
-    gconf.dirty2grid(dirty, grid);
-    tmpStorage<complex<T>,2> grid2_(grid.shape());
-    auto grid2=grid2_.getMav();
-    hartley2complex(cmav(grid), grid2, gconf.Nthreads());
-    grid2x_c(gconf, cmav(grid2), srv);
-    }
-  }
-template<typename T> void dirty2vis(const Baselines &baselines,
-  const GridderConfig &gconf, const const_mav<idx_t,1> &idx,
-  const const_mav<T,2> &dirty, const const_mav<T,1> &wgt,
-  mav<complex<T>,1> &vis, bool do_wstacking, size_t verbosity)
-  {
-  dirty2x(gconf, dirty, makeVisServ(baselines, idx, vis, wgt), do_wstacking,
-    verbosity);
+    myfail("not supported");
   }
 
-
-size_t getIdxSize(const Baselines &baselines,
-  const const_mav<bool,2> &flags, int chbegin, int chend, double wmin, double wmax,
-  size_t nthreads)
-  {
-  size_t nrow=baselines.Nrows(), nchan=baselines.Nchannels();
-  if (chbegin<0) chbegin=0;
-  if (chend<0) chend=nchan;
-  myassert(chend>chbegin, "empty channel range selected");
-  myassert(chend<=int(nchan), "chend too large");
-  myassert(wmax>wmin, "empty w range selected");
-  checkShape(flags.shape(), {nrow, nchan});
-  size_t res=0;
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, nrow, [&](size_t start, size_t end) {
-  for (idx_t irow=start; irow!=end; ++irow)
-    for (int ichan=chbegin; ichan<chend; ++ichan)
-      if (!flags(irow,ichan))
-        {
-        auto w = abs(baselines.effectiveCoord(RowChan{irow,idx_t(ichan)}).w);
-        if ((w>=wmin) && (w<wmax))
-          ++res;
-        }
-  });
-  return res;
-  }
 
 void calc_share(size_t nshares, size_t myshare, size_t nwork, size_t &lo,
   size_t &hi)
@@ -1598,80 +1226,6 @@ void calc_share(size_t nshares, size_t myshare, size_t nwork, size_t &lo,
   hi = lo+nbase+(myshare<additional);
   }
 
-void fillIdx(const Baselines &baselines,
-  const GridderConfig &gconf, const const_mav<bool,2> &flags, int chbegin,
-  int chend, double wmin, double wmax, mav<idx_t,1> &res)
-  {
-  size_t nrow=baselines.Nrows(),
-         nchan=baselines.Nchannels(),
-         nsafe=gconf.Nsafe();
-  if (chbegin<0) chbegin=0;
-  if (chend<0) chend=nchan;
-  myassert(chend>chbegin, "empty channel range selected");
-  myassert(chend<=int(nchan), "chend too large");
-  myassert(wmax>wmin, "empty w range selected");
-  checkShape(flags.shape(), {nrow, nchan});
-  constexpr int side=1<<logsquare;
-  size_t nbu = (gconf.Nu()+1+side-1) >> logsquare,
-         nbv = (gconf.Nv()+1+side-1) >> logsquare;
-  vector<vector<idx_t>> acc;
-  vector<idx_t> tmp(nrow*(chend-chbegin));
-
-  auto nthr = gconf.Nthreads();
-  acc.resize(nthr);
-  ao::ParallelFor<size_t> loop(nthr);
-  loop.Run(0, nthr, [&](size_t, size_t thread) {
-  size_t lo, hi;
-  calc_share(nthr, thread, nrow, lo, hi);
-  vector<idx_t> &lacc(acc[thread]);
-  lacc.assign(nbu*nbv+1, 0);
-
-  for (idx_t irow=lo, idx=lo*(chend-chbegin); irow<hi; ++irow)
-    for (int ichan=chbegin; ichan<chend; ++ichan, ++idx)
-      {
-      tmp[idx] = ~idx_t(0);
-      if (!flags(irow, ichan))
-        {
-        auto uvw = baselines.effectiveCoord(RowChan{irow,idx_t(ichan)});
-        if (uvw.w<0) uvw.Flip();
-        if ((uvw.w>=wmin) && (uvw.w<wmax))
-          {
-          double u, v;
-          int iu0, iv0;
-          gconf.getpix(uvw.u, uvw.v, u, v, iu0, iv0);
-          iu0 = (iu0+nsafe)>>logsquare;
-          iv0 = (iv0+nsafe)>>logsquare;
-          ++lacc[nbv*iu0 + iv0 + 1];
-          tmp[idx] = nbv*iu0 + iv0;
-          }
-        }
-      }
-  });
-
-  //loop.Run(0, nthr, [&](size_t, size_t thread) {
-	for(size_t thread=0; thread!=nthr; ++thread) {
-  size_t lo2, hi2;
-  calc_share(nthr, thread, nbu*nbv, lo2, hi2);
-  for (size_t i=lo2+1; i<hi2+1; ++i)
-    {
-    idx_t sum=0;
-    for (size_t j=0; j<nthr; ++j)
-      sum += acc[j][i];
-    acc[0][i]=sum;
-    }
-  }
-  //});
-
-  auto &acc0(acc[0]);
-  for (size_t i=1; i<acc0.size(); ++i)
-    acc0[i] += acc0[i-1];
-  myassert(res.shape(0)==acc0.back(), "array size mismatch");
-
-  for (size_t irow=0, idx=0; irow<nrow; ++irow)
-    for (int ichan=chbegin; ichan<chend; ++ichan, ++idx)
-      if (tmp[idx]!=(~idx_t(0)))
-        res[acc0[tmp[idx]]++] = baselines.getIdx(irow, ichan);
-  }
 
 template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
   const GridderConfig &gconf, const const_mav<T,2> &wgt,
@@ -1755,15 +1309,6 @@ template<typename T> void ms2dirty_general(const const_mav<double,2> &uvw,
   auto idx2 = const_mav<idx_t,1>(idx.data(),{idx.size()});
   x2dirty(gconf, makeMsServ(baselines,idx2,ms,wgt), dirty, do_wstacking, verbosity);
   }
-template<typename T> void ms2dirty(const const_mav<double,2> &uvw,
-  const const_mav<double,1> &freq, const const_mav<complex<T>,2> &ms,
-  const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, double epsilon,
-  bool do_wstacking, size_t nthreads, const mav<T,2> &dirty, size_t verbosity)
-  {
-  ms2dirty_general(uvw, freq, ms, wgt, pixsize_x, pixsize_y,
-    2*dirty.shape(0), 2*dirty.shape(1), epsilon, do_wstacking, nthreads,
-    dirty, verbosity);
-  }
 
 template<typename T> void dirty2ms_general(const const_mav<double,2> &uvw,
   const const_mav<double,1> &freq, const const_mav<T,2> &dirty,
@@ -1779,31 +1324,12 @@ template<typename T> void dirty2ms_general(const const_mav<double,2> &uvw,
   ms.fill(0);
   dirty2x(gconf, dirty, makeMsServ(baselines,idx2,ms,wgt), do_wstacking, verbosity);
   }
-template<typename T> void dirty2ms(const const_mav<double,2> &uvw,
-  const const_mav<double,1> &freq, const const_mav<T,2> &dirty,
-  const const_mav<T,2> &wgt, double pixsize_x, double pixsize_y, double epsilon,
-  bool do_wstacking, size_t nthreads, const mav<complex<T>,2> &ms, size_t verbosity)
-  {
-  dirty2ms_general(uvw, freq, dirty, wgt, pixsize_x, pixsize_y,
-    2*dirty.shape(0), 2*dirty.shape(1), epsilon, do_wstacking, nthreads, ms,
-    verbosity);
-  }
 
 } // namespace detail
 
 // public names
 using detail::mav;
 using detail::const_mav;
-using detail::Baselines;
-using detail::GridderConfig;
-using detail::ms2grid_c;
-using detail::grid2ms_c;
-using detail::vis2grid_c;
-using detail::grid2vis_c;
-using detail::vis2dirty;
-using detail::dirty2vis;
-using detail::ms2dirty;
-using detail::dirty2ms;
 using detail::ms2dirty_general;
 using detail::dirty2ms_general;
 using detail::streamDump__;
