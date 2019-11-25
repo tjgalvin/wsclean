@@ -43,7 +43,7 @@ class WGriddingGridder_Simple
 		 */
 		WGriddingGridder_Simple(size_t width, size_t height, size_t width_t, size_t height_t,
                   double pixelSizeX, double pixelSizeY, size_t nthreads,
-                  double epsilon=1e-5, size_t verbosity=0);
+                  double epsilon=1e-4, size_t verbosity=0);
 
 		WGriddingGridder_Simple(const WGriddingGridder_Simple&) = delete;
 		WGriddingGridder_Simple& operator=(const WGriddingGridder_Simple&) = delete;

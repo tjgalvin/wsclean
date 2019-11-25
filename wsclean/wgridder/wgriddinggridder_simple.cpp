@@ -13,9 +13,6 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(size_t width, size_t height,
     pixelSizeX_(pixelSizeX), pixelSizeY_(pixelSizeY), epsilon_(epsilon),
     verbosity_(verbosity)
   {
-  cout << width << " " << height << " " << width_t << " " << height_t << endl;
-epsilon_=1e-4;
-verbosity_=2;
   myassert(verbosity<=2, "verbosity must be 0, 1, or 2");
   }
 
