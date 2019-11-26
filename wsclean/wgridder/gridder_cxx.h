@@ -263,7 +263,7 @@ template<> void exec_fft(const mav<complex<float>, 2> &arr, bool fwd, size_t nth
   auto d = reinterpret_cast<fftwf_complex *>(arr.data());
   fftwf_plan_with_nthreads(nthreads);
   auto plan = fftwf_plan_dft_2d(arr.shape(0), arr.shape(1),
-    d, d, fwd ? FFTW_FORWARD : FFTW_BACKWARD, FFTW_ESTIMATE);
+    d, d, fwd ? FFTW_FORWARD : FFTW_BACKWARD, FFTW_MEASURE);
   fftwf_execute(plan);
   fftwf_destroy_plan(plan);
   }
@@ -528,12 +528,11 @@ class GridderConfig
       {
       constexpr double pi = 3.141592653589793238462643383279502884197;
       double tmp = 1-x-y;
-      if (tmp<0) return 0.;
-      double nm1 = (-x-y)/(sqrt(tmp)+1); // more accurate form of sqrt(1-x-y)
-      double n = nm1+1., xn = 1./n;
+      if (tmp<=0) return 1.;
+      double nm1 = (-x-y)/(sqrt(tmp)+1); // more accurate form of sqrt(1-x-y) -1
       double phase = 2*pi*w*nm1;
       if (adjoint) phase *= -1;
-      return complex<double>(cos(phase)*xn, sin(phase)*xn);
+      return complex<double>(cos(phase), sin(phase));
       }
 
   public:
@@ -989,11 +988,16 @@ template<typename T> void apply_wcorr(const GridderConfig &gconf,
       fy*=fy;
       T fct = 0;
       double tmp = 1.-fx-fy;
-      if (tmp>=0)
-        {
-        auto nm1 = (-fx-fy)/(sqrt(1.-fx-fy)+1.); // accurate form of sqrt(1-x-y)
-        fct = T((nm1<=-1) ? 0. : kernel.corfac(nm1*dw));
-        }
+//      if (tmp>=0)
+//        {
+//        auto nm1 = (-fx-fy)/(sqrt(1.-fx-fy)+1.); // accurate form of sqrt(1-x-y)
+//        fct = T((nm1<=-1) ? 0. : kernel.corfac(nm1*dw));
+//        }
+{
+double n = sqrt(abs(tmp));
+auto nm1=n-1;
+fct = T(kernel.corfac(nm1*dw));
+}
       size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
       dirty(i,j)*=fct;
       if ((i>0)&&(i<i2))
@@ -1076,6 +1080,8 @@ template<typename Serv> class WgridHelper
       double x0 = -0.5*gconf.Nxdirty()*gconf.Pixsize_x(),
              y0 = -0.5*gconf.Nydirty()*gconf.Pixsize_y();
       double nmin = sqrt(max(1.-x0*x0-y0*y0,0.))-1.;
+      if (x0*x0+y0*y0>1.)
+        nmin = -sqrt(abs(1.-x0*x0-y0*y0))-1.;
       dw = 0.25/abs(nmin);
       nplanes = size_t((wmax-wmin)/dw+2);
       dw = (1.+1e-13)*(wmax-wmin)/(nplanes-1);
