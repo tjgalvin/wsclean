@@ -37,7 +37,7 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, size_t width, size_t 
 	_nThreads = std::min(nCPUs, nStations);
 	_threads.resize(_nThreads);
 
-	casacore::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
+	casacore::MPosition::ScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
 	_arrayPos = antPosColumn(0);
 	_stations.resize(aTable.nrow());
 	readStations(ms, _stations.begin());
@@ -47,8 +47,8 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, size_t width, size_t 
 	
 	casacore::MSField fieldTable(ms.field());
 	
-	casacore::MEpoch::ROScalarColumn timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
-	casacore::MDirection::ROScalarColumn phaseDirColumn(fieldTable, fieldTable.columnName(casacore::MSFieldEnums::PHASE_DIR));
+	casacore::MEpoch::ScalarColumn timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
+	casacore::MDirection::ScalarColumn phaseDirColumn(fieldTable, fieldTable.columnName(casacore::MSFieldEnums::PHASE_DIR));
 	casacore::MDirection phaseDir = phaseDirColumn(0);
 	casacore::MEpoch curtime = timeColumn(0);
 	casacore::MeasFrame frame(_arrayPos, curtime);
@@ -71,6 +71,8 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, size_t width, size_t 
 	}
 	
 	_useDifferentialBeam = LOFARBeamKeywords::GetPreappliedBeamDirection(ms, dataColumnName, _useDifferentialBeam, _preappliedBeamDir);
+	Logger::Debug << "Tile direction: " << RaDecCoord::RaDecToString(_tileBeamDir.getAngle().getValue()[0], _tileBeamDir.getAngle().getValue()[1]) << '\n';
+	Logger::Debug << "Delay direction: " << RaDecCoord::RaDecToString(_delayDir.getAngle().getValue()[0], _delayDir.getAngle().getValue()[1]) << '\n';
 }
 
 void setITRFVector(const casacore::MDirection& itrfDir, LOFAR::StationResponse::vector3r_t& itrf)

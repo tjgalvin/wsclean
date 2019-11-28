@@ -142,7 +142,6 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task, MSGridderBase&
 	result.visibilityWeightSum = gridder.VisibilityWeightSum();
 	result.actualInversionWidth = gridder.ActualInversionWidth();
 	result.actualInversionHeight = gridder.ActualInversionHeight();
-	result.hasGriddingCorrectionImage = gridder.HasGriddingCorrectionImage();
 	return result;
 }
 

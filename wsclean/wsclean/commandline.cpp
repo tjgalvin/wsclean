@@ -182,8 +182,6 @@ void CommandLine::printHelp()
 		"   Always make the psf, even when no cleaning is performed.\n"
 		"-make-psf-only\n"
 		"   Only make the psf, no images are made.\n"
-		"-save-gridding\n"
-		"   Save the gridding correction image. This shows the effect of the antialiasing filter. Default: not saved.\n"
 		"-visibility-weighting-mode [normal/squared/unit]\n"
 		"   Specify visibility weighting modi. Affects how the weights (normally) stored in\n"
 		"   WEIGHT_SPECTRUM column are applied. Useful for estimating e.g. EoR power spectra errors.\n"
@@ -738,12 +736,6 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 		else if(param == "make-psf-only")
 		{
 			settings.makePSFOnly = true;
-		}
-		else if(param == "save-gridding" || param == "savegridding")
-		{
-			settings.isGriddingImageSaved = true;
-			if(param == "savegridding")
-				deprecated(param, "save-gridding");
 		}
 		else if(param == "name")
 		{

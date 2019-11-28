@@ -41,9 +41,6 @@ class BufferedMSGridder : public MSGridderBase
 			throw std::runtime_error("Can not do imaginary imaging in this mode");
 		}
 		
-		virtual bool HasGriddingCorrectionImage() const final override { return false; }
-		virtual void GetGriddingCorrectionImage(double *) const final override { }
-		
 		virtual size_t ActualInversionWidth() const final override { return _actualInversionWidth; }
 		virtual size_t ActualInversionHeight() const final override { return _actualInversionHeight; }
 		

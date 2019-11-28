@@ -132,19 +132,6 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result)
 	fitsFile.WritePSF(name, result.imageRealResult.data());
 	Logger::Info << "DONE\n";
 	
-	if(_settings.isGriddingImageSaved && _isFirstInversion && result.hasGriddingCorrectionImage)
-	{
-		Logger::Info << "Writing gridding correction image... ";
-		Logger::Info.Flush();
-		double* gridding = _imageAllocator.Allocate(result.actualInversionWidth * result.actualInversionHeight);
-		_griddingTaskManager->Gridder()->GetGriddingCorrectionImage(&gridding[0]);
-		FitsWriter fitsWriter;
-		fitsWriter.SetImageDimensions(result.actualInversionWidth, result.actualInversionHeight);
-		fitsWriter.Write(_settings.prefixName + "-gridding.fits", &gridding[0]);
-		_imageAllocator.Free(gridding);
-		Logger::Info << "DONE\n";
-	}
-	
 	_isFirstInversion = false;
 }
 

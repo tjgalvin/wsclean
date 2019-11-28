@@ -24,34 +24,35 @@ class ImageBufferAllocator
 {
 public:
 	/** A unique smart pointer to an image buffer. */
-	class Ptr
+	template<typename NumT>
+	class TPtr
 	{
 	public:
 		friend class ImageBufferAllocator;
 		/** Construct empty pointer */
-		Ptr()
+		TPtr()
 			: _data(nullptr), _allocator(nullptr) { }
-		Ptr(std::nullptr_t)
+		TPtr(std::nullptr_t)
 			: _data(nullptr), _allocator(nullptr) { }
 		/** Construct initialized pointer
 			* @param data databuffer
 			* @param allocator corresponding allocator
 			*/
-		Ptr(double* data, ImageBufferAllocator& allocator) 
+		TPtr(NumT* data, ImageBufferAllocator& allocator) 
 			: _data(data), _allocator(&allocator) { }
 			
-		Ptr(Ptr&& source)
+		TPtr(TPtr<NumT>&& source)
 		  : _data(source._data), _allocator(source._allocator)
 		{
 			source._data = nullptr;
 			source._allocator = nullptr;
 		}
 		/** Destructor */
-		~Ptr()
+		~TPtr()
 		{
 			reset();
 		}
-		Ptr& operator=(Ptr&& rhs)
+		TPtr<NumT>& operator=(TPtr<NumT>&& rhs)
 		{
 			reset(rhs._data, *rhs._allocator);
 			rhs._data = nullptr;
@@ -62,9 +63,9 @@ public:
 		/** Is the ptr set? */
 		operator bool() const { return _data != nullptr; }
 		/** @returns pointer to data */
-		double* data() const { return _data; }
+		NumT* data() const { return _data; }
 		/** @returns reference to data */ 
-		double& operator*() const { return *_data; }
+		NumT& operator*() const { return *_data; }
 		/** Destructs buffer if set. */
 		void reset()
 		{
@@ -76,7 +77,7 @@ public:
 			* @param data databuffer
 			* @param allocator corresponding allocator
 			*/
-		void reset(double* data, ImageBufferAllocator& allocator)
+		void reset(NumT* data, ImageBufferAllocator& allocator)
 		{
 			// We have to check for nullptr, because the _allocator might not be set.
 			if(_data != nullptr) _allocator->Free(_data);
@@ -84,13 +85,87 @@ public:
 			_allocator = &allocator;
 		}
 		/** Retrieve image element with given index. */
-		double& operator[](size_t index) const { return _data[index]; }
+		NumT& operator[](size_t index) const { return _data[index]; }
 		
 	private:
-		Ptr(const Ptr&) = delete;
-		void operator=(const Ptr&) = delete;
+		TPtr(const TPtr<NumT>&) = delete;
+		void operator=(const TPtr<NumT>&) = delete;
 		
-		double* _data;
+		NumT* _data;
+		ImageBufferAllocator* _allocator;
+	};
+	
+	typedef TPtr<double> Ptr;
+	
+	/** A unique smart pointer to a complex image buffer. */
+	template<typename NumT>
+	class CPtr
+	{
+	public:
+		friend class ImageBufferAllocator;
+		/** Construct empty pointer */
+		CPtr()
+			: _data(nullptr), _allocator(nullptr) { }
+		CPtr(std::nullptr_t)
+			: _data(nullptr), _allocator(nullptr) { }
+		/** Construct initialized pointer
+			* @param data databuffer
+			* @param allocator corresponding allocator
+			*/
+		CPtr(std::complex<NumT>* data, ImageBufferAllocator& allocator) 
+			: _data(data), _allocator(&allocator) { }
+			
+		CPtr(CPtr<NumT>&& source)
+		  : _data(source._data), _allocator(source._allocator)
+		{
+			source._data = nullptr;
+			source._allocator = nullptr;
+		}
+		/** Destructor */
+		~CPtr()
+		{
+			reset();
+		}
+		CPtr<NumT>& operator=(CPtr<NumT>&& rhs)
+		{
+			reset(rhs._data, *rhs._allocator);
+			rhs._data = nullptr;
+			rhs._data = nullptr;
+			return *this;
+		}
+		bool operator==(std::nullptr_t) const { return _data == nullptr; }
+		/** Is the ptr set? */
+		operator bool() const { return _data != nullptr; }
+		/** @returns pointer to data */
+		std::complex<NumT>* data() const { return _data; }
+		/** @returns reference to data */ 
+		std::complex<NumT>& operator*() const { return *_data; }
+		/** Destructs buffer if set. */
+		void reset()
+		{
+			// We have to check for nullptr, because the _allocator might not be set.
+			if(_data != nullptr) _allocator->Free(_data);
+			_data = nullptr;
+		}
+		/** Destructs buffer if set and assign new contents.
+			* @param data databuffer
+			* @param allocator corresponding allocator
+			*/
+		void reset(std::complex<NumT>* data, ImageBufferAllocator& allocator)
+		{
+			// We have to check for nullptr, because the _allocator might not be set.
+			if(_data != nullptr) _allocator->Free(_data);
+			_data = data;
+			_allocator = &allocator;
+		}
+		/** Retrieve image element with given index. */
+		std::complex<NumT>& operator[](size_t index) const { return _data[index]; }
+		
+	private:
+		CPtr(const CPtr<NumT>&) = delete;
+		void operator=(const CPtr<NumT>&) = delete;
+		
+		std::complex<NumT>* _data;
 		ImageBufferAllocator* _allocator;
 	};
 	
@@ -101,8 +176,6 @@ public:
 	{ }
 	
 	ImageBufferAllocator(const ImageBufferAllocator& source) = delete;
-	
-	ImageBufferAllocator(ImageBufferAllocator&& source) = default;
 	
 	ImageBufferAllocator& operator=(const ImageBufferAllocator& source) = delete;
 	
@@ -148,6 +221,9 @@ public:
 		return Ptr(Allocate(size), *this);
 	}
 	
+	template<typename NumT>
+	TPtr<NumT> AllocateTPtr(size_t size);
+	
 	double* Allocate(size_t size)
 	{
 		if(_direct)
@@ -187,6 +263,9 @@ public:
 		}
 	}
 	
+	template<typename NumT>
+	CPtr<NumT> AllocateCPtr(size_t size);
+	
 	std::complex<double>* AllocateComplex(size_t size)
 	{
 		if(_direct)
@@ -223,6 +302,11 @@ public:
 		}
 	}
 	
+	void Free(float* buffer)
+	{
+		Free(reinterpret_cast<double*>(buffer));
+	}
+	
 	void Free(double* buffer)
 	{
 		if(_direct)
@@ -254,6 +338,9 @@ public:
 			--_nReal;
 		}
 	}
+	
+	void Free(std::complex<float>* buffer)
+	{ Free(reinterpret_cast<std::complex<double>*>(buffer)); }
 	
 	void Free(std::complex<double>* buffer)
 	{
@@ -380,6 +467,30 @@ private:
 	bool _direct;
 	mutable std::mutex _mutex;
 };
+
+template<>
+inline ImageBufferAllocator::TPtr<double> ImageBufferAllocator::AllocateTPtr(size_t size)
+{
+	return AllocatePtr(size);
+}
+
+template<>
+inline ImageBufferAllocator::TPtr<float> ImageBufferAllocator::AllocateTPtr(size_t size)
+{
+	return TPtr<float>(reinterpret_cast<float*>(Allocate((size+1)/2)), *this);
+}
+
+template<>
+inline ImageBufferAllocator::CPtr<double> ImageBufferAllocator::AllocateCPtr(size_t size)
+{
+	return CPtr<double>(AllocateComplex(size), *this);
+}
+
+template<>
+inline ImageBufferAllocator::CPtr<float> ImageBufferAllocator::AllocateCPtr(size_t size)
+{
+	return CPtr<float>(reinterpret_cast<std::complex<float>*>(AllocateComplex((size+1)/2)), *this);
+}
 
 #else // USE_DIRECT_ALLOCATOR
 

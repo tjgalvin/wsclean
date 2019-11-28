@@ -186,6 +186,7 @@ void PrimaryBeam::makeLOFARImage(PrimaryBeamImageSet& beamImages, const ImagingT
 	for(size_t i=0; i!=_msProviders.size(); ++i)
 		lbeam.AddMS(_msProviders[i].first, &_msProviders[i].second, i);
 	lbeam.SetUseDifferentialBeam(_settings.useDifferentialLofarBeam);
+	lbeam.SetSaveIntermediateImages(_settings.saveATerms);
 	lbeam.SetImageDetails(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
 	lbeam.SetImageWeight(std::move(imageWeights));
 	lbeam.SetUndersampling(_settings.primaryBeamUndersampling);

@@ -32,7 +32,6 @@ struct GriddingResult
 	double effectiveGriddedVisibilityCount;
 	double visibilityWeightSum;
 	size_t actualInversionWidth, actualInversionHeight;
-	bool hasGriddingCorrectionImage;
 };
 
 class GriddingTask

@@ -26,8 +26,6 @@ public:
 	virtual ImageBufferAllocator::Ptr ImageImaginaryResult() final override {
 		throw std::runtime_error("Direct FT imager can not make complex images");
 	}
-	virtual bool HasGriddingCorrectionImage() const final override { return false; }
-	virtual void GetGriddingCorrectionImage(double *) const final override { }
 	virtual size_t getSuggestedWGridSize() const override final { return 1; }
 	
 private:

@@ -602,6 +602,19 @@ void MultiScaleAlgorithm::findPeakDirect(const double* image, double* scratch, s
 		scaleInfo.maxNormalizedImageValue = get_optional_value_or(maxValue, 0.0) / _rmsFactorImage[scaleInfo.maxImageValueX + scaleInfo.maxImageValueY * _width];
 }
 
+static size_t calculateGoodFFTSize(size_t n)
+{
+size_t bestfac=2*n;
+/* NOTE: Starting from f2=2 here instead from f2=1 as usual, because the
+		result needs to be even. */
+for (size_t f2=2; f2<bestfac; f2*=2)
+	for (size_t f23=f2; f23<bestfac; f23*=3)
+		for (size_t f235=f23; f235<bestfac; f235*=5)
+			for (size_t f2357=f235; f2357<bestfac; f2357*=7)
+				if (f2357>=n) bestfac=f2357;
+return bestfac;
+}
+
 void MultiScaleAlgorithm::getConvolutionDimensions(size_t scaleIndex, size_t& width, size_t& height) const
 {
 	double scale = _scaleInfos[scaleIndex].scale;
@@ -609,13 +622,11 @@ void MultiScaleAlgorithm::getConvolutionDimensions(size_t scaleIndex, size_t& wi
 	// It's supposed to be a balance between diverging runs caused by
 	// insufficient padding on one hand, and taking up too much memory on the other.
 	// I've seen divergence when padding=1.1, _width=1500, max scale=726 and conv width=1650.
-	// Diverged occurred on scale 363.
+	// Divergence occurred on scale 363.
 	// Was solved with conv width=2250. 2250 = 1.1*(363*factor + 1500)  --> factor = 1.5
 	// And solved with conv width=2000. 2000 = 1.1*(363*factor + 1500)  --> factor = 0.8
 	width = ceil(_convolutionPadding * (scale*1.5 + _width));
 	height = ceil(_convolutionPadding * (scale*1.5 + _height));
-	if(width%2 != 0)
-		++width;
-	if(height%2 != 0)
-		++height;
+	width = calculateGoodFFTSize(width);
+	height = calculateGoodFFTSize(height);
 }

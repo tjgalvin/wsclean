@@ -205,12 +205,9 @@ class MeasurementSetGridder
 		/**
 		 * Deallocate any data that is no longer necessary, but all methods
 		 * will still return results from the imaging, with the exception of
-		 * ImageReal/ImageResult() and GetGriddingCorrectionImage().
+		 * ImageReal/ImageResult().
 		 */
 		virtual void FreeImagingData() {	}
-		
-		virtual bool HasGriddingCorrectionImage() const = 0;
-		virtual void GetGriddingCorrectionImage(double *image) const = 0;
 		
 		virtual size_t ActualInversionWidth() const { return _imageWidth; }
 		virtual size_t ActualInversionHeight() const { return _imageHeight; }

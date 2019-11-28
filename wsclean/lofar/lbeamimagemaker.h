@@ -59,6 +59,10 @@ public:
 		_undersample = undersamplingFactor;
 	}
 	
+	void SetSaveIntermediateImages(bool saveIntermediateImages) {
+		_saveIntermediateImages = saveIntermediateImages;
+	}
+	
 private:
 #ifdef HAVE_LOFAR_BEAM
 	class WeightMatrix
@@ -114,7 +118,7 @@ private:
 	size_t _undersample, _secondsBeforeBeamUpdate;
 	double _pixelSizeX, _pixelSizeY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
 	double _sPixelSizeX, _sPixelSizeY, _totalWeightSum;
- 	bool _useDifferentialBeam;
+ 	bool _useDifferentialBeam, _saveIntermediateImages;
 	casacore::MDirection _delayDir, _preappliedDir, _tileBeamDir;
 };
 

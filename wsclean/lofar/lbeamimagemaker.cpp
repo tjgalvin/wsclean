@@ -97,7 +97,7 @@ void LBeamImageMaker::Make(PrimaryBeamImageSet& beamImages)
 		for(size_t p=0; p!=8; ++p)
 		{
 			resampler.Resample(&beamImages[p][0], scratch.data());
-			memcpy(&beamImages[p][0], scratch.data(), sizeof(double)*_width*_height);
+			std::copy_n(scratch.data(), _width*_height, &beamImages[p][0]);
 		}
 	}
 }
@@ -111,27 +111,28 @@ void LBeamImageMaker::makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider&
 	
 	casacore::MSAntenna aTable = ms->antenna();
 	if(aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
-	casacore::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
+	casacore::MPosition::ScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
 	casacore::MPosition arrayPos = antPosColumn(0);
 	
 	Logger::Debug << "Making beam for frequency " << centralFrequency * 1e-6 << " MHz.\n";
 	
 	casacore::MSField fieldTable(ms->field());
-	casacore::ROScalarMeasColumn<casacore::MDirection> delayDirColumn(fieldTable, casacore::MSField::columnName(casacore::MSFieldEnums::DELAY_DIR));
+	casacore::ScalarMeasColumn<casacore::MDirection> delayDirColumn(fieldTable, casacore::MSField::columnName(casacore::MSFieldEnums::DELAY_DIR));
 	if(fieldTable.nrow() != 1)
 		throw std::runtime_error("Set has multiple fields");
 	_delayDir = delayDirColumn(0);
 	//Logger::Debug << "Using delay direction: " << RaDecCoord::RaDecToString(_delayDir.getAngle().getValue()[0], _delayDir.getAngle().getValue()[1]) << '\n';
 
-	LOFARBeamKeywords::GetPreappliedBeamDirection(*ms, msProvider.DataColumnName(), _useDifferentialBeam, _preappliedDir);
+	_useDifferentialBeam = LOFARBeamKeywords::GetPreappliedBeamDirection(*ms, msProvider.DataColumnName(), _useDifferentialBeam, _preappliedDir);
 	
 	if(fieldTable.tableDesc().isColumn("LOFAR_TILE_BEAM_DIR")) {
-		casacore::ROArrayMeasColumn<casacore::MDirection> tileBeamDirColumn(fieldTable, "LOFAR_TILE_BEAM_DIR");
+		casacore::ArrayMeasColumn<casacore::MDirection> tileBeamDirColumn(fieldTable, "LOFAR_TILE_BEAM_DIR");
 		_tileBeamDir = *(tileBeamDirColumn(0).data());
 	} else {
 		_tileBeamDir = _delayDir;
 	}
 	
+	Logger::Debug << "Using delay direction: " << RaDecCoord::RaDecToString(_delayDir.getAngle().getValue()[0], _delayDir.getAngle().getValue()[1]) << '\n';
 	Logger::Debug << "Using tile direction: " << RaDecCoord::RaDecToString(_tileBeamDir.getAngle().getValue()[0], _tileBeamDir.getAngle().getValue()[1]) << '\n';
 	
 	std::vector<Station::Ptr> stations(aTable.nrow());
@@ -160,8 +161,13 @@ void LBeamImageMaker::makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider&
 			msProvider.NextRow();
 		}
 	}
+	if(startTime == endTime)
+	{
+		++endTime;
+		--startTime;
+	}
 	const double totalSeconds = endTime - startTime;
-	size_t intervalCount = (totalSeconds + _secondsBeforeBeamUpdate - 1) / _secondsBeforeBeamUpdate;
+	size_t intervalCount = std::max<size_t>(1, (totalSeconds + _secondsBeforeBeamUpdate - 1) / _secondsBeforeBeamUpdate);
 	if(intervalCount > timestepCount)
 		intervalCount = timestepCount;
 	Logger::Debug << "MS spans " << totalSeconds << " seconds, dividing in " << intervalCount << " intervals.\n";
@@ -222,6 +228,31 @@ void LBeamImageMaker::makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider&
 					beamImages[i][j] += val * intervalWeight;
 				}
 			}
+			if(_saveIntermediateImages)
+			{
+				static size_t index = 0;
+				std::ostringstream str;
+				str << "beam-intermediate-" << index << ".fits";
+				ao::uvector<double> img(_sampledWidth*_sampledHeight);
+				for(size_t px=0; px!=_sampledWidth*_sampledHeight; ++px)
+				{
+					MC2x2 matrix(
+						std::complex<float>(singleImages[0][px], singleImages[1][px]),
+						std::complex<float>(singleImages[2][px], singleImages[3][px]),
+						std::complex<float>(singleImages[4][px], singleImages[5][px]),
+						std::complex<float>(singleImages[6][px], singleImages[7][px])
+					);
+					std::complex<double> e1, e2;
+					matrix.EigenValues(e1, e2);
+					img[px] = std::max(std::abs(e1), std::abs(e2));
+					if(px == _sampledWidth/2 + (_sampledHeight/2)*_sampledWidth)
+						Logger::Debug << "Central pixel: " << img[px] << '\n';
+				}
+				FitsWriter writer;
+				writer.SetImageDimensions(_sampledWidth, _sampledHeight);
+				writer.Write(str.str(), img.data());
+				++index;
+			}
 		}
 	}
 }
@@ -238,7 +269,6 @@ static void dirToITRFVector(const casacore::MDirection& dir, ITRFConverter& conv
 void LBeamImageMaker::makeBeamSnapshot(const std::vector<Station::Ptr>& stations, const ao::uvector<double>& weights, double** imgPtr, double time, double frequency, double subbandFrequency, const casacore::MeasFrame& frame)
 {
 	static const casacore::Unit radUnit("rad");
-	const casacore::MDirection::Ref itrfRef(casacore::MDirection::ITRF, frame);
 	const casacore::MDirection::Ref j2000Ref(casacore::MDirection::J2000, frame);
 	ITRFConverter converter(time);
 		

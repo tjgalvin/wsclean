@@ -65,7 +65,7 @@ public:
 	bool joinedPolarizationCleaning, joinedFrequencyCleaning;
 	std::set<PolarizationEnum> linkedPolarizations;
 	size_t parallelDeconvolutionMaxSize;
-	bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved, isDirtySaved, isFirstResidualSaved, isGriddingImageSaved;
+	bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved, isDirtySaved, isFirstResidualSaved;
 	bool writeImagingWeightSpectrumColumn;
 	std::string temporaryDirectory;
 	bool forceReorder, forceNoReorder, subtractModel, modelUpdateRequired, mfWeighting;
@@ -193,8 +193,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	linkedPolarizations(),
 	parallelDeconvolutionMaxSize(0),
 	smallInversion(true), makePSF(false), makePSFOnly(false), isWeightImageSaved(false),
-	isUVImageSaved(false), isDirtySaved(true), isFirstResidualSaved(false), isGriddingImageSaved(false),
-	writeImagingWeightSpectrumColumn(false),
+	isUVImageSaved(false), isDirtySaved(true), isFirstResidualSaved(false), 	writeImagingWeightSpectrumColumn(false),
 	temporaryDirectory(),
 	forceReorder(false), forceNoReorder(false),
 	subtractModel(false),
