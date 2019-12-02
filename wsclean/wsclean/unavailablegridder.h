@@ -23,10 +23,6 @@ public:
 	
 	virtual ImageBufferAllocator::Ptr ImageImaginaryResult() final override { doThrow(); return 0; }
 	
-	virtual void GetGriddingCorrectionImage(double*) const final override { doThrow(); }
-	
-	virtual bool HasGriddingCorrectionImage() const final override { doThrow(); return false; }
-	
 	void SavePBCorrectedImages(class FitsWriter& /*writer*/, class ImageFilename& /*filename*/, const std::string& /*filenameKind*/, class ImageBufferAllocator& /*allocator*/) const
 	{ }
 	
