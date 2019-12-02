@@ -93,8 +93,8 @@ class FitsReader : public FitsIOChecker
 		double FrequencyDimensionStart() const { return _meta.frequency; }
 		double FrequencyDimensionIncr() const { return _meta.bandwidth; }
 		
+		double ReadDoubleKey(const char* key);
 	private:
-		double readDoubleKey(const char* key);
 		std::string readStringKey(const char* key);
 		void readHistory();
 		bool readDateKeyIfExists(const char *key, double &dest);

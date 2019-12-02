@@ -128,6 +128,9 @@ void ImageOperations::MakeMFSImage(const WSCleanSettings& settings, const std::v
 				break;
 			}
 		}
+		double pixelScale = std::min(settings.pixelScaleX, settings.pixelScaleY);
+		if(smallestTheoreticBeamSize < pixelScale)
+			smallestTheoreticBeamSize = pixelScale;
 		
 		ImageOperations::DetermineBeamSize(settings, mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA, mfsImage.data(), smallestTheoreticBeamSize);
 	}

@@ -7,10 +7,11 @@
 #include <thread>
 #include <vector>
 
-#include "msgridderbase.h"
-#include "measurementsetgridder.h"
+#include "griddingresult.h"
 #include "imagebufferallocator.h"
 #include "observationinfo.h"
+#include "measurementsetgridder.h"
+#include "msgridderbase.h"
 
 #include "../lane.h"
 #include "../imageweights.h"
@@ -18,21 +19,6 @@
 #include "../msselection.h"
 
 #include "../msproviders/msprovider.h"
-
-struct GriddingResult
-{
-	ImageBufferAllocator::Ptr imageRealResult;
-	ImageBufferAllocator::Ptr imageImaginaryResult;
-	ObservationInfo observationInfo;
-	double beamSize;
-	double imageWeight;
-	double normalizationFactor;
-	size_t actualWGridSize;
-	size_t griddedVisibilityCount;
-	double effectiveGriddedVisibilityCount;
-	double visibilityWeightSum;
-	size_t actualInversionWidth, actualInversionHeight;
-};
 
 class GriddingTask
 {

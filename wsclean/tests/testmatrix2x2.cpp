@@ -2,6 +2,8 @@
 
 #include "../matrix2x2.h"
 
+#include <iostream>
+
 BOOST_AUTO_TEST_SUITE(matrix2x2)
 
 BOOST_AUTO_TEST_CASE( eigenvalue1 )
@@ -134,6 +136,30 @@ BOOST_AUTO_TEST_CASE( cholesky_not_positive )
 	BOOST_CHECK(!Matrix2x2::CheckedCholesky(diag_not_real));
 	std::complex<double> not_hermitian[4] = {{1., 0.}, {1., 0.}, {2., 0.}, {1., 0.}}; // not hermitian
 	BOOST_CHECK(!Matrix2x2::CheckedCholesky(not_hermitian));
+}
+
+BOOST_AUTO_TEST_CASE( evdecomposition )
+{
+	MC2x2 a(1, 2, 3, 4), b(5, 6, 7, 8);
+	MC2x2 jones = a.MultiplyHerm(b) + b.MultiplyHerm(a);
+	MC2x2 r = jones;
+	r *= r.HermTranspose();
+	std::complex<double> e1, e2, vec1[2], vec2[2];
+	Matrix2x2::EigenValuesAndVectors(r.Data(), e1, e2, vec1, vec2);
+	double v1norm = std::norm(vec1[0]) + std::norm(vec1[1]);
+	vec1[0] /= sqrt(v1norm); vec1[1] /= sqrt(v1norm);
+	double v2norm = std::norm(vec2[0]) + std::norm(vec2[1]);
+	vec2[0] /= sqrt(v2norm); vec2[1] /= sqrt(v2norm);
+	
+	MC2x2 u(vec1[0], vec2[0], vec1[1], vec2[1]), e(e1, 0, 0, e2);
+	MC2x2 res = u.Multiply(e).MultiplyHerm(u);
+	for(size_t i=0; i!=4; ++i)
+		BOOST_CHECK_CLOSE(res[i].real(), r[i].real(), 1e-6);
+
+	MC2x2 decomposed = r.DecomposeHermitianEigenvalue();
+	decomposed *= decomposed.HermTranspose();
+	for(size_t i=0; i!=4; ++i)
+		BOOST_CHECK_CLOSE(decomposed[i].real(), r[i].real(), 1e-6);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

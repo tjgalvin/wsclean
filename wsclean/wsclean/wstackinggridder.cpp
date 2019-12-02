@@ -30,6 +30,18 @@ WStackingGridderBase<T>::WStackingGridderBase(size_t width, size_t height, doubl
 	_imageBufferAllocator(allocator)
 {
 	makeKernels();
+	makeFFTWThreadSafe();
+}
+
+template<>
+void WStackingGridderBase<float>::makeFFTWThreadSafe()
+{
+	fftwf_make_planner_thread_safe();
+}
+
+template<>
+void WStackingGridderBase<double>::makeFFTWThreadSafe()
+{
 	fftw_make_planner_thread_safe();
 }
 

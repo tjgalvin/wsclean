@@ -66,6 +66,8 @@ public:
 	std::set<PolarizationEnum> linkedPolarizations;
 	size_t parallelDeconvolutionMaxSize;
 	bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved, isDirtySaved, isFirstResidualSaved;
+	bool reusePsf, reuseDirty;
+	std::string reusePsfPrefix, reuseDirtyPrefix;
 	bool writeImagingWeightSpectrumColumn;
 	std::string temporaryDirectory;
 	bool forceReorder, forceNoReorder, subtractModel, modelUpdateRequired, mfWeighting;
@@ -193,7 +195,10 @@ inline WSCleanSettings::WSCleanSettings() :
 	linkedPolarizations(),
 	parallelDeconvolutionMaxSize(0),
 	smallInversion(true), makePSF(false), makePSFOnly(false), isWeightImageSaved(false),
-	isUVImageSaved(false), isDirtySaved(true), isFirstResidualSaved(false), 	writeImagingWeightSpectrumColumn(false),
+	isUVImageSaved(false), isDirtySaved(true), isFirstResidualSaved(false), 	
+	reusePsf(false), reuseDirty(false),
+	reusePsfPrefix(), reuseDirtyPrefix(),
+	writeImagingWeightSpectrumColumn(false),
 	temporaryDirectory(),
 	forceReorder(false), forceNoReorder(false),
 	subtractModel(false),

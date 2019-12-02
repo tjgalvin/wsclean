@@ -256,18 +256,20 @@ template<typename T, size_t ndim> class tmpStorage
       { std::fill(d.begin(), d.end(), val); }
   };
 
-template<typename T> void prep_fft(size_t s0, size_t s1, size_t nthreads)
+template<typename T> void prep_fft(size_t s0, size_t s1, size_t nthreads, size_t verbosity)
   { myfail("not implemented"); }
-template<> void prep_fft<float>(size_t s0, size_t s1, size_t nthreads)
+template<> void prep_fft<float>(size_t s0, size_t s1, size_t nthreads, size_t verbosity)
   {
-  cout << "preparing FFT plans ... " << flush;
+  if(verbosity > 0)
+    cout << "preparing FFT plans ... " << flush;
   aligned_data<fftwf_complex> tmp(s0*s1);
   fftwf_plan_with_nthreads(nthreads);
   auto fplan = fftwf_plan_dft_2d(s0, s1, tmp.data(), tmp.data(), FFTW_FORWARD, FFTW_MEASURE);
   fftwf_destroy_plan(fplan);
   auto bplan = fftwf_plan_dft_2d(s0, s1, tmp.data(), tmp.data(), FFTW_BACKWARD, FFTW_MEASURE);
   fftwf_destroy_plan(bplan);
-  cout << "done" << endl;
+  if(verbosity > 0)
+    cout << "done" << endl;
   }
 template<typename T> void exec_fft(const mav<complex<T>, 2> &arr, bool fwd, size_t nthreads)
   { myfail("not implemented"); }
@@ -1356,7 +1358,7 @@ template<typename T> void ms2dirty_general(const const_mav<double,2> &uvw,
   bool do_wstacking, size_t nthreads, const mav<T,2> &dirty, size_t verbosity,
   bool negate_v=false, bool pure_wstacking=false)
   {
-  prep_fft<T>(nu, nv, nthreads);
+  prep_fft<T>(nu, nv, nthreads, verbosity);
   Baselines baselines(uvw, freq, negate_v);
   GridderConfig gconf(dirty.shape(0), dirty.shape(1), nu, nv, epsilon, pixsize_x, pixsize_y, nthreads);
   auto idx = getWgtIndices(baselines, gconf, wgt, ms);
@@ -1370,7 +1372,7 @@ template<typename T> void dirty2ms_general(const const_mav<double,2> &uvw,
   bool do_wstacking, size_t nthreads, const mav<complex<T>,2> &ms,
   size_t verbosity, bool negate_v=false, bool pure_wstacking=false)
   {
-  prep_fft<T>(nu, nv, nthreads);
+  prep_fft<T>(nu, nv, nthreads, verbosity);
   Baselines baselines(uvw, freq, negate_v);
   GridderConfig gconf(dirty.shape(0), dirty.shape(1), nu, nv, epsilon, pixsize_x, pixsize_y, nthreads);
   const_mav<complex<T>,2> null_ms(nullptr, {0,0});

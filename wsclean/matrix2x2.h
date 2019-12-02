@@ -5,6 +5,21 @@
 #include <limits>
 #include <sstream>
 
+class Vector4
+{
+public:
+	Vector4() { };
+	Vector4(std::complex<double> a, std::complex<double> b, std::complex<double> c, std::complex<double> d)
+	{ 
+		_data[0] = a; _data[1] = b; _data[2] = c; _data[3] = d;
+	};
+	std::complex<double>& operator[](size_t i) { return _data[i]; }
+	const std::complex<double>& operator[](size_t i) const { return _data[i]; }
+	
+private:
+	std::complex<double> _data[4];
+};
+
 class Matrix2x2
 {
 public:
@@ -222,7 +237,7 @@ public:
 	{
 		double tr = matrix[0] + matrix[3];
 		double d = matrix[0]*matrix[3] - matrix[1]*matrix[2];
-		double term = sqrt(tr*tr*0.25-d);
+		double term = std::sqrt(tr*tr*0.25-d);
 		double trHalf = tr*0.5;
 		e1 = trHalf + term;
 		e2 = trHalf - term;
@@ -248,6 +263,47 @@ public:
 				err1_0 = matrix[0] - e1,
 				err2_0 = matrix[0] - e2;
 			if(err1_0*err1_0 < err2_0*err2_0)
+			{
+				vec1[0] = 1.0; vec1[1] = 0.0;
+				vec2[0] = 0.0; vec2[1] = 1.0;
+			}
+			else {
+				vec1[0] = 0.0; vec1[1] = 1.0;
+				vec2[0] = 1.0; vec2[1] = 0.0;
+			}
+		}
+	}
+	
+	static void EigenValuesAndVectors(const std::complex<double>* matrix, std::complex<double> &e1, std::complex<double> &e2, std::complex<double>* vec1, std::complex<double>* vec2)
+	{
+		std::complex<double> tr = matrix[0] + matrix[3];
+		std::complex<double> d = matrix[0]*matrix[3] - matrix[1]*matrix[2];
+		std::complex<double> term = std::sqrt(tr*tr*0.25-d);
+		std::complex<double> trHalf = tr*0.5;
+		e1 = trHalf + term;
+		e2 = trHalf - term;
+		double limit = std::min(std::fabs(e1), std::fabs(e2)) * 1e-6;
+		if(std::fabs(matrix[2]) > limit)
+		{
+			vec1[0] = matrix[3] - e1;
+			vec1[1] = -matrix[2];
+			vec2[0] = matrix[3] - e2;
+			vec2[1] = -matrix[2];
+		}
+		else if(std::fabs(matrix[1]) > limit)
+		{
+			vec1[0] = -matrix[1];
+			vec1[1] = matrix[0] - e1;
+			vec2[0] = -matrix[1];
+			vec2[1] = matrix[0] - e2;
+		}
+		else {
+			// We know that A v = lambda v, and we know that v1 or v2 = [1, 0]:
+			auto
+				// Evaluate for v = [1, 0] and see if the error is smaller for e1 than for e2
+				err1_0 = std::norm(matrix[0] - e1),
+				err2_0 = std::norm(matrix[0] - e2);
+			if(err1_0 < err2_0)
 			{
 				vec1[0] = 1.0; vec1[1] = 0.0;
 				vec2[0] = 0.0; vec2[1] = 1.0;
@@ -401,6 +457,12 @@ public:
 		Matrix2x2::Assign(_values, source._values);
 		return *this;
 	}
+	MC2x2Base<ValType> operator+(const MC2x2Base<ValType>& rhs) const
+	{
+		MC2x2Base<ValType> result(*this);
+		Matrix2x2::Add(result._values, rhs._values);
+		return result;
+	}
 	MC2x2Base<ValType>& operator+=(const MC2x2Base<ValType>& rhs)
 	{
 		Matrix2x2::Add(_values, rhs._values);
@@ -455,6 +517,11 @@ public:
 	{
     Matrix2x2::Assign(destination, _values);
   }
+  
+  Vector4 Vec() const
+  {
+		return Vector4(_values[0], _values[2], _values[1], _values[3]);
+	}
 	
 	MC2x2Base<ValType> Multiply(const MC2x2Base<ValType>& rhs) const
 	{
@@ -483,6 +550,14 @@ public:
 	void AddWithFactorAndAssign(const MC2x2Base<ValType>& rhs, ValType factor)
 	{
 		Matrix2x2::MultiplyAdd(_values, rhs._values, factor);
+	}
+	MC2x2Base<ValType> Transpose() const
+	{
+		return MC2x2Base(_values[0], _values[2], _values[1], _values[3]);
+	}
+	MC2x2Base<ValType> HermTranspose() const
+	{
+		return MC2x2Base(std::conj(_values[0]), std::conj(_values[2]), std::conj(_values[1]), std::conj(_values[3]));
 	}
 	bool Invert()
 	{
@@ -546,6 +621,27 @@ public:
 	void UncheckedCholesky()
 	{
 		Matrix2x2::UncheckedCholesky(_values);
+	}
+	/**
+	 * Decompose a Hermitian matrix X into A A^H such that
+	 *   X = A A^H = U D D^H U^H
+	 *   with A = U D
+	 * where D D^H = E is a diagonal matrix
+	 *       with the eigen values of X, and U contains the eigen vectors.
+	 */
+	MC2x2Base<ValType> DecomposeHermitianEigenvalue()
+	{
+		std::complex<ValType> e1, e2, vec1[2], vec2[2];
+		Matrix2x2::EigenValuesAndVectors(_values, e1, e2, vec1, vec2);
+		ValType v1norm = std::norm(vec1[0]) + std::norm(vec1[1]);
+		vec1[0] /= std::sqrt(v1norm); vec1[1] /= std::sqrt(v1norm);
+		ValType v2norm = std::norm(vec2[0]) + std::norm(vec2[1]);
+		vec2[0] /= std::sqrt(v2norm); vec2[1] /= std::sqrt(v2norm);
+		
+		return MC2x2Base<ValType>(
+			vec1[0] * std::sqrt(e1.real()), vec2[0] * std::sqrt(e2.real()),
+			vec1[1] * std::sqrt(e1.real()), vec2[1] * std::sqrt(e2.real())
+		);
 	}
 private:
 	std::complex<ValType> _values[4];

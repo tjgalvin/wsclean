@@ -465,18 +465,6 @@ ImageBufferAllocator::Ptr IdgMsGridder::ImageImaginaryResult()
 	throw std::runtime_error("IDG gridder cannot make complex images");
 }
 
-void IdgMsGridder::GetGriddingCorrectionImage(double* image) const
-{
-	const size_t width = TrimWidth(), height = TrimHeight();
-	for(size_t i=0; i!=width*height; ++i)
-		image[i] = 1.0;
-}
-
-bool IdgMsGridder::HasGriddingCorrectionImage() const
-{
-	return false;
-}
-
 void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry, ImageFilename& filename) const
 {
 	if (!_averageBeam || _averageBeam->Empty())

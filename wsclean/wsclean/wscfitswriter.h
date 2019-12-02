@@ -54,7 +54,9 @@ public:
 	 * Restore an elliptical beam using a FFT deconvolution directly from images.
 	 */
 	static void Restore(const class WSCleanSettings& settings);
-		
+	
+	static ObservationInfo ReadObservationInfo(class FitsReader& reader);
+	
 private:
 	
 	void setSettingsKeywords(const WSCleanSettings& settings, const std::string& commandLine);

@@ -12,6 +12,7 @@
 #include "../deconvolution/deconvolution.h"
 
 #include "cachedimageset.h"
+#include "griddingresult.h"
 #include "imagebufferallocator.h"
 #include "imagingtable.h"
 #include "msgridderbase.h"
@@ -64,10 +65,14 @@ private:
 	void multiplyImage(double factor, double* image) const;
 	void multiplyImage(double factor, ImageBufferAllocator::Ptr& image) const { multiplyImage(factor, image.data()); }
 	
+	GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
+	void loadExistingPSF(ImagingTableEntry& entry);
+	void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
+	
 	void imagePSF(ImagingTableEntry& entry);
 	void imagePSFCallback(ImagingTableEntry& entry, struct GriddingResult& result);
 	
-	void imageMain(ImagingTableEntry& entry, bool isFirst, bool updateBeamInfo, bool isInitialInversion);
+	void imageMain(ImagingTableEntry& entry, bool isFirstInversion, bool updateBeamInfo);
 	void imageMainCallback(ImagingTableEntry& entry, struct GriddingResult& result, bool updateBeamInfo, bool isInitialInversion);
 	
 	void predict(const ImagingTableEntry& entry);

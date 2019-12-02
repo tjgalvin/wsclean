@@ -541,6 +541,7 @@ class WStackingGridderBase
 		{
 			return (_nWLayers * layerRangeIndex) / _nPasses;
 		}
+		void makeFFTWThreadSafe();
 		template<bool IsComplexImpl>
 		void projectOnImageAndCorrect(const std::complex<num_t> *source, double w, size_t threadIndex);
 		template<bool IsComplexImpl>

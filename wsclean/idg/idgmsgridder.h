@@ -31,10 +31,6 @@ public:
 	
 	virtual ImageBufferAllocator::Ptr ImageImaginaryResult() final override;
 	
-	virtual void GetGriddingCorrectionImage(double* image) const final override;
-	
-	virtual bool HasGriddingCorrectionImage() const final override;
-	
 	void SavePBCorrectedImages(class FitsWriter& writer, const class ImageFilename& filename, const std::string& filenameKind, class ImageBufferAllocator& allocator) const;
 	
 	void SaveBeamImage(const class ImagingTableEntry& entry, class ImageFilename& filename) const;

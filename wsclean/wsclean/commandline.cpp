@@ -69,6 +69,10 @@ void CommandLine::printHelp()
 		"-save-uv\n"
 		"   Save the gridded uv plane, i.e., the FFT of the residual image. The UV plane is complex, hence\n"
 		"   two images will be output: <prefix>-uv-real.fits and <prefix>-uv-imag.fits.\n"
+		"-reuse-psf <prefix>\n"
+		"   Load the psf(s) from the given prefix and skip the inversion for the psf image.\n"
+		"-reuse-dirty <prefix>\n"
+		"   Load the dirty from the given prefix and skip the inversion for the dirty image.\n"
 		"-apply-primary-beam\n"
 		"   Calculate and apply the primary beam and save images for the Jones components, with weighting identical to the\n"
 		"   weighting as used by the imager. Only available for LOFAR, AARTFAAC, MWA and ATCA.\n"
@@ -513,6 +517,18 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 			settings.isUVImageSaved = true;
 			if(param == "saveuv")
 				deprecated(param, "save-uv");
+		}
+		else if(param == "reuse-psf")
+		{
+			++argi;
+			settings.reusePsf = true;
+			settings.reusePsfPrefix = argv[argi];
+		}
+		else if(param == "reuse-dirty")
+		{
+			++argi;
+			settings.reuseDirty = true;
+			settings.reuseDirtyPrefix = argv[argi];
 		}
 		else if(param == "predict")
 		{

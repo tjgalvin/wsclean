@@ -215,3 +215,16 @@ void WSCFitsWriter::Restore(const WSCleanSettings& settings)
 	writer.SetBeamInfo(beamMaj, beamMin, beamPA);
 	writer.Write(settings.restoreOutput, image.data());
 }
+
+ObservationInfo WSCFitsWriter::ReadObservationInfo(FitsReader& reader)
+{
+	ObservationInfo obsInfo;
+	obsInfo.phaseCentreRA = reader.PhaseCentreRA();
+	obsInfo.phaseCentreDec = reader.PhaseCentreDec();
+	obsInfo.phaseCentreDL = reader.PhaseCentreDL();
+	obsInfo.phaseCentreDM = reader.PhaseCentreDM();
+	obsInfo.startTime = reader.DateObs();
+	obsInfo.telescopeName = reader.TelescopeName();
+	obsInfo.observer = reader.Observer();
+	return obsInfo;
+}

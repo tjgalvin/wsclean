@@ -80,7 +80,7 @@ FitsReader& FitsReader::operator=(const FitsReader& rhs)
 	return *this;
 }
 
-double FitsReader::readDoubleKey(const char *key)
+double FitsReader::ReadDoubleKey(const char *key)
 {
 	int status = 0;
 	double value;
@@ -195,20 +195,20 @@ void FitsReader::initialize()
 			if(tmp == "FREQ" || tmp == "VRAD")
 			{
 				_meta.nFrequencies = naxes[i];
-				_meta.frequency = readDoubleKey(crval.str().c_str());
-				_meta.bandwidth = readDoubleKey(cdelt.str().c_str());
+				_meta.frequency = ReadDoubleKey(crval.str().c_str());
+				_meta.bandwidth = ReadDoubleKey(cdelt.str().c_str());
 			}
 			else if(tmp == "ANTENNA")
 				_meta.nAntennas = naxes[i];
 			else if(tmp == "TIME")
 			{
 				_meta.nTimesteps = naxes[i];
-				_meta.timeDimensionStart = readDoubleKey(crval.str().c_str());
-				_meta.timeDimensionIncr = readDoubleKey(cdelt.str().c_str());
+				_meta.timeDimensionStart = ReadDoubleKey(crval.str().c_str());
+				_meta.timeDimensionIncr = ReadDoubleKey(cdelt.str().c_str());
 			}
 			else if(tmp == "STOKES")
 			{
-				double val = readDoubleKey(crval.str().c_str());
+				double val = ReadDoubleKey(crval.str().c_str());
 				switch(int(val))
 				{
 					default: throw std::runtime_error("Unknown polarization specified in fits file");
