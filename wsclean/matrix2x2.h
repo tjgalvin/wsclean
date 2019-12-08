@@ -480,10 +480,22 @@ public:
 		*this = dest;
 		return *this;
 	}
+	MC2x2Base<ValType> operator*(const MC2x2Base<ValType>& rhs) const
+	{
+		MC2x2Base<ValType> dest;
+		Matrix2x2::ATimesB(dest._values, _values, rhs._values);
+		return dest;
+	}
 	MC2x2Base<ValType>& operator*=(ValType rhs)
 	{
 		Matrix2x2::ScalarMultiply(_values, rhs);
 		return *this;
+	}
+	MC2x2Base<ValType> operator*(ValType rhs) const
+	{
+		MC2x2Base<ValType> dest(*this);
+		Matrix2x2::ScalarMultiply(dest._values, rhs);
+		return dest;
 	}
 	MC2x2Base<ValType>& operator/=(ValType rhs)
 	{

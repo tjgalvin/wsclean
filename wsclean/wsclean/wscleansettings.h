@@ -74,7 +74,7 @@ public:
 	size_t fullResOffset, fullResWidth, fullResPad;
 	bool applyPrimaryBeam, reusePrimaryBeam, useDifferentialLofarBeam, savePsfPb;
 	std::string mwaPath;
-	size_t primaryBeamUndersampling;
+	size_t primaryBeamUndersampling, primaryBeamUpdateTime;
 	bool directFT;
 	DirectFTPrecision directFTPrecision;
 	bool useIDG, useWGridder;
@@ -209,6 +209,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	useDifferentialLofarBeam(false),
 	savePsfPb(false),
 	primaryBeamUndersampling(8),
+	primaryBeamUpdateTime(1800),
 	directFT(false),
 	directFTPrecision(DirectFTPrecision::Double),
 	useIDG(false),

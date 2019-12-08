@@ -88,12 +88,6 @@ bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, doub
 	ao::lane<size_t> lane(_nThreads);
 	_lane = &lane;
 
-	/*casacore::MDirection::Ref itrfRef(casacore::MDirection::ITRF, frame);
-	casacore::MDirection::Convert j2000ToITRFRef(j2000Ref, itrfRef);
-	casacore::MEpoch timeEpoch(casacore::Quantity(time, "s"));
-	casacore::MeasFrame frame(_arrayPos, timeEpoch);
-	casacore::MDirection::Ref j2000Ref(casacore::MDirection::J2000, frame);
-*/
 	LOFAR::StationResponse::ITRFConverter itrfConverter(time);
 	setITRFVector(itrfConverter.toDirection(_delayDir), _station0);
 	setITRFVector(itrfConverter.toDirection(_tileBeamDir), _tile0);

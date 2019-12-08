@@ -364,8 +364,7 @@ void ParallelDeconvolution::correctChannelForPB(ComponentList& list, const Imagi
 	ImageFilename filename(entry.outputChannelIndex, entry.outputIntervalIndex);
 	filename.SetPolarization(entry.polarization);
 	PrimaryBeam pb(_settings);
-	PrimaryBeamImageSet beam(_settings.trimmedImageWidth, _settings.trimmedImageHeight, *_allocator);
-	pb.Load(beam, filename);
+	PrimaryBeamImageSet beam = pb.Load(filename, *_allocator);
 	list.CorrectForBeam(beam, entry.outputChannelIndex);
 }
 
@@ -457,8 +456,7 @@ void ParallelDeconvolution::loadAveragePrimaryBeam(PrimaryBeamImageSet& beamImag
 			Logger::Debug << "Adding beam at " << e.CentralFrequency()*1e-6 << " MHz\n";
 			ImageFilename filename(e.outputChannelIndex, e.outputIntervalIndex);
 			
-			PrimaryBeamImageSet scratch(_settings.trimmedImageWidth, _settings.trimmedImageHeight, *_allocator);
-			pb.Load(scratch, filename);
+			PrimaryBeamImageSet scratch = pb.Load(filename, *_allocator);
 			beamImages += scratch;
 			
 			count++;

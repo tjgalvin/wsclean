@@ -178,6 +178,19 @@ BOOST_AUTO_TEST_CASE( kronecker_product_d )
 	checkKroneckerProduct(a4, x4, b4);
 }
 
+BOOST_AUTO_TEST_CASE( norm )
+{
+	BOOST_CHECK_CLOSE((HMC4x4::Unit()*2.0).Norm(), (MC4x4::Unit()*2.0).Norm(), 1e-6);
+	std::complex<double> j(0, 1);
+	HMC4x4 m{
+		1.0,         2.0 + 3.0*j, 4.0 -  5.0*j,  6.0 +  7.0*j,
+		2.0 - 3.0*j,         8.0, 9.0 + 10.0*j, 11.0 - 12.0*j,
+		4.0 + 5.0*j, 9.0 -10.0*j,         13.0, 14.0 + 15.0*j,
+		6.0 - 7.0*j,11.0 +12.0*j,11.0 + 12.0*j, 16.0
+	};
+	BOOST_CHECK_CLOSE(m.Norm(), m.ToMatrix().Norm(), 1e-6);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 

@@ -30,8 +30,7 @@ public:
 	
 	void CorrectImages(const ImageFilename& imageName, std::vector<double*>& images, ImageBufferAllocator& allocator)
 	{
-		PrimaryBeamImageSet beamImages(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator);
-		load(beamImages, imageName, _settings);
+		PrimaryBeamImageSet beamImages = load(imageName, _settings, allocator);
 		if(_settings.polarizations.size() == 1 && *_settings.polarizations.begin() == Polarization::StokesI)
 		{
 			beamImages.ApplyStokesI(images[0]);
@@ -42,9 +41,9 @@ public:
 		}
 	}
 	
-	void Load(PrimaryBeamImageSet& beamImages, const ImageFilename& imageName)
+	PrimaryBeamImageSet Load(const ImageFilename& imageName, ImageBufferAllocator& allocator)
 	{
-		load(beamImages, imageName, _settings);
+		return load(imageName, _settings, allocator);
 	}
 	
 	void AddMS(class MSProvider* msProvider, const MSSelection& selection)
@@ -61,9 +60,9 @@ private:
 	std::vector<std::pair<MSProvider*, MSSelection>> _msProviders;
 	double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
 	
-	static void load(PrimaryBeamImageSet& beamImages, const ImageFilename& imageName, const WSCleanSettings& settings);
+	static PrimaryBeamImageSet load(const ImageFilename& imageName, const WSCleanSettings& settings, ImageBufferAllocator& allocator);
 	
-	void makeLOFARImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, std::shared_ptr<class ImageWeights> imageWeights, ImageBufferAllocator& allocator);
+	PrimaryBeamImageSet makeLOFARImage(const ImagingTableEntry& entry, std::shared_ptr<class ImageWeights> imageWeights, ImageBufferAllocator& allocator);
 	
 	void makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, ImageBufferAllocator& allocator);
 	

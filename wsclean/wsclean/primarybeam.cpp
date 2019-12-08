@@ -54,7 +54,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 			{
 				case Telescope::LOFAR:
 				case Telescope::AARTFAAC:
-					makeLOFARImage(beamImages, entry, imageWeights, allocator);
+					beamImages = makeLOFARImage(entry, imageWeights, allocator);
 					break;
 				case Telescope::MWA:
 					makeMWAImage(beamImages, entry, allocator);
@@ -67,29 +67,42 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 			}
 		}
 		
-		// Save the beam images as fits files
-		PolarizationEnum
-			linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
-		FitsWriter writer;
-		writer.SetImageDimensions(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _phaseCentreRA, _phaseCentreDec, _settings.pixelScaleX, _settings.pixelScaleY);
-		writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
-		for(size_t i=0; i!=8; ++i)
+		if(beamImages.NImages() == 8)
 		{
-			PolarizationEnum p = linPols[i/2];
-			ImageFilename polName(imageName);
-			polName.SetPolarization(p);
-			polName.SetIsImaginary(i%2 != 0);
-			writer.SetPolarization(p);
-			writer.SetFrequency(entry.CentralFrequency(), entry.bandEndFrequency - entry.bandStartFrequency);
-			writer.Write<double>(polName.GetBeamPrefix(_settings) + ".fits", beamImages[i].data());
+			// Save the beam images as fits files
+			PolarizationEnum
+				linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
+			FitsWriter writer;
+			writer.SetImageDimensions(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _phaseCentreRA, _phaseCentreDec, _settings.pixelScaleX, _settings.pixelScaleY);
+			writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
+			for(size_t i=0; i!=8; ++i)
+			{
+				PolarizationEnum p = linPols[i/2];
+				ImageFilename polName(imageName);
+				polName.SetPolarization(p);
+				polName.SetIsImaginary(i%2 != 0);
+				writer.SetPolarization(p);
+				writer.SetFrequency(entry.CentralFrequency(), entry.bandEndFrequency - entry.bandStartFrequency);
+				writer.Write<double>(polName.GetBeamPrefix(_settings) + ".fits", beamImages[i].data());
+			}
+		}
+		else {
+			// Save the beam images as fits files
+			FitsWriter writer;
+			writer.SetImageDimensions(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _phaseCentreRA, _phaseCentreDec, _settings.pixelScaleX, _settings.pixelScaleY);
+			writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
+			for(size_t i=0; i!=16; ++i)
+			{
+				writer.SetFrequency(entry.CentralFrequency(), entry.bandEndFrequency - entry.bandStartFrequency);
+				writer.Write<double>(imageName.GetBeamPrefix(_settings) + "-" + std::to_string(i) + ".fits", beamImages[i].data());
+			}
 		}
 	}
 }
 
 void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageName, const std::string& filenameKind, ImageBufferAllocator& allocator)
 {
-	PrimaryBeamImageSet beamImages(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator);
-	load(beamImages, imageName, _settings);
+	PrimaryBeamImageSet beamImages = load(imageName, _settings, allocator);
 	if(_settings.polarizations.size() == 1 || filenameKind == "psf")
 	{
 		PolarizationEnum pol = *_settings.polarizations.begin();
@@ -145,10 +158,11 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 	}
 }
 
-void PrimaryBeam::load(PrimaryBeamImageSet& beamImages, const ImageFilename& imageName, const WSCleanSettings& settings)
+PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCleanSettings& settings, ImageBufferAllocator& allocator)
 {
 	if(settings.useIDG)
 	{
+		PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, allocator, 8);
 		// IDG produces only a Stokes I beam, and has already corrected for the rest.
 		// Currently we just load that beam into real component of XX and YY, and set the other 6 images to zero.
 		// This is a bit wasteful so might require a better strategy for big images.
@@ -164,23 +178,37 @@ void PrimaryBeam::load(PrimaryBeamImageSet& beamImages, const ImageFilename& ima
 			if(i != 6)
 				std::fill_n(beamImages[i].data(), settings.trimmedImageWidth*settings.trimmedImageHeight, 0.0);
 		}
+		return beamImages;
 	}
 	else {
-		PolarizationEnum
-			linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
-		for(size_t i=0; i!=8; ++i)
+		try {
+			PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, allocator, 8);
+			PolarizationEnum
+				linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
+			for(size_t i=0; i!=8; ++i)
+			{
+				PolarizationEnum p = linPols[i/2];
+				ImageFilename polName(imageName);
+				polName.SetPolarization(p);
+				polName.SetIsImaginary(i%2 != 0);
+				FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
+				reader.Read(beamImages[i].data());
+			}
+			return beamImages;
+		} catch(std::exception&)
 		{
-			PolarizationEnum p = linPols[i/2];
-			ImageFilename polName(imageName);
-			polName.SetPolarization(p);
-			polName.SetIsImaginary(i%2 != 0);
-			FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
-			reader.Read(beamImages[i].data());
+			PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, allocator, 16);
+			for(size_t i=0; i!=16; ++i)
+			{
+				FitsReader reader(imageName.GetBeamPrefix(settings) + "-" + std::to_string(i) + ".fits");
+				reader.Read(beamImages[i].data());
+			}
+			return beamImages;
 		}
 	}
 }
 
-void PrimaryBeam::makeLOFARImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, std::shared_ptr<ImageWeights> imageWeights, ImageBufferAllocator& allocator)
+PrimaryBeamImageSet PrimaryBeam::makeLOFARImage(const ImagingTableEntry& entry, std::shared_ptr<ImageWeights> imageWeights, ImageBufferAllocator& allocator)
 {
 	LBeamImageMaker lbeam(&entry, &allocator);
 	for(size_t i=0; i!=_msProviders.size(); ++i)
@@ -190,7 +218,8 @@ void PrimaryBeam::makeLOFARImage(PrimaryBeamImageSet& beamImages, const ImagingT
 	lbeam.SetImageDetails(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
 	lbeam.SetImageWeight(std::move(imageWeights));
 	lbeam.SetUndersampling(_settings.primaryBeamUndersampling);
-	lbeam.Make(beamImages);
+	lbeam.SetSecondsBeforeBeamUpdate(_settings.primaryBeamUpdateTime);
+	return lbeam.Make();
 }
 
 void PrimaryBeam::makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, ImageBufferAllocator& allocator)

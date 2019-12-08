@@ -215,6 +215,8 @@ void CommandLine::printHelp()
 		"   Apply a-terms to correct for the primary beam. This is only possible when IDG is enabled.\n"
 		"-beam-aterm-update <seconds>\n"
 		"   Set the ATerm update time in seconds. The default is every 300 seconds.\n"
+		"   It also sets the interval over which to calculate the primary beam when using\n"
+		"   -apply-primary-beam when not gridding with the beam.\n"
 		"-aterm-kernel-size\n"
 		"   Kernel size reserved for aterms by IDG.\n"
 		"-save-aterms\n"
@@ -1236,7 +1238,9 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 		else if(param == "beam-aterm-update")
 		{
 			++argi;
-			settings.beamAtermUpdateTime = parse_double(argv[argi], "beam-aterm-update");
+			double val = parse_double(argv[argi], 0.0, "beam-aterm-update");
+			settings.beamAtermUpdateTime = val;
+			settings.primaryBeamUpdateTime = std::max<size_t>(val, 1.0);
 		}
 		else if(param == "aterm-kernel-size")
 		{
