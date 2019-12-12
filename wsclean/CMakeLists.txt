@@ -8,7 +8,7 @@ include(CMakeVersionInfo.txt)
 #  set(CMAKE_BUILD_TYPE "Release")
 #endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -fopenmp -DNDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -DNDEBUG")
 
 if(PORTABLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
