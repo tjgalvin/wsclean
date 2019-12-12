@@ -43,8 +43,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 	{
 		Logger::Info << " == Constructing primary beam ==\n";
 		
-		PrimaryBeamImageSet beamImages(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator);
-		beamImages.SetToZero();
+		PrimaryBeamImageSet beamImages;
 		
 		{
 			SynchronizedMS ms(_msProviders.front().first->MS());
@@ -57,9 +56,13 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 					beamImages = makeLOFARImage(entry, imageWeights, allocator);
 					break;
 				case Telescope::MWA:
+					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator, 8);
+					beamImages.SetToZero();
 					makeMWAImage(beamImages, entry, allocator);
 					break;
 				case Telescope::ATCA:
+					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator, 8);
+					beamImages.SetToZero();
 					makeATCAImage(beamImages, entry);
 					break;
 				default:

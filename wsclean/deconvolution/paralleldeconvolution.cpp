@@ -404,9 +404,9 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages, const 
 	else {
 		for(size_t ch=0; ch!=_settings.deconvolutionChannelCount; ++ch)
 		{
-			PrimaryBeamImageSet beamImages(w, h, *_allocator);
 			Logger::Debug << "Correcting source list of channel " << ch << " for averaged beam\n";
-			loadAveragePrimaryBeam(beamImages, ch, table);
+			PrimaryBeamImageSet beamImages =
+				loadAveragePrimaryBeam(ch, table);
 			list->CorrectForBeam(beamImages, ch);
 		}
 	}
@@ -434,11 +434,11 @@ void ParallelDeconvolution::writeSourceList(ComponentList& componentList, const 
 	}
 }
 
-void ParallelDeconvolution::loadAveragePrimaryBeam(PrimaryBeamImageSet& beamImages, size_t imageIndex, const ImagingTable& table) const
+PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(size_t imageIndex, const ImagingTable& table) const
 {
 	Logger::Debug << "Averaging beam for deconvolution channel " << imageIndex << "\n";
 	
-	beamImages.SetToZero();
+	PrimaryBeamImageSet beamImages;
 	
 	ImageBufferAllocator::Ptr scratch;
 	_allocator->Allocate(_settings.trimmedImageWidth*_settings.trimmedImageHeight, scratch);
@@ -456,11 +456,13 @@ void ParallelDeconvolution::loadAveragePrimaryBeam(PrimaryBeamImageSet& beamImag
 			Logger::Debug << "Adding beam at " << e.CentralFrequency()*1e-6 << " MHz\n";
 			ImageFilename filename(e.outputChannelIndex, e.outputIntervalIndex);
 			
-			PrimaryBeamImageSet scratch = pb.Load(filename, *_allocator);
-			beamImages += scratch;
-			
+			if(count == 0)
+				beamImages = pb.Load(filename, *_allocator);
+			else
+				beamImages += pb.Load(filename, *_allocator);
 			count++;
 		}
 	}
 	beamImages *= (1.0 / double(count));
+	return beamImages;
 }

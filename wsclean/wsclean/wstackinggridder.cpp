@@ -70,8 +70,7 @@ void WStackingGridderBase<T>::PrepareWLayers(size_t nWLayers, double maxMem, dou
 		_maxW += 1.0;
 	}
 	
-	size_t nrCopies = _nFFTThreads;
-	if(nrCopies > _nWLayers) nrCopies = _nWLayers;
+	size_t nrCopies = std::min<size_t>(_nFFTThreads, _nWLayers);
 	double memPerImage = _width * _height * sizeof(num_t);
 	double memPerCore = memPerImage * 5.0; // two complex ones for FFT, one for projecting on
 	double remainingMem = maxMem - nrCopies * memPerCore;

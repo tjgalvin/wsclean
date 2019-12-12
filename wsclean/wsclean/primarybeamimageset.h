@@ -12,14 +12,11 @@
 class PrimaryBeamImageSet
 {
 public:
-	PrimaryBeamImageSet(size_t width, size_t height, ImageBufferAllocator& allocator) :
-		_beamImages(8),
-		_width(width),
-		_height(height)
-	{
-		for(size_t i=0; i!=8; ++i)
-			allocator.Allocate(width*height, _beamImages[i]);
-	}
+	PrimaryBeamImageSet() :
+		_beamImages(),
+		_width(0),
+		_height(0)
+	{ }
 	
 	PrimaryBeamImageSet(size_t width, size_t height, ImageBufferAllocator& allocator, size_t nImages) :
 		_beamImages(nImages),
@@ -54,8 +51,23 @@ public:
 				value = std::numeric_limits<double>::quiet_NaN();
 			return value;
 		}
+		else if(_beamImages.size() == 16)
+		{
+			size_t j = y * _width + x;
+			HMC4x4 beam = HMC4x4::FromData({
+				_beamImages[0][j], _beamImages[1][j], _beamImages[2][j], _beamImages[3][j],
+				_beamImages[4][j], _beamImages[5][j], _beamImages[6][j], _beamImages[7][j],
+				_beamImages[8][j], _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
+				_beamImages[12][j], _beamImages[13][j], _beamImages[14][j], _beamImages[15][j]
+			});
+			if(!beam.Invert())
+				beam = HMC4x4::Zero();
+			Vector4 v{0.5, 0.0, 0.0, 0.5};
+			v = beam * v;
+			return v[0].real() + v[3].real();
+		}
 		else {
-			throw std::runtime_error("Not implemented");
+			throw std::runtime_error("PrimaryBeamImageSet::GetUnpolarizedCorrectionFactor(): Not implemented");
 		}
 	}
 	
@@ -132,7 +144,7 @@ public:
 			}
 		}
 		else {
-			throw std::runtime_error("Not implemented");
+			throw std::runtime_error("PrimaryBeamImageSet::ApplyStokesI(): Not implemented");
 		}
 	}
 	
