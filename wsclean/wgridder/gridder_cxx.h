@@ -30,8 +30,7 @@
 #include <array>
 #include <fftw3.h>
 
-#include "../aocommon/parallelfor.h"
-#include "../aocommon/staticfor.h"
+#include "threading.h"
 
 #if defined(__GNUC__)
 #define NOINLINE __attribute__((noinline))
@@ -301,42 +300,48 @@ void legendre_prep(int n, vector<double> &x, vector<double> &w, size_t nthreads)
   const double t0 = 1 - (1-1./n) / (8.*n*n);
   const double t1 = 1./(4.*n+2.);
 
-  ao::ParallelFor<int> loop(nthreads);
-  loop.Run(1, m+1, [&](int i, size_t) {
-    double x0 = cos(pi * ((i<<2)-1) * t1) * t0;
-
-    int dobreak=0;
-    int j=0;
-    double dpdx;
-    while(1)
-      {
-      double P_1 = 1.0;
-      double P0 = x0;
-      double dx, x1;
-
-      for (int k=2; k<=n; k++)
+  threading::Scheduler<size_t> sched;
+  sched.execDynamic(1, m+1, nthreads, 1, 0., [&]()
+    {
+    size_t lo, hi;
+    while(sched.getNext(lo, hi))
+      for (size_t i=lo; i<hi; ++i)
         {
-        double P_2 = P_1;
-        P_1 = P0;
-//        P0 = ((2*k-1)*x0*P_1-(k-1)*P_2)/k;
-        P0 = x0*P_1 + (k-1.)/k * (x0*P_1-P_2);
+        double x0 = cos(pi * ((i<<2)-1) * t1) * t0;
+
+        int dobreak=0;
+        int j=0;
+        double dpdx;
+        while(1)
+          {
+          double P_1 = 1.0;
+          double P0 = x0;
+          double dx, x1;
+
+          for (int k=2; k<=n; k++)
+            {
+            double P_2 = P_1;
+            P_1 = P0;
+//            P0 = ((2*k-1)*x0*P_1-(k-1)*P_2)/k;
+            P0 = x0*P_1 + (k-1.)/k * (x0*P_1-P_2);
+            }
+
+          dpdx = (P_1 - x0*P0) * n / one_minus_x2(x0);
+
+          /* Newton step */
+          x1 = x0 - P0/dpdx;
+          dx = x0-x1;
+          x0 = x1;
+          if (dobreak) break;
+
+          if (abs(dx)<=eps) dobreak=1;
+          myassert(++j<100, "convergence problem");
+          }
+
+        x[m-i] = x0;
+        w[m-i] = 2. / (one_minus_x2(x0) * dpdx * dpdx);
         }
-
-      dpdx = (P_1 - x0*P0) * n / one_minus_x2(x0);
-
-      /* Newton step */
-      x1 = x0 - P0/dpdx;
-      dx = x0-x1;
-      x0 = x1;
-      if (dobreak) break;
-
-      if (abs(dx)<=eps) dobreak=1;
-      myassert(++j<100, "convergence problem");
-      }
-
-    x[m-i] = x0;
-    w[m-i] = 2. / (one_minus_x2(x0) * dpdx * dpdx);
-}); // end of parallel region
+    });
   }
 
 //
@@ -430,11 +435,14 @@ vector<double> correction_factors(size_t n, double ofactor, size_t nval, size_t 
   ES_Kernel kernel(supp, ofactor, nthreads);
   vector<double> res(nval);
   double xn = 1./n;
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, nval, [&](size_t start, size_t end) {
-  for (size_t k=start; k!=end; ++k)
-    res[k] = kernel.corfac(k*xn);
-  });
+  threading::Scheduler<size_t> sched;
+  sched.execStatic(0, nval, nthreads, 0, [&]()
+    {
+    size_t lo, hi;
+    while (sched.getNext(lo, hi))
+      for (size_t k=lo; k!=hi; ++k)
+        res[k] = kernel.corfac(k*xn);
+    });
   return res;
   }
 
@@ -583,36 +591,40 @@ class GridderConfig
       checkShape(dirty.shape(), {nx_dirty,ny_dirty});
       double x0 = -0.5*nx_dirty*psx,
              y0 = -0.5*ny_dirty*psy;
-      ao::StaticFor<size_t> loop(nthreads);
-      loop.Run(0, nx_dirty/2+1, [&](size_t start, size_t end) {
-      for (size_t i=start; i!=end; ++i)
+      threading::Scheduler<size_t> sched;
+      sched.execStatic(0, nx_dirty/2+1, nthreads, 0, [&]()
         {
-        T fx = T(x0+i*psx);
-        fx *= fx;
-        for (size_t j=0; j<=ny_dirty/2; ++j)
-          {
-          T fy = T(y0+j*psy);
-          auto ws = wscreen(fx, fy*fy, w, true);
-          size_t ix = nu-nx_dirty/2+i;
-          if (ix>=nu) ix-=nu;
-          size_t jx = nv-ny_dirty/2+j;
-          if (jx>=nv) jx-=nv;
-          dirty(i,j) += (tmav(ix,jx)*ws).real(); // lower left
-          size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
-          size_t ix2 = nu-nx_dirty/2+i2;
-          if (ix2>=nu) ix2-=nu;
-          size_t jx2 = nv-ny_dirty/2+j2;
-          if (jx2>=nv) jx2-=nv;
-          if ((i>0)&&(i<i2))
+        size_t lo, hi;
+        while (sched.getNext(lo, hi))
+          for (size_t i=lo; i!=hi; ++i)
             {
-            dirty(i2,j) += (tmav(ix2,jx)*ws).real(); // lower right
-            if ((j>0)&&(j<j2))
-              dirty(i2,j2) += (tmav(ix2,jx2)*ws).real(); // upper right
+            T fx = T(x0+i*psx);
+            fx *= fx;
+            for (size_t j=0; j<=ny_dirty/2; ++j)
+              {
+              T fy = T(y0+j*psy);
+              auto ws = wscreen(fx, fy*fy, w, true);
+              size_t ix = nu-nx_dirty/2+i;
+              if (ix>=nu) ix-=nu;
+              size_t jx = nv-ny_dirty/2+j;
+              if (jx>=nv) jx-=nv;
+              dirty(i,j) += (tmav(ix,jx)*ws).real(); // lower left
+              size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
+              size_t ix2 = nu-nx_dirty/2+i2;
+              if (ix2>=nu) ix2-=nu;
+              size_t jx2 = nv-ny_dirty/2+j2;
+              if (jx2>=nv) jx2-=nv;
+              if ((i>0)&&(i<i2))
+                {
+                dirty(i2,j) += (tmav(ix2,jx)*ws).real(); // lower right
+                if ((j>0)&&(j<j2))
+                  dirty(i2,j2) += (tmav(ix2,jx2)*ws).real(); // upper right
+                }
+              if ((j>0)&&(j<j2))
+                dirty(i,j2) += (tmav(ix,jx2)*ws).real(); // upper left
+              }
             }
-          if ((j>0)&&(j<j2))
-            dirty(i,j2) += (tmav(ix,jx2)*ws).real(); // upper left
-          }
-        }});
+        });
       }
 
     template<typename T> void grid2dirty_c_overwrite_wscreen_add
@@ -632,36 +644,40 @@ class GridderConfig
 
       double x0 = -0.5*nx_dirty*psx,
              y0 = -0.5*ny_dirty*psy;
-      ao::StaticFor<size_t> loop(nthreads);
-      loop.Run(0, nx_dirty/2+1, [&](size_t start, size_t end) {
-      for (size_t i=start; i!=end; ++i)
+      threading::Scheduler<size_t> sched;
+      sched.execStatic(0, nx_dirty/2+1, nthreads, 0, [&]()
         {
-        T fx = T(x0+i*psx);
-        fx *= fx;
-        for (size_t j=0; j<=ny_dirty/2; ++j)
-          {
-          T fy = T(y0+j*psy);
-          auto ws = wscreen(fx, fy*fy, w, false);
-          size_t ix = nu-nx_dirty/2+i;
-          if (ix>=nu) ix-=nu;
-          size_t jx = nv-ny_dirty/2+j;
-          if (jx>=nv) jx-=nv;
-          grid(ix,jx) = dirty(i,j)*ws; // lower left
-          size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
-          size_t ix2 = nu-nx_dirty/2+i2;
-          if (ix2>=nu) ix2-=nu;
-          size_t jx2 = nv-ny_dirty/2+j2;
-          if (jx2>=nv) jx2-=nv;
-          if ((i>0)&&(i<i2))
+        size_t lo, hi;
+        while (sched.getNext(lo, hi))
+          for (size_t i=lo; i!=hi; ++i)
             {
-            grid(ix2,jx) = dirty(i2,j)*ws; // lower right
-            if ((j>0)&&(j<j2))
-              grid(ix2,jx2) = dirty(i2,j2)*ws; // upper right
+            T fx = T(x0+i*psx);
+            fx *= fx;
+            for (size_t j=0; j<=ny_dirty/2; ++j)
+              {
+              T fy = T(y0+j*psy);
+              auto ws = wscreen(fx, fy*fy, w, false);
+              size_t ix = nu-nx_dirty/2+i;
+              if (ix>=nu) ix-=nu;
+              size_t jx = nv-ny_dirty/2+j;
+              if (jx>=nv) jx-=nv;
+              grid(ix,jx) = dirty(i,j)*ws; // lower left
+              size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
+              size_t ix2 = nu-nx_dirty/2+i2;
+              if (ix2>=nu) ix2-=nu;
+              size_t jx2 = nv-ny_dirty/2+j2;
+              if (jx2>=nv) jx2-=nv;
+              if ((i>0)&&(i<i2))
+                {
+                grid(ix2,jx) = dirty(i2,j)*ws; // lower right
+                if ((j>0)&&(j<j2))
+                  grid(ix2,jx2) = dirty(i2,j2)*ws; // upper right
+                }
+              if ((j>0)&&(j<j2))
+                grid(ix,jx2) = dirty(i,j2)*ws; // upper left
+              }
             }
-          if ((j>0)&&(j<j2))
-            grid(ix,jx2) = dirty(i,j2)*ws; // upper left
-          }
-        }});
+        });
       }
 
     template<typename T> void dirty2grid_c_wscreen(const const_mav<T,2> &dirty,
@@ -687,28 +703,32 @@ class GridderConfig
 
       double x0 = -0.5*nx_dirty*psx,
              y0 = -0.5*ny_dirty*psy;
-      ao::StaticFor<size_t> loop(nthreads);
-      loop.Run(0, nx_dirty/2+1, [&](size_t start, size_t end) {
-      for (size_t i=start; i!=end; ++i)
+      threading::Scheduler<size_t> sched;
+      sched.execStatic(0, nx_dirty/2+1, nthreads, 0, [&]()
         {
-        T fx = T(x0+i*psx);
-        fx *= fx;
-        for (size_t j=0; j<=ny_dirty/2; ++j)
-          {
-          T fy = T(y0+j*psy);
-          auto ws = wscreen(fx, fy*fy, T(w), adjoint);
-          dirty2(i,j) = dirty(i,j)*ws; // lower left
-          size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
-          if ((i>0)&&(i<i2))
+        size_t lo, hi;
+        while (sched.getNext(lo,hi))
+          for (size_t i=lo; i!=hi; ++i)
             {
-            dirty2(i2,j) = dirty(i2,j)*ws; // lower right
-            if ((j>0)&&(j<j2))
-              dirty2(i2,j2) = dirty(i2,j2)*ws; // upper right
+            T fx = T(x0+i*psx);
+            fx *= fx;
+            for (size_t j=0; j<=ny_dirty/2; ++j)
+              {
+              T fy = T(y0+j*psy);
+              auto ws = wscreen(fx, fy*fy, T(w), adjoint);
+              dirty2(i,j) = dirty(i,j)*ws; // lower left
+              size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
+              if ((i>0)&&(i<i2))
+                {
+                dirty2(i2,j) = dirty(i2,j)*ws; // lower right
+                if ((j>0)&&(j<j2))
+                  dirty2(i2,j2) = dirty(i2,j2)*ws; // upper right
+                }
+              if ((j>0)&&(j<j2))
+                dirty2(i,j2) = dirty(i,j2)*ws; // upper left
+              }
             }
-          if ((j>0)&&(j<j2))
-            dirty2(i,j2) = dirty(i,j2)*ws; // upper left
-          }
-        }});
+        });
       }
   };
 
@@ -910,38 +930,43 @@ template<typename T, typename Serv> void x2grid_c
   vector<std::mutex> locks(gconf.Nu());
 
   size_t np = srv.Nvis();
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, np, [&](size_t start, size_t end) {
-  Helper<T> hlp(gconf, nullptr, grid.data(), locks, w0, dw);
-  int jump = hlp.lineJump();
-  const T * RESTRICT ku = hlp.kernel;
-  const T * RESTRICT kv = hlp.kernel+supp;
-
-  for (size_t ipart=start; ipart!=end; ++ipart)
+  threading::Scheduler<size_t> sched;
+//  sched.execStatic(0, np, nthreads, 0, [&]()
+  sched.execDynamic(0, np, nthreads, 100, 0.2, [&]()
     {
-    UVW coord = srv.getCoord(ipart);
-    auto flip = coord.FixW();
-    hlp.prep(coord);
-    auto * RESTRICT ptr = hlp.p0w;
-    auto v(srv.getVis(ipart));
-    if (do_w_gridding) v*=hlp.Wfac();
-    if (flip) v=conj(v);
-    for (size_t cu=0; cu<supp; ++cu)
-      {
-      complex<T> tmp(v*ku[cu]);
-      size_t cv=0;
-      for (; cv+3<supp; cv+=4)
+    Helper<T> hlp(gconf, nullptr, grid.data(), locks, w0, dw);
+    int jump = hlp.lineJump();
+    const T * RESTRICT ku = hlp.kernel;
+    const T * RESTRICT kv = hlp.kernel+supp;
+
+    size_t lo, hi;
+    while (sched.getNext(lo,hi))
+      for (size_t ipart=lo; ipart!=hi; ++ipart)
         {
-        ptr[cv  ] += tmp*kv[cv  ];
-        ptr[cv+1] += tmp*kv[cv+1];
-        ptr[cv+2] += tmp*kv[cv+2];
-        ptr[cv+3] += tmp*kv[cv+3];
+        UVW coord = srv.getCoord(ipart);
+        auto flip = coord.FixW();
+        hlp.prep(coord);
+        auto * RESTRICT ptr = hlp.p0w;
+        auto v(srv.getVis(ipart));
+        if (do_w_gridding) v*=hlp.Wfac();
+        if (flip) v=conj(v);
+        for (size_t cu=0; cu<supp; ++cu)
+          {
+          complex<T> tmp(v*ku[cu]);
+          size_t cv=0;
+          for (; cv+3<supp; cv+=4)
+            {
+            ptr[cv  ] += tmp*kv[cv  ];
+            ptr[cv+1] += tmp*kv[cv+1];
+            ptr[cv+2] += tmp*kv[cv+2];
+            ptr[cv+3] += tmp*kv[cv+3];
+            }
+          for (; cv<supp; ++cv)
+            ptr[cv] += tmp*kv[cv];
+          ptr+=jump;
+          }
         }
-      for (; cv<supp; ++cv)
-        ptr[cv] += tmp*kv[cv];
-      ptr+=jump;
-      }
-    } });
+    });
   }
 
 template<typename T, typename Serv> void grid2x_c
@@ -956,39 +981,43 @@ template<typename T, typename Serv> void grid2x_c
   vector<std::mutex> locks(gconf.Nu());
 
   // Loop over sampling points
-  ao::StaticFor<size_t> loop(nthreads);
   size_t np = srv.Nvis();
-  loop.Run(0, np, [&](size_t start, size_t end) {
-  Helper<T> hlp(gconf, grid.data(), nullptr, locks, w0, dw);
-  int jump = hlp.lineJump();
-  const T * RESTRICT ku = hlp.kernel;
-  const T * RESTRICT kv = hlp.kernel+supp;
-
-  for (size_t ipart=start; ipart!=end; ++ipart)
+  threading::Scheduler<size_t> sched;
+  sched.execDynamic(0, np, nthreads, 1000, 0.5, [&]()
     {
-    UVW coord = srv.getCoord(ipart);
-    auto flip = coord.FixW();
-    hlp.prep(coord);
-    complex<T> r = 0;
-    const auto * RESTRICT ptr = hlp.p0r;
-    for (size_t cu=0; cu<supp; ++cu)
-      {
-      complex<T> tmp(0);
-      size_t cv=0;
-      for (; cv+3<supp; cv+=4)
-        tmp += ptr[cv  ]*kv[cv  ]
-             + ptr[cv+1]*kv[cv+1]
-             + ptr[cv+2]*kv[cv+2]
-             + ptr[cv+3]*kv[cv+3];
-      for (; cv<supp; ++cv)
-        tmp += ptr[cv] * kv[cv];
-      r += tmp*ku[cu];
-      ptr += jump;
-      }
-    if (flip) r=conj(r);
-    if (do_w_gridding) r*=hlp.Wfac();
-    srv.addVis(ipart, r);
-    }});
+    Helper<T> hlp(gconf, grid.data(), nullptr, locks, w0, dw);
+    int jump = hlp.lineJump();
+    const T * RESTRICT ku = hlp.kernel;
+    const T * RESTRICT kv = hlp.kernel+supp;
+
+    size_t lo, hi;
+    while (sched.getNext(lo,hi))
+      for (size_t ipart=lo; ipart!=hi; ++ipart)
+        {
+        UVW coord = srv.getCoord(ipart);
+        auto flip = coord.FixW();
+        hlp.prep(coord);
+        complex<T> r = 0;
+        const auto * RESTRICT ptr = hlp.p0r;
+        for (size_t cu=0; cu<supp; ++cu)
+          {
+          complex<T> tmp(0);
+          size_t cv=0;
+          for (; cv+3<supp; cv+=4)
+            tmp += ptr[cv  ]*kv[cv  ]
+                 + ptr[cv+1]*kv[cv+1]
+                 + ptr[cv+2]*kv[cv+2]
+                 + ptr[cv+3]*kv[cv+3];
+          for (; cv<supp; ++cv)
+            tmp += ptr[cv] * kv[cv];
+          r += tmp*ku[cu];
+          ptr += jump;
+          }
+        if (flip) r=conj(r);
+        if (do_w_gridding) r*=hlp.Wfac();
+        srv.addVis(ipart, r);
+        }
+    });
   }
 
 template<typename T> void apply_global_corrections(const GridderConfig &gconf,
@@ -1005,48 +1034,52 @@ template<typename T> void apply_global_corrections(const GridderConfig &gconf,
                                 nx_dirty/2+1, gconf.Supp(), nthreads);
   auto cfv = correction_factors(gconf.Nv(), gconf.Ofactor(),
                                 ny_dirty/2+1, gconf.Supp(), nthreads);
-  ao::StaticFor<size_t> loop(nthreads);
-  loop.Run(0, nx_dirty/2+1, [&](size_t start, size_t end) {
-  for (size_t i=start; i!=end; ++i)
+  threading::Scheduler<size_t> sched;
+  sched.execStatic(0, nx_dirty/2+1, nthreads, 0, [&]()
     {
-    auto fx = T(x0+i*psx);
-    fx *= fx;
-    for (size_t j=0; j<=ny_dirty/2; ++j)
-      {
-      auto fy = T(y0+j*psy);
-      fy*=fy;
-      T fct = 0;
-      auto tmp = 1-fx-fy;
-      if (tmp>=0)
+    size_t lo, hi;
+    while (sched.getNext(lo, hi))
+      for (size_t i=lo; i!=hi; ++i)
         {
-        auto nm1 = (-fx-fy)/(sqrt(tmp)+1); // accurate form of sqrt(1-x-y)-1
-        fct = T(kernel.corfac(nm1*dw));
-        if (divide_by_n)
-          fct /= nm1+1;
-        }
-      else // beyond the horizon, don't really know what to do here
-        {
-        if (divide_by_n)
-          fct=0;
-        else
+        auto fx = T(x0+i*psx);
+        fx *= fx;
+        for (size_t j=0; j<=ny_dirty/2; ++j)
           {
-          auto nm1 = sqrt(-tmp)-1;
-          fct = T(kernel.corfac(nm1*dw));
+          auto fy = T(y0+j*psy);
+          fy*=fy;
+          T fct = 0;
+          auto tmp = 1-fx-fy;
+          if (tmp>=0)
+            {
+            auto nm1 = (-fx-fy)/(sqrt(tmp)+1); // accurate form of sqrt(1-x-y)-1
+            fct = T(kernel.corfac(nm1*dw));
+            if (divide_by_n)
+              fct /= nm1+1;
+            }
+          else // beyond the horizon, don't really know what to do here
+            {
+            if (divide_by_n)
+              fct=0;
+            else
+              {
+              auto nm1 = sqrt(-tmp)-1;
+              fct = T(kernel.corfac(nm1*dw));
+              }
+            }
+          fct *= T(cfu[nx_dirty/2-i]*cfv[ny_dirty/2-j]);
+          size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
+          dirty(i,j)*=fct;
+          if ((i>0)&&(i<i2))
+            {
+            dirty(i2,j)*=fct;
+            if ((j>0)&&(j<j2))
+              dirty(i2,j2)*=fct;
+            }
+          if ((j>0)&&(j<j2))
+            dirty(i,j2)*=fct;
           }
         }
-      fct *= T(cfu[nx_dirty/2-i]*cfv[ny_dirty/2-j]);
-      size_t i2 = nx_dirty-i, j2 = ny_dirty-j;
-      dirty(i,j)*=fct;
-      if ((i>0)&&(i<i2))
-        {
-        dirty(i2,j)*=fct;
-        if ((j>0)&&(j<j2))
-          dirty(i2,j2)*=fct;
-        }
-      if ((j>0)&&(j<j2))
-        dirty(i,j2)*=fct;
-      }
-    }});
+    });
   }
 
 template<typename Serv> class WgridHelper
