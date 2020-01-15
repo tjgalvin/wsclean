@@ -12,6 +12,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+#include <fftw3.h>
+
 #include <stdexcept>
 
 WSMSGridder::WSMSGridder(ImageBufferAllocator* imageAllocator, size_t threadCount, double memFraction, double absMemLimit) :
@@ -21,6 +23,11 @@ WSMSGridder::WSMSGridder(ImageBufferAllocator* imageAllocator, size_t threadCoun
 	_imageBufferAllocator(imageAllocator)
 {
 	_memSize = getAvailableMemory(memFraction, absMemLimit);
+	
+	// We do this once here. WStackingGridder does this too, but by default only for the float
+	// variant of fftw. FFTResampler does double fft's multithreaded, hence this needs to be done
+	// here too.
+	fftw_make_planner_thread_safe();
 }
 
 void WSMSGridder::countSamplesPerLayer(MSData& msData)

@@ -414,7 +414,7 @@ class ES_Kernel
           if (epssq>maxmaperr[i]) return i;
         myfail("requested epsilon too small - minimum is 1e-13");
         }
-      if (ofactor>=1.2)
+      if (ofactor>=1.175)
         {
         for (size_t w=2; w<16; ++w)
           {

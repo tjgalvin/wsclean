@@ -217,48 +217,48 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 			size_t subMinorStartIteration = _iterationNumber;
 			size_t convolutionWidth, convolutionHeight;
 			getConvolutionDimensions(scaleWithPeak, convolutionWidth, convolutionHeight);
-			SubMinorLoop clarkLoop(_width, _height, convolutionWidth, convolutionHeight);
-			clarkLoop.SetIterationInfo(_iterationNumber, MaxNIter());
-			clarkLoop.SetThreshold(firstSubIterationThreshold / _scaleInfos[scaleWithPeak].biasFactor, subIterationGainThreshold / _scaleInfos[scaleWithPeak].biasFactor);
-			clarkLoop.SetGain(_scaleInfos[scaleWithPeak].gain);
-			clarkLoop.SetAllowNegativeComponents(AllowNegativeComponents());
-			clarkLoop.SetStopOnNegativeComponent(StopOnNegativeComponents());
+			SubMinorLoop subLoop(_width, _height, convolutionWidth, convolutionHeight);
+			subLoop.SetIterationInfo(_iterationNumber, MaxNIter());
+			subLoop.SetThreshold(firstSubIterationThreshold / _scaleInfos[scaleWithPeak].biasFactor, subIterationGainThreshold / _scaleInfos[scaleWithPeak].biasFactor);
+			subLoop.SetGain(_scaleInfos[scaleWithPeak].gain);
+			subLoop.SetAllowNegativeComponents(AllowNegativeComponents());
+			subLoop.SetStopOnNegativeComponent(StopOnNegativeComponents());
 			const size_t
 				scaleBorder = size_t(ceil(_scaleInfos[scaleWithPeak].scale*0.5)),
 				horBorderSize = std::max<size_t>(round(width * _cleanBorderRatio), scaleBorder),
 				vertBorderSize = std::max<size_t>(round(height * _cleanBorderRatio), scaleBorder);
-			clarkLoop.SetCleanBorders(horBorderSize, vertBorderSize);
+			subLoop.SetCleanBorders(horBorderSize, vertBorderSize);
 			if(!_rmsFactorImage.empty())
-				clarkLoop.SetRMSFactorImage(_rmsFactorImage);
+				subLoop.SetRMSFactorImage(_rmsFactorImage);
 			if(_usePerScaleMasks)
-				clarkLoop.SetMask(_scaleMasks[scaleWithPeak].data());
+				subLoop.SetMask(_scaleMasks[scaleWithPeak].data());
 			else if(_cleanMask)
-				clarkLoop.SetMask(_cleanMask);
-			clarkLoop.SetSpectralFitter(&Fitter());
+				subLoop.SetMask(_cleanMask);
+			subLoop.SetSpectralFitter(&Fitter());
 			
-			ao::uvector<const double*> clarkPSFs(dirtySet.PSFCount());
-			for(size_t psfIndex=0; psfIndex!=clarkPSFs.size(); ++psfIndex)
-				clarkPSFs[psfIndex] = doubleConvolvedPSFs[psfIndex].data();
+			ao::uvector<const double*> subPSFs(dirtySet.PSFCount());
+			for(size_t psfIndex=0; psfIndex!=subPSFs.size(); ++psfIndex)
+				subPSFs[psfIndex] = doubleConvolvedPSFs[psfIndex].data();
 			
-			clarkLoop.Run(individualConvolvedImages, clarkPSFs);
+			subLoop.Run(individualConvolvedImages, subPSFs);
 			
-			_iterationNumber = clarkLoop.CurrentIteration();
+			_iterationNumber = subLoop.CurrentIteration();
 			_scaleInfos[scaleWithPeak].nComponentsCleaned += (_iterationNumber - subMinorStartIteration);
-			_scaleInfos[scaleWithPeak].totalFluxCleaned += clarkLoop.FluxCleaned();
+			_scaleInfos[scaleWithPeak].totalFluxCleaned += subLoop.FluxCleaned();
 			
 			for(size_t imageIndex=0; imageIndex!=dirtySet.size(); ++imageIndex)
 			{
 				// TODO this can be multi-threaded if each thread has its own temporaries
 				double *psf = getConvolvedPSF(dirtySet.PSFIndex(imageIndex), scaleWithPeak, convolvedPSFs);
-				clarkLoop.CorrectResidualDirty(_fftwManager, scratch.data(), scratchB.data(), integratedScratch.data(), imageIndex, dirtySet[imageIndex],  psf);
+				subLoop.CorrectResidualDirty(_fftwManager, scratch.data(), scratchB.data(), integratedScratch.data(), imageIndex, dirtySet[imageIndex],  psf);
 				
-				clarkLoop.GetFullIndividualModel(imageIndex, scratch.data());
+				subLoop.GetFullIndividualModel(imageIndex, scratch.data());
 				if(imageIndex==0)
 				{
 					if(_trackPerScaleMasks)
-						clarkLoop.UpdateAutoMask(_scaleMasks[scaleWithPeak].data());
+						subLoop.UpdateAutoMask(_scaleMasks[scaleWithPeak].data());
 					if(_trackComponents)
-						clarkLoop.UpdateComponentList(*_componentList, scaleWithPeak);
+						subLoop.UpdateComponentList(*_componentList, scaleWithPeak);
 				}
 				if(_scaleInfos[scaleWithPeak].scale != 0.0)
 					tools->MultiScaleTransform(&msTransforms, ao::uvector<double*>{scratch.data()}, integratedScratch.data(), _scaleInfos[scaleWithPeak].scale);

@@ -6,10 +6,13 @@
  */
 
 #include <algorithm>
+#include <cmath>
+#include <complex>
 #include <cstdlib>
 #include <cstring>
-#include <cmath>
 #include <iostream>
+#include <string>
+#include <vector>
 
 #include <boost/math/special_functions/legendre.hpp>
 
@@ -34,12 +37,12 @@ static const double deg2rad = M_PI/180.00;
 #define DEFAULT_H5_FILE_PATH "mwapy/data/"
 #define N_ANT_COUNT 16
 
-bool Beam2016Implementation::has_freq(int freq_hz)
+bool Beam2016Implementation::has_freq(int freq_hz) const
 {
 	return std::find(m_freq_list.begin(), m_freq_list.end(), freq_hz) != m_freq_list.end();
 }
 
-int Beam2016Implementation::find_closest_freq(int freq_hz)
+int Beam2016Implementation::find_closest_freq(int freq_hz) const
 {
    double min_diff=1e20;
    int best_idx=-1;
@@ -138,19 +141,18 @@ JonesMatrix Beam2016Implementation::CalcJonesDirect( double az_rad, double za_ra
 
 JonesMatrix Beam2016Implementation::CalcJones( double az_deg, double za_deg, int freq_hz_param, bool bZenithNorm )
 {
-	return CalcJones(az_deg, za_deg, freq_hz_param, _delays, _amps, bZenithNorm);
+	recursive_lock<std::mutex> lock(_mutex, std::defer_lock);
+	return CalcJones(az_deg, za_deg, freq_hz_param, _delays, _amps, lock, bZenithNorm);
 }
 
-JonesMatrix Beam2016Implementation::CalcJones( double az_deg, double za_deg, int freq_hz, const double* delays, const double* amps, bool bZenithNorm )
+JonesMatrix Beam2016Implementation::CalcJones( double az_deg, double za_deg, int freq_hz, const double* delays, const double* amps, recursive_lock<std::mutex>& lock, bool bZenithNorm )
 {
-	std::unique_lock<std::mutex> lock(_mutex);
 	if( !has_freq(freq_hz) ) {
 		freq_hz = find_closest_freq( freq_hz );
 	}
-	lock.unlock();
 	
 	Coefficients coefsX, coefsY;
-	GetModes( freq_hz , N_ANT_COUNT, delays, amps, coefsX, coefsY );   
+	GetModes( freq_hz , N_ANT_COUNT, delays, amps, coefsX, coefsY, lock );   
 	
 	JonesMatrix result = CalcJonesDirect( az_deg*deg2rad, za_deg*deg2rad, coefsX, coefsY );   
 	
@@ -158,16 +160,13 @@ JonesMatrix Beam2016Implementation::CalcJones( double az_deg, double za_deg, int
 	{
 		JonesMatrix normMatrix;
 		
-		lock.lock();
+		std::lock_guard<recursive_lock<std::mutex>> glock(lock);
 		std::map<int, JonesMatrix>::const_iterator
 			iter = _normJonesCache.find(freq_hz);
 		if(iter == _normJonesCache.end())
 		{
-			lock.unlock();
-			normMatrix = CalcZenithNormMatrix(freq_hz);
-			lock.lock();
+			normMatrix = CalcZenithNormMatrix(freq_hz, lock);
 			_normJonesCache.insert(std::make_pair(freq_hz, normMatrix));
-			lock.unlock();
 		}
 		else {
 			normMatrix = iter->second;
@@ -182,7 +181,7 @@ JonesMatrix Beam2016Implementation::CalcJones( double az_deg, double za_deg, int
 	return result;
 }
 
-JonesMatrix Beam2016Implementation::CalcZenithNormMatrix(int freq_hz)
+JonesMatrix Beam2016Implementation::CalcZenithNormMatrix(int freq_hz, recursive_lock<std::mutex>& lock)
 {	
 	//std::cout << "INFO : calculating Jones matrix for frequency = " << freq_hz << " Hz\n";
 
@@ -197,23 +196,23 @@ JonesMatrix Beam2016Implementation::CalcZenithNormMatrix(int freq_hz)
 	JonesMatrix jonesMatrix;
 
 	// default delays at zenith
-	const double m_DefaultDelays[N_ANT_COUNT]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	const double m_DefaultAmps[N_ANT_COUNT]={1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
+	const double defaultDelays[N_ANT_COUNT]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	const double defaultAmps[N_ANT_COUNT]={1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 
 	// j00 :
-	tmp_jones = CalcJones( j00_max_az, 0, freq_hz, m_DefaultDelays, m_DefaultAmps, false );
+	tmp_jones = CalcJones( j00_max_az, 0, freq_hz, defaultDelays, defaultAmps, lock, false );
 	jonesMatrix.j00 = abs( tmp_jones.j00 );
 
 	// j01 :
-	tmp_jones = CalcJones( j01_max_az, 0, freq_hz, m_DefaultDelays, m_DefaultAmps, false );
+	tmp_jones = CalcJones( j01_max_az, 0, freq_hz, defaultDelays, defaultAmps, lock, false );
 	jonesMatrix.j01 = abs( tmp_jones.j01 );
 
 	// j10 :
-	tmp_jones = CalcJones( j10_max_az, 0, freq_hz, m_DefaultDelays, m_DefaultAmps, false );      
+	tmp_jones = CalcJones( j10_max_az, 0, freq_hz, defaultDelays, defaultAmps, lock, false );      
 	jonesMatrix.j10 = abs( tmp_jones.j10 );
 
 	// j11 :
-	tmp_jones = CalcJones( j11_max_az, 0, freq_hz, m_DefaultDelays, m_DefaultAmps, false );
+	tmp_jones = CalcJones( j11_max_az, 0, freq_hz, defaultDelays, defaultAmps, lock, false );
 	jonesMatrix.j11 = abs( tmp_jones.j11 );               
 
 	return jonesMatrix;
@@ -247,15 +246,7 @@ void Beam2016Implementation::CalcSigmas( double phi, double theta, const Coeffic
          
       double c_mn_sqr = (0.5*(2*N+1)*_factorial(N-abs(M))/_factorial(N+abs(M)));
       double c_mn = sqrt( c_mn_sqr );
-      // Optimisation comment :
-      // Possibly this might be a faster version - but does not seem so, so I leave it as it was 
-      // MS tested it (2017-05-17), but does not seem to give a significant speed up, so for now the old version left 
-      // If tested again comment the 2 lines above and uncomment the line below , 
-      // also verify that lines in CalcModes ( after comment "Intialisation of Cmn vector :") are un-commented - FOR NOW THEY ARE COMMENTED OUT NOT TO CALCULATE SOMETHING WHICH IS NOT USED 
-      // I've tested it on 2017-05-19 and the version with line below and lines at the end of CalcModes uncommented runs in ~9m30sec and the current one was ~9m40sec so I leave the current 
-      // version as I've tested it for longer time (MS), but it can be restored if some further optimisation is needed (but it will not be a breaktrough).
-      // double c_mn = Cmn[i];
-               
+ 
       complex<double> ejm_phi( cos(M*phi), sin(M*phi) );
       complex<double> phi_comp = ( ejm_phi*c_mn ) / ( sqrt(N*(N+1)) ) * m_abs_m;
 
@@ -281,9 +272,8 @@ void Beam2016Implementation::CalcSigmas( double phi, double theta, const Coeffic
 //-------------------------------------------------------------------- Calculation of spherical harmonics coefficients (eq. 3-6 in the Sokolowski et al 2016 paper)  --------------------------------
 // function comparing current parameters : frequency, delays and amplitudes with those previously used to calculate spherical waves coefficients (stored in the 3 variables : 
 // m_CalcModesLastFreqHz , , m_CalcModesLastAmps )
-bool Beam2016Implementation::IsCalcModesRequired( int freq_hz, int n_ant, const double* delays, const double* amps )
+bool Beam2016Implementation::IsCalcModesRequired(int freq_hz, int n_ant, const double* delays, const double* amps)
 {
-	std::unique_lock<std::mutex> lock(_mutex);
 	if( freq_hz != _calcModesLastFreqHz ){
 		return true;
 	}
@@ -305,14 +295,16 @@ bool Beam2016Implementation::IsCalcModesRequired( int freq_hz, int n_ant, const 
 }
 
 // function calculating coefficients for X and Y and storing parameters frequency, delays and amplitudes 
-void Beam2016Implementation::GetModes( int freq_hz, size_t n_ant, const double* delays, const double* amps, Coefficients& coefsX,  Coefficients& coefsY)
+void Beam2016Implementation::GetModes( int freq_hz, size_t n_ant, const double* delays, const double* amps, Coefficients& coefsX,  Coefficients& coefsY, recursive_lock<std::mutex>& lock)
 {
+	std::unique_lock<recursive_lock<std::mutex>> glock(lock);
 	if(IsCalcModesRequired(freq_hz, n_ant, delays, amps))
 	{
-		coefsX.Nmax = CalcModes(freq_hz , n_ant, delays, amps, 'X', coefsX);
-		coefsY.Nmax = CalcModes(freq_hz , n_ant, delays, amps, 'Y', coefsY);
+		glock.unlock();
+		coefsX.Nmax = CalcModes(freq_hz , n_ant, delays, amps, 'X', coefsX, lock);
+		coefsY.Nmax = CalcModes(freq_hz , n_ant, delays, amps, 'Y', coefsY, lock);
 
-		std::lock_guard<std::mutex> lock(_mutex);
+		glock.lock();
 		_coefX = coefsX;
 		_coefY = coefsY;
 		_calcModesLastFreqHz = freq_hz;
@@ -320,14 +312,13 @@ void Beam2016Implementation::GetModes( int freq_hz, size_t n_ant, const double* 
 		_calcModesLastAmps.assign(amps, amps + n_ant);
 	}
 	else {
-		std::lock_guard<std::mutex> lock(_mutex);
 		coefsX = _coefX;
 		coefsY = _coefY;
 	}
 }
 
 // function calculating all coefficients Q1, Q2, N, M and derived MabsM, Nmax for a given polarisation (X or Y)
-double Beam2016Implementation::CalcModes( int freq_hz, size_t n_ant, const double* delays, const double* amp, char pol, Coefficients& coefs)
+double Beam2016Implementation::CalcModes( int freq_hz, size_t n_ant, const double* delays, const double* amp, char pol, Coefficients& coefs, recursive_lock<std::mutex>& lock)
 {
 	vector<double> phases(n_ant);
 	double Nmax=0;
@@ -353,7 +344,7 @@ double Beam2016Implementation::CalcModes( int freq_hz, size_t n_ant, const doubl
 		
 		DataSetIndex index(pol, a, freq_hz);
 
-		const vector<vector<double>>& Q_all = GetDataSet(index);
+		const vector<vector<double>>& Q_all = GetDataSet(index, lock);
 		
 		size_t n_ant_coeff = Q_all[0].size();
 		vector<double> Ms1, Ns1, Ms2, Ns2;
@@ -591,9 +582,9 @@ herr_t Beam2016Implementation::list_obj_iterate(hid_t /*loc_id*/, const char *na
 	return 0;
 }
 
-const std::vector<std::vector<double>>& Beam2016Implementation::GetDataSet(const DataSetIndex& index)
+const std::vector<std::vector<double>>& Beam2016Implementation::GetDataSet(const DataSetIndex& index, recursive_lock<std::mutex>& lock)
 {
-	std::lock_guard<std::mutex> lock(_mutex);
+	std::lock_guard<recursive_lock<std::mutex>> glock(lock);
 	auto iter = _dataSetCache.find(index);
 	if(iter == _dataSetCache.end())
 	{
