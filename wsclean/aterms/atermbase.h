@@ -23,6 +23,8 @@ public:
 	 */
 	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency) = 0;
 	
+	virtual double AverageUpdateTime() const = 0;
+	
 	void StoreATermsEigenvalues(const std::string& filename, const std::complex<float>* buffer, size_t nStations, size_t width, size_t height);
 	
 	void StoreATermsReal(const std::string& filename, const std::complex<float>* buffer, size_t nStations, size_t width, size_t height);

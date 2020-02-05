@@ -102,9 +102,17 @@ private:
 				flags[i] = (weights[i]==0.0);
 				weights[i] = _weights[i];
 			}
-			for(size_t i=0; i!=3; ++i)
-				uvw[i] = _uvw[i] / _summedWeight;
-			time = _time / _summedWeight;
+			if(_summedWeight == 0.0)
+			{
+				for(size_t i=0; i!=3; ++i)
+					uvw[i] = 0.0;
+				time = 0.0;
+			}
+			else {
+				for(size_t i=0; i!=3; ++i)
+					uvw[i] = _uvw[i] / _summedWeight;
+				time = _time / _summedWeight;
+			}
 		}
 		
 		void Get(size_t n, std::complex<float>* data, std::complex<float>* modelData, bool* flags, float* weights, double* uvw, double& time)
@@ -116,9 +124,17 @@ private:
 				flags[i] = (weights[i]==0.0);
 				weights[i] = _weights[i];
 			}
-			for(size_t i=0; i!=3; ++i)
-				uvw[i] = _uvw[i] / _summedWeight;
-			time = _time / _summedWeight;
+			if(_summedWeight == 0.0)
+			{
+				for(size_t i=0; i!=3; ++i)
+					uvw[i] = 0.0;
+				time = 0.0;
+			}
+			else {
+				for(size_t i=0; i!=3; ++i)
+					uvw[i] = _uvw[i] / _summedWeight;
+				time = _time / _summedWeight;
+			}
 		}
 		
 		void Reset(size_t n)

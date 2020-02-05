@@ -29,7 +29,7 @@ IdgMsGridder::IdgMsGridder(const WSCleanSettings& settings, ImageBufferAllocator
 	_outputProvider(nullptr),
 	_settings(settings),
 	_proxyType(idg::api::Type::CPU_OPTIMIZED),
-	_buffersize(256),
+	_buffersize(0),
 	_allocator(allocator)
 {
 	IdgConfiguration::Read(_proxyType, _buffersize, _options);
@@ -206,32 +206,11 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 
 void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 {
-
-	const float max_baseline = msData.maxBaselineInM;
-
-	// Skip this ms if there is no data in it
-	if (!max_baseline) return;
-
-	_selectedBands = msData.SelectedBand();
-
-	// TODO for now we map the ms antennas directly to the gridder's antenna,
-	// including non-selected antennas. Later this can be made more efficient.
-	size_t nr_stations = msData.msProvider->MS()->antenna().nrow();
-	
-	std::vector<std::vector<double>> bands;
-	for(size_t i=0; i!=_selectedBands.BandCount(); ++i)
-	{
-		bands.push_back(std::vector<double>(_selectedBands[i].begin(), _selectedBands[i].end()));
-	}
-
-	_bufferset->init_buffers(_buffersize, bands, nr_stations, max_baseline, _options, idg::api::BufferSetType::gridding);
-	
-	std::unique_ptr<ATermBase> aTermMaker = getATermMaker(msData);
+	std::unique_ptr<ATermBase> aTermMaker;
 	ao::uvector<std::complex<float>> aTermBuffer;
-	size_t subgridsize = _bufferset->get_subgridsize();
-	if(aTermMaker)
-		aTermBuffer.resize(subgridsize*subgridsize*4*nr_stations);
-
+	if(!prepareForMeasurementSet(msData, aTermMaker, aTermBuffer, idg::api::BufferSetType::gridding))
+		return;
+	
 	ao::uvector<float> weightBuffer(_selectedBands.MaxChannels()*4);
 	ao::uvector<std::complex<float>> modelBuffer(_selectedBands.MaxChannels()*4);
 	ao::uvector<bool> isSelected(_selectedBands.MaxChannels()*4, true);
@@ -360,32 +339,69 @@ void IdgMsGridder::setIdgType()
 	}
 }
 
-void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
+bool IdgMsGridder::prepareForMeasurementSet(MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker, ao::uvector<std::complex<float>>& aTermBuffer, idg::api::BufferSetType bufferSetType)
 {
 	const float max_baseline = msData.maxBaselineInM;
 	// Skip this ms if there is no data in it
-	if (!max_baseline) return;
-
-	msData.msProvider->ReopenRW();
-
-	_selectedBands = msData.SelectedBand();
-	_outputProvider = msData.msProvider;
+	if (!max_baseline) return false;
 	
-	size_t nr_stations = msData.msProvider->MS()->antenna().nrow();
+	_selectedBands = msData.SelectedBand();
 
+	// TODO for now we map the ms antennas directly to the gridder's antenna,
+	// including non-selected antennas. Later this can be made more efficient.
+	size_t nStations = msData.msProvider->MS()->antenna().nrow();
+	
 	std::vector<std::vector<double>> bands;
 	for(size_t i=0; i!=_selectedBands.BandCount(); ++i)
 	{
 		bands.push_back(std::vector<double>(_selectedBands[i].begin(), _selectedBands[i].end()));
 	}
+	size_t nChannels = _selectedBands.MaxChannels();
 
-	_bufferset->init_buffers(_buffersize, bands, nr_stations, max_baseline, _options, idg::api::BufferSetType::degridding);
-
-	std::unique_ptr<ATermBase> aTermMaker = getATermMaker(msData);
-	ao::uvector<std::complex<float>> aTermBuffer;
+	aTermMaker = getATermMaker(msData);
 	size_t subgridsize = _bufferset->get_subgridsize();
 	if(aTermMaker)
-		aTermBuffer.resize(subgridsize*subgridsize*4*nr_stations);
+		aTermBuffer.resize(subgridsize*subgridsize*4*nStations);
+	
+	uint64_t memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
+	uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(nStations, nChannels);
+	if(aTermMaker)
+	{
+		// When a-terms are used, they will also take memory. Here we calculate their approx contribution.
+		double avgUpdate = aTermMaker->AverageUpdateTime();
+		Logger::Debug << "A-terms change on average every " << avgUpdate << " s, once every " << (avgUpdate / msData.integrationTime) << " timesteps.\n";
+		uint64_t atermMemPerTimestep =
+			subgridsize*subgridsize*nStations *   // size of grid x nr of grids
+			(4*8) *                               // 4 pol, 8 bytes per complex value
+			(msData.integrationTime / avgUpdate); // Average number of aterms per timestep
+		Logger::Debug << "A-terms increase mem per timestep from " << memPerTimestep << " bytes to " << (memPerTimestep + atermMemPerTimestep) << " bytes.\n";
+		memPerTimestep += atermMemPerTimestep;
+	}
+	
+	// IDG can allocate two visibility buffers: (for parallel processing)
+	memPerTimestep *= 2;
+	
+	// Only one-third of the mem is allocated to the buffers, so that memory remains available for the images
+	// and other things done by IDG.
+	_buffersize = std::max<size_t>(1, memSize/3 / memPerTimestep);
+	
+	Logger::Debug << "Allocatable timesteps (" << nStations << " stations, " << nChannels << " channels, " <<
+		memSize/(1024*1024*1024) << " GB mem): " << _buffersize << '\n';
+	_bufferset->init_buffers(_buffersize, bands, nStations, max_baseline, _options, bufferSetType);
+	
+	return true;
+}
+
+void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
+{
+	std::unique_ptr<ATermBase> aTermMaker;
+	ao::uvector<std::complex<float>> aTermBuffer;
+	if(!prepareForMeasurementSet(msData, aTermMaker, aTermBuffer, idg::api::BufferSetType::degridding))
+		return;
+	
+	msData.msProvider->ReopenRW();
+
+	_outputProvider = msData.msProvider;
 	
 	ao::uvector<std::complex<float>> buffer(_selectedBands.MaxChannels()*4);
 	int timeIndex = -1;

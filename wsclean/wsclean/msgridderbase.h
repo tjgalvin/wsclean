@@ -77,7 +77,7 @@ public:
 	struct MetaDataCache
 	{
 		struct Entry {
-			double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM;
+			double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM, integrationTime;
 		};
 		std::vector<Entry> msDataVector;
 		std::unique_ptr<AverageBeamBase> averageBeam;
@@ -100,6 +100,7 @@ protected:
 			size_t matchingRows, totalRowsProcessed;
 			double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM;
 			size_t rowStart, rowEnd;
+			double integrationTime;
 		
 			MultiBandData SelectedBand() const { return MultiBandData(bandData, startChannel, endChannel); }
 		private:

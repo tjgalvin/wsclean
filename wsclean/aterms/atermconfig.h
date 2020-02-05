@@ -158,6 +158,14 @@ public:
 			return isUpdated;
 		}
 	}
+	
+	virtual double AverageUpdateTime() const override
+	{
+		double avgTime = _aterms.front()->AverageUpdateTime();
+		for(size_t i=1; i<_aterms.size(); ++i)
+			avgTime = std::min(avgTime, _aterms[i]->AverageUpdateTime());
+		return avgTime;
+	}
 private:
 	casacore::MeasurementSet& _ms;
 	size_t _nAntenna, _width, _height;

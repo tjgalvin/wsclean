@@ -77,6 +77,7 @@ private:
 	void setIdgType();
 	
 	std::unique_ptr<class ATermBase> getATermMaker(MSGridderBase::MSData& msData);
+  bool prepareForMeasurementSet(MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker, ao::uvector<std::complex<float>>& aTermBuffer, idg::api::BufferSetType);
 	
 	struct IDGInversionRow : public MSGridderBase::InversionRow {
 		size_t antenna1, antenna2, timeIndex;

@@ -144,15 +144,26 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData)
 	MultiBandData selectedBand = msData.SelectedBand();
 	std::vector<float> weightArray(selectedBand.MaxChannels() * NPolInMSProvider);
 	msData.msProvider->Reset();
+	double curTimestep = -1, firstTime = -1, lastTime = -1;
+	size_t nTimesteps = 0;
 	while(msData.msProvider->CurrentRowAvailable())
 	{
-		size_t dataDescId;
-		double uInM, vInM, wInM;
-		msData.msProvider->ReadMeta(uInM, vInM, wInM, dataDescId);
-		const BandData& curBand = selectedBand[dataDescId];
-		double wHi = fabs(wInM / curBand.SmallestWavelength());
-		double wLo = fabs(wInM / curBand.LongestWavelength());
-		double baselineInM = sqrt(uInM*uInM + vInM*vInM + wInM*wInM);
+		MSProvider::MetaData metaData;
+		msData.msProvider->ReadMeta(metaData);
+		
+		if(curTimestep != metaData.time)
+		{
+			curTimestep = metaData.time;
+			++nTimesteps;
+			if(firstTime == -1)
+				firstTime = curTimestep;
+			lastTime = curTimestep;
+		}
+		
+		const BandData& curBand = selectedBand[metaData.dataDescId];
+		double wHi = fabs(metaData.wInM / curBand.SmallestWavelength());
+		double wLo = fabs(metaData.wInM / curBand.LongestWavelength());
+		double baselineInM = sqrt(metaData.uInM*metaData.uInM + metaData.vInM*metaData.vInM + metaData.wInM*metaData.wInM);
 		double halfWidth = 0.5*ImageWidth(), halfHeight = 0.5*ImageHeight();
 		if(wHi > msData.maxW || wLo < msData.minW || baselineInM / curBand.SmallestWavelength() > msData.maxBaselineUVW)
 		{
@@ -161,22 +172,22 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData)
 			for(size_t ch=0; ch!=curBand.ChannelCount(); ++ch)
 			{
 				const double wavelength = curBand.ChannelWavelength(ch);
-				double wInL = wInM/wavelength;
+				double wInL = metaData.wInM/wavelength;
 				msData.maxWWithFlags = std::max(msData.maxWWithFlags, fabs(wInL));
 				if(*weightPtr != 0.0)
 				{
 					double
-						uInL = uInM/wavelength, vInL = vInM/wavelength,
+						uInL = metaData.uInM/wavelength, vInL = metaData.vInM/wavelength,
 						x = uInL * PixelSizeX() * ImageWidth(),
 						y = vInL * PixelSizeY() * ImageHeight(),
 						imagingWeight = PrecalculatedWeightInfo()->GetWeight(uInL, vInL);
 					if(imagingWeight != 0.0)
 					{
-						if(floor(x) > -halfWidth  && ceil(x) < halfWidth &&
-							floor(y) > -halfHeight && ceil(y) < halfHeight)
+						if(std::floor(x) > -halfWidth  && std::ceil(x) < halfWidth &&
+							std::floor(y) > -halfHeight && std::ceil(y) < halfHeight)
 						{
-							msData.maxW = std::max(msData.maxW, fabs(wInL));
-							msData.minW = std::min(msData.minW, fabs(wInL));
+							msData.maxW = std::max(msData.maxW, std::fabs(wInL));
+							msData.minW = std::min(msData.minW, std::fabs(wInL));
 							msData.maxBaselineUVW = std::max(msData.maxBaselineUVW, baselineInM / wavelength);
 							msData.maxBaselineInM = std::max(msData.maxBaselineInM, baselineInM);
 						}
@@ -201,6 +212,11 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData)
 	{
 		Logger::Debug << "Discarded data has higher w value of " << msData.maxWWithFlags << " lambda.\n";
 	}
+	
+	if(lastTime == firstTime || nTimesteps < 2)
+		msData.integrationTime = 1;
+	else
+		msData.integrationTime = (lastTime - firstTime) / (nTimesteps - 1);
 }
 
 template void MSGridderBase::calculateWLimits<1>(MSGridderBase::MSData& msData);
@@ -263,6 +279,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData, Meta
 		msData.minW = cacheEntry.minW;
 		msData.maxBaselineUVW = cacheEntry.maxBaselineUVW;
 		msData.maxBaselineInM = cacheEntry.maxBaselineInM;
+		msData.integrationTime = cacheEntry.integrationTime;
 	}
 	else {
 		if (msProvider.Polarization() == Polarization::Instrumental)
@@ -274,6 +291,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData, Meta
 		cacheEntry.minW = msData.minW;
 		cacheEntry.maxBaselineUVW = msData.maxBaselineUVW;
 		cacheEntry.maxBaselineInM = msData.maxBaselineInM;
+		cacheEntry.integrationTime = msData.integrationTime;
 	}
 }
 

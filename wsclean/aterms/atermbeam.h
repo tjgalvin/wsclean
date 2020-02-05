@@ -29,6 +29,8 @@ public:
 		_lastATermUpdate = -_updateInterval - 1;
 	}
 	
+	virtual double AverageUpdateTime() const override { return _updateInterval; }
+	
 protected:
 	virtual bool calculateBeam(std::complex<float>* buffer, double time, double frequency) = 0;
 	

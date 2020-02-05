@@ -1154,7 +1154,10 @@ template<typename Serv> class WgridHelper
       nmin = -sqrt(abs(1.-x0*x0-y0*y0))-1.;
       dw = 0.25/abs(nmin);
       nplanes = size_t((wmax-wmin)/dw+2);
-      dw = (1.+1e-13)*(wmax-wmin)/(nplanes-1);
+      if(nplanes <= 1)
+        dw = 1;
+      else
+        dw = (1.+1e-13)*(wmax-wmin)/(nplanes-1);
 
       supp = gconf.Supp();
       wmin -= (0.5*supp-1)*dw;

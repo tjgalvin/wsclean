@@ -29,6 +29,8 @@ public:
 	
 	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency);
 	
+	virtual double AverageUpdateTime() const override;
+	
 	void SetTukeyWindow(double padding)
 	{
 		_window = WindowFunction::Tukey;

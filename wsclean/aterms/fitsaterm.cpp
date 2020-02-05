@@ -85,6 +85,14 @@ void FitsATerm::initializeFromFile()
 	_curFrequency = std::numeric_limits<double>::max();
 }
 
+double FitsATerm::AverageUpdateTime() const
+{
+	if(_timesteps.size() < 2)
+		return 1;
+	else
+		return (_timesteps.back().time - _timesteps.front().time) / (_timesteps.size() - 1);
+}
+
 bool FitsATerm::Calculate(std::complex<float>* buffer, double time, double frequency)
 {
 	bool requiresRead = false;
