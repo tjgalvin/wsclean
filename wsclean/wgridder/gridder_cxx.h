@@ -390,7 +390,7 @@ class ES_Kernel
         myassert(supp<opt_beta.size(), "bad support size");
         return opt_beta[supp];
         }
-      if (ofactor>=1.2)
+      if (ofactor>=1.15)
         {
         // empirical, but pretty accurate approximation
         static const array<double,16> betacorr{0,0,-0.51,-0.21,-0.1,-0.05,-0.025,-0.0125,0,0,0,0,0,0,0,0};
@@ -398,7 +398,7 @@ class ES_Kernel
         auto bcstrength=1.+(x0-0.25)*2.5;
         return 2.32+bcstrength*betacorr[supp]+(0.25-x0)*3.1;
         }
-      myfail("oversampling factor is too small");
+      myfail("oversampling factor ", ofactor, " is too small");
       }
 
     static size_t get_supp(double epsilon, double ofactor=2)
@@ -414,7 +414,7 @@ class ES_Kernel
           if (epssq>maxmaperr[i]) return i;
         myfail("requested epsilon too small - minimum is 1e-13");
         }
-      if (ofactor>=1.175)
+      if (ofactor>=1.15)
         {
         for (size_t w=2; w<16; ++w)
           {
@@ -423,7 +423,7 @@ class ES_Kernel
           }
         myfail("requested epsilon too small");
         }
-      myfail("oversampling factor is too small");
+      myfail("oversampling factor ", ofactor, " is too small");
       }
   };
 
@@ -565,7 +565,7 @@ class GridderConfig
       myassert(epsilon>0, "epsilon must be positive");
       myassert(pixsize_x>0, "pixsize_x must be positive");
       myassert(pixsize_y>0, "pixsize_y must be positive");
-      myassert(ofactor>=1.2, "oversampling factor smaller than 1.2");
+      myassert(ofactor>=1.15, "oversampling factor ", ofactor, " smaller than 1.15");
       }
     GridderConfig(size_t nxdirty, size_t nydirty,
       double epsilon, double pixsize_x, double pixsize_y, size_t nthreads_)

@@ -85,7 +85,7 @@ protected:
 	static void copyWeights(NumType* dest, size_t startChannel, size_t endChannel, const std::vector<PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, const casacore::Array<float>& weights, const casacore::Array<bool>& flags, PolarizationEnum polOut);
 	
 	template<typename NumType>
-	static bool isfinite(const std::complex<NumType>& c) {
+	static bool isCFinite(const std::complex<NumType>& c) {
 		return std::isfinite(c.real()) && std::isfinite(c.imag());
 	}
 	

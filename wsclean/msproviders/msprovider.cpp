@@ -21,7 +21,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 			throw std::runtime_error("This mode requires the four polarizations to be present in the measurement set");
 		for(size_t ch=0; ch!=selectedChannelCount*polsIn.size(); ++ch)
 		{
-			if(isfinite(*inPtr))
+			if(isCFinite(*inPtr))
 				dest[ch] = *inPtr;
 			else
 				dest[ch] = 0;
@@ -32,7 +32,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 		inPtr += polIndex;
 		for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 		{
-			if(isfinite(*inPtr))
+			if(isCFinite(*inPtr))
 				dest[ch] = *inPtr;
 			else
 				dest[ch] = 0;
@@ -64,7 +64,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 				// I = (XX + YY) / 2
 				val = (*inPtr + val) * 0.5f;
 				
-				if(isfinite(val))
+				if(isCFinite(val))
 					dest[ch] = val;
 				else
 					dest[ch] = 0.0;
@@ -88,7 +88,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 					// Q = (XX - YY)/2
 					val = (val - *inPtr) * 0.5f;
 						
-					if(isfinite(val))
+					if(isCFinite(val))
 						dest[ch] = val;
 					else
 						dest[ch] = 0.0;
@@ -111,7 +111,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 					// Q = (RL + LR)/2
 					val = (*inPtr + val) * 0.5f;
 						
-					if(isfinite(val))
+					if(isCFinite(val))
 						dest[ch] = val;
 					else
 						dest[ch] = 0.0;
@@ -136,7 +136,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 					// U = (XY + YX)/2
 					val = (val + *inPtr) * 0.5f;
 					
-					if(isfinite(val))
+					if(isCFinite(val))
 						dest[ch] = val;
 					else
 						dest[ch] = 0.0;
@@ -160,7 +160,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 					val = (val - *inPtr) * 0.5f;
 					val = casacore::Complex(val.imag(), -val.real());
 						
-					if(isfinite(val))
+					if(isCFinite(val))
 						dest[ch] = val;
 					else
 						dest[ch] = 0.0;
@@ -186,7 +186,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 					val = (val - *inPtr) * 0.5f;
 					val = casacore::Complex(val.imag(), -val.real());
 					
-					if(isfinite(val))
+					if(isCFinite(val))
 						dest[ch] = val;
 					else
 						dest[ch] = 0.0;
@@ -209,10 +209,10 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 					// V = (RR - LL)/2
 					val = (val - *inPtr) * 0.5f;
 						
-					if(isfinite(val))
-						dest[ch] = 0.0;
-					else
+					if(isCFinite(val))
 						dest[ch] = val;
+					else
+						dest[ch] = 0.0;
 					
 					inPtr += polCount - polIndexB;
 				}
@@ -238,7 +238,7 @@ void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChann
 	{
 		for(size_t ch=0; ch!=selectedChannelCount * polsIn.size(); ++ch)
 		{
-			if(!*flagPtr && isfinite(*inPtr))
+			if(!*flagPtr && isCFinite(*inPtr))
 				// The factor of 4 is to be consistent with StokesI
 				// It is for having conjugate visibilities and because IDG doesn't separately count XX and YY visibilities
 				dest[ch] = *weightPtr * 4.0f; 
@@ -255,7 +255,7 @@ void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChann
 		flagPtr += polIndex;
 		for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 		{
-			if(!*flagPtr && isfinite(*inPtr))
+			if(!*flagPtr && isCFinite(*inPtr))
 				dest[ch] = *weightPtr;
 			else
 				dest[ch] = 0.0f;
@@ -314,14 +314,14 @@ void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChann
 		for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 		{
 			NumType w;
-			if(!*flagPtr && isfinite(*inPtr))
+			if(!*flagPtr && isCFinite(*inPtr))
 				w = *weightPtr * 4.0f;
 			else
 				w = 0.0f;
 			inPtr += polIndexB-polIndexA;
 			weightPtr += polIndexB-polIndexA;
 			flagPtr += polIndexB-polIndexA;
-			if(!*flagPtr && isfinite(*inPtr))
+			if(!*flagPtr && isCFinite(*inPtr))
 				w = std::min<NumType>(w, *weightPtr * 4.0f);
 			else
 				w = 0.0f;
