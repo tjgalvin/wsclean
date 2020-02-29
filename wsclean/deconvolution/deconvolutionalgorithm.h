@@ -41,6 +41,8 @@ public:
 	
 	void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 	
+	void SetLogReceiver(class LogReceiver& receiver) { _logReceiver = &receiver; }
+	
 	size_t MaxNIter() const { return _maxIter; }
 	double Threshold() const { return _threshold; }
 	double MajorIterThreshold() const { return _majorIterThreshold; }
@@ -92,6 +94,7 @@ public:
 	
 	void SetRMSFactorImage(Image&& image) { _rmsFactorImage = std::move(image); }
 	const Image& RMSFactorImage() const { return _rmsFactorImage; }
+	
 protected:
 	DeconvolutionAlgorithm();
 
@@ -105,6 +108,8 @@ protected:
 	bool _allowNegativeComponents, _stopOnNegativeComponent;
 	const bool* _cleanMask;
 	Image _rmsFactorImage;
+	
+	class LogReceiver* _logReceiver;
 	
 	SpectralFitter _spectralFitter;
 };

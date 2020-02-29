@@ -85,7 +85,7 @@ private:
 class SubMinorLoop
 {
 public:
-	SubMinorLoop(size_t width, size_t height, size_t convolutionWidth, size_t convolutionHeight) :
+	SubMinorLoop(size_t width, size_t height, size_t convolutionWidth, size_t convolutionHeight, LogReceiver& logReceiver) :
 		_width(width), _height(height),
 		_paddedWidth(convolutionWidth), _paddedHeight(convolutionHeight),
 		_threshold(0.0), _consideredPixelThreshold(0.0), _gain(0.0),
@@ -95,7 +95,8 @@ public:
 		_stopOnNegativeComponent(false),
 		_mask(0), _fitter(0),
 		_subMinorModel(width, height),
-		_fluxCleaned(0.0)
+		_fluxCleaned(0.0),
+		_logReceiver(logReceiver)
 	{ }
 	
 	/**
@@ -166,6 +167,7 @@ private:
 	SubMinorModel _subMinorModel;
 	double _fluxCleaned;
 	Image _rmsFactorImage;
+	LogReceiver& _logReceiver;
 };
 
 #endif

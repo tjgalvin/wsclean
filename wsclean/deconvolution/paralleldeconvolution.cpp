@@ -203,6 +203,8 @@ void ParallelDeconvolution::ExecuteMajorIteration(class ImageSet& dataImage, cla
 		height = _settings.trimmedImageHeight;
 	if(_algorithms.size() == 1)
 	{
+		ForwardingLogReceiver fwdReceiver;
+		_algorithms.front()->SetLogReceiver(fwdReceiver);
 		_algorithms.front()->ExecuteMajorIteration(dataImage, modelImage, psfImages, width, height, reachedMajorThreshold);
 	}
 	else {
@@ -278,13 +280,24 @@ void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class 
 			}
 		}
 	}
-	std::mutex mutex;
 	
+	// Initialize loggers
+	std::mutex mutex;
+	_logs.Initialize(_horImages, _verImages);
+	for(size_t i=0; i!=_algorithms.size(); ++i)
+		_algorithms[i]->SetLogReceiver(_logs[i]);
+
 	// Find the starting peak over all subimages
 	ao::ParallelFor<size_t> loop(System::ProcessorCount());
 	loop.Run(0, _algorithms.size(), [&](size_t index, size_t)
 	{
+		_logs.Activate(index);
 		runSubImage(subImages[index], dataImage, modelImage, psfImages, 0.0, true, &mutex);
+		_logs.Deactivate(index);
+		
+		_logs[index].Mute(false);
+		_logs[index].Info << "Sub-image " << index << " returned peak position.\n";
+		_logs[index].Mute(true);
 	});
 	double maxValue = 0.0;
 	size_t indexOfMax = 0;
@@ -303,7 +316,13 @@ void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class 
 	// Run the deconvolution
 	loop.Run(0, _algorithms.size(), [&](size_t index, size_t)
 	{
+		_logs.Activate(index);
 		runSubImage(subImages[index], dataImage, modelImage, psfImages, mIterThreshold, false, &mutex);
+		_logs.Deactivate(index);
+		
+		_logs[index].Mute(false);
+		_logs[index].Info << "Sub-image " << index << " finished its deconvolution iteration.\n";
+		_logs[index].Mute(true);
 	});
 	
 	_rmsImage.reset();

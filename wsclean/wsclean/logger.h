@@ -4,7 +4,7 @@
 #include <sstream>
 #include <iostream>
 
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 class Logger
 {
@@ -21,7 +21,7 @@ class Logger
 				
 				LogWriter &operator<<(const std::string &str)
 				{
-					boost::mutex::scoped_lock lock(_mutex);
+					std::lock_guard<std::mutex> lock(_mutex);
 					size_t start = 0, end;
 					while(std::string::npos != (end = str.find('\n', start)))
 					{
@@ -38,7 +38,7 @@ class Logger
 				}
 				LogWriter &operator<<(const char c)
 				{
-					boost::mutex::scoped_lock lock(_mutex);
+					std::lock_guard<std::mutex> lock(_mutex);
 					outputLinePart(std::string(1, c), c == '\n');
 					return *this;
 				}
@@ -52,14 +52,14 @@ class Logger
 				}
 				void Flush()
 				{
-					boost::mutex::scoped_lock lock(_mutex);
+					std::lock_guard<std::mutex> lock(_mutex);
 					if(ToStdErr)
 						std::cerr.flush();
 					else
 						std::cout.flush();
 				}
 			private:
-				boost::mutex _mutex;
+				std::mutex _mutex;
 				bool _atNewLine;
 		
 				void outputLinePart(const std::string &str, bool endsWithCR)
@@ -101,6 +101,88 @@ class Logger
 		static enum LoggerLevel _coutLevel;
 		
 		static bool _logTime;
+};
+
+class LogReceiver
+{
+public:
+	LogReceiver() :
+		Fatal(this),
+		Error(this),
+		Warn(this),
+		Info(this),
+		Debug(this)
+	{ }
+	
+	template<enum Logger::LoggerLevel Level>
+	class LevelReceiver
+	{
+	public:
+		LevelReceiver(LogReceiver* parent) : _parent(parent) { }
+		LevelReceiver &operator<<(const std::string &str)
+		{
+			size_t start = 0, end;
+			while(std::string::npos != (end = str.find('\n', start)))
+			{
+				_parent->output(Level, str.substr(start, end - start + 1));
+				start = end+1;
+			}
+			_parent->output(Level, str.substr(start, str.size() - start));
+			return *this;
+		}
+		LevelReceiver &operator<<(const char *str)
+		{
+			(*this) << std::string(str);
+			return *this;
+		}
+		LevelReceiver &operator<<(const char c)
+		{
+			_parent->output(Level, std::string(1, c));
+			return *this;
+		}
+		template<typename S>
+		LevelReceiver &operator<<(const S &str)
+		{
+			std::ostringstream stream;
+			stream << str;
+			(*this) << stream.str();
+			return *this;
+		}
+		
+	private:
+		LogReceiver* _parent;
+	}; // end of class LevelReceiver
+	
+	LevelReceiver<Logger::FatalLevel> Fatal;
+	LevelReceiver<Logger::ErrorLevel> Error;
+	LevelReceiver<Logger::WarningLevel> Warn;
+	LevelReceiver<Logger::InfoLevel> Info;
+	LevelReceiver<Logger::DebugLevel> Debug;
+	
+protected:
+	virtual void output(enum Logger::LoggerLevel level, const std::string &str) = 0;
+	
+	void forward(enum Logger::LoggerLevel level, const std::string &str)
+	{
+		switch(level)
+		{
+			case Logger::FatalLevel: Logger::Fatal << str; break;
+			case Logger::ErrorLevel: Logger::Error << str; break;
+			case Logger::WarningLevel: Logger::Warn << str; break;
+			case Logger::InfoLevel: Logger::Info << str; break;
+			case Logger::DebugLevel: Logger::Debug << str; break;
+			case Logger::NoLevel: break;
+		}
+	}
+};
+
+class ForwardingLogReceiver : public LogReceiver
+{
+protected:
+	virtual void output(enum Logger::LoggerLevel level, const std::string &str) final override
+	{
+		forward(level, str);
+	}
 };
 
 #endif

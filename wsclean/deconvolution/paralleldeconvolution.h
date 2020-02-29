@@ -7,6 +7,8 @@
 
 #include "../wsclean/primarybeamimageset.h"
 
+#include "controllablelog.h"
+
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -81,6 +83,7 @@ private:
 	
 	FFTWManager _fftwManager;
 	std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
+	FacetLogSet _logs;
 	size_t _horImages, _verImages;
 	const WSCleanSettings& _settings;
 	ImageBufferAllocator* _allocator;

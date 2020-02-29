@@ -41,11 +41,11 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 	boost::optional<double> maxValue = findPeak(integrated.data(), scratchA.data(), componentX, componentY);
 	if(!maxValue)
 	{
-		Logger::Info << "No peak found.\n";
+		_logReceiver->Info << "No peak found.\n";
 		reachedMajorThreshold = false;
 		return 0.0;
 	}
-	Logger::Info << "Initial peak: " << peakDescription(integrated.data(), componentX, componentY) << '\n';
+	_logReceiver->Info << "Initial peak: " << peakDescription(integrated.data(), componentX, componentY) << '\n';
 	double firstThreshold = this->_threshold;
 	double majorIterThreshold = std::max(
 		MajorIterThreshold(),
@@ -53,16 +53,16 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 	if(majorIterThreshold > firstThreshold)
 	{
 		firstThreshold = majorIterThreshold;
-		Logger::Info << "Next major iteration at: " << FluxDensity::ToNiceString(majorIterThreshold) << '\n';
+		_logReceiver->Info << "Next major iteration at: " << FluxDensity::ToNiceString(majorIterThreshold) << '\n';
 	}
 	else if(this->_mGain != 1.0) {
-		Logger::Info << "Major iteration threshold reached global threshold of " << FluxDensity::ToNiceString(this->_threshold) << ": final major iteration.\n";
+		_logReceiver->Info << "Major iteration threshold reached global threshold of " << FluxDensity::ToNiceString(this->_threshold) << ": final major iteration.\n";
 	}
 	
 	if(_useSubMinorOptimization)
 	{
 		size_t startIteration = _iterationNumber;
-		SubMinorLoop subMinorLoop(_width, _height, _convolutionWidth, _convolutionHeight);
+		SubMinorLoop subMinorLoop(_width, _height, _convolutionWidth, _convolutionHeight, *_logReceiver);
 		subMinorLoop.SetIterationInfo(_iterationNumber, MaxNIter());
 		subMinorLoop.SetThreshold(firstThreshold, firstThreshold*0.99);
 		subMinorLoop.SetGain(Gain());
@@ -82,7 +82,7 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 		
 		_iterationNumber = subMinorLoop.CurrentIteration();
 		
-		Logger::Info << "Performed " << _iterationNumber << " iterations in total, " << (_iterationNumber - startIteration) << " in this major iteration with sub-minor optimization.\n";
+		_logReceiver->Info << "Performed " << _iterationNumber << " iterations in total, " << (_iterationNumber - startIteration) << " in this major iteration with sub-minor optimization.\n";
 		
 		for(size_t imageIndex=0; imageIndex!=dirtySet.size(); ++imageIndex)
 		{
@@ -108,7 +108,7 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 				(this->_iterationNumber <= 100 && this->_iterationNumber % 10 == 0) ||
 				(this->_iterationNumber <= 1000 && this->_iterationNumber % 100 == 0) ||
 				this->_iterationNumber % 1000 == 0)
-				Logger::Info << "Iteration " << this->_iterationNumber << ": " << peakDescription(integrated.data(), componentX, componentY) << '\n';
+				_logReceiver->Info << "Iteration " << this->_iterationNumber << ": " << peakDescription(integrated.data(), componentX, componentY) << '\n';
 			
 			for(size_t i=0; i!=dirtySet.size(); ++i)
 				peakValues[i] = dirtySet[i][peakIndex];
@@ -135,7 +135,7 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 	}
 	if(maxValue)
 	{
-		Logger::Info << "Stopped on peak " << FluxDensity::ToNiceString(*maxValue) << ", because ";
+		_logReceiver->Info << "Stopped on peak " << FluxDensity::ToNiceString(*maxValue) << ", because ";
 		bool
 			maxIterReached = _iterationNumber >= MaxNIter(),
 			finalThresholdReached = std::fabs(*maxValue) <= _threshold || maxValue == 0.0,
@@ -144,20 +144,20 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 			didWork = (_iterationNumber-iterationCounterAtStart)!=0;
 		
 		if(maxIterReached)
-			Logger::Info << "maximum number of iterations was reached.\n";
+			_logReceiver->Info << "maximum number of iterations was reached.\n";
 		else if(finalThresholdReached)
-			Logger::Info << "the threshold was reached.\n";
+			_logReceiver->Info << "the threshold was reached.\n";
 		else if(negativeReached)
-			Logger::Info << "a negative component was found.\n";
+			_logReceiver->Info << "a negative component was found.\n";
 		else if(!didWork)
-			Logger::Info << "no iterations could be performed.\n";
+			_logReceiver->Info << "no iterations could be performed.\n";
 		else
-			Logger::Info << "the minor-loop threshold was reached. Continuing cleaning after inversion/prediction round.\n";
+			_logReceiver->Info << "the minor-loop threshold was reached. Continuing cleaning after inversion/prediction round.\n";
 		reachedMajorThreshold = mgainReached && didWork && !negativeReached && !finalThresholdReached;
 		return *maxValue;
 	}
 	else {
-		Logger::Info << "Deconvolution aborted.\n";
+		_logReceiver->Info << "Deconvolution aborted.\n";
 		reachedMajorThreshold = false;
 		return 0.0;
 	}
