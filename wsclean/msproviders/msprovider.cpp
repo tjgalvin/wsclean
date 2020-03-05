@@ -581,12 +581,12 @@ void MSProvider::getRowRangeAndIDMap(casacore::MeasurementSet& ms, const MSSelec
 	
 	Logger::Info << "Mapping measurement set rows... ";
 	Logger::Info.Flush();
-	casacore::ROArrayColumn<double> uvwColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
-	casacore::ROScalarColumn<int> antenna1Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
-	casacore::ROScalarColumn<int> antenna2Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
-	casacore::ROScalarColumn<int> fieldIdColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
-	casacore::ROScalarColumn<double> timeColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
-	casacore::ROScalarColumn<int> dataDescIdColumn(ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
+	casacore::ArrayColumn<double> uvwColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
+	casacore::ScalarColumn<int> antenna1Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
+	casacore::ScalarColumn<int> antenna2Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
+	casacore::ScalarColumn<int> fieldIdColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
+	casacore::ScalarColumn<double> timeColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
+	casacore::ScalarColumn<int> dataDescIdColumn(ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
 	double time = timeColumn(0);
 	size_t timestepIndex = 0;
 	bool timeStepSelected = !selection.HasInterval() || timestepIndex == selection.IntervalStart();

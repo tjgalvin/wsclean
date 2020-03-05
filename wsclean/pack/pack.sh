@@ -21,10 +21,11 @@ else
     mkdir /tmp/wsclean/mwa
     mkdir /tmp/wsclean/tests
     mkdir /tmp/wsclean/units
+    mkdir /tmp/wsclean/wgridder
     mkdir /tmp/wsclean/wsclean
     mkdir /tmp/wsclean/wsclean/examples
     cd ..
-    cp -v CMakeLists.txt CMakeVersionInfo.txt wscversion.h.in Doxyfile.in application.* areaset.* banddata.* buffered_lane.* casamaskreader.* dftpredictionalgorithm.* fftconvolver.* fftresampler.* fftwmanager.* fitsiochecker.* fitsreader.* fitswriter.* gaussianfitter.* image.* imageweights.* lane.* multibanddata.* nlplfitter.* numberlist.* matrix2x2.* modelrenderer.* msselection.* ndppp.* parsetreader.* polarization.* polynomialchannelfitter.* polynomialfitter.* progressbar.* rmsimage.* stopwatch.* system.* threadpool.* uvector.* weightmode.* windowfunction.* wscleanmain.cpp /tmp/wsclean/
+    cp -v CMakeLists.txt CMakeVersionInfo.txt wscversion.h.in Doxyfile.in application.* areaset.* banddata.* buffered_lane.* casamaskreader.* dftpredictionalgorithm.* fftconvolver.* fftresampler.* fftwmanager.* fitsiochecker.* fitsreader.* fitswriter.* gaussianfitter.* hmatrix4x4.* image.* imageweights.* lane.* multibanddata.* nlplfitter.* numberlist.* matrix2x2.* matrix4x4.* modelrenderer.* msselection.* ndppp.* parsetreader.* polarization.* polynomialchannelfitter.* polynomialfitter.* progressbar.* rmsimage.* stopwatch.* system.* threadpool.* uvector.* weightmode.* windowfunction.* wscleanmain.cpp /tmp/wsclean/
     cp -v aocommon/barrier.h aocommon/cloned_ptr.h aocommon/lane.h aocommon/lane_11.h aocommon/parallelfor.h aocommon/uvector_11.h /tmp/wsclean/aocommon/
     cp -v atca/*.{h,cpp} /tmp/wsclean/atca/
     cp -v aterms/*.{h,cpp} /tmp/wsclean/aterms/
@@ -40,6 +41,7 @@ else
     cp -v mwa/*.{h,cpp} /tmp/wsclean/mwa
     cp -v tests/*.cpp /tmp/wsclean/tests
     cp -v units/*.h /tmp/wsclean/units
+    cp -v wgridder/*.{h,cpp} /tmp/wsclean/wgridder/
     cp -v wsclean/*.{h,cpp} /tmp/wsclean/wsclean
     cp -v wsclean/examples/{Makefile,*.cpp} /tmp/wsclean/wsclean/examples/
     cd /tmp

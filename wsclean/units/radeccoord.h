@@ -60,9 +60,9 @@ class RaDecCoord
 					secs = strtold(cstr, &cstr);
 				} else throw std::runtime_error("Missing ':' after minutes");
 			}
-			else throw std::runtime_error("Missing 'h' or ':'");
+			else throw std::runtime_error("Missing 'h' or ':' in string '" + str + "'");
 			if(*cstr != 0)
-				throw std::runtime_error("Could not parse RA (string contains more tokens than expected)");
+				throw std::runtime_error("Could not parse RA '" + str + "' (string contains more tokens than expected)");
 			if(sign)
 				return (hrs/24.0 - mins/(24.0*60.0) - secs/(24.0*60.0*60.0))*2.0*M_PIl;
 			else

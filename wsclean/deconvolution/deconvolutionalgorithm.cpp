@@ -19,6 +19,7 @@ DeconvolutionAlgorithm::DeconvolutionAlgorithm() :
 	_allowNegativeComponents(true),
 	_stopOnNegativeComponent(false),
 	_cleanMask(0),
+	_logReceiver(nullptr),
 	_spectralFitter(NoSpectralFitting, 0)
 {
 }

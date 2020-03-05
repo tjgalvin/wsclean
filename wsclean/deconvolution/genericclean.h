@@ -11,7 +11,7 @@
 
 /**
  * This class implements a generalized version of Högbom clean. It performs a single-channel
- * or joined cleaning, depending on the number of images provided. It can use the Clark optimization
+ * or joined cleaning, depending on the number of images provided. It can use a Clark-like optimization
  * to speed up the cleaning. When multiple frequencies are provided, it can perform spectral fitting.
  */
 class GenericClean : public DeconvolutionAlgorithm

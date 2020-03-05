@@ -45,7 +45,7 @@ boost::optional<double> SubMinorLoop::Run(ImageSet& convolvedResidual, const ao:
 	_subMinorModel.MakeSets(convolvedResidual);
 	if(!_rmsFactorImage.empty())
 		_subMinorModel.MakeRMSFactorImage(_rmsFactorImage);
-	Logger::Debug << "Number of components selected > " << _threshold << ": " << _subMinorModel.size() << '\n';
+	_logReceiver.Debug << "Number of components selected > " << _threshold << ": " << _subMinorModel.size() << '\n';
 	
 	if(_subMinorModel.size() == 0)
 		return boost::optional<double>();
@@ -72,10 +72,10 @@ boost::optional<double> SubMinorLoop::Run(ImageSet& convolvedResidual, const ao:
 			y = _subMinorModel.Y(maxComponent);
 		/*
 		  Commented out because even in verbose mode this is a bit too verbose, but useful in case divergence occurs:
-		Logger::Debug << x << ", " << y << " " << maxValue << " -> ";
+		_logReceiver.Debug << x << ", " << y << " " << maxValue << " -> ";
 		for(size_t imgIndex=0; imgIndex!=_clarkModel.Model().size(); ++imgIndex)
-		  Logger::Debug << componentValues[imgIndex] << ' ';
-		Logger::Debug << '\n';
+		  _logReceiver.Debug << componentValues[imgIndex] << ' ';
+		_logReceiver.Debug << '\n';
 		*/
 		for(size_t imgIndex=0; imgIndex!=_subMinorModel.Residual().size(); ++imgIndex)
 		{
