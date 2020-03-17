@@ -38,15 +38,15 @@ void ImageOperations::FitBeamSize(const WSCleanSettings& settings, double& bMaj,
 	bMin = bMin*0.5*(settings.pixelScaleX + settings.pixelScaleY);
 }
 
-void ImageOperations::DetermineBeamSize(const WSCleanSettings& settings, double& bMaj, double& bMin, double& bPA, const double* image, double theoreticBeam)
+void ImageOperations::DetermineBeamSize(const WSCleanSettings& settings, double& bMaj, double& bMin, double& bPA, double& bTheoretical, const double* image, double initialEstimate)
 {
-	double theoreticBeamWithTaper = theoreticBeam;
+	bTheoretical = initialEstimate;
 	if(settings.gaussianTaperBeamSize != 0.0)
 	{
-		if(settings.gaussianTaperBeamSize > theoreticBeamWithTaper)
+		if(settings.gaussianTaperBeamSize > bTheoretical)
 		{
-			theoreticBeamWithTaper = settings.gaussianTaperBeamSize;
-			Logger::Debug << "Beam is tapered; using " << Angle::ToNiceString(theoreticBeamWithTaper) << " as initial value in PSF fitting.\n";
+			bTheoretical = settings.gaussianTaperBeamSize;
+			Logger::Debug << "Beam is tapered; using " << Angle::ToNiceString(bTheoretical) << " as initial value in PSF fitting.\n";
 		}
 	}
 	if(settings.manualBeamMajorSize != 0.0)
@@ -56,16 +56,16 @@ void ImageOperations::DetermineBeamSize(const WSCleanSettings& settings, double&
 		bPA = settings.manualBeamPA;
 	} else if(settings.fittedBeam)
 	{
-		FitBeamSize(settings, bMaj, bMin, bPA, image, theoreticBeamWithTaper*2.0/(settings.pixelScaleX + settings.pixelScaleY));
+		FitBeamSize(settings, bMaj, bMin, bPA, image, bTheoretical*2.0/(settings.pixelScaleX + settings.pixelScaleY));
 		Logger::Info << "major=" << Angle::ToNiceString(bMaj) << ", minor=" <<
 		Angle::ToNiceString(bMin) << ", PA=" << Angle::ToNiceString(bPA) << ", theoretical=" <<
-		Angle::ToNiceString(theoreticBeamWithTaper)<< ".\n";
+		Angle::ToNiceString(bTheoretical)<< ".\n";
 	}
 	else if(settings.theoreticBeam) {
-		bMaj = theoreticBeamWithTaper;
-		bMin = theoreticBeamWithTaper;
+		bMaj = bTheoretical;
+		bMin = bTheoretical;
 		bPA = 0.0;
-		Logger::Info << "Beam size is " << Angle::ToNiceString(theoreticBeamWithTaper) << '\n';
+		Logger::Info << "Beam size is " << Angle::ToNiceString(bTheoretical) << '\n';
 	} else {
 		bMaj = std::numeric_limits<double>::quiet_NaN();
 		bMin = std::numeric_limits<double>::quiet_NaN();
@@ -132,7 +132,7 @@ void ImageOperations::MakeMFSImage(const WSCleanSettings& settings, const std::v
 		if(smallestTheoreticBeamSize < pixelScale)
 			smallestTheoreticBeamSize = pixelScale;
 		
-		ImageOperations::DetermineBeamSize(settings, mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA, mfsImage.data(), smallestTheoreticBeamSize);
+		ImageOperations::DetermineBeamSize(settings, mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA, mfsInfo.theoreticBeamSize, mfsImage.data(), smallestTheoreticBeamSize);
 	}
 	if(std::isfinite(mfsInfo.beamMaj))
 		writer.SetBeamInfo(mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA);

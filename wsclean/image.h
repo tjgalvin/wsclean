@@ -45,6 +45,7 @@ public:
 	double& operator[](size_t index) { return _data[index]; }
 	
 	Image& operator+=(const Image& other);
+	Image& operator-=(const Image& other);
 	
 	Image& operator*=(double factor);
 	Image& operator*=(const Image& other);
@@ -111,6 +112,7 @@ public:
 		return 1.48260221850560 * MAD(data, size);
 	}
 	
+	double RMS() const { return RMS(_data, _width*_height); }
 	static double RMS(const double* data, size_t size)
 	{
 		double sum = 0.0;

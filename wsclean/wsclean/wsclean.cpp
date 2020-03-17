@@ -150,13 +150,12 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result)
 	_observationInfo = result.observationInfo;
 	
 	double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
-	double initialFitSize =
-		result.beamSize > minPixelScale ? result.beamSize : minPixelScale;
-	double bMaj, bMin, bPA;
-	ImageOperations::DetermineBeamSize(_settings, bMaj, bMin, bPA, result.imageRealResult.data(), initialFitSize);
+	double initialFitSize = std::max(result.beamSize, minPixelScale);
+	double bMaj, bMin, bPA, bTheoretical;
+	ImageOperations::DetermineBeamSize(_settings, bMaj, bMin, bPA, bTheoretical, result.imageRealResult.data(), initialFitSize);
 	entry.imageWeight = result.imageWeight;
 	entry.normalizationFactor = result.normalizationFactor;
-	_infoPerChannel[channelIndex].theoreticBeamSize = result.beamSize;
+	_infoPerChannel[channelIndex].theoreticBeamSize = bTheoretical;
 	_infoPerChannel[channelIndex].beamMaj = bMaj;
 	_infoPerChannel[channelIndex].beamMin = bMin;
 	_infoPerChannel[channelIndex].beamPA = bPA;
@@ -227,8 +226,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry, GriddingResult& result
 	if(updateBeamInfo)
 	{
 		if(_settings.theoreticBeam) {
-			_infoPerChannel[entry.outputChannelIndex].beamMaj = result.beamSize;
-			_infoPerChannel[entry.outputChannelIndex].beamMin = result.beamSize;
+			_infoPerChannel[entry.outputChannelIndex].beamMaj = std::max(result.beamSize, _settings.gaussianTaperBeamSize);
+			_infoPerChannel[entry.outputChannelIndex].beamMin = std::max(result.beamSize, _settings.gaussianTaperBeamSize);
 			_infoPerChannel[entry.outputChannelIndex].beamPA = 0.0;
 		}
 		else if(_settings.manualBeamMajorSize != 0.0) {

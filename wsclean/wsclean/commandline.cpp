@@ -88,6 +88,8 @@ void CommandLine::printHelp()
 		"   Normally, the primary beam is calculated at a lower resolution and interpolated, because calculating the beam is\n"
 		"   computationally expensive. The amount of undersampling can be controlled by this parameter, or set to '1' for no\n"
 		"   undersampling. Default: 8.\n"
+		"-dry-run\n"
+		"   Parses the command line and quits afterwards. No imaging is done.\n"
 		"\n"
 		"  ** WEIGHTING OPTIONS **\n"
 		"-weight <weightmode>\n"
@@ -468,7 +470,7 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 	
 	WSCleanSettings& settings = wsclean.Settings();
 	int argi = 1;
-	bool mfWeighting = false, noMFWeighting = false;
+	bool mfWeighting = false, noMFWeighting = false, dryRun = false;
 	while(argi < argc && argv[argi][0] == '-')
 	{
 		const std::string param = argv[argi][1]=='-' ? (&argv[argi][2]) : (&argv[argi][1]);
@@ -689,6 +691,10 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 		{
 			++argi;
 			settings.mwaPath = argv[argi];
+		}
+		else if(param == "dry-run")
+		{
+			dryRun = true;
 		}
 		else if(param == "save-psf-pb")
 		{
@@ -1353,7 +1359,7 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 	
 	settings.Validate();
 	
-	return true;
+	return !dryRun;
 }
 
 void CommandLine::Run(class WSClean& wsclean)
