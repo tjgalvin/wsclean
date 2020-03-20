@@ -57,6 +57,8 @@ class BufferedMSGridder : public MSGridderBase
 		void predictMeasurementSet(MSData& msData);
 		
 		size_t calculateMaxNRowsInMemory(size_t channelCount) const;
+		
+		void getTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
 
 		size_t _cpuCount;
 		int64_t _memSize;

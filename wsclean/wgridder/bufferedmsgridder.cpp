@@ -167,18 +167,24 @@ void BufferedMSGridder::predictMeasurementSet(MSData &msData)
 	msData.totalRowsProcessed += totalNRows;
 }
 
+void BufferedMSGridder::getTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const
+{
+	double padding = double(ImageWidth())/TrimWidth();
+	trimmedWidth = std::floor(_actualInversionWidth/padding);
+	trimmedHeight = std::floor(_actualInversionHeight/padding);
+	if (trimmedWidth&1) --trimmedWidth;
+	if (trimmedHeight&1) --trimmedHeight;
+}
+
 void BufferedMSGridder::Invert()
 {
 	std::vector<MSData> msDataVector;
 	initializeMSDataVector(msDataVector);
 
-        // FIXME: hackery to determine the size of the untrimmed image. Replace with something more sane
-        double ofct = double(ImageWidth())/TrimWidth();
-        size_t w2 = int(round(_actualInversionWidth/ofct));
-        size_t h2 = int(round(_actualInversionHeight/ofct));
-        if (w2&1) ++w2;
-        if (h2&1) ++h2;
-	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, w2, h2, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
+	size_t trimmedWidth, trimmedHeight;
+	getTrimmedSize(trimmedWidth, trimmedHeight);
+	
+	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, trimmedWidth, trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
 	_gridder->InitializeInversion();
 
 	resetVisibilityCounters();
@@ -229,13 +235,10 @@ void BufferedMSGridder::Predict(ImageBufferAllocator::Ptr image)
 	std::vector<MSData> msDataVector;
 	initializeMSDataVector(msDataVector);
 
-        // FIXME: hackery to determine the size of the untrimmed image. Replace with something more sane
-        double ofct = double(ImageWidth())/TrimWidth();
-        size_t w2 = int(round(_actualInversionWidth/ofct));
-        size_t h2 = int(round(_actualInversionHeight/ofct));
-        if (w2&1) ++w2;
-        if (h2&1) ++h2;
-	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, w2, h2, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
+	size_t trimmedWidth, trimmedHeight;
+	getTrimmedSize(trimmedWidth, trimmedHeight);
+	
+	_gridder.reset(new WGriddingGridder_Simple(_actualInversionWidth, _actualInversionHeight, trimmedWidth, trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
 
 	if(TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight())
 	{
