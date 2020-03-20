@@ -3,9 +3,12 @@
 
 #include <vector>
 
+#include <boost/filesystem/operations.hpp>
+
 #include "../hmatrix4x4.h"
 #include "../matrix2x2.h"
 #include "../polarization.h"
+#include "../fitsreader.h"
 
 #include "../wsclean/imagebufferallocator.h"
 
@@ -25,6 +28,70 @@ public:
 	{
 		for(size_t i=0; i!=nImages; ++i)
 			allocator.Allocate(width*height, _beamImages[i]);
+	}
+	
+	static FitsReader GetAReader(const std::string& beamPrefix, bool stokesIOnly)
+	{
+		if(stokesIOnly)
+		{
+			return FitsReader(beamPrefix + "-I.fits");
+		}
+		else {
+			std::string aFilename = beamPrefix + "-XX.fits";
+			if(!boost::filesystem::exists(beamPrefix + "-XX.fits"))
+				aFilename = beamPrefix + "-0.fits";
+			return FitsReader(aFilename);
+		}
+	}
+	
+	static PrimaryBeamImageSet Load(const std::string& beamPrefix, size_t width, size_t height, ImageBufferAllocator& allocator, bool stokesIOnly)
+	{
+		if(stokesIOnly)
+		{
+			PrimaryBeamImageSet beamImages(width, height, allocator, 8);
+			// IDG produces only a Stokes I beam, and has already corrected for the rest.
+			// Currently we just load that beam into real component of XX and YY, and set the other 6 images to zero.
+			// This is a bit wasteful so might require a better strategy for big images.
+			FitsReader reader(beamPrefix + "-I.fits");
+			reader.Read(beamImages[0].data());
+			for(size_t i=0; i!=width*height; ++i)
+				beamImages[0][i] = std::sqrt(beamImages[0][i]);
+			std::copy_n(beamImages[0].data(), width*height, beamImages[6].data());
+			for(size_t i=1; i!=8; ++i)
+			{
+				if(i != 6)
+					std::fill_n(beamImages[i].data(), width*height, 0.0);
+			}
+			return beamImages;
+		}
+		else {
+			try {
+				PrimaryBeamImageSet beamImages(width, height, allocator, 8);
+				PolarizationEnum
+					linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
+				for(size_t i=0; i!=8; ++i)
+				{
+					PolarizationEnum p = linPols[i/2];
+					std::string polStr;
+					if(i%2 == 0) // real?
+						polStr = Polarization::TypeToShortString(p);
+					else
+						polStr = Polarization::TypeToShortString(p) + "i";
+					FitsReader reader(beamPrefix + "-" + polStr + ".fits");
+					reader.Read(beamImages[i].data());
+				}
+				return beamImages;
+			} catch(std::exception&)
+			{
+				PrimaryBeamImageSet beamImages(width, height, allocator, 16);
+				for(size_t i=0; i!=16; ++i)
+				{
+					FitsReader reader(beamPrefix + "-" + std::to_string(i) + ".fits");
+					reader.Read(beamImages[i].data());
+				}
+				return beamImages;
+			}
+		}
 	}
 	
 	void SetToZero()

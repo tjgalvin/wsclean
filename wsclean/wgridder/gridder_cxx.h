@@ -1098,14 +1098,20 @@ template<typename Serv> class WgridHelper
       const Serv &srv, double &wmin, double &wmax)
       {
       size_t nvis = srv.Nvis();
-
-      wmin= 1e38;
-      wmax=-1e38;
-      for (size_t ipart=0; ipart<nvis; ++ipart)
-        {
-        auto wval = abs(srv.getCoord(ipart).w);
-        wmin = min(wmin,wval);
-        wmax = max(wmax,wval);
+      if(nvis == 0)
+      {
+        wmin = 0.0;
+        wmax = 0.0;
+      }
+      else {
+        wmin= 1e38;
+        wmax=-1e38;
+        for (size_t ipart=0; ipart<nvis; ++ipart)
+          {
+          auto wval = abs(srv.getCoord(ipart).w);
+          wmin = min(wmin,wval);
+          wmax = max(wmax,wval);
+          }
         }
       }
 

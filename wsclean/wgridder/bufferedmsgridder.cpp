@@ -77,7 +77,8 @@ void BufferedMSGridder::gridMeasurementSet(MSData &msData)
 		// Iterate over chunks until all data has been gridded
 		while(msData.msProvider->CurrentRowAvailable())
 		{
-			Logger::Info << "Loading max " << maxNRows << " rows in memory...\n";
+			Logger::Debug << "Max " << maxNRows << " rows fit in memory.\n";
+			Logger::Info << "Loading data in memory...\n";
 
 			size_t nRows = 0;
 
