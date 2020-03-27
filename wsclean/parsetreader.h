@@ -16,7 +16,7 @@ public:
 	class ParsetEntry
 	{
 	public:
-		ParsetEntry(ParsetEntry&& source) = default;
+		ParsetEntry(ParsetEntry&&) = default;
 		enum Type { String, StringList };
 		ParsetEntry(const std::string& line);
 		bool operator<(const ParsetEntry& rhs) const
