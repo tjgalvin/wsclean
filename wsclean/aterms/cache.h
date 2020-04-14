@@ -20,12 +20,13 @@ public:
 	/**
 	 * Construct the cache.
 	 */
+	Cache() : _atermSize(0) { }
 	Cache(size_t atermSize) : _atermSize(atermSize) { }
 	
 	Cache(const Cache&) = delete;
-	Cache(Cache&&) = delete;
+	Cache(Cache&&) = default;
 	Cache& operator=(const Cache&) = delete;
-	Cache& operator=(Cache&&) = delete;
+	Cache& operator=(Cache&&) = default;
 	
 	static const size_t NOT_FOUND;
 	

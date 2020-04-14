@@ -60,6 +60,13 @@ public:
 	void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) final override;
 	
 	PolarizationEnum Polarization() final override { return _polOut; }
+	
+	size_t NChannels() override;
+	
+	size_t NPolarizations() override;
+	
+	size_t NAntennas() override { return _nAntenna; }
+	
 private:
 	void open();
 	
@@ -67,6 +74,7 @@ private:
 	size_t _timestep;
 	double _time;
 	int _dataDescId;
+	size_t _nAntenna;
 	bool _isMetaRead, _isDataRead, _isModelRead, _isWeightRead;
 	bool _isModelColumnPrepared;
 	size_t _startRow, _endRow;

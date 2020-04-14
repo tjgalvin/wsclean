@@ -11,7 +11,7 @@ public:
 	_lastATermUpdate(0)
 	{ }
 	
-	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency) final override
+	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, const double*) final override
 	{
 		if(time - _lastATermUpdate > _updateInterval)
 		{

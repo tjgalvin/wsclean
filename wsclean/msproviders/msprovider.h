@@ -76,6 +76,17 @@ public:
 	
 	virtual PolarizationEnum Polarization() = 0;
 	
+	virtual size_t NChannels() = 0;
+	
+	virtual size_t NAntennas() = 0;
+	
+	/**
+	 * This is the number of polarizations provided by this MSProvider.
+	 * Note that this does not have to be equal to the nr of pol in the
+	 * MS, as in most cases each pol is provided by a separate msprovider.
+	 */
+	virtual size_t NPolarizations() = 0;
+	
 	static std::vector<PolarizationEnum> GetMSPolarizations(casacore::MeasurementSet& ms);
 	
 protected:

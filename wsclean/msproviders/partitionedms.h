@@ -15,7 +15,7 @@
 
 #include "msprovider.h"
 
-class PartitionedMS : public MSProvider
+class PartitionedMS final : public MSProvider
 {
 public:
 	class Handle;
@@ -41,45 +41,49 @@ public:
 	PartitionedMS(const PartitionedMS&) = delete;
 	PartitionedMS& operator=(const PartitionedMS&) = delete;
 	
-	SynchronizedMS MS() final override
+	SynchronizedMS MS() override
 	{
 		return SynchronizedMS(_msPath.data());
 	}
 	
-	const std::string& DataColumnName() final override { return _handle._data->_dataColumnName; }
+	const std::string& DataColumnName() override { return _handle._data->_dataColumnName; }
 	
-	size_t RowId() const final override { return _currentRow; }
+	size_t RowId() const override { return _currentRow; }
 	
-	bool CurrentRowAvailable() final override;
+	bool CurrentRowAvailable() override;
 	
-	void NextRow() final override;
+	void NextRow() override;
 	
-	void Reset() final override;
+	void Reset() override;
 	
-	void ReadMeta(double& u, double& v, double& w, size_t& dataDescId) final override;
+	void ReadMeta(double& u, double& v, double& w, size_t& dataDescId) override;
 	
-	void ReadMeta(MetaData& metaData) final override;
+	void ReadMeta(MetaData& metaData) override;
 	
-	void ReadData(std::complex<float>* buffer) final override;
+	void ReadData(std::complex<float>* buffer) override;
 	
-	void ReadModel(std::complex<float>* buffer) final override;
+	void ReadModel(std::complex<float>* buffer) override;
 	
-	void WriteModel(size_t rowId, std::complex<float>* buffer) final override;
+	void WriteModel(size_t rowId, std::complex<float>* buffer) override;
 	
-	void WriteImagingWeights(size_t rowId, const float* buffer) final override;
+	void WriteImagingWeights(size_t rowId, const float* buffer) override;
 	
-	void ReadWeights(float* buffer) final override;
+	void ReadWeights(float* buffer) override;
 	
-	void ReadWeights(std::complex<float>* buffer) final override;
+	void ReadWeights(std::complex<float>* buffer) override;
 	
-	void ReopenRW() final override{ }
+	void ReopenRW() override { }
 	
-	double StartTime() final override { return _metaHeader.startTime; }
+	double StartTime() override { return _metaHeader.startTime; }
 	
-	void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) final override;
+	void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override;
 	
-	PolarizationEnum Polarization() final override { return _polarization; }
-	
+	PolarizationEnum Polarization() override { return _polarization; }
+
+	size_t NChannels() override { return _partHeader.channelCount; }
+	size_t NPolarizations() override { return _polarizationCountInFile; }
+	size_t NAntennas() override { return _handle._data->_nAntennas; }
+
 	static Handle Partition(const string& msPath, const std::vector<ChannelRange>& channels, class MSSelection& selection, const string& dataColumnName, bool includeModel, bool initialModelRequired, const class WSCleanSettings& settings);
 	
 	class Handle {
@@ -98,9 +102,10 @@ public:
 				bool initialModelRequired,
 				bool modelUpdateRequired,
 				const std::set<PolarizationEnum>& polarizations,
-				const MSSelection& selection) :
+				const MSSelection& selection,
+				size_t nAntennas) :
 			_msPath(msPath), _dataColumnName(dataColumnName), _temporaryDirectory(temporaryDirectory), _channels(channels), _initialModelRequired(initialModelRequired), _modelUpdateRequired(modelUpdateRequired),
-			_polarizations(polarizations), _selection(selection) { }
+			_polarizations(polarizations), _selection(selection), _nAntennas(nAntennas) { }
 			
 			~HandleData();
 			
@@ -109,6 +114,7 @@ public:
 			bool _initialModelRequired, _modelUpdateRequired;
 			std::set<PolarizationEnum> _polarizations;
 			MSSelection _selection;
+			size_t _nAntennas;
 		};
 		std::shared_ptr<HandleData> _data;
 		
@@ -120,8 +126,9 @@ public:
 			bool initialModelRequired,
 			bool modelUpdateRequired,
 			const std::set<PolarizationEnum>& polarizations,
-			const MSSelection& selection) :
-		_data(new HandleData(msPath, dataColumnName, temporaryDirectory, channels, initialModelRequired, modelUpdateRequired, polarizations, selection))
+			const MSSelection& selection,
+			size_t nAntennas) :
+		_data(new HandleData(msPath, dataColumnName, temporaryDirectory, channels, initialModelRequired, modelUpdateRequired, polarizations, selection, nAntennas))
 		{ }
 	};
 private:

@@ -6,6 +6,7 @@
 #include "atermbase.h"
 #include "atermbeam.h"
 #include "atermstub.h"
+#include "dldmaterm.h"
 #include "fitsaterm.h"
 #include "lofarbeamterm.h"
 #include "mwabeamterm.h"
@@ -49,7 +50,6 @@ public:
 				std::vector<std::string> tecFiles = reader.GetStringList(atermName + ".images");
 				std::unique_ptr<FitsATerm> f(new FitsATerm(_nAntenna, _width, _height, _phaseCentreRA, _phaseCentreDec, _dl, _dm, _phaseCentreDL, _phaseCentreDM, _settings.atermKernelSize));
 				f->OpenTECFiles(tecFiles);
-				f->SetSaveATerms(false);
 				bool useTukey = reader.GetBoolOr(atermName + ".tukeywindow", false);
 				if(useTukey)
 					f->SetTukeyWindow(double(_settings.paddedImageWidth) / _settings.trimmedImageWidth);
@@ -65,7 +65,22 @@ public:
 				std::vector<std::string> diagFiles = reader.GetStringList(atermName + ".images");
 				std::unique_ptr<FitsATerm> f(new FitsATerm(_nAntenna, _width, _height, _phaseCentreRA, _phaseCentreDec, _dl, _dm, _phaseCentreDL, _phaseCentreDM, _settings.atermKernelSize));
 				f->OpenDiagGainFiles(diagFiles);
-				f->SetSaveATerms(false);
+				bool useTukey = reader.GetBoolOr(atermName + ".tukeywindow", false);
+				if(useTukey)
+					f->SetTukeyWindow(double(_settings.paddedImageWidth) / _settings.trimmedImageWidth);
+				else {
+					std::string windowStr = reader.GetStringOr(atermName + ".window", "rectangular");
+					WindowFunction::Type window = WindowFunction::GetType(windowStr);
+					f->SetWindow(window);
+				}
+				_aterms.emplace_back(std::move(f));
+			}
+			else if(atermType == "dldm")
+			{
+				std::vector<std::string> dldmFiles = reader.GetStringList(atermName + ".images");
+				std::unique_ptr<DLDMATerm> f(new DLDMATerm(_nAntenna, _width, _height, _phaseCentreRA, _phaseCentreDec, _dl, _dm, _phaseCentreDL, _phaseCentreDM, _settings.atermKernelSize));
+				f->Open(dldmFiles);
+				f->SetUpdateInterval( reader.GetDoubleOr("dldm.update_interval", 5.0*60.0) );
 				bool useTukey = reader.GetBoolOr(atermName + ".tukeywindow", false);
 				if(useTukey)
 					f->SetTukeyWindow(double(_settings.paddedImageWidth) / _settings.trimmedImageWidth);
@@ -105,10 +120,10 @@ public:
 					}
 				}
 				double updateInterval = reader.GetDoubleOr("beam.update_interval", _settings.beamAtermUpdateTime);
-				beam->SetSaveATerms(false); // done by config after combining
 				beam->SetUpdateInterval(updateInterval);	
 				_aterms.emplace_back(std::move(beam));
 			}
+			_aterms.back()->SetSaveATerms(false);  // done by config after combining
 		}
 		Logger::Debug << "Constructed an a-term configuration with " << _aterms.size() << " terms.\n";
 		if(_aterms.empty())
@@ -123,11 +138,11 @@ public:
 		}
 	}
 	
-	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency) final override
+	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, const double* uvwInM) final override
 	{
 		if(_aterms.size() == 1)
 		{
-			bool result = _aterms.front()->Calculate(buffer, time, frequency);
+			bool result = _aterms.front()->Calculate(buffer, time, frequency, uvwInM);
 			if(result)
 				saveATermsIfNecessary(buffer, _nAntenna, _width, _height);
 			return result;
@@ -136,7 +151,7 @@ public:
 			bool isUpdated = false;
 			for(size_t i=0; i!=_aterms.size(); ++i)
 			{
-				bool atermUpdated = _aterms[i]->Calculate(_previousAterms[i].data(), time, frequency);
+				bool atermUpdated = _aterms[i]->Calculate(_previousAterms[i].data(), time, frequency, uvwInM);
 				isUpdated = isUpdated || atermUpdated;
 			}
 			

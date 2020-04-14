@@ -7,6 +7,7 @@ ContiguousMS::ContiguousMS(const string& msPath, const std::string& dataColumnNa
 	_timestep(0),
 	_time(0.0),
 	_dataDescId(dataDescId),
+	_nAntenna(0),
 	_isModelColumnPrepared(false),
 	_selection(selection),
 	_polOut(polOut),
@@ -43,6 +44,7 @@ void ContiguousMS::open()
 	{
 		throw std::runtime_error("This set contains multiple spws, and can therefore not be opened directly due to possible synchronization issues between spws. You can force reordering of the measurement by adding -reorder to the command line.");
 	}
+	_nAntenna = _ms->antenna().nrow();
 	
 	_msHasWeightSpectrum = openWeightSpectrumColumn(*_ms, _weightSpectrumColumn, shape);
 	if(!_msHasWeightSpectrum)
@@ -178,6 +180,19 @@ void ContiguousMS::ReadData(std::complex<float>* buffer)
 		endChannel = _bandData[_dataDescId].ChannelCount();
 	}
 	copyData(buffer,  startChannel, endChannel, _inputPolarizations, _dataArray, _polOut);
+}
+
+size_t ContiguousMS::NChannels()
+{
+	if(_selection.HasChannelRange())
+		return _selection.ChannelRangeEnd() - _selection.ChannelRangeStart();
+	else
+		return _bandData[_dataDescId].ChannelCount();
+}
+
+size_t ContiguousMS::NPolarizations()
+{
+	return _inputPolarizations.size();
 }
 
 void ContiguousMS::prepareModelColumn()

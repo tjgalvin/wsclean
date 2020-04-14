@@ -381,6 +381,7 @@ PartitionedMS::Handle PartitionedMS::Partition(const string& msPath, const std::
 	}
 	
 	std::vector<PolarizationEnum> msPolarizations = GetMSPolarizations(rowProvider->MS());
+	size_t nAntennas = rowProvider->MS().antenna().nrow();
 	
 	const casacore::IPosition shape(rowProvider->DataShape());
 	size_t channelCount = shape[1];
@@ -549,7 +550,7 @@ PartitionedMS::Handle PartitionedMS::Partition(const string& msPath, const std::
 	}
 	progress2.reset();
 	
-	return Handle(msPath, dataColumnName, temporaryDirectory, channels, initialModelRequired, modelUpdateRequired, polsOut, selection);
+	return Handle(msPath, dataColumnName, temporaryDirectory, channels, initialModelRequired, modelUpdateRequired, polsOut, selection, nAntennas);
 }
 
 void PartitionedMS::unpartition(const PartitionedMS::Handle::HandleData& handle)

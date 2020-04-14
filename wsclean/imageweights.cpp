@@ -31,14 +31,14 @@ void ImageWeights::Grid(casacore::MeasurementSet& ms, const MSSelection& selecti
 	if(_isGriddingFinished)
 		throw std::runtime_error("Grid() called after a call to FinishGridding()");
 	const MultiBandData bandData(ms.spectralWindow(), ms.dataDescription());
-	casacore::ROScalarColumn<int> antenna1Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
-	casacore::ROScalarColumn<int> antenna2Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
-	casacore::ROScalarColumn<int> fieldIdColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
-	casacore::ROScalarColumn<double> timeColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
-	casacore::ROArrayColumn<double> uvwColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
-	casacore::ROArrayColumn<float> weightColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT_SPECTRUM));
-	casacore::ROArrayColumn<bool> flagColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
-	casacore::ROScalarColumn<int> dataDescIdColumn(ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
+	casacore::ScalarColumn<int> antenna1Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
+	casacore::ScalarColumn<int> antenna2Column(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
+	casacore::ScalarColumn<int> fieldIdColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
+	casacore::ScalarColumn<double> timeColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
+	casacore::ArrayColumn<double> uvwColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
+	casacore::ArrayColumn<float> weightColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT_SPECTRUM));
+	casacore::ArrayColumn<bool> flagColumn(ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
+	casacore::ScalarColumn<int> dataDescIdColumn(ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
 	
 	const casacore::IPosition shape(flagColumn.shape(0));
 	

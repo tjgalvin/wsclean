@@ -12,6 +12,7 @@
 #include "logger.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/optional/optional.hpp>
 
 #include <iostream>
 #include <string>
@@ -471,6 +472,7 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 	WSCleanSettings& settings = wsclean.Settings();
 	int argi = 1;
 	bool mfWeighting = false, noMFWeighting = false, dryRun = false;
+	boost::optional<double> atermKernelSize;
 	while(argi < argc && argv[argi][0] == '-')
 	{
 		const std::string param = argv[argi][1]=='-' ? (&argv[argi][2]) : (&argv[argi][1]);
@@ -1251,7 +1253,7 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 		else if(param == "aterm-kernel-size")
 		{
 			++argi;
-			settings.atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
+			atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
 		}
 		else if(param == "save-aterms")
 		{
@@ -1339,6 +1341,9 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 	// We print the header only now, because the logger has now been set up
 	// and possibly set to quiet.
 	printHeader();
+	
+	size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;
+	settings.atermKernelSize = atermKernelSize.get_value_or(defaultAtermSize);
 	
 	settings.mfWeighting = (settings.joinedFrequencyCleaning && !noMFWeighting) || mfWeighting;
 	

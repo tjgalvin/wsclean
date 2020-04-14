@@ -21,7 +21,7 @@ public:
 	 * buffer does not need to be updated. The gridder will then make sure to use the
 	 * previous aterms, and not reserve extra memory for it etc.
 	 */
-	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency) = 0;
+	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, const double* uvwInM) = 0;
 	
 	virtual double AverageUpdateTime() const = 0;
 	
