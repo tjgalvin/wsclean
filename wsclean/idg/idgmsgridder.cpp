@@ -8,6 +8,7 @@
 #include <idg-api.h>
 
 #include "../msproviders/msprovider.h"
+#include "../msproviders/timestepbuffer.h"
 
 #include "../wsclean/imagefilename.h"
 #include "../wsclean/imagingtable.h"
@@ -219,10 +220,11 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 	// start in the measurement set, and only increases when the time changes.
 	int timeIndex = -1;
 	double currentTime = -1.0;
-	for(msData.msProvider->Reset() ; msData.msProvider->CurrentRowAvailable() ; msData.msProvider->NextRow())
+	ao::uvector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
+	for(TimestepBuffer timestepBuffer(msData.msProvider) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
 	{
 		MSProvider::MetaData metaData;
-		msData.msProvider->ReadMeta(metaData);
+		timestepBuffer.ReadMeta(metaData);
 
 		if(currentTime != metaData.time)
 		{
@@ -231,7 +233,8 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 			
 			if(aTermMaker)
 			{
-				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands.CentreFrequency()))
+				timestepBuffer.GetUVWsForTimestep(uvws);
+				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands.CentreFrequency(), uvws.data()))
 				{
 					_bufferset->get_gridder(metaData.dataDescId)->set_aterm(timeIndex, aTermBuffer.data());
 					Logger::Debug << "Calculated a-terms for timestep " << timeIndex << "\n";
@@ -250,7 +253,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 		rowData.antenna2 = metaData.antenna2;
 		rowData.timeIndex = timeIndex;
 		rowData.dataDescId = metaData.dataDescId;
-		readAndWeightVisibilities<4>(*msData.msProvider, rowData, curBand, weightBuffer.data(), modelBuffer.data(), isSelected.data());
+		readAndWeightVisibilities<4>(timestepBuffer, rowData, curBand, weightBuffer.data(), modelBuffer.data(), isSelected.data());
 
 		rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
 		rowData.uvw[2] = -metaData.wInM;  //
@@ -406,12 +409,13 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
 	ao::uvector<std::complex<float>> buffer(_selectedBands.MaxChannels()*4);
 	int timeIndex = -1;
 	double currentTime = -1.0;
-	for(msData.msProvider->Reset() ; msData.msProvider->CurrentRowAvailable() ; msData.msProvider->NextRow())
+	ao::uvector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
+	for(TimestepBuffer timestepBuffer(msData.msProvider) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
 	{
 		MSProvider::MetaData metaData;
-		msData.msProvider->ReadMeta(metaData);
+		timestepBuffer.ReadMeta(metaData);
 
-		size_t provRowId = msData.msProvider->RowId();
+		size_t provRowId = timestepBuffer.RowId();
 		if(currentTime != metaData.time)
 		{
 			currentTime = metaData.time;
@@ -419,7 +423,8 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
 			
 			if(aTermMaker)
 			{
-				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands.CentreFrequency()))
+				timestepBuffer.GetUVWsForTimestep(uvws);
+				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands.CentreFrequency(), uvws.data()))
 				{
 					_bufferset->get_degridder(metaData.dataDescId)->set_aterm(timeIndex, aTermBuffer.data());
 					Logger::Debug << "Calculated new a-terms for timestep " << timeIndex << "\n";

@@ -77,7 +77,7 @@ void DLDMATerm::evaluateDLDM(std::complex<float>* dest, const double* dl, const 
 	//   dphase = phase[ I(l, m) exp -2pi i ( dl(u-u0) + dm(v-v0) + n(w-w0) ) ]
 	//          = -2pi i ( l(u-u0) + m(v-v0) + n(w-w0) )
 	// The baselines uvw are already referenced to the first antenna (i.e. uvw=0,0,0 for antenna 0), so
-	// uvwInM[0] is (u-u0).
+	// uvwInL[0] is (u-u0).
 	const double
 		u = uvwInL[0],
 		v = uvwInL[1],
@@ -91,7 +91,12 @@ void DLDMATerm::evaluateDLDM(std::complex<float>* dest, const double* dl, const 
 			l += PhaseCentreDL();
 			m += PhaseCentreDM();
 			double lproj = l+(*dl), mproj = m+(*dm);
-			double dn = std::sqrt(1.0 - l*l - m*m) - std::sqrt(1.0 - lproj*lproj - mproj*mproj);
+			double lmSq = l*l + m*m, lmprojSq = lproj*lproj + mproj*mproj;
+			double dn;
+			if(lmSq >= 1.0 || lmprojSq >= 1.0)
+				dn = 0.0;
+			else
+				dn = std::sqrt(1.0 - lmSq) - std::sqrt(1.0 - lmprojSq);
 			dest[0] = std::polar(1.0, 2.0*M_PI*(u*(*dl) + v*(*dm) + w*dn));
 			dest[1] = 0.0;
 			dest[2] = 0.0;

@@ -8,7 +8,7 @@
 
 void ATermBase::StoreATermsEigenvalues(const std::string& filename, const std::complex<float>* buffer, size_t nStations, size_t width, size_t height)
 {
-	size_t ny = floor(sqrt(nStations)), nx = (nStations+ny-1) / ny;
+	size_t ny = std::floor(std::sqrt(nStations)), nx = (nStations+ny-1) / ny;
 	Logger::Info << "Storing " << filename << " (" << nStations << " ant, " << nx << " x " << ny << ")\n";
 	ao::uvector<double> img(nx*ny * width*height, 0.0);
 	for(size_t ant=0; ant!=nStations; ++ant)
@@ -32,7 +32,7 @@ void ATermBase::StoreATermsEigenvalues(const std::string& filename, const std::c
 
 void ATermBase::StoreATermsReal(const std::string& filename, const std::complex<float>* buffer, size_t nStations, size_t width, size_t height)
 {
-	size_t ny = floor(sqrt(nStations)), nx = (nStations+ny-1) / ny;
+	size_t ny = std::floor(std::sqrt(nStations)), nx = (nStations+ny-1) / ny;
 	Logger::Info << "Storing " << filename << " (" << nStations << " ant, " << nx << " x " << ny << ")\n";
 	ao::uvector<double> img(nx*ny * width*height, 0.0);
 	for(size_t ant=0; ant!=nStations; ++ant)
