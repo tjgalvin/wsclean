@@ -7,6 +7,10 @@
 #include <cstdlib>
 #include <cmath>
 
+#ifndef M_PIl
+#define M_PIl 3.141592653589793238462643383279502884L
+#endif
+
 class RaDecCoord
 {
 	private:
@@ -56,13 +60,13 @@ class RaDecCoord
 					secs = strtold(cstr, &cstr);
 				} else throw std::runtime_error("Missing ':' after minutes");
 			}
-			else throw std::runtime_error("Missing 'h' or ':'");
+			else throw std::runtime_error("Missing 'h' or ':' in string '" + str + "'");
 			if(*cstr != 0)
-				throw std::runtime_error("Could not parse RA (string contains more tokens than expected)");
+				throw std::runtime_error("Could not parse RA '" + str + "' (string contains more tokens than expected)");
 			if(sign)
-				return (hrs/24.0 - mins/(24.0*60.0) - secs/(24.0*60.0*60.0))*2.0*M_PI;
+				return (hrs/24.0 - mins/(24.0*60.0) - secs/(24.0*60.0*60.0))*2.0*M_PIl;
 			else
-				return (hrs/24.0 + mins/(24.0*60.0) + secs/(24.0*60.0*60.0))*2.0*M_PI;
+				return (hrs/24.0 + mins/(24.0*60.0) + secs/(24.0*60.0*60.0))*2.0*M_PIl;
 		}
 		
 		static long double ParseDec(const std::string &str)
@@ -112,14 +116,14 @@ class RaDecCoord
 			if(*cstr != 0)
 				throw std::runtime_error("Could not parse Dec (string contains more tokens than expected)");
 			else if(sign)
-				return (degs/360.0 - mins/(360.0*60.0) - secs/(360.0*60.0*60.0))*2.0*M_PI;
+				return (degs/360.0 - mins/(360.0*60.0) - secs/(360.0*60.0*60.0))*2.0*M_PIl;
 			else
-				return (degs/360.0 + mins/(360.0*60.0) + secs/(360.0*60.0*60.0))*2.0*M_PI;
+				return (degs/360.0 + mins/(360.0*60.0) + secs/(360.0*60.0*60.0))*2.0*M_PIl;
 		}
 		
 		static std::string RAToString(long double ra)
 		{
-			const long double partsPerHour = 60.0L*60.0L*100.0L;
+			const long double partsPerHour = 60.0L*60.0L*1000.0L;
 			long double hrs = fmodl(ra * (12.0L / M_PIl), 24.0L);
 			hrs = roundl(hrs * partsPerHour)/partsPerHour;
 			std::stringstream s;
@@ -130,44 +134,153 @@ class RaDecCoord
 			hrs = (roundl(hrs*partsPerHour)+0.5) / partsPerHour;
 			int hrsInt = int(floorl(hrs)), minInt = int(floorl(fmodl(hrs,1.0L)*60.0L)),
 				secInt = int(floorl(fmodl(hrs*60.0L,1.0L)*(60.0L))),
-				subSecInt = int(floorl(fmodl(hrs*(60.0L*60.0L),1.0L)*(100.0L)));
+				subSecInt = int(floorl(fmodl(hrs*(60.0L*60.0L),1.0L)*(1000.0L)));
 			s << (char) ((hrsInt/10)+'0') << (char) ((hrsInt%10)+'0') << 'h'
 				<< (char) ((minInt/10)+'0') << (char) ((minInt%10)+'0') << 'm'
 				<< (char) ((secInt/10)+'0') << (char) ((secInt%10)+'0');
-			s << '.' << (char) (subSecInt/10+'0');
-			if(subSecInt%10!=0)
-				s << (char) (subSecInt%10+'0');
+			s << '.' << (char) (subSecInt/100+'0');
+			if(subSecInt%100!=0)
+			{
+				s << (char) ((subSecInt%100)/10+'0');
+				if(subSecInt%10!=0)
+					s << (char) ((subSecInt%10)+'0');
+			}
 			s << 's';
 			return s.str();
 		}
 		
+		static std::string RAToString(long double ra, char delimiter)
+		{
+			const long double partsPerHour = 60.0L*60.0L*1000.0L;
+			long double hrs = fmodl(ra * (12.0L / M_PIl), 24.0L);
+			hrs = roundl(hrs * partsPerHour)/partsPerHour;
+			std::stringstream s;
+			if(hrs < 0) {
+				hrs = -hrs;
+				s << '-';
+			}
+			hrs = (roundl(hrs*partsPerHour)+0.5) / partsPerHour;
+			int hrsInt = int(floorl(hrs)), minInt = int(floorl(fmodl(hrs,1.0L)*60.0L)),
+				secInt = int(floorl(fmodl(hrs*60.0L,1.0L)*(60.0L))),
+				subSecInt = int(floorl(fmodl(hrs*(60.0L*60.0L),1.0L)*(1000.0L)));
+			s << (char) ((hrsInt/10)+'0') << (char) ((hrsInt%10)+'0') << delimiter
+				<< (char) ((minInt/10)+'0') << (char) ((minInt%10)+'0') << delimiter
+				<< (char) ((secInt/10)+'0') << (char) ((secInt%10)+'0');
+			s << '.' << (char) (subSecInt/100+'0');
+			if(subSecInt%100!=0)
+			{
+				s << (char) ((subSecInt%100)/10+'0');
+				if(subSecInt%10!=0)
+					s << (char) ((subSecInt%10)+'0');
+			}
+			return s.str();
+		}
+		
+		static std::string RaDecToString(long double ra, long double dec)
+		{
+			return RAToString(ra) + ' ' + DecToString(dec);
+		}
+		
+		static void RAToHMS(long double ra, int& hrs, int& min, double& sec)
+		{
+			const long double partsPerHour = 60.0L*60.0L*100.0L;
+			long double hrsf = fmodl(ra * (12.0L / M_PIl), 24.0L);
+			hrsf = roundl(hrsf * partsPerHour)/partsPerHour;
+			bool negate = hrsf < 0;
+			if(negate) {
+				hrsf = -hrsf;
+			}
+			hrsf = (roundl(hrsf*partsPerHour)+0.5) / partsPerHour;
+			if(negate)
+				hrs = -int(floorl(hrsf));
+			else
+				hrs = int(floorl(hrsf));
+			min = int(floorl(fmodl(hrsf,1.0L)*60.0L));
+			sec = floorl(100.0L*fmodl(hrsf*60.0L,1.0L)*60.0L)/100.0L;
+		}
+		
 		static std::string DecToString(long double dec)
 		{
-			const long double partsPerDeg = 60.0L*60.0L*100.0L;
-			long double deg = dec * (180.0 / M_PI);
+			const long double partsPerDeg = 60.0L*60.0L*1000.0L;
+			long double deg = dec * (180.0L / M_PIl);
 			deg = round(deg * partsPerDeg)/partsPerDeg;
 			std::stringstream s;
 			if(deg < 0) {
 				deg = -deg;
 				s << '-';
 			}
-			deg = (round(deg*partsPerDeg)+0.5) / partsPerDeg;
+			deg = (round(deg*partsPerDeg)+0.5L) / partsPerDeg;
 			int
-				degInt = int(floor(deg)),
-				minInt = int(floor(fmod(deg,1.0)*60.0)),
-				secInt = int(floor(fmod(deg,1.0/60.0)*(60.0*60.0))),
-				subSecInt = int(floor(fmod(deg,1.0/60.0/60.0)*(60.0*60.0*100.0)));
+				degInt = int(floorl(deg)),
+				minInt = int(floorl(fmodl(deg,1.0L)*60.0L)),
+				secInt = int(floorl(fmodl(deg,1.0L/60.0L)*(60.0L*60.0L))),
+				subSecInt = int(floorl(fmodl(deg,1.0L/60.0L/60.0L)*(60.0L*60.0L*1000.0L)));
 			s << (char) ((degInt/10)+'0') << (char) ((degInt%10)+'0') << 'd'
 				<< (char) ((minInt/10)+'0') << (char) ((minInt%10)+'0') << 'm'
 				<< (char) ((secInt/10)+'0') << (char) ((secInt%10)+'0');
 			if(subSecInt!=0)
 			{
-				s << '.' << (char) (subSecInt/10+'0');
-				if(subSecInt%10!=0)
-					s << (char) (subSecInt%10+'0');
+				s << '.' << (char) (subSecInt/100+'0');
+				if(subSecInt%100!=0)
+				{
+					s << (char) ((subSecInt/10)%10+'0');
+					if(subSecInt%10!=0)
+						s << (char) (subSecInt%10+'0');
+				}
 			}
 			s << 's';
 			return s.str();
+		}
+		
+		static std::string DecToString(long double dec, char delimiter)
+		{
+			const long double partsPerDeg = 60.0L*60.0L*1000.0L;
+			long double deg = dec * (180.0L / M_PIl);
+			deg = roundl(deg * partsPerDeg)/partsPerDeg;
+			std::stringstream s;
+			if(deg < 0) {
+				deg = -deg;
+				s << '-';
+			}
+			deg = (roundl(deg*partsPerDeg)+0.5L) / partsPerDeg;
+			int
+				degInt = int(floorl(deg)),
+				minInt = int(floorl(fmodl(deg,1.0L)*60.0L)),
+				secInt = int(floorl(fmodl(deg,1.0L/60.0L)*(60.0L*60.0L))),
+				subSecInt = int(floorl(fmodl(deg,1.0L/60.0L/60.0L)*(60.0L*60.0L*1000.0L)));
+			s << (char) ((degInt/10)+'0') << (char) ((degInt%10)+'0') << delimiter
+				<< (char) ((minInt/10)+'0') << (char) ((minInt%10)+'0') << delimiter
+				<< (char) ((secInt/10)+'0') << (char) ((secInt%10)+'0');
+			if(subSecInt!=0)
+			{
+				s << '.' << (char) (subSecInt/100+'0');
+				if(subSecInt%100!=0)
+				{
+					s << (char) ((subSecInt/10)%10+'0');
+					if(subSecInt%10!=0)
+						s << (char) (subSecInt%10+'0');
+				}
+			}
+			return s.str();
+		}
+		
+		static void DecToDMS(long double dec, int& deg, int& min, double& sec)
+		{
+			const long double partsPerDeg = 60.0L*60.0L*100.0L;
+			long double degf = dec * (180.0 / M_PIl);
+			degf = round(degf * partsPerDeg)/partsPerDeg;
+			bool negate = degf < 0;
+			if(negate) {
+				degf = -degf;
+			}
+			degf = (round(degf*partsPerDeg)+0.5) / partsPerDeg;
+			
+			if(negate)
+				deg = -int(floor(degf));
+			else
+				deg = int(floor(degf));
+			min = int(floor(fmod(degf,1.0)*60.0)),
+			sec = floor(100.*fmod(degf,1.0/60.0)*(60.0*60.0))/100.0;
 		}
 	private:
 		RaDecCoord() { }

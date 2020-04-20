@@ -256,9 +256,14 @@ void processField(
 	std::cout << "Processing field \"" << nameCol(fieldIndex) << "\": "
 		<< dirToString(phaseDirection) << " -> "
 		<< dirToString(newDirection) << " ("
-		<< ImageCoordinates::AngularDistance(oldRA, oldDec, newRA, newDec)*(180.0/M_PI) << " deg)\n"
-		<< "Denormal shifting: "
-		<< oldDl << ',' << oldDm << " -> " << newDl << ',' << newDm << '\n';
+		<< ImageCoordinates::AngularDistance(oldRA, oldDec, newRA, newDec)*(180.0/M_PI) << " deg)\n";
+	if(oldDl != 0.0 || oldDm != 0.0 || newDl != 0.0 || newDm != 0.0)
+	{
+		std::cout
+			<< "Denormal shifting: "
+			<< oldDl << ',' << oldDm << " -> " << newDl << ',' << newDm;
+	}
+	std::cout << '\n';
 	bool isSameDirection = (dirToString(phaseDirection) == dirToString(newDirection))
 		&& oldDl == newDl && oldDm == newDm;
 	if(isSameDirection && !force)
@@ -650,16 +655,20 @@ MDirection MinWDirection(MeasurementSet& set)
 void printPhaseDir(MeasurementSet& set)
 {
 	MSField fieldTable = set.field();
-	MDirection::ROArrayColumn phaseDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
+	MDirection::ArrayColumn phaseDirCol(fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
+	ScalarColumn<String> nameCol(fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
 	MDirection zenith = ZenithDirection(set);
 	
-	std::cout << "Current phase direction:\n  ";
+	std::cout << "Current phase direction:\n";
 	double dl, dm;
 	getShift(fieldTable, dl, dm);
 	for(size_t i=0; i!=fieldTable.nrow(); ++i)
 	{
 		Vector<MDirection> phaseDirVector = phaseDirCol(i);
 		MDirection phaseDirection = phaseDirVector[0];
+		std::cout << "  ";
+		if(fieldTable.nrow() > 1)
+			std::cout << nameCol(i) << " ";
 		std::cout << dirToString(phaseDirection);
 		if(dl != 0.0 || dm != 0.0)
 			std::cout << ", shift: " << dl << ',' << dm;
