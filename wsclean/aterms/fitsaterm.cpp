@@ -44,7 +44,10 @@ bool FitsATerm::Calculate(std::complex<float>* buffer, double time, double frequ
 		return false;
 	else {
 		if(requiresRecalculation)
+		{
 			readImages(buffer, timeIndex, frequency);
+			storeInCache(frequency, buffer);
+		}
 		return true;
 	}
 }
