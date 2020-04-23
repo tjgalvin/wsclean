@@ -7,7 +7,9 @@
 #include "../banddata.h"
 
 DLDMATerm::DLDMATerm(size_t nAntenna, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM, size_t atermSize) :
-	FitsATermBase(nAntenna, width, height, ra, dec, dl, dm, phaseCentreDL, phaseCentreDM, atermSize)
+	FitsATermBase(nAntenna, width, height, ra, dec, dl, dm, phaseCentreDL, phaseCentreDM, atermSize),
+	_updateInterval(60),
+	_previousTime(0)
 {
 }
 
@@ -28,11 +30,16 @@ bool DLDMATerm::Calculate(std::complex<float>* buffer, double time, double frequ
 	size_t timeIndex;
 	bool requiresRecalculation;
 	bool positionChanged = findFilePosition(buffer, time, frequency, timeIndex, requiresRecalculation);
-	if(!positionChanged)
+	bool outdated = std::fabs(time - _previousTime) > _updateInterval;
+	if(!positionChanged && !outdated)
 		return false;
 	else {
-		if(requiresRecalculation)
+		if(requiresRecalculation || outdated)
+		{
+			_previousTime = time;
 			readImages(buffer, timeIndex, frequency, uvwInM);
+			storeInCache(frequency, buffer);
+		}
 		return true;
 	}
 }
@@ -72,10 +79,13 @@ void DLDMATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 void DLDMATerm::evaluateDLDM(std::complex<float>* dest, const double* dl, const double* dm, const double* uvwInL)
 {
 	// For a single source at l,m, we have:
+	//   dl = oldl - newl
+	//      oldl: measured l
+	//      newl: "real" (model) l
 	//   V(u,v,w) = I(l, m) exp 2pi i ( lu + mv + nw ), with dn = sqrt(1-l^2-m^2) - sqrt(1-(l+dl)^2-(m+dm)^2) ~ 0;
 	// dl,dm are the shifts in l,m. Given a0 as reference antenna, with u0, v0, w0 as coords,
-	//   dphase = phase[ I(l, m) exp -2pi i ( dl(u-u0) + dm(v-v0) + n(w-w0) ) ]
-	//          = -2pi i ( l(u-u0) + m(v-v0) + n(w-w0) )
+	//   dphase = phase[ I(l, m) exp -2pi i ( dl(u-u0) + dm(v-v0) + dn(w-w0) ) ]
+	//          = -2pi i ( l(u-u0) + m(v-v0) + dn(w-w0) )
 	// The baselines uvw are already referenced to the first antenna (i.e. uvw=0,0,0 for antenna 0), so
 	// uvwInL[0] is (u-u0).
 	const double
@@ -87,7 +97,7 @@ void DLDMATerm::evaluateDLDM(std::complex<float>* dest, const double* dl, const 
 		for(size_t x=0; x!=Width(); ++x)
 		{
 			double l, m;
-			ImageCoordinates::XYToLM(x, y, DL(), DM(), AllocatedWidth(), AllocatedHeight(), l, m);
+			ImageCoordinates::XYToLM(x, y, DL(), DM(), Width(), Height(), l, m);
 			l += PhaseCentreDL();
 			m += PhaseCentreDM();
 			double lproj = l+(*dl), mproj = m+(*dm);
@@ -96,7 +106,7 @@ void DLDMATerm::evaluateDLDM(std::complex<float>* dest, const double* dl, const 
 			if(lmSq >= 1.0 || lmprojSq >= 1.0)
 				dn = 0.0;
 			else
-				dn = std::sqrt(1.0 - lmSq) - std::sqrt(1.0 - lmprojSq);
+				dn = std::sqrt(1.0 - lmprojSq) - std::sqrt(1.0 - lmSq);
 			dest[0] = std::polar(1.0, 2.0*M_PI*(u*(*dl) + v*(*dm) + w*dn));
 			dest[1] = 0.0;
 			dest[2] = 0.0;

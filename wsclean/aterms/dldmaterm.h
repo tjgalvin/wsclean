@@ -28,7 +28,7 @@ private:
 	std::vector<FitsReader> _readers;
 	ao::uvector<double> _scratch, _dlImage, _dmImage;
 	std::vector<std::array<double, 2>> _uvws;
-	double _updateInterval;
+	double _updateInterval, _previousTime;
 	
 	void readImages(std::complex<float>* buffer, size_t timeIndex, double frequency, const double* uvwInM);
 	void evaluateDLDM(std::complex<float>* dest, const double* dl, const double* dm, const double* uvwInM);
