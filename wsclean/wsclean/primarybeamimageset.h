@@ -250,6 +250,8 @@ public:
 	}
 	
 	size_t NImages() const { return _beamImages.size(); }
+	size_t Width() const { return _width; }
+	size_t Height() const { return _height; }
 	
 private:
 	std::vector<ImageBufferAllocator::Ptr> _beamImages;

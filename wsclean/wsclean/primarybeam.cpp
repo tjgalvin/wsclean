@@ -8,7 +8,7 @@
 
 #include "../mwa/mwabeam.h"
 
-#include "../atca/atcabeam.h"
+#include "../primarybeam/atcabeam.h"
 
 #include <boost/filesystem/operations.hpp>
 
@@ -242,5 +242,5 @@ void PrimaryBeam::makeATCAImage(PrimaryBeamImageSet& beamImages, const ImagingTa
 	Logger::Info << "Calculating ATCA primary beam...\n";
 	ATCABeam::Band band = ATCABeam::GetBand(entry.CentralFrequency() * 1e-9);
 	VoltagePattern vp = ATCABeam::CalculateVoltagePattern(band);
-	ATCABeam::Calculate(beamImages, _settings.trimmedImageWidth, _settings.trimmedImageHeight, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM, entry.CentralFrequency(), vp);
+	vp.Render(beamImages, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM, entry.CentralFrequency());
 }
