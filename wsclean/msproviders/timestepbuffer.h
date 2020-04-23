@@ -12,9 +12,10 @@
 class TimestepBuffer final : public MSProvider
 {
 public:
-	TimestepBuffer(MSProvider* msProvider) :
+	TimestepBuffer(MSProvider* msProvider, bool readModel) :
 		_msProvider(msProvider),
-		_bufferPosition(0)
+		_bufferPosition(0),
+		_readModel(readModel)
 	{
 		_msProvider->Reset();
 		readTimeblock();
@@ -151,13 +152,15 @@ private:
 					_buffer.emplace_back();
 					RowData& newRow = _buffer.back();
 					newRow.data.resize(dataSize);
-					newRow.model.resize(dataSize);
+					if(_readModel)
+						newRow.model.resize(dataSize);
 					newRow.weights.resize(dataSize);
 				}
 				RowData& row = _buffer[writePos];
 				row.metaData = metaData;
 				_msProvider->ReadData(row.data.data());
-				_msProvider->ReadModel(row.model.data());
+				if(_readModel)
+					_msProvider->ReadModel(row.model.data());
 				_msProvider->ReadWeights(row.weights.data());
 				row.rowId = _msProvider->RowId();
 				
@@ -185,6 +188,7 @@ private:
 	
 	size_t _bufferPosition;
 	std::vector<RowData> _buffer;
+	bool _readModel;
 };
 
 #endif

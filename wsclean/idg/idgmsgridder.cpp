@@ -221,7 +221,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 	int timeIndex = -1;
 	double currentTime = -1.0;
 	ao::uvector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
-	for(TimestepBuffer timestepBuffer(msData.msProvider) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
+	for(TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel()) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
 	{
 		MSProvider::MetaData metaData;
 		timestepBuffer.ReadMeta(metaData);
@@ -410,7 +410,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
 	int timeIndex = -1;
 	double currentTime = -1.0;
 	ao::uvector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
-	for(TimestepBuffer timestepBuffer(msData.msProvider) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
+	for(TimestepBuffer timestepBuffer(msData.msProvider, false) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
 	{
 		MSProvider::MetaData metaData;
 		timestepBuffer.ReadMeta(metaData);
