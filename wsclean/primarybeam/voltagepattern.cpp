@@ -3,9 +3,11 @@
 #include "../wsclean/logger.h"
 #include "../wsclean/primarybeamimageset.h"
 
+#include "../units/imagecoordinates.h"
+
 #include <cmath>
 
-void VoltagePattern::EvaluateInversePolynomial(const ao::uvector<double>& coefficients)
+void VoltagePattern::EvaluatePolynomial(const ao::uvector<double>& coefficients, bool invert)
 {
 	// This comes from casa's: void PBMath1DIPoly::fillPBArray(), wideband case
 	size_t nSamples=10000;
@@ -28,8 +30,16 @@ void VoltagePattern::EvaluateInversePolynomial(const ao::uvector<double>& coeffi
 				taper += y * freqcoefficients[j];
 				y *= x2;
 			}
-			if (taper != 0.0) {
-				taper = 1.0 / std::sqrt(taper);
+			if(taper >= 0.0)
+			{
+				if (invert && taper != 0.0) {
+						taper = 1.0 / std::sqrt(taper);
+				} else {
+					taper = std::sqrt(taper);
+				}
+			}
+			else {
+				taper = 0.0;
 			}
 			*output = taper;
 			++output;
@@ -66,41 +76,57 @@ ao::uvector<double> VoltagePattern::interpolateValues(double freq) const
 	return result;
 }
 
+const double* VoltagePattern::interpolateValues(double frequencyHz, ao::uvector<double>& interpolatedVals) const
+{
+	if (frequencies.size() > 1)
+	{
+		interpolatedVals = interpolateValues(frequencyHz);
+		return interpolatedVals.data();
+	}
+	else {
+		return FreqIndexValues(0);
+	}
+}
+
+double VoltagePattern::lmMaxSquared(double frequencyHz) const
+{
+	double factor = (180.0 / M_PI) * 60.0 * frequencyHz * 1.0e-9 ;  // arcminutes * GHz
+	double rmax = maximumRadiusArcMin / factor;
+	return rmax * rmax;
+}
+
 void VoltagePattern::Render(PrimaryBeamImageSet& beamImages,
 	double pixelScaleX, double pixelScaleY, 
-	double, double,
+	double phaseCentreRA, double phaseCentreDec,
+	double pointingRA, double pointingDec,
 	double phaseCentreDL, double phaseCentreDM,
 	double frequencyHz) const
 {
 	size_t
 		width = beamImages.Width(),
 		height = beamImages.Height();
-	double factor = (180.0 / M_PI) * 60.0 * frequencyHz * 1.0e-9 ;  // arcminutes * GHz
-	double rmax2 = maximumRadiusArcMin / factor;
-	rmax2 = rmax2 * rmax2;
+	double lmMaxSq = lmMaxSquared(frequencyHz);
 	
 	ao::uvector<double> interpolatedVals;
-	const double *vp;
-	if (frequencies.size() > 1)
-	{
-		interpolatedVals = interpolateValues(frequencyHz);
-		vp = interpolatedVals.data();
-	}
-	else
-		vp = FreqIndexValues(0);
+	const double *vp = interpolateValues(frequencyHz, interpolatedVals);
 	
-	double x0 = double(width/2) * pixelScaleX - phaseCentreDL;
-	double y0 = double(height/2) * pixelScaleY - phaseCentreDM;
+	double factor = (180.0 / M_PI) * 60.0 * frequencyHz * 1.0e-9 ;  // arcminutes * GHz
+	double l0, m0;
+	ImageCoordinates::RaDecToLM(pointingRA, pointingDec, phaseCentreRA, phaseCentreDec, l0, m0);
+	l0 += phaseCentreDL; m0 += phaseCentreDM;
 	size_t imgIndex = 0;
 	Logger::Debug << "Interpolating 1D voltage pattern to output image...\n";
 	for(size_t iy=0; iy!=height; ++iy) {
-		double ry2 =  pixelScaleY*double(iy) - y0;
-		ry2 = ry2*ry2;
 		for(size_t ix=0; ix!=width; ++ix) {
+			double l, m, ra, dec;
+			ImageCoordinates::XYToLM(ix, iy, pixelScaleX, pixelScaleY, width, height, l, m);
+			l += phaseCentreDL; m += m0;
+			ImageCoordinates::LMToRaDec(l, m, phaseCentreRA, phaseCentreDec, ra, dec);
+			ImageCoordinates::RaDecToLM(ra, dec, pointingRA, pointingDec, l, m);
+			l -= l0; m -= m0;
+			double r2 = l*l + m*m;
 			double out;
-			double rx = pixelScaleX*double(ix) - x0;
-			double r2 = rx*rx + ry2;
-			if (r2 > rmax2) {
+			if (r2 > lmMaxSq) {
 				out = 0.0;
 			}
 			else {
@@ -120,4 +146,50 @@ void VoltagePattern::Render(PrimaryBeamImageSet& beamImages,
 			++imgIndex;
 		}
 	}
-};
+}
+
+void VoltagePattern::Render(std::complex<float>* aterm,
+	size_t width, size_t height,
+	double pixelScaleX, double pixelScaleY, 
+	double phaseCentreRA, double phaseCentreDec,
+	double pointingRA, double pointingDec,
+	double phaseCentreDL, double phaseCentreDM,
+	double frequencyHz) const
+{
+	double lmMaxSq = lmMaxSquared(frequencyHz);
+	
+	ao::uvector<double> interpolatedVals;
+	const double *vp = interpolateValues(frequencyHz, interpolatedVals);
+	
+	double factor = (180.0 / M_PI) * 60.0 * frequencyHz * 1.0e-9 ;  // arcminutes * GHz
+	double l0, m0;
+	ImageCoordinates::RaDecToLM(pointingRA, pointingDec, phaseCentreRA, phaseCentreDec, l0, m0);
+	l0 += phaseCentreDL; m0 += phaseCentreDM;
+	for(size_t iy=0; iy!=height; ++iy) {
+		std::complex<float> *row = aterm + iy * width * 4;
+		for(size_t ix=0; ix!=width; ++ix) {
+			double l, m, ra, dec;
+			ImageCoordinates::XYToLM(ix, iy, pixelScaleX, pixelScaleY, width, height, l, m);
+			l += phaseCentreDL; m += m0;
+			ImageCoordinates::LMToRaDec(l, m, phaseCentreRA, phaseCentreDec, ra, dec);
+			ImageCoordinates::RaDecToLM(ra, dec, pointingRA, pointingDec, l, m);
+			l -= l0; m -= m0;
+			double r2 = l*l + m*m;
+			double out;
+			if (r2 > lmMaxSq) {
+				out = 1e-4;
+			}
+			else {
+				double r = std::sqrt(r2) * factor;
+				int indx = int(r*inverseIncrementRadius);
+				out = vp[indx]*(1.0-1e-4)+1e-4;
+			}
+			
+			std::complex<float> *ptr = row + ix * 4;
+			ptr[0] = out;
+			ptr[1] = 0.0;
+			ptr[2] = 0.0;
+			ptr[3] = out;
+		}
+	}
+}

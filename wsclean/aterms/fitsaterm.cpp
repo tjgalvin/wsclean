@@ -2,8 +2,8 @@
 
 #include "../wsclean/logger.h"
 
-FitsATerm::FitsATerm(size_t nAntenna, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM, size_t atermSize) :
-	FitsATermBase(nAntenna, width, height, ra, dec, dl, dm, phaseCentreDL, phaseCentreDM, atermSize)
+FitsATerm::FitsATerm(size_t nAntenna, const CoordinateSystem& coordinateSystem) :
+	FitsATermBase(nAntenna, coordinateSystem)
 { }
 
 FitsATerm::~FitsATerm()
@@ -35,7 +35,7 @@ void FitsATerm::OpenDiagGainFiles(const std::vector<std::string>& filenames)
 	initializeFromFiles(_readers);
 }
 
-bool FitsATerm::Calculate(std::complex<float>* buffer, double time, double frequency, const double*)
+bool FitsATerm::Calculate(std::complex<float>* buffer, double time, double frequency, size_t, const double*)
 {
 	size_t timeIndex;
 	bool requiresRecalculation;

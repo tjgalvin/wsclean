@@ -11,7 +11,7 @@
 class FitsATermBase : public ATermBase
 {
 public:
-	FitsATermBase(size_t nAntenna, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM, size_t atermSize);
+	FitsATermBase(size_t nAntenna, const CoordinateSystem& coordinateSystem);
 	~FitsATermBase();
 	
 	virtual double AverageUpdateTime() const override;

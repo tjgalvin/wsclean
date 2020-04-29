@@ -19,13 +19,13 @@
 class FitsATerm final : public FitsATermBase
 {
 public:
-	FitsATerm(size_t nAntenna, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM, size_t atermSize);
+	FitsATerm(size_t nAntenna, const CoordinateSystem& coordinateSystem);
 	~FitsATerm();
 	
 	void OpenTECFiles(const std::vector<std::string>& filenames);
 	void OpenDiagGainFiles(const std::vector<std::string>& filenames);
 	
-	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, const double* uvwInM) override;
+	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, size_t fieldId, const double* uvwInM) override;
 	
 private:
 	enum Mode { TECMode, DiagonalMode } _mode;

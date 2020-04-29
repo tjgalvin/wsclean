@@ -19,6 +19,7 @@
 #include "../fitswriter.h"
 
 #include "../aterms/atermconfig.h"
+#include "../aterms/dishaterm.h"
 #include "../aterms/lofarbeamterm.h"
 #include "../aterms/mwabeamterm.h"
 #include "../aterms/telescope.h"
@@ -166,14 +167,20 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 	ao::uvector<std::complex<float>> aTermBuffer;
 	if(!_settings.atermConfigFilename.empty() || _settings.gridWithBeam)
 	{
+		ATermBase::CoordinateSystem system;
 		// IDG uses a flipped coordinate system which is moved by half a pixel:
-		double dl = -_bufferset->get_subgrid_pixelsize();
-		double dm = -_bufferset->get_subgrid_pixelsize();
-		double pdl = PhaseCentreDL() - 0.5*dl, pdm = PhaseCentreDM() + 0.5*dm;
-		size_t subgridsize = _bufferset->get_subgridsize();
+		system.dl = -_bufferset->get_subgrid_pixelsize();
+		system.dm = -_bufferset->get_subgrid_pixelsize();
+		system.phaseCentreDL = PhaseCentreDL() - 0.5*system.dl;
+		system.phaseCentreDM = PhaseCentreDM() + 0.5*system.dm;
+		system.width = _bufferset->get_subgridsize();
+		system.height = system.width;
+		system.maxSupport = _settings.atermKernelSize;
+		system.ra = PhaseCentreRA();
+		system.dec = PhaseCentreDec();
 		if(!_settings.atermConfigFilename.empty())
 		{
-			std::unique_ptr<ATermConfig> config(new ATermConfig(*ms, nr_stations, subgridsize, subgridsize, PhaseCentreRA(), PhaseCentreDec(), dl, dm, pdl, pdm, _settings));
+			std::unique_ptr<ATermConfig> config(new ATermConfig(*ms, nr_stations, system, _settings));
 			config->SetSaveATerms(_settings.saveATerms);
 			config->Read(_settings.atermConfigFilename);
 			return std::move(config);
@@ -183,16 +190,23 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 			{
 				case Telescope::AARTFAAC:
 				case Telescope::LOFAR: {
-					std::unique_ptr<LofarBeamTerm> beam(new LofarBeamTerm(*ms, subgridsize, subgridsize, dl, dm, pdl, pdm, _settings.dataColumnName));
+					std::unique_ptr<LofarBeamTerm> beam(new LofarBeamTerm(*ms, system, _settings.dataColumnName));
 					beam->SetUseDifferentialBeam(_settings.useDifferentialLofarBeam);
 					beam->SetSaveATerms(_settings.saveATerms);
 					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
 					return std::move(beam);
 				}
 				case Telescope::MWA: {
-					std::unique_ptr<MWABeamTerm> beam(new MWABeamTerm(*ms, subgridsize, subgridsize, PhaseCentreRA(), PhaseCentreDec(), dl, dm, pdl, pdm));
+					std::unique_ptr<MWABeamTerm> beam(new MWABeamTerm(*ms, system));
 					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
+					beam->SetSaveATerms(_settings.saveATerms);
 					beam->SetSearchPath(_settings.mwaPath);
+					return std::move(beam);
+				}
+				case Telescope::VLA: {
+					std::unique_ptr<DishATerm> beam(new DishATerm(*ms, system));
+					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
+					beam->SetSaveATerms(_settings.saveATerms);
 					return std::move(beam);
 				}
 				default:
@@ -234,7 +248,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 			if(aTermMaker)
 			{
 				timestepBuffer.GetUVWsForTimestep(uvws);
-				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands.CentreFrequency(), uvws.data()))
+				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands[metaData.dataDescId].CentreFrequency(), metaData.fieldId, uvws.data()))
 				{
 					_bufferset->get_gridder(metaData.dataDescId)->set_aterm(timeIndex, aTermBuffer.data());
 					Logger::Debug << "Calculated a-terms for timestep " << timeIndex << "\n";
@@ -424,7 +438,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
 			if(aTermMaker)
 			{
 				timestepBuffer.GetUVWsForTimestep(uvws);
-				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands.CentreFrequency(), uvws.data()))
+				if(aTermMaker->Calculate(aTermBuffer.data(), currentTime, _selectedBands[metaData.dataDescId].CentreFrequency(), metaData.fieldId, uvws.data()))
 				{
 					_bufferset->get_degridder(metaData.dataDescId)->set_aterm(timeIndex, aTermBuffer.data());
 					Logger::Debug << "Calculated new a-terms for timestep " << timeIndex << "\n";

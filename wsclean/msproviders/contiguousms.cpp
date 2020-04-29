@@ -159,6 +159,7 @@ void ContiguousMS::ReadMeta(MetaData& metaData)
 	metaData.vInM = uvwArray(1);
 	metaData.wInM = uvwArray(2);
 	metaData.dataDescId = _dataDescId;
+	metaData.fieldId = _fieldIdColumn(_row);
 	metaData.antenna1 = _antenna1Column(_row);
 	metaData.antenna2 = _antenna2Column(_row);
 	metaData.time = _timeColumn(_row);

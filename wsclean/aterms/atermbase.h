@@ -16,12 +16,14 @@ public:
 	 * @param time The time corresponding to the currently gridded visibilities to
 	 * which the aterm will be applied.
 	 * @param frequency Frequency of currently gridded visibilities.
+	 * @param fieldId Field that these visibilities belong to. Different fields might requires different beams.
+	 * @param uvwInM The UVW of the antennas, referenced to antenna 0.
 	 * @returns @c True when new aterms are calculated. If these aterms are the same as
 	 * for the previous call to Calculate(), @c false can be returned and the output
 	 * buffer does not need to be updated. The gridder will then make sure to use the
 	 * previous aterms, and not reserve extra memory for it etc.
 	 */
-	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, const double* uvwInM) = 0;
+	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, size_t fieldId, const double* uvwInM) = 0;
 	
 	virtual double AverageUpdateTime() const = 0;
 	
@@ -38,6 +40,12 @@ public:
 	{
 		_saveATerms = saveATerms;
 	}
+	
+	struct CoordinateSystem
+	{
+		size_t width, height, maxSupport;
+		double ra, dec, dl, dm, phaseCentreDL, phaseCentreDM;
+	};
 	
 protected:
 	void saveATermsIfNecessary(const std::complex<float>* buffer, size_t nStations, size_t width, size_t height)

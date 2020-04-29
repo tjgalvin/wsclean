@@ -34,7 +34,7 @@ public:
 	struct MetaData
 	{
 		double uInM, vInM, wInM;
-		size_t dataDescId, antenna1, antenna2;
+		size_t dataDescId, fieldId, antenna1, antenna2;
 		double time;
 	};
 

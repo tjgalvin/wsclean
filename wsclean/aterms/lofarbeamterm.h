@@ -20,7 +20,7 @@
 class LofarBeamTerm : public ATermBeam
 {
 public:
-	LofarBeamTerm(casacore::MeasurementSet& ms, size_t width, size_t height, double dl, double dm, double phaseCentreDL, double phaseCentreDM, const std::string& dataColumnName);
+	LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSystem& coordinateSystem, const std::string& dataColumnName);
 	
 	void SetUseDifferentialBeam(bool useDiffBeam)
 	{
@@ -33,7 +33,7 @@ public:
 	}
 	
 private:
-	bool calculateBeam(std::complex<float>* buffer, double time, double frequency) final override;
+	bool calculateBeam(std::complex<float>* buffer, double time, double frequency, size_t fieldId) final override;
 
 	void calcThread(std::complex<float>* buffer, double time, double frequency);
 	

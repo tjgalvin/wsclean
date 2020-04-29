@@ -3,6 +3,8 @@
 
 #include "../uvector.h"
 
+#include <complex>
+
 // Holds the information for a symmetric voltage pattern
 struct VoltagePattern
 {
@@ -20,15 +22,30 @@ struct VoltagePattern
 	
 	const double* FreqIndexValues(size_t freqIndex) const { return &values[freqIndex * NSamples()]; }
 	
-	ao::uvector<double> interpolateValues(double freq) const;
-	
-	void EvaluateInversePolynomial(const ao::uvector<double>& coefficients);
+	void EvaluatePolynomial(const ao::uvector<double>& coefficients, bool invert);
 	
 	void Render(class PrimaryBeamImageSet& beamImages,
 		double pixelScaleX, double pixelScaleY, 
 		double phaseCentreRA, double phaseCentreDec,
+		double pointingRA, double pointingDec,
 		double phaseCentreDL, double phaseCentreDM,
 		double frequencyHz) const;
+	
+	void Render(std::complex<float>* aterm,
+		size_t width, size_t height,
+		double pixelScaleX, double pixelScaleY, 
+		double phaseCentreRA, double phaseCentreDec,
+		double pointingRA, double pointingDec,
+		double phaseCentreDL, double phaseCentreDM,
+		double frequencyHz) const;
+	
+private:
+	// Only works when frequencies.size() > 1
+	ao::uvector<double> interpolateValues(double freq) const;
+	// Works for any frequencies.size(), including when 1
+	const double* interpolateValues(double frequencyHz, ao::uvector<double>& interpolatedVals) const;
+	
+	double lmMaxSquared(double frequencyHz) const;
 };
 
 #endif

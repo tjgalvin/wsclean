@@ -49,26 +49,30 @@ MSGridderBase::~MSGridderBase()
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction, double absMemLimit)
 {
+	static bool isFirst = true;
 	long int pageCount = sysconf(_SC_PHYS_PAGES), pageSize = sysconf(_SC_PAGE_SIZE);
 	int64_t memory = (int64_t) pageCount * (int64_t) pageSize;
 	double memSizeInGB = (double) memory / (1024.0*1024.0*1024.0);
-	if(memFraction == 1.0 && absMemLimit == 0.0) {
+	if(memFraction == 1.0 && absMemLimit == 0.0 && isFirst) {
 		Logger::Info << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory, usage not limited.\n";
 	}
 	else {
 		double limitInGB = memSizeInGB*memFraction;
 		if(absMemLimit!=0.0 && limitInGB > absMemLimit)
 			limitInGB = absMemLimit;
-		Logger::Info << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory, usage limited to " << round(limitInGB*10.0)/10.0 << " GB (frac=" << round(memFraction*1000.0)/10.0 << "%, ";
-		if(absMemLimit == 0.0)
-			Logger::Info << "no limit)\n";
-		else
-			Logger::Info << "limit=" << round(absMemLimit*10.0)/10.0 << "GB)\n";
+		if(isFirst) {
+			Logger::Info << "Detected " << round(memSizeInGB*10.0)/10.0 << " GB of system memory, usage limited to " << round(limitInGB*10.0)/10.0 << " GB (frac=" << round(memFraction*1000.0)/10.0 << "%, ";
+			if(absMemLimit == 0.0)
+				Logger::Info << "no limit)\n";
+			else
+				Logger::Info << "limit=" << round(absMemLimit*10.0)/10.0 << "GB)\n";
+		}
 		
 		memory = int64_t((double) pageCount * (double) pageSize * memFraction);
 		if(absMemLimit!=0.0 && double(memory) > double(1024.0*1024.0*1024.0) * absMemLimit)
 			memory = int64_t(double(absMemLimit) * double(1024.0*1024.0*1024.0));
 	}
+	isFirst = false;
 	return memory;
 }
 
@@ -80,10 +84,11 @@ void MSGridderBase::GetPhaseCentreInfo(casacore::MeasurementSet& ms, size_t fiel
 	casacore::MPosition::ScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
 	casacore::MPosition ant1Pos = antPosColumn(0);
 	
+	size_t fieldRow = (fieldId == MSSelection::ALL_FIELDS) ? 0 : fieldId;
 	casacore::MEpoch::ScalarColumn timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
 	casacore::MSField fTable(ms.field());
 	casacore::MDirection::ScalarColumn phaseDirColumn(fTable, fTable.columnName(casacore::MSFieldEnums::PHASE_DIR));
-	casacore::MDirection phaseDir = phaseDirColumn(fieldId);
+	casacore::MDirection phaseDir = phaseDirColumn(fieldRow);
 	casacore::MEpoch curtime = timeColumn(0);
 	casacore::MeasFrame frame(ant1Pos, curtime);
 	casacore::MDirection::Ref j2000Ref(casacore::MDirection::J2000, frame);
@@ -254,7 +259,8 @@ void MSGridderBase::initializeMetaData(casacore::MeasurementSet& ms, size_t fiel
 	
 	casacore::MSField fTable = ms.field();
 	casacore::ScalarColumn<casacore::String> fieldNameColumn(fTable, fTable.columnName(casacore::MSField::NAME));
-	_fieldName = fieldNameColumn(fieldId);
+	size_t fieldRow = (fieldId == MSSelection::ALL_FIELDS) ? 0 : fieldId;
+	_fieldName = fieldNameColumn(fieldRow);
 }
 
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData, MetaDataCache::Entry& cacheEntry, bool isCacheInitialized)

@@ -2,12 +2,17 @@
 #define MS_SELECTION
 
 #include <cstring>
+#include <limits>
+
 #include <casacore/casa/Arrays/Vector.h>
+
 
 class MSSelection
 {
 public:
 	enum EvenOddSelection { AllTimesteps, EvenTimesteps, OddTimesteps };
+	
+	const static size_t ALL_FIELDS = std::numeric_limits<size_t>::max();
 	
 	MSSelection() :
 		_fieldId(0),
@@ -49,7 +54,7 @@ public:
 	
 	bool IsSelected(size_t fieldId, size_t timestep, size_t antenna1, size_t antenna2, double uvwInMeters) const
 	{
-		if(fieldId != _fieldId)
+		if(fieldId != _fieldId && _fieldId != ALL_FIELDS)
 			return false;
 		else if(HasInterval() && (timestep < _startTimestep || timestep >= _endTimestep))
 			return false;

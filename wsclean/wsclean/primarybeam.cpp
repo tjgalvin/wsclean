@@ -9,6 +9,7 @@
 #include "../mwa/mwabeam.h"
 
 #include "../primarybeam/atcabeam.h"
+#include "../primarybeam/vlabeam.h"
 
 #include <boost/filesystem/operations.hpp>
 
@@ -46,6 +47,8 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 		PrimaryBeamImageSet beamImages;
 		
 		{
+			// A single outputimage/entry might consist of multiple measurement sets. In that case we
+			// only use the first measurement set:
 			SynchronizedMS ms(_msProviders.front().first->MS());
 			Telescope::TelescopeType type = Telescope::GetType(*ms);
 			ms.Reset();
@@ -64,6 +67,11 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator, 8);
 					beamImages.SetToZero();
 					makeATCAImage(beamImages, entry);
+					break;
+				case Telescope::VLA:
+					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator, 8);
+					beamImages.SetToZero();
+					makeVLAImage(beamImages, entry);
 					break;
 				default:
 					throw std::runtime_error("Can't make beam for this telescope");
@@ -237,10 +245,47 @@ void PrimaryBeam::makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTab
 	mwaBeam.Make(beamImages);
 }
 
+void PrimaryBeam::makeFromVoltagePattern(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, VoltagePattern& vp)
+{
+	SynchronizedMS ms(_msProviders.front().first->MS());
+	casacore::ArrayColumn<double> pointingDirCol(ms->field(), casacore::MSField::columnName(casacore::MSField::DELAY_DIR));
+	size_t fieldRow = _settings.fieldId;
+	if(fieldRow == MSSelection::ALL_FIELDS)
+	{
+		Logger::Warn << "Warning: primary beam correction together with '-fields ALL' is not properly supported\n";
+		Logger::Warn << "       : The beam will be calculated only for the first field!\n";
+		fieldRow = 0;
+	}
+	casacore::Array<double> pDir = pointingDirCol(fieldRow);
+	double pDirRA = *pDir.cbegin();
+	double pDirDec = *(pDir.cbegin()+1);
+	vp.Render(beamImages, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, pDirRA, pDirDec, _phaseCentreDL, _phaseCentreDM, entry.CentralFrequency());
+}
+
 void PrimaryBeam::makeATCAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry)
 {
 	Logger::Info << "Calculating ATCA primary beam...\n";
 	ATCABeam::Band band = ATCABeam::GetBand(entry.CentralFrequency() * 1e-9);
 	VoltagePattern vp = ATCABeam::CalculateVoltagePattern(band);
-	vp.Render(beamImages, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM, entry.CentralFrequency());
+	makeFromVoltagePattern(beamImages, entry, vp);
+}
+
+void PrimaryBeam::makeVLAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry)
+{
+	Logger::Info << "Calculating VLA primary beam...\n";
+	std::string bandName;
+	{
+		SynchronizedMS ms(_msProviders.front().first->MS());
+		casacore::ScalarColumn<casacore::String> bandNameCol(ms->spectralWindow(), casacore::MSSpectralWindow::columnName(casacore::MSSpectralWindow::NAME));
+		// TODO for now, just pick the first band. Of course, this should be an integral over all bands!
+		size_t bandIndex = entry.msData[0].bands[0].bandIndex;
+		bandName = bandNameCol(bandIndex);
+	}
+	std::array<double, 5> coefs = VLABeam::GetCoefficients(bandName, entry.CentralFrequency());
+	VoltagePattern vp;
+	vp.frequencies.assign(1, entry.CentralFrequency());
+	vp.maximumRadiusArcMin = 53.0;
+	ao::uvector<double> coefsVec(coefs.begin(), coefs.end());
+	vp.EvaluatePolynomial(coefsVec, false);
+	makeFromVoltagePattern(beamImages, entry, vp);
 }

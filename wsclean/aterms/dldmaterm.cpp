@@ -6,8 +6,8 @@
 
 #include "../banddata.h"
 
-DLDMATerm::DLDMATerm(size_t nAntenna, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM, size_t atermSize) :
-	FitsATermBase(nAntenna, width, height, ra, dec, dl, dm, phaseCentreDL, phaseCentreDM, atermSize),
+DLDMATerm::DLDMATerm(size_t nAntenna, const CoordinateSystem& coordinateSystem) :
+	FitsATermBase(nAntenna, coordinateSystem),
 	_updateInterval(60),
 	_previousTime(0)
 {
@@ -25,7 +25,7 @@ void DLDMATerm::Open(const std::vector<std::string>& filenames)
 	initializeFromFiles(_readers);
 }
 
-bool DLDMATerm::Calculate(std::complex<float>* buffer, double time, double frequency, const double* uvwInM)
+bool DLDMATerm::Calculate(std::complex<float>* buffer, double time, double frequency, size_t, const double* uvwInM)
 {
 	size_t timeIndex;
 	bool requiresRecalculation;

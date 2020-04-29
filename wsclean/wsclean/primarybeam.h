@@ -67,6 +67,10 @@ private:
 	void makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, ImageBufferAllocator& allocator);
 	
 	void makeATCAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry);
+	
+	void makeVLAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry);
+	
+	void makeFromVoltagePattern(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, class VoltagePattern& vp);
 };
 
 #endif

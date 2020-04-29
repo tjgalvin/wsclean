@@ -5,8 +5,9 @@
 
 #include <casacore/tables/Tables/ArrayColumn.h>
 
-AveragingMSRowProvider::AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath, const MSSelection& selection, const std::map<size_t, size_t>& selectedDataDescIds, const string& dataColumnName, bool requireModel) :
-	MSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName, requireModel)
+AveragingMSRowProvider::AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath, const MSSelection& selection, const std::map<size_t, size_t>& selectedDataDescIds, size_t fieldId, const string& dataColumnName, bool requireModel) :
+	MSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName, requireModel),
+	_fieldId(fieldId)
 {
 	casacore::MSAntenna antennaTable(_ms.antenna());
 	_nAntennae = antennaTable.nrow();
@@ -183,7 +184,7 @@ void AveragingMSRowProvider::NextRow()
 	}
 }
 
-void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data, MSRowProvider::FlagArray& flags, MSRowProvider::WeightArray& weights, double& u, double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2, double& time)
+void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data, MSRowProvider::FlagArray& flags, MSRowProvider::WeightArray& weights, double& u, double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2, uint32_t& fieldId, double& time)
 {
 	size_t bufferSize = DataShape()[0] * DataShape()[1];
 	memcpy(data.data(), _currentData.data(), bufferSize*sizeof(std::complex<float>));
@@ -196,6 +197,7 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data, MSRowProvi
 	antenna1 = _averagedAntenna1Index;
 	antenna2 = _averagedAntenna2Index;
 	time = _currentTime;
+	fieldId = _fieldId; // TODO multi-fields are not supported
 }
 
 void AveragingMSRowProvider::ReadModel(MSRowProvider::DataArray& model)

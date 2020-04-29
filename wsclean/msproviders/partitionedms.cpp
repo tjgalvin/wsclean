@@ -159,6 +159,7 @@ void PartitionedMS::ReadMeta(MetaData& metaData)
 	metaData.vInM = record.v;
 	metaData.wInM = record.w;
 	metaData.dataDescId = record.dataDescId;
+	metaData.fieldId = record.fieldId;
 	metaData.antenna1 = record.antenna1;
 	metaData.antenna2 = record.antenna2;
 	metaData.time = record.time;
@@ -377,7 +378,7 @@ PartitionedMS::Handle PartitionedMS::Partition(const string& msPath, const std::
 	else {
 		if(initialModelRequired)
 			throw std::runtime_error("Baseline-dependent averaging is enabled together with a model that requires the model data (e.g. -continue or -subtract-model). This is not possible.");
-		rowProvider.reset(new AveragingMSRowProvider(settings.baselineDependentAveragingInWavelengths, msPath, selection, selectedDataDescIds, dataColumnName, initialModelRequired));
+		rowProvider.reset(new AveragingMSRowProvider(settings.baselineDependentAveragingInWavelengths, msPath, selection, selectedDataDescIds, settings.fieldId, dataColumnName, initialModelRequired));
 	}
 	
 	std::vector<PolarizationEnum> msPolarizations = GetMSPolarizations(rowProvider->MS());
@@ -432,11 +433,12 @@ PartitionedMS::Handle PartitionedMS::Partition(const string& msPath, const std::
 		memset(&meta, 0, sizeof(MetaRecord));
 
 		double time;
-		uint32_t dataDescId, antenna1, antenna2;
-		rowProvider->ReadData(dataArray, flagArray, weightSpectrumArray, meta.u, meta.v, meta.w, dataDescId, antenna1, antenna2, time);
+		uint32_t dataDescId, antenna1, antenna2, fieldId;
+		rowProvider->ReadData(dataArray, flagArray, weightSpectrumArray, meta.u, meta.v, meta.w, dataDescId, antenna1, antenna2, fieldId, time);
 		meta.dataDescId = dataDescId;
 		meta.antenna1 = antenna1;
 		meta.antenna2 = antenna2;
+		meta.fieldId = fieldId;
 		meta.time = time;
 		size_t spwIndex = selectedDataDescIds[meta.dataDescId];
 		++selectedRowCountPerSpwIndex[spwIndex];

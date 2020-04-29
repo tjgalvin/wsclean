@@ -21,12 +21,12 @@
 
 using namespace LOFAR::StationResponse;
 
-LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, size_t width, size_t height, double dl, double dm, double phaseCentreDL, double phaseCentreDM, const std::string& dataColumnName) :
-	_width(width),
-	_height(height),
-	_dl(dl), _dm(dm),
-	_phaseCentreDL(phaseCentreDL),
-	_phaseCentreDM(phaseCentreDM),
+LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms, const CoordinateSystem& coordinateSystem, const std::string& dataColumnName) :
+	_width(coordinateSystem.width),
+	_height(coordinateSystem.height),
+	_dl(coordinateSystem.dl), _dm(coordinateSystem.dm),
+	_phaseCentreDL(coordinateSystem.phaseCentreDL),
+	_phaseCentreDM(coordinateSystem.phaseCentreDM),
 	_useDifferentialBeam(false),
 	_useChannelFrequency(true)
 {
@@ -83,7 +83,7 @@ void setITRFVector(const casacore::MDirection& itrfDir, LOFAR::StationResponse::
 	itrf[2] = itrfVal[2];
 }
 
-bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, double frequency)
+bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time, double frequency, size_t)
 {
 	ao::lane<size_t> lane(_nThreads);
 	_lane = &lane;

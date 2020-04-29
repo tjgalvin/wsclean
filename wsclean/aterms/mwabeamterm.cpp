@@ -9,13 +9,13 @@
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/measures/Measures/MEpoch.h>
 
-MWABeamTerm::MWABeamTerm(casacore::MeasurementSet& ms, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM) :
-	_width(width),
-	_height(height),
-	_phaseCentreRA(ra), _phaseCentreDec(dec),
-	_dl(dl), _dm(dm),
-	_phaseCentreDL(phaseCentreDL),
-	_phaseCentreDM(phaseCentreDM),
+MWABeamTerm::MWABeamTerm(casacore::MeasurementSet& ms, const CoordinateSystem& coordinateSystem) :
+	_width(coordinateSystem.width),
+	_height(coordinateSystem.height),
+	_phaseCentreRA(coordinateSystem.ra), _phaseCentreDec(coordinateSystem.dec),
+	_dl(coordinateSystem.dl), _dm(coordinateSystem.dm),
+	_phaseCentreDL(coordinateSystem.phaseCentreDL),
+	_phaseCentreDM(coordinateSystem.phaseCentreDM),
 	_frequencyInterpolation(true)
 {
 	casacore::MSAntenna aTable = ms.antenna();
@@ -41,7 +41,7 @@ MWABeamTerm::MWABeamTerm(casacore::MeasurementSet& ms, size_t width, size_t heig
 	Logger::Debug << "]\n";
 }
 
-bool MWABeamTerm::calculateBeam(std::complex<float>* buffer, double time, double frequency)
+bool MWABeamTerm::calculateBeam(std::complex<float>* buffer, double time, double frequency, size_t)
 {
 	casacore::MEpoch timeEpoch(casacore::Quantity(time, "s"));
 	casacore::MeasFrame frame(_arrayPos, timeEpoch);

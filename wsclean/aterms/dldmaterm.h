@@ -12,11 +12,11 @@
 class DLDMATerm final : public FitsATermBase
 {
 public:
-	DLDMATerm(size_t nAntenna, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM, size_t atermSize);
+	DLDMATerm(size_t nAntenna, const CoordinateSystem& coordinateSystem);
 	
 	void Open(const std::vector<std::string>& filenames);
 	
-	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, const double* uvwInM) override;
+	virtual bool Calculate(std::complex<float>* buffer, double time, double frequency, size_t fieldId, const double* uvwInM) override;
 	
 	void SetUpdateInterval(double updateInterval) { _updateInterval = updateInterval; }
 	

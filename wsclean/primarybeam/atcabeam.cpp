@@ -77,7 +77,7 @@ VoltagePattern ATCABeam::CalculateVoltagePattern(enum Band band)
 				vPattern.frequencies[i] = (1332+i*256)*1.e6;
 			}
 			vPattern.maximumRadiusArcMin = 53.0;
-			vPattern.EvaluateInversePolynomial(coefficients);
+			vPattern.EvaluatePolynomial(coefficients, true);
 		} break;
 		default:
 			throw std::runtime_error("ATCA PB for given spectral band not implemented");

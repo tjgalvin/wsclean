@@ -8,7 +8,7 @@
 class AveragingMSRowProvider : public MSRowProvider
 {
 public:
-	AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath, const MSSelection& selection, const std::map<size_t,size_t>& selectedDataDescIds, const std::string& dataColumnName, bool requireModel);
+	AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath, const MSSelection& selection, const std::map<size_t,size_t>& selectedDataDescIds, size_t fieldId, const std::string& dataColumnName, bool requireModel);
 	
 	virtual bool AtEnd() const final override {
 		return _flushPosition >= _nElements;
@@ -16,7 +16,7 @@ public:
 	
 	virtual void NextRow() final override;
 	
-	virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u, double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2, double& time) final override;
+	virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u, double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2, uint32_t& fieldId, double& time) final override;
 	
 	virtual void ReadModel(DataArray& model) final override;
 	
@@ -184,6 +184,7 @@ private:
 	size_t _averagedRowCount;
 	size_t _averageFactorSum;
 	size_t _rowCount;
+	size_t _fieldId;
 };
 
 #endif

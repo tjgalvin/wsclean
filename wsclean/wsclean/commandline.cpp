@@ -1040,7 +1040,10 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 		else if(param == "field")
 		{
 			++argi;
-			settings.fieldId = parse_size_t(argv[argi], "field");
+			if(argv[argi] == std::string("all"))
+				settings.fieldId = MSSelection::ALL_FIELDS;
+			else
+				settings.fieldId = parse_size_t(argv[argi], "field");
 		}
 		else if(param == "spws")
 		{

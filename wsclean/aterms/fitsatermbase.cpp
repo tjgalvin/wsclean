@@ -9,20 +9,20 @@
 #include <algorithm>
 #include <limits>
 
-FitsATermBase::FitsATermBase(size_t nAntenna, size_t width, size_t height, double ra, double dec, double dl, double dm, double phaseCentreDL, double phaseCentreDM, size_t atermSize) :
-	_cache(nAntenna * 4 * width * height),
+FitsATermBase::FitsATermBase(size_t nAntenna, const CoordinateSystem& coordinateSystem) :
+	_cache(nAntenna * 4 * coordinateSystem.width * coordinateSystem.height),
 	_curTimeindex(0),
 	_curFrequency(0),
 	_nFrequencies(0),
 	_nAntenna(nAntenna),
-	_width(width),
-	_height(height),
-	_ra(ra), _dec(dec),
-	_dl(dl), _dm(dm),
-	_phaseCentreDL(phaseCentreDL),
-	_phaseCentreDM(phaseCentreDM),
-	_allocatedWidth(atermSize),
-	_allocatedHeight(atermSize),
+	_width(coordinateSystem.width),
+	_height(coordinateSystem.height),
+	_ra(coordinateSystem.ra), _dec(coordinateSystem.dec),
+	_dl(coordinateSystem.dl), _dm(coordinateSystem.dm),
+	_phaseCentreDL(coordinateSystem.phaseCentreDL),
+	_phaseCentreDM(coordinateSystem.phaseCentreDM),
+	_allocatedWidth(coordinateSystem.maxSupport),
+	_allocatedHeight(coordinateSystem.maxSupport),
 	_window(WindowFunction::Rectangular),
 	_padding(1.0)
 {
