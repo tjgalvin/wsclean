@@ -53,7 +53,7 @@ public:
 	double nWLayersFactor;
 	size_t antialiasingKernelSize, overSamplingFactor, threadCount, parallelReordering, parallelGridding;
 	bool useMPI;
-	size_t fieldId;
+	std::vector<size_t> fieldIds;
 	size_t startTimestep, endTimestep;
 	size_t startChannel, endChannel;
 	size_t predictionChannels;
@@ -137,7 +137,7 @@ public:
 	{
 		MSSelection selection;
 		selection.SetInterval(startTimestep, endTimestep);
-		selection.SetFieldId(fieldId);
+		selection.SetFieldIds(fieldIds);
 		selection.SetMinUVWInM(minUVWInMeters);
 		selection.SetMaxUVWInM(maxUVWInMeters);
 		selection.SetEvenOrOddTimesteps(evenOddTimesteps);
@@ -183,7 +183,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	parallelReordering(1),
 	parallelGridding(1),
 	useMPI(false),
-	fieldId(0),
+	fieldIds{0},
 	startTimestep(0), endTimestep(0),
 	startChannel(0), endChannel(0),
 	predictionChannels(0),

@@ -6,6 +6,7 @@
 
 #include <casacore/casa/Arrays/Vector.h>
 
+#include <vector>
 
 class MSSelection
 {
@@ -15,7 +16,7 @@ public:
 	const static size_t ALL_FIELDS = std::numeric_limits<size_t>::max();
 	
 	MSSelection() :
-		_fieldId(0),
+		_fieldIds{0},
 		_bandId(0),
 		_startChannel(0), _endChannel(0),
 		_startTimestep(0), _endTimestep(0),
@@ -35,7 +36,7 @@ public:
 	size_t IntervalStart() const { return _startTimestep; }
 	size_t IntervalEnd() const { return _endTimestep; }
 	
-	size_t FieldId() const { return _fieldId; }
+	const std::vector<size_t>& FieldIds() const { return _fieldIds; }
 	
 	double MinUVWInM() const { return _minUVWInM; }
 	double MaxUVWInM() const { return _maxUVWInM; }
@@ -45,7 +46,7 @@ public:
 		if(HasMinUVWInM() || HasMaxUVWInM())
 		{
 			double u = uvw(0), v = uvw(1), w = uvw(2);
-			return IsSelected(fieldId, timestep, antenna1, antenna2, sqrt(u*u + v*v + w*w));
+			return IsSelected(fieldId, timestep, antenna1, antenna2, std::sqrt(u*u + v*v + w*w));
 		}
 		else {
 			return IsSelected(fieldId, timestep, antenna1, antenna2, 0.0);
@@ -54,7 +55,7 @@ public:
 	
 	bool IsSelected(size_t fieldId, size_t timestep, size_t antenna1, size_t antenna2, double uvwInMeters) const
 	{
-		if(fieldId != _fieldId && _fieldId != ALL_FIELDS)
+		if(!IsFieldSelected(fieldId))
 			return false;
 		else if(HasInterval() && (timestep < _startTimestep || timestep >= _endTimestep))
 			return false;
@@ -76,7 +77,10 @@ public:
 	
 	bool IsFieldSelected(size_t fieldId) const
 	{
-		return fieldId == _fieldId;
+		return
+			std::find(_fieldIds.begin(), _fieldIds.end(), fieldId) != _fieldIds.end()
+			||
+			_fieldIds[0] == ALL_FIELDS;
 	}
 	
 	bool IsTimeSelected(size_t timestep)
@@ -93,9 +97,9 @@ public:
 		return true;
 	}
 	
-	void SetFieldId(size_t fieldId)
+	void SetFieldIds(const std::vector<size_t>& fieldIds)
 	{ 
-		_fieldId = fieldId; 
+		_fieldIds = fieldIds; 
 	}
 	void SetBandId(size_t bandId)
 	{
@@ -130,7 +134,8 @@ public:
 	}
 	static MSSelection Everything() { return MSSelection(); }
 private:
-	size_t _fieldId, _bandId;
+	std::vector<size_t> _fieldIds;
+	size_t _bandId;
 	size_t _startChannel, _endChannel;
 	size_t _startTimestep, _endTimestep;
 	double _minUVWInM, _maxUVWInM;

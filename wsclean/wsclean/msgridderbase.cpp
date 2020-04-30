@@ -274,9 +274,9 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData, Meta
 	
 	calculateMSLimits(msData.SelectedBand(), msProvider.StartTime());
 	
-	initializePhaseCentre(*ms, Selection(msData.msIndex).FieldId());
+	initializePhaseCentre(*ms, Selection(msData.msIndex).FieldIds()[0]);
 	
-	initializeMetaData(*ms, Selection(msData.msIndex).FieldId());
+	initializeMetaData(*ms, Selection(msData.msIndex).FieldIds()[0]);
 	
 	if(isCacheInitialized)
 	{

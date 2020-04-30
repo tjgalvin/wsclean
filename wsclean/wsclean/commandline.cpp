@@ -1041,9 +1041,11 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 		{
 			++argi;
 			if(argv[argi] == std::string("all"))
-				settings.fieldId = MSSelection::ALL_FIELDS;
-			else
-				settings.fieldId = parse_size_t(argv[argi], "field");
+				settings.fieldIds.assign(1, MSSelection::ALL_FIELDS);
+			else {
+				ao::uvector<int> list = NumberList::ParseIntList(argv[argi]);
+				settings.fieldIds.assign(list.begin(), list.end());
+			}
 		}
 		else if(param == "spws")
 		{

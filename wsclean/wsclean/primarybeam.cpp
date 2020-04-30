@@ -249,7 +249,7 @@ void PrimaryBeam::makeFromVoltagePattern(PrimaryBeamImageSet& beamImages, const 
 {
 	SynchronizedMS ms(_msProviders.front().first->MS());
 	casacore::ArrayColumn<double> pointingDirCol(ms->field(), casacore::MSField::columnName(casacore::MSField::DELAY_DIR));
-	size_t fieldRow = _settings.fieldId;
+	size_t fieldRow = _settings.fieldIds[0];
 	if(fieldRow == MSSelection::ALL_FIELDS)
 	{
 		Logger::Warn << "Warning: primary beam correction together with '-fields ALL' is not properly supported\n";

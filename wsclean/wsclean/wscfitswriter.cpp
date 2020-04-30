@@ -77,7 +77,7 @@ void WSCFitsWriter::setSettingsKeywords(const WSCleanSettings& settings, const s
 		_writer.SetExtraKeyword("WSCTIMES", settings.startTimestep);
 		_writer.SetExtraKeyword("WSCTIMEE", settings.endTimestep);
 	}
-	_writer.SetExtraKeyword("WSCFIELD", settings.fieldId);
+	_writer.SetExtraKeyword("WSCFIELD", settings.fieldIds[0]);
 }
 
 void WSCFitsWriter::setGridderConfiguration(const WSCleanSettings& settings, const ObservationInfo& observationInfo)
