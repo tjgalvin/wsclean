@@ -1,7 +1,9 @@
 #ifndef VLA_BEAM_H
 #define VLA_BEAM_H
 
+#include <array>
 #include <map>
+#include <string>
 
 class VLABeam
 {
