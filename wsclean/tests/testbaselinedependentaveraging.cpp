@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE( noAveraging )
 		MSSelection selection;
 		std::map<size_t, size_t> dataDescIds;
 		dataDescIds.insert(std::make_pair(0, 0));
-		AveragingMSRowProvider avgProvider(1e-8, filename, selection, dataDescIds, "DATA", false);
+		AveragingMSRowProvider avgProvider(1e-8, filename, selection, dataDescIds, 0, "DATA", false);
 		DirectMSRowProvider directProvider(filename, selection, dataDescIds, "DATA", false);
 		size_t nRow = 0, nFinite = 0;
 		casacore::IPosition shape(2, 4, 1);
@@ -29,10 +29,10 @@ BOOST_AUTO_TEST_CASE( noAveraging )
 		while(!avgProvider.AtEnd() && !directProvider.AtEnd() && nRow<nAnt*(nAnt-1)/2 * 10)
 		{
 			double uA, vA, wA, timeA, uD, vD, wD, timeD;
-			uint32_t a1A=1337, a2A=1338, a1D=1339, a2D=1340;
+			uint32_t a1A=1337, a2A=1338, a1D=1339, a2D=1340, field;
 			uint32_t descA=1341, descD=1342;
-			avgProvider.ReadData(dataArrayAvg, flagArrayAvg, weightsAvg, uA, vA, wA, descA, a1A, a2A, timeA);
-			directProvider.ReadData(dataArrayDirect, flagArrayDirect, weightsDirect, uD, vD, wD, descD, a1D, a2D, timeD);
+			avgProvider.ReadData(dataArrayAvg, flagArrayAvg, weightsAvg, uA, vA, wA, descA, a1A, a2A, field, timeA);
+			directProvider.ReadData(dataArrayDirect, flagArrayDirect, weightsDirect, uD, vD, wD, descD, a1D, a2D, field, timeD);
 					
 			for(size_t p=0; p!=4; ++p)
 			{
