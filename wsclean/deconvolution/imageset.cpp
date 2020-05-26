@@ -385,16 +385,17 @@ void ImageSet::CalculateDeconvolutionFrequencies(const ImagingTable& groupTable,
 	if(nDeconvolutionChannels == 0) nDeconvolutionChannels = nInputChannels;
 	frequencies.assign(nDeconvolutionChannels, 0.0);
 	weights.assign(nDeconvolutionChannels, 0.0);
-	ao::uvector<size_t> counts(nDeconvolutionChannels, 0);
+	ao::uvector<double> weightSums(nDeconvolutionChannels, 0);
 	for(size_t i=0; i!=nInputChannels; ++i)
 	{
 		const ImagingTableEntry& entry = groupTable.GetSquaredGroup(i)[0];
-		double freq = entry.CentralFrequency();
+		double
+			freq = entry.CentralFrequency(),
+			weight = entry.imageWeight;
 		size_t deconvolutionChannel = i * nDeconvolutionChannels / nInputChannels;
-		frequencies[deconvolutionChannel] += freq;
-		weights[deconvolutionChannel] += entry.imageWeight;
-		counts[deconvolutionChannel]++;
+		frequencies[deconvolutionChannel] += freq * weight;
+		weights[deconvolutionChannel] += weight;
 	}
 	for(size_t i=0; i!=nDeconvolutionChannels; ++i)
-		frequencies[i] /= counts[i];
+		frequencies[i] /= weights[i];
 }

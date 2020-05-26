@@ -185,7 +185,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 			memcpy(individualConvolvedImages[i], dirtySet[i], _width*_height*sizeof(double));
 			transformList.push_back(individualConvolvedImages[i]);
 		}
-		if(scaleWithPeak != 0)
+		if(_scaleInfos[scaleWithPeak].scale != 0.0)
 		{
 			tools->MultiScaleTransform(&msTransforms, transformList, scratch.data(), _scaleInfos[scaleWithPeak].scale);
 			//msTransforms.Transform(transformList, scratch.data(), _scaleInfos[scaleWithPeak].scale);
@@ -316,7 +316,13 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 		activateScales(scaleWithPeak);
 		
 		findActiveScaleConvolvedMaxima(dirtySet, integratedScratch.data(), scratch.data(), false, tools.get());
-		selectMaximumScale(scaleWithPeak);
+		
+		if(!selectMaximumScale(scaleWithPeak))
+		{
+			_logReceiver->Warn << "No peak found in main loop of multi-scale cleaning! Aborting deconvolution.\n";
+			reachedMajorThreshold = false;
+			return 0.0;
+		}
 		
 		_logReceiver->Info << "Iteration " << _iterationNumber << ", scale " << round(_scaleInfos[scaleWithPeak].scale) << " px : " << FluxDensity::ToNiceString(_scaleInfos[scaleWithPeak].maxUnnormalizedImageValue*_scaleInfos[scaleWithPeak].biasFactor) << " at " << _scaleInfos[scaleWithPeak].maxImageValueX << ',' << _scaleInfos[scaleWithPeak].maxImageValueY << '\n';
 	}
@@ -416,7 +422,7 @@ void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<ImageBufferAllocator::Ptr
 			
 			// I tried this, but wasn't perfect:
 			// _gain * _scaleInfos[0].kernelPeak / scaleEntry.kernelPeak;
-			scaleEntry.gain = _gain * _scaleInfos[0].psfPeak / scaleEntry.psfPeak;
+			scaleEntry.gain = _gain / scaleEntry.psfPeak;
 			
 			scaleEntry.isActive = true;
 			

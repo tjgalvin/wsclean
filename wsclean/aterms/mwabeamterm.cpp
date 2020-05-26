@@ -22,11 +22,11 @@ MWABeamTerm::MWABeamTerm(casacore::MeasurementSet& ms, const CoordinateSystem& c
 	if(aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
 	_nStations = aTable.nrow();
 	
-	casacore::MPosition::ROScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
+	casacore::MPosition::ScalarColumn antPosColumn(aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
 	_arrayPos = antPosColumn(0);
 	
 	casacore::Table mwaTilePointing = ms.keywordSet().asTable("MWA_TILE_POINTING");
-	casacore::ROArrayColumn<int> delaysCol(mwaTilePointing, "DELAYS");
+	casacore::ArrayColumn<int> delaysCol(mwaTilePointing, "DELAYS");
 	casacore::Array<int> delaysArr = delaysCol(0);
 	casacore::Array<int>::contiter delaysArrPtr = delaysArr.cbegin();
 	for(int i=0; i!=16; ++i)

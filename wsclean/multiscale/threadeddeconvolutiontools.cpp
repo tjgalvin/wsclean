@@ -202,7 +202,7 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(MultiScaleTransforms* msTran
 		{
 			for(size_t thr=0; thr!=nextThread; ++thr)
 			{
-				ThreadResult* result = 0;
+				ThreadResult* result = nullptr;
 				_resultLanes[thr]->read(result);
 				results[resultIndex].normalizedValue = static_cast<FindMultiScalePeakResult*>(result)->normalizedValue;
 				results[resultIndex].unnormalizedValue = static_cast<FindMultiScalePeakResult*>(result)->unnormalizedValue;
@@ -218,7 +218,7 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(MultiScaleTransforms* msTran
 	}
 	for(size_t thr=0; thr!=nextThread; ++thr)
 	{
-		ThreadResult* result = 0;
+		ThreadResult* result = nullptr;
 		_resultLanes[thr]->read(result);
 		results[resultIndex].unnormalizedValue = static_cast<FindMultiScalePeakResult*>(result)->unnormalizedValue;
 		results[resultIndex].normalizedValue = static_cast<FindMultiScalePeakResult*>(result)->normalizedValue;
