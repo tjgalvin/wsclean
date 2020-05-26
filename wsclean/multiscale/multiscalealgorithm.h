@@ -51,10 +51,6 @@ public:
 	{
 		_multiscaleGain = gain;
 	}
-	void SetMultiscaleNormalizeResponse(bool normResponse)
-	{
-		_multiscaleNormalizeResponse = normResponse;
-	}
 	void SetConvolutionPadding(double padding)
 	{
 		_convolutionPadding = padding;
@@ -95,6 +91,10 @@ public:
 	{
 		return _scaleMasks[index];
 	}
+	void SetMaxScales(size_t maxScales)
+	{
+		_maxScales = maxScales;
+	}
 private:
 	class ImageBufferAllocator& _allocator;
 	FFTWManager& _fftwManager;
@@ -103,8 +103,8 @@ private:
 	double _beamSizeInPixels;
 	double _multiscaleScaleBias;
 	double _multiscaleGain;
-	bool _multiscaleNormalizeResponse;
 	MultiScaleTransforms::Shape _scaleShape;
+	size_t _maxScales;
 	//ThreadedDeconvolutionTools* _tools;
 	
 	struct ScaleInfo

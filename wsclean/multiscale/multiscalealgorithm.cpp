@@ -21,8 +21,8 @@ MultiScaleAlgorithm::MultiScaleAlgorithm(ImageBufferAllocator& allocator, FFTWMa
 	_beamSizeInPixels(beamSize / std::max(pixelScaleX, pixelScaleY)),
 	_multiscaleScaleBias(0.6),
 	_multiscaleGain(0.2),
-	_multiscaleNormalizeResponse(false),
 	_scaleShape(MultiScaleTransforms::TaperedQuadraticShape),
+	_maxScales(0),
 	_trackPerScaleMasks(false), _usePerScaleMasks(false),
 	_fastSubMinorLoop(true), _trackComponents(false)
 {
@@ -364,7 +364,7 @@ void MultiScaleAlgorithm::initializeScaleInfo()
 				
 				scale *= 2.0;
 				++scaleIndex;
-			} while(scale < std::min(_width, _height)*0.5);
+			} while(scale < std::min(_width, _height)*0.5 && (_maxScales == 0 || scaleIndex < _maxScales));
 		}
 		else {
 			while(!_scaleInfos.empty() && _scaleInfos.back().scale >= std::min(_width, _height) * 0.5)
@@ -412,13 +412,12 @@ void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<ImageBufferAllocator::Ptr
 			//scaleEntry.biasFactor = std::max(1.0,
 			//	scaleEntry.psfPeak * scaleInfos[0].kernelPeak /
 			//	(scaleEntry.kernelPeak * scaleInfos[0].psfPeak));
-			double responseNormalization = _multiscaleNormalizeResponse ? scaleEntry.psfPeak : 1.0;
 			double expTerm;
 			if(scaleEntry.scale == 0.0 || _scaleInfos.size() < 2)
 				expTerm = 0.0;
 			else
 				expTerm = log2(scaleEntry.scale / firstAutoScaleSize);
-			scaleEntry.biasFactor = pow(_multiscaleScaleBias, -double(expTerm)) * 1.0 / responseNormalization;
+			scaleEntry.biasFactor = pow(_multiscaleScaleBias, -double(expTerm)) * 1.0;
 			
 			// I tried this, but wasn't perfect:
 			// _gain * _scaleInfos[0].kernelPeak / scaleEntry.kernelPeak;

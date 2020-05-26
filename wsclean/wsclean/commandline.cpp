@@ -312,10 +312,14 @@ void CommandLine::printHelp()
 		"-multiscale-scale-bias\n"
 		"   Parameter to prevent cleaning small scales in the large-scale iterations. A higher\n"
 		"   bias will give more focus to larger scales. Default: 0.6\n"
+		"-multiscale-max-scales <n>\n"
+		"   Set the maximum number of scales that WSClean should use in multiscale cleaning.\n"
+		"   Only relevant when -multiscale-scales is not set. Default: unlimited.\n"
 		"-multiscale-scales <comma-separated list of sizes in pixels>\n"
 		"   Sets a list of scales to use in multi-scale cleaning. If unset, WSClean will select the delta\n"
 		"   (zero) scale, scales starting at four times the synthesized PSF, and increase by a factor of\n"
-		"   two until the maximum scale is reached. Example: -multiscale-scales 0,5,12.5\n"
+		"   two until the maximum scale is reached or the maximum number of scales is reached.\n"
+		"   Example: -multiscale-scales 0,5,12.5\n"
 		"-multiscale-shape <shape>\n"
 		"   Sets the shape function used during multi-scale clean. Either 'tapered-quadratic' (default) or 'gaussian'.\n"
 		"-multiscale-gain <gain>\n"
@@ -942,10 +946,10 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[])
 			++argi;
 			settings.multiscaleDeconvolutionScaleBias = parse_double(argv[argi], 0.0, "multiscale-scale-bias", false);
 		}
-		else if(param == "multiscale-normalize-response")
+		else if(param == "multiscale-max-scales")
 		{
 			++argi;
-			settings.multiscaleNormalizeResponse = true;
+			settings.multiscaleMaxScales = parse_size_t(argv[argi], "multiscale-max-scales");
 		}
 		else if(param == "multiscale-scales")
 		{

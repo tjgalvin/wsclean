@@ -212,7 +212,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTa
 			new MultiScaleAlgorithm(*_imageAllocator, _parallelDeconvolution.GetFFTWManager(), beamSize, _pixelScaleX, _pixelScaleY);
 		msAlgorithm->SetManualScaleList(_settings.multiscaleScaleList);
 		msAlgorithm->SetMultiscaleScaleBias(_settings.multiscaleDeconvolutionScaleBias);
-		msAlgorithm->SetMultiscaleNormalizeResponse(_settings.multiscaleNormalizeResponse);
+		msAlgorithm->SetMaxScales(_settings.multiscaleMaxScales);
 		msAlgorithm->SetMultiscaleGain(_settings.multiscaleGain);
 		msAlgorithm->SetShape(_settings.multiscaleShapeFunction);
 		msAlgorithm->SetTrackComponents(_settings.saveSourceList);

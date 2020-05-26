@@ -107,7 +107,7 @@ public:
 	ao::uvector<double> spectralCorrection;
 	bool multiscaleFastSubMinorLoop;
 	double multiscaleGain, multiscaleDeconvolutionScaleBias;
-	bool multiscaleNormalizeResponse;
+	size_t multiscaleMaxScales;
 	double multiscaleConvolutionPadding;
 	ao::uvector<double> multiscaleScaleList;
 	MultiScaleTransforms::Shape multiscaleShapeFunction;
@@ -249,7 +249,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	multiscaleFastSubMinorLoop(true),
 	multiscaleGain(0.2),
 	multiscaleDeconvolutionScaleBias(0.6),
-	multiscaleNormalizeResponse(false),
+	multiscaleMaxScales(0),
 	multiscaleConvolutionPadding(1.1),
 	multiscaleScaleList(),
 	multiscaleShapeFunction(MultiScaleTransforms::TaperedQuadraticShape),
