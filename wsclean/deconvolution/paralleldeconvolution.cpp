@@ -107,7 +107,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 	ao::uvector<const double*> subPsfVector(psfImages.size());
 	for(size_t i=0; i!=psfImages.size(); ++i)
 	{
-		subPsfs[i] = Image(subImg.width, subImg.height, *_allocator);
+		subPsfs[i] = Image(subImg.width, subImg.height);
 		Image::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i], width, height);
 		subPsfVector[i] = subPsfs[i].data();
 	}
@@ -180,7 +180,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 		MultiScaleAlgorithm& algorithm =
 			static_cast<MultiScaleAlgorithm&>(*_algorithms[subImg.index]);
 		if(!_componentList)
-			_componentList.reset(new ComponentList(width, height, algorithm.ScaleCount(), dataImage.size(), *_allocator));
+			_componentList.reset(new ComponentList(width, height, algorithm.ScaleCount(), dataImage.size()));
 		_componentList->Add(algorithm.GetComponentList(), subImg.x, subImg.y);
 		algorithm.ClearComponentList();
 	}
@@ -221,9 +221,9 @@ void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class 
 		avgVSubImageSize = height / _verImages;
 	
 	Image
-		image(width, height, *_allocator),
-		scratch(width, height, *_allocator),
-		dividingLines(width, height, 0.0, *_allocator);
+		image(width, height),
+		scratch(width, height),
+		dividingLines(width, height, 0.0);
 	dataImage.GetLinearIntegrated(image.data());
 	
 	Subdivision divisor(width, height);
@@ -366,11 +366,10 @@ void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages, const Im
 		writeSourceList(*list, filename, phaseCentreRA, phaseCentreDec);
 	}
 	else {
-		_allocator->FreeUnused();
 		const size_t
 			w = _settings.trimmedImageWidth,
 			h = _settings.trimmedImageHeight;
-		ImageSet modelSet(&table, *_allocator, _settings, w, h);
+		ImageSet modelSet(&table, _settings, w, h);
 		modelSet.LoadAndAverage(modelImages);
 		ComponentList componentList(w, h, modelSet);
 		writeSourceList(componentList, filename, phaseCentreRA, phaseCentreDec);
@@ -383,7 +382,7 @@ void ParallelDeconvolution::correctChannelForPB(ComponentList& list, const Imagi
 	ImageFilename filename(entry.outputChannelIndex, entry.outputIntervalIndex);
 	filename.SetPolarization(entry.polarization);
 	PrimaryBeam pb(_settings);
-	PrimaryBeamImageSet beam = pb.Load(filename, *_allocator);
+	PrimaryBeamImageSet beam = pb.Load(filename);
 	list.CorrectForBeam(beam, entry.outputChannelIndex);
 }
 
@@ -404,8 +403,7 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages, const 
 			list.reset(new ComponentList(*_componentList));
 	}
 	else {
-		_allocator->FreeUnused();
-		ImageSet modelSet(&table, *_allocator, _settings, w, h);
+		ImageSet modelSet(&table, _settings, w, h);
 		modelSet.LoadAndAverage(modelImages);
 		list.reset(new ComponentList(w, h, modelSet));
 	}
@@ -459,8 +457,7 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(size_t imageIn
 	
 	PrimaryBeamImageSet beamImages;
 	
-	ImageBufferAllocator::Ptr scratch;
-	_allocator->Allocate(_settings.trimmedImageWidth*_settings.trimmedImageHeight, scratch);
+	Image scratch(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
 	size_t deconvolutionChannels = _settings.deconvolutionChannelCount;
 	
 	/// TODO : use real weights of images
@@ -476,9 +473,9 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(size_t imageIn
 			ImageFilename filename(e.outputChannelIndex, e.outputIntervalIndex);
 			
 			if(count == 0)
-				beamImages = pb.Load(filename, *_allocator);
+				beamImages = pb.Load(filename);
 			else
-				beamImages += pb.Load(filename, *_allocator);
+				beamImages += pb.Load(filename);
 			count++;
 		}
 	}

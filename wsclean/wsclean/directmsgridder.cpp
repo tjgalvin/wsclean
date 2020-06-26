@@ -8,9 +8,8 @@
 #include <vector>
 
 template<typename num_t>
-DirectMSGridder<num_t>::DirectMSGridder(class ImageBufferAllocator* imageAllocator, size_t nThreads) :
-	_nThreads(nThreads),
-	_imageAllocator(imageAllocator)
+DirectMSGridder<num_t>::DirectMSGridder(size_t nThreads) :
+	_nThreads(nThreads)
 { }
 
 template<typename num_t>
@@ -63,7 +62,7 @@ void DirectMSGridder<num_t>::Invert()
 	}
 	
 	// Wrap the image correctly and normalize it
-	_image = _imageAllocator->AllocatePtr(TrimWidth()*TrimHeight());
+	_image = Image(TrimWidth(), TrimHeight());
 	double wFactor = 1.0 / totalWeight();
 	for(size_t y=0; y!=height; ++y)
 	{
@@ -180,7 +179,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(const MSGridderBase::MSData& m
 }
 
 template<typename num_t>
-void DirectMSGridder<num_t>::Predict(ImageBufferAllocator::Ptr /*image*/)
+void DirectMSGridder<num_t>::Predict(Image /*image*/)
 {
 	throw std::runtime_error("Prediction not yet implemented for direct FT gridding");
 }

@@ -2,12 +2,12 @@
 #define MEASUREMENT_SET_GRIDDER_H
 
 #include "gridmodeenum.h"
-#include "imagebufferallocator.h"
 #include "observationinfo.h"
 
 #include "../polarization.h"
 #include "../msselection.h"
 #include "../weightmode.h"
+#include "../image.h"
 
 #include <cmath>
 #include <string>
@@ -86,7 +86,7 @@ class MeasurementSetGridder
 		bool SmallInversion() const { return _smallInversion; }
 		PolarizationEnum Polarization() const { return _polarization; }
 		WeightMode Weighting() const { return _weighting; }
-		class ImageWeights* PrecalculatedWeightInfo() const { return _precalculatedWeightInfo; }
+		const class ImageWeights* GetImageWeights() const { return _precalculatedWeightInfo; }
 		bool IsComplex() const { return _isComplex; }
 		bool Verbose() const { return _verbose; }
 		size_t AntialiasingKernelSize() const { return _antialiasingKernelSize; }
@@ -156,9 +156,9 @@ class MeasurementSetGridder
 		{ 
 			_smallInversion = smallInversion;
 		}
-		void SetPrecalculatedWeightInfo(class ImageWeights* precalculatedWeightInfo)
+		void SetImageWeights(const class ImageWeights* weights)
 		{ 
-			_precalculatedWeightInfo = precalculatedWeightInfo;
+			_precalculatedWeightInfo = weights;
 		}
 		void SetVerbose(bool verbose)
 		{
@@ -187,11 +187,11 @@ class MeasurementSetGridder
 		
 		virtual void Invert() = 0;
 		
-		virtual void Predict(ImageBufferAllocator::Ptr image) = 0;
-		virtual void Predict(ImageBufferAllocator::Ptr real, ImageBufferAllocator::Ptr imaginary) = 0;
+		virtual void Predict(Image image) = 0;
+		virtual void Predict(Image real, Image imaginary) = 0;
 		
-		virtual ImageBufferAllocator::Ptr ImageRealResult() = 0;
-		virtual ImageBufferAllocator::Ptr ImageImaginaryResult() = 0;
+		virtual Image ImageRealResult() = 0;
+		virtual Image ImageImaginaryResult() = 0;
 		virtual double PhaseCentreRA() const = 0;
 		virtual double PhaseCentreDec() const = 0;
 		virtual bool HasDenormalPhaseCentre() const { return false; }
@@ -246,7 +246,7 @@ class MeasurementSetGridder
 		std::string _dataColumnName;
 		bool _doImagePSF, _doSubtractModel, _addToModel, _smallInversion;
 		double _wLimit;
-		class ImageWeights *_precalculatedWeightInfo;
+		const class ImageWeights *_precalculatedWeightInfo;
 		PolarizationEnum _polarization;
 		bool _isComplex;
 		WeightMode _weighting;

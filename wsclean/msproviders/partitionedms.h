@@ -43,7 +43,7 @@ public:
 	
 	SynchronizedMS MS() override
 	{
-		return SynchronizedMS(_msPath.data());
+		return SynchronizedMS(_handle._data->_msPath.data());
 	}
 	
 	const std::string& DataColumnName() override { return _handle._data->_dataColumnName; }
@@ -90,10 +90,15 @@ public:
 	public:
 		Handle() = default;
 		
+		void Serialize(std::ostream& stream) const;
+		void Unserialize(std::istream& stream);
+		
 		friend class PartitionedMS;
 	private:
 		struct HandleData
 		{
+			HandleData() : _isCopy(false) { }
+			
 			HandleData(
 				const std::string& msPath,
 				const string& dataColumnName,
@@ -105,7 +110,7 @@ public:
 				const MSSelection& selection,
 				size_t nAntennas) :
 			_msPath(msPath), _dataColumnName(dataColumnName), _temporaryDirectory(temporaryDirectory), _channels(channels), _initialModelRequired(initialModelRequired), _modelUpdateRequired(modelUpdateRequired),
-			_polarizations(polarizations), _selection(selection), _nAntennas(nAntennas) { }
+			_polarizations(polarizations), _selection(selection), _nAntennas(nAntennas), _isCopy(false) { }
 			
 			~HandleData();
 			
@@ -115,6 +120,10 @@ public:
 			std::set<PolarizationEnum> _polarizations;
 			MSSelection _selection;
 			size_t _nAntennas;
+			bool _isCopy;
+			
+			void Serialize(std::ostream& stream) const;
+			void Unserialize(std::istream& stream);
 		};
 		std::shared_ptr<HandleData> _data;
 		
@@ -137,7 +146,6 @@ private:
 	static void getDataDescIdMap(std::map<size_t,size_t>& dataDescIds, const std::vector<PartitionedMS::ChannelRange>& channels);
 	
 	Handle _handle;
-	std::string _msPath;
 	size_t _partIndex;
 	std::ifstream _metaFile, _weightFile, _dataFile;
 	char *_modelFileMap;

@@ -8,12 +8,13 @@
 
 #include "../units/fluxdensity.h"
 
+#include "../wsclean/logger.h"
+
 #include <boost/thread/thread.hpp>
 
-GenericClean::GenericClean(ImageBufferAllocator& allocator, class FFTWManager& fftwManager, bool useSubMinorOptimization) :
+GenericClean::GenericClean(class FFTWManager& fftwManager, bool useSubMinorOptimization) :
 	_convolutionPadding(1.1),
 	_useSubMinorOptimization(useSubMinorOptimization),
-	_allocator(allocator),
 	_fftwManager(fftwManager)
 {
 }
@@ -32,10 +33,10 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 	if(_convolutionHeight%2 != 0)
 		++_convolutionHeight;
 	
-	ImageBufferAllocator::Ptr integrated, scratchA, scratchB;
-	_allocator.Allocate(width*height, integrated);
-	_allocator.Allocate(_convolutionWidth*_convolutionHeight, scratchA);
-	_allocator.Allocate(_convolutionWidth*_convolutionHeight, scratchB);
+	Image
+		integrated(width, height),
+		scratchA(_convolutionWidth, _convolutionHeight),
+		scratchB(_convolutionWidth, _convolutionHeight);
 	dirtySet.GetLinearIntegrated(integrated.data());
 	size_t componentX=0, componentY=0;
 	boost::optional<double> maxValue = findPeak(integrated.data(), scratchA.data(), componentX, componentY);

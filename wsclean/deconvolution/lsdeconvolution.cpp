@@ -4,6 +4,8 @@
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_multifit.h>
 
+#include "../wsclean/logger.h"
+
 #define OUTPUT_LSD_DEBUG_INFO 1
 
 struct LSDeconvolutionData
@@ -136,12 +138,12 @@ struct LSDeconvolutionData
 	}
 };
 
-LSDeconvolution::LSDeconvolution() : _allocator(nullptr), _data(new LSDeconvolutionData())
+LSDeconvolution::LSDeconvolution() : _data(new LSDeconvolutionData())
 { }
 
 LSDeconvolution::LSDeconvolution(const LSDeconvolution& source) :
 	DeconvolutionAlgorithm(),
-	_allocator(source._allocator), _data(new LSDeconvolutionData(*source._data))
+	_data(new LSDeconvolutionData(*source._data))
 { }
 
 LSDeconvolution::~LSDeconvolution()

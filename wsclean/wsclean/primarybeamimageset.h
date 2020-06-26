@@ -9,8 +9,7 @@
 #include "../matrix2x2.h"
 #include "../polarization.h"
 #include "../fitsreader.h"
-
-#include "../wsclean/imagebufferallocator.h"
+#include "../image.h"
 
 class PrimaryBeamImageSet
 {
@@ -21,13 +20,13 @@ public:
 		_height(0)
 	{ }
 	
-	PrimaryBeamImageSet(size_t width, size_t height, ImageBufferAllocator& allocator, size_t nImages) :
+	PrimaryBeamImageSet(size_t width, size_t height, size_t nImages) :
 		_beamImages(nImages),
 		_width(width),
 		_height(height)
 	{
 		for(size_t i=0; i!=nImages; ++i)
-			allocator.Allocate(width*height, _beamImages[i]);
+			_beamImages[i] = Image(width, height);
 	}
 	
 	static FitsReader GetAReader(const std::string& beamPrefix, bool stokesIOnly)
@@ -44,11 +43,11 @@ public:
 		}
 	}
 	
-	static PrimaryBeamImageSet Load(const std::string& beamPrefix, size_t width, size_t height, ImageBufferAllocator& allocator, bool stokesIOnly)
+	static PrimaryBeamImageSet Load(const std::string& beamPrefix, size_t width, size_t height, bool stokesIOnly)
 	{
 		if(stokesIOnly)
 		{
-			PrimaryBeamImageSet beamImages(width, height, allocator, 8);
+			PrimaryBeamImageSet beamImages(width, height, 8);
 			// IDG produces only a Stokes I beam, and has already corrected for the rest.
 			// Currently we just load that beam into real component of XX and YY, and set the other 6 images to zero.
 			// This is a bit wasteful so might require a better strategy for big images.
@@ -66,7 +65,7 @@ public:
 		}
 		else {
 			try {
-				PrimaryBeamImageSet beamImages(width, height, allocator, 8);
+				PrimaryBeamImageSet beamImages(width, height, 8);
 				PolarizationEnum
 					linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
 				for(size_t i=0; i!=8; ++i)
@@ -83,7 +82,7 @@ public:
 				return beamImages;
 			} catch(std::exception&)
 			{
-				PrimaryBeamImageSet beamImages(width, height, allocator, 16);
+				PrimaryBeamImageSet beamImages(width, height, 16);
 				for(size_t i=0; i!=16; ++i)
 				{
 					FitsReader reader(beamPrefix + "-" + std::to_string(i) + ".fits");
@@ -96,8 +95,8 @@ public:
 	
 	void SetToZero()
 	{
-		for(ImageBufferAllocator::Ptr& ptr : _beamImages)
-			std::fill_n(ptr.data(), _width*_height, 0.0);
+		for(Image& img : _beamImages)
+			std::fill_n(img.data(), _width*_height, 0.0);
 	}
 	
 	double GetUnpolarizedCorrectionFactor(size_t x, size_t y)
@@ -138,7 +137,11 @@ public:
 		}
 	}
 	
-	const ImageBufferAllocator::Ptr& operator[](size_t index) const
+	const Image& operator[](size_t index) const
+	{
+		return _beamImages[index];
+	}
+	Image& operator[](size_t index)
 	{
 		return _beamImages[index];
 	}
@@ -254,7 +257,7 @@ public:
 	size_t Height() const { return _height; }
 	
 private:
-	std::vector<ImageBufferAllocator::Ptr> _beamImages;
+	std::vector<Image> _beamImages;
 	size_t _width, _height;
 };
 

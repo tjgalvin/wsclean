@@ -36,7 +36,7 @@ public:
 	
 	void SetAlgorithm(std::unique_ptr<class DeconvolutionAlgorithm> algorithm);
 	
-	void SetRMSFactorImage(class Image&& image);
+	void SetRMSFactorImage(Image&& image);
 	
 	void SetThreshold(double threshold);
 	

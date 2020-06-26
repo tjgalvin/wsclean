@@ -8,17 +8,15 @@
 #include "../fftresampler.h"
 #include "../image.h"
 
-#include "../wsclean/imagebufferallocator.h"
 #include "../wsclean/logger.h"
 
 #include "../msproviders/msprovider.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-BufferedMSGridder::BufferedMSGridder(ImageBufferAllocator* imageAllocator, size_t threadCount, double memFraction, double absMemLimit) :
+BufferedMSGridder::BufferedMSGridder(size_t threadCount, double memFraction, double absMemLimit) :
 	MSGridderBase(),
-	_cpuCount(threadCount),
-	_imageBufferAllocator(imageAllocator)
+	_cpuCount(threadCount)
 {
 	_memSize = getAvailableMemory(memFraction, absMemLimit);
 }
@@ -202,7 +200,7 @@ void BufferedMSGridder::Invert()
 		Logger::Info << ", effective count after weighting: " << EffectiveGriddedVisibilityCount();
 	Logger::Info << '\n';
 
-	_image = _imageBufferAllocator->AllocatePtr(ActualInversionWidth() * ActualInversionHeight());
+	_image = Image(ActualInversionWidth(), ActualInversionHeight());
 	{
 		std::vector<float> imageFloat = _gridder->RealImage();
                 for (size_t i=0; i<imageFloat.size(); ++i) _image[i] = imageFloat[i];
@@ -214,7 +212,7 @@ void BufferedMSGridder::Invert()
 		// The input is of size _actualInversionWidth x _actualInversionHeight
 		FFTResampler resampler(_actualInversionWidth, _actualInversionHeight, ImageWidth(), ImageHeight(), _cpuCount);
 
-		ImageBufferAllocator::Ptr resized = _imageBufferAllocator->AllocatePtr(ImageWidth() * ImageHeight());
+		Image resized = Image(ImageWidth(), ImageHeight());
 		resampler.Resample(_image.data(), resized.data());
 		_image = std::move(resized);
 	}
@@ -223,14 +221,13 @@ void BufferedMSGridder::Invert()
 	{
 		Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight() << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
 
-		ImageBufferAllocator::Ptr
-			trimmed = _imageBufferAllocator->AllocatePtr(TrimWidth() * TrimHeight());
+		Image trimmed(TrimWidth(), TrimHeight());
 		Image::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _image.data(), ImageWidth(), ImageHeight());
 		_image = std::move(trimmed);
 	}
 }
 
-void BufferedMSGridder::Predict(ImageBufferAllocator::Ptr image)
+void BufferedMSGridder::Predict(Image image)
 {
 	std::vector<MSData> msDataVector;
 	initializeMSDataVector(msDataVector);
@@ -242,8 +239,7 @@ void BufferedMSGridder::Predict(ImageBufferAllocator::Ptr image)
 
 	if(TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight())
 	{
-		ImageBufferAllocator::Ptr untrimmedImage =
-			_imageBufferAllocator->AllocatePtr(ImageWidth() * ImageHeight());
+		Image untrimmedImage(ImageWidth(), ImageHeight());
 		Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight() << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
 		Image::Untrim(untrimmedImage.data(), ImageWidth(), ImageHeight(), image.data(), TrimWidth(), TrimHeight());
 		image = std::move(untrimmedImage);
@@ -251,8 +247,7 @@ void BufferedMSGridder::Predict(ImageBufferAllocator::Ptr image)
 
 	if(ImageWidth()!=_actualInversionWidth || ImageHeight()!=_actualInversionHeight)
 	{
-		ImageBufferAllocator::Ptr resampledImage =
-			_imageBufferAllocator->AllocatePtr(ImageWidth() * ImageHeight());
+		Image resampledImage(ImageWidth(), ImageHeight());
 		FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth, _actualInversionHeight, _cpuCount);
 
 		resampler.Resample(image.data(), resampledImage.data());

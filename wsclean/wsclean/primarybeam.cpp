@@ -1,4 +1,6 @@
 #include "primarybeam.h"
+#include "wscleansettings.h"
+#include "logger.h"
 
 #include "../fitswriter.h"
 #include "../matrix2x2.h"
@@ -6,6 +8,7 @@
 
 #include "../lofar/lbeamimagemaker.h"
 
+#include "../msproviders/msdatadescription.h"
 #include "../mwa/mwabeam.h"
 
 #include "../primarybeam/atcabeam.h"
@@ -15,7 +18,20 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 
-void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTableEntry& entry, std::shared_ptr<ImageWeights> imageWeights, ImageBufferAllocator& allocator)
+PrimaryBeam::PrimaryBeam(const WSCleanSettings& settings) :
+	_settings(settings),
+	_phaseCentreRA(0.0), _phaseCentreDec(0.0), _phaseCentreDL(0.0), _phaseCentreDM(0.0)
+{ }
+
+PrimaryBeam::~PrimaryBeam()
+{ }
+
+void PrimaryBeam::AddMS(std::unique_ptr<class MSDataDescription> description)
+{
+	_msList.emplace_back(std::move(description));
+}
+
+void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTableEntry& entry, std::shared_ptr<ImageWeights> imageWeights)
 {
 	bool useExistingBeam = false;
 	if(_settings.reusePrimaryBeam)
@@ -49,27 +65,29 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 		{
 			// A single outputimage/entry might consist of multiple measurement sets. In that case we
 			// only use the first measurement set:
-			SynchronizedMS ms(_msProviders.front().first->MS());
+			std::unique_ptr<MSProvider> provider = _msList.front()->GetProvider();
+			SynchronizedMS ms(provider->MS());
 			Telescope::TelescopeType type = Telescope::GetType(*ms);
 			ms.Reset();
+			provider.reset();
 			switch(type)
 			{
 				case Telescope::LOFAR:
 				case Telescope::AARTFAAC:
-					beamImages = makeLOFARImage(entry, imageWeights, allocator);
+					beamImages = makeLOFARImage(entry, imageWeights);
 					break;
 				case Telescope::MWA:
-					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator, 8);
+					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, 8);
 					beamImages.SetToZero();
-					makeMWAImage(beamImages, entry, allocator);
+					makeMWAImage(beamImages, entry);
 					break;
 				case Telescope::ATCA:
-					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator, 8);
+					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, 8);
 					beamImages.SetToZero();
 					makeATCAImage(beamImages, entry);
 					break;
 				case Telescope::VLA:
-					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, allocator, 8);
+					beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth, _settings.trimmedImageHeight, 8);
 					beamImages.SetToZero();
 					makeVLAImage(beamImages, entry);
 					break;
@@ -80,7 +98,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 		
 		if(beamImages.NImages() == 8)
 		{
-			// Save the beam images as fits files
+			// Save the 8 beam images as fits files
 			PolarizationEnum
 				linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
 			FitsWriter writer;
@@ -98,7 +116,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 			}
 		}
 		else {
-			// Save the beam images as fits files
+			// Save the 16 beam images as fits files
 			FitsWriter writer;
 			writer.SetImageDimensions(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _phaseCentreRA, _phaseCentreDec, _settings.pixelScaleX, _settings.pixelScaleY);
 			writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
@@ -111,9 +129,9 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 	}
 }
 
-void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageName, const std::string& filenameKind, ImageBufferAllocator& allocator)
+void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageName, const std::string& filenameKind)
 {
-	PrimaryBeamImageSet beamImages = load(imageName, _settings, allocator);
+	PrimaryBeamImageSet beamImages = load(imageName, _settings);
 	if(_settings.polarizations.size() == 1 || filenameKind == "psf")
 	{
 		PolarizationEnum pol = *_settings.polarizations.begin();
@@ -128,8 +146,7 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 			else
 				prefix = stokesIName.GetPrefix(_settings);
 			FitsReader reader(prefix + "-" + filenameKind + ".fits");
-			ImageBufferAllocator::Ptr image;
-			allocator.Allocate(reader.ImageWidth() * reader.ImageHeight(), image);
+			Image image(reader.ImageWidth(), reader.ImageHeight());
 			reader.Read(image.data());
 			
 			beamImages.ApplyStokesI(image.data());
@@ -141,7 +158,7 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 	}
 	else if(Polarization::HasFullStokesPolarization(_settings.polarizations))
 	{
-		ImageBufferAllocator::Ptr images[4];
+		Image images[4];
 		std::unique_ptr<FitsReader> reader;
 		for(size_t polIndex = 0; polIndex != 4; ++polIndex)
 		{
@@ -149,7 +166,7 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 			ImageFilename name(imageName);
 			name.SetPolarization(pol);
 			reader.reset(new FitsReader(name.GetPrefix(_settings) + "-" + filenameKind + ".fits"));
-			allocator.Allocate(reader->ImageWidth() * reader->ImageHeight(), images[polIndex]);
+			images[polIndex] = Image(reader->ImageWidth(), reader->ImageHeight());
 			reader->Read(images[polIndex].data());
 		}
 		
@@ -169,11 +186,11 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 	}
 }
 
-PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCleanSettings& settings, ImageBufferAllocator& allocator)
+PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCleanSettings& settings)
 {
 	if(settings.useIDG)
 	{
-		PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, allocator, 8);
+		PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, 8);
 		// IDG produces only a Stokes I beam, and has already corrected for the rest.
 		// Currently we just load that beam into real component of XX and YY, and set the other 6 images to zero.
 		// This is a bit wasteful so might require a better strategy for big images.
@@ -193,7 +210,7 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCl
 	}
 	else {
 		try {
-			PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, allocator, 8);
+			PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, 8);
 			PolarizationEnum
 				linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
 			for(size_t i=0; i!=8; ++i)
@@ -208,7 +225,7 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCl
 			return beamImages;
 		} catch(std::exception&)
 		{
-			PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, allocator, 16);
+			PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, 16);
 			for(size_t i=0; i!=16; ++i)
 			{
 				FitsReader reader(imageName.GetBeamPrefix(settings) + "-" + std::to_string(i) + ".fits");
@@ -219,11 +236,15 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCl
 	}
 }
 
-PrimaryBeamImageSet PrimaryBeam::makeLOFARImage(const ImagingTableEntry& entry, std::shared_ptr<ImageWeights> imageWeights, ImageBufferAllocator& allocator)
+PrimaryBeamImageSet PrimaryBeam::makeLOFARImage(const ImagingTableEntry& entry, std::shared_ptr<ImageWeights> imageWeights)
 {
-	LBeamImageMaker lbeam(&entry, &allocator);
-	for(size_t i=0; i!=_msProviders.size(); ++i)
-		lbeam.AddMS(_msProviders[i].first, &_msProviders[i].second, i);
+	LBeamImageMaker lbeam(&entry);
+	std::vector<std::unique_ptr<MSProvider>> providers;
+	for(size_t i=0; i!=_msList.size(); ++i)
+	{
+		providers.emplace_back(_msList[i]->GetProvider());
+		lbeam.AddMS(providers.back().get(), &_msList[i]->Selection(), i);
+	}
 	lbeam.SetUseDifferentialBeam(_settings.useDifferentialLofarBeam);
 	lbeam.SetSaveIntermediateImages(_settings.saveATerms);
 	lbeam.SetImageDetails(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
@@ -233,11 +254,15 @@ PrimaryBeamImageSet PrimaryBeam::makeLOFARImage(const ImagingTableEntry& entry, 
 	return lbeam.Make();
 }
 
-void PrimaryBeam::makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, ImageBufferAllocator& allocator)
+void PrimaryBeam::makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry)
 {
-	MWABeam mwaBeam(&entry, &allocator);
-	for(size_t i=0; i!=_msProviders.size(); ++i)
-		mwaBeam.AddMS(_msProviders[i].first, &_msProviders[i].second, i);
+	MWABeam mwaBeam(&entry);
+	std::vector<std::unique_ptr<MSProvider>> providers;
+	for(size_t i=0; i!=_msList.size(); ++i)
+	{
+		providers.emplace_back(_msList[i]->GetProvider());
+		mwaBeam.AddMS(providers.back().get(), &_msList[i]->Selection(), i);
+	}
 	mwaBeam.SetImageDetails(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _settings.pixelScaleX, _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
 	mwaBeam.SetUndersampling(_settings.primaryBeamUndersampling);
 	if(!_settings.mwaPath.empty())
@@ -247,7 +272,8 @@ void PrimaryBeam::makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTab
 
 void PrimaryBeam::makeFromVoltagePattern(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, VoltagePattern& vp)
 {
-	SynchronizedMS ms(_msProviders.front().first->MS());
+	std::unique_ptr<MSProvider> msProvider = _msList.front()->GetProvider();
+	SynchronizedMS ms(msProvider->MS());
 	casacore::ArrayColumn<double> pointingDirCol(ms->field(), casacore::MSField::columnName(casacore::MSField::DELAY_DIR));
 	size_t fieldRow = _settings.fieldIds[0];
 	if(fieldRow == MSSelection::ALL_FIELDS)
@@ -275,7 +301,8 @@ void PrimaryBeam::makeVLAImage(PrimaryBeamImageSet& beamImages, const ImagingTab
 	Logger::Info << "Calculating VLA primary beam...\n";
 	std::string bandName;
 	{
-		SynchronizedMS ms(_msProviders.front().first->MS());
+		std::unique_ptr<MSProvider> msProvider = _msList.front()->GetProvider();
+		SynchronizedMS ms(msProvider->MS());
 		casacore::ScalarColumn<casacore::String> bandNameCol(ms->spectralWindow(), casacore::MSSpectralWindow::columnName(casacore::MSSpectralWindow::NAME));
 		// TODO for now, just pick the first band. Of course, this should be an integral over all bands!
 		size_t bandIndex = entry.msData[0].bands[0].bandIndex;

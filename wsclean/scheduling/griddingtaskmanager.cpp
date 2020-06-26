@@ -1,33 +1,48 @@
 #include "griddingtaskmanager.h"
 
-#include "wscleansettings.h"
-#include "wsmsgridder.h"
-#include "directmsgridder.h"
+#include "mpischeduler.h"
+#include "threadedscheduler.h"
+
+#include "../wsclean/wscleansettings.h"
+#include "../wsclean/wsmsgridder.h"
+#include "../wsclean/directmsgridder.h"
 
 #include "../idg/idgmsgridder.h"
 #include "../wgridder/bufferedmsgridder.h"
 
-GriddingTaskManager::GriddingTaskManager(const class WSCleanSettings& settings, ImageBufferAllocator& allocator) :
-	_taskList(settings.parallelGridding),
-	_settings(settings),
-	_allocator(allocator),
-	_gridder(createGridder())
-{
-	prepareGridder(*_gridder);
-}
+GriddingTaskManager::GriddingTaskManager(const class WSCleanSettings& settings) :
+	_settings(settings)
+{ }
 
 GriddingTaskManager::~GriddingTaskManager()
 {
-	if(!_threadList.empty())
-		Finish();
+}
+
+std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(const class WSCleanSettings& settings, bool useDirectScheduler)
+{
+	if(settings.useMPI && !useDirectScheduler)
+	{
+#ifdef HAVE_MPI
+		return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
+#else
+		throw std::runtime_error("MPI not available");
+#endif
+	}
+	else if(settings.parallelGridding == 1 || useDirectScheduler)
+	{
+		return std::unique_ptr<GriddingTaskManager>(new GriddingTaskManager(settings));
+	}
+	else {
+		return std::unique_ptr<GriddingTaskManager>(new ThreadedScheduler(settings));
+	}
 }
 
 std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const
 {
 	if(_settings.useIDG)
-		return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings, _allocator));
+		return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
 	else if(_settings.useWGridder)
-		return std::unique_ptr<MSGridderBase>(new BufferedMSGridder(&_allocator, _settings.threadCount, _settings.memFraction, _settings.absMemLimit));
+		return std::unique_ptr<MSGridderBase>(new BufferedMSGridder(_settings.threadCount, _settings.memFraction, _settings.absMemLimit));
 	else if(_settings.directFT)
 	{
 		switch(_settings.directFTPrecision) {
@@ -36,83 +51,43 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const
 			//return std::unique_ptr<MSGridderBase>(new DirectMSGridder<half_float::half>(&_imageAllocator, _settings.threadCount));
 			break;
 		case DirectFTPrecision::Float:
-			return std::unique_ptr<MSGridderBase>(new DirectMSGridder<float>(&_allocator, _settings.threadCount));
+			return std::unique_ptr<MSGridderBase>(new DirectMSGridder<float>(_settings.threadCount));
 			break;
 		default:
 		case DirectFTPrecision::Double:
-			return std::unique_ptr<MSGridderBase>(new DirectMSGridder<double>(&_allocator, _settings.threadCount));
+			return std::unique_ptr<MSGridderBase>(new DirectMSGridder<double>(_settings.threadCount));
 			break;
 		case DirectFTPrecision::LongDouble:
-			return std::unique_ptr<MSGridderBase>(new DirectMSGridder<long double>(&_allocator, _settings.threadCount));
+			return std::unique_ptr<MSGridderBase>(new DirectMSGridder<long double>(_settings.threadCount));
 			break;
 		}
 	}
 	else
-		return std::unique_ptr<MSGridderBase>(new WSMSGridder(&_allocator, _settings.threadCount, _settings.memFraction, _settings.absMemLimit));
+		return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings.threadCount, _settings.memFraction, _settings.absMemLimit));
 }
 
 void GriddingTaskManager::Run(GriddingTask& task, std::function<void (GriddingResult &)> finishCallback)
 {
-	if(_settings.useMPI)
-	{
-		// TODO
-	}
-	else if(_settings.parallelGridding == 1)
-	{
-		GriddingResult result = runDirect(task, *_gridder);
-		finishCallback(result);
-	}
-	else {
-		// Start an extra thread if not maxed out already
-		if(_threadList.size() < _settings.parallelGridding)
-			_threadList.emplace_back(&GriddingTaskManager::processQueue, this);
-		else
-			_taskList.wait_for_empty(); // if all threads are busy, block until one available (in order not to stack too many tasks)
-		
-		std::lock_guard<std::mutex> lock(_mutex);
-		while(!_readyList.empty())
-		{
-			// Call callbacks for any finished tasks
-			_readyList.back().second(_readyList.back().first);
-			_readyList.pop_back();
-		}
-			
-		_taskList.write(std::pair<GriddingTask, std::function<void (GriddingResult &)>>(std::move(task), finishCallback));
-	}
-}
-
-void GriddingTaskManager::Finish()
-{
-	if(_settings.useMPI)
-	{
-		// TODO
-	}
-	else if(_settings.parallelGridding != 1)
-	{
-		_taskList.write_end();
-		for(std::thread& t : _threadList)
-			t.join();
-		_threadList.clear();
-		_taskList.clear();
-		while(!_readyList.empty())
-		{
-			// Call callbacks for any finished tasks
-			_readyList.back().second(_readyList.back().first);
-			_readyList.pop_back();
-		}
-	}
+	GriddingResult result = runDirect(task, *_gridder);
+	finishCallback(result);
 }
 
 GriddingResult GriddingTaskManager::runDirect(GriddingTask& task, MSGridderBase& gridder)
 {
 	gridder.ClearMeasurementSetList();
-	for(auto& p : task.msList)
-		gridder.AddMeasurementSet(p.first.get(), p.second);
+	std::vector<std::unique_ptr<MSProvider>> msProviders;
+	for(auto& p : task.msList) {
+		msProviders.emplace_back(p->GetProvider());
+		gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
+	}
 	gridder.SetPolarization(task.polarization);
 	gridder.SetIsComplex(task.polarization == Polarization::XY || task.polarization == Polarization::YX);
 	gridder.SetVerbose(task.verbose);
-	gridder.SetMetaDataCache(task.cache);
-	gridder.SetPrecalculatedWeightInfo(task.precalculatedWeightInfo.get());
+	if(task.cache)
+		gridder.SetMetaDataCache(std::move(task.cache));
+	else
+		gridder.SetMetaDataCache(std::unique_ptr<MetaDataCache>(new MetaDataCache()));
+	gridder.SetImageWeights(task.imageWeights.get());
 	if(task.operation == GriddingTask::Invert)
 	{
 		gridder.SetDoImagePSF(task.imagePSF);
@@ -142,22 +117,8 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task, MSGridderBase&
 	result.visibilityWeightSum = gridder.VisibilityWeightSum();
 	result.actualInversionWidth = gridder.ActualInversionWidth();
 	result.actualInversionHeight = gridder.ActualInversionHeight();
+	result.cache = gridder.AcquireMetaDataCache();
 	return result;
-}
-
-void GriddingTaskManager::processQueue()
-{
-	std::unique_ptr<MSGridderBase> gridder(createGridder());
-	prepareGridder(*gridder);
-	
-	std::pair<GriddingTask, std::function<void (GriddingResult &)>> taskPair;
-	while(_taskList.read(taskPair))
-	{
-		GriddingResult result = runDirect(taskPair.first, *gridder);
-		
-		std::lock_guard<std::mutex> lock(_mutex);
-		_readyList.emplace_back(std::move(result), taskPair.second);
-	}
 }
 
 void GriddingTaskManager::prepareGridder(MSGridderBase& gridder)

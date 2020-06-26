@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 {
 	try {
 		WSClean wsclean;
-		if(CommandLine::Parse(wsclean, argc, argv))
+		if(CommandLine::Parse(wsclean, argc, argv, false))
 			CommandLine::Run(wsclean);
 		return 0;
 	} catch(std::exception& e)

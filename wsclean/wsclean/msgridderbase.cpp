@@ -185,7 +185,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData)
 						uInL = metaData.uInM/wavelength, vInL = metaData.vInM/wavelength,
 						x = uInL * PixelSizeX() * ImageWidth(),
 						y = vInL * PixelSizeY() * ImageHeight(),
-						imagingWeight = PrecalculatedWeightInfo()->GetWeight(uInL, vInL);
+						imagingWeight = GetImageWeights()->GetWeight(uInL, vInL);
 					if(imagingWeight != 0.0)
 					{
 						if(std::floor(x) > -halfWidth  && std::ceil(x) < halfWidth &&
@@ -440,7 +440,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider, InversionR
 		double
 			u = rowData.uvw[0] / curBand.ChannelWavelength(ch),
 			v = rowData.uvw[1] / curBand.ChannelWavelength(ch),
-			imageWeight = PrecalculatedWeightInfo()->GetWeight(u, v);
+			imageWeight = GetImageWeights()->GetWeight(u, v);
 		_scratchWeights[ch] = imageWeight;
 		
 		for(size_t p=0; p!=PolarizationCount; ++p)

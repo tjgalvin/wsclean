@@ -2,38 +2,51 @@
 #define IMAGE_H
 
 #include <cstring>
-
-#include "wsclean/imagebufferallocator.h"
+#include <cmath>
+#include <complex>
 
 #include "uvector.h"
+#include <memory>
 
-class Image
+template<typename NumT>
+class ImageT
 {
 public:
-	typedef double* iterator;
-	typedef const double* const_iterator;
+	typedef NumT value_type;
+	typedef value_type num_t;
 	
-	Image() : _data(nullptr), _width(0), _height(0), _allocator(nullptr) { }
-	Image(size_t width, size_t height, class ImageBufferAllocator& allocator);
-	Image(size_t width, size_t height, double initialValue, ImageBufferAllocator& allocator);
+	typedef value_type* iterator;
+	typedef const value_type* const_iterator;
 	
-	~Image();
+	typedef std::unique_ptr<ImageT<NumT>> Ptr;
 	
-	Image(const Image&);
-	Image& operator=(const Image&);
-	Image& operator=(double value);
+	ImageT() : _data(nullptr), _width(0), _height(0) { }
+	ImageT(size_t width, size_t height);
+	ImageT(size_t width, size_t height, value_type initialValue);
 	
-	Image(Image&& source);
-	Image& operator=(Image&& source);
+	~ImageT();
 	
-	double* data() { return _data; }
-	const double* data() const { return _data; }
+	ImageT(const ImageT<NumT>&);
+	ImageT<NumT>& operator=(const ImageT<NumT>&);
+	ImageT<NumT>& operator=(value_type value);
+	
+	ImageT(ImageT<NumT>&& source);
+	ImageT<NumT>& operator=(ImageT<NumT>&& source);
+	
+	static Ptr Make(size_t width, size_t height) { 
+		return Ptr(new ImageT<NumT>(width, height));
+	}
+	static Ptr Make(size_t width, size_t height, value_type initialValue) { 
+		return Ptr(new ImageT<NumT>(width, height, initialValue));
+	}
+	
+	value_type* data() { return _data; }
+	const value_type* data() const { return _data; }
 	
 	size_t Width() const { return _width; }
 	size_t Height() const { return _height; }
 	size_t size() const { return _width * _height; }
 	bool empty() const { return _width == 0 || _height == 0; }
-	ImageBufferAllocator& Allocator() const { return *_allocator; }
 	
 	iterator begin() { return _data; }
 	const_iterator begin() const { return _data; }
@@ -41,14 +54,14 @@ public:
 	iterator end() { return _data + _width*_height; }
 	const_iterator end() const { return _data + _width*_height; }
 	
-	const double& operator[](size_t index) const { return _data[index]; }
-	double& operator[](size_t index) { return _data[index]; }
+	const value_type& operator[](size_t index) const { return _data[index]; }
+	value_type& operator[](size_t index) { return _data[index]; }
 	
-	Image& operator+=(const Image& other);
-	Image& operator-=(const Image& other);
+	ImageT<NumT>& operator+=(const ImageT<NumT>& other);
+	ImageT<NumT>& operator-=(const ImageT<NumT>& other);
 	
-	Image& operator*=(double factor);
-	Image& operator*=(const Image& other);
+	ImageT<NumT>& operator*=(value_type factor);
+	ImageT<NumT>& operator*=(const ImageT<NumT>& other);
 	
 	void reset();
 	
@@ -56,18 +69,18 @@ public:
 	 * @param outWidth Should be &lt;= inWidth.
 	 * @param outHeight Should be &lt;= inHeight.
 	 */
-	static void Trim(double* output, size_t outWidth, size_t outHeight, const double* input, size_t inWidth, size_t inHeight);
+	static void Trim(value_type* output, size_t outWidth, size_t outHeight, const value_type* input, size_t inWidth, size_t inHeight);
 	
-	Image Trim(size_t outWidth, size_t outHeight) const
+	ImageT<NumT> Trim(size_t outWidth, size_t outHeight) const
 	{
-		Image image(outWidth, outHeight, *_allocator);
+		ImageT<NumT> image(outWidth, outHeight);
 		Trim(image.data(), outWidth, outHeight, data(), Width(), Height());
 		return image;
 	}
 	
-	Image TrimBox(size_t x1, size_t y1, size_t boxWidth, size_t boxHeight) const
+	ImageT<NumT> TrimBox(size_t x1, size_t y1, size_t boxWidth, size_t boxHeight) const
 	{
-		Image image(boxWidth, boxHeight, *_allocator);
+		ImageT<NumT> image(boxWidth, boxHeight);
 		TrimBox(image.data(), x1, y1, boxWidth, boxHeight, data(), Width(), Height());
 		return image;
 	}
@@ -82,60 +95,63 @@ public:
 	 * @param outWidth Should be &gt;= inWidth.
 	 * @param outHeight Should be &gt;= inHeight.
 	 */
-	static void Untrim(double* output, size_t outWidth, size_t outHeight, const double* input, size_t inWidth, size_t inHeight);
+	static void Untrim(value_type* output, size_t outWidth, size_t outHeight, const value_type* input, size_t inWidth, size_t inHeight);
 	
-	Image Untrim(size_t outWidth, size_t outHeight) const
+	ImageT<NumT> Untrim(size_t outWidth, size_t outHeight) const
 	{
-		Image image(outWidth, outHeight, *_allocator);
+		ImageT<NumT> image(outWidth, outHeight);
 		Untrim(image.data(), outWidth, outHeight, data(), Width(), Height());
 		return image;
 	}
 	
-	static double Median(const double* data, size_t size)
+	static value_type Median(const value_type* data, size_t size)
 	{
-		ao::uvector<double> copy;
+		ao::uvector<value_type> copy;
 		return median_with_copy(data, size, copy);
 	}
 	
-	static double MAD(const double* data, size_t size);
+	static value_type MAD(const value_type* data, size_t size);
 	
-	double Sum() const;
-	double Average() const;
+	value_type Sum() const;
+	value_type Average() const;
 	
-	double Min() const;
-	double Max() const;
+	value_type Min() const;
+	value_type Max() const;
 	
-	double StdDevFromMAD() const { return StdDevFromMAD(_data, _width*_height); }
-	static double StdDevFromMAD(const double* data, size_t size)
+	value_type StdDevFromMAD() const { return StdDevFromMAD(_data, _width*_height); }
+	static value_type StdDevFromMAD(const value_type* data, size_t size)
 	{
 		// norminv(0.75) x MAD
-		return 1.48260221850560 * MAD(data, size);
+		return value_type(1.48260221850560) * MAD(data, size);
 	}
 	
-	double RMS() const { return RMS(_data, _width*_height); }
-	static double RMS(const double* data, size_t size)
+	value_type RMS() const { return RMS(_data, _width*_height); }
+	static value_type RMS(const value_type* data, size_t size)
 	{
-		double sum = 0.0;
+		value_type sum = 0.0;
 		for(size_t i=0; i!=size; ++i)
 			sum += data[i]*data[i];
-		return sqrt(sum/size);
+		return std::sqrt(sum/value_type(size));
 	}
 	
 	void Negate()
 	{
-		for(double& d : *this)
+		for(value_type& d : *this)
 			d = -d;
 	}
-private:
-	double* _data;
-	size_t _width, _height;
-	ImageBufferAllocator* _allocator;
 	
-	static double median_with_copy(const double* data, size_t size, ao::uvector<double>& copy);
+	void Serialize(std::ostream& stream) const;
+	void Unserialize(std::istream& stream);
+private:
+	value_type* _data;
+	size_t _width, _height;
+	
+	static value_type median_with_copy(const value_type* data, size_t size, ao::uvector<value_type>& copy);
 };
 
+template<typename NumT>
 template<typename T>
-void Image::TrimBox(T* output, size_t x1, size_t y1, size_t boxWidth, size_t boxHeight, const T* input, size_t inWidth, size_t /*inHeight*/)
+void ImageT<NumT>::TrimBox(T* output, size_t x1, size_t y1, size_t boxWidth, size_t boxHeight, const T* input, size_t inWidth, size_t /*inHeight*/)
 {
 	size_t endY = y1 + boxHeight;
 	for(size_t y=y1; y!=endY; ++y)
@@ -144,8 +160,9 @@ void Image::TrimBox(T* output, size_t x1, size_t y1, size_t boxWidth, size_t box
 	}
 }
 
+template<typename NumT>
 template<typename T>
-void Image::CopyMasked(T* to, size_t toX, size_t toY, size_t toWidth, const T* from, size_t fromWidth, size_t fromHeight, const bool* fromMask)
+void ImageT<NumT>::CopyMasked(T* to, size_t toX, size_t toY, size_t toWidth, const T* from, size_t fromWidth, size_t fromHeight, const bool* fromMask)
 {
 	for(size_t y=0; y!=fromHeight; ++y)
 	{
@@ -156,5 +173,12 @@ void Image::CopyMasked(T* to, size_t toX, size_t toY, size_t toWidth, const T* f
 		}
 	}
 }
+
+typedef ImageT<double> Image;
+typedef ImageT<float> ImageF;
+typedef ImageT<std::complex<float>> ImageCF;
+
+template<class T>
+using ImageTC = ImageT<std::complex<T>>;
 
 #endif

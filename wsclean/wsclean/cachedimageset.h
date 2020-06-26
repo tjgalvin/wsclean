@@ -4,7 +4,7 @@
 #include "../fitswriter.h"
 #include "../fitsreader.h"
 
-#include "imagebufferallocator.h"
+#include "../wsclean/logger.h"
 
 #include <string.h>
 #include <set>
@@ -12,7 +12,7 @@
 class CachedImageSet
 {
 public:
-	CachedImageSet() : _polCount(0), _freqCount(0), _allocator(nullptr), _image()
+	CachedImageSet() : _polCount(0), _freqCount(0), _image()
 	{ }
 	
 	~CachedImageSet()
@@ -24,14 +24,13 @@ public:
 	CachedImageSet(const CachedImageSet& source) = delete;
 	CachedImageSet& operator=(const CachedImageSet& source) = delete;
 	
-	void Initialize(const FitsWriter& writer, size_t polCount, size_t freqCount, const std::string& prefix, ImageBufferAllocator& allocator)
+	void Initialize(const FitsWriter& writer, size_t polCount, size_t freqCount, const std::string& prefix)
 	{
 		_writer = writer;
 		_polCount = polCount;
 		_freqCount = freqCount;
 		_prefix = prefix;
 		_image.reset();
-		_allocator = &allocator;
 	}
 	
 	void SetFitsWriter(const FitsWriter& writer)
@@ -45,7 +44,7 @@ public:
 			throw std::runtime_error("Writer is not set.");
 		Logger::Debug << "Loading " << name(polarization, freqIndex, isImaginary) << '\n';
 		if(_polCount == 1 && _freqCount == 1)
-			if(_image == nullptr)
+			if(_image.empty())
 				throw std::runtime_error("Loading image before store");
 			else
 				std::copy(_image.data(), _image.data() + _writer.Width()*_writer.Height(), image);
@@ -62,9 +61,9 @@ public:
 		Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
 		if(_polCount == 1 && _freqCount == 1)
 		{
-			if(_image == nullptr)
+			if(_image.empty())
 			{
-				_allocator->Allocate(_writer.Width() * _writer.Height(), _image);
+				_image = Image(_writer.Width(), _writer.Height());
 			}
 			std::copy(image, image + _writer.Width() * _writer.Height(), _image.data());
 			//memcpy(_image, image, _writer.Width() * _writer.Height() * sizeof(double));
@@ -103,8 +102,7 @@ private:
 	size_t _polCount, _freqCount;
 	std::string _prefix;
 	
-	ImageBufferAllocator* _allocator;
-	ImageBufferAllocator::Ptr _image;
+	Image _image;
 	std::set<std::string> _storedNames;
 };
 

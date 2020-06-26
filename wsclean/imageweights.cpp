@@ -1,15 +1,28 @@
 #include "imageweights.h"
 #include "banddata.h"
 #include "multibanddata.h"
+#include "fitswriter.h"
+#include "serializable.h"
 
 #include "msproviders/msprovider.h"
-#include "fitswriter.h"
 #include "units/angle.h"
 #include "wsclean/logger.h"
 
 #include <cmath>
 #include <iostream>
 #include <cstring>
+
+ImageWeights::ImageWeights() :
+	_weightMode(WeightMode::UniformWeighted),
+	_imageWidth(0),
+	_imageHeight(0),
+	_pixelScaleX(0),
+	_pixelScaleY(0),
+	_totalSum(0.0),
+	_isGriddingFinished(false),
+	_weightsAsTaper(false)
+{
+}
 
 ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth, size_t imageHeight, double pixelScaleX, double pixelScaleY, bool weightsAsTaper, double superWeight) :
 	_weightMode(weightMode),
@@ -24,6 +37,32 @@ ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth, size
 	if(_imageWidth%2 != 0) ++_imageWidth;
 	if(_imageHeight%2 != 0) ++_imageHeight;
 	_grid.assign(_imageWidth*_imageHeight/2, 0.0);
+}
+
+void ImageWeights::Serialize ( std::ostream& stream ) const
+{
+	_weightMode.Serialize(stream);
+	Serializable::SerializeToUInt64(stream, _imageWidth);
+	Serializable::SerializeToUInt64(stream, _imageHeight);
+	Serializable::SerializeToDouble(stream, _pixelScaleX);
+	Serializable::SerializeToDouble(stream, _pixelScaleY);
+	Serializable::SerializeVectorDouble(stream, _grid);
+	Serializable::SerializeToDouble(stream, _totalSum);
+	Serializable::SerializeToBool(stream, _isGriddingFinished);
+	Serializable::SerializeToBool(stream, _weightsAsTaper);
+}
+
+void ImageWeights::Unserialize ( std::istream& stream )
+{
+	_weightMode.Unserialize(stream);
+	_imageWidth = Serializable::UnserializeUInt64(stream);
+	_imageHeight = Serializable::UnserializeUInt64(stream);
+	_pixelScaleX = Serializable::UnserializeDouble(stream);
+	_pixelScaleY = Serializable::UnserializeDouble(stream);
+	_grid = Serializable::UnserializeVectorDouble(stream);
+	_totalSum = Serializable::UnserializeDouble(stream);
+	_isGriddingFinished = Serializable::UnserializeBool(stream);
+	_weightsAsTaper = Serializable::UnserializeBool(stream);
 }
 
 void ImageWeights::Grid(casacore::MeasurementSet& ms, const MSSelection& selection)
@@ -197,34 +236,34 @@ void ImageWeights::FinishGridding()
 		case WeightMode::BriggsWeighted:
 		{
 			double avgW = 0.0;
-			for(ao::uvector<double>::const_iterator i=_grid.begin(); i!=_grid.end(); ++i)
-				avgW += *i * *i;
+			for(double val : _grid)
+				avgW += val * val;
 			avgW /= _totalSum;
 			double numeratorSqrt = 5.0 * exp10(-_weightMode.BriggsRobustness());
 			double sSq = numeratorSqrt*numeratorSqrt / avgW;
-			for(ao::uvector<double>::iterator i=_grid.begin(); i!=_grid.end(); ++i)
+			for(double& val : _grid)
 			{
-				*i = 1.0 / (1.0 + *i * sSq);
+				val = 1.0 / (1.0 + val * sSq);
 			}
 		}
 		break;
 		case WeightMode::UniformWeighted:
 		{
-			for(ao::uvector<double>::iterator i=_grid.begin(); i!=_grid.end(); ++i)
+			for(double& val : _grid)
 			{
-				if(*i != 0.0)
-					*i = 1.0 / *i;
+				if(val != 0.0)
+					val = 1.0 / val;
 				else
-					*i = 0.0;
+					val = 0.0;
 			}
 		}
 		break;
 		case WeightMode::NaturalWeighted:
 		{
-			for(ao::uvector<double>::iterator i=_grid.begin(); i!=_grid.end(); ++i)
+			for(double& val : _grid)
 			{
-				if(*i != 0.0)
-					*i = 1.0;
+				if(val != 0.0)
+					val = 1.0;
 			}
 		}
 		break;
@@ -233,7 +272,7 @@ void ImageWeights::FinishGridding()
 
 void ImageWeights::SetMinUVRange(double minUVInLambda)
 {
-	ao::uvector<double>::iterator i = _grid.begin();
+	auto iter = _grid.begin();
 	const double minSq = minUVInLambda*minUVInLambda;
 	int halfWidth = _imageWidth/2;
 	for(size_t y=0; y!=_imageHeight/2; ++y)
@@ -244,15 +283,15 @@ void ImageWeights::SetMinUVRange(double minUVInLambda)
 			double u = double(xi) / (_imageWidth*_pixelScaleX);
 			double v = double(y) / (_imageHeight*_pixelScaleY);
 			if(u*u + v*v < minSq)
-				*i = 0.0;
-			++i;
+				*iter = 0.0;
+			++iter;
 		}
 	}
 }
 
 void ImageWeights::SetMaxUVRange(double maxUVInLambda)
 {
-	ao::uvector<double>::iterator i = _grid.begin();
+	auto iter = _grid.begin();
 	const double maxSq = maxUVInLambda*maxUVInLambda;
 	int halfWidth = _imageWidth/2;
 	for(size_t y=0; y!=_imageHeight/2; ++y)
@@ -263,15 +302,15 @@ void ImageWeights::SetMaxUVRange(double maxUVInLambda)
 			double u = double(xi) / (_imageWidth*_pixelScaleX);
 			double v = double(y) / (_imageHeight*_pixelScaleY);
 			if(u*u + v*v > maxSq)
-				*i = 0.0;
-			++i;
+				*iter = 0.0;
+			++iter;
 		}
 	}
 }
 
 void ImageWeights::SetTukeyTaper(double transitionSizeInLambda, double maxUVInLambda)
 {
-	ao::uvector<double>::iterator i = _grid.begin();
+	auto iter = _grid.begin();
 	const double maxUVSq = maxUVInLambda * maxUVInLambda;
 	const double transitionDistSq = (maxUVInLambda-transitionSizeInLambda) * (maxUVInLambda-transitionSizeInLambda);
 	for(size_t y=0; y!=_imageHeight/2; ++y)
@@ -282,19 +321,19 @@ void ImageWeights::SetTukeyTaper(double transitionSizeInLambda, double maxUVInLa
 			xyToUV(x, y, u, v);
 			double distSq = u*u + v*v;
 			if(distSq > maxUVSq)
-				*i = 0.0;
+				*iter = 0.0;
 			else if(distSq > transitionDistSq)
 			{
-				*i *= tukeyFrom0ToN(maxUVInLambda - sqrt(distSq), transitionSizeInLambda);
+				*iter *= tukeyFrom0ToN(maxUVInLambda - sqrt(distSq), transitionSizeInLambda);
 			}
-			++i;
+			++iter;
 		}
 	}
 }
 
 void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda, double minUVInLambda)
 {
-	ao::uvector<double>::iterator i = _grid.begin();
+	auto iter = _grid.begin();
 	const double minUVSq = minUVInLambda * minUVInLambda;
 	const double totalSizeSq = (minUVInLambda+transitionSizeInLambda) * (minUVInLambda+transitionSizeInLambda);
 	for(size_t y=0; y!=_imageHeight/2; ++y)
@@ -305,19 +344,19 @@ void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda, double minU
 			xyToUV(x, y, u, v);
 			double distSq = u*u + v*v;
 			if(distSq < minUVSq)
-				*i = 0.0;
+				*iter = 0.0;
 			else if(distSq < totalSizeSq)
 			{
-				*i *= tukeyFrom0ToN(sqrt(distSq) - minUVInLambda, transitionSizeInLambda);
+				*iter *= tukeyFrom0ToN(sqrt(distSq) - minUVInLambda, transitionSizeInLambda);
 			}
-			++i;
+			++iter;
 		}
 	}
 }
 
 void ImageWeights::SetEdgeTaper(double sizeInLambda)
 {
-	ao::uvector<double>::iterator i = _grid.begin();
+	auto iter = _grid.begin();
 	double maxU, maxV;
 	xyToUV(_imageWidth, _imageHeight/2, maxU, maxV);
 	for(size_t y=0; y!=_imageHeight/2; ++y)
@@ -327,15 +366,15 @@ void ImageWeights::SetEdgeTaper(double sizeInLambda)
 			double u, v;
 			xyToUV(x, y, u, v);
 			if(maxU-std::fabs(u) < sizeInLambda || maxV-std::fabs(v) < sizeInLambda)
-				*i = 0.0;
-			++i;
+				*iter = 0.0;
+			++iter;
 		}
 	}
 }
 
 void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda, double edgeSizeInLambda)
 {
-	ao::uvector<double>::iterator i = _grid.begin();
+	auto iter = _grid.begin();
 	double maxU, maxV;
 	xyToUV(_imageWidth, _imageHeight/2, maxU, maxV);
 	double totalSize = transitionSizeInLambda + edgeSizeInLambda;
@@ -348,16 +387,16 @@ void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda, double edgeS
 			double uDist = maxU-std::fabs(u);
 			double vDist = maxV-std::fabs(v);
 			if(uDist < edgeSizeInLambda || vDist < edgeSizeInLambda)
-				*i = 0.0;
+				*iter = 0.0;
 			else if(uDist < totalSize || vDist < totalSize)
 			{
 				double ru = uDist - edgeSizeInLambda;
 				double rv = vDist - edgeSizeInLambda;
 				if(ru > transitionSizeInLambda) ru = transitionSizeInLambda;
 				if(rv > transitionSizeInLambda) rv = transitionSizeInLambda;
-				*i *= tukeyFrom0ToN(ru, transitionSizeInLambda) * tukeyFrom0ToN(rv, transitionSizeInLambda);
+				*iter *= tukeyFrom0ToN(ru, transitionSizeInLambda) * tukeyFrom0ToN(rv, transitionSizeInLambda);
 			}
-			++i;
+			++iter;
 		}
 	}
 }
@@ -391,7 +430,7 @@ void ImageWeights::Save(const string& filename) const
 
 void ImageWeights::RankFilter(double rankLimit, size_t windowSize)
 {
-	ao::uvector<double> newGrid(_grid);
+	std::vector<double> newGrid(_grid);
 	for(size_t y=0; y!=_imageHeight/2; ++y)
 	{
 		for(size_t x=0; x!=_imageWidth; ++x)

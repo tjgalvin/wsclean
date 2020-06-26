@@ -12,8 +12,7 @@
 
 #include "../units/fluxdensity.h"
 
-MultiScaleAlgorithm::MultiScaleAlgorithm(ImageBufferAllocator& allocator, FFTWManager& fftwManager, double beamSize, double pixelScaleX, double pixelScaleY) :
-	_allocator(allocator),
+MultiScaleAlgorithm::MultiScaleAlgorithm(FFTWManager& fftwManager, double beamSize, double pixelScaleX, double pixelScaleY) :
 	_fftwManager(fftwManager),
 	_width(0),
 	_height(0),
@@ -91,7 +90,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 	if(_trackComponents)
 	{
 		if(_componentList == nullptr)
-			_componentList.reset(new ComponentList(_width, _height, _scaleInfos.size(), dirtySet.size(), _allocator));
+			_componentList.reset(new ComponentList(_width, _height, _scaleInfos.size(), dirtySet.size()));
 		else if(_componentList->Width() != _width || _componentList->Height() != _height)
 		{
 			throw std::runtime_error("Error in component list dimensions!");
@@ -103,17 +102,17 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 	bool hasHitThresholdInSubLoop = false;
 	size_t thresholdCountdown = std::max(size_t(8), _scaleInfos.size()*3/2);
 	
-	ImageBufferAllocator::Ptr scratch, scratchB, integratedScratch;
+	Image scratch, scratchB, integratedScratch;
 	// scratch and scratchB are used by the subminorloop, which convolves the images
 	// and requires therefore more space. This space depends on the scale, so here
 	// the required size for the largest scale is calculated.
 	size_t scratchWidth, scratchHeight;
 	getConvolutionDimensions(_scaleInfos.size()-1, scratchWidth, scratchHeight);
-	_allocator.Allocate(scratchWidth*scratchHeight, scratch);
-	_allocator.Allocate(scratchWidth*scratchHeight, scratchB);
-	_allocator.Allocate(_width*_height, integratedScratch);
-	std::unique_ptr<std::unique_ptr<ImageBufferAllocator::Ptr[]>[]> convolvedPSFs(
-		new std::unique_ptr<ImageBufferAllocator::Ptr[]>[dirtySet.PSFCount()]);
+	scratch = Image(scratchWidth, scratchHeight);
+	scratchB = Image(scratchWidth, scratchHeight);
+	integratedScratch = Image(_width, _height);
+	std::unique_ptr<std::unique_ptr<Image[]>[]> convolvedPSFs(
+		new std::unique_ptr<Image[]>[dirtySet.PSFCount()]);
 	dirtySet.GetIntegratedPSF(integratedScratch.data(), psfs);
 	convolvePSFs(convolvedPSFs[0], integratedScratch.data(), scratch.data(), true);
 
@@ -154,14 +153,14 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 		_logReceiver->Info << " (final)";
 	_logReceiver->Info << '\n';
 	
-	std::unique_ptr<ImageBufferAllocator::Ptr[]> doubleConvolvedPSFs(
-		new ImageBufferAllocator::Ptr[dirtySet.PSFCount()]);
+	std::unique_ptr<Image[]> doubleConvolvedPSFs(
+		new Image[dirtySet.PSFCount()]);
 	for(size_t i=0; i!=dirtySet.PSFCount(); ++i)
 	{
-		_allocator.Allocate(_width*_height, doubleConvolvedPSFs[i]);
+		doubleConvolvedPSFs[i] = Image(_width, _height);
 	}
 	
-	ImageSet individualConvolvedImages(&dirtySet.Table(), dirtySet.Allocator(), dirtySet.Settings(), _width, _height);
+	ImageSet individualConvolvedImages(&dirtySet.Table(), dirtySet.Settings(), _width, _height);
 	
 	//
 	// The minor iteration loop
@@ -387,10 +386,10 @@ void MultiScaleAlgorithm::initializeScaleInfo()
 	}
 }
 
-void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<ImageBufferAllocator::Ptr[]>& convolvedPSFs, const double* psf, double* tmp, bool isIntegrated)
+void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<Image[]>& convolvedPSFs, const double* psf, double* tmp, bool isIntegrated)
 {
 	MultiScaleTransforms msTransforms(_fftwManager, _width, _height, _scaleShape);
-	convolvedPSFs.reset(new ImageBufferAllocator::Ptr[_scaleInfos.size()]);
+	convolvedPSFs.reset(new Image[_scaleInfos.size()]);
 	if(isIntegrated)
 		_logReceiver->Info << "Scale info:\n";
 	const double firstAutoScaleSize = _beamSizeInPixels * 2.0;
@@ -398,7 +397,7 @@ void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<ImageBufferAllocator::Ptr
 	{
 		ScaleInfo& scaleEntry = _scaleInfos[scaleIndex];
 		
-		_allocator.Allocate(_width*_height, convolvedPSFs[scaleIndex]);
+		convolvedPSFs[scaleIndex] = Image(_width, _height);
 		memcpy(convolvedPSFs[scaleIndex].data(), psf, _width*_height*sizeof(double));
 		
 		if(isIntegrated)
@@ -467,7 +466,7 @@ void MultiScaleAlgorithm::findActiveScaleConvolvedMaxima(const ImageSet& imageSe
 	}
 	std::vector<ThreadedDeconvolutionTools::PeakData> results;
 	
-	tools->FindMultiScalePeak(&msTransforms, &_allocator, integratedScratch, transformScales, results, _allowNegativeComponents, _cleanMask, transformScaleMasks, _cleanBorderRatio, _rmsFactorImage, reportRMS);
+	tools->FindMultiScalePeak(&msTransforms, integratedScratch, transformScales, results, _allowNegativeComponents, _cleanMask, transformScaleMasks, _cleanBorderRatio, _rmsFactorImage, reportRMS);
 	
 	for(size_t i=0; i!=results.size(); ++i)
 	{
@@ -571,7 +570,7 @@ void MultiScaleAlgorithm::addComponentToModel(double* model, size_t scaleWithPea
 	}
 }
 
-double* MultiScaleAlgorithm::getConvolvedPSF(size_t psfIndex, size_t scaleIndex, const std::unique_ptr<std::unique_ptr<ImageBufferAllocator::Ptr[]>[]>& convolvedPSFs)
+double* MultiScaleAlgorithm::getConvolvedPSF(size_t psfIndex, size_t scaleIndex, const std::unique_ptr<std::unique_ptr<Image[]>[]>& convolvedPSFs)
 {
 	return convolvedPSFs[psfIndex][scaleIndex].data();
 }

@@ -6,15 +6,14 @@
 
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 
-DFTPredictionImage::DFTPredictionImage(size_t width, size_t height, ImageBufferAllocator& allocator) :
+DFTPredictionImage::DFTPredictionImage(size_t width, size_t height) :
 	_width(width),
-	_height(height),
-	_allocator(&allocator)
+	_height(height)
 {
 	const size_t s = width*height;
 	for(size_t p=0; p!=4; ++p)
 	{
-		_allocator->Allocate(s, _images[p]);
+		_images[p] = Image(width, height);
 		for(size_t i=0; i!=s; ++i)
 			_images[p][i] = 0.0;
 	}

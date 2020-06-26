@@ -958,7 +958,7 @@ double IUWTDeconvolutionAlgorithm::PerformMajorIteration(size_t& iterCounter, si
 	}
 	
 	ImageSet structureModel(
-		&modelSet.Table(), dirtySet.Allocator(),
+		&modelSet.Table(),
 		modelSet.Settings(),
 		_width, _height);
 	

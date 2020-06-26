@@ -6,7 +6,6 @@
 #include "imagefilename.h"
 #include "imagingtable.h"
 #include "primarybeamimageset.h"
-#include "wscleansettings.h"
 
 #include "../polarization.h"
 
@@ -15,10 +14,8 @@
 class PrimaryBeam
 {
 public:
-	PrimaryBeam(const WSCleanSettings& settings) :
-		_settings(settings),
-		_phaseCentreRA(0.0), _phaseCentreDec(0.0), _phaseCentreDL(0.0), _phaseCentreDM(0.0)
-	{ }
+	PrimaryBeam(const class WSCleanSettings& settings);
+	~PrimaryBeam();
 	
 	void SetPhaseCentre(double ra, double dec, double dl, double dm)
 	{
@@ -28,9 +25,9 @@ public:
 		_phaseCentreDM = dm;
 	}
 	
-	void CorrectImages(const ImageFilename& imageName, std::vector<double*>& images, ImageBufferAllocator& allocator)
+	void CorrectImages(const ImageFilename& imageName, std::vector<double*>& images)
 	{
-		PrimaryBeamImageSet beamImages = load(imageName, _settings, allocator);
+		PrimaryBeamImageSet beamImages = load(imageName, _settings);
 		if(_settings.polarizations.size() == 1 && *_settings.polarizations.begin() == Polarization::StokesI)
 		{
 			beamImages.ApplyStokesI(images[0]);
@@ -41,30 +38,27 @@ public:
 		}
 	}
 	
-	PrimaryBeamImageSet Load(const ImageFilename& imageName, ImageBufferAllocator& allocator)
+	PrimaryBeamImageSet Load(const ImageFilename& imageName)
 	{
-		return load(imageName, _settings, allocator);
+		return load(imageName, _settings);
 	}
 	
-	void AddMS(class MSProvider* msProvider, const MSSelection& selection)
-	{
-		_msProviders.push_back(std::make_pair(msProvider, selection));
-	}
+	void AddMS(std::unique_ptr<class MSDataDescription> description);
 	
-	void MakeBeamImages(const ImageFilename& imageName, const ImagingTableEntry& entry, std::shared_ptr<class ImageWeights> imageWeights, ImageBufferAllocator& allocator);
+	void MakeBeamImages(const ImageFilename& imageName, const ImagingTableEntry& entry, std::shared_ptr<class ImageWeights> imageWeights);
 	
-	void CorrectImages(class FitsWriter& writer, const ImageFilename& imageName, const std::string& filenameKind, ImageBufferAllocator& allocator);
+	void CorrectImages(class FitsWriter& writer, const ImageFilename& imageName, const std::string& filenameKind);
 	
 private:
 	const WSCleanSettings& _settings;
-	std::vector<std::pair<MSProvider*, MSSelection>> _msProviders;
+	std::vector<std::unique_ptr<class MSDataDescription>> _msList;
 	double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
 	
-	static PrimaryBeamImageSet load(const ImageFilename& imageName, const WSCleanSettings& settings, ImageBufferAllocator& allocator);
+	static PrimaryBeamImageSet load(const ImageFilename& imageName, const WSCleanSettings& settings);
 	
-	PrimaryBeamImageSet makeLOFARImage(const ImagingTableEntry& entry, std::shared_ptr<class ImageWeights> imageWeights, ImageBufferAllocator& allocator);
+	PrimaryBeamImageSet makeLOFARImage(const ImagingTableEntry& entry, std::shared_ptr<class ImageWeights> imageWeights);
 	
-	void makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry, ImageBufferAllocator& allocator);
+	void makeMWAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry);
 	
 	void makeATCAImage(PrimaryBeamImageSet& beamImages, const ImagingTableEntry& entry);
 	

@@ -6,17 +6,14 @@
 #include "deconvolutionalgorithm.h"
 #include "imageset.h"
 
-#include "../wsclean/imagebufferallocator.h"
-
 class MoreSane : public DeconvolutionAlgorithm
 {
 	public:
 		MoreSane(const std::string& moreSaneLocation, const std::string& moresaneArguments, 
 		         const ao::uvector<double> &moresaneSigmaLevels, const std::string &prefixName,
-						 ImageBufferAllocator& allocator, class FFTWManager& fftwManager) :
+						 class FFTWManager& fftwManager) :
 			_moresaneLocation(moreSaneLocation), _moresaneArguments(moresaneArguments), 
 			_moresaneSigmaLevels(moresaneSigmaLevels), _prefixName(prefixName),
-			_allocator(&allocator),
 			_fftwManager(fftwManager)
 		{ }
 		
@@ -34,7 +31,6 @@ class MoreSane : public DeconvolutionAlgorithm
 		const ao::uvector<double> _moresaneSigmaLevels;
 		const std::string _prefixName;
 		
-		ImageBufferAllocator* _allocator;
 		class FFTWManager& _fftwManager;
 };
 

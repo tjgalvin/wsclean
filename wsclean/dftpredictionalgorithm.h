@@ -5,8 +5,8 @@
 #include "matrix2x2.h"
 #include "polarization.h"
 #include "uvector.h"
+#include "image.h"
 
-#include "wsclean/imagebufferallocator.h"
 #include "lofar/lbeamevaluator.h"
 
 #include <cmath>
@@ -166,7 +166,7 @@ private:
 class DFTPredictionImage
 {
 public:
-	DFTPredictionImage(size_t width, size_t height, ImageBufferAllocator& allocator);
+	DFTPredictionImage(size_t width, size_t height);
 	
 	void Add(PolarizationEnum polarization, const double* image);
 	void Add(PolarizationEnum polarization, const double* real, const double* imaginary);
@@ -174,8 +174,7 @@ public:
 	void FindComponents(DFTPredictionInput& destination, double phaseCentreRA, double phaseCentreDec, double pixelSizeX, double pixelSizeY, double dl, double dm, size_t channelCount);
 private:
 	size_t _width, _height;
-	ImageBufferAllocator* _allocator;
-	ImageBufferAllocator::Ptr _images[4];
+	Image _images[4];
 	std::vector<PolarizationEnum> _pols;
 };
 

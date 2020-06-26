@@ -6,6 +6,7 @@
 #include "noisemsrowprovider.h"
 
 #include "../progressbar.h"
+#include "../serializable.h"
 #include "../system.h"
 
 #include "../wsclean/logger.h"
@@ -48,7 +49,6 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex, Polarizatio
 	std::vector<char> msPath(_metaHeader.filenameLength+1, char(0));
 	_metaFile.read(msPath.data(), _metaHeader.filenameLength);
 	Logger::Info << "Opening reordered part " << partIndex << " spw " << dataDescId << " for " << msPath.data() << '\n';
-	_msPath = msPath.data();
 	std::string partPrefix = getPartPrefix(msPath.data(), partIndex, polarization, dataDescId, handle._data->_temporaryDirectory);
 	
 	_dataFile.open(partPrefix+".tmp", std::ios::in);
@@ -680,27 +680,30 @@ void PartitionedMS::unpartition(const PartitionedMS::Handle::HandleData& handle)
 
 PartitionedMS::Handle::HandleData::~HandleData()
 {
-	if(_modelUpdateRequired)
-		PartitionedMS::unpartition(*this);
-	
-	Logger::Info << "Cleaning up temporary files...\n";
-	
-	std::set<size_t> removedMetaFiles;
-	for(size_t part=0; part!=_channels.size(); ++part)
+	if(!_isCopy)
 	{
-		for(PolarizationEnum p : _polarizations)
+		if(_modelUpdateRequired)
+			PartitionedMS::unpartition(*this);
+	
+		Logger::Info << "Cleaning up temporary files...\n";
+		
+		std::set<size_t> removedMetaFiles;
+		for(size_t part=0; part!=_channels.size(); ++part)
 		{
-			std::string prefix = getPartPrefix(_msPath, part, p, _channels[part].dataDescId, _temporaryDirectory);
-			std::remove((prefix + ".tmp").c_str());
-			std::remove((prefix + "-w.tmp").c_str());
-			std::remove((prefix + "-m.tmp").c_str());
-		}
-		size_t dataDescId = _channels[part].dataDescId;
-		if(removedMetaFiles.count(dataDescId) == 0)
-		{
-			removedMetaFiles.insert(dataDescId);
-			std::string metaFile = getMetaFilename(_msPath, _temporaryDirectory, dataDescId);
-			std::remove(metaFile.c_str());
+			for(PolarizationEnum p : _polarizations)
+			{
+				std::string prefix = getPartPrefix(_msPath, part, p, _channels[part].dataDescId, _temporaryDirectory);
+				std::remove((prefix + ".tmp").c_str());
+				std::remove((prefix + "-w.tmp").c_str());
+				std::remove((prefix + "-m.tmp").c_str());
+			}
+			size_t dataDescId = _channels[part].dataDescId;
+			if(removedMetaFiles.count(dataDescId) == 0)
+			{
+				removedMetaFiles.insert(dataDescId);
+				std::string metaFile = getMetaFilename(_msPath, _temporaryDirectory, dataDescId);
+				std::remove(metaFile.c_str());
+			}
 		}
 	}
 }
@@ -729,4 +732,58 @@ void PartitionedMS::getDataDescIdMap(std::map<size_t, size_t>& dataDescIds, cons
 			++spwIndex;
 		}
 	}
+}
+
+void PartitionedMS::Handle::Serialize(std::ostream& stream) const
+{
+	Serializable::SerializePtr(stream, _data);
+}
+
+void PartitionedMS::Handle::Unserialize(std::istream& stream)
+{
+	Serializable::UnserializePtr(stream, _data);
+}
+
+void PartitionedMS::Handle::HandleData::Serialize(std::ostream& stream) const
+{
+	Serializable::SerializeToString(stream, _msPath);
+	Serializable::SerializeToString(stream, _dataColumnName);
+	Serializable::SerializeToString(stream, _temporaryDirectory);
+	Serializable::SerializeToUInt64(stream, _channels.size());
+	for(const ChannelRange& range : _channels)
+	{
+		Serializable::SerializeToUInt64(stream, range.dataDescId);
+		Serializable::SerializeToUInt64(stream, range.start);
+		Serializable::SerializeToUInt64(stream, range.end);
+	}
+	Serializable::SerializeToBool(stream, _initialModelRequired);
+	Serializable::SerializeToBool(stream, _modelUpdateRequired);
+	Serializable::SerializeToUInt64(stream, _polarizations.size());
+	for(PolarizationEnum p : _polarizations)
+		Serializable::SerializeToUInt32(stream, p);
+	_selection.Serialize(stream);
+	Serializable::SerializeToUInt64(stream, _nAntennas);
+}
+
+void PartitionedMS::Handle::HandleData::Unserialize(std::istream& stream)
+{
+	_isCopy = true;
+	_msPath = Serializable::UnserializeString(stream);
+	_dataColumnName = Serializable::UnserializeString(stream);
+	_temporaryDirectory = Serializable::UnserializeString(stream);
+	_channels.resize( Serializable::UnserializeUInt64(stream) );
+	for(ChannelRange& range : _channels)
+	{
+		range.dataDescId = Serializable::UnserializeUInt64(stream);
+		range.start = Serializable::UnserializeUInt64(stream);
+		range.end = Serializable::UnserializeUInt64(stream);
+	}
+	_initialModelRequired = Serializable::UnserializeBool(stream);
+	_modelUpdateRequired = Serializable::UnserializeBool(stream);
+	size_t nPol = Serializable::UnserializeUInt64(stream);
+	_polarizations.clear();
+	for(size_t i=0; i!=nPol; ++i)
+		_polarizations.emplace( (PolarizationEnum) Serializable::UnserializeUInt32(stream) );
+	_selection.Unserialize(stream);
+	_nAntennas = Serializable::UnserializeUInt64(stream);
 }

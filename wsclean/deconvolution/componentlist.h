@@ -6,8 +6,6 @@
 #include "../image.h"
 #include "../uvector.h"
 
-#include "../wsclean/imagebufferallocator.h"
-
 #include <vector>
 
 class ComponentList
@@ -21,8 +19,7 @@ public:
 		_nFrequencies(imageSet.size()),
 		_componentsAddedSinceLastMerge(0),
 		_maxComponentsBeforeMerge(100000),
-		_listPerScale(1),
-		_allocator(imageSet.Allocator())
+		_listPerScale(1)
 	{
 		loadFromImageSet(imageSet, 0);
 	}
@@ -30,13 +27,12 @@ public:
 	/**
 	 * Constructor for multi-scale clean
 	 */
-	ComponentList(size_t width, size_t height, size_t nScales, size_t nFrequencies, ImageBufferAllocator& allocator) :
+	ComponentList(size_t width, size_t height, size_t nScales, size_t nFrequencies) :
 		_width(width), _height(height),
 		_nFrequencies(nFrequencies),
 		_componentsAddedSinceLastMerge(0),
 		_maxComponentsBeforeMerge(100000),
-		_listPerScale(nScales),
-		_allocator(allocator)
+		_listPerScale(nScales)
 	{
 	}
 	
@@ -140,7 +136,7 @@ private:
 		
 		std::vector<Image> images(_nFrequencies);
 		for(Image& image : images)
-			image = Image(_width, _height, 0.0, _allocator);
+			image = Image(_width, _height, 0.0);
 		size_t valueIndex = 0;
 		for(size_t index=0; index!=list.positions.size(); ++index)
 		{
@@ -184,7 +180,6 @@ private:
 	size_t _componentsAddedSinceLastMerge;
 	size_t _maxComponentsBeforeMerge;
 	std::vector<ScaleList> _listPerScale;
-	ImageBufferAllocator& _allocator;
 };
 
 #endif

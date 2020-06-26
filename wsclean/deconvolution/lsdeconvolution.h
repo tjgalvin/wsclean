@@ -21,7 +21,6 @@ class LSDeconvolution : public DeconvolutionAlgorithm
 		
     virtual double ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage, const ao::uvector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold) final override
 		{
-      _allocator = &dataImage.Allocator();
 			ExecuteMajorIteration(dataImage[0], modelImage[0], psfImages[0], width, height, reachedMajorThreshold);
 			return 0.0;
 		}
@@ -42,7 +41,6 @@ class LSDeconvolution : public DeconvolutionAlgorithm
 		
 		void nonLinearFit(double* dataImage, double* modelImage, const double* psfImage, size_t width, size_t height, bool& reachedMajorThreshold);
 		
-		ImageBufferAllocator* _allocator;
 		std::unique_ptr<LSDeconvolutionData> _data;
 };
 

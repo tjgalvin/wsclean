@@ -22,21 +22,21 @@ class ImageBufferAllocator;
 class BufferedMSGridder : public MSGridderBase
 {
 	public:
-		BufferedMSGridder(class ImageBufferAllocator* imageAllocator, size_t threadCount, double memFraction, double absMemLimit);
+		BufferedMSGridder(size_t threadCount, double memFraction, double absMemLimit);
 	
 		virtual void Invert() final override;
 		
-		virtual void Predict(ImageBufferAllocator::Ptr image) final override;
-		virtual void Predict(ImageBufferAllocator::Ptr, ImageBufferAllocator::Ptr) final override
+		virtual void Predict(Image image) final override;
+		virtual void Predict(Image, Image) final override
 		{
 			throw std::runtime_error("Can not do imaginary imaging in this mode");
 		}
 		
-		virtual ImageBufferAllocator::Ptr ImageRealResult() final override
+		virtual Image ImageRealResult() final override
 		{
 			return std::move(_image);
 		}
-		virtual ImageBufferAllocator::Ptr ImageImaginaryResult() final override
+		virtual Image ImageImaginaryResult() final override
 		{
 			throw std::runtime_error("Can not do imaginary imaging in this mode");
 		}
@@ -50,7 +50,7 @@ class BufferedMSGridder : public MSGridderBase
 		virtual size_t getSuggestedWGridSize() const final override { return 1; }
 		
 	private:
-		ImageBufferAllocator::Ptr _image;
+		Image _image;
 		
 		void gridMeasurementSet(MSData& msData);
 
@@ -62,7 +62,6 @@ class BufferedMSGridder : public MSGridderBase
 
 		size_t _cpuCount;
 		int64_t _memSize;
-		ImageBufferAllocator* _imageBufferAllocator;
 		std::unique_ptr<class WGriddingGridder_Simple> _gridder;
 };
 

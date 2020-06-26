@@ -15,12 +15,10 @@
 
 #include "../multiscale/multiscaletransforms.h"
 
-#include "../wsclean/imagebufferallocator.h"
-
 class MultiScaleAlgorithm : public DeconvolutionAlgorithm
 {
 public:
-	MultiScaleAlgorithm(class ImageBufferAllocator& allocator, class FFTWManager& fftwManager, double beamSize, double pixelScaleX, double pixelScaleY);
+	MultiScaleAlgorithm(class FFTWManager& fftwManager, double beamSize, double pixelScaleX, double pixelScaleY);
 	~MultiScaleAlgorithm();
 	
 	std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override
@@ -96,7 +94,6 @@ public:
 		_maxScales = maxScales;
 	}
 private:
-	class ImageBufferAllocator& _allocator;
 	FFTWManager& _fftwManager;
 	size_t _width, _height;
 	double _convolutionPadding;
@@ -144,7 +141,7 @@ private:
 	ao::cloned_ptr<ComponentList> _componentList;
 
 	void initializeScaleInfo();
-	void convolvePSFs(std::unique_ptr<ImageBufferAllocator::Ptr[]>& convolvedPSFs, const double* psf, double* tmp, bool isIntegrated);
+	void convolvePSFs(std::unique_ptr<Image[]>& convolvedPSFs, const double* psf, double* tmp, bool isIntegrated);
 	void findActiveScaleConvolvedMaxima(const ImageSet& imageSet, double* integratedScratch, double* scratch, bool reportRMS, ThreadedDeconvolutionTools* tools);
 	bool selectMaximumScale(size_t& scaleWithPeak);
 	void activateScales(size_t scaleWithLastPeak);
@@ -153,7 +150,7 @@ private:
 	
 	void findPeakDirect(const double *image, double* scratch, size_t scaleIndex);
 	
-	double* getConvolvedPSF(size_t psfIndex, size_t scaleIndex, const std::unique_ptr<std::unique_ptr<ImageBufferAllocator::Ptr[]>[]>& convolvedPSFs);
+	double* getConvolvedPSF(size_t psfIndex, size_t scaleIndex, const std::unique_ptr<std::unique_ptr<Image[]>[]>& convolvedPSFs);
 	void getConvolutionDimensions(size_t scaleIndex, size_t& width, size_t& height) const;
 };
 

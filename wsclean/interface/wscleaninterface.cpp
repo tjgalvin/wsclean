@@ -51,7 +51,7 @@ void wsclean_main(const std::vector<std::string>& parms)
 	std::cout << '\n';
 
 	WSClean wsclean;
-	if(CommandLine::Parse(wsclean, parms.size(), argv.data()))
+	if(CommandLine::Parse(wsclean, parms.size(), argv.data(), false))
 		CommandLine::Run(wsclean);
 }
 

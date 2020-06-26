@@ -6,6 +6,8 @@
 #include "../multibanddata.h"
 #include "../uvector.h"
 
+#include "../scheduling/metadatacache.h"
+
 #include <mutex>
 
 class MSGridderBase : public MeasurementSetGridder
@@ -68,22 +70,8 @@ public:
 	
 	const std::string& FieldName() const { return _fieldName; }
 	
-	class AverageBeamBase
-	{
-	public:
-			virtual ~AverageBeamBase() {}
-	};
-
-	struct MetaDataCache
-	{
-		struct Entry {
-			double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM, integrationTime;
-		};
-		std::vector<Entry> msDataVector;
-		std::unique_ptr<AverageBeamBase> averageBeam;
-	};
-	
-	void SetMetaDataCache(MetaDataCache* cache) { _metaDataCache = cache; }
+	void SetMetaDataCache(std::unique_ptr<MetaDataCache> cache) { _metaDataCache = std::move(cache); }
+	std::unique_ptr<MetaDataCache> AcquireMetaDataCache() { return std::move(_metaDataCache); }
 	
 protected:
 	int64_t getAvailableMemory(double memFraction, double absMemLimit);
@@ -187,7 +175,7 @@ protected:
 	
 	void initializeMSDataVector(std::vector<MSData>& msDataVector);
 
-	struct MetaDataCache* _metaDataCache;
+	std::unique_ptr<struct MetaDataCache> _metaDataCache;
 
 	
 private:

@@ -6,6 +6,7 @@
 
 #include "../lane.h"
 #include "../multibanddata.h"
+#include "../image.h"
 
 #include <complex>
 #include <memory>
@@ -25,16 +26,16 @@ class WSMSGridder : public MSGridderBase
 	public:
 		typedef WStackingGridderF GridderType;
 		
-		WSMSGridder(class ImageBufferAllocator* imageAllocator, size_t threadCount, double memFraction, double absMemLimit);
+		WSMSGridder(size_t threadCount, double memFraction, double absMemLimit);
 	
 		virtual void Invert() final override;
 		
-		virtual void Predict(ImageBufferAllocator::Ptr image) final override { Predict(std::move(image), nullptr); }
-		virtual void Predict(ImageBufferAllocator::Ptr real, ImageBufferAllocator::Ptr imaginary) final override;
+		virtual void Predict(Image image) final override { Predict(std::move(image), Image()); }
+		virtual void Predict(Image real, Image imaginary) final override;
 		
-		virtual ImageBufferAllocator::Ptr ImageRealResult() final override
+		virtual Image ImageRealResult() final override
 		{ return std::move(_realImage); }
-		virtual ImageBufferAllocator::Ptr ImageImaginaryResult() final override {
+		virtual Image ImageImaginaryResult() final override {
 			if(!IsComplex())
 				throw std::runtime_error("No imaginary result available for non-complex inversion");
 			return std::move(_imaginaryImage);
@@ -88,8 +89,7 @@ class WSMSGridder : public MSGridderBase
 		std::vector<std::thread> _threadGroup;
 		size_t _cpuCount, _laneBufferSize;
 		int64_t _memSize;
-		ImageBufferAllocator* _imageBufferAllocator;
-		ImageBufferAllocator::Ptr _realImage, _imaginaryImage;
+		Image _realImage, _imaginaryImage;
 };
 
 #endif

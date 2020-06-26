@@ -23,7 +23,11 @@ public:
 	
 	void Validate() const;
 	
-	void Propogate() { RecalculatePaddedDimensions(); }
+	void Propogate() {
+		RecalculatePaddedDimensions();
+		doReorder = determineReorder();
+		dataColumnName = determineDataColumn();
+	}
 	
 	void RecalculatePaddedDimensions();
 	
@@ -44,7 +48,6 @@ public:
 	double beamFittingBoxSize;
 	bool continuedRun;
 	double memFraction, absMemLimit;
-	bool directAllocation;
 	double minUVWInMeters, maxUVWInMeters, minUVInLambda, maxUVInLambda, wLimit, rankFilterLevel;
 	size_t rankFilterSize;
 	double gaussianTaperBeamSize, tukeyTaperInLambda, tukeyInnerTaperInLambda, edgeTaperInLambda, edgeTukeyTaperInLambda;
@@ -70,7 +73,8 @@ public:
 	std::string reusePsfPrefix, reuseDirtyPrefix;
 	bool writeImagingWeightSpectrumColumn;
 	std::string temporaryDirectory;
-	bool forceReorder, forceNoReorder, subtractModel, modelUpdateRequired, mfWeighting;
+	bool forceReorder, forceNoReorder, doReorder;
+	bool subtractModel, modelUpdateRequired, mfWeighting;
 	size_t fullResOffset, fullResWidth, fullResPad;
 	bool applyPrimaryBeam, reusePrimaryBeam, useDifferentialLofarBeam, savePsfPb;
 	std::string mwaPath;
@@ -150,6 +154,8 @@ public:
 	
 private:
 	void checkPolarizations() const;
+	bool determineReorder() const;
+	std::string determineDataColumn() const;
 };
 
 inline WSCleanSettings::WSCleanSettings() :
@@ -170,7 +176,6 @@ inline WSCleanSettings::WSCleanSettings() :
 	beamFittingBoxSize(10.0),
 	continuedRun(false),
 	memFraction(1.0), absMemLimit(0.0),
-	directAllocation(false),
 	minUVWInMeters(0.0), maxUVWInMeters(0.0),
 	minUVInLambda(0.0), maxUVInLambda(0.0), wLimit(0.0),
 	rankFilterLevel(3.0), rankFilterSize(16),
@@ -200,7 +205,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	reusePsfPrefix(), reuseDirtyPrefix(),
 	writeImagingWeightSpectrumColumn(false),
 	temporaryDirectory(),
-	forceReorder(false), forceNoReorder(false),
+	forceReorder(false), forceNoReorder(false), doReorder(true),
 	subtractModel(false),
 	modelUpdateRequired(true),
 	mfWeighting(false),

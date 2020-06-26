@@ -1,4 +1,5 @@
 #include "wscleansettings.h"
+#include "logger.h"
 
 #include <sstream>
 
@@ -17,6 +18,13 @@ void WSCleanSettings::Validate() const
 		
 		if(pixelScaleX == 0.0 || pixelScaleY == 0.0)
 			throw std::runtime_error("Invalid pixel scale given: one direction was set to zero.");
+	}
+	else if(mode == PredictMode)
+	{
+		if(joinedFrequencyCleaning)
+			throw std::runtime_error("Joined frequency cleaning specified for prediction: prediction doesn't clean, parameter invalid");
+		if(joinedPolarizationCleaning)
+			throw std::runtime_error("Joined polarization cleaning specified for prediction: prediction doesn't clean, parameter invalid");
 	}
 	
 	// antialiasingKernelSize should be odd
@@ -144,4 +152,37 @@ void WSCleanSettings::RecalculatePaddedDimensions()
 	{
 		Logger::Debug << "Using image size of " << trimmedImageWidth << " x " << trimmedImageHeight << ", padded to " << paddedImageWidth << " x " << paddedImageHeight << ".\n";
 	}
+}
+
+bool WSCleanSettings::determineReorder() const
+{
+	return (
+		(channelsOut != 1) ||
+		(polarizations.size()>=4) ||
+		(deconvolutionMGain != 1.0) ||
+		(baselineDependentAveragingInWavelengths != 0.0) ||
+		simulateNoise ||
+		forceReorder
+	) && !forceNoReorder;
+}
+
+std::string WSCleanSettings::determineDataColumn() const
+{
+	// If no column specified, determine column to use
+	if(mode == PredictMode)
+		return "DATA";
+	std::string col = dataColumnName;
+	if(col.empty())
+	{
+		casacore::MeasurementSet ms(filenames.front());
+		bool hasCorrected = ms.tableDesc().isColumn("CORRECTED_DATA");
+		if(hasCorrected) {
+			Logger::Info << "First measurement set has corrected data: tasks will be applied on the corrected data column.\n";
+			col = "CORRECTED_DATA";
+		} else {
+			Logger::Info << "No corrected data in first measurement set: tasks will be applied on the data column.\n";
+			col= "DATA";
+		}
+	}
+	return col;
 }

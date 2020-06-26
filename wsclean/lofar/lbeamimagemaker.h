@@ -7,7 +7,6 @@
 #include "../polarization.h"
 #include "../uvector.h"
 #include "../wsclean/imagingtable.h"
-#include "../wsclean/imagebufferallocator.h"
 #include "../wsclean/primarybeamimageset.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -20,8 +19,8 @@
 class LBeamImageMaker
 {
 public:
-	LBeamImageMaker(const ImagingTableEntry* tableEntry, ImageBufferAllocator* allocator) :
-	_tableEntry(tableEntry), _allocator(allocator),
+	LBeamImageMaker(const ImagingTableEntry* tableEntry) :
+	_tableEntry(tableEntry),
 	_undersample(8), _secondsBeforeBeamUpdate(1800),
 	_useDifferentialBeam(false)
 	{

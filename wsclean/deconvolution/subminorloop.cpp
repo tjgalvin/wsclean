@@ -100,11 +100,11 @@ boost::optional<double> SubMinorLoop::Run(ImageSet& convolvedResidual, const ao:
 void SubMinorModel::MakeSets(const ImageSet& residualSet)
 {
 	_residual.reset(new ImageSet(
-			&residualSet.Table(), residualSet.Allocator(),
+			&residualSet.Table(),
 			residualSet.Settings(),
 			size(), 1));
 	_model.reset(new ImageSet(
-		&residualSet.Table(), residualSet.Allocator(),
+		&residualSet.Table(),
 		residualSet.Settings(),
 		size(), 1));
 	for(size_t imgIndex=0; imgIndex!=_model->size(); ++imgIndex)
@@ -123,7 +123,7 @@ void SubMinorModel::MakeSets(const ImageSet& residualSet)
 
 void SubMinorModel::MakeRMSFactorImage(Image& rmsFactorImage)
 {
-	_rmsFactorImage = Image(size(), 1, _residual->Allocator());
+	_rmsFactorImage = Image(size(), 1);
 	for(size_t pxIndex=0; pxIndex!=size(); ++pxIndex)
 	{
 		size_t srcIndex = _positions[pxIndex].second*_width + _positions[pxIndex].first;
@@ -133,7 +133,7 @@ void SubMinorModel::MakeRMSFactorImage(Image& rmsFactorImage)
 
 void SubMinorLoop::findPeakPositions(ImageSet& convolvedResidual)
 {
-	Image integratedScratch(_width, _height, convolvedResidual.Allocator());
+	Image integratedScratch(_width, _height);
 	convolvedResidual.GetLinearIntegrated(integratedScratch.data());
 	
 	if(!_rmsFactorImage.empty())

@@ -76,8 +76,7 @@ void MWABeam::Make(PrimaryBeamImageSet& beamImages)
 	if(_width!=_sampledWidth || _height!=_sampledHeight)
 	{
 		FFTResampler resampler(_sampledWidth, _sampledHeight, _width, _height, 1);
-		ImageBufferAllocator::Ptr scratch;
-		_allocator->Allocate(_width*_height, scratch);
+		Image scratch(_width, _height);
 		for(size_t p=0; p!=8; ++p)
 		{
 			resampler.Resample(&beamImages[p][0], scratch.data());

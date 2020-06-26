@@ -26,13 +26,12 @@
 
 #include "idgconfiguration.h"
 
-IdgMsGridder::IdgMsGridder(const WSCleanSettings& settings, ImageBufferAllocator& allocator) :
+IdgMsGridder::IdgMsGridder(const WSCleanSettings& settings) :
 	_averageBeam(nullptr),
 	_outputProvider(nullptr),
 	_settings(settings),
 	_proxyType(idg::api::Type::CPU_OPTIMIZED),
-	_buffersize(0),
-	_allocator(allocator)
+	_buffersize(0)
 {
 	IdgConfiguration::Read(_proxyType, _buffersize, _options);
 	setIdgType();
@@ -278,7 +277,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 	_bufferset->finished();
 }
 
-void IdgMsGridder::Predict(ImageBufferAllocator::Ptr image)
+void IdgMsGridder::Predict(Image image)
 {
 	const size_t untrimmedWidth = ImageWidth();
 	const size_t width = TrimWidth(), height = TrimHeight();
@@ -481,60 +480,59 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId)
 	_bufferset->get_degridder(dataDescId)->finished_reading();
 }
 
-void IdgMsGridder::Predict(ImageBufferAllocator::Ptr /*real*/, ImageBufferAllocator::Ptr /*imaginary*/)
+void IdgMsGridder::Predict(Image /*real*/, Image /*imaginary*/)
 {
 	throw std::runtime_error("IDG gridder cannot make complex images");
 }
 
-ImageBufferAllocator::Ptr IdgMsGridder::ImageRealResult()
+Image IdgMsGridder::ImageRealResult()
 {
 	const size_t width = TrimWidth(), height = TrimHeight();
 	size_t polIndex = Polarization::StokesToIndex(Polarization());
-	ImageBufferAllocator::Ptr image = _allocator.AllocatePtr(height*width);
+	Image image(height, width);
 	std::copy_n(_image.data()+polIndex*width*height, width*height, image.data());
 	return std::move(image);
 }
 
-ImageBufferAllocator::Ptr IdgMsGridder::ImageImaginaryResult()
+Image IdgMsGridder::ImageImaginaryResult()
 {
 	throw std::runtime_error("IDG gridder cannot make complex images");
 }
 
-void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry, ImageFilename& filename) const
+void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry, ImageFilename& filename, const WSCleanSettings& settings, double ra, double dec, double pdl, double pdm, const MetaDataCache& cache)
 {
-	if (!_averageBeam || _averageBeam->Empty())
+	if (!cache.averageBeam || cache.averageBeam->Empty())
 	{
-		throw std::runtime_error("IDG gridder can not save beam image. Beam has not been computed yet.");
+		throw std::runtime_error("IDG gridder can not save the beam image. Beam has not been computed yet.");
 	}
 	FitsWriter writer;
-	writer.SetImageDimensions(_settings.trimmedImageWidth, _settings.trimmedImageHeight, PhaseCentreRA(), PhaseCentreDec(), _settings.pixelScaleX, _settings.pixelScaleY);
-	writer.SetPhaseCentreShift(PhaseCentreDL(), PhaseCentreDM());
+	writer.SetImageDimensions(settings.trimmedImageWidth, settings.trimmedImageHeight, ra, dec, settings.pixelScaleX, settings.pixelScaleY);
+	writer.SetPhaseCentreShift(pdl, pdm);
 	ImageFilename polName(filename);
 	polName.SetPolarization(Polarization::StokesI);
 	writer.SetPolarization(Polarization::StokesI);
 	writer.SetFrequency(entry.CentralFrequency(), entry.bandEndFrequency - entry.bandStartFrequency);
-	writer.Write(polName.GetBeamPrefix(_settings) + ".fits", _averageBeam->ScalarBeam()->data());
+	writer.Write(polName.GetBeamPrefix(settings) + ".fits", cache.averageBeam->ScalarBeam()->data());
 }
 
-void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer, const ImageFilename& filename, const std::string& filenameKind, ImageBufferAllocator& allocator) const
+void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer, const ImageFilename& filename, const std::string& filenameKind, const WSCleanSettings& settings)
 {
 	ImageFilename beamName(filename);
 	beamName.SetPolarization(Polarization::StokesI);
-	FitsReader reader(beamName.GetBeamPrefix(_settings) + ".fits");
+	FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");
 	
-	ImageBufferAllocator::Ptr beam;
-	allocator.Allocate(reader.ImageWidth() * reader.ImageHeight(), beam);
+	Image beam(reader.ImageWidth(), reader.ImageHeight());
 	reader.Read(beam.data());
 	
-	ImageBufferAllocator::Ptr image;
+	Image image;
 	for(size_t polIndex = 0; polIndex != 4; ++polIndex)
 	{
 		PolarizationEnum pol = Polarization::IndexToStokes(polIndex);
 		ImageFilename name(filename);
 		name.SetPolarization(pol);
-		FitsReader reader(name.GetPrefix(_settings) + "-" + filenameKind + ".fits");
-		if(!image)
-			allocator.Allocate(reader.ImageWidth() * reader.ImageHeight(), image);
+		FitsReader reader(name.GetPrefix(settings) + "-" + filenameKind + ".fits");
+		if(image.empty())
+			image = Image(reader.ImageWidth(), reader.ImageHeight());
 		reader.Read(image.data());
 		
 		for(size_t i=0; i!=reader.ImageWidth() * reader.ImageHeight(); ++i)
@@ -543,6 +541,6 @@ void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer, const ImageFilename
 		}
 		
 		writer.SetPolarization(pol);
-		writer.Write(name.GetPrefix(_settings) + "-" + filenameKind + "-pb.fits", image.data());
+		writer.Write(name.GetPrefix(settings) + "-" + filenameKind + "-pb.fits", image.data());
 	}
 }

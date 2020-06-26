@@ -86,15 +86,15 @@ PrimaryBeamImageSet LBeamImageMaker::Make()
 		matrices[j] *= 1.0/_totalWeightSum;
 	}
 	
-	PrimaryBeamImageSet beamImages(_width, _height, *_allocator, 16);
+	PrimaryBeamImageSet beamImages(_width, _height, 16);
 	beamImages.SetToZero();
 	
 	if(_width!=_sampledWidth || _height!=_sampledHeight)
 	{
 		FFTResampler resampler(_sampledWidth, _sampledHeight, _width, _height, 1);
-		ImageBufferAllocator::Ptr
-			scratchA = _allocator->AllocatePtr(_sampledWidth*_sampledHeight),
-			scratchB = _allocator->AllocatePtr(_width*_height);
+		Image
+			scratchA(_sampledWidth, _sampledHeight),
+			scratchB(_width, _height);
 		for(size_t p=0; p!=16; ++p)
 		{
 			for(size_t i=0; i!=_sampledWidth*_sampledHeight; ++i)

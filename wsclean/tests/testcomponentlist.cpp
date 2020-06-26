@@ -1,14 +1,12 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../wsclean/imagebufferallocator.h"
 #include "../deconvolution/componentlist.h"
 
 BOOST_AUTO_TEST_SUITE(component_list)
 
 BOOST_AUTO_TEST_CASE( adding_values )
 {
-	ImageBufferAllocator allocator;
-	ComponentList list(512, 512, 4, 3, allocator);
+	ComponentList list(512, 512, 4, 3);
 	ao::uvector<double> values;
 	values = { 1.0, 2.0, 3.0 };
 	list.Add(256, 256, 1, values.data() );

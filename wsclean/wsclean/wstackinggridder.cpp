@@ -7,7 +7,7 @@
 #include <fstream>
 
 template<typename T>
-WStackingGridderBase<T>::WStackingGridderBase(size_t width, size_t height, double pixelSizeX, double pixelSizeY, size_t fftThreadCount, ImageBufferAllocator* allocator, size_t kernelSize, size_t overSamplingFactor) :
+WStackingGridderBase<T>::WStackingGridderBase(size_t width, size_t height, double pixelSizeX, double pixelSizeY, size_t fftThreadCount, size_t kernelSize, size_t overSamplingFactor) :
 	_width(width),
 	_height(height),
 	_pixelSizeX(pixelSizeX),
@@ -26,8 +26,7 @@ WStackingGridderBase<T>::WStackingGridderBase(size_t width, size_t height, doubl
 	_kernelSize(kernelSize),
 	_imageData(fftThreadCount),
 	_imageDataImaginary(fftThreadCount),
-	_nFFTThreads(fftThreadCount),
-	_imageBufferAllocator(allocator)
+	_nFFTThreads(fftThreadCount)
 {
 	makeKernels();
 	makeFFTWThreadSafe();
@@ -90,11 +89,11 @@ void WStackingGridderBase<T>::PrepareWLayers(size_t nWLayers, double maxMem, dou
 	size_t imgSize = _height * _width;
 	for(size_t i=0; i!=_nFFTThreads; ++i)
 	{
-		_imageData[i] = _imageBufferAllocator->AllocateTPtr<num_t>(imgSize);
+		_imageData[i] = ImageT<num_t>(_width, _height);
 		std::fill_n(_imageData[i].data(), imgSize, 0.0);
 		if(_isComplex)
 		{
-			_imageDataImaginary[i] = _imageBufferAllocator->AllocateTPtr<num_t>(imgSize);
+			_imageDataImaginary[i] = ImageT<num_t>(_width, _height);
 			std::fill_n(_imageDataImaginary[i].data(), imgSize, 0.0);
 		}
 	}
@@ -116,7 +115,7 @@ void WStackingGridderBase<T>::initializeLayeredUVData(size_t n)
 	if(_layeredUVData.size() > n)
 		_layeredUVData.resize(n);
 	else while(_layeredUVData.size() < n)
-		_layeredUVData.emplace_back(_imageBufferAllocator->AllocateCPtr<num_t>(_width * _height));
+		_layeredUVData.emplace_back(ImageTC<num_t>(_width, _height));
 }
 
 template<typename T>
@@ -156,10 +155,9 @@ void WStackingGridderBase<T>::StartPredictionPass(size_t passIndex)
 template<>
 void WStackingGridderBase<double>::fftToImageThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks, size_t threadIndex)
 {
-	const size_t imgSize = _width * _height;
-	ImageBufferAllocator::CPtr<double>
-		fftwIn = _imageBufferAllocator->AllocateCPtr<double>(imgSize),
-		fftwOut = _imageBufferAllocator->AllocateCPtr<double>(imgSize);
+	ImageTC<double>
+		fftwIn = ImageTC<double>(_width, _height),
+		fftwOut = ImageTC<double>(_width, _height);
 	
 	std::unique_lock<std::mutex> lock(*mutex);
 	fftw_plan plan =
@@ -169,6 +167,7 @@ void WStackingGridderBase<double>::fftToImageThreadFunction(std::mutex *mutex, s
 			FFTW_BACKWARD, FFTW_ESTIMATE);
 		
 	const size_t layerOffset = layerRangeStart(_curLayerRangeIndex);
+	const size_t imgSize = _width * _height;
 
 	while(!tasks->empty())
 	{
@@ -198,10 +197,9 @@ void WStackingGridderBase<double>::fftToImageThreadFunction(std::mutex *mutex, s
 template<>
 void WStackingGridderBase<float>::fftToImageThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks, size_t threadIndex)
 {
-	const size_t imgSize = _width * _height;
-	ImageBufferAllocator::CPtr<float>
-		fftwIn = _imageBufferAllocator->AllocateCPtr<float>(imgSize),
-		fftwOut = _imageBufferAllocator->AllocateCPtr<float>(imgSize);
+	ImageTC<float>
+		fftwIn = ImageTC<float>(_width, _height),
+		fftwOut = ImageTC<float>(_width, _height);
 	
 	std::unique_lock<std::mutex> lock(*mutex);
 	fftwf_plan plan =
@@ -211,6 +209,7 @@ void WStackingGridderBase<float>::fftToImageThreadFunction(std::mutex *mutex, st
 			FFTW_BACKWARD, FFTW_ESTIMATE);
 		
 	const size_t layerOffset = layerRangeStart(_curLayerRangeIndex);
+	const size_t imgSize = _width * _height;
 
 	while(!tasks->empty())
 	{
@@ -241,9 +240,9 @@ template<>
 void WStackingGridderBase<double>::fftToUVThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks)
 {
 	const size_t imgSize = _width * _height;
-	ImageBufferAllocator::CPtr<double>
-		fftwIn = _imageBufferAllocator->AllocateCPtr<double>(imgSize),
-		fftwOut = _imageBufferAllocator->AllocateCPtr<double>(imgSize);
+	ImageTC<double>
+		fftwIn = ImageTC<double>(_width, _height),
+		fftwOut = ImageTC<double>(_width, _height);
 	
 	std::unique_lock<std::mutex> lock(*mutex);
 	fftw_plan plan =
@@ -282,10 +281,9 @@ void WStackingGridderBase<double>::fftToUVThreadFunction(std::mutex *mutex, std:
 template<>
 void WStackingGridderBase<float>::fftToUVThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks)
 {
-	const size_t imgSize = _width * _height;
-	ImageBufferAllocator::CPtr<float>
-		fftwIn = _imageBufferAllocator->AllocateCPtr<float>(imgSize),
-		fftwOut = _imageBufferAllocator->AllocateCPtr<float>(imgSize);
+	ImageTC<float>
+		fftwIn = ImageTC<float>(_width, _height),
+		fftwOut = ImageTC<float>(_width, _height);
 	
 	std::unique_lock<std::mutex> lock(*mutex);
 	fftwf_plan plan =
@@ -295,6 +293,7 @@ void WStackingGridderBase<float>::fftToUVThreadFunction(std::mutex *mutex, std::
 			FFTW_FORWARD, FFTW_ESTIMATE);
 		
 	const size_t layerOffset = layerRangeStart(_curLayerRangeIndex);
+	const size_t imgSize = _width * _height;
 
 	while(!tasks->empty())
 	{
@@ -742,7 +741,7 @@ void WStackingGridderBase<T>::FinalizeImage(double multiplicationFactor, bool co
 }
 
 template<typename T>
-void WStackingGridderBase<T>::finalizeImage(double multiplicationFactor, std::vector<ImageBufferAllocator::TPtr<num_t>>& dataArray)
+void WStackingGridderBase<T>::finalizeImage(double multiplicationFactor, std::vector<ImageT<num_t>>& dataArray)
 {
 	for(size_t i=1;i!=_nFFTThreads;++i)
 	{
@@ -889,7 +888,7 @@ void WStackingGridderBase<float>::correctImageForKernel(num_t *image) const
 }
 
 template<typename T>
-void WStackingGridderBase<T>::initializePrediction(ImageBufferAllocator::Ptr image, std::vector<ImageBufferAllocator::TPtr<num_t>>& dataArray)
+void WStackingGridderBase<T>::initializePrediction(Image image, std::vector<ImageT<num_t>>& dataArray)
 {
 	num_t *dataPtr = dataArray[0].data();
 	const double *inPtr = image.data();
@@ -1081,16 +1080,15 @@ void WStackingGridderBase<T>::SampleData(std::complex<float>* data, size_t dataD
 }
 
 template<>
-ImageBufferAllocator::Ptr WStackingGridderBase<double>::RealImageDouble()
+Image WStackingGridderBase<double>::RealImageDouble()
 {
 	return std::move(_imageData[0]);
 }
 
 template<>
-ImageBufferAllocator::Ptr WStackingGridderBase<float>::RealImageDouble()
+Image WStackingGridderBase<float>::RealImageDouble()
 {
-	ImageBufferAllocator::Ptr image =
-		_imageBufferAllocator->AllocatePtr(_width * _height);
+	Image image(_width, _height);
 	for(size_t i=0; i!=_width*_height; ++i)
 		image[i] = _imageData[0][i];
 	_imageData[0].reset();
@@ -1098,16 +1096,15 @@ ImageBufferAllocator::Ptr WStackingGridderBase<float>::RealImageDouble()
 }
 
 template<>
-ImageBufferAllocator::Ptr WStackingGridderBase<double>::ImaginaryImageDouble()
+Image WStackingGridderBase<double>::ImaginaryImageDouble()
 {
 	return std::move(_imageDataImaginary[0]);
 }
 
 template<>
-ImageBufferAllocator::Ptr WStackingGridderBase<float>::ImaginaryImageDouble()
+Image WStackingGridderBase<float>::ImaginaryImageDouble()
 {
-	ImageBufferAllocator::Ptr image =
-		_imageBufferAllocator->AllocatePtr(_width * _height);
+	Image image(_width, _height);
 	for(size_t i=0; i!=_width*_height; ++i)
 		image[i] = _imageDataImaginary[0][i];
 	_imageDataImaginary[0].reset();

@@ -4,6 +4,8 @@
 #include <string>
 #include <sstream>
 
+#include "serializable.h"
+
 class WeightMode
 {
 public:
@@ -69,8 +71,28 @@ public:
 			default: return "?";
 		}
 	}
+	
+	void Serialize(std::ostream& stream) const
+	{
+		Serializable::SerializeToUInt32(stream, _mode);
+		if(_mode == BriggsWeighted)
+		{
+			Serializable::SerializeToDouble(stream, _briggsRobustness);
+			Serializable::SerializeToDouble(stream, _superWeight);
+		}
+	}
+	
+	void Unserialize(std::istream& stream)
+	{
+		_mode = (WeightingEnum) Serializable::UnserializeUInt32(stream);
+		if(_mode == BriggsWeighted)
+		{
+			_briggsRobustness = Serializable::UnserializeDouble(stream);
+			_superWeight = Serializable::UnserializeDouble(stream);
+		}
+	}
 private:
-	enum WeightingEnum _mode;
+	WeightingEnum _mode;
 	double _briggsRobustness, _superWeight;
 };
 

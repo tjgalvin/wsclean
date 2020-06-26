@@ -1,6 +1,8 @@
 #ifndef OBSERVATION_INFO_H
 #define OBSERVATION_INFO_H
 
+#include <string>
+
 struct ObservationInfo
 {
 	double phaseCentreRA = 0.0, phaseCentreDec = 0.0;

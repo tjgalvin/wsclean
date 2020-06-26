@@ -30,6 +30,8 @@ public:
 	bool HasMinUVWInM() const { return _minUVWInM != 0.0; }
 	bool HasMaxUVWInM() const { return _maxUVWInM != 0.0; }
 	
+	size_t BandId() const { return _bandId; }
+	
 	size_t ChannelRangeStart() const { return _startChannel; }
 	size_t ChannelRangeEnd() const { return _endChannel; }
 	
@@ -132,7 +134,14 @@ public:
 	{
 		_evenOddSelection = evenOrOdd;
 	}
+	EvenOddSelection EvenOrOddTimesteps() const
+	{
+		return _evenOddSelection;
+	}
 	static MSSelection Everything() { return MSSelection(); }
+	
+	void Serialize(std::ostream& stream) const;
+	void Unserialize(std::istream& stream);
 private:
 	std::vector<size_t> _fieldIds;
 	size_t _bandId;

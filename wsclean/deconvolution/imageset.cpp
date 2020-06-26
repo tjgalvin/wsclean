@@ -52,8 +52,7 @@ void ImageSet::LoadAndAverage(CachedImageSet& imageSet)
 	for(size_t i=0; i!=_images.size(); ++i)
 		assign(_images[i], 0.0);
 	
-	ImageBufferAllocator::Ptr scratch;
-	_allocator.Allocate(_imageSize, scratch);
+	Image scratch(_width, _height);
 	
 	/// TODO : use real weights of images
 	ao::uvector<size_t> weights(_images.size(), 0.0);
@@ -91,10 +90,9 @@ void ImageSet::LoadAndAverage(CachedImageSet& imageSet)
 void ImageSet::LoadAndAveragePSFs(CachedImageSet& psfSet, std::vector<ao::uvector<double>>& psfImages, PolarizationEnum psfPolarization)
 {
 	for(size_t chIndex=0; chIndex!=_channelsInDeconvolution; ++chIndex)
-		psfImages[chIndex].assign(_imageSize, 0.0);
+		psfImages[chIndex].assign(_width * _height, 0.0);
 	
-	ImageBufferAllocator::Ptr scratch;
-	_allocator.Allocate(_imageSize, scratch);
+	Image scratch(_width, _height);
 	
 	/// TODO : use real weights of images
 	ao::uvector<size_t> weights(_channelsInDeconvolution, 0.0);
@@ -129,10 +127,10 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet, const SpectralFitte
 		// to have all channel images in memory at the same time.
 		// TODO: this assumes that polarizations are not joined!
 		size_t nTerms = fitter.NTerms();
-		ao::uvector<double> termsImage(_imageSize * nTerms);
+		ao::uvector<double> termsImage(_width * _height * nTerms);
 		ao::uvector<double> spectralPixel(_channelsInDeconvolution);
 		ao::uvector<double> termsPixel(nTerms);
-		for(size_t px=0; px!=_imageSize; ++px)
+		for(size_t px=0; px!=_width * _height; ++px)
 		{
 			bool isZero = true;
 			for(size_t s=0; s!=_images.size(); ++s)
@@ -157,14 +155,13 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet, const SpectralFitte
 		
 		// Now that we know the fit for each pixel, evaluate the function for each
 		// pixel of each output channel.
-		ImageBufferAllocator::Ptr scratch;
-		_allocator.Allocate(_imageSize, scratch);
+		Image scratch(_width, _height);
 		size_t imgIndex = 0;
 		for(size_t eIndex=0; eIndex!=_imagingTable.EntryCount(); ++eIndex)
 		{
 			const ImagingTableEntry& e = _imagingTable[eIndex];
 			double freq = e.CentralFrequency();
-			for(size_t px=0; px!=_imageSize; ++px)
+			for(size_t px=0; px!=_width * _height; ++px)
 			{
 				const double* termsPtr = &termsImage[px*nTerms];
 				for(size_t i=0; i!=nTerms; ++i)

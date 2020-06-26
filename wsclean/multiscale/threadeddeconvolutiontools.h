@@ -5,6 +5,7 @@
 
 #include "../lane.h"
 #include "../uvector.h"
+#include "../image.h"
 
 #include <boost/optional/optional.hpp>
 
@@ -31,9 +32,9 @@ public:
 	void MultiScaleTransform(class MultiScaleTransforms* msTransforms, const ao::uvector<double*>& images, double* scratch, double scale);
 	
 	// This one is for transform of different scales
-	void MultiScaleTransform(class MultiScaleTransforms* msTransforms, class ImageBufferAllocator* allocator, const ao::uvector<double*>& images, ao::uvector<double> scales);
+	void MultiScaleTransform(class MultiScaleTransforms* msTransforms, const ao::uvector<double*>& images, ao::uvector<double> scales);
 	
-	void FindMultiScalePeak(class MultiScaleTransforms* msTransforms, class ImageBufferAllocator* allocator, const double* image, const ao::uvector<double>& scales, std::vector<PeakData>& results, bool allowNegativeComponents, const bool* mask, const std::vector<ao::uvector<bool>>& scaleMasks, double borderRatio, const class Image& rmsFactorImage, bool calculateRMS);
+	void FindMultiScalePeak(class MultiScaleTransforms* msTransforms, const double* image, const ao::uvector<double>& scales, std::vector<PeakData>& results, bool allowNegativeComponents, const bool* mask, const std::vector<ao::uvector<bool>>& scaleMasks, double borderRatio, const Image& rmsFactorImage, bool calculateRMS);
 	
 	static double RMS(const double* image, size_t n)
 	{

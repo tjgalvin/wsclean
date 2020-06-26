@@ -17,7 +17,7 @@
 class GenericClean : public DeconvolutionAlgorithm
 {
 public:
-	explicit GenericClean(class ImageBufferAllocator& allocator, class FFTWManager& fftwManager, bool useSubMinorOptimization);
+	explicit GenericClean(class FFTWManager& fftwManager, bool useSubMinorOptimization);
 	
 	virtual double ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet, const ao::uvector<const double*>& psfs, size_t width, size_t height, bool& reachedMajorThreshold) final override;
 	
@@ -40,7 +40,6 @@ private:
 		SimpleClean::PartialSubtractImage(image, _width, _height, psf, _width, _height, x, y, factor, startY, endY);
 	}
 	
-	class ImageBufferAllocator& _allocator;
 	class FFTWManager& _fftwManager;
 };
 

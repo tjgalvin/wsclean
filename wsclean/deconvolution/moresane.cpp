@@ -9,13 +9,14 @@
 #include "../fitswriter.h"
 #include "../fftconvolver.h"
 
+#include "../wsclean/logger.h"
+
 void MoreSane::ExecuteMajorIteration(double* dataImage, double* modelImage, const double* psfImage, size_t width, size_t height)
 {
 	if(_iterationNumber!=0)
 	{
 		Logger::Info << "Convolving model with psf...\n";
-		ImageBufferAllocator::Ptr preparedPsf;
-		_allocator->Allocate(width*height, preparedPsf);
+		Image preparedPsf(width, height);
 		FFTConvolver::PrepareKernel(preparedPsf.data(), psfImage, width, height);
 		FFTConvolver::ConvolveSameSize(_fftwManager, modelImage, preparedPsf.data(), width, height);
 		Logger::Info << "Adding model back to residual...\n";

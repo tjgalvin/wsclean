@@ -11,7 +11,8 @@
 #endif
 
 #include "gridmodeenum.h"
-#include "imagebufferallocator.h"
+
+#include "../image.h"
 
 #include <cmath>
 #include <cstring>
@@ -20,8 +21,6 @@
 #include <vector>
 #include <stack>
 #include <thread>
-
-class ImageBufferAllocator;
 
 /**
  * This class grids and/or samples visibilities to/from UV space.
@@ -105,7 +104,7 @@ class WStackingGridderBase
 		 *   that are precalculated at different rational positions. Larger is more accurate
 		 *   but requires more memory and becomes slower, probably mainly due to cache misses.
 		 */
-		WStackingGridderBase(size_t width, size_t height, double pixelSizeX, double pixelSizeY, size_t fftThreadCount, ImageBufferAllocator* allocator, size_t kernelSize = 7, size_t overSamplingFactor = 63);
+		WStackingGridderBase(size_t width, size_t height, double pixelSizeX, double pixelSizeY, size_t fftThreadCount, size_t kernelSize = 7, size_t overSamplingFactor = 63);
 		
 		WStackingGridderBase(const WStackingGridderBase&) = delete;
 		
@@ -326,7 +325,7 @@ class WStackingGridderBase
 		 * @param image The model image that is to be predicted for. This is an
 		 * array of width * height size, index by (x + width*y).
 		 */
-		void InitializePrediction(ImageBufferAllocator::Ptr image)
+		void InitializePrediction(Image image)
 		{
 			initializePrediction(std::move(image), _imageData);
 		}
@@ -339,7 +338,7 @@ class WStackingGridderBase
 		 * @param real Array of width * height giving the real (model) image values.
 		 * @param imaginary Array of width * height giving the imaginary (model) image values.
 		 */
-		void InitializePrediction(ImageBufferAllocator::Ptr real, ImageBufferAllocator::Ptr imaginary)
+		void InitializePrediction(Image real, Image imaginary)
 		{
 			initializePrediction(std::move(real), _imageData);
 			initializePrediction(std::move(imaginary), _imageDataImaginary);
@@ -396,17 +395,17 @@ class WStackingGridderBase
 		 * If a complex image is produced, this image returns the real part. The imaginary part can
 		 * be acquired with @ref ImaginaryImage().
 		 */
-		ImageBufferAllocator::TPtr<num_t> RealImage() { return std::move(_imageData[0]); }
+		ImageT<num_t> RealImage() { return std::move(_imageData[0]); }
 		
-		ImageBufferAllocator::Ptr RealImageDouble();
+		Image RealImageDouble();
 		
 		/**
 		 * Get the imaginary part of a complex image after inversion. Otherwise similar to
 		 * @ref RealImage().
 		 */
-		ImageBufferAllocator::TPtr<num_t> ImaginaryImage() { return std::move(_imageDataImaginary[0]); }
+		ImageT<num_t> ImaginaryImage() { return std::move(_imageDataImaginary[0]); }
 		
-		ImageBufferAllocator::Ptr ImaginaryImageDouble();
+		Image ImaginaryImageDouble();
 		
 		/**
 		 * Get the number of threads used when performing the FFTs. The w-layers are divided over
@@ -530,12 +529,6 @@ class WStackingGridderBase
 		 */
 		double PixelSizeY() const { return _pixelSizeY; }
 		
-		/**
-		 * The @ref ImageBufferAllocator of this gridder.
-		 * @returns The image buffer allocator.
-		 */
-		ImageBufferAllocator* Allocator() const { return _imageBufferAllocator; }
-		
 	private:
 		size_t layerRangeStart(size_t layerRangeIndex) const
 		{
@@ -551,8 +544,8 @@ class WStackingGridderBase
 		void initializeLayeredUVData(size_t n);
 		void fftToImageThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks, size_t threadIndex);
 		void fftToUVThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks);
-		void finalizeImage(double multiplicationFactor, std::vector<ImageBufferAllocator::TPtr<num_t>>& dataArray);
-		void initializePrediction(ImageBufferAllocator::Ptr image, std::vector<ImageBufferAllocator::TPtr<num_t>>& dataArray);
+		void finalizeImage(double multiplicationFactor, std::vector<ImageT<num_t>>& dataArray);
+		void initializePrediction(Image image, std::vector<ImageT<num_t>>& dataArray);
 		
 		void makeKernels();
 		/**
@@ -591,11 +584,10 @@ class WStackingGridderBase
 		std::vector<double> _1dKernel;
 		std::vector<std::vector<num_t>> _griddingKernels;
 		
-		std::vector<ImageBufferAllocator::CPtr<num_t>> _layeredUVData;
-		std::vector<ImageBufferAllocator::TPtr<num_t>> _imageData, _imageDataImaginary;
+		std::vector<ImageTC<num_t>> _layeredUVData;
+		std::vector<ImageT<num_t>> _imageData, _imageDataImaginary;
 		std::vector<num_t> _sqrtLMLookupTable;
 		size_t _nFFTThreads;
-		ImageBufferAllocator* _imageBufferAllocator;
 };
 
 typedef WStackingGridderBase<double> WStackingGridder;

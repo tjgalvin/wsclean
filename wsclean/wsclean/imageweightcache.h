@@ -7,6 +7,8 @@
 #include "../imageweights.h"
 #include "../weightmode.h"
 
+#include "../msproviders/msdatadescription.h"
+
 #include <limits>
 #include <mutex>
 
@@ -42,7 +44,7 @@ public:
 		_edgeTukeyTaperInLambda = edgeTukeyTaperInLambda;
 	}
 	
-	std::shared_ptr<ImageWeights> Get(const std::vector<std::pair<std::unique_ptr<MSProvider>, MSSelection>>& msList, size_t outChannelIndex, size_t outIntervalIndex)
+	std::shared_ptr<ImageWeights> Get(const std::vector<std::unique_ptr<MSDataDescription>>& msList, size_t outChannelIndex, size_t outIntervalIndex)
 	{
 		std::unique_lock<std::mutex> lock(_mutex);
 		if(outChannelIndex != _currentWeightChannel || outIntervalIndex != _currentWeightInterval)
@@ -85,14 +87,15 @@ public:
 	}
 	
 private:
-	std::unique_ptr<ImageWeights> recalculateWeights(const std::vector<std::pair<std::unique_ptr<MSProvider>, MSSelection>>& msList)
+	std::unique_ptr<ImageWeights> recalculateWeights(const std::vector<std::unique_ptr<MSDataDescription>>& msList)
 	{
 		Logger::Info << "Precalculating weights for " << _weightMode.ToString() << " weighting... ";
 		Logger::Info.Flush();
 		std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
 		for(size_t i=0; i!=msList.size(); ++i)
 		{
-			weights->Grid(*msList[i].first, msList[i].second);
+			std::unique_ptr<MSProvider> provider = msList[i]->GetProvider();
+			weights->Grid(*provider, msList[i]->Selection());
 			if(msList.size() > 1)
 				(Logger::Info << i << ' ').Flush();
 		}

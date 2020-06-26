@@ -1,6 +1,5 @@
 #include "wsmsgridder.h"
 
-#include "imagebufferallocator.h"
 #include "logger.h"
 
 #include "../imageweights.h"
@@ -16,11 +15,10 @@
 
 #include <stdexcept>
 
-WSMSGridder::WSMSGridder(ImageBufferAllocator* imageAllocator, size_t threadCount, double memFraction, double absMemLimit) :
+WSMSGridder::WSMSGridder(size_t threadCount, double memFraction, double absMemLimit) :
 	MSGridderBase(),
 	_cpuCount(threadCount),
-	_laneBufferSize(std::max<size_t>(_cpuCount*2,1024)),
-	_imageBufferAllocator(imageAllocator)
+	_laneBufferSize(std::max<size_t>(_cpuCount*2,1024))
 {
 	_memSize = getAvailableMemory(memFraction, absMemLimit);
 	
@@ -317,7 +315,7 @@ void WSMSGridder::Invert()
 	std::vector<MSData> msDataVector;
 	initializeMSDataVector(msDataVector);
 	
-	_gridder.reset(new GridderType(_actualInversionWidth, _actualInversionHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount, _imageBufferAllocator, AntialiasingKernelSize(), OverSamplingFactor()));
+	_gridder.reset(new GridderType(_actualInversionWidth, _actualInversionHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount, AntialiasingKernelSize(), OverSamplingFactor()));
 	_gridder->SetGridMode(GridMode());
 	if(HasDenormalPhaseCentre())
 		_gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
@@ -382,7 +380,7 @@ void WSMSGridder::Invert()
 	if(IsComplex())
 		_imaginaryImage = _gridder->ImaginaryImageDouble();
 	else
-		_imaginaryImage = nullptr;
+		_imaginaryImage = Image();
 	
 	if(ImageWidth()!=_actualInversionWidth || ImageHeight()!=_actualInversionHeight)
 	{
@@ -392,8 +390,8 @@ void WSMSGridder::Invert()
 		
 		if(IsComplex())
 		{
-			ImageBufferAllocator::Ptr resizedReal = _imageBufferAllocator->AllocatePtr(ImageWidth() * ImageHeight());
-			ImageBufferAllocator::Ptr resizedImag = _imageBufferAllocator->AllocatePtr(ImageWidth() * ImageHeight());
+			Image resizedReal(ImageWidth(), ImageHeight());
+			Image resizedImag(ImageWidth(), ImageHeight());
 			resampler.Start();
 			resampler.AddTask(_realImage.data(), resizedReal.data());
 			resampler.AddTask(_imaginaryImage.data(), resizedImag.data());
@@ -402,7 +400,7 @@ void WSMSGridder::Invert()
 			_imaginaryImage = std::move(resizedImag);
 		}
 		else {
-			ImageBufferAllocator::Ptr resized = _imageBufferAllocator->AllocatePtr(ImageWidth() * ImageHeight());
+			Image resized = Image(ImageWidth(), ImageHeight());
 			resampler.Resample(_realImage.data(), resized.data());
 			_realImage = std::move(resized);
 		}
@@ -413,32 +411,31 @@ void WSMSGridder::Invert()
 		Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight() << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
 		// Perform trimming
 		
-		ImageBufferAllocator::Ptr
-			trimmed = _imageBufferAllocator->AllocatePtr(TrimWidth() * TrimHeight());
+		Image trimmed(TrimWidth(), TrimHeight());
 		Image::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _realImage.data(), ImageWidth(), ImageHeight());
 		_realImage = std::move(trimmed);
 		
 		if(IsComplex())
 		{
-			ImageBufferAllocator::Ptr
-				trimmedImag = _imageBufferAllocator->AllocatePtr(TrimWidth() * TrimHeight());
+			Image trimmedImag = Image(TrimWidth(), TrimHeight());
 			Image::Trim(trimmedImag.data(), TrimWidth(), TrimHeight(), _imaginaryImage.data(), ImageWidth(), ImageHeight());
 			_imaginaryImage = std::move(trimmedImag);
 		}
 	}
+	Logger::Debug << "Inversion finished.\n";
 }
 
-void WSMSGridder::Predict(ImageBufferAllocator::Ptr real, ImageBufferAllocator::Ptr imaginary)
+void WSMSGridder::Predict(Image real, Image imaginary)
 {
-	if(imaginary==nullptr && IsComplex())
+	if(imaginary.empty() && IsComplex())
 		throw std::runtime_error("Missing imaginary in complex prediction");
-	if(imaginary!=0 && !IsComplex())
+	if(!imaginary.empty() && !IsComplex())
 		throw std::runtime_error("Imaginary specified in non-complex prediction");
 	
 	std::vector<MSData> msDataVector;
 	initializeMSDataVector(msDataVector);
 	
-	_gridder = std::unique_ptr<GridderType>(new GridderType(_actualInversionWidth, _actualInversionHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount, _imageBufferAllocator, AntialiasingKernelSize(), OverSamplingFactor()));
+	_gridder = std::unique_ptr<GridderType>(new GridderType(_actualInversionWidth, _actualInversionHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount, AntialiasingKernelSize(), OverSamplingFactor()));
 	_gridder->SetGridMode(GridMode());
 	if(HasDenormalPhaseCentre())
 		_gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
@@ -452,39 +449,39 @@ void WSMSGridder::Predict(ImageBufferAllocator::Ptr real, ImageBufferAllocator::
 			countSamplesPerLayer(msDataVector[i]);
 	}
 	
-	ImageBufferAllocator::Ptr untrimmedReal, untrimmedImag;
+	Image untrimmedReal, untrimmedImag;
 	if(TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight())
 	{
 		Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight() << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
 		// Undo trimming (i.e., extend with zeros)
 		// The input is of size TrimWidth() x TrimHeight()
 		// This will make the model image of size ImageWidth() x ImageHeight()
-		_imageBufferAllocator->Allocate(ImageWidth() * ImageHeight(), untrimmedReal);
+		untrimmedReal = Image(ImageWidth(), ImageHeight());
 		Image::Untrim(untrimmedReal.data(), ImageWidth(), ImageHeight(), real.data(), TrimWidth(), TrimHeight());
 		real = std::move(untrimmedReal);
 		
 		if(IsComplex())
 		{
-			_imageBufferAllocator->Allocate(ImageWidth() * ImageHeight(), untrimmedImag);
+			untrimmedImag = Image(ImageWidth(), ImageHeight());
 			Image::Untrim(untrimmedImag.data(), ImageWidth(), ImageHeight(), imaginary.data(), TrimWidth(), TrimHeight());
 			imaginary = std::move(untrimmedImag);
 		}
 	}
 	
-	ImageBufferAllocator::Ptr resampledReal, resampledImag;
+	Image resampledReal, resampledImag;
 	if(ImageWidth()!=_actualInversionWidth || ImageHeight()!=_actualInversionHeight)
 	{
 		// Decimate the image
 		// Input is ImageWidth() x ImageHeight()
 		FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth, _actualInversionHeight, _cpuCount);
 		
-		_imageBufferAllocator->Allocate(ImageWidth() * ImageHeight(), resampledReal);
-		if(imaginary == nullptr)
+		resampledReal = Image(ImageWidth(), ImageHeight());
+		if(imaginary.empty())
 		{
 			resampler.Resample(real.data(), resampledReal.data());
 		}
 		else {
-			_imageBufferAllocator->Allocate(ImageWidth() * ImageHeight(), resampledImag);
+			resampledImag = Image(ImageWidth(), ImageHeight());
 			resampler.Start();
 			resampler.AddTask(real.data(), resampledReal.data());
 			resampler.AddTask(imaginary.data(), resampledImag.data());
@@ -494,7 +491,7 @@ void WSMSGridder::Predict(ImageBufferAllocator::Ptr real, ImageBufferAllocator::
 		real = std::move(resampledReal);
 	}
 	
-	if(imaginary == nullptr)
+	if(imaginary.empty())
 		_gridder->InitializePrediction(std::move(real));
 	else
 		_gridder->InitializePrediction(std::move(real), std::move(imaginary));
