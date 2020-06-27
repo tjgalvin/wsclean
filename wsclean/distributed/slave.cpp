@@ -37,7 +37,7 @@ void Slave::Run()
 void Slave::grid(size_t bodySize)
 {
 	MPI_Status status;
-	std::vector<char> buffer(bodySize);
+	ao::uvector<unsigned char> buffer(bodySize);
 	MPI_Recv(
 		buffer.data(),
 		bodySize,
@@ -46,7 +46,7 @@ void Slave::grid(size_t bodySize)
 		0,
 		MPI_COMM_WORLD,
 		&status);
-	std::istringstream stream(std::string(buffer.data(), bodySize)); // TODO make more efficient!
+	SerialIStream stream(std::move(buffer));
 	
 	GriddingTask task;
 	task.Unserialize(stream);
@@ -55,13 +55,12 @@ void Slave::grid(size_t bodySize)
 	GriddingResult result = scheduler->RunDirect(task);
 	Logger::Info << "Worker node is done gridding.\n";
 	
-	std::ostringstream resStream;
+	SerialOStream resStream;
 	result.Serialize(resStream);
-	std::string str = resStream.str(); // TODO make more efficient
 	
 	TaskMessage message;
 	message.type = TaskMessage::GriddingResult;
-	message.bodySize = str.size();
+	message.bodySize = resStream.size();
 	MPI_Send(
 		&message,
 		sizeof(TaskMessage),
@@ -70,8 +69,8 @@ void Slave::grid(size_t bodySize)
 		0,
 		MPI_COMM_WORLD);
 	MPI_Send(
-		str.c_str(),
-		str.size(),
+		resStream.data(),
+		resStream.size(),
 		MPI_BYTE,
 		0,
 		0,

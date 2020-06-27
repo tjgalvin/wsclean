@@ -61,8 +61,8 @@ public:
 	size_t Height() const { return _imageHeight; }
 	WeightMode GetWeightMode() const { return _weightMode; }
 	
-	void Serialize(std::ostream& stream) const;
-	void Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 	
 private:
 	ImageWeights(const ImageWeights&) = delete;

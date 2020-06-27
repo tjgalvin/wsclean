@@ -1,35 +1,38 @@
 #include "metadatacache.h"
 
-#include "../serializable.h"
+#include "../serialostream.h"
+#include "../serialistream.h"
 
-void MetaDataCache::Serialize ( std::ostream& stream ) const
+void MetaDataCache::Serialize ( class SerialOStream& stream ) const
 {
-	Serializable::SerializeToUInt64(stream, msDataVector.size());
+	stream.UInt64(msDataVector.size());
 	for(const Entry& entry : msDataVector)
 	{
-		Serializable::SerializeToDouble(stream, entry.minW);
-		Serializable::SerializeToDouble(stream, entry.maxW);
-		Serializable::SerializeToDouble(stream, entry.maxWWithFlags);
-		Serializable::SerializeToDouble(stream, entry.maxBaselineUVW);
-		Serializable::SerializeToDouble(stream, entry.maxBaselineInM);
-		Serializable::SerializeToDouble(stream, entry.integrationTime);
+		stream
+			.Double(entry.minW)
+			.Double(entry.maxW)
+			.Double(entry.maxWWithFlags)
+			.Double(entry.maxBaselineUVW)
+			.Double(entry.maxBaselineInM)
+			.Double(entry.integrationTime);
 	}
 	
-	Serializable::SerializePtr(stream, averageBeam);
+	stream.Ptr(averageBeam);
 }
 
-void MetaDataCache::Unserialize ( std::istream& stream )
+void MetaDataCache::Unserialize ( class SerialIStream& stream )
 {
-	msDataVector.resize(Serializable::UnserializeUInt64(stream));
+	msDataVector.resize(stream.UInt64());
 	for(Entry& entry : msDataVector)
 	{
-		entry.minW = Serializable::UnserializeDouble(stream);
-		entry.maxW = Serializable::UnserializeDouble(stream);
-		entry.maxWWithFlags = Serializable::UnserializeDouble(stream);
-		entry.maxBaselineUVW = Serializable::UnserializeDouble(stream);
-		entry.maxBaselineInM = Serializable::UnserializeDouble(stream);
-		entry.integrationTime = Serializable::UnserializeDouble(stream);
+		stream
+			.Double(entry.minW)
+			.Double(entry.maxW)
+			.Double(entry.maxWWithFlags)
+			.Double(entry.maxBaselineUVW)
+			.Double(entry.maxBaselineInM)
+			.Double(entry.integrationTime);
 	}
 	
-	Serializable::UnserializePtr(stream, averageBeam);
+	stream.Ptr(averageBeam);
 }

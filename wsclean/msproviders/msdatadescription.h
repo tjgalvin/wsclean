@@ -46,8 +46,8 @@ public:
 	
 	const MSSelection& Selection() const { return _selection; }
 	
-	void Serialize(std::ostream& stream) const;
-	static std::unique_ptr<MSDataDescription> Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	static std::unique_ptr<MSDataDescription> Unserialize(class SerialIStream& stream);
 	
 private:
 	MSDataDescription() { };

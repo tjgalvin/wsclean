@@ -1,39 +1,42 @@
 #include "averagebeam.h"
 
-#include "../serializable.h"
+#include "../serialostream.h"
+#include "../serialistream.h"
 
-void AverageBeam::Serialize ( std::ostream& stream ) const
+void AverageBeam::Serialize(SerialOStream& stream) const
 {
 	if(_scalarBeam)
 	{
-		Serializable::SerializeToBool(stream, true);
-		Serializable::SerializeVectorFloat(stream, *_scalarBeam);
+		stream.Bool(true);
+		stream.VectorFloat(*_scalarBeam);
 	}
 	else {
-		Serializable::SerializeToBool(stream, false);
+		stream.Bool(false);
 	}
 	
 	if(_matrixInverseBeam)
 	{
-		Serializable::SerializeToBool(stream, true);
-		Serializable::SerializeVectorFloatC(stream, *_matrixInverseBeam);
+		stream.Bool(true);
+		stream.VectorCFloat(*_matrixInverseBeam);
 	}
 	else {
-		Serializable::SerializeToBool(stream, false);
+		stream.Bool(false);
 	}
 }
 
-void AverageBeam::Unserialize ( std::istream& stream )
+void AverageBeam::Unserialize(SerialIStream& stream)
 {
-	bool hasScalar = Serializable::UnserializeBool(stream);
-	if(hasScalar)
-		_scalarBeam.reset(new std::vector<float>(Serializable::UnserializeVectorFloat(stream)));
-	else
+	bool hasScalar = stream.Bool();
+	if(hasScalar) {
+		_scalarBeam.reset(new std::vector<float>());
+		stream.VectorFloat(*_scalarBeam);
+	} else
 		_scalarBeam.reset();
 	
-	bool hasMatrixInverse = Serializable::UnserializeBool(stream);
-	if(hasMatrixInverse)
-		_matrixInverseBeam.reset(new std::vector<std::complex<float>>(Serializable::UnserializeVectorFloatC(stream)));
-	else
+	bool hasMatrixInverse = stream.Bool();
+	if(hasMatrixInverse) {
+		_matrixInverseBeam.reset(new std::vector<std::complex<float>>());
+		stream.VectorCFloat(*_matrixInverseBeam);
+	} else
 		_matrixInverseBeam.reset();
 }

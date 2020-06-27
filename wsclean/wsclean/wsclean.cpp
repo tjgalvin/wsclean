@@ -115,7 +115,6 @@ void WSClean::imagePSF(ImagingTableEntry& entry)
 {
 	Logger::Info.Flush();
 	Logger::Info << " == Constructing PSF ==\n";
-	_inversionWatch.Start();
 	GriddingTask task;
 	task.operation = GriddingTask::Invert;
 	task.imagePSF = true;
@@ -147,7 +146,6 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result)
 	DeconvolutionAlgorithm::RemoveNaNsInPSF(result.imageRealResult.data(), _settings.trimmedImageWidth, _settings.trimmedImageHeight);
 	_psfImages.SetFitsWriter(createWSCFitsWriter(entry, false, false).Writer());
 	_psfImages.Store(result.imageRealResult.data(), *_settings.polarizations.begin(), channelIndex, false);
-	_inversionWatch.Pause();
 	
 	_observationInfo = result.observationInfo;
 	_msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -196,7 +194,6 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion, bool up
 {
 	Logger::Info.Flush();
 	Logger::Info << " == Constructing image ==\n";
-	_inversionWatch.Start();
 	
 	GriddingTask task;
 	task.operation = GriddingTask::Invert;
@@ -210,8 +207,6 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion, bool up
 	task.imageWeights = initializeImageWeights(entry, task.msList);
 	
 	_griddingTaskManager->Run(task, std::bind(&WSClean::imageMainCallback, this, std::ref(entry), std::placeholders::_1, updateBeamInfo, isFirstInversion));
-	
-	_inversionWatch.Pause();
 }
 
 void WSClean::imageMainCallback(ImagingTableEntry& entry, GriddingResult& result, bool updateBeamInfo, bool isInitialInversion)
@@ -340,7 +335,6 @@ void WSClean::predict(const ImagingTableEntry& entry)
 		}
 	}
 	
-	_predictingWatch.Start();
 	GriddingTask task;
 	task.operation = GriddingTask::Predict;
 	task.polarization = entry.polarization;
@@ -353,7 +347,6 @@ void WSClean::predict(const ImagingTableEntry& entry)
 	initializeMSList(entry, task.msList);
 	task.imageWeights = initializeImageWeights(entry, task.msList);
 	_griddingTaskManager->Run(task, std::bind(&WSClean::predictCallback, this, std::ref(entry), std::placeholders::_1));
-	_predictingWatch.Pause();
 }
 
 void WSClean::predictCallback(const ImagingTableEntry& entry, GriddingResult& result)
@@ -690,7 +683,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 		_psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroupCount(), _settings.prefixName + "-psf");
 	
 	// In the case of IDG we have to directly ask for all Four polarizations. This can't 
-	// be parallelized in the current structure, but is also not necessary since IDG handles this
+	// be parallelized in the current structure.
 	bool parallelizeChannels = !_settings.useIDG || _settings.polarizations.size()==1;
 	// In case XY/YX polarizations are requested, we should not parallelize over those since they
 	// need to be combined after imaging, and this currently requires XY before YX.
@@ -700,6 +693,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 	
 	const std::string rootPrefix = _settings.prefixName;
 		
+	_inversionWatch.Start();
 	for(size_t joinedIndex=0; joinedIndex!=groupTable.EntryCount(); ++joinedIndex)
 	{
 		ImagingTableEntry& entry = groupTable[joinedIndex];
@@ -741,6 +735,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 			_griddingTaskManager->Finish();
 		} while(hasMore);
 	}
+	_inversionWatch.Pause();
 
 	_deconvolution.InitializeDeconvolutionAlgorithm(groupTable, *_settings.polarizations.begin(), minTheoreticalBeamSize(groupTable), _settings.threadCount);
 
@@ -767,6 +762,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 				{
 					if(parallelizeChannels && parallelizePolarizations)
 					{
+						_predictingWatch.Start();
 						for(size_t sGroupIndex=0; sGroupIndex!=groupTable.SquaredGroupCount(); ++sGroupIndex)
 						{
 							ImagingTable sGroupTable = groupTable.GetSquaredGroup(sGroupIndex);
@@ -776,7 +772,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 							}
 						}
 						_griddingTaskManager->Finish();
+						_predictingWatch.Pause();
 						
+						_inversionWatch.Start();
 						for(size_t sGroupIndex=0; sGroupIndex!=groupTable.SquaredGroupCount(); ++sGroupIndex)
 						{
 							ImagingTable sGroupTable = groupTable.GetSquaredGroup(sGroupIndex);
@@ -786,26 +784,32 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 							} // end of polarization loop
 						} // end of joined channels loop
 						_griddingTaskManager->Finish();
+						_inversionWatch.Pause();
 					}
-					
 					else if(parallelizePolarizations) {
 						for(size_t sGroupIndex=0; sGroupIndex!=groupTable.SquaredGroupCount(); ++sGroupIndex)
 						{
+							_predictingWatch.Start();
 							ImagingTable sGroupTable = groupTable.GetSquaredGroup(sGroupIndex);
 							for(size_t e=0; e!=sGroupTable.EntryCount(); ++e)
 							{
 								predict(sGroupTable[e]);
 							}
 							_griddingTaskManager->Finish();
+							_predictingWatch.Pause();
+							
+							_inversionWatch.Start();
 							for(size_t e=0; e!=sGroupTable.EntryCount(); ++e)
 							{
 								imageMain(sGroupTable[e], false, false);
 							} // end of polarization loop
 							_griddingTaskManager->Finish();
+							_inversionWatch.Pause();
 						} // end of joined channels loop
 					}
 					
 					else { // only parallize channels
+						_predictingWatch.Start();
 						bool hasMore;
 						size_t sIndex = 0;
 						do {
@@ -822,7 +826,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 							++sIndex;
 							_griddingTaskManager->Finish();
 						} while(hasMore);
+						_predictingWatch.Pause();
 						
+						_inversionWatch.Start();
 						sIndex = 0;
 						do {
 							hasMore = false;
@@ -838,6 +844,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 							++sIndex;
 							_griddingTaskManager->Finish();
 						} while(hasMore);
+						_inversionWatch.Pause();
 					}
 				}
 				

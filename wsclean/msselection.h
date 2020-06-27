@@ -140,8 +140,8 @@ public:
 	}
 	static MSSelection Everything() { return MSSelection(); }
 	
-	void Serialize(std::ostream& stream) const;
-	void Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 private:
 	std::vector<size_t> _fieldIds;
 	size_t _bandId;

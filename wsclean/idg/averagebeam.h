@@ -26,8 +26,8 @@ public:
 		*/
 	std::shared_ptr<std::vector<std::complex<float>>>& MatrixInverseBeam() { return _matrixInverseBeam; }
 	
-	void Serialize(std::ostream& stream) const;
-	void Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 	
 private:
 	std::shared_ptr<std::vector<float>> _scalarBeam;

@@ -2,7 +2,9 @@
 #include "banddata.h"
 #include "multibanddata.h"
 #include "fitswriter.h"
-#include "serializable.h"
+
+#include "../serialostream.h"
+#include "../serialistream.h"
 
 #include "msproviders/msprovider.h"
 #include "units/angle.h"
@@ -39,30 +41,32 @@ ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth, size
 	_grid.assign(_imageWidth*_imageHeight/2, 0.0);
 }
 
-void ImageWeights::Serialize ( std::ostream& stream ) const
+void ImageWeights::Serialize(SerialOStream& stream) const
 {
 	_weightMode.Serialize(stream);
-	Serializable::SerializeToUInt64(stream, _imageWidth);
-	Serializable::SerializeToUInt64(stream, _imageHeight);
-	Serializable::SerializeToDouble(stream, _pixelScaleX);
-	Serializable::SerializeToDouble(stream, _pixelScaleY);
-	Serializable::SerializeVectorDouble(stream, _grid);
-	Serializable::SerializeToDouble(stream, _totalSum);
-	Serializable::SerializeToBool(stream, _isGriddingFinished);
-	Serializable::SerializeToBool(stream, _weightsAsTaper);
+	stream
+		.UInt64(_imageWidth)
+		.UInt64(_imageHeight)
+		.Double(_pixelScaleX)
+		.Double(_pixelScaleY)
+		.VectorDouble(_grid)
+		.Double(_totalSum)
+		.Bool(_isGriddingFinished)
+		.Bool(_weightsAsTaper);
 }
 
-void ImageWeights::Unserialize ( std::istream& stream )
+void ImageWeights::Unserialize(SerialIStream& stream)
 {
 	_weightMode.Unserialize(stream);
-	_imageWidth = Serializable::UnserializeUInt64(stream);
-	_imageHeight = Serializable::UnserializeUInt64(stream);
-	_pixelScaleX = Serializable::UnserializeDouble(stream);
-	_pixelScaleY = Serializable::UnserializeDouble(stream);
-	_grid = Serializable::UnserializeVectorDouble(stream);
-	_totalSum = Serializable::UnserializeDouble(stream);
-	_isGriddingFinished = Serializable::UnserializeBool(stream);
-	_weightsAsTaper = Serializable::UnserializeBool(stream);
+	stream
+		.UInt64(_imageWidth)
+		.UInt64(_imageHeight)
+		.Double(_pixelScaleX)
+		.Double(_pixelScaleY)
+		.VectorDouble(_grid)
+		.Double(_totalSum)
+		.Bool(_isGriddingFinished)
+		.Bool(_weightsAsTaper);
 }
 
 void ImageWeights::Grid(casacore::MeasurementSet& ms, const MSSelection& selection)

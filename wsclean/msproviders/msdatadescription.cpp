@@ -4,7 +4,8 @@
 
 #include "../wsclean/wscleansettings.h"
 
-#include "../serializable.h"
+#include "../serialostream.h"
+#include "../serialistream.h"
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const
 {
@@ -14,28 +15,33 @@ std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const
 		return std::unique_ptr<MSProvider>(new ContiguousMS(_filename, _dataColumnName, _selection, _polarization, _dataDescId));
 }
 
-void MSDataDescription::Serialize(std::ostream& stream) const
+void MSDataDescription::Serialize(SerialOStream& stream) const
 {
-	Serializable::SerializeToBool(stream, _isPartitioned);
-	Serializable::SerializeToUInt16(stream, _polarization);
-	Serializable::SerializeToUInt32(stream, _dataDescId);
+	stream
+		.Bool(_isPartitioned)
+		.UInt16(_polarization)
+		.UInt32(_dataDescId);
 	_selection.Serialize(stream);
-	Serializable::SerializeToString(stream, _filename);
-	Serializable::SerializeToString(stream, _dataColumnName);
+	stream
+		.String(_filename)
+		.String(_dataColumnName);
 	_partitionHandle.Serialize(stream);
-	Serializable::SerializeToUInt64(stream, _partIndex);
+	stream
+		.UInt64(_partIndex);
 }
 
-std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(std::istream& stream)
+std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(SerialIStream& stream)
 {
 	std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
-	mdd->_isPartitioned = Serializable::UnserializeBool(stream);
-	mdd->_polarization = (PolarizationEnum) Serializable::UnserializeUInt16(stream);
-	mdd->_dataDescId = Serializable::UnserializeUInt32(stream);
+	stream.Bool(mdd->_isPartitioned);
+	mdd->_polarization = (PolarizationEnum) stream.UInt16();
+	stream.UInt32(mdd->_dataDescId);
 	mdd->_selection.Unserialize(stream);
-	mdd->_filename = Serializable::UnserializeString(stream);
-	mdd->_dataColumnName = Serializable::UnserializeString(stream);
+	stream
+		.String(mdd->_filename)
+		.String(mdd->_dataColumnName);
 	mdd->_partitionHandle.Unserialize(stream);
-	mdd->_partIndex = Serializable::UnserializeUInt64(stream);
+	stream
+		.UInt64(mdd->_partIndex);
 	return mdd;
 }

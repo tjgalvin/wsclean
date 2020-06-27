@@ -90,8 +90,8 @@ public:
 	public:
 		Handle() = default;
 		
-		void Serialize(std::ostream& stream) const;
-		void Unserialize(std::istream& stream);
+		void Serialize(class SerialOStream& stream) const;
+		void Unserialize(class SerialIStream& stream);
 		
 		friend class PartitionedMS;
 	private:
@@ -122,8 +122,8 @@ public:
 			size_t _nAntennas;
 			bool _isCopy;
 			
-			void Serialize(std::ostream& stream) const;
-			void Unserialize(std::istream& stream);
+			void Serialize(class SerialOStream& stream) const;
+			void Unserialize(class SerialIStream& stream);
 		};
 		std::shared_ptr<HandleData> _data;
 		

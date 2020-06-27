@@ -36,8 +36,8 @@ struct GriddingResult
 	size_t actualInversionWidth, actualInversionHeight;
 	std::unique_ptr<MetaDataCache> cache;
 	
-	void Serialize(std::ostream& stream) const;
-	void Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 };
 
 #endif

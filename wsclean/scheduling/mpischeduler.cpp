@@ -6,6 +6,9 @@
 
 #include "../distributed/taskmessage.h"
 
+#include "../serialostream.h"
+#include "../serialistream.h"
+
 #include <mpi.h>
 
 MPIScheduler::MPIScheduler(const class WSCleanSettings& settings) :
@@ -92,9 +95,8 @@ void MPIScheduler::sendLoop()
 	while(_taskList.read(taskPair))
 	{
 		const GriddingTask& task = taskPair.first;
-		std::ostringstream stream;
+		SerialOStream stream;
 		task.Serialize(stream);
-		std::string str = stream.str(); // TODO this requires all mem twice!
 		
 		int node = findAndSetNodeState(AvailableNode, std::make_pair(BusyNode, taskPair.second));
 		Logger::Info << "Sending gridding task to : " << node << '\n';
@@ -108,7 +110,7 @@ void MPIScheduler::sendLoop()
 		else {
 			TaskMessage message;
 			message.type = TaskMessage::GriddingRequest;
-			message.bodySize = str.size();
+			message.bodySize = stream.size();
 			MPI_Send(
 				&message,
 				sizeof(TaskMessage),
@@ -117,8 +119,8 @@ void MPIScheduler::sendLoop()
 				0,
 				MPI_COMM_WORLD);
 			MPI_Send(
-				str.c_str(),
-				str.size(),
+				stream.data(),
+				stream.size(),
 				MPI_BYTE,
 				node,
 				0,
@@ -175,7 +177,7 @@ void MPIScheduler::receiveLoop()
 			if(message.type != TaskMessage::GriddingResult)
 				throw std::runtime_error("Invalid message sent by node " + std::to_string(node));
 			
-			std::vector<char> buffer(message.bodySize);
+			ao::uvector<unsigned char> buffer(message.bodySize);
 			MPI_Recv(
 				buffer.data(),
 				message.bodySize,
@@ -186,7 +188,7 @@ void MPIScheduler::receiveLoop()
 				&status);
 			
 			GriddingResult result;
-			std::istringstream stream(std::string(buffer.data(), message.bodySize)); // TODO inefficient!
+			SerialIStream stream(std::move(buffer));
 			result.Unserialize(stream);
 			
 			lock.lock();

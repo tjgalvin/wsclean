@@ -12,6 +12,9 @@ struct ObservationInfo
 	std::string telescopeName;
 	std::string observer;
 	std::string fieldName;
+	
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 };
 
 #endif

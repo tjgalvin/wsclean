@@ -140,8 +140,8 @@ public:
 			d = -d;
 	}
 	
-	void Serialize(std::ostream& stream) const;
-	void Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 private:
 	value_type* _data;
 	size_t _width, _height;

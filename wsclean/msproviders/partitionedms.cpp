@@ -734,56 +734,62 @@ void PartitionedMS::getDataDescIdMap(std::map<size_t, size_t>& dataDescIds, cons
 	}
 }
 
-void PartitionedMS::Handle::Serialize(std::ostream& stream) const
+void PartitionedMS::Handle::Serialize(SerialOStream& stream) const
 {
-	Serializable::SerializePtr(stream, _data);
+	stream.Ptr(_data);
 }
 
-void PartitionedMS::Handle::Unserialize(std::istream& stream)
+void PartitionedMS::Handle::Unserialize(SerialIStream& stream)
 {
-	Serializable::UnserializePtr(stream, _data);
+	stream.Ptr(_data);
 }
 
-void PartitionedMS::Handle::HandleData::Serialize(std::ostream& stream) const
+void PartitionedMS::Handle::HandleData::Serialize(SerialOStream& stream) const
 {
-	Serializable::SerializeToString(stream, _msPath);
-	Serializable::SerializeToString(stream, _dataColumnName);
-	Serializable::SerializeToString(stream, _temporaryDirectory);
-	Serializable::SerializeToUInt64(stream, _channels.size());
+	stream
+		.String(_msPath)
+		.String(_dataColumnName)
+		.String(_temporaryDirectory)
+		.UInt64(_channels.size());
 	for(const ChannelRange& range : _channels)
 	{
-		Serializable::SerializeToUInt64(stream, range.dataDescId);
-		Serializable::SerializeToUInt64(stream, range.start);
-		Serializable::SerializeToUInt64(stream, range.end);
+		stream
+			.UInt64(range.dataDescId)
+			.UInt64(range.start)
+			.UInt64(range.end);
 	}
-	Serializable::SerializeToBool(stream, _initialModelRequired);
-	Serializable::SerializeToBool(stream, _modelUpdateRequired);
-	Serializable::SerializeToUInt64(stream, _polarizations.size());
+	stream
+		.Bool(_initialModelRequired)
+		.Bool(_modelUpdateRequired)
+		.UInt64(_polarizations.size());
 	for(PolarizationEnum p : _polarizations)
-		Serializable::SerializeToUInt32(stream, p);
+		stream.UInt32(p);
 	_selection.Serialize(stream);
-	Serializable::SerializeToUInt64(stream, _nAntennas);
+	stream.UInt64(_nAntennas);
 }
 
-void PartitionedMS::Handle::HandleData::Unserialize(std::istream& stream)
+void PartitionedMS::Handle::HandleData::Unserialize(SerialIStream& stream)
 {
 	_isCopy = true;
-	_msPath = Serializable::UnserializeString(stream);
-	_dataColumnName = Serializable::UnserializeString(stream);
-	_temporaryDirectory = Serializable::UnserializeString(stream);
-	_channels.resize( Serializable::UnserializeUInt64(stream) );
+	stream
+		.String(_msPath)
+		.String(_dataColumnName)
+		.String(_temporaryDirectory);
+	_channels.resize(stream.UInt64());
 	for(ChannelRange& range : _channels)
 	{
-		range.dataDescId = Serializable::UnserializeUInt64(stream);
-		range.start = Serializable::UnserializeUInt64(stream);
-		range.end = Serializable::UnserializeUInt64(stream);
+		stream
+			.UInt64(range.dataDescId)
+			.UInt64(range.start)
+			.UInt64(range.end);
 	}
-	_initialModelRequired = Serializable::UnserializeBool(stream);
-	_modelUpdateRequired = Serializable::UnserializeBool(stream);
-	size_t nPol = Serializable::UnserializeUInt64(stream);
+	stream
+		.Bool(_initialModelRequired)
+		.Bool(_modelUpdateRequired);
+	size_t nPol = stream.UInt64();
 	_polarizations.clear();
 	for(size_t i=0; i!=nPol; ++i)
-		_polarizations.emplace( (PolarizationEnum) Serializable::UnserializeUInt32(stream) );
+		_polarizations.emplace((PolarizationEnum) stream.UInt32());
 	_selection.Unserialize(stream);
-	_nAntennas = Serializable::UnserializeUInt64(stream);
+	stream.UInt64(_nAntennas);
 }

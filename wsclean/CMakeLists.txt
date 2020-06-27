@@ -130,7 +130,8 @@ add_library(wsclean-object OBJECT
   scheduling/griddingtaskmanager.cpp scheduling/griddingresult.cpp scheduling/griddingtask.cpp scheduling/metadatacache.cpp scheduling/mpischeduler.cpp scheduling/threadedscheduler.cpp
   wgridder/bufferedmsgridder.cpp wgridder/wgriddinggridder_simple.cpp
   wsclean/commandline.cpp wsclean/directmsgridder.cpp wsclean/imageoperations.cpp wsclean/imagingtable.cpp
-  wsclean/logger.cpp wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
+  wsclean/logger.cpp wsclean/observationinfo.cpp
+  wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
   wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
   ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES})
 

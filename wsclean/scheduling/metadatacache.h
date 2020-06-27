@@ -14,8 +14,8 @@ struct MetaDataCache
 	std::vector<Entry> msDataVector;
 	std::unique_ptr<class AverageBeam> averageBeam;
 	
-	void Serialize(std::ostream& stream) const;
-	void Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 };
 
 

@@ -1,5 +1,7 @@
 #include "image.h"
-#include "serializable.h"
+
+#include "../serialostream.h"
+#include "../serialistream.h"
 
 #include <algorithm>
 #include <cmath>
@@ -85,50 +87,29 @@ void ImageT<NumT>::reset()
 	_height = 0;
 }
 
-template<>
-void ImageT<double>::Serialize ( std::ostream& stream ) const
+template<typename NumT>
+void ImageT<NumT>::Serialize ( SerialOStream& stream ) const
 {
-	Serializable::SerializeToUInt64(stream, _width);
-	Serializable::SerializeToUInt64(stream, _height);
-	for(size_t i=0; i!=_width*_height; ++i)
-		Serializable::SerializeToDouble(stream, _data[i]);
+	stream
+		.UInt64(_width)
+		.UInt64(_height);
+	size_t n = sizeof(NumT)*_width*_height;
+	std::copy_n(reinterpret_cast<const unsigned char*>(_data), n, stream.Chunk(n));
 }
 
-template<>
-void ImageT<double>::Unserialize ( std::istream& stream )
+template<typename NumT>
+void ImageT<NumT>::Unserialize ( SerialIStream& stream )
 {
 	delete[] _data;
-	_width = Serializable::UnserializeUInt64(stream);
-	_height = Serializable::UnserializeUInt64(stream);
+	stream
+		.UInt64(_width)
+		.UInt64(_height);
 	if(_width * _height == 0)
 		_data = nullptr;
 	else
 		_data = new value_type[_width*_height];
-	for(size_t i=0; i!=_width*_height; ++i)
-		_data[i] = Serializable::UnserializeDouble(stream);
-}
-
-template<>
-void ImageT<float>::Serialize ( std::ostream& stream ) const
-{
-	Serializable::SerializeToUInt64(stream, _width);
-	Serializable::SerializeToUInt64(stream, _height);
-	for(size_t i=0; i!=_width*_height; ++i)
-		Serializable::SerializeToFloat(stream, _data[i]);
-}
-
-template<>
-void ImageT<float>::Unserialize ( std::istream& stream )
-{
-	delete[] _data;
-	_width = Serializable::UnserializeUInt64(stream);
-	_height = Serializable::UnserializeUInt64(stream);
-	if(_width * _height == 0)
-		_data = nullptr;
-	else
-		_data = new value_type[_width*_height];
-	for(size_t i=0; i!=_width*_height; ++i)
-		_data[i] = Serializable::UnserializeFloat(stream);
+	size_t n = sizeof(NumT)*_width*_height;
+	std::copy_n(stream.Chunk(n), n, reinterpret_cast<unsigned char*>(_data));
 }
 
 template<typename NumT>

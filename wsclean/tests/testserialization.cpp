@@ -3,32 +3,36 @@
 #include "../scheduling/griddingtask.h"
 #include "../idg/averagebeam.h"
 
+#include "../serialostream.h"
+#include "../serialistream.h"
+
 BOOST_AUTO_TEST_SUITE(serialization)
 
 BOOST_AUTO_TEST_CASE( basic )
 {
-	std::ostringstream str;
-	Serializable::SerializeToBool(str, true);
-	Serializable::SerializeToDouble(str, 3.14);
-	Serializable::SerializeToFloat(str, 1.5);
-	Serializable::SerializeToLDouble(str, 2.71);
-	Serializable::SerializeToString(str, "hi!");
-	Serializable::SerializeToUInt16(str, 160);
-	Serializable::SerializeToUInt32(str, 320);
-	Serializable::SerializeToUInt64(str, 640);
-	Serializable::SerializeToUInt8(str, 80);
+	SerialOStream ostr;
+	ostr
+		.Bool(true)
+		.UInt8(80)
+		.UInt16(160)
+		.UInt32(320)
+		.UInt64(640)
+		.Float(1.5)
+		.Double(3.14)
+		.LDouble(2.71)
+		.String("hi!");
 	
-	std::istringstream istr(str.str());
+	SerialIStream istr(std::move(ostr));
 	
-	BOOST_CHECK_EQUAL(Serializable::UnserializeBool(istr), true);
-	BOOST_CHECK_EQUAL(Serializable::UnserializeDouble(istr), 3.14);
-	BOOST_CHECK_EQUAL(Serializable::UnserializeFloat(istr), 1.5);
-	BOOST_CHECK_EQUAL(Serializable::UnserializeLDouble(istr), 2.71);
-	BOOST_CHECK_EQUAL(Serializable::UnserializeString(istr), "hi!");
-	BOOST_CHECK_EQUAL(Serializable::UnserializeUInt16(istr), 160);
-	BOOST_CHECK_EQUAL(Serializable::UnserializeUInt32(istr), 320);
-	BOOST_CHECK_EQUAL(Serializable::UnserializeUInt64(istr), 640);
-	BOOST_CHECK_EQUAL(Serializable::UnserializeUInt8(istr), 80);
+	BOOST_CHECK_EQUAL(istr.Bool(), true);
+	BOOST_CHECK_EQUAL(istr.UInt8(), 80);
+	BOOST_CHECK_EQUAL(istr.UInt16(), 160);
+	BOOST_CHECK_EQUAL(istr.UInt32(), 320);
+	BOOST_CHECK_EQUAL(istr.UInt64(), 640);
+	BOOST_CHECK_EQUAL(istr.Float(), 1.5);
+	BOOST_CHECK_EQUAL(istr.Double(), 3.14);
+	BOOST_CHECK_EQUAL(istr.LDouble(), 2.71);
+	BOOST_CHECK_EQUAL(istr.String(), "hi!");
 }
 
 BOOST_AUTO_TEST_CASE( empty_gridding_task )
@@ -37,12 +41,11 @@ BOOST_AUTO_TEST_CASE( empty_gridding_task )
 	a.addToModel = true;
 	b.addToModel = false;
 	
-	std::ostringstream ostr;
+	SerialOStream ostr;
 	a.Serialize(ostr);
-	std::string s(ostr.str());
-	BOOST_CHECK_NE(s.size(),0);
+	BOOST_CHECK_NE(ostr.size(),0);
 	
-	std::istringstream istr(s);
+	SerialIStream istr(std::move(ostr));
 	b.Unserialize(istr);
 	BOOST_CHECK_EQUAL(a.addToModel, b.addToModel);
 }
@@ -58,13 +61,12 @@ BOOST_AUTO_TEST_CASE( image_weights )
 	);
 	weightsA.SetAllValues(3.14);
 
-	std::ostringstream ostr;
+	SerialOStream ostr;
 	weightsA.Serialize(ostr);
-	std::string s(ostr.str());
-	BOOST_CHECK_NE(s.size(),0);
+	BOOST_CHECK_NE(ostr.size(), 0);
 	
 	ImageWeights weightsB;
-	std::istringstream istr(s);
+	SerialIStream istr(std::move(ostr));
 	weightsB.Unserialize(istr);
 	BOOST_CHECK_EQUAL(weightsA.Width(), weightsB.Width());
 	BOOST_CHECK_EQUAL(weightsA.Height(), weightsB.Height());
@@ -89,13 +91,12 @@ BOOST_AUTO_TEST_CASE( msselection )
 	a.SetMaxUVWInM(11);
 	a.SetMinUVWInM(10);
 
-	std::ostringstream ostr;
+	SerialOStream ostr;
 	a.Serialize(ostr);
-	std::string s(ostr.str());
-	BOOST_CHECK_NE(s.size(),0);
+	BOOST_CHECK_NE(ostr.size(), 0);
 	
 	MSSelection b;
-	std::istringstream istr(s);
+	SerialIStream istr(std::move(ostr));
 	b.Unserialize(istr);
 	BOOST_CHECK_EQUAL_COLLECTIONS(a.FieldIds().begin(), a.FieldIds().end(), b.FieldIds().begin(), b.FieldIds().end());
 	BOOST_CHECK_EQUAL(a.BandId(), b.BandId());
@@ -114,13 +115,12 @@ BOOST_AUTO_TEST_CASE( image )
 	for(size_t i=0; i!=12*13; ++i)
 		a[i] = i+1;
 
-	std::ostringstream ostr;
+	SerialOStream ostr;
 	a.Serialize(ostr);
-	std::string s(ostr.str());
-	BOOST_CHECK_NE(s.size(), 0);
+	BOOST_CHECK_NE(ostr.size(), 0);
 	
 	Image b;
-	std::istringstream istr(s);
+	SerialIStream istr(std::move(ostr));
 	b.Unserialize(istr);
 	BOOST_CHECK_EQUAL(a.Width(), b.Width());
 	BOOST_CHECK_EQUAL(a.Height(), b.Height());
@@ -131,15 +131,14 @@ BOOST_AUTO_TEST_CASE( average_beam_empty )
 {
 	AverageBeam a, b;
 	
-	std::ostringstream ostr;
+	SerialOStream ostr;
 	a.Serialize(ostr);
-	std::string s(ostr.str());
-	BOOST_CHECK_NE(s.size(), 0);
+	BOOST_CHECK_NE(ostr.size(), 0);
 	
 	b.SetMatrixInverseBeam(std::shared_ptr<std::vector<std::complex<float>>>(new std::vector<std::complex<float>>(12, 3)));
 	b.SetScalarBeam(std::shared_ptr<std::vector<float>>(new std::vector<float>(11, 4)));
 	
-	std::istringstream istr(s);
+	SerialIStream istr(std::move(ostr));
 	b.Unserialize(istr);
 	BOOST_CHECK(!b.MatrixInverseBeam());
 	BOOST_CHECK(!b.ScalarBeam());
@@ -151,12 +150,11 @@ BOOST_AUTO_TEST_CASE( average_beam_filled )
 	a.SetMatrixInverseBeam(std::shared_ptr<std::vector<std::complex<float>>>(new std::vector<std::complex<float>>(12, std::complex<float>(3, 0))));
 	a.SetScalarBeam(std::shared_ptr<std::vector<float>>(new std::vector<float>(11, 4)));
 	
-	std::ostringstream ostr;
+	SerialOStream ostr;
 	a.Serialize(ostr);
-	std::string s(ostr.str());
-	BOOST_CHECK_NE(s.size(), 0);
+	BOOST_CHECK_NE(ostr.size(), 0);
 	
-	std::istringstream istr(s);
+	SerialIStream istr(std::move(ostr));
 	b.Unserialize(istr);
 	BOOST_CHECK_EQUAL(b.MatrixInverseBeam()->size(), 12);
 	BOOST_CHECK_EQUAL(b.ScalarBeam()->size(), 11);

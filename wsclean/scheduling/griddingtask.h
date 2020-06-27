@@ -9,9 +9,6 @@
 
 #include "metadatacache.h"
 
-#include <istream>
-#include <ostream>
-
 class GriddingTask
 {
 public:
@@ -31,8 +28,8 @@ public:
 	Image modelImageReal;
 	Image modelImageImaginary;
 	
-	void Serialize(std::ostream& stream) const;
-	void Unserialize(std::istream& stream);
+	void Serialize(class SerialOStream& stream) const;
+	void Unserialize(class SerialIStream& stream);
 };
 
 #endif

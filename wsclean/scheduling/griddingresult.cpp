@@ -1,37 +1,40 @@
 #include "griddingresult.h"
 
-#include "../serializable.h"
+#include "../serialostream.h"
+#include "../serialistream.h"
 
-void GriddingResult::Serialize(std::ostream& stream) const
+void GriddingResult::Serialize(SerialOStream& stream) const
 {
 	imageRealResult.Serialize(stream);
 	imageImaginaryResult.Serialize(stream);
-	ObservationInfo observationInfo;
-	Serializable::SerializeToDouble(stream, beamSize);
-	Serializable::SerializeToDouble(stream, imageWeight);
-	Serializable::SerializeToDouble(stream, normalizationFactor);
-	Serializable::SerializeToUInt64(stream, actualWGridSize);
-	Serializable::SerializeToUInt64(stream, griddedVisibilityCount);
-	Serializable::SerializeToDouble(stream, effectiveGriddedVisibilityCount);
-	Serializable::SerializeToDouble(stream, visibilityWeightSum);
-	Serializable::SerializeToUInt64(stream, actualInversionWidth);
-	Serializable::SerializeToUInt64(stream, actualInversionHeight);
-	Serializable::SerializePtr(stream, cache);
+	observationInfo.Serialize(stream);
+	stream
+		.Double(beamSize)
+		.Double(imageWeight)
+		.Double(normalizationFactor)
+		.UInt64(actualWGridSize)
+		.UInt64(griddedVisibilityCount)
+		.Double(effectiveGriddedVisibilityCount)
+		.Double(visibilityWeightSum)
+		.UInt64(actualInversionWidth)
+		.UInt64(actualInversionHeight)
+		.Ptr(cache);
 }
 
-void GriddingResult::Unserialize(std::istream& stream)
+void GriddingResult::Unserialize(SerialIStream& stream)
 {
 	imageRealResult.Unserialize(stream);
 	imageImaginaryResult.Unserialize(stream);
-	ObservationInfo observationInfo;
-	beamSize = Serializable::UnserializeDouble(stream);
-	imageWeight = Serializable::UnserializeDouble(stream);
-	normalizationFactor = Serializable::UnserializeDouble(stream);
-	actualWGridSize = Serializable::UnserializeUInt64(stream);
-	griddedVisibilityCount = Serializable::UnserializeUInt64(stream);
-	effectiveGriddedVisibilityCount = Serializable::UnserializeDouble(stream);
-	visibilityWeightSum = Serializable::UnserializeDouble(stream);
-	actualInversionWidth = Serializable::UnserializeUInt64(stream);
-	actualInversionHeight = Serializable::UnserializeUInt64(stream);
-	Serializable::UnserializePtr(stream, cache);
+	observationInfo.Unserialize(stream);
+	stream
+		.Double(beamSize)
+		.Double(imageWeight)
+		.Double(normalizationFactor)
+		.UInt64(actualWGridSize)
+		.UInt64(griddedVisibilityCount)
+		.Double(effectiveGriddedVisibilityCount)
+		.Double(visibilityWeightSum)
+		.UInt64(actualInversionWidth)
+		.UInt64(actualInversionHeight)
+		.Ptr(cache);
 }
