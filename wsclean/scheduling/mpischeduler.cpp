@@ -177,7 +177,7 @@ void MPIScheduler::receiveLoop()
 			if(message.type != TaskMessage::GriddingResult)
 				throw std::runtime_error("Invalid message sent by node " + std::to_string(node));
 			
-			ao::uvector<unsigned char> buffer(message.bodySize);
+			aocommon::UVector<unsigned char> buffer(message.bodySize);
 			MPI_Recv(
 				buffer.data(),
 				message.bodySize,

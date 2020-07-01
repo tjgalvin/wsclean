@@ -1,10 +1,12 @@
 #include "dldmaterm.h"
 
-#include "../units/imagecoordinates.h"
+#include <aocommon/imagecoordinates.h>
 
 #include "../wsclean/logger.h"
 
 #include "../banddata.h"
+
+using namespace aocommon;
 
 DLDMATerm::DLDMATerm(size_t nAntenna, const CoordinateSystem& coordinateSystem) :
 	FitsATermBase(nAntenna, coordinateSystem),

@@ -1,6 +1,6 @@
 #include "simpleclean.h"
 
-#include "../lane.h"
+#include <aocommon/lane.h>
 
 #include <boost/thread/thread.hpp>
 

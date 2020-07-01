@@ -5,8 +5,9 @@
 #include "measuredsed.h"
 #include "powerlawsed.h"
 
-#include "../units/imagecoordinates.h"
 #include "../units/radeccoord.h"
+
+#include <aocommon/imagecoordinates.h>
 
 class ModelComponent
 {

@@ -13,7 +13,8 @@
 #include "componentlist.h"
 #include "subdivision.h"
 
-#include "../aocommon/parallelfor.h"
+#include <aocommon/parallelfor.h>
+
 
 ParallelDeconvolution::ParallelDeconvolution(const class WSCleanSettings& settings) :
 	_horImages(0),
@@ -87,7 +88,7 @@ void ParallelDeconvolution::SetCleanMask(const bool* mask)
 		_algorithms.front()->SetCleanMask(mask);
 }
 
-void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, ImageSet& modelImage, const ao::uvector<const double*>& psfImages, double majorIterThreshold, bool findPeakOnly, std::mutex* mutex)
+void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, double majorIterThreshold, bool findPeakOnly, std::mutex* mutex)
 {
 	const size_t
 		width = _settings.trimmedImageWidth,
@@ -104,7 +105,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 	
 	// Construct the smaller psfs
 	std::vector<Image> subPsfs(psfImages.size());
-	ao::uvector<const double*> subPsfVector(psfImages.size());
+	aocommon::UVector<const double*> subPsfVector(psfImages.size());
 	for(size_t i=0; i!=psfImages.size(); ++i)
 	{
 		subPsfs[i] = Image(subImg.width, subImg.height);
@@ -141,7 +142,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 			msAlg.SetScaleMaskCount(std::max(msAlg.GetScaleMaskCount(), _scaleMasks.size()));
 			for(size_t i=0; i!=msAlg.GetScaleMaskCount(); ++i)
 			{
-				ao::uvector<bool>& output = msAlg.GetScaleMask(i);
+				aocommon::UVector<bool>& output = msAlg.GetScaleMask(i);
 				output.assign(subImg.width * subImg.height, false);
 				if(i < _scaleMasks.size())
 					Image::TrimBox(output.data(), subImg.x, subImg.y, subImg.width, subImg.height, _scaleMasks[i].data(), width, height);
@@ -163,12 +164,12 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 		if(_scaleMasks.empty())
 		{
 			_scaleMasks.resize(msAlg.ScaleCount());
-			for(ao::uvector<bool>& scaleMask : _scaleMasks)
+			for(aocommon::UVector<bool>& scaleMask : _scaleMasks)
 				scaleMask.assign(width * height, false);
 		}
 		for(size_t i=0; i!=msAlg.ScaleCount(); ++i)
 		{
-			const ao::uvector<bool>& msMask = msAlg.GetScaleMask(i);
+			const aocommon::UVector<bool>& msMask = msAlg.GetScaleMask(i);
 			if(i < _scaleMasks.size())
 				Image::CopyMasked(_scaleMasks[i].data(), subImg.x, subImg.y, width, msMask.data(), subImg.width, subImg.height, subImg.mask.data());
 		}
@@ -196,7 +197,7 @@ void ParallelDeconvolution::runSubImage(SubImage& subImg, ImageSet& dataImage, I
 	}
 }
 
-void ParallelDeconvolution::ExecuteMajorIteration(class ImageSet& dataImage, class ImageSet& modelImage, const ao::uvector<const double*>& psfImages, bool& reachedMajorThreshold)
+void ParallelDeconvolution::ExecuteMajorIteration(class ImageSet& dataImage, class ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, bool& reachedMajorThreshold)
 {
 	const size_t
 		width = _settings.trimmedImageWidth,
@@ -212,7 +213,7 @@ void ParallelDeconvolution::ExecuteMajorIteration(class ImageSet& dataImage, cla
 	}
 }
 
-void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage, const ao::uvector<const double *>& psfImages, bool& reachedMajorThreshold)
+void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage, const aocommon::UVector<const double *>& psfImages, bool& reachedMajorThreshold)
 {
 	const size_t
 		width = _settings.trimmedImageWidth,
@@ -251,7 +252,7 @@ void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class 
 	}
 	
 	// Find the bounding boxes and clean masks for each subimage
-	ao::uvector<bool>
+	aocommon::UVector<bool>
 		mask(width * height),
 		visited(width * height,  false);
 	std::vector<SubImage> subImages;
@@ -288,7 +289,7 @@ void ParallelDeconvolution::executeParallelRun(class ImageSet& dataImage, class 
 		_algorithms[i]->SetLogReceiver(_logs[i]);
 
 	// Find the starting peak over all subimages
-	ao::ParallelFor<size_t> loop(System::ProcessorCount());
+	aocommon::ParallelFor<size_t> loop(System::ProcessorCount());
 	loop.Run(0, _algorithms.size(), [&](size_t index, size_t)
 	{
 		_logs.Activate(index);

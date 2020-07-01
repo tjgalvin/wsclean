@@ -1055,14 +1055,14 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[], bool isSlave)
 			if(argv[argi] == std::string("all"))
 				settings.fieldIds.assign(1, MSSelection::ALL_FIELDS);
 			else {
-				ao::uvector<int> list = NumberList::ParseIntList(argv[argi]);
+				aocommon::UVector<int> list = NumberList::ParseIntList(argv[argi]);
 				settings.fieldIds.assign(list.begin(), list.end());
 			}
 		}
 		else if(param == "spws")
 		{
 			++argi;
-			ao::uvector<int> list = NumberList::ParseIntList(argv[argi]);
+			aocommon::UVector<int> list = NumberList::ParseIntList(argv[argi]);
 			settings.spectralWindows.insert(list.begin(), list.end());
 		}
 		else if(param == "weight")

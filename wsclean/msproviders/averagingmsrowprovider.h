@@ -3,7 +3,7 @@
 
 #include "msrowprovider.h"
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 class AveragingMSRowProvider : public MSRowProvider
 {
@@ -164,9 +164,9 @@ private:
 	
 	typedef std::tuple<double, double, double> Pos;
 	
-	ao::uvector<size_t> _averagingFactors;
+	aocommon::UVector<size_t> _averagingFactors;
 	std::vector<AveragingBuffer> _buffers;
-	ao::uvector<size_t> _spwIndexToDataDescId;
+	aocommon::UVector<size_t> _spwIndexToDataDescId;
 	
 	size_t _nAntennae;
 	

@@ -13,8 +13,9 @@
 #include "../mwa/tilebeambase.h"
 #include "../mwa/tilebeam2016.h"
 
-#include "../lane.h"
-#include "../matrix2x2.h"
+#include <aocommon/lane.h>
+#include <aocommon/matrix2x2.h>
+
 
 #include "atermbeam.h"
 #include "atermstub.h"

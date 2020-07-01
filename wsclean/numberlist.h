@@ -4,14 +4,14 @@
 #include <cstdlib>
 #include <string>
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 class NumberList
 {
 public:
-	static ao::uvector<int> ParseIntList(const std::string& str)
+	static aocommon::UVector<int> ParseIntList(const std::string& str)
 	{
-		ao::uvector<int> list;
+		aocommon::UVector<int> list;
 		std::string temp = str;
 		size_t pos = temp.find(",");
 		while(pos != std::string::npos)
@@ -27,9 +27,9 @@ public:
 		return list;
 	}
 	
-	static ao::uvector<double> ParseDoubleList(const std::string& str)
+	static aocommon::UVector<double> ParseDoubleList(const std::string& str)
 	{
-		ao::uvector<double> list;
+		aocommon::UVector<double> list;
 		std::string temp = str;
 		size_t pos = temp.find(",");
 		while(pos != std::string::npos)

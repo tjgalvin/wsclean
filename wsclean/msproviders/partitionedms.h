@@ -1,19 +1,20 @@
 #ifndef PARTITIONED_MS
 #define PARTITIONED_MS
 
-#include <fstream>
-#include <string>
-#include <map>
+#include "msprovider.h"
+
+#include "../polarization.h"
+#include "../msselection.h"
+
+#include <aocommon/uvector.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 
-#include "../polarization.h"
-#include "../uvector.h"
-#include "../msselection.h"
-
-#include "msprovider.h"
+#include <fstream>
+#include <string>
+#include <map>
 
 class PartitionedMS final : public MSProvider
 {
@@ -151,8 +152,8 @@ private:
 	char *_modelFileMap;
 	size_t _currentRow;
 	bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
-	ao::uvector<float> _weightBuffer, _imagingWeightBuffer;
-	ao::uvector<std::complex<float>> _modelBuffer;
+	aocommon::UVector<float> _weightBuffer, _imagingWeightBuffer;
+	aocommon::UVector<std::complex<float>> _modelBuffer;
 	std::unique_ptr<std::ofstream> _modelDataFile;
 	std::unique_ptr<std::fstream> _imagingWeightsFile;
 	int _fd;

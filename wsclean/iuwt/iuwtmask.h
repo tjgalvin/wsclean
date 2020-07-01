@@ -6,7 +6,7 @@
 #include <sstream>
 #include <limits>
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 class IUWTMask
 {
@@ -28,11 +28,11 @@ public:
 		return p.release();
 	}
 	
-	ao::uvector<bool>& operator[](int scale)
+	aocommon::UVector<bool>& operator[](int scale)
 	{
 		return _masks[scale];
 	}
-	const ao::uvector<bool>& operator[](int scale) const
+	const aocommon::UVector<bool>& operator[](int scale) const
 	{
 		return _masks[scale];
 	}
@@ -79,10 +79,10 @@ public:
 	}
 	size_t ScaleCount() const { return _masks.size(); }
 private:
-	std::vector<ao::uvector<bool>> _masks;
+	std::vector<aocommon::UVector<bool>> _masks;
 	size_t _width, _height;
 
-		void copySmallerPart(const ao::uvector<bool>& input, ao::uvector<bool>& output, size_t x1, size_t y1, size_t x2, size_t y2) const
+		void copySmallerPart(const aocommon::UVector<bool>& input, aocommon::UVector<bool>& output, size_t x1, size_t y1, size_t x2, size_t y2) const
 	{
 		size_t newWidth = x2 - x1;
 		output.resize(newWidth * (y2-y1));

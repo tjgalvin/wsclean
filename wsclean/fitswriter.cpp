@@ -1,7 +1,7 @@
 #include "fitswriter.h"
 #include "fitsreader.h"
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 #include <stdexcept>
 #include <sstream>
@@ -270,7 +270,7 @@ void FitsWriter::writeImage(fitsfile* fptr, const std::string& filename, const N
 
 void FitsWriter::WriteMask(const std::string& filename, const bool* mask) const
 {
-	ao::uvector<float> maskAsImage(_width * _height);
+	aocommon::UVector<float> maskAsImage(_width * _height);
 	for(size_t i=0; i!=_width*_height; ++i)
 		maskAsImage[i] = mask[i] ? 1.0 : 0.0;
 	Write(filename, maskAsImage.data());

@@ -6,7 +6,7 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "matrix2x2.h"
+#include <aocommon/matrix2x2.h>
 
 class Matrix4x4
 {

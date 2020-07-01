@@ -1,15 +1,15 @@
 #ifndef FFT_RESAMPLE_H
 #define FFT_RESAMPLE_H
 
-#include "lane.h"
+#include "windowfunction.h"
+
+#include <aocommon/lane.h>
+#include <aocommon/uvector.h>
 
 #include <vector>
 #include <thread>
 
 #include <fftw3.h>
-
-#include "uvector.h"
-#include "windowfunction.h"
 
 class FFTResampler
 {
@@ -86,22 +86,22 @@ private:
 	void runSingle(const Task& task, bool skipWindow) const;
 	void applyWindow(double* data) const;
 	void unapplyWindow(double* data) const;
-	void makeWindow(ao::uvector<double>& data, size_t width) const;
-	void makeTukeyWindow(ao::uvector<double>& data, size_t width) const;
+	void makeWindow(aocommon::UVector<double>& data, size_t width) const;
+	void makeTukeyWindow(aocommon::UVector<double>& data, size_t width) const;
 	
 	size_t _inputWidth, _inputHeight;
 	size_t _outputWidth, _outputHeight;
 	size_t _fftWidth, _fftHeight;
 	WindowFunction::Type _windowFunction;
 	double _tukeyInsetSize;
-	mutable ao::uvector<double> _windowRowIn;
-	mutable ao::uvector<double> _windowColIn;
-	mutable ao::uvector<double> _windowOut;
+	mutable aocommon::UVector<double> _windowRowIn;
+	mutable aocommon::UVector<double> _windowColIn;
+	mutable aocommon::UVector<double> _windowOut;
 	bool _correctWindow;
 	
 	fftw_plan _inToFPlan, _fToOutPlan;
 	
-	ao::lane<Task> _tasks;
+	aocommon::Lane<Task> _tasks;
 	std::vector<std::thread> _threads;
 	bool _verbose;
 };

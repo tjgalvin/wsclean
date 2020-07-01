@@ -19,6 +19,8 @@
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/wscleansettings.h"
 
+using namespace aocommon;
+
 Deconvolution::Deconvolution(const class WSCleanSettings& settings) :
 	_settings(settings), _parallelDeconvolution(settings),
 	_autoMaskIsFinished(false),
@@ -103,10 +105,10 @@ void Deconvolution::Perform(const class ImagingTable& groupTable, bool& reachedM
 		_parallelDeconvolution.SetThreshold(std::max(stddev * _settings.autoDeconvolutionThresholdSigma, _settings.deconvolutionThreshold));
 	integrated.reset();
 	
-	std::vector<ao::uvector<double>> psfVecs(residualSet.PSFCount());
+	std::vector<aocommon::UVector<double>> psfVecs(residualSet.PSFCount());
 	residualSet.LoadAndAveragePSFs(*_psfImages, psfVecs, _psfPolarization);
 	
-	ao::uvector<const double*> psfs(residualSet.PSFCount());
+	aocommon::UVector<const double*> psfs(residualSet.PSFCount());
 	for(size_t i=0; i!=psfVecs.size(); ++i)
 		psfs[i] = psfVecs[i].data();
 	
@@ -247,7 +249,7 @@ void Deconvolution::readMask(const ImagingTable& groupTable)
 		FitsReader maskReader(_settings.fitsDeconvolutionMask, true, true);
 		if(maskReader.ImageWidth() != _imgWidth || maskReader.ImageHeight() != _imgHeight)
 			throw std::runtime_error("Specified Fits file mask did not have same dimensions as output image!");
-		ao::uvector<float> maskData(_imgWidth*_imgHeight);
+		aocommon::UVector<float> maskData(_imgWidth*_imgHeight);
 		if(maskReader.NFrequencies() == 1)
 		{
 			Logger::Debug << "Reading mask '" << _settings.fitsDeconvolutionMask << "'...\n";

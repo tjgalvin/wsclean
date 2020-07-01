@@ -1,7 +1,7 @@
 #ifndef POLYNOMIAL_FITTER_H
 #define POLYNOMIAL_FITTER_H
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 #include <array>
 
@@ -15,9 +15,9 @@ public:
 		_dataPoints.emplace_back(std::array<double,3>{{x, y, w}});
 	}
 	
-	void Fit(ao::uvector<double>& terms, size_t nTerms);
+	void Fit(aocommon::UVector<double>& terms, size_t nTerms);
 	
-	static double Evaluate(double x, const ao::uvector<double>& terms)
+	static double Evaluate(double x, const aocommon::UVector<double>& terms)
 	{
 		double val = terms[0];
 		double f = 1.0;
@@ -32,7 +32,7 @@ public:
 	size_t size() const { return _dataPoints.size(); }
 	
 private:
-	ao::uvector<std::array<double,3>> _dataPoints;
+	aocommon::UVector<std::array<double,3>> _dataPoints;
 };
 
 #endif

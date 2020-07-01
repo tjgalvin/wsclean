@@ -9,12 +9,12 @@
 
 void SpectralFitter::FitAndEvaluate(double* values) const
 {
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	Fit(terms, values);
 	Evaluate(values, terms);
 }
 
-void SpectralFitter::Fit(ao::uvector<double>& terms, const double* values) const
+void SpectralFitter::Fit(aocommon::UVector<double>& terms, const double* values) const
 {
 	switch(_mode)
 	{
@@ -44,7 +44,7 @@ void SpectralFitter::Fit(ao::uvector<double>& terms, const double* values) const
 	}
 }
 
-void SpectralFitter::Evaluate(double* values, const ao::uvector<double>& terms) const
+void SpectralFitter::Evaluate(double* values, const aocommon::UVector<double>& terms) const
 {
 	switch(_mode)
 	{
@@ -76,7 +76,7 @@ void SpectralFitter::Evaluate(double* values, const ao::uvector<double>& terms) 
 	}
 }
 
-double SpectralFitter::Evaluate(const ao::uvector<double>& terms, double frequency) const
+double SpectralFitter::Evaluate(const aocommon::UVector<double>& terms, double frequency) const
 {
 	switch(_mode)
 	{

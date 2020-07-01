@@ -118,7 +118,7 @@ void FFTResampler::runSingle(const Task& task, bool skipWindow) const
 
 void FFTResampler::SingleFT(const double* input, double* realOutput, double* imaginaryOutput)
 {
-	ao::uvector<double> data(_inputWidth*_inputHeight);
+	aocommon::UVector<double> data(_inputWidth*_inputHeight);
 	size_t
 		halfWidth = _inputWidth/2,
 		halfHeight = _inputHeight/2;
@@ -179,7 +179,7 @@ void FFTResampler::SingleFT(const double* input, double* realOutput, double* ima
 	fftw_free(fftData);
 }
 
-void FFTResampler::makeWindow(ao::uvector<double>& data, size_t width) const
+void FFTResampler::makeWindow(aocommon::UVector<double>& data, size_t width) const
 {
 	if(_windowFunction == WindowFunction::Tukey)
 		makeTukeyWindow(data, width);
@@ -190,7 +190,7 @@ void FFTResampler::makeWindow(ao::uvector<double>& data, size_t width) const
 	}
 }
 
-void FFTResampler::makeTukeyWindow(ao::uvector<double>& data, size_t width) const
+void FFTResampler::makeTukeyWindow(aocommon::UVector<double>& data, size_t width) const
 {
 	// Make a Tukey window, which consists of
 	// left: a cosine going from 0 to 1
@@ -225,7 +225,7 @@ void FFTResampler::applyWindow(double* data) const
 		makeWindow(_windowColIn, _inputHeight);
 		if(_correctWindow)
 		{
-			ao::uvector<double> windowImgIn(_inputWidth * _inputHeight);
+			aocommon::UVector<double> windowImgIn(_inputWidth * _inputHeight);
 			double *inPtr = windowImgIn.data();
 			for(size_t y=0; y!=_inputHeight; ++y)
 			{

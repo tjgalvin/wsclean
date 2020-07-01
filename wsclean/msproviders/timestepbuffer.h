@@ -95,7 +95,7 @@ public:
 	 * antenna1=0, sorted by antenna2.
 	 * @param uvws should have the correct size on input (nantenna * 3)
 	 */
-	void GetUVWsForTimestep(ao::uvector<double>& uvws)
+	void GetUVWsForTimestep(aocommon::UVector<double>& uvws)
 	{
 		for(size_t i=0; i!=_buffer.size(); ++i)
 		{

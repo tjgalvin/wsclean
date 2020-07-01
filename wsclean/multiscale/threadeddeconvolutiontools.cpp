@@ -10,8 +10,8 @@ ThreadedDeconvolutionTools::ThreadedDeconvolutionTools(size_t threadCount) :
 {
 	for(size_t i=0; i!=_threadCount; ++i)
 	{
-		_taskLanes[i] = new ao::lane<ThreadTask*>(1);
-		_resultLanes[i] = new ao::lane<ThreadResult*>(1);
+		_taskLanes[i] = new aocommon::Lane<ThreadTask*>(1);
+		_resultLanes[i] = new aocommon::Lane<ThreadResult*>(1);
 		_threadGroup.emplace_back(&ThreadedDeconvolutionTools::threadFunc, this, _taskLanes[i], _resultLanes[i]);
 	}
 }
@@ -70,7 +70,7 @@ ThreadedDeconvolutionTools::ThreadResult* ThreadedDeconvolutionTools::Subtractio
 	return 0;
 }
 
-void ThreadedDeconvolutionTools::MultiScaleTransform(MultiScaleTransforms* msTransforms, const ao::uvector<double*>& images, double* scratch, double scale)
+void ThreadedDeconvolutionTools::MultiScaleTransform(MultiScaleTransforms* msTransforms, const aocommon::UVector<double*>& images, double* scratch, double scale)
 {
 	size_t imageIndex = 0;
 	size_t nextThread = 0;
@@ -110,7 +110,7 @@ ThreadedDeconvolutionTools::ThreadResult* ThreadedDeconvolutionTools::FinishMult
 	return 0;
 }
 
-void ThreadedDeconvolutionTools::MultiScaleTransform(MultiScaleTransforms* msTransforms, const ao::uvector<double*>& images, ao::uvector<double> scales)
+void ThreadedDeconvolutionTools::MultiScaleTransform(MultiScaleTransforms* msTransforms, const aocommon::UVector<double*>& images, aocommon::UVector<double> scales)
 {
 	size_t imageIndex = 0;
 	size_t nextThread = 0;
@@ -157,7 +157,7 @@ ThreadedDeconvolutionTools::ThreadResult* ThreadedDeconvolutionTools::MultiScale
 	return 0;
 }
 
-void ThreadedDeconvolutionTools::FindMultiScalePeak(MultiScaleTransforms* msTransforms, const double* image, const ao::uvector<double>& scales, std::vector<ThreadedDeconvolutionTools::PeakData>& results, bool allowNegativeComponents, const bool* mask, const std::vector<ao::uvector<bool>>& scaleMasks, double borderRatio, const Image& rmsFactorImage, bool calculateRMS)
+void ThreadedDeconvolutionTools::FindMultiScalePeak(MultiScaleTransforms* msTransforms, const double* image, const aocommon::UVector<double>& scales, std::vector<ThreadedDeconvolutionTools::PeakData>& results, bool allowNegativeComponents, const bool* mask, const std::vector<aocommon::UVector<bool>>& scaleMasks, double borderRatio, const Image& rmsFactorImage, bool calculateRMS)
 {
 	size_t imageIndex = 0;
 	size_t nextThread = 0;

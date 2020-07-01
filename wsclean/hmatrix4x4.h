@@ -6,8 +6,8 @@
 #include <sstream>
 #include <stdexcept>
 
-#include "matrix2x2.h"
-#include "matrix4x4.h"
+#include <aocommon/matrix2x2.h>
+#include <aocommon/matrix4x4.h>
 
 class HMatrix4x4
 {

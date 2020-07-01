@@ -423,7 +423,7 @@ PartitionedMS::Handle PartitionedMS::Partition(const string& msPath, const std::
 		progress1.reset(new ProgressBar("Reordering"));
 	
 	size_t selectedRowsTotal = 0;
-	ao::uvector<size_t> selectedRowCountPerSpwIndex(selectedDataDescIds.size(), 0);
+	aocommon::UVector<size_t> selectedRowCountPerSpwIndex(selectedDataDescIds.size(), 0);
 	while(!rowProvider->AtEnd())
 	{
 		if(progress1)

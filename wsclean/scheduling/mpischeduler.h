@@ -34,7 +34,7 @@ private:
 	std::condition_variable _notify;
 	std::mutex _mutex;
 	std::thread _sendThread, _receiveThread, _workThread;
-	ao::lane<std::pair<GriddingTask, std::function<void(GriddingResult&)>>> _taskList;
+	aocommon::Lane<std::pair<GriddingTask, std::function<void(GriddingResult&)>>> _taskList;
 	std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>> _readyList;
 	std::vector<std::pair<NodeState, std::function<void (GriddingResult &)>>> _nodes;
 };

@@ -193,7 +193,7 @@ void GaussianFitter::fit2DGaussianCentredInBox(const double* image, size_t width
 {
 	size_t startX = (width-boxWidth)/2;
 	size_t startY = (height-boxHeight)/2;
-	ao::uvector<double> smallImage(boxWidth*boxHeight);
+	aocommon::UVector<double> smallImage(boxWidth*boxHeight);
 	for(size_t y=startY; y!=(height+boxHeight)/2; ++y)
 	{
 		memcpy(&smallImage[(y-startY)*boxWidth], &image[y*width + startX], sizeof(double)*boxWidth);
@@ -206,7 +206,7 @@ void GaussianFitter::fit2DCircularGaussianCentredInBox(const double* image, size
 {
 	size_t startX = (width-boxWidth)/2;
 	size_t startY = (height-boxHeight)/2;
-	ao::uvector<double> smallImage(boxWidth*boxHeight);
+	aocommon::UVector<double> smallImage(boxWidth*boxHeight);
 	for(size_t y=startY; y!=(height+boxHeight)/2; ++y)
 	{
 		memcpy(&smallImage[(y-startY)*boxWidth], &image[y*width + startX], sizeof(double)*boxWidth);
@@ -437,7 +437,7 @@ void GaussianFitter::fit2DGaussianWithAmplitudeInBox(const double* image, size_t
 {
 	size_t boxWidth = xEnd - xStart;
 	size_t boxHeight = yEnd - yStart;
-	ao::uvector<double> smallImage(boxWidth*boxHeight);
+	aocommon::UVector<double> smallImage(boxWidth*boxHeight);
 	for(size_t y=yStart; y!=yEnd; ++y)
 	{
 		memcpy(&smallImage[(y-yStart)*boxWidth], &image[y*width + xStart], sizeof(double)*boxWidth);

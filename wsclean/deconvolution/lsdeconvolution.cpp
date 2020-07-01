@@ -12,7 +12,7 @@ struct LSDeconvolutionData
 {
 	LSDeconvolution* parent;
 	gsl_multifit_fdfsolver* solver;
-	ao::uvector<std::pair<size_t, size_t>> maskPositions;
+	aocommon::UVector<std::pair<size_t, size_t>> maskPositions;
 	size_t width, height;
 	double regularization;
 	const double* dirty;
@@ -149,7 +149,7 @@ LSDeconvolution::LSDeconvolution(const LSDeconvolution& source) :
 LSDeconvolution::~LSDeconvolution()
 { }
 
-void LSDeconvolution::getMaskPositions(ao::uvector<std::pair<size_t, size_t>>& maskPositions, const bool* mask, size_t width, size_t height)
+void LSDeconvolution::getMaskPositions(aocommon::UVector<std::pair<size_t, size_t>>& maskPositions, const bool* mask, size_t width, size_t height)
 {
 	const bool* maskPtr = mask;
 	for(size_t y=0; y!=height; ++y)
@@ -167,7 +167,7 @@ void LSDeconvolution::getMaskPositions(ao::uvector<std::pair<size_t, size_t>>& m
 
 void LSDeconvolution::linearFit(double* dataImage, double* modelImage, const double* psfImage, size_t width, size_t height, bool& /*reachedMajorThreshold*/)
 {
-	ao::uvector<std::pair<size_t, size_t>> maskPositions;
+	aocommon::UVector<std::pair<size_t, size_t>> maskPositions;
 	getMaskPositions(maskPositions, _cleanMask, width, height);
 	Logger::Info << "Running LSDeconvolution with " << maskPositions.size() << " parameters.\n";
 	
@@ -283,7 +283,7 @@ void LSDeconvolution::nonLinearFit(double* dataImage, double* modelImage, const 
 	fdf.p = parameterCount;
 	fdf.params = &*_data;
 	
-	ao::uvector<double> parameterArray(parameterCount, 0.0);
+	aocommon::UVector<double> parameterArray(parameterCount, 0.0);
 	gsl_vector_view initialVals = gsl_vector_view_array(parameterArray.data(), parameterCount);
 	gsl_multifit_fdfsolver_set(_data->solver, &fdf, &initialVals.vector);
 

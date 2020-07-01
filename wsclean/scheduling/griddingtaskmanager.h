@@ -1,10 +1,6 @@
 #ifndef GRIDDING_OPERATION_H
 #define GRIDDING_OPERATION_H
 
-#include <cstring>
-#include <functional>
-#include <vector>
-
 #include "griddingtask.h"
 #include "griddingresult.h"
 
@@ -12,12 +8,17 @@
 #include "../wsclean/measurementsetgridder.h"
 #include "../wsclean/msgridderbase.h"
 
-#include "../lane.h"
 #include "../imageweights.h"
 #include "../polarization.h"
 #include "../msselection.h"
 
 #include "../msproviders/msdatadescription.h"
+
+#include <aocommon/lane.h>
+
+#include <cstring>
+#include <functional>
+#include <vector>
 
 class GriddingTaskManager
 {

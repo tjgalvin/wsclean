@@ -187,7 +187,7 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection)
 			selectedBand = MultiBandData(bandData, selection.ChannelRangeStart(), selection.ChannelRangeEnd());
 		else
 			selectedBand = bandData;
-		ao::uvector<float> weightBuffer(selectedBand.MaxChannels()*polarizationCount);
+		aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels()*polarizationCount);
 		
 		msProvider.Reset();
 		while(msProvider.CurrentRowAvailable())
@@ -425,7 +425,7 @@ void ImageWeights::GetGrid(double* image) const
 
 void ImageWeights::Save(const string& filename) const
 {
-	ao::uvector<double> image(_imageWidth*_imageHeight);
+	aocommon::UVector<double> image(_imageWidth*_imageHeight);
 	GetGrid(&image[0]);
 	FitsWriter writer;
 	writer.SetImageDimensions(_imageWidth, _imageHeight);

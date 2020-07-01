@@ -1,7 +1,7 @@
 #ifndef DIRECT_MS_GRIDDER_H
 #define DIRECT_MS_GRIDDER_H
 
-#include "../lane.h"
+#include <aocommon/lane.h>
 
 #include "msgridderbase.h"
 
@@ -36,7 +36,7 @@ private:
 	Image _image;
 	num_t* _sqrtLMTable;
 	std::vector<num_t*> _layers;
-	ao::lane<InversionSample> _inversionLane;
+	aocommon::Lane<InversionSample> _inversionLane;
 	
 	void invertMeasurementSet(const MSData& msData, class ProgressBar& progress, size_t msIndex);
 	void inversionWorker(size_t layer);

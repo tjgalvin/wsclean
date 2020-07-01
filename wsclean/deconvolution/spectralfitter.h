@@ -1,7 +1,7 @@
 #ifndef SPECTRAL_FITTER_H
 #define SPECTRAL_FITTER_H
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 enum SpectralFittingMode {
 	NoSpectralFitting,
@@ -29,11 +29,11 @@ public:
 	
 	void FitAndEvaluate(double* values) const;
 	
-	void Fit(ao::uvector<double>& terms, const double* values) const;
+	void Fit(aocommon::UVector<double>& terms, const double* values) const;
 	
-	void Evaluate(double* values, const ao::uvector<double>& terms) const;
+	void Evaluate(double* values, const aocommon::UVector<double>& terms) const;
 	
-	double Evaluate(const ao::uvector<double>& terms, double frequency) const;
+	double Evaluate(const aocommon::UVector<double>& terms, double frequency) const;
 	
 	void SetFrequencies(const double* frequencies, const double* weights, size_t n)
 	{
@@ -73,7 +73,7 @@ public:
 private:
 	enum SpectralFittingMode _mode;
 	size_t _nTerms;
-	ao::uvector<double> _frequencies, _weights;
+	aocommon::UVector<double> _frequencies, _weights;
 	double _referenceFrequency;
 };
 

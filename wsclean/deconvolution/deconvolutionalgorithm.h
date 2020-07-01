@@ -4,11 +4,12 @@
 #include <string>
 #include <cmath>
 
+#include <aocommon/uvector.h>
+
 #include "spectralfitter.h"
 
 #include "../image.h"
 #include "../polarization.h"
-#include "../uvector.h"
 
 namespace ao {
 	template<typename T> class lane;
@@ -19,7 +20,7 @@ class DeconvolutionAlgorithm
 public:
 	virtual ~DeconvolutionAlgorithm() { }
 	
-	virtual double ExecuteMajorIteration(class ImageSet& dataImage, class ImageSet& modelImage, const ao::uvector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold) = 0;
+	virtual double ExecuteMajorIteration(class ImageSet& dataImage, class ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold) = 0;
 	
 	virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const = 0;
 	
@@ -85,7 +86,7 @@ public:
 		_spectralFitter.SetMode(mode, nTerms);
 	}
 	
-	void InitializeFrequencies(const ao::uvector<double>& frequencies, const ao::uvector<double>& weights)
+	void InitializeFrequencies(const aocommon::UVector<double>& frequencies, const aocommon::UVector<double>& weights)
 	{
 		_spectralFitter.SetFrequencies(frequencies.data(), weights.data(), frequencies.size());
 	}

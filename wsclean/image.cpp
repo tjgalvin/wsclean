@@ -221,7 +221,7 @@ typename ImageT<double>::value_type ImageT<double>::Max() const
 }
 
 template<>
-typename ImageT<double>::value_type ImageT<double>::median_with_copy(const value_type* data, size_t size, ao::uvector<value_type>& copy)
+typename ImageT<double>::value_type ImageT<double>::median_with_copy(const value_type* data, size_t size, aocommon::UVector<value_type>& copy)
 {
 	copy.reserve(size);
 	for(const value_type* i=data ; i!=data+size; ++i)
@@ -233,7 +233,7 @@ typename ImageT<double>::value_type ImageT<double>::median_with_copy(const value
 		return 0.0;
 	else {
 		bool even = (copy.size()%2) == 0;
-		typename ao::uvector<value_type>::iterator mid = copy.begin()+(copy.size()-1)/2;
+		typename aocommon::UVector<value_type>::iterator mid = copy.begin()+(copy.size()-1)/2;
 		std::nth_element(copy.begin(), mid, copy.end());
 		value_type median = *mid;
 		if(even)
@@ -246,7 +246,7 @@ typename ImageT<double>::value_type ImageT<double>::median_with_copy(const value
 }
 
 template<typename NumT>
-typename ImageT<NumT>::value_type ImageT<NumT>::median_with_copy(const value_type*, size_t, ao::uvector<value_type>&)
+typename ImageT<NumT>::value_type ImageT<NumT>::median_with_copy(const value_type*, size_t, aocommon::UVector<value_type>&)
 { 
 	throw std::runtime_error("not implemented");
 }
@@ -254,16 +254,16 @@ typename ImageT<NumT>::value_type ImageT<NumT>::median_with_copy(const value_typ
 template<>
 typename ImageT<double>::value_type ImageT<double>::MAD(const value_type* data, size_t size)
 {
-	ao::uvector<value_type> copy;
+	aocommon::UVector<value_type> copy;
 	value_type median = median_with_copy(data, size, copy);
 	if(copy.empty())
 		return 0.0;
 		
 	// Replace all values by the difference from the mean
-	typename ao::uvector<value_type>::iterator mid = copy.begin()+(copy.size()-1)/2;
-	for(typename ao::uvector<value_type>::iterator i=copy.begin(); i!=mid+1; ++i)
+	typename aocommon::UVector<value_type>::iterator mid = copy.begin()+(copy.size()-1)/2;
+	for(typename aocommon::UVector<value_type>::iterator i=copy.begin(); i!=mid+1; ++i)
 		*i = median - *i;
-	for(typename ao::uvector<value_type>::iterator i=mid+1; i!=copy.end(); ++i)
+	for(typename aocommon::UVector<value_type>::iterator i=mid+1; i!=copy.end(); ++i)
 		*i = *i - median;
 	
 	std::nth_element(copy.begin(), mid, copy.end());

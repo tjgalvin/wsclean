@@ -2,7 +2,7 @@
 
 #include "subminorloop.h"
 
-#include "../lane.h"
+#include <aocommon/lane.h>
 
 #include "../multiscale/threadeddeconvolutiontools.h"
 
@@ -19,7 +19,7 @@ GenericClean::GenericClean(class FFTWManager& fftwManager, bool useSubMinorOptim
 {
 }
 
-double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet, const ao::uvector<const double*>& psfs, size_t width, size_t height, bool& reachedMajorThreshold)
+double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet, const aocommon::UVector<const double*>& psfs, size_t width, size_t height, bool& reachedMajorThreshold)
 {
 	const size_t iterationCounterAtStart = _iterationNumber;
 	if(_stopOnNegativeComponent)
@@ -101,7 +101,7 @@ double GenericClean::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSe
 		ThreadedDeconvolutionTools tools(_threadCount);
 		size_t peakIndex = componentX + componentY*_width;
 
-		ao::uvector<double> peakValues(dirtySet.size());
+		aocommon::UVector<double> peakValues(dirtySet.size());
 		
 		while(maxValue && fabs(*maxValue) > firstThreshold && this->_iterationNumber < this->_maxIter && !(maxValue<0.0 && this->_stopOnNegativeComponent))
 		{

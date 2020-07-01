@@ -26,7 +26,7 @@ public:
 	
 private:
 	std::vector<FitsReader> _readers;
-	ao::uvector<double> _scratch, _dlImage, _dmImage;
+	aocommon::UVector<double> _scratch, _dlImage, _dmImage;
 	std::vector<std::array<double, 2>> _uvws;
 	double _updateInterval, _previousTime;
 	

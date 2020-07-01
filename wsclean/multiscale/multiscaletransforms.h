@@ -4,7 +4,7 @@
 #include <cmath>
 #include <initializer_list>
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 class MultiScaleTransforms
 {
@@ -21,11 +21,11 @@ public:
 	
 	void Transform(double* image, double* scratch, double scale)
 	{
-		ao::uvector<double*> images(1, image);
+		aocommon::UVector<double*> images(1, image);
 		Transform(images, scratch, scale);
 	}
 	
-	void Transform(const ao::uvector<double*>& images, double* scratch, double scale);
+	void Transform(const aocommon::UVector<double*>& images, double* scratch, double scale);
 	
 	size_t Width() const { return _width; }
 	size_t Height() const { return _height; }
@@ -33,11 +33,11 @@ public:
 	static double KernelIntegratedValue(double scaleInPixels, size_t maxN, Shape shape)
 	{
 		size_t n;
-		ao::uvector<double> kernel;
+		aocommon::UVector<double> kernel;
 		MakeShapeFunction(scaleInPixels, kernel, n, maxN, shape);
 		
 		double value = 0.0;
-		for(ao::uvector<double>::const_iterator x=kernel.begin(); x!=kernel.end(); ++x)
+		for(aocommon::UVector<double>::const_iterator x=kernel.begin(); x!=kernel.end(); ++x)
 			value += *x;
 		
 		return value;
@@ -46,7 +46,7 @@ public:
 	static double KernelPeakValue(double scaleInPixels, size_t maxN, Shape shape)
 	{
 		size_t n;
-		ao::uvector<double> kernel;
+		aocommon::UVector<double> kernel;
 		MakeShapeFunction(scaleInPixels, kernel, n, maxN, shape);
 		return kernel[n/2 + (n/2)*n];
 	}
@@ -54,7 +54,7 @@ public:
 	static void AddShapeComponent(double* image, size_t width, size_t height, double scaleSizeInPixels, size_t x, size_t y, double gain, Shape shape)
 	{
 		size_t n;
-		ao::uvector<double> kernel;
+		aocommon::UVector<double> kernel;
 		MakeShapeFunction(scaleSizeInPixels, kernel, n, std::min(width,height), shape);
 		int left;
 		if(x > n/2)
@@ -80,7 +80,7 @@ public:
 		}
 	}
 	
-	static void MakeShapeFunction(double scaleSizeInPixels, ao::uvector<double>& output, size_t& n, size_t maxN, Shape shape)
+	static void MakeShapeFunction(double scaleSizeInPixels, aocommon::UVector<double>& output, size_t& n, size_t maxN, Shape shape)
 	{
 		switch(shape)
 		{
@@ -94,7 +94,7 @@ public:
 		}
 	}
 	
-	void MakeShapeFunction(double scaleSizeInPixels, ao::uvector<double>& output, size_t& n)
+	void MakeShapeFunction(double scaleSizeInPixels, aocommon::UVector<double>& output, size_t& n)
 	{
 		MakeShapeFunction(scaleSizeInPixels, output, n, std::min(_width, _height), _shape);
 	}
@@ -113,14 +113,14 @@ private:
 		return size_t(ceil(scaleInPixels*0.5)*2.0)+1;
 	}
 	
-	static void makeTaperedQuadraticShapeFunction(double scaleSizeInPixels, ao::uvector<double>& output, size_t& n)
+	static void makeTaperedQuadraticShapeFunction(double scaleSizeInPixels, aocommon::UVector<double>& output, size_t& n)
 	{
 		n = taperedQuadraticKernelSize(scaleSizeInPixels);
 		output.resize(n * n);
 		taperedQuadraticShapeFunction(n, output, scaleSizeInPixels);
 	}
 	
-	static void makeGaussianFunction(double scaleSizeInPixels, ao::uvector<double>& output, size_t& n, size_t maxN)
+	static void makeGaussianFunction(double scaleSizeInPixels, aocommon::UVector<double>& output, size_t& n, size_t maxN)
 	{
 		double sigma = GaussianSigma(scaleSizeInPixels);
 		
@@ -145,7 +145,7 @@ private:
 		const double twoSigmaSquared = 2.0 * sigma * sigma;
 		double sum = 0.0;
 		double* outputPtr = output.data();
-		ao::uvector<double> gaus(n);
+		aocommon::UVector<double> gaus(n);
 		for(int i=0; i!=int(n) ;++i)
 		{
 			double vI = double(i) - mu;
@@ -165,7 +165,7 @@ private:
 			v *= normFactor;
 	}
 	
-	static void taperedQuadraticShapeFunction(size_t n, ao::uvector<double>& output2d, double scaleSizeInPixels)
+	static void taperedQuadraticShapeFunction(size_t n, aocommon::UVector<double>& output2d, double scaleSizeInPixels)
 	{
 		if(scaleSizeInPixels == 0.0)
 			output2d[0] = 1.0;
@@ -186,7 +186,7 @@ private:
 				}
 			}
 			double normFactor = 1.0 / sum;
-			for(ao::uvector<double>::iterator i=output2d.begin(); i!=output2d.end(); ++i)
+			for(aocommon::UVector<double>::iterator i=output2d.begin(); i!=output2d.end(); ++i)
 				*i *= normFactor;
 		}
 	}

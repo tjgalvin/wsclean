@@ -3,11 +3,13 @@
 #include "../wsclean/logger.h"
 #include "../wsclean/primarybeamimageset.h"
 
-#include "../units/imagecoordinates.h"
+#include <aocommon/imagecoordinates.h>
 
 #include <cmath>
 
-void VoltagePattern::EvaluatePolynomial(const ao::uvector<double>& coefficients, bool invert)
+using namespace aocommon;
+
+void VoltagePattern::EvaluatePolynomial(const aocommon::UVector<double>& coefficients, bool invert)
 {
 	// This comes from casa's: void PBMath1DIPoly::fillPBArray(), wideband case
 	size_t nSamples=10000;
@@ -47,9 +49,9 @@ void VoltagePattern::EvaluatePolynomial(const ao::uvector<double>& coefficients,
 	}
 };
 
-ao::uvector<double> VoltagePattern::interpolateValues(double freq) const
+aocommon::UVector<double> VoltagePattern::interpolateValues(double freq) const
 {
-	ao::uvector<double> result;
+	aocommon::UVector<double> result;
 	size_t ifit = 0;
 	size_t nFreq = frequencies.size();
 	for (ifit=0; ifit!=nFreq; ifit++) {
@@ -76,7 +78,7 @@ ao::uvector<double> VoltagePattern::interpolateValues(double freq) const
 	return result;
 }
 
-const double* VoltagePattern::interpolateValues(double frequencyHz, ao::uvector<double>& interpolatedVals) const
+const double* VoltagePattern::interpolateValues(double frequencyHz, aocommon::UVector<double>& interpolatedVals) const
 {
 	if (frequencies.size() > 1)
 	{
@@ -107,7 +109,7 @@ void VoltagePattern::Render(PrimaryBeamImageSet& beamImages,
 		height = beamImages.Height();
 	double lmMaxSq = lmMaxSquared(frequencyHz);
 	
-	ao::uvector<double> interpolatedVals;
+	aocommon::UVector<double> interpolatedVals;
 	const double *vp = interpolateValues(frequencyHz, interpolatedVals);
 	
 	double factor = (180.0 / M_PI) * 60.0 * frequencyHz * 1.0e-9 ;  // arcminutes * GHz
@@ -158,7 +160,7 @@ void VoltagePattern::Render(std::complex<float>* aterm,
 {
 	double lmMaxSq = lmMaxSquared(frequencyHz);
 	
-	ao::uvector<double> interpolatedVals;
+	aocommon::UVector<double> interpolatedVals;
 	const double *vp = interpolateValues(frequencyHz, interpolatedVals);
 	
 	double factor = (180.0 / M_PI) * 60.0 * frequencyHz * 1.0e-9 ;  // arcminutes * GHz

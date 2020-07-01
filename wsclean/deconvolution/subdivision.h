@@ -39,7 +39,7 @@ public:
 			visit.from = Coord(x, 0);
 			visits.push(visit);
 		}
-		ao::uvector<Coord> path((x2-x1) * _height);
+		aocommon::UVector<Coord> path((x2-x1) * _height);
 		std::fill(output, output+_width*_height, std::numeric_limits<double>::max());
 		Visit visit;
 		while(!visits.empty())
@@ -96,7 +96,7 @@ public:
 			visit.from = Coord(0, y);
 			visits.push(visit);
 		}
-		ao::uvector<Coord> path(_width * (y2-y1));
+		aocommon::UVector<Coord> path(_width * (y2-y1));
 		std::fill(output, output+_width*_height, std::numeric_limits<double>::max());
 		Visit visit;
 		while(!visits.empty())
@@ -160,7 +160,7 @@ public:
 			visit.from = Coord(0, y);
 			visits.insert(visit);
 		}
-		ao::uvector<Coord> path(_width * (y2-y1));
+		aocommon::UVector<Coord> path(_width * (y2-y1));
 		std::fill(output, output+_width*_height, std::numeric_limits<double>::max());
 		Visit visit;
 		while(!visits.empty())

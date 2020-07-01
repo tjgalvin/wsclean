@@ -1,7 +1,7 @@
 #ifndef VOLTAGE_PATTERN_H
 #define VOLTAGE_PATTERN_H
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 #include <complex>
 
@@ -10,10 +10,10 @@ struct VoltagePattern
 {
 	// These are the radial (one-dimensional) values of the beam
 	// It is array of size nsamples x nfrequencies, where the sample index is least significant (fastest changing)
-	ao::uvector<double> values;
+	aocommon::UVector<double> values;
 	
 	// Array of since nfrequencies
-	ao::uvector<double> frequencies;
+	aocommon::UVector<double> frequencies;
 	
 	double inverseIncrementRadius;
 	double maximumRadiusArcMin;
@@ -22,7 +22,7 @@ struct VoltagePattern
 	
 	const double* FreqIndexValues(size_t freqIndex) const { return &values[freqIndex * NSamples()]; }
 	
-	void EvaluatePolynomial(const ao::uvector<double>& coefficients, bool invert);
+	void EvaluatePolynomial(const aocommon::UVector<double>& coefficients, bool invert);
 	
 	void Render(class PrimaryBeamImageSet& beamImages,
 		double pixelScaleX, double pixelScaleY, 
@@ -41,9 +41,9 @@ struct VoltagePattern
 	
 private:
 	// Only works when frequencies.size() > 1
-	ao::uvector<double> interpolateValues(double freq) const;
+	aocommon::UVector<double> interpolateValues(double freq) const;
 	// Works for any frequencies.size(), including when 1
-	const double* interpolateValues(double frequencyHz, ao::uvector<double>& interpolatedVals) const;
+	const double* interpolateValues(double frequencyHz, aocommon::UVector<double>& interpolatedVals) const;
 	
 	double lmMaxSquared(double frequencyHz) const;
 };

@@ -34,7 +34,7 @@ public:
 			<< "# SpectralFunction = " << spectralFunction << '\n';
 	}
 	
-	static void addSITerms(std::ostream& stream, const ao::uvector<double>& siTerms)
+	static void addSITerms(std::ostream& stream, const aocommon::UVector<double>& siTerms)
 	{
 		stream << '[';
 		if(!siTerms.empty())
@@ -48,7 +48,7 @@ public:
 		stream << ']';
 	}
 	
-	static void WritePointComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, double q, double u, double v, double freq, const ao::uvector<double>& siTerms)
+	static void WritePointComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, double q, double u, double v, double freq, const aocommon::UVector<double>& siTerms)
 	{
 		stream << name << ",POINT,"
 			<< RaDecCoord::RAToString(ra, ':') << ','
@@ -59,7 +59,7 @@ public:
 		stream << ",,,\n";
 	}
 	
-	static void WriteGaussianComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, double q, double u, double v, double freq, const ao::uvector<double>& siTerms, double maj, double min, double posangle)
+	static void WriteGaussianComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, double q, double u, double v, double freq, const aocommon::UVector<double>& siTerms, double maj, double min, double posangle)
 	{
 		stream << name << ",GAUSSIAN,"
 			<< RaDecCoord::RAToString(ra, ':') << ','
@@ -70,7 +70,7 @@ public:
 		stream << "," << maj << ',' << min << ',' << posangle << "\n";
 	}
 	
-	static void WritePolynomialPointComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, bool useLogSI, const ao::uvector<double>& polTerms, double referenceFrequencyHz)
+	static void WritePolynomialPointComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, bool useLogSI, const aocommon::UVector<double>& polTerms, double referenceFrequencyHz)
 	{
 		stream << name << ",POINT,"
 			<< RaDecCoord::RAToString(ra, ':') << ','
@@ -83,7 +83,7 @@ public:
       << ",,,\n";
 	}
 	
-	static void WritePolynomialGaussianComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, bool useLogSI, const ao::uvector<double>& polTerms, double referenceFrequencyHz, double maj, double min, double posangle)
+	static void WritePolynomialGaussianComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, double i, bool useLogSI, const aocommon::UVector<double>& polTerms, double referenceFrequencyHz, double maj, double min, double posangle)
 	{
 		stream << name << ",GAUSSIAN,"
 			<< RaDecCoord::RAToString(ra, ':') << ','
@@ -96,7 +96,7 @@ public:
       << "," << maj << ',' << min << ',' << posangle << "\n";
 	}
 	
-	static void WriteOldPolynomialPointComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, const ao::uvector<double>& polTerms)
+	static void WriteOldPolynomialPointComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, const aocommon::UVector<double>& polTerms)
 	{
 		stream << name << ",POINT,"
 			<< RaDecCoord::RAToString(ra, ':') << ','
@@ -105,7 +105,7 @@ public:
 		stream << ",,,\n";
 	}
 	
-	static void WriteOldPolynomialGaussianComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, const ao::uvector<double>& polTerms, double maj, double min, double posangle)
+	static void WriteOldPolynomialGaussianComponent(std::ostream& stream, const std::string& name, long double ra, long double dec, const aocommon::UVector<double>& polTerms, double maj, double min, double posangle)
 	{
 		stream << name << ",GAUSSIAN,"
 			<< RaDecCoord::RAToString(ra, ':') << ','

@@ -4,7 +4,8 @@
 #include <vector>
 #include <string>
 
-#include "units/imagecoordinates.h"
+#include <aocommon/imagecoordinates.h>
+
 #include "units/radeccoord.h"
 
 class SkyAreaElement
@@ -45,7 +46,7 @@ class SkyAreaElement
 			switch(_type)
 			{
 				case Circle:
-					return ImageCoordinates::AngularDistance<NumType>(ra, dec, _circleCentreRA, _circleCentreDec) <= _circleRadius;
+					return aocommon::ImageCoordinates::AngularDistance<NumType>(ra, dec, _circleCentreRA, _circleCentreDec) <= _circleRadius;
 				case Box:
 					return ra >= _boxLowerRA && ra <= _boxUpperRA && dec >= _boxLowerDec && dec <= _boxUpperDec;
 				default:
@@ -169,8 +170,8 @@ class AreaSet
 		void FindAreasInImage(std::vector<const SkyArea*> &foundAreas, size_t x, size_t y) const
 		{
 			long double l, m, ra, dec;
-			ImageCoordinates::XYToLM<long double>(x, y, _pixelSizeX, _pixelSizeY, _imageWidth, _imageHeight, l, m);
-			ImageCoordinates::LMToRaDec<long double>(l, m, _imageRA, _imageDec, ra, dec);
+			aocommon::ImageCoordinates::XYToLM<long double>(x, y, _pixelSizeX, _pixelSizeY, _imageWidth, _imageHeight, l, m);
+			aocommon::ImageCoordinates::LMToRaDec<long double>(l, m, _imageRA, _imageDec, ra, dec);
 			FindAreas(foundAreas, ra, dec);
 		}
 		

@@ -1308,7 +1308,7 @@ template<typename T> vector<idx_t> getWgtIndices(const Baselines &baselines,
 
   auto nthr = gconf.Nthreads();
   acc.resize(nthr);
-  //ao::ParallelFor<size_t> loop(nthr);
+  //aocommon::ParallelFor<size_t> loop(nthr);
   //loop.Run(0, nthr, [&](size_t, size_t thread) {
   for(size_t thread=0; thread!=nthr; ++thread) {
 

@@ -1,13 +1,12 @@
 #ifndef THREADED_DECONVOLUTION_TOOLS_H
 #define THREADED_DECONVOLUTION_TOOLS_H
 
-#include <vector>
-
-#include "../lane.h"
-#include "../uvector.h"
 #include "../image.h"
 
 #include <boost/optional/optional.hpp>
+
+#include <aocommon/lane.h>
+#include <aocommon/uvector.h>
 
 #include <cmath>
 #include <thread>
@@ -29,12 +28,12 @@ public:
 	void SubtractImage(double *image, const double *psf, size_t width, size_t height, size_t x, size_t y, double factor);
 	
 	// This one is for many transforms of the same scale
-	void MultiScaleTransform(class MultiScaleTransforms* msTransforms, const ao::uvector<double*>& images, double* scratch, double scale);
+	void MultiScaleTransform(class MultiScaleTransforms* msTransforms, const aocommon::UVector<double*>& images, double* scratch, double scale);
 	
 	// This one is for transform of different scales
-	void MultiScaleTransform(class MultiScaleTransforms* msTransforms, const ao::uvector<double*>& images, ao::uvector<double> scales);
+	void MultiScaleTransform(class MultiScaleTransforms* msTransforms, const aocommon::UVector<double*>& images, aocommon::UVector<double> scales);
 	
-	void FindMultiScalePeak(class MultiScaleTransforms* msTransforms, const double* image, const ao::uvector<double>& scales, std::vector<PeakData>& results, bool allowNegativeComponents, const bool* mask, const std::vector<ao::uvector<bool>>& scaleMasks, double borderRatio, const Image& rmsFactorImage, bool calculateRMS);
+	void FindMultiScalePeak(class MultiScaleTransforms* msTransforms, const double* image, const aocommon::UVector<double>& scales, std::vector<PeakData>& results, bool allowNegativeComponents, const bool* mask, const std::vector<aocommon::UVector<bool>>& scaleMasks, double borderRatio, const Image& rmsFactorImage, bool calculateRMS);
 	
 	static double RMS(const double* image, size_t n)
 	{
@@ -95,12 +94,12 @@ private:
 		const Image *rmsFactorImage;
 	};
 	
-	std::vector<ao::lane<ThreadTask*>*> _taskLanes;
-	std::vector<ao::lane<ThreadResult*>*> _resultLanes;
+	std::vector<aocommon::Lane<ThreadTask*>*> _taskLanes;
+	std::vector<aocommon::Lane<ThreadResult*>*> _resultLanes;
 	size_t _threadCount;
 	std::vector<std::thread> _threadGroup;
 	
-	void threadFunc(ao::lane<ThreadTask*>* taskLane, ao::lane<ThreadResult*>* resultLane)
+	void threadFunc(aocommon::Lane<ThreadTask*>* taskLane, aocommon::Lane<ThreadResult*>* resultLane)
 	{
 		ThreadTask* task;
 		while(taskLane->read(task))

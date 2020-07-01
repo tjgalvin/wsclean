@@ -1,7 +1,7 @@
 #ifndef SERIAL_OSTREAM_H
 #define SERIAL_OSTREAM_H
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 #include <stdint.h>
 
@@ -183,7 +183,7 @@ private:
 		return *this;
 	}
 	
-	ao::uvector<unsigned char> _buffer;
+	aocommon::UVector<unsigned char> _buffer;
 };
 
 #endif

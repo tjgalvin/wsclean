@@ -6,7 +6,8 @@
 
 #include "../fitsreader.h"
 #include "../windowfunction.h"
-#include "../uvector.h"
+
+#include <aocommon/uvector.h>
 
 class FitsATermBase : public ATermBase
 {
@@ -39,7 +40,7 @@ protected:
 	
 	void storeInCache(double frequency, const std::complex<float>* buffer);
 	
-	void readAndResample(FitsReader& reader, size_t fileIndex, ao::uvector<double>& scratch, ao::uvector<double>& output);
+	void readAndResample(FitsReader& reader, size_t fileIndex, aocommon::UVector<double>& scratch, aocommon::UVector<double>& output);
 	
 	struct Timestep {
 		double time;

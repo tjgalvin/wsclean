@@ -2,7 +2,8 @@
 #define WINDOW_FUNCTION_H
 
 #include <cmath>
-#include <cstring>
+#include <stdexcept>
+#include <string>
 
 class WindowFunction
 {

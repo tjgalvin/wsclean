@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 #include "deconvolutionalgorithm.h"
 #include "imageset.h"
@@ -19,7 +19,7 @@ class LSDeconvolution : public DeconvolutionAlgorithm
 		
 		LSDeconvolution(const LSDeconvolution& source);
 		
-    virtual double ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage, const ao::uvector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold) final override
+    virtual double ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold) final override
 		{
 			ExecuteMajorIteration(dataImage[0], modelImage[0], psfImages[0], width, height, reachedMajorThreshold);
 			return 0.0;
@@ -35,7 +35,7 @@ class LSDeconvolution : public DeconvolutionAlgorithm
 			nonLinearFit(dataImage, modelImage, psfImage, width, height, reachedMajorThreshold);
 		}
 	private:
-		void getMaskPositions(ao::uvector<std::pair<size_t, size_t>>& maskPositions, const bool* mask, size_t width, size_t height);
+		void getMaskPositions(aocommon::UVector<std::pair<size_t, size_t>>& maskPositions, const bool* mask, size_t width, size_t height);
 		
 		void linearFit(double* dataImage, double* modelImage, const double* psfImage, size_t width, size_t height, bool& reachedMajorThreshold);
 		

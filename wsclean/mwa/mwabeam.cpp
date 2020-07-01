@@ -7,11 +7,12 @@
 #include "../fftresampler.h"
 #include "../fitsreader.h"
 #include "../fitswriter.h"
-#include "../units/imagecoordinates.h"
+#include <aocommon/imagecoordinates.h>
 #include "../imageweights.h"
-#include "../matrix2x2.h"
+#include <aocommon/matrix2x2.h>
+
 #include "../progressbar.h"
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 #include "../wsclean/imageweightcache.h"
 #include "../wsclean/logger.h"
@@ -35,6 +36,8 @@
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 
 #include <stdexcept>
+
+using namespace aocommon;
 
 void MWABeam::Make(PrimaryBeamImageSet& beamImages)
 {
@@ -161,7 +164,7 @@ void MWABeam::makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider& msProvi
 		Logger::Debug << "Mid time for this interval: " << timeEpoch << '\n';
 		
 		casacore::MeasFrame frame(arrayPos, timeEpoch);
-		ao::uvector<double> singleImages[8];
+		aocommon::UVector<double> singleImages[8];
 		double *imgPtr[8];
 		for(size_t i=0; i!=8; ++i)
 		{

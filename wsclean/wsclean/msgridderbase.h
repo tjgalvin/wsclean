@@ -4,9 +4,9 @@
 #include "measurementsetgridder.h"
 
 #include "../multibanddata.h"
-#include "../uvector.h"
-
 #include "../scheduling/metadatacache.h"
+
+#include <aocommon/uvector.h>
 
 #include <mutex>
 
@@ -202,7 +202,7 @@ private:
 	double _maxGriddedWeight;
 	double _visibilityWeightSum;
 	
-	ao::uvector<float> _scratchWeights;
+	aocommon::UVector<float> _scratchWeights;
 };
 
 #endif

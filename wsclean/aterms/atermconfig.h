@@ -13,7 +13,8 @@
 #include "mwabeamterm.h"
 #include "telescope.h"
 
-#include "../matrix2x2.h"
+#include <aocommon/matrix2x2.h>
+
 #include "../parsetreader.h"
 
 #include "../wsclean/wscleansettings.h"
@@ -129,7 +130,7 @@ public:
 		if(_aterms.size() > 1)
 		{
 			_previousAterms.resize(_aterms.size());
-			for(ao::uvector<std::complex<float>>& buf : _previousAterms)
+			for(aocommon::UVector<std::complex<float>>& buf : _previousAterms)
 				buf.resize(_coordinateSystem.width * _coordinateSystem.height * _nAntenna * 4);
 		}
 	}
@@ -182,7 +183,7 @@ private:
 	size_t _nAntenna;
 	CoordinateSystem _coordinateSystem;
 	std::vector<std::unique_ptr<ATermBase>> _aterms;
-	std::vector<ao::uvector<std::complex<float>>> _previousAterms;
+	std::vector<aocommon::UVector<std::complex<float>>> _previousAterms;
 	const WSCleanSettings& _settings;
 };
 

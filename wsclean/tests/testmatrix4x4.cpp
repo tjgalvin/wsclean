@@ -3,7 +3,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../matrix4x4.h"
+#include <aocommon/matrix4x4.h>
 
 BOOST_AUTO_TEST_SUITE(matrix4x4)
 
@@ -71,13 +71,6 @@ BOOST_AUTO_TEST_CASE( kronecker_product )
 	std::complex<double> x(8, 2), y(6, 3);
 	MC2x2 a4{0.0, 1.0*y, 2.0*x, 3.0*y}, x4{1.0*y, 2.0*x, 3.0*x, 4.0*y}, b4{1.0*x, 2.0*x, 3.0*x, 4.0*y};
 	checkKroneckerProduct(a4, x4, b4);
-}
-
-BOOST_AUTO_TEST_CASE( mueller_jones_correction )
-{
-	MC2x2 a(1, 2, 3, 4), b(5, 6, 7, 8);
-	MC2x2 vis(6,7,8,9);
-	MC2x2 corvis = a.Multiply(vis).MultiplyHerm(b) + b.MultiplyHerm(vis).MultiplyHerm(a);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

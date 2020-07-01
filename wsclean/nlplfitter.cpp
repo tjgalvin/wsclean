@@ -14,7 +14,7 @@
 class NLPLFitterData
 {
 public:
-	typedef ao::uvector<std::pair<double, double>> PointVec;
+	typedef aocommon::UVector<std::pair<double, double>> PointVec;
 	PointVec points;
 	size_t nTerms;
 #ifdef HAVE_GSL
@@ -287,7 +287,7 @@ void NonLinearPowerLawFitter::Fit(double& a, double& b, double& c)
 	}
 }
 
-void NonLinearPowerLawFitter::fit_implementation(ao::uvector<double>& terms, size_t nTerms)
+void NonLinearPowerLawFitter::fit_implementation(aocommon::UVector<double>& terms, size_t nTerms)
 {
 	_data->nTerms = nTerms;
 	const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
@@ -363,7 +363,7 @@ void NonLinearPowerLawFitter::AddDataPoint(double x, double y)
 	_data->points.push_back(std::make_pair(x, y));
 }
 
-void NonLinearPowerLawFitter::Fit(ao::uvector<double>& terms, size_t nTerms)
+void NonLinearPowerLawFitter::Fit(aocommon::UVector<double>& terms, size_t nTerms)
 {
 	terms.assign(nTerms, 0.0);
 	
@@ -402,7 +402,7 @@ void NonLinearPowerLawFitter::Fit(ao::uvector<double>& terms, size_t nTerms)
 		terms[0] = pow(10.0, terms[0]);
 }
 
-void NonLinearPowerLawFitter::FitStable(ao::uvector<double>& terms, size_t nTerms)
+void NonLinearPowerLawFitter::FitStable(aocommon::UVector<double>& terms, size_t nTerms)
 {
 	terms.assign(nTerms, 0.0);
 	if(nTerms == 0)
@@ -491,7 +491,7 @@ void NonLinearPowerLawFitter::FastFit(double& exponent, double& factor)
 	}
 }
 
-double NonLinearPowerLawFitter::Evaluate(double x, const ao::uvector<double>& terms, double referenceFrequencyHz)
+double NonLinearPowerLawFitter::Evaluate(double x, const aocommon::UVector<double>& terms, double referenceFrequencyHz)
 {
 	if(terms.empty()) return 0.0;
 	double y = 0.0;

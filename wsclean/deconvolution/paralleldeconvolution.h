@@ -3,11 +3,12 @@
 
 #include "../fftwmanager.h"
 #include "../image.h"
-#include "../uvector.h"
 
 #include "../wsclean/primarybeamimageset.h"
 
 #include "controllablelog.h"
+
+#include <aocommon/uvector.h>
 
 #include <memory>
 #include <mutex>
@@ -49,7 +50,7 @@ public:
 	
 	void SetCleanMask(const bool* mask);
 	
-	void ExecuteMajorIteration(class ImageSet& dataImage, class ImageSet& modelImage, const ao::uvector<const double*>& psfImages, bool& reachedMajorThreshold);
+	void ExecuteMajorIteration(class ImageSet& dataImage, class ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, bool& reachedMajorThreshold);
 	
 	void FreeDeconvolutionAlgorithms()
 	{
@@ -64,16 +65,16 @@ public:
 	class FFTWManager& GetFFTWManager() { return _fftwManager; }
 	
 private:
-	void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage, const ao::uvector<const double*>& psfImages, bool& reachedMajorThreshold);
+	void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, bool& reachedMajorThreshold);
 	
 	struct SubImage {
 		size_t index, x, y, width, height;
-		ao::uvector<bool> mask;
+		aocommon::UVector<bool> mask;
 		double peak;
 		bool reachedMajorThreshold;
 	};
 		
-	void runSubImage(SubImage& subImg, ImageSet& dataImage, class ImageSet& modelImage, const ao::uvector<const double*>& psfImages, double majorIterThreshold, bool findPeakOnly, std::mutex* mutex);
+	void runSubImage(SubImage& subImg, ImageSet& dataImage, class ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, double majorIterThreshold, bool findPeakOnly, std::mutex* mutex);
 	
 	void correctChannelForPB(class ComponentList& list, const class ImagingTableEntry& entry) const;
 	
@@ -89,7 +90,7 @@ private:
 	ImageBufferAllocator* _allocator;
 	const bool* _mask;
 	bool _trackPerScaleMasks, _usePerScaleMasks;
-	std::vector<ao::uvector<bool>> _scaleMasks;
+	std::vector<aocommon::UVector<bool>> _scaleMasks;
 	std::unique_ptr<class ComponentList> _componentList;
 	Image _rmsImage;
 };

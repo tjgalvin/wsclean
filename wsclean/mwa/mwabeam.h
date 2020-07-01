@@ -1,15 +1,16 @@
 #ifndef MWA_BEAM
 #define MWA_BEAM
 
-#include <set>
-
 #include "../polarization.h"
-#include "../uvector.h"
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/primarybeamimageset.h"
 
+#include <aocommon/uvector.h>
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/measures/Measures/MDirection.h>
+
+#include <set>
 
 class MWABeam
 {

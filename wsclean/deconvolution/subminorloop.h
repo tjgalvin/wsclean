@@ -137,7 +137,7 @@ public:
 	
 	double FluxCleaned() const { return _fluxCleaned; }
 	
-	boost::optional<double> Run(ImageSet& convolvedResidual, const ao::uvector<const double*>& doubleConvolvedPsfs);
+	boost::optional<double> Run(ImageSet& convolvedResidual, const aocommon::UVector<const double*>& doubleConvolvedPsfs);
 	
 	/**
 	 * The produced model is convolved with the given psf, and the result is subtracted from the given residual image.

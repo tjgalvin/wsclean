@@ -3,7 +3,8 @@
 #include "logger.h"
 
 #include "../fitswriter.h"
-#include "../matrix2x2.h"
+#include <aocommon/matrix2x2.h>
+
 #include "../fitsreader.h"
 
 #include "../lofar/lbeamimagemaker.h"
@@ -312,7 +313,7 @@ void PrimaryBeam::makeVLAImage(PrimaryBeamImageSet& beamImages, const ImagingTab
 	VoltagePattern vp;
 	vp.frequencies.assign(1, entry.CentralFrequency());
 	vp.maximumRadiusArcMin = 53.0;
-	ao::uvector<double> coefsVec(coefs.begin(), coefs.end());
+	aocommon::UVector<double> coefsVec(coefs.begin(), coefs.end());
 	vp.EvaluatePolynomial(coefsVec, false);
 	makeFromVoltagePattern(beamImages, entry, vp);
 }

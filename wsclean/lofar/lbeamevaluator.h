@@ -3,7 +3,7 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include "../matrix2x2.h"
+#include <aocommon/matrix2x2.h>
 
 #ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>

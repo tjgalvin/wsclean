@@ -1,13 +1,12 @@
 #ifndef BEAM_IMAGE_MAKER
 #define BEAM_IMAGE_MAKER
 
-#include <set>
-
 #include "../hmatrix4x4.h"
 #include "../polarization.h"
-#include "../uvector.h"
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/primarybeamimageset.h"
+
+#include <aocommon/uvector.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -15,6 +14,8 @@
 #ifdef HAVE_LOFAR_BEAM
 #include <StationResponse/Station.h>
 #endif
+
+#include <set>
 
 class LBeamImageMaker
 {
@@ -91,7 +92,7 @@ private:
 		}
 	private:
 		size_t _nAntenna;
-		ao::uvector<double> _weights;
+		aocommon::UVector<double> _weights;
 	};
 	
 	void makeBeamForMS(std::vector<HMC4x4>& _matrices, MSProvider& msProvider, const MSSelection& selection, double centralFrequency);
@@ -100,7 +101,7 @@ private:
 	
 	void calculateStationWeights(const class ImageWeights& imageWeights, double& totalWeight, WeightMatrix& baselineWeights, SynchronizedMS& ms, MSProvider& msProvider, const MSSelection& selection, double endTime);
 	
-	void logWeights(casacore::MeasurementSet& ms, const ao::uvector<double>& weights);
+	void logWeights(casacore::MeasurementSet& ms, const aocommon::UVector<double>& weights);
 #endif
 	
 	struct MSProviderInfo

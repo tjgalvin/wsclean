@@ -24,9 +24,6 @@
 #include "../msselection.h"
 #include "../nlplfitter.h"
 #include "../progressbar.h"
-#include "../uvector.h"
-
-#include "../aocommon/parallelfor.h"
 
 #include "../deconvolution/deconvolutionalgorithm.h"
 #include "../deconvolution/imageset.h"
@@ -39,6 +36,9 @@
 
 #include "../msproviders/contiguousms.h"
 #include "../msproviders/msdatadescription.h"
+
+#include <aocommon/uvector.h>
+#include <aocommon/parallelfor.h>
 
 #include <iostream>
 #include <functional>
@@ -428,7 +428,7 @@ void WSClean::performReordering(bool isPredictMode)
 	if(_settings.parallelReordering!=1)
 		Logger::Info << "Reordering...\n";
 	
-	ao::ParallelFor<size_t> loop(_settings.parallelReordering);
+	aocommon::ParallelFor<size_t> loop(_settings.parallelReordering);
 	loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t)
 	{
 		std::vector<PartitionedMS::ChannelRange> channels;

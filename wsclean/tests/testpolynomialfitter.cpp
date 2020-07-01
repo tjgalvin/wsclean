@@ -8,7 +8,7 @@ BOOST_AUTO_TEST_SUITE(polynomial_fitter)
 BOOST_AUTO_TEST_CASE( fit )
 {
 	PolynomialFitter fitter;
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0.0, 0.0, 1.0);
 	fitter.AddDataPoint(1.0, 0.0, 1.0);
 	fitter.AddDataPoint(2.0, 1.0, 1.0);
@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE( fit )
 BOOST_AUTO_TEST_CASE( fit_weighted )
 {
 	PolynomialFitter fitter;
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0.0, 0.0, 1.5);
 	fitter.AddDataPoint(1.0, 0.0, 1.5);
 	fitter.AddDataPoint(2.0, 1.0, 0.5);
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE( fit_weighted )
 BOOST_AUTO_TEST_CASE( evaluate )
 {
 	PolynomialFitter fitter;
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	terms.push_back(-0.3);
 	terms.push_back(0.7);
 	

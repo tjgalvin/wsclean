@@ -2,10 +2,11 @@
 #define DFT_PREDICTION_ALGORITHM_H
 
 #include "banddata.h"
-#include "matrix2x2.h"
+#include <aocommon/matrix2x2.h>
 #include "polarization.h"
-#include "uvector.h"
 #include "image.h"
+
+#include <aocommon/uvector.h>
 
 #include "lofar/lbeamevaluator.h"
 

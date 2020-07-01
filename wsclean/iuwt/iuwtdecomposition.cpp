@@ -4,13 +4,13 @@
 
 void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const double* input, double* scratch, bool includeLargest)
 {
-	ao::uvector<double>
+	aocommon::UVector<double>
 		&i1(_scales.back().Coefficients());
 	i1.resize(_width*_height);
 	
 	// The first iteration of the loop, unrolled, so that we don't have to
 	// copy the input into i0.
-	ao::uvector<double>& coefficients0 = _scales[0].Coefficients();
+	aocommon::UVector<double>& coefficients0 = _scales[0].Coefficients();
 	coefficients0.resize(_width*_height);
 	convolveMT(threadPool, i1.data(), input, scratch, _width, _height, 1);
 	convolveMT(threadPool, coefficients0.data(), i1.data(), scratch, _width, _height, 1);
@@ -19,11 +19,11 @@ void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const double* input,
 	differenceMT(threadPool, coefficients0.data(), input, coefficients0.data(), _width, _height);
 	
 	// i0 = i1;
-	ao::uvector<double>	i0(i1);
+	aocommon::UVector<double>	i0(i1);
 	
 	for(int scale=1; scale!=int(_scaleCount); ++scale)
 	{
-		ao::uvector<double>& coefficients = _scales[scale].Coefficients();
+		aocommon::UVector<double>& coefficients = _scales[scale].Coefficients();
 		coefficients.resize(_width*_height);
 		convolveMT(threadPool, i1.data(), i0.data(), scratch, _width, _height, scale+1);
 		convolveMT(threadPool, coefficients.data(), i1.data(), scratch, _width, _height, scale+1);
@@ -44,7 +44,7 @@ void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const double* input,
 	
 	// Do free the memory of the largest scale if it is not necessary:
 	if(!includeLargest)
-		ao::uvector<double>().swap(_scales.back().Coefficients());
+		aocommon::UVector<double>().swap(_scales.back().Coefficients());
 }
 
 void IUWTDecomposition::convolveMT(ThreadPool& threadPool, double* output, const double* image, double* scratch, size_t width, size_t height, int scale)

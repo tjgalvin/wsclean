@@ -1,6 +1,6 @@
 #include "mwabeamterm.h"
 
-#include "../units/imagecoordinates.h"
+#include <aocommon/imagecoordinates.h>
 
 #include "../wsclean/logger.h"
 
@@ -8,6 +8,8 @@
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/measures/Measures/MEpoch.h>
+
+using namespace aocommon;
 
 MWABeamTerm::MWABeamTerm(casacore::MeasurementSet& ms, const CoordinateSystem& coordinateSystem) :
 	_width(coordinateSystem.width),

@@ -1,13 +1,18 @@
 
 #include <iostream>
 
+#include <aocommon/uvector.h>
+
 #include "fitsreader.h"
 #include "modelrenderer.h"
 #include "model/model.h"
-#include "units/imagecoordinates.h"
-#include "uvector.h"
+
+#include <aocommon/imagecoordinates.h>
+
 #include "fftconvolver.h"
 #include "fftwmanager.h"
+
+using namespace aocommon;
 
 template<typename T>
 T ModelRenderer::gaus(T x, T sigma)
@@ -121,7 +126,7 @@ void ModelRenderer::renderGaussianComponent(double* imageData, size_t imageWidth
 	if(yBottom < yTop) yBottom = yTop;
 	if(yBottom > (int) imageHeight) yBottom = (int) imageHeight;
 	
-	ao::uvector<double> values;
+	aocommon::UVector<double> values;
 	double fluxSum = 0.0;
 	for(int y=yTop; y!=yBottom; ++y)
 	{
@@ -172,7 +177,7 @@ void ModelRenderer::renderPointComponent(double* imageData, size_t imageWidth, s
 /** Restore a model with an elliptical beam */
 void ModelRenderer::Restore(double* imageData, size_t imageWidth, size_t imageHeight, const Model& model, long double beamMaj, long double beamMin, long double beamPA, long double startFrequency, long double endFrequency, PolarizationEnum polarization)
 {
-	ao::uvector<double> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
+	aocommon::UVector<double> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
 	renderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model, startFrequency, endFrequency, polarization);
 	Restore(imageData, renderedWithoutBeam.data(), imageWidth, imageHeight, beamMaj, beamMin, beamPA, _pixelScaleL, _pixelScaleM);
 }
@@ -210,8 +215,8 @@ void ModelRenderer::Restore(double* imageData, const double* modelData, size_t i
 		size_t minDimension = std::min(imageWidth, imageHeight);
 		size_t boundingBoxSize = std::min<size_t>(ceil(sigmaMax * 40.0 / std::min(pixelScaleL, pixelScaleM)), minDimension);
 		if(boundingBoxSize%2!=0) ++boundingBoxSize;
-		ao::uvector<double> kernel(boundingBoxSize*boundingBoxSize);
-		typename ao::uvector<double>::iterator i=kernel.begin();
+		aocommon::UVector<double> kernel(boundingBoxSize*boundingBoxSize);
+		typename aocommon::UVector<double>::iterator i=kernel.begin();
 		for(size_t y=0; y!=boundingBoxSize; ++y)
 		{
 			for(size_t x=0; x!=boundingBoxSize; ++x)
@@ -227,7 +232,7 @@ void ModelRenderer::Restore(double* imageData, const double* modelData, size_t i
 			}
 		}
 		
-		ao::uvector<double> convolvedModel(modelData, modelData+imageWidth*imageHeight);
+		aocommon::UVector<double> convolvedModel(modelData, modelData+imageWidth*imageHeight);
 		
 		FFTWManager fftw;
 		FFTConvolver::Convolve(fftw, convolvedModel.data(), imageWidth, imageHeight, kernel.data(), boundingBoxSize);
@@ -266,7 +271,7 @@ void ModelRenderer::renderModel(double* imageData, size_t imageWidth, size_t ima
 
 void ModelRenderer::RenderInterpolatedSource(double* image, size_t width, size_t height, double flux, double x, double y)
 {
-	ao::uvector<double>
+	aocommon::UVector<double>
 		hSinc(std::min<size_t>(width,128)+1),
 		vSinc(std::min<size_t>(height,128)+1);
 

@@ -2,7 +2,7 @@
 
 #include <gsl/gsl_multifit.h>
 
-void PolynomialFitter::Fit(ao::uvector<double>& terms, size_t nTerms)
+void PolynomialFitter::Fit(aocommon::UVector<double>& terms, size_t nTerms)
 {
 	size_t n = _dataPoints.size();
 	terms.assign(nTerms, 0.0);

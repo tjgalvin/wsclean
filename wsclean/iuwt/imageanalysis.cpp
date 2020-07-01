@@ -81,7 +81,7 @@ bool ImageAnalysis::IsHighestOnScale0(const IUWTDecomposition& iuwt, IUWTMask& m
 	return std::fabs(highestScale0) > std::fabs(highestOtherScales);
 }
 
-void ImageAnalysis::Floodfill(const IUWTDecomposition& iuwt, IUWTMask& mask, const ao::uvector<double>& thresholds, size_t minScale, size_t endScale, const Component& component, double cleanBorder, size_t& areaSize)
+void ImageAnalysis::Floodfill(const IUWTDecomposition& iuwt, IUWTMask& mask, const aocommon::UVector<double>& thresholds, size_t minScale, size_t endScale, const Component& component, double cleanBorder, size_t& areaSize)
 {
 	const size_t width = iuwt.Width(), height = iuwt.Height();
 	size_t xBorder = cleanBorder*width;
@@ -151,7 +151,7 @@ void ImageAnalysis::Floodfill(const IUWTDecomposition& iuwt, IUWTMask& mask, con
 	}
 }
 
-void ImageAnalysis::MaskedFloodfill(const IUWTDecomposition& iuwt, IUWTMask& mask, const ao::uvector<double>& thresholds, size_t minScale, size_t endScale, const Component& component, double cleanBorder, const bool* priorMask, size_t& areaSize)
+void ImageAnalysis::MaskedFloodfill(const IUWTDecomposition& iuwt, IUWTMask& mask, const aocommon::UVector<double>& thresholds, size_t minScale, size_t endScale, const Component& component, double cleanBorder, const bool* priorMask, size_t& areaSize)
 {
 	const size_t width = iuwt.Width(), height = iuwt.Height();
 	size_t xBorder = cleanBorder*width;
@@ -221,7 +221,7 @@ void ImageAnalysis::MaskedFloodfill(const IUWTDecomposition& iuwt, IUWTMask& mas
 	}
 }
 
-void ImageAnalysis::SelectStructures(const IUWTDecomposition& iuwt, IUWTMask& mask, const ao::uvector<double>& thresholds, size_t minScale, size_t endScale, double cleanBorder, const bool* priorMask, size_t& areaSize)
+void ImageAnalysis::SelectStructures(const IUWTDecomposition& iuwt, IUWTMask& mask, const aocommon::UVector<double>& thresholds, size_t minScale, size_t endScale, double cleanBorder, const bool* priorMask, size_t& areaSize)
 {
 	const size_t width = iuwt.Width(), height = iuwt.Height();
 	const size_t

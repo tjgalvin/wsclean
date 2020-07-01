@@ -211,7 +211,7 @@ class ModelParser : private Tokenizer
 			double refFrequency = 0.0;
 			double brightness[4] = { 0.0, 0.0, 0.0, 0.0 };
 			bool isLogarithmic = true;
-			ao::uvector<double> terms;
+			aocommon::UVector<double> terms;
 			bool hasFrequency = false, hasBrightness = false;
 			while(getToken(token) && token != "}")
 			{

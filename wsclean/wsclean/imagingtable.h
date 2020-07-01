@@ -1,13 +1,14 @@
 #ifndef WSCLEAN_IMAGING_TABLE_H
 #define WSCLEAN_IMAGING_TABLE_H
 
-#include <string>
-#include <vector>
+#include "../msproviders/partitionedms.h"
 
-#include "../uvector.h"
 #include "../polarization.h"
 
-#include "../msproviders/partitionedms.h"
+#include <aocommon/uvector.h>
+
+#include <string>
+#include <vector>
 
 class ImagingTableEntry
 {

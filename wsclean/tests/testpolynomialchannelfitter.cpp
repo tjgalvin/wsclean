@@ -1,7 +1,7 @@
 #include "../polynomialchannelfitter.h"
 
 #include <boost/test/unit_test.hpp>
-#include <boost/test/floating_point_comparison.hpp>
+#include <boost/test/tools/floating_point_comparison.hpp>
 
 BOOST_AUTO_TEST_SUITE(polynomial_channel_fitter)
 
@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_CASE( fit_line )
 	fitter.AddChannel(1.0, 2.0);
 	fitter.AddChannel(2.0, 3.0);
 	
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0, 0.0);
 	fitter.AddDataPoint(0, 1.0);
 	fitter.AddDataPoint(1, 1.0);
@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE( fit_squared_function )
 	fitter.AddChannel(3.0, 4.0);
 	
 	// Fit to function x^2
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0, 7.0/3.0); // int_{x=1}^2 x^2 / 1 = 1/3 (2^3 - 1^3) = 7/3
 	fitter.AddDataPoint(1, 19.0/3.0); // int_{x=2}^2 x^2 / 1 = 1/3 (3^3 - 2^3) = 19/3
 	fitter.AddDataPoint(2, 37.0/3.0); // int_{x=3}^4 x^2 / 1 = 1/3 (4^3 - 3^3) = 37/3
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE( fit_irregular_channels )
 	fitter.AddChannel(3.0, 6.0);
 	
 	// Fit to function x^2
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0, 8.0/6.0); // int_{x=0}^2 x^2 / 2 = 1/3 (2^3 - 0^3) = 8/6
 	fitter.AddDataPoint(1, 19.0/3.0); // int_{x=2}^3 x^2 / 1 = 1/3 (3^3 - 2^3) = 19/3
 	fitter.AddDataPoint(2, 189.0/9.0); // int_{x=3}^6 x^2 / 3 = 1/3 (6^3 - 3^3) = 189/9
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE( fit_squared_missing_bandwidth )
 	fitter.AddChannel(20.0, 22.0);
 	
 	// Fit to function x^2
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0,    8.0/6.0); // int_{x=0}^2 x^2 / 2 = 1/2 (2^3 - 0^3) = 8/6
 	fitter.AddDataPoint(1,  728.0/6.0); // int_{x=10}^12 x^2 / 1 = 1/2 (12^3 - 10^3) = 728/6
 	fitter.AddDataPoint(2, 2648.0/6.0); // int_{x=3}^6 x^2 / 3 = 1/2 (22^3 - 20^3) = 2648/6
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE( fit_2nd_order )
 	fitter.AddChannel(6.0, 7.0);
 	
 	// Fit to function x^2
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0, integrate(0.0, 1.0, a, b, c, d));
 	fitter.AddDataPoint(1, integrate(3.0, 4.0, a, b, c, d));
 	fitter.AddDataPoint(2, integrate(6.0, 7.0, a, b, c, d));
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE( fit_higher_order )
 	fitter.AddChannel(1.8, 1.9);
 	fitter.AddChannel(2.0, 2.1);
 	
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	fitter.AddDataPoint(0, integrate(1.0, 1.1, a, b, c, d));
 	fitter.AddDataPoint(1, integrate(1.3, 1.4, a, b, c, d));
 	fitter.AddDataPoint(2, integrate(1.4, 1.5, a, b, c, d));

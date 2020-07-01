@@ -44,7 +44,7 @@ bool DishATerm::calculateBeam(std::complex<float>* buffer, double, double freque
 		VoltagePattern vp;
 		vp.frequencies.assign(1, frequency);
 		vp.maximumRadiusArcMin = 53.0;
-		ao::uvector<double> coefsVec(coefs.begin(), coefs.end());
+		aocommon::UVector<double> coefsVec(coefs.begin(), coefs.end());
 		vp.EvaluatePolynomial(coefsVec, false);
 		vp.Render(buffer, _width, _height, _dl, _dm, _phaseCentreRA, _phaseCentreDec, pDirRA, pDirDec, _phaseCentreDL, _phaseCentreDM, frequency);
 		

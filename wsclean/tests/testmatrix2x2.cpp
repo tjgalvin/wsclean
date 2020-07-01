@@ -1,6 +1,7 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../matrix2x2.h"
+#include <aocommon/matrix2x2.h>
+
 
 #include <iostream>
 

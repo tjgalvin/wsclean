@@ -77,7 +77,7 @@ void ImageOperations::MakeMFSImage(const WSCleanSettings& settings, const std::v
 {
 	double lowestFreq = 0.0, highestFreq = 0.0;
 	const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
-	ao::uvector<double> mfsImage(size, 0.0), addedImage(size), weightImage(size, 0.0);
+	aocommon::UVector<double> mfsImage(size, 0.0), addedImage(size), weightImage(size, 0.0);
 	double weightSum = 0.0;
 	FitsWriter writer;
 	for(size_t ch=0; ch!=settings.channelsOut; ++ch)
@@ -156,7 +156,7 @@ void ImageOperations::RenderMFSImage(const WSCleanSettings& settings, const Outp
 	std::string postfix = isPBCorrected ? "-pb.fits" : ".fits";
 	FitsReader residualReader(mfsPrefix + "-residual" + postfix);
 	FitsReader modelReader(mfsPrefix + "-model" + postfix);
-	ao::uvector<double> image(size), modelImage(size);
+	aocommon::UVector<double> image(size), modelImage(size);
 	residualReader.Read(image.data());
 	modelReader.Read(modelImage.data());
 	

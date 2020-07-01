@@ -3,15 +3,15 @@
 
 #include "../wsclean/msgridderbase.h"
 
-#include "../lane.h"
 #include "../multibanddata.h"
 
-#include <complex>
-#include <memory>
+#include <aocommon/lane.h>
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
+#include <complex>
+#include <memory>
 #include <thread>
 
 namespace casacore {

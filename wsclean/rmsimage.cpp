@@ -37,7 +37,7 @@ void RMSImage::SlidingMinimum(Image& output, const Image& input, size_t windowSi
 	}
 	for(size_t x=0; x!=width; ++x)
 	{
-		ao::uvector<double> vals;
+		aocommon::UVector<double> vals;
 		for(size_t y=0; y!=input.Height(); ++y)
 		{
 			size_t top = std::max(y, windowSize/2) - windowSize/2;

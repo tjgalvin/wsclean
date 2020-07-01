@@ -8,9 +8,11 @@
 
 #include "../multiscale/multiscalealgorithm.h"
 
+using namespace aocommon;
+
 void ComponentList::Write(const std::string& filename, const MultiScaleAlgorithm& multiscale, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec)
 {
-	ao::uvector<double> scaleSizes(NScales());
+	aocommon::UVector<double> scaleSizes(NScales());
 	for(size_t scaleIndex=0; scaleIndex!=NScales(); ++scaleIndex)
 		scaleSizes[scaleIndex] = multiscale.ScaleSize(scaleIndex);
 	write(filename, multiscale, scaleSizes, pixelScaleX, pixelScaleY, phaseCentreRA, phaseCentreDec);
@@ -18,11 +20,11 @@ void ComponentList::Write(const std::string& filename, const MultiScaleAlgorithm
 
 void ComponentList::WriteSingleScale(const std::string& filename, const class DeconvolutionAlgorithm& algorithm, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec)
 {
-	ao::uvector<double> scaleSizes(1, 0);
+	aocommon::UVector<double> scaleSizes(1, 0);
 	write(filename, algorithm, scaleSizes, pixelScaleX, pixelScaleY, phaseCentreRA, phaseCentreDec);
 }
 
-void ComponentList::write(const std::string& filename, const class DeconvolutionAlgorithm& algorithm, const ao::uvector<double>& scaleSizes, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec)
+void ComponentList::write(const std::string& filename, const class DeconvolutionAlgorithm& algorithm, const aocommon::UVector<double>& scaleSizes, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec)
 {
 	if(_componentsAddedSinceLastMerge != 0)
 		MergeDuplicates();
@@ -44,7 +46,7 @@ void ComponentList::write(const std::string& filename, const class Deconvolution
 			break;
 	}
 	NDPPP::WriteHeaderForSpectralTerms(file, fitter.ReferenceFrequency());
-	ao::uvector<double> terms;
+	aocommon::UVector<double> terms;
 	for(size_t scaleIndex=0; scaleIndex!=NScales(); ++scaleIndex)
 	{
 		ScaleList& list = _listPerScale[scaleIndex];
@@ -60,7 +62,7 @@ void ComponentList::write(const std::string& filename, const class Deconvolution
 		{
 			const size_t x = list.positions[index].x;
 			const size_t y = list.positions[index].y;
-      ao::uvector<double> spectrum(_nFrequencies);
+      aocommon::UVector<double> spectrum(_nFrequencies);
 			for(size_t frequency = 0; frequency != _nFrequencies; ++frequency)
 			{
 				spectrum[frequency] = list.values[valueIndex];

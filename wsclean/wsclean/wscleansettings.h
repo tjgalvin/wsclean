@@ -40,7 +40,7 @@ public:
 	size_t channelsOut, intervalsOut;
 	enum MSSelection::EvenOddSelection evenOddTimesteps;
 	bool divideChannelsByGaps;
-	ao::uvector<double> divideChannelFrequencies;
+	aocommon::UVector<double> divideChannelFrequencies;
 	double pixelScaleX, pixelScaleY;
 	std::string restoreModel, restoreInput, restoreOutput;
 	double manualBeamMajorSize, manualBeamMinorSize, manualBeamPA;
@@ -108,12 +108,12 @@ public:
 	bool allowNegativeComponents, stopOnNegativeComponents;
 	bool useMultiscale, useSubMinorOptimization, squaredJoins;
 	double spectralCorrectionFrequency;
-	ao::uvector<double> spectralCorrection;
+	aocommon::UVector<double> spectralCorrection;
 	bool multiscaleFastSubMinorLoop;
 	double multiscaleGain, multiscaleDeconvolutionScaleBias;
 	size_t multiscaleMaxScales;
 	double multiscaleConvolutionPadding;
-	ao::uvector<double> multiscaleScaleList;
+	aocommon::UVector<double> multiscaleScaleList;
 	MultiScaleTransforms::Shape multiscaleShapeFunction;
 	
 	double deconvolutionBorderRatio;
@@ -123,7 +123,7 @@ public:
 	std::string localRMSImage;
 	bool useMoreSaneDeconvolution, useIUWTDeconvolution, iuwtSNRTest;
 	std::string moreSaneLocation, moreSaneArgs;
-	ao::uvector<double> moreSaneSigmaLevels;
+	aocommon::UVector<double> moreSaneSigmaLevels;
 	enum SpectralFittingMode spectralFittingMode;
 	size_t spectralFittingTerms;
 	/**

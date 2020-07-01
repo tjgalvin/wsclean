@@ -4,7 +4,7 @@
 #include <cmath>
 #include <memory>
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 /**
  * This class fits a power law to a set of points. Note that there is a
@@ -26,12 +26,12 @@ public:
 	
 	void Fit(double& a, double& b, double& c);
 	
-	void Fit(ao::uvector<double>& terms, size_t nTerms);
-	void FitStable(ao::uvector<double>& terms, size_t nTerms);
+	void Fit(aocommon::UVector<double>& terms, size_t nTerms);
+	void FitStable(aocommon::UVector<double>& terms, size_t nTerms);
 	
 	void FastFit(double& exponent, double& factor);
 	
-	static double Evaluate(double x, const ao::uvector<double>& terms, double referenceFrequencyHz=1.0);
+	static double Evaluate(double x, const aocommon::UVector<double>& terms, double referenceFrequencyHz=1.0);
 	
 	static long double Evaluate(long double factor, long double exponent, long double frequencyHz)
 	{
@@ -49,7 +49,7 @@ public:
 	}*/
 	
 private:
-	void fit_implementation(ao::uvector<double>& terms, size_t nTerms);
+	void fit_implementation(aocommon::UVector<double>& terms, size_t nTerms);
 	
 	std::unique_ptr<class NLPLFitterData> _data;
 };

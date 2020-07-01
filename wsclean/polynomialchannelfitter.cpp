@@ -2,7 +2,7 @@
 
 #include "gsl/gsl_multifit.h"
 
-void PolynomialChannelFitter::Fit(ao::uvector<double>& terms, size_t nTerms)
+void PolynomialChannelFitter::Fit(aocommon::UVector<double>& terms, size_t nTerms)
 {
 	const size_t nPoints = _dataPoints.size();
 	

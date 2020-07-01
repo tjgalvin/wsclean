@@ -4,7 +4,8 @@
 #include "paralleldeconvolution.h"
 
 #include "../polarization.h"
-#include "../uvector.h"
+
+#include <aocommon/uvector.h>
 
 #include <cstring>
 
@@ -60,15 +61,15 @@ private:
 	
 	ParallelDeconvolution _parallelDeconvolution;
 	
-	ao::uvector<bool> _cleanMask;
+	aocommon::UVector<bool> _cleanMask;
 	
 	bool _autoMaskIsFinished;
-	ao::uvector<double> _channelFrequencies, _channelWeights;
+	aocommon::UVector<double> _channelFrequencies, _channelWeights;
 	std::set<PolarizationEnum> _polarizations;
 	PolarizationEnum _psfPolarization;
 	size_t _imgWidth, _imgHeight;
 	CachedImageSet *_psfImages, *_modelImages, *_residualImages;
-	ao::uvector<bool> _autoMask;
+	aocommon::UVector<bool> _autoMask;
 	double _beamSize, _pixelScaleX, _pixelScaleY;
 };
 

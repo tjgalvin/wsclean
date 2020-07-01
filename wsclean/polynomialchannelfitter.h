@@ -1,7 +1,7 @@
 #ifndef POLYNOMIAL_CHANNEL_FITTER_H
 #define POLYNOMIAL_CHANNEL_FITTER_H
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 class PolynomialChannelFitter
 {
@@ -18,9 +18,9 @@ public:
 		_dataPoints.push_back(std::make_pair(channel, y));
 	}
 	
-	void Fit(ao::uvector<double>& terms, size_t nTerms);
+	void Fit(aocommon::UVector<double>& terms, size_t nTerms);
 	
-	static double Evaluate(double x, const ao::uvector<double>& terms)
+	static double Evaluate(double x, const aocommon::UVector<double>& terms)
 	{
 		double val = terms[0];
 		double f = 1.0;
@@ -36,8 +36,8 @@ private:
 	/**
 	 * Start and end frequencies of the channels
 	 */
-	ao::uvector<std::pair<double, double>> _channels;
-	ao::uvector<std::pair<size_t,double>> _dataPoints;
+	aocommon::UVector<std::pair<double, double>> _channels;
+	aocommon::UVector<std::pair<size_t,double>> _dataPoints;
 };
 
 #endif

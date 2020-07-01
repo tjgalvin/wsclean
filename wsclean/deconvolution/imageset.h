@@ -1,7 +1,8 @@
 #ifndef IMAGE_SET_H
 #define IMAGE_SET_H
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
+
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/wscleansettings.h"
 
@@ -100,7 +101,7 @@ public:
 	
 	void LoadAndAverage(class CachedImageSet& imageSet);
 	
-	void LoadAndAveragePSFs(class CachedImageSet& psfSet, std::vector<ao::uvector<double>>& psfImages, PolarizationEnum psfPolarization);
+	void LoadAndAveragePSFs(class CachedImageSet& psfSet, std::vector<aocommon::UVector<double>>& psfImages, PolarizationEnum psfPolarization);
 	
 	void InterpolateAndStore(class CachedImageSet& imageSet, const class SpectralFitter& fitter);
 	
@@ -159,7 +160,7 @@ public:
 			getLinearIntegratedWithNormalChannels(dest);
 	}
 
-	void GetIntegratedPSF(double* dest, const ao::uvector<const double*>& psfs)
+	void GetIntegratedPSF(double* dest, const aocommon::UVector<const double*>& psfs)
 	{
 		std::copy_n(psfs[0], _width * _height, dest);
 		for(size_t i = 1; i!=PSFCount(); ++i)
@@ -259,7 +260,7 @@ public:
 	
 	const WSCleanSettings& Settings() const { return _settings; }
 	
-	static void CalculateDeconvolutionFrequencies(const ImagingTable& groupTable, ao::uvector<double>& frequencies, ao::uvector<double>& weights, size_t nDeconvolutionChannels);
+	static void CalculateDeconvolutionFrequencies(const ImagingTable& groupTable, aocommon::UVector<double>& frequencies, aocommon::UVector<double>& weights, size_t nDeconvolutionChannels);
 	
 private:
 	ImageSet(const ImageSet&) = delete;
@@ -267,7 +268,7 @@ private:
 		
 	void allocateImages()
 	{
-		for(ao::uvector<double*>::iterator img=_images.begin();
+		for(aocommon::UVector<double*>::iterator img=_images.begin();
 				img!=_images.end(); ++img)
 		{
 			*img = new double[_width * _height];
@@ -276,7 +277,7 @@ private:
 	
 	void free()
 	{
-		for(ao::uvector<double*>::iterator img=_images.begin();
+		for(aocommon::UVector<double*>::iterator img=_images.begin();
 				img!=_images.end(); ++img)
 			delete[] *img;
 	}
@@ -426,14 +427,14 @@ private:
 		return fromFloor;
 	}
 	
-	ao::uvector<double*> _images;
+	aocommon::UVector<double*> _images;
 	size_t _width, _height, _channelsInDeconvolution;
 	// These vectors contain the info per deconvolution channel
-	ao::uvector<double> _frequencies, _weights;
+	aocommon::UVector<double> _frequencies, _weights;
 	bool _squareJoinedChannels;
 	const ImagingTable& _imagingTable;
 	std::map<size_t, size_t> _tableIndexToImageIndex;
-	ao::uvector<size_t> _imageIndexToPSFIndex;
+	aocommon::UVector<size_t> _imageIndexToPSFIndex;
 	double _polarizationNormalizationFactor;
 	std::set<PolarizationEnum> _linkedPolarizations;
 	const WSCleanSettings& _settings;

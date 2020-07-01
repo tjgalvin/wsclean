@@ -50,25 +50,25 @@ void BufferedMSGridder::gridMeasurementSet(MSData &msData)
 {
 	const MultiBandData selectedBands(msData.SelectedBand());
 
-	ao::uvector<std::complex<float>> modelBuffer(selectedBands.MaxChannels());
-	ao::uvector<float> weightBuffer(selectedBands.MaxChannels());
-	ao::uvector<bool> isSelected(selectedBands.MaxChannels(), true);
+	aocommon::UVector<std::complex<float>> modelBuffer(selectedBands.MaxChannels());
+	aocommon::UVector<float> weightBuffer(selectedBands.MaxChannels());
+	aocommon::UVector<bool> isSelected(selectedBands.MaxChannels(), true);
 
 	size_t totalNRows = 0;
 	for(size_t dataDescId=0; dataDescId!=selectedBands.DataDescCount(); ++dataDescId)
 	{
 		const BandData& band = selectedBands[dataDescId];
-		ao::uvector<double> frequencies(band.ChannelCount());
+		aocommon::UVector<double> frequencies(band.ChannelCount());
 		for(size_t i=0; i!=frequencies.size(); ++i)
 			frequencies[i] = band.Channel(i).Frequency();
 
 		size_t maxNRows = calculateMaxNRowsInMemory(band.ChannelCount());
 
-		ao::uvector<std::complex<float>> visBuffer(maxNRows * band.ChannelCount());
-		ao::uvector<double> uvwBuffer(maxNRows * 3);
+		aocommon::UVector<std::complex<float>> visBuffer(maxNRows * band.ChannelCount());
+		aocommon::UVector<double> uvwBuffer(maxNRows * 3);
 
 		msData.msProvider->Reset();
-		ao::uvector<std::complex<float>> newItemData(band.ChannelCount());
+		aocommon::UVector<std::complex<float>> newItemData(band.ChannelCount());
 		InversionRow newRowData;
 		newRowData.data = newItemData.data();
 
@@ -121,13 +121,13 @@ void BufferedMSGridder::predictMeasurementSet(MSData &msData)
 	for(size_t dataDescId=0; dataDescId!=selectedBands.DataDescCount(); ++dataDescId)
 	{
 		const BandData& band = selectedBands[dataDescId];
-		ao::uvector<double> frequencies(band.ChannelCount());
+		aocommon::UVector<double> frequencies(band.ChannelCount());
 		for(size_t i=0; i!=frequencies.size(); ++i)
 			frequencies[i] = band.Channel(i).Frequency();
 
 		size_t maxNRows = calculateMaxNRowsInMemory(band.ChannelCount());
 
-		ao::uvector<double> uvwBuffer(maxNRows * 3);
+		aocommon::UVector<double> uvwBuffer(maxNRows * 3);
 		// Iterate over chunks until all data has been gridded
 		msData.msProvider->Reset();
 		while(msData.msProvider->CurrentRowAvailable())
@@ -150,7 +150,7 @@ void BufferedMSGridder::predictMeasurementSet(MSData &msData)
 			}
 
 			Logger::Info << "Predicting " << nRows << " rows...\n";
-			ao::uvector<std::complex<float>> visBuffer(maxNRows * band.ChannelCount());
+			aocommon::UVector<std::complex<float>> visBuffer(maxNRows * band.ChannelCount());
 			_gridder->PredictVisibilities(nRows, band.ChannelCount(), uvwBuffer.data(), frequencies.data(), visBuffer.data());
 
 			Logger::Info << "Writing...\n";

@@ -20,13 +20,13 @@
 #ifndef SERIALIZABLE_H
 #define SERIALIZABLE_H
 
-#include <iostream>
-#include <complex>
-#include <vector>
+#include <aocommon/uvector.h>
 
 #include <stdint.h>
 
-#include "uvector.h"
+#include <iostream>
+#include <complex>
+#include <vector>
 
 class Serializable
 {
@@ -164,7 +164,7 @@ class Serializable
 		static void UnserializeString(std::istream& stream, std::string &destStr)
 		{
 			size_t size = UnserializeUInt64(stream);
-			ao::uvector<char> str(size);
+			aocommon::UVector<char> str(size);
 			stream.read(str.data(), size);
 			destStr = std::string(str.data(), size);
 		}
@@ -172,7 +172,7 @@ class Serializable
 		static std::string UnserializeString(std::istream& stream)
 		{
 			size_t size = UnserializeUInt64(stream);
-			ao::uvector<char> str(size);
+			aocommon::UVector<char> str(size);
 			stream.read(str.data(), size);
 			return std::string(str.data(), size);
 		}

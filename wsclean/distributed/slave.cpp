@@ -37,7 +37,7 @@ void Slave::Run()
 void Slave::grid(size_t bodySize)
 {
 	MPI_Status status;
-	ao::uvector<unsigned char> buffer(bodySize);
+	aocommon::UVector<unsigned char> buffer(bodySize);
 	MPI_Recv(
 		buffer.data(),
 		bodySize,

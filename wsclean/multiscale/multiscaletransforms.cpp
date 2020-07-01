@@ -2,9 +2,9 @@
 
 #include "../fftconvolver.h"
 
-void MultiScaleTransforms::Transform(const ao::uvector<double*>& images, double* scratch, double scale)
+void MultiScaleTransforms::Transform(const aocommon::UVector<double*>& images, double* scratch, double scale)
 {
-	ao::uvector<double> shape;
+	aocommon::UVector<double> shape;
 	size_t kernelSize;
 	MakeShapeFunction(scale, shape, kernelSize);
 	
@@ -17,7 +17,7 @@ void MultiScaleTransforms::Transform(const ao::uvector<double*>& images, double*
 
 void MultiScaleTransforms::PrepareTransform(double* kernel, double scale)
 {
-	ao::uvector<double> shape;
+	aocommon::UVector<double> shape;
 	size_t kernelSize;
 	MakeShapeFunction(scale, shape, kernelSize);
 	

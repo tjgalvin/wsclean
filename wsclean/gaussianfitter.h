@@ -1,8 +1,6 @@
 #ifndef GAUSSIAN_FITTER_H
 #define GAUSSIAN_FITTER_H
 
-#include "matrix2x2.h"
-
 #include <cmath>
 #include <cstring>
 #include <iostream>
@@ -10,7 +8,8 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multifit_nlin.h>
 
-#include "uvector.h"
+#include <aocommon/matrix2x2.h>
+#include <aocommon/uvector.h>
 
 class GaussianFitter
 {

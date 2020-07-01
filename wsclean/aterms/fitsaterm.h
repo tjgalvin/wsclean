@@ -5,7 +5,7 @@
 
 #include "../fitsreader.h"
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 #include <complex>
 #include <map>
@@ -40,7 +40,7 @@ private:
 	void copyToImaginaryPolarization(std::complex<float>* dest, const double* source, size_t polIndex);
 	void setPolarization(std::complex<float>* dest, size_t polIndex, std::complex<float> value);
 	
-	ao::uvector<double> _scratchA, _scratchB;
+	aocommon::UVector<double> _scratchA, _scratchB;
 	std::vector<FitsReader> _readers;
 };
 

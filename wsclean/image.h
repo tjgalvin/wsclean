@@ -4,9 +4,9 @@
 #include <cstring>
 #include <cmath>
 #include <complex>
-
-#include "uvector.h"
 #include <memory>
+
+#include <aocommon/uvector.h>
 
 template<typename NumT>
 class ImageT
@@ -106,7 +106,7 @@ public:
 	
 	static value_type Median(const value_type* data, size_t size)
 	{
-		ao::uvector<value_type> copy;
+		aocommon::UVector<value_type> copy;
 		return median_with_copy(data, size, copy);
 	}
 	
@@ -146,7 +146,7 @@ private:
 	value_type* _data;
 	size_t _width, _height;
 	
-	static value_type median_with_copy(const value_type* data, size_t size, ao::uvector<value_type>& copy);
+	static value_type median_with_copy(const value_type* data, size_t size, aocommon::UVector<value_type>& copy);
 };
 
 template<typename NumT>

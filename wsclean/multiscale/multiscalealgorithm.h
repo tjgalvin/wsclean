@@ -6,8 +6,8 @@
 
 #include "threadeddeconvolutiontools.h"
 
-#include "../uvector.h"
-#include "../aocommon/cloned_ptr.h"
+#include <aocommon/uvector.h>
+#include <aocommon/cloned_ptr.h>
 
 #include "../deconvolution/componentlist.h"
 #include "../deconvolution/imageset.h"
@@ -26,10 +26,10 @@ public:
 		return std::unique_ptr<DeconvolutionAlgorithm>(new MultiScaleAlgorithm(*this));
 	}
 	
-	void SetManualScaleList(const ao::uvector<double>& scaleList)
+	void SetManualScaleList(const aocommon::UVector<double>& scaleList)
 	{ _manualScaleList = scaleList; }
 	
-	virtual double ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage, const ao::uvector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold) final override;
+	virtual double ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold) final override;
 	
 	void SetAutoMaskMode(bool trackPerScaleMasks, bool usePerScaleMasks) {
 		_trackPerScaleMasks = trackPerScaleMasks;
@@ -85,7 +85,7 @@ public:
 	{
 		_scaleMasks.resize(n);
 	}
-	ao::uvector<bool>& GetScaleMask(size_t index)
+	aocommon::UVector<bool>& GetScaleMask(size_t index)
 	{
 		return _scaleMasks[index];
 	}
@@ -134,18 +134,18 @@ private:
 		double totalFluxCleaned;
 	};
 	std::vector<MultiScaleAlgorithm::ScaleInfo> _scaleInfos;
-	ao::uvector<double> _manualScaleList;
+	aocommon::UVector<double> _manualScaleList;
 	
 	bool _trackPerScaleMasks, _usePerScaleMasks, _fastSubMinorLoop, _trackComponents;
-	std::vector<ao::uvector<bool>> _scaleMasks;
-	ao::cloned_ptr<ComponentList> _componentList;
+	std::vector<aocommon::UVector<bool>> _scaleMasks;
+	aocommon::cloned_ptr<ComponentList> _componentList;
 
 	void initializeScaleInfo();
 	void convolvePSFs(std::unique_ptr<Image[]>& convolvedPSFs, const double* psf, double* tmp, bool isIntegrated);
 	void findActiveScaleConvolvedMaxima(const ImageSet& imageSet, double* integratedScratch, double* scratch, bool reportRMS, ThreadedDeconvolutionTools* tools);
 	bool selectMaximumScale(size_t& scaleWithPeak);
 	void activateScales(size_t scaleWithLastPeak);
-	void measureComponentValues(ao::uvector<double>& componentValues, size_t scaleIndex, ImageSet& imageSet);
+	void measureComponentValues(aocommon::UVector<double>& componentValues, size_t scaleIndex, ImageSet& imageSet);
 	void addComponentToModel(double* model, size_t scaleWithPeak, double componentValue);
 	
 	void findPeakDirect(const double *image, double* scratch, size_t scaleIndex);

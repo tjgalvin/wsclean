@@ -1,7 +1,7 @@
 #ifndef SERIAL_ISTREAM_H
 #define SERIAL_ISTREAM_H
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 #include "serialostream.h"
 
 #include <stdint.h>
@@ -15,7 +15,7 @@ class SerialIStream
 public:
 	typedef std::size_t size_t;
 	
-	SerialIStream(ao::uvector<unsigned char>&& buffer) :
+	SerialIStream(aocommon::UVector<unsigned char>&& buffer) :
 		_buffer(std::move(buffer)),
 		_position(_buffer.begin())
 	{ }
@@ -267,8 +267,8 @@ private:
 		return *this;
 	}
 	
-	ao::uvector<unsigned char> _buffer;
-	ao::uvector<unsigned char>::const_iterator _position;
+	aocommon::UVector<unsigned char> _buffer;
+	aocommon::UVector<unsigned char>::const_iterator _position;
 };
 
 #endif

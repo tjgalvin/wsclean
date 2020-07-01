@@ -14,8 +14,10 @@
 
 #include <StationResponse/LofarMetaDataUtil.h>
 
-#include "../lane.h"
-#include "../matrix2x2.h"
+#include <aocommon/lane.h>
+
+#include <aocommon/matrix2x2.h>
+
 
 class LofarBeamTerm : public ATermBeam
 {
@@ -49,7 +51,7 @@ private:
 	std::vector<MC2x2F> _inverseCentralGain;
 	LOFAR::StationResponse::vector3r_t _station0, _tile0;
 	
-	ao::lane<size_t> *_lane;
+	aocommon::Lane<size_t> *_lane;
 	size_t _nThreads;
 	std::vector<std::thread> _threads;
 };

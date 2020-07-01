@@ -5,7 +5,7 @@
 #include "imageset.h"
 #include "simpleclean.h"
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 #include <boost/thread/thread.hpp>
 
@@ -19,7 +19,7 @@ class GenericClean : public DeconvolutionAlgorithm
 public:
 	explicit GenericClean(class FFTWManager& fftwManager, bool useSubMinorOptimization);
 	
-	virtual double ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet, const ao::uvector<const double*>& psfs, size_t width, size_t height, bool& reachedMajorThreshold) final override;
+	virtual double ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet, const aocommon::UVector<const double*>& psfs, size_t width, size_t height, bool& reachedMajorThreshold) final override;
 	
 	virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override
 	{

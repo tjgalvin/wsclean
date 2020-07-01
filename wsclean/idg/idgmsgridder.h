@@ -8,8 +8,8 @@
 //#include "interface.h"
 #include <idg-api.h>
 
-#include "../lane.h"
-#include "../uvector.h"
+#include <aocommon/lane.h>
+#include <aocommon/uvector.h>
 
 #include <boost/thread/mutex.hpp>
 
@@ -50,7 +50,7 @@ private:
 	void setIdgType();
 	
 	std::unique_ptr<class ATermBase> getATermMaker(MSGridderBase::MSData& msData);
-  bool prepareForMeasurementSet(MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker, ao::uvector<std::complex<float>>& aTermBuffer, idg::api::BufferSetType);
+  bool prepareForMeasurementSet(MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker, aocommon::UVector<std::complex<float>>& aTermBuffer, idg::api::BufferSetType);
 	
 	struct IDGInversionRow : public MSGridderBase::InversionRow {
 		size_t antenna1, antenna2, timeIndex;
@@ -64,9 +64,9 @@ private:
 	
 	std::unique_ptr<idg::api::BufferSet> _bufferset;
 	size_t _subgridSize;
-	ao::uvector<double> _image;
-	ao::uvector<float> _taper_subgrid;
-	ao::uvector<float> _taper_grid;
+	aocommon::UVector<double> _image;
+	aocommon::UVector<float> _taper_subgrid;
+	aocommon::UVector<float> _taper_grid;
 	MSProvider* _outputProvider;
 	MultiBandData _selectedBands;
 	const WSCleanSettings& _settings;

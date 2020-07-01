@@ -186,7 +186,7 @@ void WSCFitsWriter::Restore(const WSCleanSettings& settings)
 	if(imgReader.ImageWidth() != modReader.ImageWidth() ||
 		imgReader.ImageHeight() != modReader.ImageHeight())
 		throw std::runtime_error("Image and model images have different dimensions!");
-	ao::uvector<double>
+	aocommon::UVector<double>
 		image(imgReader.ImageWidth() * imgReader.ImageHeight()),
 		model(modReader.ImageWidth() * modReader.ImageHeight());
 	imgReader.Read(image.data());

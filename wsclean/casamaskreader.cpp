@@ -3,7 +3,7 @@
 #include <casacore/tables/Tables/Table.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 CasaMaskReader::CasaMaskReader(const std::string& path) : _path(path)
 {

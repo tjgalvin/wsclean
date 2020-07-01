@@ -1,9 +1,9 @@
 #ifndef ATCA_BEAM_H
 #define ATCA_BEAM_H
 
-#include "../uvector.h"
-
 #include "voltagepattern.h"
+
+#include <aocommon/uvector.h>
 
 #include <string>
 

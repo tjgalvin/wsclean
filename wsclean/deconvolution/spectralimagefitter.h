@@ -3,7 +3,7 @@
 
 #include "../wsclean/imagebufferallocator.h"
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 #include "spectralfitter.h"
 
 class SpectralImageFitter
@@ -34,8 +34,8 @@ public:
 		for(size_t i=0; i!=_fitter.NTerms(); ++i)
 			_terms.push_back(_allocator.Allocate(_width*_height));
 		
-		ao::uvector<double> values(_images.size());
-		ao::uvector<double> terms(_fitter.NTerms());
+		aocommon::UVector<double> values(_images.size());
+		aocommon::UVector<double> terms(_fitter.NTerms());
 		for(size_t px=0; px!=_width*_height; ++px)
 		{
 			double isZero = true;
@@ -58,7 +58,7 @@ public:
 	
 	void Interpolate(double* destination, double frequency)
 	{
-		ao::uvector<double> terms(_fitter.NTerms());
+		aocommon::UVector<double> terms(_fitter.NTerms());
 		for(size_t px=0; px!=_width*_height; ++px)
 		{
 			for(size_t t=0; t!=terms.size(); ++t)
@@ -86,9 +86,9 @@ private:
 	size_t _width, _height;
 	ImageBufferAllocator& _allocator;
 	SpectralFitter& _fitter;
-	ao::uvector<double*> _images;
-	ao::uvector<double*> _terms;
-	ao::uvector<double> _frequencies;
+	aocommon::UVector<double*> _images;
+	aocommon::UVector<double*> _terms;
+	aocommon::UVector<double> _frequencies;
 };
 
 #endif

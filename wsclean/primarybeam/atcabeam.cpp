@@ -63,7 +63,7 @@ VoltagePattern ATCABeam::CalculateVoltagePattern(enum Band band)
 		{
 			Logger::Debug << "Using voltage pattern for ATCA_16 band\n";
 			// coef x nfreq
-			ao::uvector<double> coefficients({
+			aocommon::UVector<double> coefficients({
 				1.0, 1.06274e-03, 1.32342e-06, -8.72013e-10, 1.08020e-12,
 				1.0, 9.80817e-04, 1.17898e-06, -7.83160e-10, 8.66199e-13,
 				1.0, 9.53553e-04, 9.33233e-07, -4.26759e-10, 5.63667e-13,

@@ -100,7 +100,7 @@ struct AdvImageSetFixture : public ImageSetFixture
 {
 	FitsWriter writer;
 	CachedImageSet cSet;
-	ao::uvector<double> image;
+	aocommon::UVector<double> image;
 	
 	AdvImageSetFixture() :
 		image(4, 0.0)

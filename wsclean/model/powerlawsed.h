@@ -120,7 +120,7 @@ public:
 			_factors[p] = brightnessVector[p] / refBrightness;
 	}
 	
-	void SetFromStokesIFit(double referenceFrequency, const ao::uvector<double>& terms)
+	void SetFromStokesIFit(double referenceFrequency, const aocommon::UVector<double>& terms)
 	{
 		_referenceFrequency = referenceFrequency;
 		double refBrightness = terms[0];
@@ -172,7 +172,7 @@ public:
 private:
 	double _referenceFrequency;
 	double _factors[4];
-	ao::uvector<double> _terms;
+	aocommon::UVector<double> _terms;
 	bool _isLogarithmic;
 };
 

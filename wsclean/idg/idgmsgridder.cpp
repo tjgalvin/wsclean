@@ -163,7 +163,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 	SynchronizedMS ms = msData.msProvider->MS();
 	size_t nr_stations = ms->antenna().nrow();
 	std::unique_ptr<ATermBase> aTermMaker;
-	ao::uvector<std::complex<float>> aTermBuffer;
+	aocommon::UVector<std::complex<float>> aTermBuffer;
 	if(!_settings.atermConfigFilename.empty() || _settings.gridWithBeam)
 	{
 		ATermBase::CoordinateSystem system;
@@ -221,19 +221,19 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData)
 {
 	std::unique_ptr<ATermBase> aTermMaker;
-	ao::uvector<std::complex<float>> aTermBuffer;
+	aocommon::UVector<std::complex<float>> aTermBuffer;
 	if(!prepareForMeasurementSet(msData, aTermMaker, aTermBuffer, idg::api::BufferSetType::gridding))
 		return;
 	
-	ao::uvector<float> weightBuffer(_selectedBands.MaxChannels()*4);
-	ao::uvector<std::complex<float>> modelBuffer(_selectedBands.MaxChannels()*4);
-	ao::uvector<bool> isSelected(_selectedBands.MaxChannels()*4, true);
-	ao::uvector<std::complex<float>> dataBuffer(_selectedBands.MaxChannels()*4);
+	aocommon::UVector<float> weightBuffer(_selectedBands.MaxChannels()*4);
+	aocommon::UVector<std::complex<float>> modelBuffer(_selectedBands.MaxChannels()*4);
+	aocommon::UVector<bool> isSelected(_selectedBands.MaxChannels()*4, true);
+	aocommon::UVector<std::complex<float>> dataBuffer(_selectedBands.MaxChannels()*4);
 	// The gridder doesn't need to know the absolute time index; this value indexes relatively to where we
 	// start in the measurement set, and only increases when the time changes.
 	int timeIndex = -1;
 	double currentTime = -1.0;
-	ao::uvector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
+	aocommon::UVector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
 	for(TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel()) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
 	{
 		MSProvider::MetaData metaData;
@@ -355,7 +355,7 @@ void IdgMsGridder::setIdgType()
 	}
 }
 
-bool IdgMsGridder::prepareForMeasurementSet(MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker, ao::uvector<std::complex<float>>& aTermBuffer, idg::api::BufferSetType bufferSetType)
+bool IdgMsGridder::prepareForMeasurementSet(MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker, aocommon::UVector<std::complex<float>>& aTermBuffer, idg::api::BufferSetType bufferSetType)
 {
 	const float max_baseline = msData.maxBaselineInM;
 	// Skip this ms if there is no data in it
@@ -411,7 +411,7 @@ bool IdgMsGridder::prepareForMeasurementSet(MSGridderBase::MSData& msData, std::
 void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
 {
 	std::unique_ptr<ATermBase> aTermMaker;
-	ao::uvector<std::complex<float>> aTermBuffer;
+	aocommon::UVector<std::complex<float>> aTermBuffer;
 	if(!prepareForMeasurementSet(msData, aTermMaker, aTermBuffer, idg::api::BufferSetType::degridding))
 		return;
 	
@@ -419,10 +419,10 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData)
 
 	_outputProvider = msData.msProvider;
 	
-	ao::uvector<std::complex<float>> buffer(_selectedBands.MaxChannels()*4);
+	aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels()*4);
 	int timeIndex = -1;
 	double currentTime = -1.0;
-	ao::uvector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
+	aocommon::UVector<double> uvws(msData.msProvider->NAntennas()*3, 0.0);
 	for(TimestepBuffer timestepBuffer(msData.msProvider, false) ; timestepBuffer.CurrentRowAvailable() ; timestepBuffer.NextRow())
 	{
 		MSProvider::MetaData metaData;

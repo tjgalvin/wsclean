@@ -36,7 +36,7 @@ size_t SubMinorModel::GetMaxComponent(double* scratch, double& maxValue) const
 	return maxComponent;
 }
 
-boost::optional<double> SubMinorLoop::Run(ImageSet& convolvedResidual, const ao::uvector<const double*>& doubleConvolvedPsfs)
+boost::optional<double> SubMinorLoop::Run(ImageSet& convolvedResidual, const aocommon::UVector<const double*>& doubleConvolvedPsfs)
 {
 	_subMinorModel = SubMinorModel(_width, _height);
 	
@@ -50,13 +50,13 @@ boost::optional<double> SubMinorLoop::Run(ImageSet& convolvedResidual, const ao:
 	if(_subMinorModel.size() == 0)
 		return boost::optional<double>();
 	
-	ao::uvector<double> scratch(_subMinorModel.size());
+	aocommon::UVector<double> scratch(_subMinorModel.size());
 	double maxValue;
 	size_t maxComponent = _subMinorModel.GetMaxComponent(scratch.data(), maxValue, _allowNegativeComponents);
 		
 	while(std::fabs(maxValue) > _threshold && _currentIteration < _maxIterations && (!_stopOnNegativeComponent || maxValue>=0.0))
 	{
-		ao::uvector<double> componentValues(_subMinorModel.Residual().size());
+		aocommon::UVector<double> componentValues(_subMinorModel.Residual().size());
 		for(size_t imgIndex=0; imgIndex!=_subMinorModel.Residual().size(); ++imgIndex)
 			componentValues[imgIndex] = _subMinorModel.Residual()[imgIndex][maxComponent] * _gain;
 		_fluxCleaned += maxValue * _gain;
@@ -226,7 +226,7 @@ void SubMinorLoop::UpdateAutoMask(bool* mask) const
 
 void SubMinorLoop::UpdateComponentList(class ComponentList& list, size_t scaleIndex) const
 {
-	ao::uvector<double> values(_subMinorModel.Model().size());
+	aocommon::UVector<double> values(_subMinorModel.Model().size());
 	for(size_t px=0; px!=_subMinorModel.size(); ++px)
 	{
 		bool isNonZero = false;

@@ -6,7 +6,8 @@
 #include <boost/filesystem/operations.hpp>
 
 #include "../hmatrix4x4.h"
-#include "../matrix2x2.h"
+#include <aocommon/matrix2x2.h>
+
 #include "../polarization.h"
 #include "../fitsreader.h"
 #include "../image.h"

@@ -5,14 +5,14 @@
 
 #include "../banddata.h"
 #include "../dftpredictionalgorithm.h"
-#include "../lane.h"
 #include "../buffered_lane.h"
-
-#include "../aocommon/barrier.h"
 
 #include "lbeamevaluator.h"
 
 #include <boost/asio/io_service.hpp>
+
+#include <aocommon/barrier.h>
+#include <aocommon/lane.h>
 
 #include <complex>
 #include <memory>
@@ -92,11 +92,11 @@ private:
 	
 	DFTPredictionInput _dftInput;
 	std::mutex _mutex;
-	ao::Barrier _barrier;
+	aocommon::Barrier _barrier;
 	boost::asio::io_service _ioService;
 	
 	const size_t _laneSize;
-	ao::lane<RowData> _workLane, _outputLane, _availableBufferLane;
+	aocommon::Lane<RowData> _workLane, _outputLane, _availableBufferLane;
 	lane_read_buffer<RowData> _bufferedOutputLane;
 	lane_write_buffer<RowData> _bufferedBufferLane;
 	

@@ -141,12 +141,12 @@ template<typename num_t>
 void DirectMSGridder<num_t>::invertMeasurementSet(const MSGridderBase::MSData& msData, ProgressBar& progress, size_t msIndex)
 {
 	const MultiBandData selectedBand(msData.SelectedBand());
-	ao::uvector<std::complex<float>> modelBuffer(selectedBand.MaxChannels());
-	ao::uvector<float> weightBuffer(selectedBand.MaxChannels());
-	ao::uvector<bool> isSelected(selectedBand.MaxChannels(), true);
+	aocommon::UVector<std::complex<float>> modelBuffer(selectedBand.MaxChannels());
+	aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels());
+	aocommon::UVector<bool> isSelected(selectedBand.MaxChannels(), true);
 	
 	InversionRow newItem;
-	ao::uvector<std::complex<float>> newItemData(selectedBand.MaxChannels());
+	aocommon::UVector<std::complex<float>> newItemData(selectedBand.MaxChannels());
 	newItem.data = newItemData.data();
 			
 	std::vector<size_t> idToMSRow;

@@ -1,7 +1,7 @@
 #include "fftconvolver.h"
 
 #include "fftwmanager.h"
-#include "uvector.h"
+#include <aocommon/uvector.h>
 
 #include <fftw3.h>
 
@@ -10,14 +10,14 @@
 
 void FFTConvolver::Convolve(FFTWManager& fftw, double* image, size_t imgWidth, size_t imgHeight, const double* kernel, size_t kernelSize)
 {
-	ao::uvector<double> scaledKernel(imgWidth * imgHeight, 0.0);
+	aocommon::UVector<double> scaledKernel(imgWidth * imgHeight, 0.0);
 	PrepareSmallKernel(scaledKernel.data(), imgWidth, imgHeight, kernel, kernelSize);
 	ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight);
 }
 
 void FFTConvolver::ReverseAndConvolve(class FFTWManager& fftw, double* image, size_t imgWidth, size_t imgHeight, const double* kernel, size_t kernelSize)
 {
-	ao::uvector<double> scaledKernel(imgWidth * imgHeight, 0.0);
+	aocommon::UVector<double> scaledKernel(imgWidth * imgHeight, 0.0);
 	
 	PrepareSmallKernel(scaledKernel.data(), imgWidth, imgHeight, kernel, kernelSize);
 	ConvolveSameSize(fftw, image, scaledKernel.data(), imgWidth, imgHeight);

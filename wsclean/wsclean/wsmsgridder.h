@@ -4,16 +4,16 @@
 #include "msgridderbase.h"
 #include "wstackinggridder.h"
 
-#include "../lane.h"
 #include "../multibanddata.h"
 #include "../image.h"
-
-#include <complex>
-#include <memory>
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
+#include <aocommon/lane.h>
+
+#include <complex>
+#include <memory>
 #include <thread>
 
 namespace casacore {
@@ -67,7 +67,7 @@ class WSMSGridder : public MSGridderBase
 
 		void predictMeasurementSet(MSData& msData);
 
-		void workThread(ao::lane<InversionRow>* workLane)
+		void workThread(aocommon::Lane<InversionRow>* workLane)
 		{
 			InversionRow workItem;
 			while(workLane->read(workItem))
@@ -79,13 +79,13 @@ class WSMSGridder : public MSGridderBase
 		
 		void startInversionWorkThreads(size_t maxChannelCount);
 		void finishInversionWorkThreads();
-		void workThreadPerSample(ao::lane<InversionWorkSample>* workLane);
+		void workThreadPerSample(aocommon::Lane<InversionWorkSample>* workLane);
 		
-		void predictCalcThread(ao::lane<PredictionWorkItem>* inputLane, ao::lane<PredictionWorkItem>* outputLane);
-		void predictWriteThread(ao::lane<PredictionWorkItem>* samplingWorkLane, const MSData* msData);
+		void predictCalcThread(aocommon::Lane<PredictionWorkItem>* inputLane, aocommon::Lane<PredictionWorkItem>* outputLane);
+		void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane, const MSData* msData);
 
 		std::unique_ptr<GridderType> _gridder;
-		std::vector<ao::lane<InversionWorkSample>> _inversionCPULanes;
+		std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;
 		std::vector<std::thread> _threadGroup;
 		size_t _cpuCount, _laneBufferSize;
 		int64_t _memSize;

@@ -225,7 +225,7 @@ class ModelSource
 			raValues.reserve(_components.size());
 			for(const_iterator c=begin(); c!=end(); ++c)
 				raValues.push_back(c->PosRA());
-			return ImageCoordinates::MeanRA(raValues);
+			return aocommon::ImageCoordinates::MeanRA(raValues);
 		}
 		
 		double MeanDec() const
@@ -320,7 +320,7 @@ public:
 			raValues.reserve(_sources.size());
 			for(const_iterator s=begin(); s!=end(); ++s)
 				raValues.push_back(s->MeanRA());
-			return ImageCoordinates::MeanRA(raValues);
+			return aocommon::ImageCoordinates::MeanRA(raValues);
 		}
 		
 		double MeanDec() const

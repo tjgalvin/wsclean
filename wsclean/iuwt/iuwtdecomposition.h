@@ -2,9 +2,10 @@
 #define IUWT_DECOMPOSITION_H
 
 #include "../fitswriter.h"
-#include "../uvector.h"
 
 #include "iuwtmask.h"
+
+#include <aocommon/uvector.h>
 
 #include <iostream>
 #include <string>
@@ -13,12 +14,12 @@
 class IUWTDecompositionScale
 {
 public:
-	ao::uvector<double>& Coefficients() { return _coefficients; }
-	const ao::uvector<double>& Coefficients() const { return _coefficients; }
+	aocommon::UVector<double>& Coefficients() { return _coefficients; }
+	const aocommon::UVector<double>& Coefficients() const { return _coefficients; }
 	double& operator[](size_t index) { return _coefficients[index]; }
 	const double& operator[](size_t index) const { return _coefficients[index]; }
 private:
-	ao::uvector<double> _coefficients;
+	aocommon::UVector<double> _coefficients;
 };
 
 class IUWTDecomposition
@@ -39,24 +40,24 @@ public:
 		return p.release();
 	}
 	
-	void Convolve(ao::uvector<double>& image, int toScale)
+	void Convolve(aocommon::UVector<double>& image, int toScale)
 	{
-		ao::uvector<double> scratch(image.size());
+		aocommon::UVector<double> scratch(image.size());
 		for(int scale=0; scale!=toScale; ++scale)
 		{
 			convolve(image.data(), image.data(), scratch.data(), _width, _height, scale+1);
 		}
 	}
 	
-	void DecomposeSimple(ao::uvector<double>& input)
+	void DecomposeSimple(aocommon::UVector<double>& input)
 	{
-		ao::uvector<double> scratch(input.size());
+		aocommon::UVector<double> scratch(input.size());
 		for(int scale=0; scale!=int(_scaleCount); ++scale)
 		{
-			ao::uvector<double>& coefficients = _scales[scale].Coefficients();
+			aocommon::UVector<double>& coefficients = _scales[scale].Coefficients();
 			coefficients.resize(_width*_height);
 			
-			ao::uvector<double>
+			aocommon::UVector<double>
 				tmp(_width*_height);
 			convolve(tmp.data(), input.data(), scratch.data(), _width, _height, scale);
 			difference(coefficients.data(), input.data(), tmp.data(), _width, _height);
@@ -65,7 +66,7 @@ public:
 		_scales.back().Coefficients() = input;
 	}
 	
-	void RecomposeSimple(ao::uvector<double>& output)
+	void RecomposeSimple(aocommon::UVector<double>& output)
 	{
 		output = _scales[0].Coefficients();
 		for(size_t scale=1; scale!=_scaleCount-1; ++scale)
@@ -84,13 +85,13 @@ public:
 	
 	void DecomposeST(const double* input, double* scratch)
 	{
-		ao::uvector<double>
+		aocommon::UVector<double>
 			i0(input, input+_width*_height),
 			i1(_width*_height),
 			i2(_width*_height);
 		for(int scale=0; scale!=int(_scaleCount); ++scale)
 		{
-			ao::uvector<double>& coefficients = _scales[scale].Coefficients();
+			aocommon::UVector<double>& coefficients = _scales[scale].Coefficients();
 			coefficients.resize(_width*_height);
 			convolve(i1.data(), i0.data(), scratch, _width, _height, scale+1);
 			convolve(i2.data(), i1.data(), scratch, _width, _height, scale+1);
@@ -105,9 +106,9 @@ public:
 		_scales.back().Coefficients() = i1;
 	}
 	
-	void Recompose(ao::uvector<double>& output, bool includeLargest)
+	void Recompose(aocommon::UVector<double>& output, bool includeLargest)
 	{
-		ao::uvector<double> scratch1(_width*_height), scratch2(_width*_height);
+		aocommon::UVector<double> scratch1(_width*_height), scratch2(_width*_height);
 		bool isZero;
 		if(includeLargest)
 		{
@@ -120,7 +121,7 @@ public:
 		}
 		for(int scale=int(_scaleCount)-1; scale!=-1; --scale)
 		{
-			const ao::uvector<double>& coefficients =
+			const aocommon::UVector<double>& coefficients =
 				_scales[scale].Coefficients();
 			if(isZero)
 			{
@@ -365,7 +366,7 @@ private:
 		}
 	}
 
-	void copySmallerPart(const ao::uvector<double>& input, ao::uvector<double>& output, size_t x1, size_t y1, size_t x2, size_t y2) const
+	void copySmallerPart(const aocommon::UVector<double>& input, aocommon::UVector<double>& output, size_t x1, size_t y1, size_t x2, size_t y2) const
 	{
 		size_t newWidth = x2 - x1;
 		output.resize(newWidth * (y2-y1));

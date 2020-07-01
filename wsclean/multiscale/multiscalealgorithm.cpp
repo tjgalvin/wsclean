@@ -45,7 +45,7 @@ MultiScaleAlgorithm::~MultiScaleAlgorithm()
 }
 
 
-double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet, const ao::uvector<const double*>& psfs, size_t width, size_t height, bool& reachedMajorThreshold)
+double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet, const aocommon::UVector<const double*>& psfs, size_t width, size_t height, bool& reachedMajorThreshold)
 {
 	// Rough overview of the procedure:
 	// Convolve integrated image (all scales)
@@ -77,7 +77,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 	{
 		// Note that in a second round the nr of scales can be different (due to different width/height,
 		// e.g. caused by a different subdivision in parallel cleaning).
-		for(const ao::uvector<bool>& mask : _scaleMasks)
+		for(const aocommon::UVector<bool>& mask : _scaleMasks)
 		{
 			if(mask.size() != _width*_height)
 				throw std::runtime_error("Invalid automask size in multiscale algorithm");
@@ -172,7 +172,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 		thresholdCountdown > 0)
 	{
 		// Create double-convolved PSFs & individually convolved images for this scale
-		ao::uvector<double*> transformList;
+		aocommon::UVector<double*> transformList;
 		for(size_t i=0; i!=dirtySet.PSFCount(); ++i)
 		{
 			double* psf = getConvolvedPSF(i, scaleWithPeak, convolvedPSFs);
@@ -235,7 +235,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 				subLoop.SetMask(_cleanMask);
 			subLoop.SetSpectralFitter(&Fitter());
 			
-			ao::uvector<const double*> subPSFs(dirtySet.PSFCount());
+			aocommon::UVector<const double*> subPSFs(dirtySet.PSFCount());
 			for(size_t psfIndex=0; psfIndex!=subPSFs.size(); ++psfIndex)
 				subPSFs[psfIndex] = doubleConvolvedPSFs[psfIndex].data();
 			
@@ -260,7 +260,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 						subLoop.UpdateComponentList(*_componentList, scaleWithPeak);
 				}
 				if(_scaleInfos[scaleWithPeak].scale != 0.0)
-					tools->MultiScaleTransform(&msTransforms, ao::uvector<double*>{scratch.data()}, integratedScratch.data(), _scaleInfos[scaleWithPeak].scale);
+					tools->MultiScaleTransform(&msTransforms, aocommon::UVector<double*>{scratch.data()}, integratedScratch.data(), _scaleInfos[scaleWithPeak].scale);
 				double* model = modelSet[imageIndex];
 				for(size_t i=0; i!=_width*_height; ++i)
 					model[i] += scratch.data()[i];
@@ -274,7 +274,7 @@ double MultiScaleAlgorithm::ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& 
 				std::fabs(maxScaleInfo.maxUnnormalizedImageValue * maxScaleInfo.biasFactor) > firstSubIterationThreshold &&
 				(!StopOnNegativeComponents() || _scaleInfos[scaleWithPeak].maxUnnormalizedImageValue>=0.0) )
 			{
-				ao::uvector<double> componentValues;
+				aocommon::UVector<double> componentValues;
 				measureComponentValues(componentValues, scaleWithPeak, individualConvolvedImages);
 				PerformSpectralFit(componentValues.data());
 				
@@ -442,9 +442,9 @@ void MultiScaleAlgorithm::findActiveScaleConvolvedMaxima(const ImageSet& imageSe
 	//ImageBufferAllocator::Ptr convolvedImage;
 	//_allocator.Allocate(_width*_height, convolvedImage);
 	imageSet.GetLinearIntegrated(integratedScratch);
-	ao::uvector<double> transformScales;
-	ao::uvector<size_t> transformIndices;
-	std::vector<ao::uvector<bool>> transformScaleMasks;
+	aocommon::UVector<double> transformScales;
+	aocommon::UVector<size_t> transformIndices;
+	std::vector<aocommon::UVector<bool>> transformScaleMasks;
 	for(size_t scaleIndex=0; scaleIndex!=_scaleInfos.size(); ++scaleIndex)
 	{
 		ScaleInfo& scaleEntry = _scaleInfos[scaleIndex];
@@ -538,7 +538,7 @@ void MultiScaleAlgorithm::activateScales(size_t scaleWithLastPeak)
 	}
 }
 
-void MultiScaleAlgorithm::measureComponentValues(ao::uvector<double>& componentValues, size_t scaleIndex, ImageSet& imageSet)
+void MultiScaleAlgorithm::measureComponentValues(aocommon::UVector<double>& componentValues, size_t scaleIndex, ImageSet& imageSet)
 {
 	const ScaleInfo& scale = _scaleInfos[scaleIndex];
 	componentValues.resize(imageSet.size());

@@ -2,12 +2,14 @@
 
 #include "../wsclean/logger.h"
 
-#include "../units/imagecoordinates.h"
+#include <aocommon/imagecoordinates.h>
 
 #include "../fftresampler.h"
 
 #include <algorithm>
 #include <limits>
+
+using namespace aocommon;
 
 FitsATermBase::FitsATermBase(size_t nAntenna, const CoordinateSystem& coordinateSystem) :
 	_cache(nAntenna * 4 * coordinateSystem.width * coordinateSystem.height),
@@ -131,7 +133,7 @@ void FitsATermBase::storeInCache(double frequency, const std::complex<float>* bu
 	_cache.Store(frequency, buffer);
 }
 
-void FitsATermBase::readAndResample(FitsReader& reader, size_t fileIndex, ao::uvector<double>& scratch, ao::uvector<double>& output)
+void FitsATermBase::readAndResample(FitsReader& reader, size_t fileIndex, aocommon::UVector<double>& scratch, aocommon::UVector<double>& output)
 {
 	if(_resampler == nullptr)
 	{

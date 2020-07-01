@@ -30,7 +30,7 @@ WSMSGridder::WSMSGridder(size_t threadCount, double memFraction, double absMemLi
 
 void WSMSGridder::countSamplesPerLayer(MSData& msData)
 {
-	ao::uvector<size_t> sampleCount(ActualWGridSize(), 0);
+	aocommon::UVector<size_t> sampleCount(ActualWGridSize(), 0);
 	size_t total = 0;
 	msData.matchingRows = 0;
 	msData.msProvider->Reset();
@@ -110,9 +110,9 @@ void WSMSGridder::gridMeasurementSet(MSData &msData)
 {
 	const MultiBandData selectedBand(msData.SelectedBand());
 	_gridder->PrepareBand(selectedBand);
-	ao::uvector<std::complex<float>> modelBuffer(selectedBand.MaxChannels());
-	ao::uvector<float> weightBuffer(selectedBand.MaxChannels());
-	ao::uvector<bool> isSelected(selectedBand.MaxChannels());
+	aocommon::UVector<std::complex<float>> modelBuffer(selectedBand.MaxChannels());
+	aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels());
+	aocommon::UVector<bool> isSelected(selectedBand.MaxChannels());
 	
 	// Samples of the same w-layer are collected in a buffer
 	// before they are written into the lane. This is done because writing
@@ -128,7 +128,7 @@ void WSMSGridder::gridMeasurementSet(MSData &msData)
 	}
 	
 	InversionRow newItem;
-	ao::uvector<std::complex<float>> newItemData(selectedBand.MaxChannels());
+	aocommon::UVector<std::complex<float>> newItemData(selectedBand.MaxChannels());
 	newItem.data = newItemData.data();
 			
 	size_t rowsRead = 0;
@@ -206,7 +206,7 @@ void WSMSGridder::finishInversionWorkThreads()
 	_inversionCPULanes.clear();
 }
 
-void WSMSGridder::workThreadPerSample(ao::lane<InversionWorkSample>* workLane)
+void WSMSGridder::workThreadPerSample(aocommon::Lane<InversionWorkSample>* workLane)
 {
 	size_t bufferSize = std::max<size_t>(8u, workLane->capacity()/8);
 	bufferSize = std::min<size_t>(128,std::min(bufferSize, workLane->capacity()));
@@ -226,7 +226,7 @@ void WSMSGridder::predictMeasurementSet(MSData &msData)
 	
 	size_t rowsProcessed = 0;
 	
-	ao::lane<PredictionWorkItem>
+	aocommon::Lane<PredictionWorkItem>
 		calcLane(_laneBufferSize+_cpuCount),
 		writeLane(_laneBufferSize);
 	set_lane_debug_name(calcLane, "Prediction calculation lane (buffered) containing full row data");
@@ -287,7 +287,7 @@ void WSMSGridder::predictMeasurementSet(MSData &msData)
 	writeThread.join();
 }
 
-void WSMSGridder::predictCalcThread(ao::lane<PredictionWorkItem>* inputLane, ao::lane<PredictionWorkItem>* outputLane)
+void WSMSGridder::predictCalcThread(aocommon::Lane<PredictionWorkItem>* inputLane, aocommon::Lane<PredictionWorkItem>* outputLane)
 {
 	lane_write_buffer<PredictionWorkItem> writeBuffer(outputLane, _laneBufferSize);
 	
@@ -300,7 +300,7 @@ void WSMSGridder::predictCalcThread(ao::lane<PredictionWorkItem>* inputLane, ao:
 	}
 }
 
-void WSMSGridder::predictWriteThread(ao::lane<PredictionWorkItem>* predictionWorkLane, const MSData* msData)
+void WSMSGridder::predictWriteThread(aocommon::Lane<PredictionWorkItem>* predictionWorkLane, const MSData* msData)
 {
 	lane_read_buffer<PredictionWorkItem> buffer(predictionWorkLane, std::min(_laneBufferSize, predictionWorkLane->capacity()));
 	PredictionWorkItem workItem;

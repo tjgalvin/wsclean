@@ -1,6 +1,7 @@
 #include "dftpredictionalgorithm.h"
-#include "units/imagecoordinates.h"
-#include "matrix2x2.h"
+#include <aocommon/imagecoordinates.h>
+
+#include <aocommon/matrix2x2.h>
 #include "model/model.h"
 #include "progressbar.h"
 
@@ -135,10 +136,10 @@ void DFTPredictionImage::FindComponents(DFTPredictionInput& destination, double 
 				_images[2][index] != 0.0 || _images[3][index] != 0.0)
 			{
 				double l, m;
-				ImageCoordinates::XYToLM(x, y, pixelSizeX, pixelSizeY, _width, _height, l, m);
+				aocommon::ImageCoordinates::XYToLM(x, y, pixelSizeX, pixelSizeY, _width, _height, l, m);
 				l += dl; m += dm;
 				double ra, dec;
-				ImageCoordinates::LMToRaDec(l, m, phaseCentreRA, phaseCentreDec, ra, dec);
+				aocommon::ImageCoordinates::LMToRaDec(l, m, phaseCentreRA, phaseCentreDec, ra, dec);
 				double stokes[4] = { _images[0][index], _images[1][index],
 					_images[2][index], _images[3][index] };
 				std::complex<double> linear[4];
@@ -230,7 +231,7 @@ void DFTPredictionInput::InitializeFromModel(const Model& model, long double pha
 		{
 			long double l, m;
 			DFTPredictionComponent& component = AddComponent();
-			ImageCoordinates::RaDecToLM(comp.PosRA(), comp.PosDec(), phaseCentreRA, phaseCentreDec, l, m);
+			aocommon::ImageCoordinates::RaDecToLM(comp.PosRA(), comp.PosDec(), phaseCentreRA, phaseCentreDec, l, m);
 			component.SetPosition(comp.PosRA(), comp.PosDec(), l, m);
 			if(comp.Type() == ModelComponent::GaussianSource)
 			{

@@ -90,7 +90,7 @@ void MoreSane::ExecuteMajorIteration(double* dataImage, double* modelImage, cons
 	
 }
 
-double MoreSane::ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage, const ao::uvector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold)
+double MoreSane::ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage, const aocommon::UVector<const double*>& psfImages, size_t width, size_t height, bool& reachedMajorThreshold)
 {
 	for(size_t i=0; i!=dataImage.size(); ++i)
 	{

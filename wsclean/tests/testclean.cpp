@@ -2,7 +2,7 @@
 
 #include "../deconvolution/simpleclean.h"
 
-#include "../uvector.h"
+#include <aocommon/uvector.h>
 
 #include <random>
 
@@ -14,7 +14,7 @@ const size_t nRepeats = 3; /* This should be set to 100 to assert the performanc
 struct CleanTestFixture
 {
 	size_t x, y;
-	ao::uvector<double> img;
+	aocommon::UVector<double> img;
 
 	CleanTestFixture() :
 		x(size_t(-1)), y(size_t(-1)),
@@ -43,7 +43,7 @@ struct NoiseFixture
 	}
 	
 	size_t n;
-	ao::uvector<double> psf, img;
+	aocommon::UVector<double> psf, img;
 	std::mt19937 mt;
 	std::normal_distribution<double> normal_dist;
 };

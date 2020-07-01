@@ -4,7 +4,8 @@
 #include "imageset.h"
 
 #include "../image.h"
-#include "../uvector.h"
+
+#include <aocommon/uvector.h>
 
 #include <vector>
 
@@ -120,19 +121,19 @@ private:
 	 * component, such that _positions[i] corresponds with the values
 	 * starting at _values[i * _nFrequencies].
 	 */
-		ao::uvector<double> values;
-		ao::uvector<Position> positions;
+		aocommon::UVector<double> values;
+		aocommon::UVector<Position> positions;
 	};
 	
-	void write(const std::string& filename, const class DeconvolutionAlgorithm& algorithm, const ao::uvector<double>& scaleSizes, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec);
+	void write(const std::string& filename, const class DeconvolutionAlgorithm& algorithm, const aocommon::UVector<double>& scaleSizes, long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA, long double phaseCentreDec);
 	
 	void loadFromImageSet(ImageSet& imageSet, size_t scaleIndex);
   
 	void mergeDuplicates(size_t scaleIndex)
 	{
 		ScaleList& list = _listPerScale[scaleIndex];
-		ao::uvector<double> newValues;
-		ao::uvector<Position> newPositions;
+		aocommon::UVector<double> newValues;
+		aocommon::UVector<Position> newPositions;
 		
 		std::vector<Image> images(_nFrequencies);
 		for(Image& image : images)
