@@ -23,6 +23,7 @@ FitsATermBase::FitsATermBase(size_t nAntenna, const CoordinateSystem& coordinate
 	_phaseCentreDM(coordinateSystem.phaseCentreDM),
 	_allocatedWidth(coordinateSystem.maxSupport),
 	_allocatedHeight(coordinateSystem.maxSupport),
+	_downsample(true),
 	_window(WindowFunction::Rectangular),
 	_padding(1.0)
 {
@@ -141,13 +142,22 @@ void FitsATermBase::readAndResample(FitsReader& reader, size_t fileIndex, ao::uv
 			_resampler->SetWindowFunction(_window, true);
 	}
 	
-	reader.ReadIndex(output.data(), fileIndex);
-	
-	// First, the image is regridded on a smaller image that fits in the kernel support allocated for the aterms
-	regrid(reader, scratch.data(), output.data());
-	
-	// Now, the small image is enlarged so that it matches the kernel size
-	_resampler->Resample(scratch.data(), output.data());
+	if(_downsample)
+	{
+		reader.ReadIndex(output.data(), fileIndex);
+		
+		// First, the image is regridded on a smaller image that fits in the kernel support allocated for the aterms
+		regrid(reader, scratch.data(), output.data());
+		
+		// Now, the small image is enlarged so that it matches the kernel size
+		_resampler->Resample(scratch.data(), output.data());
+	}
+	else {
+		scratch.resize(reader.ImageWidth() * reader.ImageHeight());
+		reader.ReadIndex(scratch.data(), fileIndex);
+		
+		regrid(reader, output.data(), scratch.data());
+	}
 }
 
 void FitsATermBase::regrid(const FitsReader& reader, double* dest, const double* source)
@@ -157,10 +167,21 @@ void FitsATermBase::regrid(const FitsReader& reader, double* dest, const double*
 	double inPhaseCentreRA = reader.PhaseCentreRA(), inPhaseCentreDec = reader.PhaseCentreDec();
 	double inPhaseCentreDL = reader.PhaseCentreDL(), inPhaseCentreDM = reader.PhaseCentreDM();
 	
+	size_t outWidth, outHeight;
+	if(_downsample)
+	{
+		outWidth = _allocatedWidth;
+		outHeight = _allocatedHeight;
+	}
+	else {
+		outWidth = _width;
+		outHeight = _height;
+	}
+	
 	// The full size is regridded onto the 'Nyquist-sampled' image to remove high-frequency
 	// components. atermDL/DM are the pixelsizes of the Nyquist-sampled image.
-	double atermDL = _dl * _width / _allocatedWidth;
-	double atermDM = _dm * _height / _allocatedHeight;
+	double atermDL = _dl * _width / outWidth;
+	double atermDM = _dm * _height / outHeight;
 	/**
 	 * If phase centra of input and output are the same, i.e. they have the same
 	 * tangential plane, a few calculations can be saved.
@@ -168,12 +189,12 @@ void FitsATermBase::regrid(const FitsReader& reader, double* dest, const double*
 	bool samePlane = inPhaseCentreRA == _ra && inPhaseCentreDec == _dec;
 	
 	size_t index = 0;
-	for(size_t y=0; y!=_allocatedHeight; ++y)
+	for(size_t y=0; y!=outWidth; ++y)
 	{
-		for(size_t x=0; x!=_allocatedWidth; ++x)
+		for(size_t x=0; x!=outWidth; ++x)
 		{
 			double l, m;
-			ImageCoordinates::XYToLM(x, y, atermDL, atermDM, _allocatedWidth, _allocatedHeight, l, m);
+			ImageCoordinates::XYToLM(x, y, atermDL, atermDM, outWidth, outWidth, l, m);
 			l += _phaseCentreDL;
 			m += _phaseCentreDM;
 			if(!samePlane)

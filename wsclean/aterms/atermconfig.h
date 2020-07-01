@@ -45,12 +45,13 @@ public:
 				std::vector<std::string> tecFiles = reader.GetStringList(atermName + ".images");
 				std::unique_ptr<FitsATerm> f(new FitsATerm(_nAntenna, _coordinateSystem));
 				f->OpenTECFiles(tecFiles);
-				std::string windowStr = reader.GetStringOr(atermName + ".window", "rectangular");
+				std::string windowStr = reader.GetStringOr(atermName + ".window", "raised-hann");
 				WindowFunction::Type window = WindowFunction::GetType(windowStr);
 				if(window == WindowFunction::Tukey)
 					f->SetTukeyWindow(double(_settings.paddedImageWidth) / _settings.trimmedImageWidth);
 				else
 					f->SetWindow(window);
+				f->SetDownSample( reader.GetBoolOr(atermName + ".downsample", true) );
 				_aterms.emplace_back(std::move(f));
 			}
 			else if(atermType == "diagonal")
@@ -58,12 +59,13 @@ public:
 				std::vector<std::string> diagFiles = reader.GetStringList(atermName + ".images");
 				std::unique_ptr<FitsATerm> f(new FitsATerm(_nAntenna, _coordinateSystem));
 				f->OpenDiagGainFiles(diagFiles);
-				std::string windowStr = reader.GetStringOr(atermName + ".window", "rectangular");
+				std::string windowStr = reader.GetStringOr(atermName + ".window", "raised-hann");
 				WindowFunction::Type window = WindowFunction::GetType(windowStr);
 				if(window == WindowFunction::Tukey)
 					f->SetTukeyWindow(double(_settings.paddedImageWidth) / _settings.trimmedImageWidth);
 				else
 					f->SetWindow(window);
+				f->SetDownSample( reader.GetBoolOr(atermName + ".downsample", true) );
 				_aterms.emplace_back(std::move(f));
 			}
 			else if(atermType == "dldm")
@@ -72,12 +74,13 @@ public:
 				std::unique_ptr<DLDMATerm> f(new DLDMATerm(_nAntenna, _coordinateSystem));
 				f->Open(dldmFiles);
 				f->SetUpdateInterval( reader.GetDoubleOr("dldm.update_interval", 5.0*60.0) );
-				std::string windowStr = reader.GetStringOr(atermName + ".window", "rectangular");
+				std::string windowStr = reader.GetStringOr(atermName + ".window", "raised-hann");
 				WindowFunction::Type window = WindowFunction::GetType(windowStr);
 				if(window == WindowFunction::Tukey)
 					f->SetTukeyWindow(double(_settings.paddedImageWidth) / _settings.trimmedImageWidth);
 				else
 					f->SetWindow(window);
+				f->SetDownSample( reader.GetBoolOr(atermName + ".downsample", true) );
 				_aterms.emplace_back(std::move(f));
 			}
 			else if(atermType == "beam")
@@ -103,6 +106,7 @@ public:
 					}
 					case Telescope::VLA: {
 						beam.reset(new DishATerm(_ms, _coordinateSystem));
+						break;
 					}
 					default: {
 						// This is here to make sure ATermStub compiles. This call should be the
@@ -115,7 +119,7 @@ public:
 				beam->SetUpdateInterval(updateInterval);	
 				_aterms.emplace_back(std::move(beam));
 			}
-			_aterms.back()->SetSaveATerms(false);  // done by config after combining
+			_aterms.back()->SetSaveATerms(false, _settings.prefixName);  // done by config after combining
 		}
 		Logger::Debug << "Constructed an a-term configuration with " << _aterms.size() << " terms.\n";
 		if(_aterms.empty())

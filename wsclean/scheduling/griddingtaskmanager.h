@@ -26,21 +26,13 @@ public:
 	
 	virtual void Run(GriddingTask& task, std::function<void(GriddingResult&)> finishCallback);
 	
+	GriddingResult RunDirect(GriddingTask& task);
+	
 	virtual void Finish() { };
 	
 	//MSGridderBase* Gridder() { return _gridder.get(); }
 	
 	static std::unique_ptr<GriddingTaskManager> Make(const class WSCleanSettings& settings, bool useDirectScheduler = false);
-	GriddingResult RunDirect(GriddingTask& task)
-	{
-		if(!_gridder) {
-			_gridder = createGridder();
-			prepareGridder(*_gridder);
-		}
-	
-		return runDirect(task, *_gridder);
-	}
-	
 protected:
 	const class WSCleanSettings& _settings;
 	

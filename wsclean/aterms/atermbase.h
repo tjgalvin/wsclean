@@ -36,9 +36,10 @@ public:
 	 * every time they are calculated.
 	 * @param saveATerms Fits images are saved when set to true.
 	 */
-	void SetSaveATerms(bool saveATerms)
+	void SetSaveATerms(bool saveATerms, const std::string& prefix)
 	{
 		_saveATerms = saveATerms;
+		_prefix = prefix;
 	}
 	
 	struct CoordinateSystem
@@ -54,13 +55,14 @@ protected:
 		{
 			static int index = 0;
 			std::ostringstream f;
-			StoreATermsEigenvalues("aterm-ev" + std::to_string(index) + ".fits", buffer, nStations, width, height);
-			StoreATermsReal("aterm-realxx" + std::to_string(index) + ".fits", buffer, nStations, width, height);
+			StoreATermsEigenvalues(_prefix + "-aterm-ev" + std::to_string(index) + ".fits", buffer, nStations, width, height);
+			StoreATermsReal(_prefix + "-aterm-realxx" + std::to_string(index) + ".fits", buffer, nStations, width, height);
 			++index;
 		}
 	}
 	
 	bool _saveATerms;
+	std::string _prefix;
 };
 
 #endif

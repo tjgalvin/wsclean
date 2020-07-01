@@ -180,7 +180,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 		if(!_settings.atermConfigFilename.empty())
 		{
 			std::unique_ptr<ATermConfig> config(new ATermConfig(*ms, nr_stations, system, _settings));
-			config->SetSaveATerms(_settings.saveATerms);
+			config->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
 			config->Read(_settings.atermConfigFilename);
 			return std::move(config);
 		}
@@ -191,21 +191,21 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 				case Telescope::LOFAR: {
 					std::unique_ptr<LofarBeamTerm> beam(new LofarBeamTerm(*ms, system, _settings.dataColumnName));
 					beam->SetUseDifferentialBeam(_settings.useDifferentialLofarBeam);
-					beam->SetSaveATerms(_settings.saveATerms);
+					beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
 					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
 					return std::move(beam);
 				}
 				case Telescope::MWA: {
 					std::unique_ptr<MWABeamTerm> beam(new MWABeamTerm(*ms, system));
 					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
-					beam->SetSaveATerms(_settings.saveATerms);
+					beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
 					beam->SetSearchPath(_settings.mwaPath);
 					return std::move(beam);
 				}
 				case Telescope::VLA: {
 					std::unique_ptr<DishATerm> beam(new DishATerm(*ms, system));
 					beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
-					beam->SetSaveATerms(_settings.saveATerms);
+					beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
 					return std::move(beam);
 				}
 				default:

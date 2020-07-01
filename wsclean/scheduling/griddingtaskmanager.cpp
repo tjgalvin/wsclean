@@ -68,8 +68,23 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const
 
 void GriddingTaskManager::Run(GriddingTask& task, std::function<void (GriddingResult &)> finishCallback)
 {
+	if(!_gridder) {
+		_gridder = createGridder();
+		prepareGridder(*_gridder);
+	}
+
 	GriddingResult result = runDirect(task, *_gridder);
 	finishCallback(result);
+}
+
+GriddingResult GriddingTaskManager::RunDirect(GriddingTask& task)
+{
+	if(!_gridder) {
+		_gridder = createGridder();
+		prepareGridder(*_gridder);
+	}
+
+	return runDirect(task, *_gridder);
 }
 
 GriddingResult GriddingTaskManager::runDirect(GriddingTask& task, MSGridderBase& gridder)

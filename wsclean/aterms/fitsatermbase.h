@@ -27,6 +27,11 @@ public:
 		_window = window;
 	}
 	
+	void SetDownSample(bool downsample)
+	{
+		_downsample = downsample;
+	}
+	
 protected:
 	void initializeFromFiles(std::vector<FitsReader>& readers);
 	
@@ -63,6 +68,7 @@ private:
 	size_t _nFrequencies, _nAntenna, _width, _height;
 	double _ra, _dec, _dl, _dm, _phaseCentreDL, _phaseCentreDM;
 	size_t _allocatedWidth, _allocatedHeight;
+	bool _downsample;
 	WindowFunction::Type _window;
 	double _padding;
 	std::unique_ptr<class FFTResampler> _resampler;

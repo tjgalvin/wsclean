@@ -7,14 +7,18 @@
 class WindowFunction
 {
 public:
-	enum Type { Rectangular, BlackmanNutall, BlackmanHarris, Hann, Tukey };
+	enum Type { Rectangular, BlackmanNutall, BlackmanHarris, Hann, RaisedHann, Tukey, Gaussian };
 	
 	static Type GetType(const std::string& typeStr)
 	{
 		if(typeStr == "hann")
 			return Hann;
+		if(typeStr == "raised-hann")
+			return RaisedHann;
 		else if(typeStr == "blackman-nutall")
 			return BlackmanNutall;
+		else if(typeStr == "gaussian")
+			return Gaussian;
 		else if(typeStr == "blackman-harris")
 			return BlackmanHarris;
 		else if(typeStr == "rectangular")
@@ -34,6 +38,8 @@ public:
 			case BlackmanHarris: return EvaluateBlackmanHarris(n, i);
 			case Tukey: throw std::runtime_error("Tukey window requires parameter");
 			case Hann: return EvaluateHann(n, i);
+			case RaisedHann: return EvaluateRaisedHann(n, i);
+			case Gaussian: return EvaluateGaussian(n, i);
 		}
 		return 0.0;
 	}
@@ -68,6 +74,20 @@ public:
 	{
 		double s = std::sin(M_PI * double(i)/(double(n)));
 		return s*s;
+	}
+	
+	static double EvaluateRaisedHann(size_t n, size_t i)
+	{
+		double s = std::sin(M_PI * double(i)/(double(n)));
+		return s*s*0.99 + 1e-2;
+	}
+	
+	static double EvaluateGaussian(size_t n, size_t i)
+	{
+		/// e^(-x^2 / 2sigma^2), sigma = 1/5.
+		constexpr double oneOverSigma = 5.0;
+		double x = (double(i) / double(n) - 0.5) * oneOverSigma;
+		return std::exp(-x*x*0.5);
 	}
 };
 

@@ -75,4 +75,16 @@ BOOST_AUTO_TEST_CASE( invalid_value_type )
 	BOOST_CHECK_THROW(reader.GetBool("tec.type"), std::runtime_error);
 }
 
+BOOST_AUTO_TEST_CASE( multiple_backets )
+{
+	const char* testparset =
+		"files = [[ a b c ]]";
+	std::istringstream stream(testparset);
+	ParsetReader reader(stream);
+	
+	std::vector<std::string> v = reader.GetStringList("files");
+	std::vector<std::string> ref{"a", "b", "c"};
+	BOOST_CHECK_EQUAL_COLLECTIONS(v.begin(), v.end(), ref.begin(), ref.end());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
