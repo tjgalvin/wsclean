@@ -73,7 +73,7 @@ void ImageOperations::DetermineBeamSize(const WSCleanSettings& settings, double&
 	}
 }
 
-void ImageOperations::MakeMFSImage(const WSCleanSettings& settings, const std::vector<OutputChannelInfo>& infoPerChannel, OutputChannelInfo& mfsInfo, const string& suffix, size_t intervalIndex, PolarizationEnum pol, bool isImaginary, bool isPSF)
+void ImageOperations::MakeMFSImage(const WSCleanSettings& settings, const std::vector<OutputChannelInfo>& infoPerChannel, OutputChannelInfo& mfsInfo, const string& suffix, size_t intervalIndex, aocommon::PolarizationEnum pol, bool isImaginary, bool isPSF)
 {
 	double lowestFreq = 0.0, highestFreq = 0.0;
 	const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
@@ -148,7 +148,7 @@ void ImageOperations::MakeMFSImage(const WSCleanSettings& settings, const std::v
 	writer.Write(mfsName, mfsImage.data());
 }
 
-void ImageOperations::RenderMFSImage(const WSCleanSettings& settings, const OutputChannelInfo& mfsInfo, size_t intervalIndex, PolarizationEnum pol, bool isImaginary, bool isPBCorrected)
+void ImageOperations::RenderMFSImage(const WSCleanSettings& settings, const OutputChannelInfo& mfsInfo, size_t intervalIndex, aocommon::PolarizationEnum pol, bool isImaginary, bool isPBCorrected)
 {
 	const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
 	

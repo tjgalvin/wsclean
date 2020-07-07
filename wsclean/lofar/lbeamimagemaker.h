@@ -2,7 +2,7 @@
 #define BEAM_IMAGE_MAKER
 
 #include "../hmatrix4x4.h"
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/primarybeamimageset.h"
 

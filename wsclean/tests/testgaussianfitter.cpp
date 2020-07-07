@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE( fit_with_bad_initial_value )
 	long double beamMaj = 4*pixelScale, beamMin = 4*pixelScale, beamPA = 0.0;
 	long double estimatedBeamPx = 1.0; // this is on purpose way off
 	ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale);
-	renderer.Restore(restored.data(), width, height, model, beamMaj, beamMin, beamPA, 100e6, 200e6, Polarization::StokesI);
+	renderer.Restore(restored.data(), width, height, model, beamMaj, beamMin, beamPA, 100e6, 200e6, aocommon::Polarization::StokesI);
 	
 	GaussianFitter fitter;
 	double fitMajor, fitMinor, fitPA;
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE( fit_circular )
 	long double beamMaj = 4*pixelScale, beamMin = 4*pixelScale, beamPA = 0.0;
 	long double estimatedBeamPx = 1.0; // this is on purpose way off
 	ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale);
-	renderer.Restore(restored.data(), width, height, model, beamMaj, beamMin, beamPA, 100e6, 200e6, Polarization::StokesI);
+	renderer.Restore(restored.data(), width, height, model, beamMaj, beamMin, beamPA, 100e6, 200e6, aocommon::Polarization::StokesI);
 	
 	GaussianFitter fitter;
 	double fitMajor = estimatedBeamPx;
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE( fit_small_beam )
 	long double beamMaj = 4*pixelScale, beamMin = 0.5*pixelScale, beamPA = 0.0;
 	long double estimatedBeamPx = 1.0; // this is on purpose way off
 	ModelRenderer renderer(0.0, 0.0, pixelScale, pixelScale);
-	renderer.Restore(restored.data(), width, height, model, beamMaj, beamMin, beamPA, 100e6, 200e6, Polarization::StokesI);
+	renderer.Restore(restored.data(), width, height, model, beamMaj, beamMin, beamPA, 100e6, 200e6, aocommon::Polarization::StokesI);
 	
 	GaussianFitter fitter;
 	double fitMajor = estimatedBeamPx, fitMinor = estimatedBeamPx, fitPA = 0.0;

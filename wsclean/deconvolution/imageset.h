@@ -101,7 +101,7 @@ public:
 	
 	void LoadAndAverage(class CachedImageSet& imageSet);
 	
-	void LoadAndAveragePSFs(class CachedImageSet& psfSet, std::vector<aocommon::UVector<double>>& psfImages, PolarizationEnum psfPolarization);
+	void LoadAndAveragePSFs(class CachedImageSet& psfSet, std::vector<aocommon::UVector<double>>& psfImages, aocommon::PolarizationEnum psfPolarization);
 	
 	void InterpolateAndStore(class CachedImageSet& imageSet, const class SpectralFitter& fitter);
 	
@@ -253,7 +253,7 @@ public:
 		return _squareJoinedChannels; 
 	}
 	
-	const std::set<PolarizationEnum>& LinkedPolarizations() const
+	const std::set<aocommon::PolarizationEnum>& LinkedPolarizations() const
 	{
 		return _linkedPolarizations;
 	}
@@ -354,7 +354,7 @@ private:
 	void initializePolFactor()
 	{
 		ImagingTable firstChannelGroup = _imagingTable.GetSquaredGroup(0);
-		std::set<PolarizationEnum> pols;
+		std::set<aocommon::PolarizationEnum> pols;
 		for(size_t i=0; i!=firstChannelGroup.EntryCount(); ++i)
 		{
 			if(_linkedPolarizations.empty()
@@ -363,10 +363,10 @@ private:
 				pols.insert(firstChannelGroup[i].polarization);
 			}
 		}
-		bool isDual = pols.size()==2 && Polarization::HasDualPolarization(pols);
+		bool isDual = pols.size()==2 && aocommon::Polarization::HasDualPolarization(pols);
 		bool isFull = pols.size()==4 && (
-			Polarization::HasFullLinearPolarization(pols) ||
-			Polarization::HasFullCircularPolarization(pols));
+			aocommon::Polarization::HasFullLinearPolarization(pols) ||
+			aocommon::Polarization::HasFullCircularPolarization(pols));
 		if(isDual || isFull)
 			_polarizationNormalizationFactor = 0.5;
 		else
@@ -436,7 +436,7 @@ private:
 	std::map<size_t, size_t> _tableIndexToImageIndex;
 	aocommon::UVector<size_t> _imageIndexToPSFIndex;
 	double _polarizationNormalizationFactor;
-	std::set<PolarizationEnum> _linkedPolarizations;
+	std::set<aocommon::PolarizationEnum> _linkedPolarizations;
 	const WSCleanSettings& _settings;
 };
 

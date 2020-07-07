@@ -164,19 +164,19 @@ void FitsWriter::writeHeaders(fitsfile *& fptr, const std::string& filename, con
 				double pol;
 				switch(_polarization)
 				{
-					case Polarization::StokesI: pol = 1.0; break;
-					case Polarization::StokesQ: pol = 2.0; break;
-					case Polarization::StokesU: pol = 3.0; break;
-					case Polarization::StokesV: pol = 4.0; break;
-					case Polarization::RR: pol = -1.0; break;
-					case Polarization::LL: pol = -2.0; break;
-					case Polarization::RL: pol = -3.0; break;
-					case Polarization::LR: pol = -4.0; break;
-					case Polarization::XX: pol = -5.0; break;
-					case Polarization::YY: pol = -6.0; break; //yup, this is really the right value
-					case Polarization::XY: pol = -7.0; break;
-					case Polarization::YX: pol = -8.0; break;
-					case Polarization::Instrumental:
+					case aocommon::Polarization::StokesI: pol = 1.0; break;
+					case aocommon::Polarization::StokesQ: pol = 2.0; break;
+					case aocommon::Polarization::StokesU: pol = 3.0; break;
+					case aocommon::Polarization::StokesV: pol = 4.0; break;
+					case aocommon::Polarization::RR: pol = -1.0; break;
+					case aocommon::Polarization::LL: pol = -2.0; break;
+					case aocommon::Polarization::RL: pol = -3.0; break;
+					case aocommon::Polarization::LR: pol = -4.0; break;
+					case aocommon::Polarization::XX: pol = -5.0; break;
+					case aocommon::Polarization::YY: pol = -6.0; break; //yup, this is really the right value
+					case aocommon::Polarization::XY: pol = -7.0; break;
+					case aocommon::Polarization::YX: pol = -8.0; break;
+					case aocommon::Polarization::Instrumental:
 						throw std::runtime_error("Incorrect polarization given to fits writer");
 				}
 				fits_write_key(fptr, TSTRING, ctypeDim, (void*) "STOKES", "", &status); checkStatus(status, filename);

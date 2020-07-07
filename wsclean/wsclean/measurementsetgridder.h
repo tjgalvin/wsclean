@@ -4,7 +4,7 @@
 #include "gridmodeenum.h"
 #include "observationinfo.h"
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../msselection.h"
 #include "../weightmode.h"
 #include "../image.h"
@@ -46,7 +46,7 @@ class MeasurementSetGridder
 			_smallInversion(false),
 			_wLimit(0.0),
 			_precalculatedWeightInfo(nullptr),
-			_polarization(Polarization::StokesI),
+			_polarization(aocommon::Polarization::StokesI),
 			_isComplex(false),
 			_weighting(WeightMode::UniformWeighted),
 			_verbose(false),
@@ -84,7 +84,7 @@ class MeasurementSetGridder
 		bool DoSubtractModel() const { return _doSubtractModel; }
 		bool AddToModel() const { return _addToModel; }
 		bool SmallInversion() const { return _smallInversion; }
-		PolarizationEnum Polarization() const { return _polarization; }
+		aocommon::PolarizationEnum Polarization() const { return _polarization; }
 		WeightMode Weighting() const { return _weighting; }
 		const class ImageWeights* GetImageWeights() const { return _precalculatedWeightInfo; }
 		bool IsComplex() const { return _isComplex; }
@@ -132,7 +132,7 @@ class MeasurementSetGridder
 		{
 			_doImagePSF = doImagePSF;
 		}
-		void SetPolarization(PolarizationEnum polarization)
+		void SetPolarization(aocommon::PolarizationEnum polarization)
 		{
 			_polarization = polarization;
 		}
@@ -247,7 +247,7 @@ class MeasurementSetGridder
 		bool _doImagePSF, _doSubtractModel, _addToModel, _smallInversion;
 		double _wLimit;
 		const class ImageWeights *_precalculatedWeightInfo;
-		PolarizationEnum _polarization;
+		aocommon::PolarizationEnum _polarization;
 		bool _isComplex;
 		WeightMode _weighting;
 		bool _verbose;

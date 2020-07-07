@@ -31,7 +31,7 @@ void GriddingTask::Unserialize(SerialIStream& stream)
 	stream
 		.Bool(imagePSF)
 		.Bool(subtractModel);
-	polarization = (PolarizationEnum) stream.UInt32();
+	polarization = (aocommon::PolarizationEnum) stream.UInt32();
 	stream
 		.Bool(verbose)
 		.Ptr(cache)

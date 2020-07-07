@@ -9,7 +9,7 @@
 #include "../wsclean/msgridderbase.h"
 
 #include "../imageweights.h"
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../msselection.h"
 
 #include "../msproviders/msdatadescription.h"

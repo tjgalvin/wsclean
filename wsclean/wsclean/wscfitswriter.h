@@ -8,7 +8,7 @@
 #include "wscleansettings.h"
 
 #include "../fitswriter.h"
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 
 #include <string>
 
@@ -29,7 +29,7 @@ public:
 	
 	WSCFitsWriter(
 		const ImagingTableEntry& entry,
-		PolarizationEnum polarization,
+		aocommon::PolarizationEnum polarization,
 		bool isImaginary,
 		const WSCleanSettings& settings,
 		const class Deconvolution& deconvolution,
@@ -55,6 +55,8 @@ public:
 	 */
 	static void Restore(const class WSCleanSettings& settings);
 	
+	static void RestoreList(const class WSCleanSettings& settings);
+	
 	static ObservationInfo ReadObservationInfo(class FitsReader& reader);
 	
 private:
@@ -67,7 +69,7 @@ private:
 	
 	void setDeconvolutionResultKeywords(size_t minorIterationNr, size_t majorIterationNr);
 	
-	void setChannelKeywords(const ImagingTableEntry& entry, PolarizationEnum polarization, const OutputChannelInfo& channelInfo);
+	void setChannelKeywords(const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization, const OutputChannelInfo& channelInfo);
 	
 	void copyWSCleanKeywords(class FitsReader& reader);
 	

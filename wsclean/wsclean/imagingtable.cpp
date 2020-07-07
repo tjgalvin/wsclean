@@ -9,7 +9,7 @@ ImagingTableEntry::ImagingTableEntry() :
 	bandStartFrequency(0.0),
 	bandEndFrequency(0.0),
 	inputChannelCount(0),
-	polarization(Polarization::StokesI),
+	polarization(aocommon::Polarization::StokesI),
 	outputChannelIndex(0),
 	outputIntervalIndex(0),
 	msData(),
@@ -93,7 +93,7 @@ string ImagingTableEntry::ToString()
 	std::ostringstream str;
 	if(index < 10) str << ' ';
 	str << index << ' ';
-	std::string polStr = Polarization::TypeToShortString(polarization);
+	std::string polStr = aocommon::Polarization::TypeToShortString(polarization);
 	if(polStr.size() < 2) str << ' ';
 	str << polStr << "  ";
 	if(outputChannelIndex < 10) str << ' ';

@@ -359,7 +359,7 @@ void LBeamImageMaker::calculateStationWeights(const ImageWeights& imageWeights, 
 	
 	MultiBandData multiband(ms->spectralWindow(), ms->dataDescription());
 	size_t channelCount = selection.ChannelRangeEnd() - selection.ChannelRangeStart();
-	size_t polarizationCount = (msProvider.Polarization() == Polarization::Instrumental) ? 4 : 1;
+	size_t polarizationCount = (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4 : 1;
 	aocommon::UVector<float> weightArr(channelCount * polarizationCount);
 	
 	while(msProvider.CurrentRowAvailable())

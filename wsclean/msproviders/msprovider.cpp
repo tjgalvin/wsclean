@@ -8,14 +8,14 @@
 
 #include "../msselection.h"
 
-void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t endChannel, const std::vector<PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, PolarizationEnum polOut)
+void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t endChannel, const std::vector<aocommon::PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, aocommon::PolarizationEnum polOut)
 {
 	const size_t polCount = polsIn.size();
 	casacore::Array<std::complex<float> >::const_contiter inPtr = data.cbegin() + startChannel * polCount;
 	const size_t selectedChannelCount = endChannel - startChannel;
 	
 	size_t polIndex;
-	if(polOut == Polarization::Instrumental)
+	if(polOut == aocommon::Polarization::Instrumental)
 	{
 		if(polsIn.size() != 4)
 			throw std::runtime_error("This mode requires the four polarizations to be present in the measurement set");
@@ -28,7 +28,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 			inPtr++;
 		}
 	}
-	else if(Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
+	else if(aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
 		inPtr += polIndex;
 		for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 		{
@@ -43,14 +43,14 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 		// Copy the right visibilities with conversion if necessary.
 		switch(polOut)
 		{
-		case Polarization::StokesI: {
+		case aocommon::Polarization::StokesI: {
 			size_t polIndexA=0, polIndexB=0;
-			bool hasXX = Polarization::TypeToIndex(Polarization::XX, polsIn, polIndexA);
-			bool hasYY = Polarization::TypeToIndex(Polarization::YY, polsIn, polIndexB);
+			bool hasXX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XX, polsIn, polIndexA);
+			bool hasYY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YY, polsIn, polIndexB);
 			if(!hasXX || !hasYY)
 			{
-				bool hasRR = Polarization::TypeToIndex(Polarization::RR, polsIn, polIndexA);
-				bool hasLL = Polarization::TypeToIndex(Polarization::LL, polsIn, polIndexB);
+				bool hasRR = aocommon::Polarization::TypeToIndex(aocommon::Polarization::RR, polsIn, polIndexA);
+				bool hasLL = aocommon::Polarization::TypeToIndex(aocommon::Polarization::LL, polsIn, polIndexB);
 				if(!hasRR || !hasLL)
 					throw std::runtime_error("Can not form requested polarization (Stokes I) from available polarizations");
 			}
@@ -72,10 +72,10 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 				inPtr += polCount - polIndexB;
 			}
 		} break;
-		case Polarization::StokesQ: {
+		case aocommon::Polarization::StokesQ: {
 			size_t polIndexA=0, polIndexB=0;
-			bool hasXX = Polarization::TypeToIndex(Polarization::XX, polsIn, polIndexA);
-			bool hasYY = Polarization::TypeToIndex(Polarization::YY, polsIn, polIndexB);
+			bool hasXX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XX, polsIn, polIndexA);
+			bool hasYY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YY, polsIn, polIndexB);
 			if(hasXX && hasYY)
 			{
 				// Convert to StokesQ from XX and YY
@@ -98,8 +98,8 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 			}
 			else {
 				// Convert to StokesQ from RR and LL
-				bool hasRL = Polarization::TypeToIndex(Polarization::RL, polsIn, polIndexA);
-				bool hasLR = Polarization::TypeToIndex(Polarization::LR, polsIn, polIndexB);
+				bool hasRL = aocommon::Polarization::TypeToIndex(aocommon::Polarization::RL, polsIn, polIndexA);
+				bool hasLR = aocommon::Polarization::TypeToIndex(aocommon::Polarization::LR, polsIn, polIndexB);
 				if(!hasRL || !hasLR)
 					throw std::runtime_error("Can not form requested polarization (Stokes Q) from available polarizations");
 				for(size_t ch=0; ch!=selectedChannelCount; ++ch)
@@ -120,10 +120,10 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 				}
 			}
 		} break;
-		case Polarization::StokesU: {
+		case aocommon::Polarization::StokesU: {
 			size_t polIndexA=0, polIndexB=0;
-			bool hasXY = Polarization::TypeToIndex(Polarization::XY, polsIn, polIndexA);
-			bool hasYX = Polarization::TypeToIndex(Polarization::YX, polsIn, polIndexB);
+			bool hasXY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XY, polsIn, polIndexA);
+			bool hasYX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YX, polsIn, polIndexB);
 			if(hasXY && hasYX)
 			{
 				// Convert to StokesU from XY and YX
@@ -146,8 +146,8 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 			}
 			else {
 				// Convert to StokesU from RR and LL
-				bool hasRL = Polarization::TypeToIndex(Polarization::RL, polsIn, polIndexA);
-				bool hasLR = Polarization::TypeToIndex(Polarization::LR, polsIn, polIndexB);
+				bool hasRL = aocommon::Polarization::TypeToIndex(aocommon::Polarization::RL, polsIn, polIndexA);
+				bool hasLR = aocommon::Polarization::TypeToIndex(aocommon::Polarization::LR, polsIn, polIndexB);
 				if(!hasRL || !hasLR)
 					throw std::runtime_error("Can not form requested polarization (Stokes U) from available polarizations");
 				for(size_t ch=0; ch!=selectedChannelCount; ++ch)
@@ -169,10 +169,10 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 				}
 			}
 		} break;
-		case Polarization::StokesV: {
+		case aocommon::Polarization::StokesV: {
 			size_t polIndexA=0, polIndexB=0;
-			bool hasXY = Polarization::TypeToIndex(Polarization::XY, polsIn, polIndexA);
-			bool hasYX = Polarization::TypeToIndex(Polarization::YX, polsIn, polIndexB);
+			bool hasXY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XY, polsIn, polIndexA);
+			bool hasYX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YX, polsIn, polIndexB);
 			if(hasXY && hasYX)
 			{
 				// Convert to StokesV from XX and YY
@@ -196,8 +196,8 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 			}
 			else {
 				// Convert to StokesV from RR and LL
-				bool hasRL = Polarization::TypeToIndex(Polarization::RR, polsIn, polIndexA);
-				bool hasLR = Polarization::TypeToIndex(Polarization::LL, polsIn, polIndexB);
+				bool hasRL = aocommon::Polarization::TypeToIndex(aocommon::Polarization::RR, polsIn, polIndexA);
+				bool hasLR = aocommon::Polarization::TypeToIndex(aocommon::Polarization::LL, polsIn, polIndexB);
 				if(!hasRL || !hasLR)
 					throw std::runtime_error("Can not form requested polarization (Stokes V) from available polarizations");
 				for(size_t ch=0; ch!=selectedChannelCount; ++ch)
@@ -225,7 +225,7 @@ void MSProvider::copyData(std::complex<float>* dest, size_t startChannel, size_t
 }
 
 template<typename NumType>
-void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChannel, const std::vector<PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, const casacore::Array<float>& weights, const casacore::Array<bool>& flags, PolarizationEnum polOut)
+void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChannel, const std::vector<aocommon::PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, const casacore::Array<float>& weights, const casacore::Array<bool>& flags, aocommon::PolarizationEnum polOut)
 {
 	const size_t polCount = polsIn.size();
 	casacore::Array<std::complex<float> >::const_contiter inPtr = data.cbegin() + startChannel * polCount;
@@ -234,7 +234,7 @@ void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChann
 	const size_t selectedChannelCount = endChannel - startChannel;
 	
 	size_t polIndex;
-	if(polOut == Polarization::Instrumental)
+	if(polOut == aocommon::Polarization::Instrumental)
 	{
 		for(size_t ch=0; ch!=selectedChannelCount * polsIn.size(); ++ch)
 		{
@@ -249,7 +249,7 @@ void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChann
 			flagPtr++;
 		}
 	}
-	else if(Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
+	else if(aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
 		inPtr += polIndex;
 		weightPtr += polIndex;
 		flagPtr += polIndex;
@@ -267,39 +267,39 @@ void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChann
 	else {
 		size_t polIndexA=0, polIndexB=0;
 		switch(polOut) {
-			case Polarization::StokesI: {
-				bool hasXY = Polarization::TypeToIndex(Polarization::XX, polsIn, polIndexA);
-				bool hasYX = Polarization::TypeToIndex(Polarization::YY, polsIn, polIndexB);
+			case aocommon::Polarization::StokesI: {
+				bool hasXY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XX, polsIn, polIndexA);
+				bool hasYX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YY, polsIn, polIndexB);
 				if(!hasXY || !hasYX) {
-					Polarization::TypeToIndex(Polarization::RR, polsIn, polIndexA);
-					Polarization::TypeToIndex(Polarization::LL, polsIn, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RR, polsIn, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LL, polsIn, polIndexB);
 				}
 			}
 			break;
-			case Polarization::StokesQ: {
-				bool hasXX = Polarization::TypeToIndex(Polarization::XX, polsIn, polIndexA);
-				bool hasYY = Polarization::TypeToIndex(Polarization::YY, polsIn, polIndexB);
+			case aocommon::Polarization::StokesQ: {
+				bool hasXX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XX, polsIn, polIndexA);
+				bool hasYY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YY, polsIn, polIndexB);
 				if(!hasXX || !hasYY) {
-					Polarization::TypeToIndex(Polarization::RL, polsIn, polIndexA);
-					Polarization::TypeToIndex(Polarization::LR, polsIn, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RL, polsIn, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LR, polsIn, polIndexB);
 				}
 			}
 			break;
-			case Polarization::StokesU: {
-				bool hasXY = Polarization::TypeToIndex(Polarization::XY, polsIn, polIndexA);
-				bool hasYX = Polarization::TypeToIndex(Polarization::YX, polsIn, polIndexB);
+			case aocommon::Polarization::StokesU: {
+				bool hasXY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XY, polsIn, polIndexA);
+				bool hasYX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YX, polsIn, polIndexB);
 				if(!hasXY || !hasYX) {
-					Polarization::TypeToIndex(Polarization::RL, polsIn, polIndexA);
-					Polarization::TypeToIndex(Polarization::LR, polsIn, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RL, polsIn, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LR, polsIn, polIndexB);
 				}
 			}
 			break;
-			case Polarization::StokesV: {
-				bool hasXY = Polarization::TypeToIndex(Polarization::XY, polsIn, polIndexA);
-				bool hasYX = Polarization::TypeToIndex(Polarization::YX, polsIn, polIndexB);
+			case aocommon::Polarization::StokesV: {
+				bool hasXY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XY, polsIn, polIndexA);
+				bool hasYX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YX, polsIn, polIndexB);
 				if(!hasXY || !hasYX) {
-					Polarization::TypeToIndex(Polarization::RR, polsIn, polIndexA);
-					Polarization::TypeToIndex(Polarization::LL, polsIn, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RR, polsIn, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LL, polsIn, polIndexB);
 				}
 			}
 			break;
@@ -334,19 +334,19 @@ void MSProvider::copyWeights(NumType* dest, size_t startChannel, size_t endChann
 }
 
 template
-void MSProvider::copyWeights<float>(float* dest, size_t startChannel, size_t endChannel, const std::vector<PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, const casacore::Array<float>& weights, const casacore::Array<bool>& flags, PolarizationEnum polOut);
+void MSProvider::copyWeights<float>(float* dest, size_t startChannel, size_t endChannel, const std::vector<aocommon::PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, const casacore::Array<float>& weights, const casacore::Array<bool>& flags, aocommon::PolarizationEnum polOut);
 
 template
-void MSProvider::copyWeights<std::complex<float>>(std::complex<float>* dest, size_t startChannel, size_t endChannel, const std::vector<PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, const casacore::Array<float>& weights, const casacore::Array<bool>& flags, PolarizationEnum polOut);
+void MSProvider::copyWeights<std::complex<float>>(std::complex<float>* dest, size_t startChannel, size_t endChannel, const std::vector<aocommon::PolarizationEnum>& polsIn, const casacore::Array<std::complex<float>>& data, const casacore::Array<float>& weights, const casacore::Array<bool>& flags, aocommon::PolarizationEnum polOut);
 
-void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, size_t startChannel, size_t endChannel, const std::vector<PolarizationEnum> &polsDest, const std::complex<float>* source, PolarizationEnum polSource)
+void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, size_t startChannel, size_t endChannel, const std::vector<aocommon::PolarizationEnum> &polsDest, const std::complex<float>* source, aocommon::PolarizationEnum polSource)
 {
 	size_t polCount = polsDest.size();
 	const size_t selectedChannelCount = endChannel - startChannel;
 	casacore::Array<std::complex<float>>::contiter dataIter = dest.cbegin() + startChannel * polCount;
 	
 	size_t polIndex;
-	if(polSource == Polarization::Instrumental)
+	if(polSource == aocommon::Polarization::Instrumental)
 	{
 		for(size_t chp=0; chp!=selectedChannelCount * polsDest.size(); ++chp)
 		{
@@ -357,7 +357,7 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 			dataIter++;
 		}
 	}
-	else if(Polarization::TypeToIndex(polSource, polsDest, polIndex)) {
+	else if(aocommon::Polarization::TypeToIndex(polSource, polsDest, polIndex)) {
 		for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 		{
 			if(std::isfinite(source[ch].real()))
@@ -369,13 +369,13 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 	}
 	else {
 		switch(polSource) {
-			case Polarization::StokesI: {
+			case aocommon::Polarization::StokesI: {
 				size_t polIndexA=0, polIndexB=0;
-				bool hasXX = Polarization::TypeToIndex(Polarization::XX, polsDest, polIndexA);
-				bool hasYY = Polarization::TypeToIndex(Polarization::YY, polsDest, polIndexB);
+				bool hasXX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XX, polsDest, polIndexA);
+				bool hasYY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YY, polsDest, polIndexB);
 				if(!hasXX || !hasYY) {
-					Polarization::TypeToIndex(Polarization::RR, polsDest, polIndexA);
-					Polarization::TypeToIndex(Polarization::LL, polsDest, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RR, polsDest, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LL, polsDest, polIndexB);
 				}
 				for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 				{
@@ -388,10 +388,10 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 				}
 			}
 			break;
-			case Polarization::StokesQ: {
+			case aocommon::Polarization::StokesQ: {
 				size_t polIndexA=0, polIndexB=0;
-				bool hasXX = Polarization::TypeToIndex(Polarization::XX, polsDest, polIndexA);
-				bool hasYY = Polarization::TypeToIndex(Polarization::YY, polsDest, polIndexB);
+				bool hasXX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XX, polsDest, polIndexA);
+				bool hasYY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YY, polsDest, polIndexB);
 				if(hasXX && hasYY) {
 					// StokesQ to linear
 					for(size_t ch=0; ch!=selectedChannelCount; ++ch)
@@ -407,8 +407,8 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 				}
 				else {
 					// StokesQ to circular
-					Polarization::TypeToIndex(Polarization::RL, polsDest, polIndexA);
-					Polarization::TypeToIndex(Polarization::LR, polsDest, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RL, polsDest, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LR, polsDest, polIndexB);
 					for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 					{
 						if(std::isfinite(source[ch].real()))
@@ -421,10 +421,10 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 				}
 			}
 			break;
-			case Polarization::StokesU: {
+			case aocommon::Polarization::StokesU: {
 				size_t polIndexA=0, polIndexB=0;
-				bool hasXY = Polarization::TypeToIndex(Polarization::XY, polsDest, polIndexA);
-				bool hasYX = Polarization::TypeToIndex(Polarization::YX, polsDest, polIndexB);
+				bool hasXY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XY, polsDest, polIndexA);
+				bool hasYX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YX, polsDest, polIndexB);
 				if(hasXY && hasYX) {
 					// StokesU to linear
 					for(size_t ch=0; ch!=selectedChannelCount; ++ch)
@@ -439,8 +439,8 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 				}
 				else {
 					// StokesU to circular
-					Polarization::TypeToIndex(Polarization::RL, polsDest, polIndexA);
-					Polarization::TypeToIndex(Polarization::LR, polsDest, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RL, polsDest, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LR, polsDest, polIndexB);
 					for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 					{
 						if(std::isfinite(source[ch].real()))
@@ -456,10 +456,10 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 				}
 			}
 			break;
-			case Polarization::StokesV: {
+			case aocommon::Polarization::StokesV: {
 				size_t polIndexA=0, polIndexB=0;
-				bool hasXY = Polarization::TypeToIndex(Polarization::XY, polsDest, polIndexA);
-				bool hasYX = Polarization::TypeToIndex(Polarization::YX, polsDest, polIndexB);
+				bool hasXY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XY, polsDest, polIndexA);
+				bool hasYX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YX, polsDest, polIndexB);
 				if(hasXY && hasYX) {
 					// StokesV to linear
 					for(size_t ch=0; ch!=selectedChannelCount; ++ch)
@@ -477,8 +477,8 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 				}
 				else {
 					// StokesV to circular
-					Polarization::TypeToIndex(Polarization::RR, polsDest, polIndexA);
-					Polarization::TypeToIndex(Polarization::LL, polsDest, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RR, polsDest, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LL, polsDest, polIndexB);
 					for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 					{
 						if(std::isfinite(source[ch].real()))
@@ -499,18 +499,18 @@ void MSProvider::reverseCopyData(casacore::Array<std::complex<float>>& dest, siz
 	}
 }
 
-void MSProvider::reverseCopyWeights(casacore::Array<float>& dest, size_t startChannel, size_t endChannel, const std::vector<PolarizationEnum> &polsDest, const float* source, PolarizationEnum polSource)
+void MSProvider::reverseCopyWeights(casacore::Array<float>& dest, size_t startChannel, size_t endChannel, const std::vector<aocommon::PolarizationEnum> &polsDest, const float* source, aocommon::PolarizationEnum polSource)
 {
 	size_t polCount = polsDest.size();
 	const size_t selectedChannelCount = endChannel - startChannel;
 	casacore::Array<float>::contiter dataIter = dest.cbegin() + startChannel * polCount;
 	
 	size_t polIndex;
-	if(polSource == Polarization::Instrumental)
+	if(polSource == aocommon::Polarization::Instrumental)
 	{
 		std::copy(source, source+selectedChannelCount * polsDest.size(), dataIter);
 	}
-	else if(Polarization::TypeToIndex(polSource, polsDest, polIndex)) {
+	else if(aocommon::Polarization::TypeToIndex(polSource, polsDest, polIndex)) {
 		for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 		{
 			*(dataIter+polIndex) = source[ch];
@@ -519,13 +519,13 @@ void MSProvider::reverseCopyWeights(casacore::Array<float>& dest, size_t startCh
 	}
 	else {
 		switch(polSource) {
-			case Polarization::StokesI: {
+			case aocommon::Polarization::StokesI: {
 				size_t polIndexA=0, polIndexB=0;
-				bool hasXX = Polarization::TypeToIndex(Polarization::XX, polsDest, polIndexA);
-				bool hasYY = Polarization::TypeToIndex(Polarization::YY, polsDest, polIndexB);
+				bool hasXX = aocommon::Polarization::TypeToIndex(aocommon::Polarization::XX, polsDest, polIndexA);
+				bool hasYY = aocommon::Polarization::TypeToIndex(aocommon::Polarization::YY, polsDest, polIndexB);
 				if(!hasXX || !hasYY) {
-					Polarization::TypeToIndex(Polarization::RR, polsDest, polIndexA);
-					Polarization::TypeToIndex(Polarization::LL, polsDest, polIndexB);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::RR, polsDest, polIndexA);
+					aocommon::Polarization::TypeToIndex(aocommon::Polarization::LL, polsDest, polIndexB);
 				}
 				for(size_t ch=0; ch!=selectedChannelCount; ++ch)
 				{
@@ -535,9 +535,9 @@ void MSProvider::reverseCopyWeights(casacore::Array<float>& dest, size_t startCh
 				}
 			}
 			break;
-			case Polarization::StokesQ:
-			case Polarization::StokesU:
-			case Polarization::StokesV:
+			case aocommon::Polarization::StokesQ:
+			case aocommon::Polarization::StokesU:
+			case aocommon::Polarization::StokesV:
 			default:
 				throw std::runtime_error("Can't store weights in measurement set for this combination of polarizations (not implemented or conversion not possible)");
 		}
@@ -704,14 +704,14 @@ casacore::ArrayColumn<float> MSProvider::initializeImagingWeightColumn(casacore:
 	}
 }
 
-std::vector<PolarizationEnum> MSProvider::GetMSPolarizations(casacore::MeasurementSet& ms)
+std::vector<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(casacore::MeasurementSet& ms)
 {
-	std::vector<PolarizationEnum> pols;
+	std::vector<aocommon::PolarizationEnum> pols;
 	casacore::MSPolarization polTable(ms.polarization());
 	casacore::ROArrayColumn<int> corrTypeColumn(polTable, casacore::MSPolarization::columnName(casacore::MSPolarizationEnums::CORR_TYPE));
 	casacore::Array<int> corrTypeVec(corrTypeColumn(0));
 	for(casacore::Array<int>::const_contiter p=corrTypeVec.cbegin(); p!=corrTypeVec.cend(); ++p)
-		pols.push_back(Polarization::AipsIndexToEnum(*p));
+		pols.push_back(aocommon::Polarization::AipsIndexToEnum(*p));
 	return pols;
 }
 

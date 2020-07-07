@@ -22,7 +22,7 @@ T ModelRenderer::gaus(T x, T sigma)
 }
 
 /** Restore a circular beam*/
-void ModelRenderer::Restore(double* imageData, size_t imageWidth, size_t imageHeight, const Model& model, long double beamSize, long double startFrequency, long double endFrequency, PolarizationEnum polarization)
+void ModelRenderer::Restore(double* imageData, size_t imageWidth, size_t imageHeight, const Model& model, long double beamSize, long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization)
 {
 	// Using the FWHM formula for a Gaussian:
 	long double sigma = beamSize / (2.0L * sqrtl(2.0L * logl(2.0L)));
@@ -175,7 +175,7 @@ void ModelRenderer::renderPointComponent(double* imageData, size_t imageWidth, s
 }
 
 /** Restore a model with an elliptical beam */
-void ModelRenderer::Restore(double* imageData, size_t imageWidth, size_t imageHeight, const Model& model, long double beamMaj, long double beamMin, long double beamPA, long double startFrequency, long double endFrequency, PolarizationEnum polarization)
+void ModelRenderer::Restore(double* imageData, size_t imageWidth, size_t imageHeight, const Model& model, long double beamMaj, long double beamMin, long double beamPA, long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization)
 {
 	aocommon::UVector<double> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
 	renderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model, startFrequency, endFrequency, polarization);
@@ -244,7 +244,7 @@ void ModelRenderer::Restore(double* imageData, const double* modelData, size_t i
 /**
 * Render without beam convolution, such that each point-source is one pixel.
 */
-void ModelRenderer::renderModel(double* imageData, size_t imageWidth, size_t imageHeight, const Model& model, long double startFrequency, long double endFrequency, PolarizationEnum polarization)
+void ModelRenderer::renderModel(double* imageData, size_t imageWidth, size_t imageHeight, const Model& model, long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization)
 {
 	for(Model::const_iterator src=model.begin(); src!=model.end(); ++src)
 	{

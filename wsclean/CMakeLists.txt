@@ -208,9 +208,7 @@ if(Boost_FOUND)
 		tests/testfluxdensity.cpp
 		tests/testgaussianfitter.cpp
 		tests/testimage.cpp
-		tests/testimagebufferallocator.cpp
 		tests/testimageset.cpp
-		tests/testmatrix2x2.cpp
 		tests/testparsetreader.cpp
 		tests/testpolynomialchannelfitter.cpp
 		tests/testpolynomialfitter.cpp

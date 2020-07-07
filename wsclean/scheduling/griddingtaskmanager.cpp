@@ -96,7 +96,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task, MSGridderBase&
 		gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
 	}
 	gridder.SetPolarization(task.polarization);
-	gridder.SetIsComplex(task.polarization == Polarization::XY || task.polarization == Polarization::YX);
+	gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY || task.polarization == aocommon::Polarization::YX);
 	gridder.SetVerbose(task.verbose);
 	if(task.cache)
 		gridder.SetMetaDataCache(std::move(task.cache));
@@ -112,7 +112,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task, MSGridderBase&
 	}
 	else {
 		gridder.SetAddToModel(task.addToModel);
-		if(task.polarization == Polarization::XY || task.polarization == Polarization::YX)
+		if(task.polarization == aocommon::Polarization::XY || task.polarization == aocommon::Polarization::YX)
 			gridder.Predict(std::move(task.modelImageReal), std::move(task.modelImageImaginary));
 		else
 			gridder.Predict(std::move(task.modelImageReal));

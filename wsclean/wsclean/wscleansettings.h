@@ -24,15 +24,18 @@ public:
 	void Validate() const;
 	
 	void Propogate() {
-		RecalculatePaddedDimensions();
-		doReorder = determineReorder();
-		dataColumnName = determineDataColumn();
+		if(mode == ImagingMode || mode == PredictMode)
+		{
+			RecalculatePaddedDimensions();
+			doReorder = determineReorder();
+			dataColumnName = determineDataColumn();
+		}
 	}
 	
 	void RecalculatePaddedDimensions();
 	
 	std::vector<std::string> filenames;
-	enum Mode { ImagingMode, PredictMode, RestoreMode } mode;
+	enum Mode { ImagingMode, PredictMode, RestoreMode, RestoreListMode } mode;
 	size_t paddedImageWidth, paddedImageHeight;
 	size_t trimmedImageWidth, trimmedImageHeight;
 	double imagePadding;
@@ -61,12 +64,12 @@ public:
 	size_t startChannel, endChannel;
 	size_t predictionChannels;
 	std::string dataColumnName;
-	std::set<PolarizationEnum> polarizations;
+	std::set<aocommon::PolarizationEnum> polarizations;
 	std::set<size_t> spectralWindows;
 	WeightMode weightMode;
 	std::string prefixName;
 	bool joinedPolarizationCleaning, joinedFrequencyCleaning;
-	std::set<PolarizationEnum> linkedPolarizations;
+	std::set<aocommon::PolarizationEnum> linkedPolarizations;
 	size_t parallelDeconvolutionMaxSize;
 	bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved, isDirtySaved, isFirstResidualSaved;
 	bool reusePsf, reuseDirty;
@@ -272,7 +275,7 @@ inline WSCleanSettings::WSCleanSettings() :
 	spectralFittingTerms(0),
 	deconvolutionChannelCount(0)
 {
-	polarizations.insert(Polarization::StokesI);
+	polarizations.insert(aocommon::Polarization::StokesI);
 }
 
 

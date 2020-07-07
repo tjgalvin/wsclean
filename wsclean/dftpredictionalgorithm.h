@@ -3,7 +3,7 @@
 
 #include "banddata.h"
 #include <aocommon/matrix2x2.h>
-#include "polarization.h"
+#include <aocommon/polarization.h>
 #include "image.h"
 
 #include <aocommon/uvector.h>
@@ -169,14 +169,14 @@ class DFTPredictionImage
 public:
 	DFTPredictionImage(size_t width, size_t height);
 	
-	void Add(PolarizationEnum polarization, const double* image);
-	void Add(PolarizationEnum polarization, const double* real, const double* imaginary);
+	void Add(aocommon::PolarizationEnum polarization, const double* image);
+	void Add(aocommon::PolarizationEnum polarization, const double* real, const double* imaginary);
 	
 	void FindComponents(DFTPredictionInput& destination, double phaseCentreRA, double phaseCentreDec, double pixelSizeX, double pixelSizeY, double dl, double dm, size_t channelCount);
 private:
 	size_t _width, _height;
 	Image _images[4];
-	std::vector<PolarizationEnum> _pols;
+	std::vector<aocommon::PolarizationEnum> _pols;
 };
 
 class DFTPredictionAlgorithm

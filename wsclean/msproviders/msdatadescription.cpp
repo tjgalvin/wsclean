@@ -34,7 +34,7 @@ std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(SerialIStream&
 {
 	std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
 	stream.Bool(mdd->_isPartitioned);
-	mdd->_polarization = (PolarizationEnum) stream.UInt16();
+	mdd->_polarization = (aocommon::PolarizationEnum) stream.UInt16();
 	stream.UInt32(mdd->_dataDescId);
 	mdd->_selection.Unserialize(stream);
 	stream

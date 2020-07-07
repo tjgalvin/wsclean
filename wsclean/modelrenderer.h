@@ -2,7 +2,7 @@
 #define MODELRENDERER_H
 
 #include <cstring>
-#include "polarization.h"
+#include <aocommon/polarization.h>
 
 class ModelRenderer
 {
@@ -15,12 +15,12 @@ class ModelRenderer
 		/**
 		 * Restore with circular beam
 		 */
-		void Restore(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double beamSize, long double startFrequency, long double endFrequency, PolarizationEnum polarization);
+		void Restore(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double beamSize, long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization);
 		
 		/**
 		 * Restore a model with an elliptical beam
 		 */
-		void Restore(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double beamMaj, long double beamMin, long double beamPA, long double startFrequency, long double endFrequency, PolarizationEnum polarization);
+		void Restore(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double beamMaj, long double beamMin, long double beamPA, long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization);
 		
 		/**
 		 * Restore elliptical beam using a FFT deconvolution
@@ -38,7 +38,7 @@ class ModelRenderer
 		/**
 		 * Render without beam convolution, such that each point-source is one pixel.
 		 */
-		void RenderModel(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double startFrequency, long double endFrequency, PolarizationEnum polarization)
+		void RenderModel(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization)
 		{
 			renderModel(imageData, imageWidth, imageHeight, model, startFrequency, endFrequency, polarization);
 		}
@@ -53,7 +53,7 @@ class ModelRenderer
 		
 		void renderGaussianComponent(double* imageData, size_t imageWidth, size_t imageHeight, long double posRA, long double posDec, long double gausMaj, long double gausMin, long double gausPA, long double flux);
 		
-		void renderModel(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double startFrequency, long double endFrequency, PolarizationEnum polarization);
+		void renderModel(double* imageData, size_t imageWidth, size_t imageHeight, const class Model& model, long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization);
 		
 		long double _phaseCentreRA;
 		long double _phaseCentreDec;

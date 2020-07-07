@@ -32,7 +32,7 @@ public:
 		AddMeasurement(fluxDensityJy, frequencyHz);
 	}
 	
-	MeasuredSED(long double fluxDensityJy, long double frequencyHz, long double spectralIndex, PolarizationEnum polarization = Polarization::StokesI)
+	MeasuredSED(long double fluxDensityJy, long double frequencyHz, long double spectralIndex, aocommon::PolarizationEnum polarization = aocommon::Polarization::StokesI)
 	{
 		AddMeasurement(fluxDensityJy, frequencyHz, spectralIndex, polarization);
 	}
@@ -139,10 +139,10 @@ public:
 		_measurements.insert(std::pair<long double, Measurement>(frequencyHz, measurement));
 	}
 	
-	void AddMeasurement(long double fluxDensityJy, long double frequencyHz, long double spectralIndex, PolarizationEnum polarization = Polarization::StokesI)
+	void AddMeasurement(long double fluxDensityJy, long double frequencyHz, long double spectralIndex, aocommon::PolarizationEnum polarization = aocommon::Polarization::StokesI)
 	{
 #ifdef EXTRA_ASSERTIONS
-		if(!Polarization::IsStokes(polarization))
+		if(!aocommon::Polarization::IsStokes(polarization))
 			throw std::runtime_error("Cannot store specified polarization in model");
 #endif
 		Measurement measurementA, measurementB;
@@ -211,7 +211,7 @@ public:
 		return SpectralEnergyDistribution::FluxAtFrequency(fluxA, freqA, fluxB, freqB, frequencyHz);
 	}
 	
-	long double IntegratedFlux(long double startFrequency, long double endFrequency, PolarizationEnum polarization) const
+	long double IntegratedFlux(long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization) const
 	{
 		if(startFrequency == endFrequency)
 			return FluxAtFrequency(startFrequency, polarization);
@@ -312,7 +312,7 @@ public:
 		return integratedSum / (endFrequency - startFrequency);
 	}
 	
-	long double AverageFlux(PolarizationEnum polarization) const
+	long double AverageFlux(aocommon::PolarizationEnum polarization) const
 	{
 		long double sum = 0.0;
 		size_t count = 0;
@@ -329,7 +329,7 @@ public:
 		return sum / (long double) count;
 	}
 	
-	long double AverageFlux(long double startFrequency, long double endFrequency, PolarizationEnum polarization) const
+	long double AverageFlux(long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization) const
 	{
 		if(startFrequency == endFrequency)
 			return FluxAtFrequency(startFrequency, polarization);
@@ -362,7 +362,7 @@ public:
 			return fluxSum / count;
 	}
 	
-	void FitPowerlaw(long double& factor, long double& exponent, PolarizationEnum polarization) const
+	void FitPowerlaw(long double& factor, long double& exponent, aocommon::PolarizationEnum polarization) const
 	{
 		long double sumxy = 0.0, sumx = 0.0, sumy = 0.0, sumxx = 0.0;
 		size_t n = 0;
@@ -423,7 +423,7 @@ public:
 		}
 	}
 	
-	void FitPowerlaw2ndOrder(long double& a, long double& b, long double& c, PolarizationEnum polarization) const
+	void FitPowerlaw2ndOrder(long double& a, long double& b, long double& c, aocommon::PolarizationEnum polarization) const
 	{
 		NonLinearPowerLawFitter fitter;
 		size_t n = 0;
@@ -444,7 +444,7 @@ public:
 	}
 	
 	
-	void FitLogPolynomial(aocommon::UVector<double>& terms, size_t nTerms, PolarizationEnum polarization, double referenceFrequencyHz = 1.0) const
+	void FitLogPolynomial(aocommon::UVector<double>& terms, size_t nTerms, aocommon::PolarizationEnum polarization, double referenceFrequencyHz = 1.0) const
 	{
 		NonLinearPowerLawFitter fitter;
 		size_t n = 0;
@@ -477,10 +477,10 @@ public:
 	{
 		for(FluxMap::const_iterator i=_measurements.begin(); i!=_measurements.end(); ++i)
 		{
-			if(std::isfinite(i->second.FluxDensity(Polarization::StokesI)) ||
-				std::isfinite(i->second.FluxDensity(Polarization::StokesQ)) ||
-				std::isfinite(i->second.FluxDensity(Polarization::StokesU)) ||
-				std::isfinite(i->second.FluxDensity(Polarization::StokesV)))
+			if(std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesI)) ||
+				std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesQ)) ||
+				std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesU)) ||
+				std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesV)))
 				return true;
 		}
 		return false;
@@ -491,10 +491,10 @@ public:
 		FluxMap::iterator i=_measurements.begin();
 		while(i!=_measurements.end())
 		{
-			if(!std::isfinite(i->second.FluxDensity(Polarization::StokesI)) ||
-				!std::isfinite(i->second.FluxDensity(Polarization::StokesQ)) ||
-				!std::isfinite(i->second.FluxDensity(Polarization::StokesU)) ||
-				!std::isfinite(i->second.FluxDensity(Polarization::StokesV)))
+			if(!std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesI)) ||
+				!std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesQ)) ||
+				!std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesU)) ||
+				!std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesV)))
 			{
 				_measurements.erase(i);
 				i = _measurements.begin();

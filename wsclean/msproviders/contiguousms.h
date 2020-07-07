@@ -16,7 +16,7 @@
 class ContiguousMS : public MSProvider
 {
 public:
-	ContiguousMS(const string& msPath, const std::string& dataColumnName, const MSSelection& selection, PolarizationEnum polOut, size_t dataDescIndex);
+	ContiguousMS(const string& msPath, const std::string& dataColumnName, const MSSelection& selection, aocommon::PolarizationEnum polOut, size_t dataDescIndex);
 	
 	ContiguousMS(const ContiguousMS&) = delete;
 	
@@ -59,7 +59,7 @@ public:
 	
 	void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) final override;
 	
-	PolarizationEnum Polarization() final override { return _polOut; }
+	aocommon::PolarizationEnum Polarization() final override { return _polOut; }
 	
 	size_t NChannels() override;
 	
@@ -79,9 +79,9 @@ private:
 	bool _isModelColumnPrepared;
 	size_t _startRow, _endRow;
 	std::vector<size_t> _idToMSRow;
-	std::vector<PolarizationEnum> _inputPolarizations;
+	std::vector<aocommon::PolarizationEnum> _inputPolarizations;
 	MSSelection _selection;
-	PolarizationEnum _polOut;
+	aocommon::PolarizationEnum _polOut;
 	std::string _msPath;
 	SynchronizedMS _ms;
 	MultiBandData _bandData;

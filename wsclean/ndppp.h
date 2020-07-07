@@ -161,10 +161,10 @@ public:
 						throw std::runtime_error("Can only save single-measurement sky models in BBS sky models");
 					refFreq = sed.ReferenceFrequencyHz();
 					double
-						i = sed.FluxAtFrequency(refFreq, Polarization::StokesI),
-						q = sed.FluxAtFrequency(refFreq, Polarization::StokesQ),
-						u = sed.FluxAtFrequency(refFreq, Polarization::StokesU),
-						v = sed.FluxAtFrequency(refFreq, Polarization::StokesV);
+						i = sed.FluxAtFrequency(refFreq, aocommon::Polarization::StokesI),
+						q = sed.FluxAtFrequency(refFreq, aocommon::Polarization::StokesQ),
+						u = sed.FluxAtFrequency(refFreq, aocommon::Polarization::StokesU),
+						v = sed.FluxAtFrequency(refFreq, aocommon::Polarization::StokesV);
 					file << i << ", " << q << ", " << u << ", " << v << ", [], false, ";
 				}
 				else {

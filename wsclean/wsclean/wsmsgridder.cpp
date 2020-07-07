@@ -320,7 +320,7 @@ void WSMSGridder::Invert()
 	if(HasDenormalPhaseCentre())
 		_gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
 	_gridder->SetIsComplex(IsComplex());
-	//_imager->SetImageConjugatePart(Polarization() == Polarization::YX && IsComplex());
+	//_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX && IsComplex());
 	_gridder->PrepareWLayers(ActualWGridSize(), double(_memSize)*(6.0/10.0), _minW, _maxW);
 	
 	if(Verbose() && Logger::IsVerbose())
@@ -440,7 +440,7 @@ void WSMSGridder::Predict(Image real, Image imaginary)
 	if(HasDenormalPhaseCentre())
 		_gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
 	_gridder->SetIsComplex(IsComplex());
-	//_imager->SetImageConjugatePart(Polarization() == Polarization::YX && IsComplex());
+	//_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX && IsComplex());
 	_gridder->PrepareWLayers(ActualWGridSize(), double(_memSize)*(6.0/10.0), _minW, _maxW);
 	
 	if(Verbose())

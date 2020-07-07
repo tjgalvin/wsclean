@@ -288,7 +288,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData, Meta
 		msData.integrationTime = cacheEntry.integrationTime;
 	}
 	else {
-		if (msProvider.Polarization() == Polarization::Instrumental)
+		if (msProvider.Polarization() == aocommon::Polarization::Instrumental)
 			calculateWLimits<4>(msData);
 		else
 			calculateWLimits<1>(msData);

@@ -3,7 +3,7 @@
 
 #include "paralleldeconvolution.h"
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 
 #include <aocommon/uvector.h>
 
@@ -17,7 +17,7 @@ public:
 	
 	void Perform(const class ImagingTable& groupTable, bool& reachedMajorThreshold, size_t majorIterationNr);
 	
-	void InitializeDeconvolutionAlgorithm(const ImagingTable& groupTable, PolarizationEnum psfPolarization, double beamSize, size_t threadCount);
+	void InitializeDeconvolutionAlgorithm(const ImagingTable& groupTable, aocommon::PolarizationEnum psfPolarization, double beamSize, size_t threadCount);
 	
 	void InitializeImages(class CachedImageSet& residuals, CachedImageSet& models, CachedImageSet& psfs)
 	{
@@ -65,8 +65,8 @@ private:
 	
 	bool _autoMaskIsFinished;
 	aocommon::UVector<double> _channelFrequencies, _channelWeights;
-	std::set<PolarizationEnum> _polarizations;
-	PolarizationEnum _psfPolarization;
+	std::set<aocommon::PolarizationEnum> _polarizations;
+	aocommon::PolarizationEnum _psfPolarization;
 	size_t _imgWidth, _imgHeight;
 	CachedImageSet *_psfImages, *_modelImages, *_residualImages;
 	aocommon::UVector<bool> _autoMask;

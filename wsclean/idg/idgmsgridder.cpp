@@ -59,7 +59,7 @@ void IdgMsGridder::Invert()
 	// when Stokes Q/U/V is requested, the result of earlier gridding is returned.
 	// For the first inversion, WSClean will ask for the PSF of Stokes I. The next run
 	// is the dirty of Stokes I, which should thus overwrite all images.
-	if(Polarization() == Polarization::StokesI)
+	if(Polarization() == aocommon::Polarization::StokesI)
 	{
 		if (!_metaDataCache->averageBeam) _metaDataCache->averageBeam.reset(new AverageBeam());
 		_averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
@@ -287,7 +287,7 @@ void IdgMsGridder::Predict(Image image)
 
 	_options["padded_size"] = untrimmedWidth;
 
-	if (Polarization() == Polarization::StokesI)
+	if (Polarization() == aocommon::Polarization::StokesI)
 	{
 		_image.assign(4 * width * height, 0.0);
 		if (!_metaDataCache->averageBeam)
@@ -298,13 +298,13 @@ void IdgMsGridder::Predict(Image image)
 		_averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
 	}
 
-	size_t polIndex = Polarization::StokesToIndex(Polarization());
+	size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
 	for(size_t i=0; i != width * height; ++i)
 		_image[i + polIndex*width*height] = image[i];
 
 	// Stokes V is the last requested pol, unless only Stokes I is imaged. Only when the last
 	// polarization is given, do the actual prediction.
-	if (Polarization() == Polarization::StokesV || (Polarization() == Polarization::StokesI && _settings.polarizations.size()==1))
+	if (Polarization() == aocommon::Polarization::StokesV || (Polarization() == aocommon::Polarization::StokesI && _settings.polarizations.size()==1))
 	{
 		// Do actual predict
 
@@ -488,7 +488,7 @@ void IdgMsGridder::Predict(Image /*real*/, Image /*imaginary*/)
 Image IdgMsGridder::ImageRealResult()
 {
 	const size_t width = TrimWidth(), height = TrimHeight();
-	size_t polIndex = Polarization::StokesToIndex(Polarization());
+	size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
 	Image image(height, width);
 	std::copy_n(_image.data()+polIndex*width*height, width*height, image.data());
 	return std::move(image);
@@ -509,8 +509,8 @@ void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry, ImageFilename& 
 	writer.SetImageDimensions(settings.trimmedImageWidth, settings.trimmedImageHeight, ra, dec, settings.pixelScaleX, settings.pixelScaleY);
 	writer.SetPhaseCentreShift(pdl, pdm);
 	ImageFilename polName(filename);
-	polName.SetPolarization(Polarization::StokesI);
-	writer.SetPolarization(Polarization::StokesI);
+	polName.SetPolarization(aocommon::Polarization::StokesI);
+	writer.SetPolarization(aocommon::Polarization::StokesI);
 	writer.SetFrequency(entry.CentralFrequency(), entry.bandEndFrequency - entry.bandStartFrequency);
 	writer.Write(polName.GetBeamPrefix(settings) + ".fits", cache.averageBeam->ScalarBeam()->data());
 }
@@ -518,7 +518,7 @@ void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry, ImageFilename& 
 void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer, const ImageFilename& filename, const std::string& filenameKind, const WSCleanSettings& settings)
 {
 	ImageFilename beamName(filename);
-	beamName.SetPolarization(Polarization::StokesI);
+	beamName.SetPolarization(aocommon::Polarization::StokesI);
 	FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");
 	
 	Image beam(reader.ImageWidth(), reader.ImageHeight());
@@ -527,7 +527,7 @@ void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer, const ImageFilename
 	Image image;
 	for(size_t polIndex = 0; polIndex != 4; ++polIndex)
 	{
-		PolarizationEnum pol = Polarization::IndexToStokes(polIndex);
+		aocommon::PolarizationEnum pol = aocommon::Polarization::IndexToStokes(polIndex);
 		ImageFilename name(filename);
 		name.SetPolarization(pol);
 		FitsReader reader(name.GetPrefix(settings) + "-" + filenameKind + ".fits");

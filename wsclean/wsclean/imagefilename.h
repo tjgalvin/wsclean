@@ -3,13 +3,13 @@
 
 #include "wscleansettings.h"
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 
 class ImageFilename
 {
 public:
 	ImageFilename() :
-		_polarization(Polarization::StokesI),
+		_polarization(aocommon::Polarization::StokesI),
 		_channelIndex(0),
 		_intervalIndex(0),
 		_isImaginary(false)
@@ -17,7 +17,7 @@ public:
 	}
 	
 	ImageFilename(size_t channelIndex, size_t intervalIndex) :
-		_polarization(Polarization::StokesI),
+		_polarization(aocommon::Polarization::StokesI),
 		_channelIndex(channelIndex),
 		_intervalIndex(intervalIndex),
 		_isImaginary(false)
@@ -39,7 +39,7 @@ public:
 		return GetBeamPrefix(settings, _polarization, _channelIndex, _intervalIndex, _isImaginary);
 	}
 	
-	void SetPolarization(PolarizationEnum p) { _polarization = p; }
+	void SetPolarization(aocommon::PolarizationEnum p) { _polarization = p; }
 	void SetIsImaginary(bool isImaginary) { _isImaginary = isImaginary; }
 	
 	static std::string GetPSFPrefix(const WSCleanSettings& settings, size_t channelIndex, size_t intervalIndex)
@@ -53,7 +53,7 @@ public:
 		return partPrefixNameStr.str();
 	}
 	
-	static std::string GetPrefix(const WSCleanSettings& settings, PolarizationEnum polarization, size_t channelIndex, size_t intervalIndex, bool isImaginary)
+	static std::string GetPrefix(const WSCleanSettings& settings, aocommon::PolarizationEnum polarization, size_t channelIndex, size_t intervalIndex, bool isImaginary)
 	{
 		std::ostringstream partPrefixNameStr;
 		partPrefixNameStr << settings.prefixName;
@@ -63,14 +63,14 @@ public:
 			partPrefixNameStr << '-' << fourDigitStr(channelIndex);
 		if(settings.polarizations.size() != 1)
 		{
-			partPrefixNameStr << '-' << Polarization::TypeToShortString(polarization);
+			partPrefixNameStr << '-' << aocommon::Polarization::TypeToShortString(polarization);
 			if(isImaginary)
 				partPrefixNameStr << 'i';
 		}
 		return partPrefixNameStr.str();
 	}
 	
-	static std::string GetBeamPrefix(const WSCleanSettings& settings, PolarizationEnum polarization, size_t channelIndex, size_t intervalIndex, bool isImaginary)
+	static std::string GetBeamPrefix(const WSCleanSettings& settings, aocommon::PolarizationEnum polarization, size_t channelIndex, size_t intervalIndex, bool isImaginary)
 	{
 		std::ostringstream partPrefixNameStr;
 		partPrefixNameStr << settings.prefixName;
@@ -78,13 +78,13 @@ public:
 			partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
 		if(settings.channelsOut != 1)
 			partPrefixNameStr << '-' << fourDigitStr(channelIndex);
-		partPrefixNameStr << "-beam-" << Polarization::TypeToShortString(polarization);
+		partPrefixNameStr << "-beam-" << aocommon::Polarization::TypeToShortString(polarization);
 		if(isImaginary)
 			partPrefixNameStr << 'i';
 		return partPrefixNameStr.str();
 	}
 	
-	static std::string GetMFSPrefix(const WSCleanSettings& settings, PolarizationEnum polarization, size_t intervalIndex, bool isImaginary, bool isPSF)
+	static std::string GetMFSPrefix(const WSCleanSettings& settings, aocommon::PolarizationEnum polarization, size_t intervalIndex, bool isImaginary, bool isPSF)
 	{
 		std::ostringstream partPrefixNameStr;
 		partPrefixNameStr << settings.prefixName;
@@ -94,7 +94,7 @@ public:
 			partPrefixNameStr << "-MFS";
 		if(settings.polarizations.size() != 1 && !isPSF)
 		{
-			partPrefixNameStr << '-' << Polarization::TypeToShortString(polarization);
+			partPrefixNameStr << '-' << aocommon::Polarization::TypeToShortString(polarization);
 			if(isImaginary)
 				partPrefixNameStr << 'i';
 		}
@@ -102,7 +102,7 @@ public:
 	}
 	
 private:
-	PolarizationEnum _polarization;
+	aocommon::PolarizationEnum _polarization;
 	size_t _channelIndex;
 	size_t _intervalIndex;
 	bool _isImaginary;

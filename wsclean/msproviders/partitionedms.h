@@ -3,7 +3,7 @@
 
 #include "msprovider.h"
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../msselection.h"
 
 #include <aocommon/uvector.h>
@@ -35,7 +35,7 @@ public:
 		}
 	};
 	
-	PartitionedMS(const Handle& handle, size_t partIndex, PolarizationEnum polarization, size_t bandIndex);
+	PartitionedMS(const Handle& handle, size_t partIndex, aocommon::PolarizationEnum polarization, size_t bandIndex);
 	
 	virtual ~PartitionedMS();
 	
@@ -79,7 +79,7 @@ public:
 	
 	void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override;
 	
-	PolarizationEnum Polarization() override { return _polarization; }
+	aocommon::PolarizationEnum Polarization() override { return _polarization; }
 
 	size_t NChannels() override { return _partHeader.channelCount; }
 	size_t NPolarizations() override { return _polarizationCountInFile; }
@@ -107,7 +107,7 @@ public:
 				const std::vector<ChannelRange>& channels,
 				bool initialModelRequired,
 				bool modelUpdateRequired,
-				const std::set<PolarizationEnum>& polarizations,
+				const std::set<aocommon::PolarizationEnum>& polarizations,
 				const MSSelection& selection,
 				size_t nAntennas) :
 			_msPath(msPath), _dataColumnName(dataColumnName), _temporaryDirectory(temporaryDirectory), _channels(channels), _initialModelRequired(initialModelRequired), _modelUpdateRequired(modelUpdateRequired),
@@ -118,7 +118,7 @@ public:
 			std::string _msPath, _dataColumnName, _temporaryDirectory;
 			std::vector<ChannelRange> _channels;
 			bool _initialModelRequired, _modelUpdateRequired;
-			std::set<PolarizationEnum> _polarizations;
+			std::set<aocommon::PolarizationEnum> _polarizations;
 			MSSelection _selection;
 			size_t _nAntennas;
 			bool _isCopy;
@@ -135,7 +135,7 @@ public:
 			const std::vector<ChannelRange>& channels,
 			bool initialModelRequired,
 			bool modelUpdateRequired,
-			const std::set<PolarizationEnum>& polarizations,
+			const std::set<aocommon::PolarizationEnum>& polarizations,
 			const MSSelection& selection,
 			size_t nAntennas) :
 		_data(new HandleData(msPath, dataColumnName, temporaryDirectory, channels, initialModelRequired, modelUpdateRequired, polarizations, selection, nAntennas))
@@ -157,7 +157,7 @@ private:
 	std::unique_ptr<std::ofstream> _modelDataFile;
 	std::unique_ptr<std::fstream> _imagingWeightsFile;
 	int _fd;
-	PolarizationEnum _polarization;
+	aocommon::PolarizationEnum _polarization;
 	size_t _polarizationCountInFile;
 	
 	struct MetaHeader
@@ -203,7 +203,7 @@ private:
 	} _partHeader;
 	
 	static std::string getFilenamePrefix(const std::string& msPath, const std::string& tempDir);
-	static std::string getPartPrefix(const std::string& msPath, size_t partIndex, PolarizationEnum pol, size_t dataDescId, const std::string& tempDir);
+	static std::string getPartPrefix(const std::string& msPath, size_t partIndex, aocommon::PolarizationEnum pol, size_t dataDescId, const std::string& tempDir);
 	static std::string getMetaFilename(const std::string& msPath, const std::string& tempDir, size_t dataDescId);
 };
 

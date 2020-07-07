@@ -5,7 +5,7 @@
 
 #include <cstring>
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 
 class Measurement
 {
@@ -66,13 +66,13 @@ class Measurement
 		
 		void SetFrequencyHz(long double frequencyHz) { _frequencyHz = frequencyHz; }
 		
-		long double FluxDensity(PolarizationEnum polarization) const
+		long double FluxDensity(aocommon::PolarizationEnum polarization) const
 		{
 #ifdef EXTRA_ASSERTIONS
-			if(!Polarization::IsStokes(polarization))
+			if(!aocommon::Polarization::IsStokes(polarization))
 				throw std::runtime_error("Cannot store specified polarization in model");
 #endif
-			return _fluxDensities[Polarization::StokesToIndex(polarization)];
+			return _fluxDensities[aocommon::Polarization::StokesToIndex(polarization)];
 		}
 		
 		long double FluxDensityFromIndex(size_t polarizationIndex) const
@@ -83,16 +83,16 @@ class Measurement
 		void SetFluxDensityFromIndex(size_t polarizationIndex, long double flux)
 		{ _fluxDensities[polarizationIndex] = flux; }
 		
-		void SetFluxDensity(PolarizationEnum polarization, long double flux)
-		{ _fluxDensities[Polarization::StokesToIndex(polarization)] = flux; }
+		void SetFluxDensity(aocommon::PolarizationEnum polarization, long double flux)
+		{ _fluxDensities[aocommon::Polarization::StokesToIndex(polarization)] = flux; }
 		
-		void SetZeroExceptSinglePol(PolarizationEnum polarization, long double flux)
+		void SetZeroExceptSinglePol(aocommon::PolarizationEnum polarization, long double flux)
 		{
 			_fluxDensities[0] = 0.0; _fluxDensities[1] = 0.0;
 			_fluxDensities[2] = 0.0; _fluxDensities[3] = 0.0;
-			_fluxDensities[Polarization::StokesToIndex(polarization)] = flux;
+			_fluxDensities[aocommon::Polarization::StokesToIndex(polarization)] = flux;
 #ifdef EXTRA_ASSERTIONS
-			if(!Polarization::IsStokes(polarization))
+			if(!aocommon::Polarization::IsStokes(polarization))
 				throw std::runtime_error("Cannot store specified polarization in model");
 #endif
 		}
@@ -102,11 +102,11 @@ class Measurement
 			_fluxDensityStddevs[polarizationIndex] = stddev;
 		}
 		
-		void SetFluxDensityStddev(PolarizationEnum polarization, long double stddev)
+		void SetFluxDensityStddev(aocommon::PolarizationEnum polarization, long double stddev)
 		{ 
-			_fluxDensityStddevs[Polarization::StokesToIndex(polarization)] = stddev;
+			_fluxDensityStddevs[aocommon::Polarization::StokesToIndex(polarization)] = stddev;
 #ifdef EXTRA_ASSERTIONS
-			if(!Polarization::IsStokes(polarization))
+			if(!aocommon::Polarization::IsStokes(polarization))
 				throw std::runtime_error("Cannot store specified polarization in model");
 #endif
 		}

@@ -49,8 +49,8 @@ class ModelSource
 		
 		bool operator<(const ModelSource &rhs) const
 		{
-			return TotalFlux(Polarization::StokesI)
-				< rhs.TotalFlux(Polarization::StokesI);
+			return TotalFlux(aocommon::Polarization::StokesI)
+				< rhs.TotalFlux(aocommon::Polarization::StokesI);
 		}
 		
 		void operator+=(const ModelComponent& rhs)
@@ -116,7 +116,7 @@ class ModelSource
 			_components.clear();
 		}
 		
-		double TotalFlux(double frequencyStartHz, double frequencyEndHz, PolarizationEnum polarization) const
+		double TotalFlux(double frequencyStartHz, double frequencyEndHz, aocommon::PolarizationEnum polarization) const
 		{
 			double flux = 0.0;
 			for(const_iterator i=begin(); i!=end(); ++i)
@@ -125,7 +125,7 @@ class ModelSource
 			return flux;
 		}
 		
-		double TotalFlux(double frequency, PolarizationEnum polarization) const
+		double TotalFlux(double frequency, aocommon::PolarizationEnum polarization) const
 		{
 			double flux = 0.0;
 			for(const_iterator i=begin(); i!=end(); ++i)
@@ -134,7 +134,7 @@ class ModelSource
 			return flux;
 		}
 		
-		double TotalFlux(PolarizationEnum polarization) const
+		double TotalFlux(aocommon::PolarizationEnum polarization) const
 		{
 			if(_components.empty())
 				return 0.0;
@@ -155,11 +155,11 @@ class ModelSource
 			double freq = (Peak().MSED().LowestFrequency() + Peak().MSED().HighestFrequency()) * 0.5;
 			for(iterator i=begin(); i!=end(); ++i)
 			{
-				totalFlux += TotalFlux(freq, Polarization::StokesI);
+				totalFlux += TotalFlux(freq, aocommon::Polarization::StokesI);
 			}
 			for(iterator i=begin(); i!=end(); ++i)
 			{
-				double thisFlux = i->SED().FluxAtFrequency(freq, Polarization::StokesI);
+				double thisFlux = i->SED().FluxAtFrequency(freq, aocommon::Polarization::StokesI);
 				i->SetSED(MeasuredSED(thisFlux / totalFlux, freq));
 			}
 		}*/
@@ -169,19 +169,19 @@ class ModelSource
 			double totalFlux = 0.0;
 			for(iterator i=begin(); i!=end(); ++i)
 			{
-				totalFlux += TotalFlux(frequency, Polarization::StokesI);
+				totalFlux += TotalFlux(frequency, aocommon::Polarization::StokesI);
 			}
 			double scaleFactor = newFlux / totalFlux;
 			for(iterator i=begin(); i!=end(); ++i)
 			{
-				double thisFlux = i->SED().FluxAtFrequency(frequency, Polarization::StokesI);
+				double thisFlux = i->SED().FluxAtFrequency(frequency, aocommon::Polarization::StokesI);
 				i->SetSED(MeasuredSED(thisFlux * scaleFactor, frequency));
 			}
 		}
 		
 		void SetConstantTotalFlux(const double* newFluxes, double frequency)
 		{
-			double totalFlux = fabs(TotalFlux(frequency, Polarization::StokesI));
+			double totalFlux = fabs(TotalFlux(frequency, aocommon::Polarization::StokesI));
 			
 			if(totalFlux == 0.0)
 			{
@@ -207,7 +207,7 @@ class ModelSource
 				{
 					Measurement m;
 					m.SetFrequencyHz(frequency);
-					double thisFlux = 0.5*(i->SED().FluxAtFrequency(frequency, Polarization::StokesI));
+					double thisFlux = 0.5*(i->SED().FluxAtFrequency(frequency, aocommon::Polarization::StokesI));
 					for(size_t p=0; p!=4; ++p)
 					{
 						m.SetFluxDensityFromIndex(p, thisFlux * scaleFactor[p]);
@@ -306,7 +306,7 @@ public:
 		
 		void AddSource(const ModelSource& source) { _sources.push_back(source); }
 		
-		double TotalFlux(PolarizationEnum polarization) const
+		double TotalFlux(aocommon::PolarizationEnum polarization) const
 		{
 			double f = 0.0;
 			for(const_iterator s=_sources.begin(); s!=_sources.end(); ++s)

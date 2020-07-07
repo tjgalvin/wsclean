@@ -380,6 +380,9 @@ void CommandLine::printHelp()
 		"   Restore the model image onto the residual image and save it in output image. By\n"
 		"   default, the beam parameters are read from the residual image. If this parameter\n"
 		"   is given, wsclean will do the restoring and then exit: no cleaning is performed.\n"
+		"-restore-list <input residual> <input list> <output image>\n"
+		"   Restore a source list onto the residual image and save it in output image. Except\n"
+		"   for the model input format, this parameter behaves equal to -restore.\n"
 		"-beam-size <arcsec>\n"
 		"   Set a circular beam size (FWHM) in arcsec for restoring the clean components. This is\n"
 		"   the same as -beam-shape <size> <size> 0.\n"
@@ -687,7 +690,7 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[], bool isSlave)
 		else if(param == "pol")
 		{
 			++argi;
-			settings.polarizations = Polarization::ParseList(argv[argi]);
+			settings.polarizations = aocommon::Polarization::ParseList(argv[argi]);
 		}
 		else if(param == "apply-primary-beam")
 		{
@@ -871,7 +874,7 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[], bool isSlave)
 		{
 			++argi;
 			settings.joinedPolarizationCleaning = true;
-			settings.linkedPolarizations = Polarization::ParseList(argv[argi]);
+			settings.linkedPolarizations = aocommon::Polarization::ParseList(argv[argi]);
 		}
 		else if(param == "join-channels" || param == "joinchannels")
 		{
@@ -1087,9 +1090,12 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[], bool isSlave)
 			if(param == "superweight")
 				deprecated(isSlave, param, "super-weight");
 		}
-		else if(param == "restore")
+		else if(param == "restore" || param == "restore-list")
 		{
-			settings.mode = WSCleanSettings::RestoreMode;
+			if(param == "restore")
+				settings.mode = WSCleanSettings::RestoreMode;
+			else
+				settings.mode = WSCleanSettings::RestoreListMode;
 			settings.restoreInput = argv[argi+1];
 			settings.restoreModel = argv[argi+2];
 			settings.restoreOutput = argv[argi+3];
@@ -1346,7 +1352,7 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[], bool isSlave)
 		++argi;
 	}
 	
-	if(argi == argc && settings.mode != WSCleanSettings::RestoreMode)
+	if(argi == argc && settings.mode != WSCleanSettings::RestoreMode && settings.mode != WSCleanSettings::RestoreListMode)
 		throw std::runtime_error("No input measurement sets given.");
 	
 	// Done parsing.
@@ -1390,6 +1396,9 @@ void CommandLine::Run(class WSClean& wsclean)
 	{
 		case WSCleanSettings::RestoreMode:
 			WSCFitsWriter::Restore(settings);
+			break;
+		case WSCleanSettings::RestoreListMode:
+			WSCFitsWriter::RestoreList(settings);
 			break;
 		case WSCleanSettings::PredictMode:
 			wsclean.RunPredict();

@@ -8,6 +8,8 @@
 #include "../fitsreader.h"
 #include "../modelrenderer.h"
 
+#include "../model/bbsmodel.h"
+
 #include "../deconvolution/deconvolution.h"
 
 WSCFitsWriter::WSCFitsWriter(
@@ -35,7 +37,7 @@ WSCFitsWriter::WSCFitsWriter(
 
 WSCFitsWriter::WSCFitsWriter(
 	const ImagingTableEntry& entry,
-	PolarizationEnum polarization,
+	aocommon::PolarizationEnum polarization,
 	bool isImaginary,
 	const WSCleanSettings& settings,
 	const Deconvolution& deconvolution,
@@ -120,7 +122,7 @@ void WSCFitsWriter::setDeconvolutionResultKeywords(size_t minorIterationNr, size
 	_writer.SetExtraKeyword("WSCMAJOR", majorIterationNr);
 }
 
-void WSCFitsWriter::setChannelKeywords(const ImagingTableEntry& entry, PolarizationEnum polarization, const OutputChannelInfo& channelInfo)
+void WSCFitsWriter::setChannelKeywords(const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization, const OutputChannelInfo& channelInfo)
 {
 	const double
 		bandStart = entry.bandStartFrequency,
@@ -210,6 +212,46 @@ void WSCFitsWriter::Restore(const WSCleanSettings& settings)
 					beamMaj, beamMin, beamPA,
 					imgReader.PixelSizeX(),
 					imgReader.PixelSizeY());
+	
+	FitsWriter writer(WSCFitsWriter(imgReader).Writer());
+	writer.SetBeamInfo(beamMaj, beamMin, beamPA);
+	writer.Write(settings.restoreOutput, image.data());
+}
+
+void WSCFitsWriter::RestoreList(const WSCleanSettings& settings)
+{
+	const Model model = BBSModel::Read(settings.restoreModel);
+	FitsReader imgReader(settings.restoreInput);
+	aocommon::UVector<double>
+		image(imgReader.ImageWidth() * imgReader.ImageHeight());
+	imgReader.Read(image.data());
+	
+	double beamMaj, beamMin, beamPA;
+	if(settings.manualBeamMajorSize != 0.0)
+	{
+		beamMaj = settings.manualBeamMajorSize;
+		beamMin = settings.manualBeamMinorSize;
+		beamPA = settings.manualBeamPA;
+	}
+	else {
+		beamMaj = imgReader.BeamMajorAxisRad();
+		beamMin = imgReader.BeamMinorAxisRad();
+		beamPA = imgReader.BeamPositionAngle();
+	}
+	
+	double frequency = imgReader.Frequency();
+	double bandwidth = imgReader.Bandwidth();
+	
+	ModelRenderer renderer(
+		imgReader.PhaseCentreRA(), imgReader.PhaseCentreDec(),
+		imgReader.PixelSizeX(), imgReader.PixelSizeY(),
+		imgReader.PhaseCentreDL(), imgReader.PhaseCentreDM());
+	
+	renderer.Restore(image.data(),
+		imgReader.ImageWidth(), imgReader.ImageHeight(),
+		model, beamMaj, beamMin, beamPA,
+		frequency-bandwidth*0.5, frequency+bandwidth*0.5,
+		aocommon::Polarization::StokesI);
 	
 	FitsWriter writer(WSCFitsWriter(imgReader).Writer());
 	writer.SetBeamInfo(beamMaj, beamMin, beamPA);

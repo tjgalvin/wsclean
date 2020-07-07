@@ -3,7 +3,7 @@
 
 #include "../msproviders/partitionedms.h"
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 
 #include <aocommon/uvector.h>
 
@@ -36,7 +36,7 @@ public:
 	double siCorrection;
 	size_t inputChannelCount;
 	
-	PolarizationEnum polarization;
+	aocommon::PolarizationEnum polarization;
 	
 	size_t outputChannelIndex;
 	

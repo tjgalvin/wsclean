@@ -38,7 +38,7 @@ public:
 		_writer = writer;
 	}
 	
-	void Load(double* image, PolarizationEnum polarization, size_t freqIndex, bool isImaginary) const
+	void Load(double* image, aocommon::PolarizationEnum polarization, size_t freqIndex, bool isImaginary) const
 	{
 		if(_writer.Width() == 0 || _writer.Height() == 0)
 			throw std::runtime_error("Writer is not set.");
@@ -54,7 +54,7 @@ public:
 		}
 	}
 	
-	void Store(const double* image, PolarizationEnum polarization, size_t freqIndex, bool isImaginary)
+	void Store(const double* image, aocommon::PolarizationEnum polarization, size_t freqIndex, bool isImaginary)
 	{
 		if(_writer.Width() == 0 || _writer.Height() == 0)
 			throw std::runtime_error("Writer is not set.");
@@ -76,18 +76,18 @@ public:
 	}
 	
 private:
-	std::string name(PolarizationEnum polarization, size_t freqIndex, bool isImaginary) const
+	std::string name(aocommon::PolarizationEnum polarization, size_t freqIndex, bool isImaginary) const
 	{
 		if(_freqCount == 1)
 		{
 			if(isImaginary)
-				return _prefix + '-' + Polarization::TypeToShortString(polarization) + "i-tmp.fits";
+				return _prefix + '-' + aocommon::Polarization::TypeToShortString(polarization) + "i-tmp.fits";
 			else
-				return _prefix + '-' + Polarization::TypeToShortString(polarization) + "-tmp.fits";
+				return _prefix + '-' + aocommon::Polarization::TypeToShortString(polarization) + "-tmp.fits";
 		}
 		else {
 			std::ostringstream str;
-			str <<  _prefix + '-' + Polarization::TypeToShortString(polarization);
+			str <<  _prefix + '-' + aocommon::Polarization::TypeToShortString(polarization);
 			if(isImaginary)
 				str << 'i';
 			str << '-';

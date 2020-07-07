@@ -177,7 +177,7 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection)
 {
 	if(_isGriddingFinished)
 		throw std::runtime_error("Grid() called after a call to FinishGridding()");
-	size_t polarizationCount = (msProvider.Polarization() == Polarization::Instrumental) ? 4 : 1;
+	size_t polarizationCount = (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4 : 1;
 	if(_weightMode.RequiresGridding())
 	{
 		SynchronizedMS ms(msProvider.MS());

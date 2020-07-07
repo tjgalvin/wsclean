@@ -123,7 +123,7 @@ class Model
 		void Save(const char* filename) const;
 		void Save(std::ostream& stream) const;
 		
-		double TotalFlux(double frequencyStartHz, double frequencyEndHz, PolarizationEnum polarization) const
+		double TotalFlux(double frequencyStartHz, double frequencyEndHz, aocommon::PolarizationEnum polarization) const
 		{
 			double flux = 0.0;
 			for(const_iterator i=begin(); i!=end(); ++i)
@@ -132,7 +132,7 @@ class Model
 			return flux;
 		}
 		
-		double TotalFlux(double frequency, PolarizationEnum polarization) const
+		double TotalFlux(double frequency, aocommon::PolarizationEnum polarization) const
 		{
 			double flux = 0.0;
 			for(const_iterator i=begin(); i!=end(); ++i)
@@ -152,8 +152,8 @@ class Model
 						MeasuredSED& sed = compPtr->MSED();
 						for(MeasuredSED::iterator m=sed.begin(); m!=sed.end(); ++m)
 						{
-							long double totalFlux = m->second.FluxDensity(Polarization::StokesI);
-							m->second.SetZeroExceptSinglePol(Polarization::StokesI, totalFlux);
+							long double totalFlux = m->second.FluxDensity(aocommon::Polarization::StokesI);
+							m->second.SetZeroExceptSinglePol(aocommon::Polarization::StokesI, totalFlux);
 						}
 					}
 				}

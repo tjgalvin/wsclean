@@ -7,7 +7,7 @@
 #include "imagingtable.h"
 #include "primarybeamimageset.h"
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 
 #include "../aterms/telescope.h"
 
@@ -28,11 +28,11 @@ public:
 	void CorrectImages(const ImageFilename& imageName, std::vector<double*>& images)
 	{
 		PrimaryBeamImageSet beamImages = load(imageName, _settings);
-		if(_settings.polarizations.size() == 1 && *_settings.polarizations.begin() == Polarization::StokesI)
+		if(_settings.polarizations.size() == 1 && *_settings.polarizations.begin() == aocommon::Polarization::StokesI)
 		{
 			beamImages.ApplyStokesI(images[0]);
 		}
-		else if(_settings.polarizations.size() == 4 && Polarization::HasFullStokesPolarization(_settings.polarizations))
+		else if(_settings.polarizations.size() == 4 && aocommon::Polarization::HasFullStokesPolarization(_settings.polarizations))
 		{
 			beamImages.ApplyFullStokes(images.data());
 		}

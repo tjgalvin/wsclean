@@ -8,7 +8,7 @@
 #include "../hmatrix4x4.h"
 #include <aocommon/matrix2x2.h>
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../fitsreader.h"
 #include "../image.h"
 
@@ -67,16 +67,16 @@ public:
 		else {
 			try {
 				PrimaryBeamImageSet beamImages(width, height, 8);
-				PolarizationEnum
-					linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
+				aocommon::PolarizationEnum
+					linPols[4] = { aocommon::Polarization::XX, aocommon::Polarization::XY, aocommon::Polarization::YX, aocommon::Polarization::YY };
 				for(size_t i=0; i!=8; ++i)
 				{
-					PolarizationEnum p = linPols[i/2];
+					aocommon::PolarizationEnum p = linPols[i/2];
 					std::string polStr;
 					if(i%2 == 0) // real?
-						polStr = Polarization::TypeToShortString(p);
+						polStr = aocommon::Polarization::TypeToShortString(p);
 					else
-						polStr = Polarization::TypeToShortString(p) + "i";
+						polStr = aocommon::Polarization::TypeToShortString(p) + "i";
 					FitsReader reader(beamPrefix + "-" + polStr + ".fits");
 					reader.Read(beamImages[i].data());
 				}
@@ -235,10 +235,10 @@ public:
 				{
 					double stokesVal[4] = { images[0][j], images[1][j], images[2][j], images[3][j] };
 					MC2x2 linearVal, scratch;
-					Polarization::StokesToLinear(stokesVal, linearVal.Data());
+					aocommon::Polarization::StokesToLinear(stokesVal, linearVal.Data());
 					MC2x2::ATimesB(scratch, beamVal, linearVal);
 					MC2x2::ATimesHermB(linearVal, scratch, beamVal);
-					Polarization::LinearToStokes(linearVal.Data(), stokesVal);
+					aocommon::Polarization::LinearToStokes(linearVal.Data(), stokesVal);
 					for(size_t p=0; p!=4; ++p)
 						images[p][j] = stokesVal[p];
 				}

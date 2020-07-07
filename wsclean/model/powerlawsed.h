@@ -62,9 +62,9 @@ public:
 			return PolynomialFitter::Evaluate(frequencyHz/_referenceFrequency - 1.0, _terms) * _factors[pIndex];
 	}
 	
-	virtual long double IntegratedFlux(long double startFrequency, long double endFrequency, PolarizationEnum polarization) const override
+	virtual long double IntegratedFlux(long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization) const override
 	{
-		size_t pIndex = Polarization::StokesToIndex(polarization);
+		size_t pIndex = aocommon::Polarization::StokesToIndex(polarization);
 		long double sum = 0.0;
 		for(size_t i=0; i!=101; ++i)
 		{
@@ -74,7 +74,7 @@ public:
 		return sum / 101.0;
 	}
 	
-	virtual long double AverageFlux(long double startFrequency, long double endFrequency, PolarizationEnum polarization) const override
+	virtual long double AverageFlux(long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization) const override
 	{
 		return IntegratedFlux(startFrequency, endFrequency, polarization);
 	}

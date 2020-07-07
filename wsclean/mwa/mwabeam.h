@@ -1,7 +1,7 @@
 #ifndef MWA_BEAM
 #define MWA_BEAM
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/primarybeamimageset.h"
 

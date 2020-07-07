@@ -4,12 +4,12 @@
 #include <string>
 #include <cmath>
 
-#include <aocommon/uvector.h>
-
 #include "spectralfitter.h"
 
 #include "../image.h"
-#include "../polarization.h"
+
+#include <aocommon/polarization.h>
+#include <aocommon/uvector.h>
 
 namespace ao {
 	template<typename T> class lane;
@@ -63,7 +63,7 @@ public:
 	
 	// This is used in the 'fitsmodel' executable. Might need to find a better place for it, or remove it.
 	static void GetModelFromImage(class Model &model, const double* image, size_t width, size_t height, double phaseCentreRA, double phaseCentreDec, double pixelSizeX, double pixelSizeY, double phaseCentreDL, double phaseCentreDM, double spectralIndex, double refFreq, 
-																PolarizationEnum polarization = Polarization::StokesI);
+																aocommon::PolarizationEnum polarization = aocommon::Polarization::StokesI);
 	
 	static void RemoveNaNsInPSF(double* psf, size_t width, size_t height);
 	

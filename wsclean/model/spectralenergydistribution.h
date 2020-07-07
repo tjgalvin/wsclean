@@ -4,7 +4,7 @@
 #include "measurement.h"
 
 #include "../nlplfitter.h"
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 
 #include <cmath>
 #include <iostream>
@@ -23,20 +23,20 @@ public:
 	virtual SpectralEnergyDistribution* Clone() const = 0;
 	virtual std::string ToString() const = 0;
 	virtual long double FluxAtFrequencyFromIndex(long double frequencyHz, size_t pIndex) const = 0;
-	virtual long double IntegratedFlux(long double startFrequency, long double endFrequency, PolarizationEnum polarization) const = 0;
-	virtual long double AverageFlux(long double startFrequency, long double endFrequency, PolarizationEnum polarization) const = 0;
+	virtual long double IntegratedFlux(long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization) const = 0;
+	virtual long double AverageFlux(long double startFrequency, long double endFrequency, aocommon::PolarizationEnum polarization) const = 0;
 	virtual bool operator<(const SpectralEnergyDistribution &other) const = 0;
 	virtual void operator*=(double factor) = 0;
 	virtual void operator+=(const SpectralEnergyDistribution &other) = 0;
 	virtual long double ReferenceFrequencyHz() const = 0;
 	
-	long double FluxAtFrequency(long double frequencyHz, PolarizationEnum polarization) const
+	long double FluxAtFrequency(long double frequencyHz, aocommon::PolarizationEnum polarization) const
 	{
 #ifdef EXTRA_ASSERTIONS
-		if(!Polarization::IsStokes(polarization))
+		if(!aocommon::Polarization::IsStokes(polarization))
 			throw std::runtime_error("Cannot store specified polarization in model");
 #endif
-		return FluxAtFrequencyFromIndex(frequencyHz, Polarization::StokesToIndex(polarization));
+		return FluxAtFrequencyFromIndex(frequencyHz, aocommon::Polarization::StokesToIndex(polarization));
 	}
 	
 	static long double FluxAtFrequency(long double fluxDensityAJy, long double referenceFrequencyAHz,
@@ -60,7 +60,7 @@ public:
 		}
 	}
 	
-	long double FluxAtChannel(size_t channelIndex, size_t channelCount, long double startFreq, long double endFreq, PolarizationEnum polarization) const
+	long double FluxAtChannel(size_t channelIndex, size_t channelCount, long double startFreq, long double endFreq, aocommon::PolarizationEnum polarization) const
 	{
 		long double freq = startFreq + (long double) channelIndex * (endFreq - startFreq) / (long double) (channelCount-1);
 		return FluxAtFrequency(freq, polarization);

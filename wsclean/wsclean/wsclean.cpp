@@ -215,7 +215,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry, GriddingResult& result
 	
 	multiplyImage(_infoPerChannel[joinedChannelIndex].psfNormalizationFactor * entry.siCorrection, result.imageRealResult);
 	storeAndCombineXYandYX(_residualImages, entry.polarization, joinedChannelIndex, false, result.imageRealResult.data());
-	if(Polarization::IsComplex(entry.polarization))
+	if(aocommon::Polarization::IsComplex(entry.polarization))
 	{
 		multiplyImage(_infoPerChannel[joinedChannelIndex].psfNormalizationFactor * entry.siCorrection, result.imageImaginaryResult);
 		storeAndCombineXYandYX(_residualImages, entry.polarization, joinedChannelIndex, true, result.imageImaginaryResult.data());
@@ -260,12 +260,12 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry, GriddingResult& result
 		}
 		else {
 			// Set model to zero: already done if this is YX of XY/YX imaging combi
-			if(!(entry.polarization == Polarization::YX && _settings.polarizations.count(Polarization::XY)!=0))
+			if(!(entry.polarization == aocommon::Polarization::YX && _settings.polarizations.count(aocommon::Polarization::XY)!=0))
 			{
 				Image modelImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
 				memset(modelImage.data(), 0, _settings.trimmedImageWidth * _settings.trimmedImageHeight * sizeof(double));
 				_modelImages.Store(modelImage.data(), entry.polarization, entry.outputChannelIndex, false);
-				if(Polarization::IsComplex(entry.polarization))
+				if(aocommon::Polarization::IsComplex(entry.polarization))
 					_modelImages.Store(modelImage.data(), entry.polarization, entry.outputChannelIndex, true);
 			}
 		}
@@ -285,13 +285,13 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry, GriddingResult& result
 	}
 }
 
-void WSClean::storeAndCombineXYandYX(CachedImageSet& dest, PolarizationEnum polarization, size_t joinedChannelIndex, bool isImaginary, const double* image)
+void WSClean::storeAndCombineXYandYX(CachedImageSet& dest, aocommon::PolarizationEnum polarization, size_t joinedChannelIndex, bool isImaginary, const double* image)
 {
-	if(polarization == Polarization::YX && _settings.polarizations.count(Polarization::XY)!=0)
+	if(polarization == aocommon::Polarization::YX && _settings.polarizations.count(aocommon::Polarization::XY)!=0)
 	{
 		Logger::Info << "Adding XY and YX together...\n";
 		Image xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-		dest.Load(xyImage.data(), Polarization::XY, joinedChannelIndex, isImaginary);
+		dest.Load(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex, isImaginary);
 		size_t count = _settings.trimmedImageWidth*_settings.trimmedImageHeight;
 		if(isImaginary)
 		{
@@ -302,7 +302,7 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest, PolarizationEnum pola
 			for(size_t i=0; i!=count; ++i)
 				xyImage[i] = (xyImage[i]+image[i])*0.5;
 		}
-		dest.Store(xyImage.data(), Polarization::XY, joinedChannelIndex, isImaginary);
+		dest.Store(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex, isImaginary);
 	}
 	else {
 		dest.Store(image, polarization, joinedChannelIndex, isImaginary);
@@ -317,18 +317,18 @@ void WSClean::predict(const ImagingTableEntry& entry)
 		modelImageReal(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
 		modelImageImaginary;
 		
-	if(entry.polarization == Polarization::YX)
+	if(entry.polarization == aocommon::Polarization::YX)
 	{
-		_modelImages.Load(modelImageReal.data(), Polarization::XY, entry.outputChannelIndex, false);
+		_modelImages.Load(modelImageReal.data(), aocommon::Polarization::XY, entry.outputChannelIndex, false);
 		modelImageImaginary = Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-		_modelImages.Load(modelImageImaginary.data(), Polarization::XY, entry.outputChannelIndex, true);
+		_modelImages.Load(modelImageImaginary.data(), aocommon::Polarization::XY, entry.outputChannelIndex, true);
 		const size_t size = _settings.trimmedImageWidth*_settings.trimmedImageHeight;
 		for(size_t i=0; i!=size; ++i)
 			modelImageImaginary[i] = -modelImageImaginary[i];
 	}
 	else {
 		_modelImages.Load(modelImageReal.data(), entry.polarization, entry.outputChannelIndex, false);
-		if(Polarization::IsComplex(entry.polarization))
+		if(aocommon::Polarization::IsComplex(entry.polarization))
 		{
 			modelImageImaginary = Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
 			_modelImages.Load(modelImageImaginary.data(), entry.polarization, entry.outputChannelIndex, true);
@@ -391,7 +391,7 @@ void WSClean::initializeMFSImageWeights()
 					bool hasSelection = selectChannels(partSelection, msIndex, dataDescId, subTable.Front());
 					if(hasSelection)
 					{
-						PolarizationEnum pol = _settings.useIDG ? Polarization::Instrumental : entry.polarization;
+						aocommon::PolarizationEnum pol = _settings.useIDG ? aocommon::Polarization::Instrumental : entry.polarization;
 						PartitionedMS msProvider(_partitionedMSHandles[msIndex], ms.bands[dataDescId].partIndex, pol, dataDescId);
 						weights->Grid(msProvider, partSelection);
 					}
@@ -404,7 +404,7 @@ void WSClean::initializeMFSImageWeights()
 		{
 			for(size_t d=0; d!=_msBands[i].DataDescCount(); ++d)
 			{
-				PolarizationEnum pol = _settings.useIDG ? Polarization::Instrumental : *_settings.polarizations.begin();
+				aocommon::PolarizationEnum pol = _settings.useIDG ? aocommon::Polarization::Instrumental : *_settings.polarizations.begin();
 				ContiguousMS msProvider(_settings.filenames[i], _settings.dataColumnName, _globalSelection, pol, d);
 				weights->Grid(msProvider,  _globalSelection);
 				Logger::Info << '.';
@@ -432,7 +432,7 @@ void WSClean::performReordering(bool isPredictMode)
 	loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t)
 	{
 		std::vector<PartitionedMS::ChannelRange> channels;
-		std::map<PolarizationEnum, size_t> nextIndex;
+		std::map<aocommon::PolarizationEnum, size_t> nextIndex;
 		for(size_t j=0; j!=_imagingTable.SquaredGroupCount(); ++j)
 		{
 			ImagingTable squaredGroup = _imagingTable.GetSquaredGroup(j);
@@ -503,7 +503,7 @@ void WSClean::RunClean()
 	
 		if(_settings.channelsOut > 1)
 		{
-			for(std::set<PolarizationEnum>::const_iterator pol=_settings.polarizations.begin(); pol!=_settings.polarizations.end(); ++pol)
+			for(std::set<aocommon::PolarizationEnum>::const_iterator pol=_settings.polarizations.begin(); pol!=_settings.polarizations.end(); ++pol)
 			{
 				bool psfWasMade = (_settings.deconvolutionIterationCount > 0 || _settings.makePSF || _settings.makePSFOnly) && pol == _settings.polarizations.begin();
 				
@@ -514,7 +514,7 @@ void WSClean::RunClean()
 						ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS, "psf-pb.fits", intervalIndex, *pol, false, true);
 				}
 				
-				if(!(*pol == Polarization::YX && _settings.polarizations.count(Polarization::XY)!=0) && !_settings.makePSFOnly)
+				if(!(*pol == aocommon::Polarization::YX && _settings.polarizations.count(aocommon::Polarization::XY)!=0) && !_settings.makePSFOnly)
 				{
 					if(_settings.isDirtySaved)
 						ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS, "dirty.fits", intervalIndex, *pol, false);
@@ -536,7 +536,7 @@ void WSClean::RunClean()
 							ImageOperations::RenderMFSImage(_settings, _infoForMFS, intervalIndex, *pol, false, true);
 						}
 					}
-					if(Polarization::IsComplex(*pol))
+					if(aocommon::Polarization::IsComplex(*pol))
 					{
 						if(_settings.isDirtySaved)
 							ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS, "dirty.fits", intervalIndex, *pol, true);
@@ -688,8 +688,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<Prim
 	// In case XY/YX polarizations are requested, we should not parallelize over those since they
 	// need to be combined after imaging, and this currently requires XY before YX.
 	bool parallelizePolarizations =
-		_settings.polarizations.count(Polarization::XY)==0 &&
-		_settings.polarizations.count(Polarization::YX)==0;
+		_settings.polarizations.count(aocommon::Polarization::XY)==0 &&
+		_settings.polarizations.count(aocommon::Polarization::YX)==0;
 	
 	const std::string rootPrefix = _settings.prefixName;
 		
@@ -883,7 +883,7 @@ void WSClean::saveRestoredImagesForGroup(const ImagingTableEntry& tableEntry, st
 	size_t currentChannelIndex =
 		tableEntry.outputChannelIndex;
 	
-	PolarizationEnum curPol = tableEntry.polarization;
+	aocommon::PolarizationEnum curPol = tableEntry.polarization;
 	for(size_t imageIter=0; imageIter!=tableEntry.imageCount; ++imageIter)
 	{
 		bool isImaginary = (imageIter == 1);
@@ -963,9 +963,9 @@ void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const
 	{
 		const ImagingTableEntry& entry = groupTable[e];
 		size_t ch = entry.outputChannelIndex;
-		if(entry.polarization == Polarization::YX) {
-			_residualImages.Load(ptr.data(), Polarization::XY, ch, true);
-			WSCFitsWriter writer(createWSCFitsWriter(entry, Polarization::XY, true, false));
+		if(entry.polarization == aocommon::Polarization::YX) {
+			_residualImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
+			WSCFitsWriter writer(createWSCFitsWriter(entry, aocommon::Polarization::XY, true, false));
 			writer.WriteImage("first-residual.fits", ptr.data());
 		}
 		else {
@@ -984,9 +984,9 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const
 	{
 		const ImagingTableEntry& entry = groupTable[e];
 		size_t ch = entry.outputChannelIndex;
-		if(entry.polarization == Polarization::YX) {
-			_modelImages.Load(ptr.data(), Polarization::XY, ch, true);
-			WSCFitsWriter writer(createWSCFitsWriter(entry, Polarization::XY, true, true));
+		if(entry.polarization == aocommon::Polarization::YX) {
+			_modelImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
+			WSCFitsWriter writer(createWSCFitsWriter(entry, aocommon::Polarization::XY, true, true));
 			writer.WriteImage("model.fits", ptr.data());
 		}
 		else {
@@ -1098,7 +1098,7 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup)
 
 void WSClean::initializeMSList(const ImagingTableEntry& entry, std::vector<std::unique_ptr<MSDataDescription>>& msList)
 {
-	PolarizationEnum pol = _settings.useIDG ? Polarization::Instrumental : entry.polarization;
+	aocommon::PolarizationEnum pol = _settings.useIDG ? aocommon::Polarization::Instrumental : entry.polarization;
 	
 	msList.clear();
 	for(size_t i=0; i != _settings.filenames.size(); ++i)
@@ -1419,7 +1419,7 @@ void WSClean::makeImagingTableEntryChannelSettings(const std::vector<ChannelInfo
 
 void WSClean::addPolarizationsToImagingTable(size_t& joinedGroupIndex, size_t& squaredGroupIndex, size_t outChannelIndex, const ImagingTableEntry& templateEntry)
 {
-	for(PolarizationEnum p : _settings.polarizations)
+	for(aocommon::PolarizationEnum p : _settings.polarizations)
 	{
 		ImagingTableEntry& entry = _imagingTable.AddEntry();
 		entry = templateEntry;
@@ -1428,9 +1428,9 @@ void WSClean::addPolarizationsToImagingTable(size_t& joinedGroupIndex, size_t& s
 		entry.joinedGroupIndex = joinedGroupIndex;
 		entry.squaredDeconvolutionIndex = squaredGroupIndex;
 		entry.polarization = p;
-		if(p == Polarization::XY)
+		if(p == aocommon::Polarization::XY)
 			entry.imageCount = 2;
-		else if(p == Polarization::YX)
+		else if(p == aocommon::Polarization::YX)
 			entry.imageCount = 0;
 		else
 			entry.imageCount = 1;
@@ -1454,7 +1454,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry, bool 
 	return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution, _observationInfo, _majorIterationNr, _commandLine, _infoPerChannel[entry.outputChannelIndex], isModel);
 }
 
-WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry, PolarizationEnum polarization, bool isImaginary, bool isModel) const
+WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization, bool isImaginary, bool isModel) const
 {
 	return WSCFitsWriter(entry, polarization, isImaginary, _settings, _deconvolution, _observationInfo, _majorIterationNr, _commandLine, _infoPerChannel[entry.outputChannelIndex], isModel);
 }

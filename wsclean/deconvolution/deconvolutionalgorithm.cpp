@@ -27,7 +27,7 @@ DeconvolutionAlgorithm::DeconvolutionAlgorithm() :
 {
 }
 
-void DeconvolutionAlgorithm::GetModelFromImage(Model &model, const double* image, size_t width, size_t height, double phaseCentreRA, double phaseCentreDec, double pixelSizeX, double pixelSizeY, double phaseCentreDL, double phaseCentreDM, double spectralIndex, double refFreq, PolarizationEnum polarization)
+void DeconvolutionAlgorithm::GetModelFromImage(Model &model, const double* image, size_t width, size_t height, double phaseCentreRA, double phaseCentreDec, double pixelSizeX, double pixelSizeY, double phaseCentreDL, double phaseCentreDM, double spectralIndex, double refFreq, aocommon::PolarizationEnum polarization)
 {
 	for(size_t y=0; y!=height; ++y)
 	{

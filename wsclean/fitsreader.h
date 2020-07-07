@@ -6,8 +6,9 @@
 
 #include <fitsio.h>
 
-#include "polarization.h"
 #include "fitsiochecker.h"
+
+#include <aocommon/polarization.h>
 
 class FitsReader : public FitsIOChecker
 {
@@ -50,7 +51,7 @@ class FitsReader : public FitsIOChecker
 		double Bandwidth() const { return _meta.bandwidth; }
 		
 		double DateObs() const { return _meta.dateObs; }
-		PolarizationEnum Polarization() const { return _meta.polarization; }
+		aocommon::PolarizationEnum Polarization() const { return _meta.polarization; }
 		
 		FitsIOChecker::Unit Unit() const { return _meta.unit; }
 		
@@ -121,7 +122,7 @@ class FitsReader : public FitsIOChecker
 			double beamMajorAxisRad, beamMinorAxisRad, beamPositionAngle;
 			double timeDimensionStart, timeDimensionIncr;
 			
-			PolarizationEnum polarization;
+			aocommon::PolarizationEnum polarization;
 			FitsIOChecker::Unit unit;
 			std::string telescopeName, observer, objectName;
 			std::string origin, originComment;

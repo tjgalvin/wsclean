@@ -121,7 +121,7 @@ public:
 	void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override
 	{ _msProvider->MakeIdToMSRowMapping(idToMSRow); }
 	
-	PolarizationEnum Polarization() override
+	aocommon::PolarizationEnum Polarization() override
 	{ return _msProvider->Polarization(); }
 	
 	size_t NChannels() override

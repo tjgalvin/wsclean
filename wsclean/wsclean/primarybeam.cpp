@@ -38,7 +38,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 	if(_settings.reusePrimaryBeam)
 	{
 		ImageFilename firstPolName(imageName);
-		firstPolName.SetPolarization(Polarization::XX);
+		firstPolName.SetPolarization(aocommon::Polarization::XX);
 		firstPolName.SetIsImaginary(false);
 		std::string f(firstPolName.GetBeamPrefix(_settings) + ".fits");
 		if(boost::filesystem::exists(f))
@@ -100,14 +100,14 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName, const ImagingTa
 		if(beamImages.NImages() == 8)
 		{
 			// Save the 8 beam images as fits files
-			PolarizationEnum
-				linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
+			aocommon::PolarizationEnum
+				linPols[4] = { aocommon::Polarization::XX, aocommon::Polarization::XY, aocommon::Polarization::YX, aocommon::Polarization::YY };
 			FitsWriter writer;
 			writer.SetImageDimensions(_settings.trimmedImageWidth, _settings.trimmedImageHeight, _phaseCentreRA, _phaseCentreDec, _settings.pixelScaleX, _settings.pixelScaleY);
 			writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
 			for(size_t i=0; i!=8; ++i)
 			{
-				PolarizationEnum p = linPols[i/2];
+				aocommon::PolarizationEnum p = linPols[i/2];
 				ImageFilename polName(imageName);
 				polName.SetPolarization(p);
 				polName.SetIsImaginary(i%2 != 0);
@@ -135,9 +135,9 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 	PrimaryBeamImageSet beamImages = load(imageName, _settings);
 	if(_settings.polarizations.size() == 1 || filenameKind == "psf")
 	{
-		PolarizationEnum pol = *_settings.polarizations.begin();
+		aocommon::PolarizationEnum pol = *_settings.polarizations.begin();
 		
-		if(pol == Polarization::StokesI)
+		if(pol == aocommon::Polarization::StokesI)
 		{
 			ImageFilename stokesIName(imageName);
 			stokesIName.SetPolarization(pol);
@@ -157,13 +157,13 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 			throw std::runtime_error("Primary beam correction is requested, but this is not supported when imaging a single polarization that is not Stokes I. Either image all four polarizations or turn off beam correction.");
 		}
 	}
-	else if(Polarization::HasFullStokesPolarization(_settings.polarizations))
+	else if(aocommon::Polarization::HasFullStokesPolarization(_settings.polarizations))
 	{
 		Image images[4];
 		std::unique_ptr<FitsReader> reader;
 		for(size_t polIndex = 0; polIndex != 4; ++polIndex)
 		{
-			PolarizationEnum pol = Polarization::IndexToStokes(polIndex);
+			aocommon::PolarizationEnum pol = aocommon::Polarization::IndexToStokes(polIndex);
 			ImageFilename name(imageName);
 			name.SetPolarization(pol);
 			reader.reset(new FitsReader(name.GetPrefix(_settings) + "-" + filenameKind + ".fits"));
@@ -175,7 +175,7 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer, const ImageFilename& imageNa
 		beamImages.ApplyFullStokes(imagePtrs);
 		for(size_t polIndex = 0; polIndex != 4; ++polIndex)
 		{
-			PolarizationEnum pol = Polarization::IndexToStokes(polIndex);
+			aocommon::PolarizationEnum pol = aocommon::Polarization::IndexToStokes(polIndex);
 			ImageFilename name(imageName);
 			name.SetPolarization(pol);
 			writer.SetPolarization(pol);
@@ -196,7 +196,7 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCl
 		// Currently we just load that beam into real component of XX and YY, and set the other 6 images to zero.
 		// This is a bit wasteful so might require a better strategy for big images.
 		ImageFilename polName(imageName);
-		polName.SetPolarization(Polarization::StokesI);
+		polName.SetPolarization(aocommon::Polarization::StokesI);
 		FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
 		reader.Read(beamImages[0].data());
 		for(size_t i=0; i!=settings.trimmedImageWidth*settings.trimmedImageHeight; ++i)
@@ -212,11 +212,11 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName, const WSCl
 	else {
 		try {
 			PrimaryBeamImageSet beamImages(settings.trimmedImageWidth, settings.trimmedImageHeight, 8);
-			PolarizationEnum
-				linPols[4] = { Polarization::XX, Polarization::XY, Polarization::YX, Polarization::YY };
+			aocommon::PolarizationEnum
+				linPols[4] = { aocommon::Polarization::XX, aocommon::Polarization::XY, aocommon::Polarization::YX, aocommon::Polarization::YY };
 			for(size_t i=0; i!=8; ++i)
 			{
-				PolarizationEnum p = linPols[i/2];
+				aocommon::PolarizationEnum p = linPols[i/2];
 				ImageFilename polName(imageName);
 				polName.SetPolarization(p);
 				polName.SetIsImaginary(i%2 != 0);

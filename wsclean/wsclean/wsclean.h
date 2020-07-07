@@ -2,7 +2,7 @@
 #define WSCLEAN_H
 
 #include "../msselection.h"
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../weightmode.h"
 #include "../stopwatch.h"
 
@@ -46,7 +46,7 @@ private:
 	std::shared_ptr<ImageWeights> initializeImageWeights(const ImagingTableEntry& entry, std::vector<std::unique_ptr<class MSDataDescription>>& msList);
 	void initializeMFSImageWeights();
 	void initializeMSList(const ImagingTableEntry& entry, std::vector<std::unique_ptr<MSDataDescription>>& msList);
-	void storeAndCombineXYandYX(CachedImageSet& dest, PolarizationEnum polarization, size_t joinedChannelIndex, bool isImaginary, const double* image);
+	void storeAndCombineXYandYX(CachedImageSet& dest, aocommon::PolarizationEnum polarization, size_t joinedChannelIndex, bool isImaginary, const double* image);
 	bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex, const ImagingTableEntry& entry);
 	MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
 	void readEarlierModelImages(const ImagingTableEntry& entry);
@@ -73,8 +73,8 @@ private:
 	void predict(const ImagingTableEntry& entry);
 	void predictCallback(const ImagingTableEntry& entry, struct GriddingResult& result);
 	
-	//void makeMFSImage(const string& suffix, size_t intervalIndex, PolarizationEnum pol, bool isImaginary, bool isPSF = false);
-	//void renderMFSImage(size_t intervalIndex, PolarizationEnum pol, bool isImaginary, bool isPBCorrected) const;
+	//void makeMFSImage(const string& suffix, size_t intervalIndex, aocommon::PolarizationEnum pol, bool isImaginary, bool isPSF = false);
+	//void renderMFSImage(size_t intervalIndex, aocommon::PolarizationEnum pol, bool isImaginary, bool isPBCorrected) const;
 	void saveUVImage(const double* image, const ImagingTableEntry& entry, bool isImaginary, const std::string& prefix) const;
 	void writeFirstResidualImages(const ImagingTable& groupTable) const;
 	void writeModelImages(const ImagingTable& groupTable) const;
@@ -85,7 +85,7 @@ private:
 	
 	WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary, bool isModel) const;
 	
-	WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry, PolarizationEnum polarization, bool isImaginary, bool isModel) const;
+	WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization, bool isImaginary, bool isModel) const;
 	
 	MSSelection _globalSelection;
 	std::string _commandLine;

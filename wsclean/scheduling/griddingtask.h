@@ -1,7 +1,7 @@
 #ifndef GRIDDING_TASK_H
 #define GRIDDING_TASK_H
 
-#include "../polarization.h"
+#include <aocommon/polarization.h>
 #include "../image.h"
 #include "../imageweights.h"
 
@@ -15,7 +15,7 @@ public:
 	enum Operation { Invert, Predict } operation;
 	bool imagePSF;
 	bool subtractModel;
-	PolarizationEnum polarization;
+	aocommon::PolarizationEnum polarization;
 	bool verbose;
 	std::unique_ptr<MetaDataCache> cache;
 	bool storeImagingWeights;

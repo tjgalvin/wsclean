@@ -37,8 +37,8 @@ void WSCleanSettings::Validate() const
 	
 	if(useIDG)
 	{
-		bool stokesIOnly = polarizations.size()==1 && *polarizations.begin() == Polarization::StokesI;
-		bool allStokes = Polarization::HasFullStokesPolarization(polarizations) &&
+		bool stokesIOnly = polarizations.size()==1 && *polarizations.begin() == aocommon::Polarization::StokesI;
+		bool allStokes = aocommon::Polarization::HasFullStokesPolarization(polarizations) &&
 			polarizations.size() == 4;
 		if(!allStokes && !stokesIOnly)
 		{
@@ -89,7 +89,7 @@ void WSCleanSettings::Validate() const
 	if(savePsfPb && !(applyPrimaryBeam || gridWithBeam))
 		throw std::runtime_error("You can not save the primary-beam corrected PSF without enabling primary beam correction: add -apply-primary-beam to your commandline or use IDG to apply the beam.");
 	
-	if(saveSourceList && (polarizations.size()!=1 || (*polarizations.begin())!=Polarization::StokesI))
+	if(saveSourceList && (polarizations.size()!=1 || (*polarizations.begin())!=aocommon::Polarization::StokesI))
 		throw std::runtime_error("Saving a source list currently only works for Stokes I imaging.");
 	
 	if(saveSourceList && deconvolutionIterationCount==0)
@@ -100,8 +100,8 @@ void WSCleanSettings::Validate() const
 
 void WSCleanSettings::checkPolarizations() const
 {
-	bool hasXY = polarizations.count(Polarization::XY)!=0;
-	bool hasYX = polarizations.count(Polarization::YX)!=0;
+	bool hasXY = polarizations.count(aocommon::Polarization::XY)!=0;
+	bool hasYX = polarizations.count(aocommon::Polarization::YX)!=0;
 	if(joinedPolarizationCleaning)
 	{
 		if(polarizations.size() == 1)
@@ -112,13 +112,13 @@ void WSCleanSettings::checkPolarizations() const
 			throw std::runtime_error("You are imaging XY and/or YX polarizations and have enabled cleaning (niter!=0). This is not possible -- you have to specify '-join-polarizations' or disable cleaning.");
 	}
 	
-	for(PolarizationEnum p : linkedPolarizations)
+	for(aocommon::PolarizationEnum p : linkedPolarizations)
 	{
 		if(polarizations.count(p) == 0)
 		{
 			std::ostringstream str;
 			str << "Linked polarization cleaning was requested for polarization "
-				<< Polarization::TypeToFullString(p)
+				<< aocommon::Polarization::TypeToFullString(p)
 				<< ", but this polarization is not imaged.";
 			throw std::runtime_error(str.str());
 		}

@@ -8,8 +8,9 @@
 #include <map>
 #include <cmath>
 
-#include "polarization.h"
 #include "fitsiochecker.h"
+
+#include <aocommon/polarization.h>
 
 class FitsWriter : public FitsIOChecker
 {
@@ -30,7 +31,7 @@ public:
 		_dateObs(0.0),
 		_hasBeam(false),
 		_beamMajorAxisRad(0.0), _beamMinorAxisRad(0.0), _beamPositionAngle(0.0),
-		_polarization(Polarization::StokesI),
+		_polarization(aocommon::Polarization::StokesI),
 		_unit(JanskyPerBeam),
 		_isUV(false),
 		_telescopeName(), _observer(), _objectName(),
@@ -47,7 +48,7 @@ public:
 		_dateObs(0.0),
 		_hasBeam(false),
 		_beamMajorAxisRad(0.0), _beamMinorAxisRad(0.0), _beamPositionAngle(0.0),
-		_polarization(Polarization::StokesI),
+		_polarization(aocommon::Polarization::StokesI),
 		_unit(JanskyPerBeam),
 		_isUV(false),
 		_telescopeName(), _observer(), _objectName(),
@@ -135,7 +136,7 @@ public:
 	{
 		_dateObs = dateObs;
 	}
-	void SetPolarization(PolarizationEnum polarization)
+	void SetPolarization(aocommon::PolarizationEnum polarization)
 	{
 		_polarization = polarization;
 	}
@@ -251,7 +252,7 @@ private:
 	double _dateObs;
 	bool _hasBeam;
 	double _beamMajorAxisRad, _beamMinorAxisRad, _beamPositionAngle;
-	PolarizationEnum _polarization;
+	aocommon::PolarizationEnum _polarization;
 	Unit _unit;
 	bool _isUV;
 	std::string _telescopeName, _observer, _objectName;

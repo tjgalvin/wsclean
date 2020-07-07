@@ -160,7 +160,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable, bool& reachedM
 	modelSet.InterpolateAndStore(*_modelImages, _parallelDeconvolution.FirstAlgorithm().Fitter());
 }
 
-void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTable, PolarizationEnum psfPolarization, double beamSize, size_t threadCount)
+void Deconvolution::InitializeDeconvolutionAlgorithm(const ImagingTable& groupTable, aocommon::PolarizationEnum psfPolarization, double beamSize, size_t threadCount)
 {
 	_imgWidth = _settings.trimmedImageWidth;
 	_imgHeight = _settings.trimmedImageHeight;
