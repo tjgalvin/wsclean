@@ -179,9 +179,9 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(MSGridderBase::MSDa
 		system.dec = PhaseCentreDec();
 		if(!_settings.atermConfigFilename.empty())
 		{
-			std::unique_ptr<ATermConfig> config(new ATermConfig(*ms, nr_stations, system, _settings));
+			std::unique_ptr<ATermConfig> config(new ATermConfig(nr_stations, system, _settings));
 			config->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
-			config->Read(_settings.atermConfigFilename);
+			config->Read(ms.Filename(), *ms, _settings.atermConfigFilename);
 			return std::move(config);
 		}
 		else {
@@ -537,7 +537,10 @@ void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer, const ImageFilename
 		
 		for(size_t i=0; i!=reader.ImageWidth() * reader.ImageHeight(); ++i)
 		{
-			image[i] /= beam[i];
+			if(beam[i] > 1e-6)
+				image[i] /= beam[i];
+			else
+				image[i] = std::numeric_limits<double>::quiet_NaN();
 		}
 		
 		writer.SetPolarization(pol);

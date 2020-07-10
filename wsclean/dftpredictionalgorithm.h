@@ -1,12 +1,12 @@
 #ifndef DFT_PREDICTION_ALGORITHM_H
 #define DFT_PREDICTION_ALGORITHM_H
 
-#include "banddata.h"
+#include <aocommon/banddata.h>
 #include <aocommon/matrix2x2.h>
 #include <aocommon/polarization.h>
-#include "image.h"
-
 #include <aocommon/uvector.h>
+
+#include "image.h"
 
 #include "lofar/lbeamevaluator.h"
 
@@ -135,7 +135,7 @@ public:
 	typedef std::vector<DFTPredictionComponent>::const_iterator const_iterator;
 	
 	DFTPredictionInput() { }
-	void InitializeFromModel(const class Model& model, long double phaseCentreRA, long double phaseCentreDec, const BandData& band);
+	void InitializeFromModel(const class Model& model, long double phaseCentreRA, long double phaseCentreDec, const aocommon::BandData& band);
 	void AddComponent(const DFTPredictionComponent& component)
 	{
 		_components.emplace_back(component);
@@ -182,7 +182,7 @@ private:
 class DFTPredictionAlgorithm
 {
 public:
-	DFTPredictionAlgorithm(DFTPredictionInput& input, const BandData& band) : _input(input), _band(band), _hasBeam(false)
+	DFTPredictionAlgorithm(DFTPredictionInput& input, const aocommon::BandData& band) : _input(input), _band(band), _hasBeam(false)
 	{ }
 	
 	void Predict(MC2x2& dest, double u, double v, double w, size_t channelIndex, size_t a1, size_t a2);
@@ -193,7 +193,7 @@ private:
 	void predict(MC2x2& dest, double u, double v, double w, size_t channelIndex, size_t a1, size_t a2, const DFTPredictionComponent& component);
 	
 	DFTPredictionInput& _input;
-	BandData _band;
+	aocommon::BandData _band;
 	bool _hasBeam;
 };
 

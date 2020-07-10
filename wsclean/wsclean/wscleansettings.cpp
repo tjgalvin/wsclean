@@ -57,6 +57,8 @@ void WSCleanSettings::Validate() const
 		throw std::runtime_error("Can't simultaneously grid with the beam and apply the average beam: use either one.");
 	if(gridWithBeam && !atermConfigFilename.empty())
 		throw std::runtime_error("Use of an aterm config file can't be combined with -grid-with-beam: add the beam to your aterm config and remove -grid-with-beam from the command line");
+	if(!useIDG && !atermConfigFilename.empty())
+		throw std::runtime_error("Use of an aterm config file required IDG enabled: add -use-idg");
 	if(useDifferentialLofarBeam && !(gridWithBeam || applyPrimaryBeam))
 		throw std::runtime_error("Differential beam correction was requested, but no beam correction is applied. Use either IDG and grid with the beam, or apply the average beam.");
 	

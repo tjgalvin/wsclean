@@ -2,14 +2,8 @@
 
 #include "../wsclean/logger.h"
 
-#include <aocommon/imagecoordinates.h>
-
-#include "../fftresampler.h"
-
 #include <algorithm>
 #include <limits>
-
-using namespace aocommon;
 
 FitsATermBase::FitsATermBase(size_t nAntenna, const CoordinateSystem& coordinateSystem) :
 	_cache(nAntenna * 4 * coordinateSystem.width * coordinateSystem.height),
@@ -23,11 +17,7 @@ FitsATermBase::FitsATermBase(size_t nAntenna, const CoordinateSystem& coordinate
 	_dl(coordinateSystem.dl), _dm(coordinateSystem.dm),
 	_phaseCentreDL(coordinateSystem.phaseCentreDL),
 	_phaseCentreDM(coordinateSystem.phaseCentreDM),
-	_allocatedWidth(coordinateSystem.maxSupport),
-	_allocatedHeight(coordinateSystem.maxSupport),
-	_downsample(true),
-	_window(WindowFunction::Rectangular),
-	_padding(1.0)
+	_resampler(coordinateSystem)
 {
 }
 
@@ -132,90 +122,3 @@ void FitsATermBase::storeInCache(double frequency, const std::complex<float>* bu
 	_curFrequency = frequency;
 	_cache.Store(frequency, buffer);
 }
-
-void FitsATermBase::readAndResample(FitsReader& reader, size_t fileIndex, aocommon::UVector<double>& scratch, aocommon::UVector<double>& output)
-{
-	if(_resampler == nullptr)
-	{
-		_resampler.reset(new FFTResampler(_allocatedWidth, _allocatedHeight, _width, _height, 1, false));
-		if(_window == WindowFunction::Tukey)
-			_resampler->SetTukeyWindow(double(_allocatedWidth) / _padding, false);
-		else
-			_resampler->SetWindowFunction(_window, true);
-	}
-	
-	if(_downsample)
-	{
-		reader.ReadIndex(output.data(), fileIndex);
-		
-		// First, the image is regridded on a smaller image that fits in the kernel support allocated for the aterms
-		regrid(reader, scratch.data(), output.data());
-		
-		// Now, the small image is enlarged so that it matches the kernel size
-		_resampler->Resample(scratch.data(), output.data());
-	}
-	else {
-		scratch.resize(reader.ImageWidth() * reader.ImageHeight());
-		reader.ReadIndex(scratch.data(), fileIndex);
-		
-		regrid(reader, output.data(), scratch.data());
-	}
-}
-
-void FitsATermBase::regrid(const FitsReader& reader, double* dest, const double* source)
-{
-	size_t inWidth = reader.ImageWidth(), inHeight = reader.ImageHeight();
-	double inPixelSizeX = reader.PixelSizeX(), inPixelSizeY = reader.PixelSizeY();
-	double inPhaseCentreRA = reader.PhaseCentreRA(), inPhaseCentreDec = reader.PhaseCentreDec();
-	double inPhaseCentreDL = reader.PhaseCentreDL(), inPhaseCentreDM = reader.PhaseCentreDM();
-	
-	size_t outWidth, outHeight;
-	if(_downsample)
-	{
-		outWidth = _allocatedWidth;
-		outHeight = _allocatedHeight;
-	}
-	else {
-		outWidth = _width;
-		outHeight = _height;
-	}
-	
-	// The full size is regridded onto the 'Nyquist-sampled' image to remove high-frequency
-	// components. atermDL/DM are the pixelsizes of the Nyquist-sampled image.
-	double atermDL = _dl * _width / outWidth;
-	double atermDM = _dm * _height / outHeight;
-	/**
-	 * If phase centra of input and output are the same, i.e. they have the same
-	 * tangential plane, a few calculations can be saved.
-	 */
-	bool samePlane = inPhaseCentreRA == _ra && inPhaseCentreDec == _dec;
-	
-	size_t index = 0;
-	for(size_t y=0; y!=outWidth; ++y)
-	{
-		for(size_t x=0; x!=outWidth; ++x)
-		{
-			double l, m;
-			ImageCoordinates::XYToLM(x, y, atermDL, atermDM, outWidth, outWidth, l, m);
-			l += _phaseCentreDL;
-			m += _phaseCentreDM;
-			if(!samePlane)
-			{
-				double pixra, pixdec;
-				ImageCoordinates::LMToRaDec(l, m, _ra, _dec, pixra, pixdec);
-				ImageCoordinates::RaDecToLM(pixra, pixdec, inPhaseCentreRA, inPhaseCentreDec, l, m);
-			}
-			l -= inPhaseCentreDL;
-			m -= inPhaseCentreDM;
-			int inX, inY;
-			ImageCoordinates::LMToXY(l, m, inPixelSizeX, inPixelSizeY, inWidth, inHeight, inX, inY);
-			if(inX < 0 || inY < 0 || inX >= int(inWidth) || inY >= int(inHeight))
-				dest[index] = 0;
-			else {
-				dest[index] = source[inX + inY * inWidth];
-			}
-			++index;
-		}
-	}
-}
-

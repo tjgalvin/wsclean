@@ -1,5 +1,5 @@
 #include "imageweights.h"
-#include "banddata.h"
+#include <aocommon/banddata.h>
 #include "multibanddata.h"
 #include "fitswriter.h"
 

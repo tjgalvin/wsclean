@@ -243,8 +243,8 @@ class Matrix2x2 {
       double
           // Evaluate for v = [1, 0] and see if the error is smaller for e1 than
           // for e2
-              err1_0 = matrix[0] - e1,
-              err2_0 = matrix[0] - e2;
+          err1_0 = matrix[0] - e1,
+          err2_0 = matrix[0] - e2;
       if (err1_0 * err1_0 < err2_0 * err2_0) {
         vec1[0] = 1.0;
         vec1[1] = 0.0;
@@ -286,8 +286,8 @@ class Matrix2x2 {
       auto
           // Evaluate for v = [1, 0] and see if the error is smaller for e1 than
           // for e2
-              err1_0 = std::norm(matrix[0] - e1),
-              err2_0 = std::norm(matrix[0] - e2);
+          err1_0 = std::norm(matrix[0] - e1),
+          err2_0 = std::norm(matrix[0] - e2);
       if (err1_0 < err2_0) {
         vec1[0] = 1.0;
         vec1[1] = 0.0;

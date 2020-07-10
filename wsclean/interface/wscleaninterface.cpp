@@ -10,7 +10,7 @@
 
 #include "../units/angle.h"
 
-#include "../banddata.h"
+#include <aocommon/banddata.h>
 #include "../fitsreader.h"
 #include "../fitswriter.h"
 

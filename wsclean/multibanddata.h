@@ -8,7 +8,9 @@
 #include <casacore/tables/Tables/ArrayColumn.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 
-#include "banddata.h"
+#include <aocommon/banddata.h>
+
+using aocommon::BandData;
 
 /**
  * Contains information about a set of bands. This follows the CASA Measurement

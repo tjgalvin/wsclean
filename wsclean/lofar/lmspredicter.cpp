@@ -19,7 +19,7 @@ void LMSPredicter::InitializeInput(const Model& model)
 	double ra = val[0];
 	double dec = val[1];
 	
-	BandData band(_ms.spectralWindow());
+	aocommon::BandData band(_ms.spectralWindow());
 	
 	_dftInput.InitializeFromModel(model, ra, dec, band);
 }
@@ -41,7 +41,7 @@ void LMSPredicter::Start()
 	if(polarizationCount != 4)
 		throw std::runtime_error("Expecting MS with 4 polarizations");
 	
-	_bandData = BandData(_ms.spectralWindow());
+	_bandData = aocommon::BandData(_ms.spectralWindow());
 	if(_endChannel == 0)
 	{
 		_startChannel = 0;

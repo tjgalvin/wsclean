@@ -1,6 +1,7 @@
 #ifndef ATERM_CONFIG_H
 #define ATERM_CONFIG_H
 
+#include <cassert>
 #include <string>
 
 #include "atermbase.h"
@@ -11,6 +12,7 @@
 #include "fitsaterm.h"
 #include "lofarbeamterm.h"
 #include "mwabeamterm.h"
+#include "pafbeamterm.h"
 #include "telescope.h"
 
 #include <aocommon/matrix2x2.h>
@@ -18,21 +20,25 @@
 #include "../parsetreader.h"
 
 #include "../wsclean/wscleansettings.h"
+#include "../units/radeccoord.h"
 
 class ATermConfig : public ATermBase
 {
 public:
-	ATermConfig(casacore::MeasurementSet& ms, size_t nAntenna, const CoordinateSystem& coordinateSystem,
-		const WSCleanSettings& settings
-	) :
-		_ms(ms),
+	ATermConfig(size_t nAntenna, const CoordinateSystem& coordinateSystem,
+		const WSCleanSettings& settings)
+	:
 		_nAntenna(nAntenna),
 		_coordinateSystem(coordinateSystem),
 		_settings(settings)
 	{ }
 	
-	void Read(const std::string& parset)
+	void Read(const std::string& msFilename, casacore::MeasurementSet ms, const std::string& parset)
 	{
+		auto iter = std::find(_settings.filenames.begin(), _settings.filenames.end(), msFilename);
+		assert(iter != _settings.filenames.end());
+		size_t filenameIndex = iter - _settings.filenames.begin();
+		
 		ParsetReader reader(parset);
 		std::vector<std::string> aterms = reader.GetStringList("aterms");
 		if(aterms.empty())
@@ -87,38 +93,64 @@ public:
 			else if(atermType == "beam")
 			{
 				std::unique_ptr<ATermBeam> beam;
-				switch(Telescope::GetType(_ms))
+				switch(Telescope::GetType(ms))
 				{
 					case Telescope::AARTFAAC:
 					case Telescope::LOFAR: {
 						bool differential = reader.GetBoolOr("beam.differential", false);
 						bool useChannelFrequency = reader.GetBoolOr("beam.usechannelfreq", true);
-						std::unique_ptr<LofarBeamTerm> lofarBeam(new LofarBeamTerm(_ms, _coordinateSystem, _settings.dataColumnName));
+						std::unique_ptr<LofarBeamTerm> lofarBeam(new LofarBeamTerm(ms, _coordinateSystem, _settings.dataColumnName));
 						lofarBeam->SetUseDifferentialBeam(differential);
 						lofarBeam->SetUseChannelFrequency(useChannelFrequency);
 						beam = std::move(lofarBeam);
 						break;
 					}
 					case Telescope::MWA: {
-						std::unique_ptr<MWABeamTerm> mwaTerm(new MWABeamTerm(_ms, _coordinateSystem));
+						std::unique_ptr<MWABeamTerm> mwaTerm(new MWABeamTerm(ms, _coordinateSystem));
 						mwaTerm->SetSearchPath(_settings.mwaPath);
 						beam = std::move(mwaTerm);
 						break;
 					}
 					case Telescope::VLA: {
-						beam.reset(new DishATerm(_ms, _coordinateSystem));
+						beam.reset(new DishATerm(ms, _coordinateSystem));
 						break;
 					}
 					default: {
 						// This is here to make sure ATermStub compiles. This call should be the
 						// same as the call for LofarBeamTerm(..)
-						beam.reset(new ATermStub(_ms, _coordinateSystem, _settings.dataColumnName));
+						beam.reset(new ATermStub(ms, _coordinateSystem, _settings.dataColumnName));
 						throw std::runtime_error("Can't make beam for this telescope");
 					}
 				}
 				double updateInterval = reader.GetDoubleOr("beam.update_interval", _settings.beamAtermUpdateTime);
 				beam->SetUpdateInterval(updateInterval);	
 				_aterms.emplace_back(std::move(beam));
+			} 
+			else if(atermType == "paf")
+			{
+				std::vector<std::string> antennaMap = reader.GetStringList(atermName + ".antenna_map");
+				if(antennaMap.size() != _nAntenna)
+					throw std::runtime_error("Antenna map in paf term of aterm config contains " +
+						std::to_string(antennaMap.size()) + " antennas, whereas the measurement set consists of " + std::to_string(_nAntenna));
+				std::vector<std::string> beamMap = reader.GetStringList(atermName + ".beam_map");
+				if(beamMap.size() != _settings.filenames.size())
+					throw std::runtime_error("Number of beams specified in aterm config (" + std::to_string(beamMap.size()) + ") should match the number of measurement sets specified on the command line (" + std::to_string(_settings.filenames.size()) + ")");
+				std::vector<std::string> beamPointings = reader.GetStringList(atermName + ".beam_pointings");
+				if(beamPointings.size() != _settings.filenames.size()*2)
+					throw std::runtime_error("Size of beam pointings is invalid");
+				double beamRA = RaDecCoord::ParseRA(beamPointings[filenameIndex*2]);
+				double beamDec = RaDecCoord::ParseDec(beamPointings[filenameIndex*2+1]);
+				std::string fileTemplate = reader.GetString(atermName + ".file_template");
+				std::unique_ptr<PAFBeamTerm> f(new PAFBeamTerm(_coordinateSystem));
+				f->Open(fileTemplate, antennaMap, beamMap[filenameIndex], beamRA, beamDec);
+				std::string windowStr = reader.GetStringOr(atermName + ".window", "raised-hann");
+				WindowFunction::Type window = WindowFunction::GetType(windowStr);
+				if(window == WindowFunction::Tukey)
+					f->SetTukeyWindow(double(_settings.paddedImageWidth) / _settings.trimmedImageWidth);
+				else
+					f->SetWindow(window);
+				f->SetDownSample( reader.GetBoolOr(atermName + ".downsample", true) );
+				_aterms.emplace_back(std::move(f));
 			}
 			_aterms.back()->SetSaveATerms(false, _settings.prefixName);  // done by config after combining
 		}
@@ -179,7 +211,6 @@ public:
 		return avgTime;
 	}
 private:
-	casacore::MeasurementSet& _ms;
 	size_t _nAntenna;
 	CoordinateSystem _coordinateSystem;
 	std::vector<std::unique_ptr<ATermBase>> _aterms;

@@ -29,6 +29,8 @@ public:
 	
 	casacore::MeasurementSet& MS() { return _lock->MS(); }
 	
+	const std::string& Filename() const { return _lock->Filename(); }
+	
 private:
 	
 	class MSLock {
@@ -74,6 +76,8 @@ private:
 		}
 		
 		casacore::MeasurementSet& MS() { return *_ms; }
+		
+		const std::string& Filename() const { return _filename; }
 		
 	private:
 		void release()

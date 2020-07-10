@@ -3,6 +3,7 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+#include <aocommon/banddata.h>
 #include <aocommon/matrix2x2.h>
 
 #ifdef HAVE_LOFAR_BEAM
@@ -44,7 +45,7 @@ public:
 	
 	const casacore::MEpoch& Time() const { return _time; }
 	
-	static void EvaluateFullCorrection(casacore::MeasurementSet& ms, double ra, double dec, const class BandData& band, MC2x2* beamValues);
+	static void EvaluateFullCorrection(casacore::MeasurementSet& ms, double ra, double dec, const aocommon::BandData& band, MC2x2* beamValues);
 	
 private:
 	casacore::MeasurementSet _ms;

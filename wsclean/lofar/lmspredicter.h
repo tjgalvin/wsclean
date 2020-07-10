@@ -3,7 +3,7 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include "../banddata.h"
+#include <aocommon/banddata.h>
 #include "../dftpredictionalgorithm.h"
 #include "../buffered_lane.h"
 
@@ -104,7 +104,7 @@ private:
 	std::vector<std::thread> _workThreadGroup;
 	std::unique_ptr<DFTPredictionAlgorithm> _predicter;
 	std::vector<MC2x2*> _buffers;
-	BandData _bandData;
+	aocommon::BandData _bandData;
 	size_t _startRow, _endRow, _threadCount;
 };
 

@@ -1,6 +1,6 @@
 #include "lofarbeamterm.h"
 
-#include "../banddata.h"
+#include <aocommon/banddata.h>
 #include <aocommon/matrix2x2.h>
 
 #include "../system.h"

@@ -52,8 +52,8 @@ private:
 	void readEarlierModelImages(const ImagingTableEntry& entry);
 	
 	void makeImagingTable(size_t outputIntervalIndex);
-	void makeImagingTableEntry(const std::vector<ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, ImagingTableEntry& entry);
-	void makeImagingTableEntryChannelSettings(const std::vector<ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels, ImagingTableEntry& entry);
+	void makeImagingTableEntry(const std::vector<aocommon::ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, ImagingTableEntry& entry);
+	void makeImagingTableEntryChannelSettings(const std::vector<aocommon::ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels, ImagingTableEntry& entry);
 	void addPolarizationsToImagingTable(size_t& joinedGroupIndex, size_t& squaredGroupIndex, size_t outChannelIndex, const ImagingTableEntry& templateEntry);
 	std::unique_ptr<class ImageWeightCache> createWeightCache();
 	

@@ -161,7 +161,7 @@ void DFTPredictionInput::ConvertApparentToAbsolute(casacore::MeasurementSet& ms)
 {
 	std::vector<ComponentInfo> compInfos(_components.size());
 	
-	const BandData band(ms.spectralWindow());
+	const aocommon::BandData band(ms.spectralWindow());
 	LBeamEvaluator evaluator(ms);
 	casacore::MEpoch::ROScalarColumn timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
 	size_t nrow = ms.nrow();
@@ -223,7 +223,7 @@ void DFTPredictionInput::ConvertApparentToAbsolute(casacore::MeasurementSet& ms)
 	
 }
 
-void DFTPredictionInput::InitializeFromModel(const Model& model, long double phaseCentreRA, long double phaseCentreDec, const BandData& band)
+void DFTPredictionInput::InitializeFromModel(const Model& model, long double phaseCentreRA, long double phaseCentreDec, const aocommon::BandData& band)
 {
 	for(const ModelSource& s : model)
 	{

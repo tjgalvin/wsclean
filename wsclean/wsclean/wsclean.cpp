@@ -1222,7 +1222,7 @@ void WSClean::saveUVImage(const double* image, const ImagingTableEntry& entry, b
 
 void WSClean::makeImagingTable(size_t outputIntervalIndex)
 {
-	std::set<ChannelInfo> channelSet;
+	std::set<aocommon::ChannelInfo> channelSet;
 	_msBands.assign(_settings.filenames.size(), MultiBandData());
 	for(size_t i=0; i!=_settings.filenames.size(); ++i)
 	{
@@ -1271,7 +1271,7 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex)
 		str << "Parameter '-channels-out' was set to an invalid value: " << _settings.channelsOut << " output channels requested, but combined in all specified measurement sets, there are only " << channelSet.size() << " unique channels.";
 		throw std::runtime_error(str.str());
 	}
-	std::vector<ChannelInfo> inputChannelFrequencies(channelSet.begin(), channelSet.end());
+	std::vector<aocommon::ChannelInfo> inputChannelFrequencies(channelSet.begin(), channelSet.end());
 	Logger::Debug << "Total nr of channels found in measurement sets: " << inputChannelFrequencies.size() << '\n';
 	
 	size_t joinedGroupIndex = 0, squaredGroupIndex = 0;
@@ -1308,7 +1308,7 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex)
 	_imagingTable.Print();
 }
 
-void WSClean::makeImagingTableEntry(const std::vector<ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, ImagingTableEntry& entry)
+void WSClean::makeImagingTableEntry(const std::vector<aocommon::ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, ImagingTableEntry& entry)
 {
 	size_t startCh, endCh;
 	if(_settings.endChannel != 0)
@@ -1322,7 +1322,7 @@ void WSClean::makeImagingTableEntry(const std::vector<ChannelInfo>& channels, si
 		startCh = 0;
 		endCh = channels.size();
 	}
-	std::vector<ChannelInfo> groupChannels(channels.begin()+startCh, channels.begin()+endCh);
+	std::vector<aocommon::ChannelInfo> groupChannels(channels.begin()+startCh, channels.begin()+endCh);
 	
 	if(_settings.divideChannelFrequencies.empty())
 	{
@@ -1341,8 +1341,8 @@ void WSClean::makeImagingTableEntry(const std::vector<ChannelInfo>& channels, si
 			{
 				double splitFreqLow = (i==0) ? 0.0 : _settings.divideChannelFrequencies[i-1];
 				double splitFreqHigh = (i==nSplits) ? std::numeric_limits<double>::max() : _settings.divideChannelFrequencies[i];
-				std::vector<ChannelInfo> splittedChannels;
-				for(const ChannelInfo& channel : groupChannels)
+				std::vector<aocommon::ChannelInfo> splittedChannels;
+				for(const aocommon::ChannelInfo& channel : groupChannels)
 				{
 					if(channel.Frequency() >= splitFreqLow && channel.Frequency() < splitFreqHigh)
 						splittedChannels.emplace_back(channel);
@@ -1374,7 +1374,7 @@ void WSClean::makeImagingTableEntry(const std::vector<ChannelInfo>& channels, si
 	}
 }
 
-void WSClean::makeImagingTableEntryChannelSettings(const std::vector<ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels, ImagingTableEntry& entry)
+void WSClean::makeImagingTableEntryChannelSettings(const std::vector<aocommon::ChannelInfo>& channels, size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels, ImagingTableEntry& entry)
 {
 	size_t chLowIndex, chHighIndex;
 	if(_settings.divideChannelsByGaps)

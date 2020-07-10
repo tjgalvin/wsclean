@@ -1,10 +1,9 @@
 #include "dldmaterm.h"
 
+#include <aocommon/banddata.h>
 #include <aocommon/imagecoordinates.h>
 
 #include "../wsclean/logger.h"
-
-#include "../banddata.h"
 
 using namespace aocommon;
 
@@ -58,11 +57,11 @@ void DLDMATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 		/ _readers.front().FrequencyDimensionIncr());
 	const size_t imgIndex = _timesteps[timeIndex].imgIndex * NFrequencies() + freqIndex;
 	FitsReader& reader = _readers[_timesteps[timeIndex].readerIndex];
-	_scratch.resize(AllocatedWidth() * AllocatedHeight());
-	_dlImage.resize(std::max(Width()*Height(), reader.ImageWidth() * reader.ImageHeight()));
-	_dmImage.resize(std::max(Width()*Height(), reader.ImageWidth() * reader.ImageHeight()));
-	readAndResample(reader, imgIndex * 2, _scratch, _dlImage);
-	readAndResample(reader, imgIndex * 2 + 1, _scratch, _dmImage);
+	_scratch.resize(Resampler().ScratchASize());
+	_dlImage.resize(Resampler().ScratchBSize(reader));
+	_dmImage.resize(Resampler().ScratchBSize(reader));
+	Resampler().ReadAndResample(reader, imgIndex * 2, _scratch, _dlImage);
+	Resampler().ReadAndResample(reader, imgIndex * 2 + 1, _scratch, _dmImage);
 
 	double wavel = BandData::FrequencyToLambda(frequency);
 	for(size_t antennaIndex = 0; antennaIndex != NAntenna(); ++antennaIndex)

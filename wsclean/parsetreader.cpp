@@ -88,7 +88,7 @@ const std::string& ParsetReader::GetString(const std::string& key) const
 {
 	auto iter = _entries.find(key);
 	if(iter == _entries.end())
-		throw std::runtime_error("Key not found");
+		throw std::runtime_error("Key '" + key + "' not found");
 	return iter->second.GetStringValue();
 }
 
@@ -105,7 +105,7 @@ const std::vector<std::string>& ParsetReader::GetStringList(const std::string& k
 {
 	auto iter = _entries.find(key);
 	if(iter == _entries.end())
-		throw std::runtime_error("Key not found");
+		throw std::runtime_error("Key '" + key + "' not found");
 	return iter->second.GetStringListValue();
 }
 

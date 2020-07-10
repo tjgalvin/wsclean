@@ -89,19 +89,18 @@ public:
 private:
 	std::unique_ptr<ImageWeights> recalculateWeights(const std::vector<std::unique_ptr<MSDataDescription>>& msList)
 	{
-		Logger::Info << "Precalculating weights for " << _weightMode.ToString() << " weighting... ";
-		Logger::Info.Flush();
+		Logger::Info << "Precalculating weights for " << _weightMode.ToString() << " weighting...\n";
 		std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
 		for(size_t i=0; i!=msList.size(); ++i)
 		{
 			std::unique_ptr<MSProvider> provider = msList[i]->GetProvider();
 			weights->Grid(*provider, msList[i]->Selection());
 			if(msList.size() > 1)
-				(Logger::Info << i << ' ').Flush();
+				(Logger::Info << provider->MS().Filename() << ' ').Flush();
 		}
 		weights->FinishGridding();
 		initializeWeightTapers(*weights);
-		Logger::Info << "DONE\n";
+		Logger::Info << "\n";
 		return weights;
 	}
 	

@@ -58,8 +58,8 @@ void FitsATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 		/ _readers.front().FrequencyDimensionIncr());
 	const size_t imgIndex = _timesteps[timeIndex].imgIndex * NFrequencies() + freqIndex;
 	FitsReader& reader = _readers[_timesteps[timeIndex].readerIndex];
-	_scratchA.resize(AllocatedWidth() * AllocatedHeight());
-	_scratchB.resize(std::max(Width()*Height(), reader.ImageWidth() * reader.ImageHeight()));
+	_scratchA.resize(Resampler().ScratchASize());
+	_scratchB.resize(Resampler().ScratchBSize(reader));
 	// TODO do this in parallel. Needs to fix Resampler too, as currently it can't run in
 	// parallel when a window is used.
 	for(size_t antennaIndex = 0; antennaIndex != NAntenna(); ++antennaIndex)
@@ -78,17 +78,17 @@ void FitsATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 				// TODO When we are in the same timestep but at a different frequency, it would
 				// be possible to skip reading and resampling, and immediately call evaluateTEC()
 				// with the "scratch" data still there.
-				readAndResample(reader, antennaFileIndex + imgIndex*NAntenna(), _scratchA, _scratchB);
+				Resampler().ReadAndResample(reader, antennaFileIndex + imgIndex*NAntenna(), _scratchA, _scratchB);
 				evaluateTEC(antennaBuffer, _scratchB.data(), frequency);
 			} break;
 			
 			case DiagonalMode: {
 				for(size_t p=0; p!=2; ++p)
 				{
-					readAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2, _scratchA, _scratchB);
+					Resampler().ReadAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2, _scratchA, _scratchB);
 					copyToRealPolarization(antennaBuffer, _scratchB.data(), p*3);
 					
-					readAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2 + 1, _scratchA, _scratchB);
+					Resampler().ReadAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2 + 1, _scratchA, _scratchB);
 					copyToImaginaryPolarization(antennaBuffer, _scratchB.data(), p*3);
 				}
 				setPolarization(antennaBuffer, 1, std::complex<float>(0.0, 0.0));

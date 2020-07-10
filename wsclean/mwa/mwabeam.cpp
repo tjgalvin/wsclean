@@ -3,7 +3,7 @@
 #include "../units/angle.h"
 #include "../units/radeccoord.h"
 
-#include "../banddata.h"
+#include <aocommon/banddata.h>
 #include "../fftresampler.h"
 #include "../fitsreader.h"
 #include "../fitswriter.h"
