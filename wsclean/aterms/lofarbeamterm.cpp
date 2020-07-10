@@ -170,13 +170,11 @@ void LofarBeamTerm::calcThread(std::complex<float>* buffer, double time, double 
 		size_t y = job_id / _stations.size();
 		for(size_t x=0; x!=_width; ++x)
 		{
-			double l, m, n, ra, dec;
+			double l, m, n;
 			ImageCoordinates::XYToLM(x, y, _dl, _dm, _width, _height, l, m);
 			l += _phaseCentreDL;
 			m += _phaseCentreDM;
 			n = sqrt(1.0 - l*l - m*m);
-
-			ImageCoordinates::LMToRaDec(l, m, _phaseCentreRA, _phaseCentreDec, ra, dec);
 
 			vector3r_t itrfDirection;
 
