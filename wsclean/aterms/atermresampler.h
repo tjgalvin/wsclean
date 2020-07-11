@@ -18,7 +18,7 @@ public:
 	 * @param scratch vector of size at least ScratchASize()
 	 * @param output vector of size at least ScratchBSize()
 	 */
-	void ReadAndResample(FitsReader& reader, size_t fileIndex, aocommon::UVector<double>& scratch, aocommon::UVector<double>& output);
+	void ReadAndResample(FitsReader& reader, size_t fileIndex, aocommon::UVector<double>& scratch, aocommon::UVector<double>& output, double stretchFactor);
 	
 	void SetTukeyWindow(double padding)
 	{
@@ -52,7 +52,7 @@ public:
 	}
 	
 private:
-	void regrid(const FitsReader& reader, double* dest, const double* source);
+	void regrid(const FitsReader& reader, double* dest, const double* source, double stretchFactor);
 	
 	const ATermBase::CoordinateSystem _coordinateSystem;
 	size_t _allocatedWidth, _allocatedHeight;

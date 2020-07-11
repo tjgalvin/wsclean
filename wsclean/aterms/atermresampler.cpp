@@ -18,7 +18,7 @@ ATermResampler::ATermResampler(const ATermBase::CoordinateSystem& coordinateSyst
 ATermResampler::~ATermResampler()
 { }
 
-void ATermResampler::ReadAndResample(FitsReader& reader, size_t fileIndex, aocommon::UVector<double>& scratch, aocommon::UVector<double>& output)
+void ATermResampler::ReadAndResample(FitsReader& reader, size_t fileIndex, aocommon::UVector<double>& scratch, aocommon::UVector<double>& output, double stretchFactor)
 {
 	if(_resampler == nullptr)
 	{
@@ -34,7 +34,7 @@ void ATermResampler::ReadAndResample(FitsReader& reader, size_t fileIndex, aocom
 		reader.ReadIndex(output.data(), fileIndex);
 		
 		// First, the image is regridded on a smaller image that fits in the kernel support allocated for the aterms
-		regrid(reader, scratch.data(), output.data());
+		regrid(reader, scratch.data(), output.data(), stretchFactor);
 		
 		// Now, the small image is enlarged so that it matches the kernel size
 		_resampler->Resample(scratch.data(), output.data());
@@ -43,15 +43,18 @@ void ATermResampler::ReadAndResample(FitsReader& reader, size_t fileIndex, aocom
 		scratch.resize(reader.ImageWidth() * reader.ImageHeight());
 		reader.ReadIndex(scratch.data(), fileIndex);
 		
-		regrid(reader, output.data(), scratch.data());
+		regrid(reader, output.data(), scratch.data(), stretchFactor);
 	}
 }
 
-void ATermResampler::regrid(const FitsReader& reader, double* dest, const double* source)
+void ATermResampler::regrid(const FitsReader& reader, double* dest, const double* source, double stretchFactor)
 {
 	size_t inWidth = reader.ImageWidth(), inHeight = reader.ImageHeight();
-	double inPixelSizeX = reader.PixelSizeX(), inPixelSizeY = reader.PixelSizeY();
-	double inPhaseCentreDL = reader.PhaseCentreDL(), inPhaseCentreDM = reader.PhaseCentreDM();
+	const double
+		inPixelSizeX = reader.PixelSizeX() / stretchFactor,
+		inPixelSizeY = reader.PixelSizeY() / stretchFactor,
+		inPhaseCentreDL = reader.PhaseCentreDL(),
+		inPhaseCentreDM = reader.PhaseCentreDM();
 	double inPhaseCentreRA, inPhaseCentreDec;
 	if(_overrideFitsPhaseCentre)
 	{
@@ -73,7 +76,6 @@ void ATermResampler::regrid(const FitsReader& reader, double* dest, const double
 		outWidth = _coordinateSystem.width;
 		outHeight = _coordinateSystem.height;
 	}
-	
 	// The full size is regridded onto the 'Nyquist-sampled' image to remove high-frequency
 	// components. atermDL/DM are the pixelsizes of the Nyquist-sampled image.
 	double atermDL = _coordinateSystem.dl * _coordinateSystem.width / outWidth;

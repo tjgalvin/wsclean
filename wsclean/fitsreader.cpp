@@ -182,8 +182,17 @@ void FitsReader::initialize()
 	_meta.imgWidth = naxes[0];
 	_meta.imgHeight = naxes[1];
 	
+	// There are fits files that say naxis=2 but then still define
+	// the third and fourth axes, so we always continue reading
+	// at least 4 axes:
+	if(naxis < 4)
+	{
+		naxis = 4;
+		while(naxes.size() < 4) naxes.emplace_back(1);
+	}
+		
 	std::string tmp;
-	for(int i=2;i!=naxis;++i)
+	for(int i=2; i!=naxis; ++i)
 	{
 		std::ostringstream name;
 		name << "CTYPE" << (i+1);
@@ -192,7 +201,7 @@ void FitsReader::initialize()
 			std::ostringstream crval, cdelt;
 			crval << "CRVAL" << (i+1);
 			cdelt << "CDELT" << (i+1);
-			if(tmp == "FREQ" || tmp == "VRAD")
+			if(tmp == "FREQ" || tmp == "VRAD" || tmp == "FREQ-OBS")
 			{
 				_meta.nFrequencies = naxes[i];
 				_meta.frequency = ReadDoubleKey(crval.str().c_str());

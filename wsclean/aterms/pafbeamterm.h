@@ -40,6 +40,15 @@ public:
 		_resampler.SetDownSample(downsample);
 	}
 	
+	void SetCorrectForFrequencyOffset(bool correct)
+	{
+		_correctForFrequencyOffset = correct;
+	}
+	void SetReferenceFrequency(double refFrequency)
+	{
+		_refFrequency = refFrequency;
+	}
+	
 private:
 	std::vector<FitsReader> _readers;
 	const CoordinateSystem _coordinateSystem;
@@ -47,6 +56,8 @@ private:
 	size_t _nAntenna, _nFrequencies;
 	double _freq0, _dfreq, _beamRA, _beamDec;
 	double _updateInterval, _previousTime;
+	bool _correctForFrequencyOffset;
+	double _refFrequency;
 };
 
 #endif 

@@ -12,7 +12,9 @@ PAFBeamTerm::PAFBeamTerm(const ATermBase::CoordinateSystem& coordinateSystem) :
 	_freq0(0.0), _dfreq(0.0),
 	_beamRA(0.0), _beamDec(0.0),
 	_updateInterval(3600),
-	_previousTime(std::numeric_limits<double>::lowest())
+	_previousTime(std::numeric_limits<double>::lowest()),
+	_correctForFrequencyOffset(true),
+	_refFrequency(0.0)
 {
 }
 
@@ -27,12 +29,20 @@ bool PAFBeamTerm::Calculate(std::complex<float>* buffer, double time, double fre
 		width = _coordinateSystem.width,
 		height = _coordinateSystem.height,
 		freqIndex = std::min<size_t>(_nFrequencies-1, std::max(0.0, round((frequency - _freq0) / _dfreq)));
+		
+	double refFrequency;
+	if(_refFrequency != 0.0)
+		refFrequency = _refFrequency;
+	else
+		refFrequency = double(freqIndex)*_dfreq + _freq0;
+	const double frequencyFactor = _correctForFrequencyOffset ? frequency/refFrequency : 1.0;
+	
 	aocommon::UVector<double> scratch(_resampler.ScratchASize());
 	aocommon::UVector<double> output(_resampler.ScratchBSize(_readers[0]));
 	for(size_t antenna=0; antenna!=_nAntenna; ++antenna)
 	{
 		_resampler.OverrideFitsPhaseCentre(_beamRA, _beamDec);
-		_resampler.ReadAndResample(_readers[antenna], freqIndex, scratch, output);
+		_resampler.ReadAndResample(_readers[antenna], freqIndex, scratch, output, frequencyFactor);
 		std::complex<float>* imgPtr = buffer + antenna * width * height * 4;
 		for(size_t i=0; i!=width*height; ++i)
 		{

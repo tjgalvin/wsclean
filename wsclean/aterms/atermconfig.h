@@ -150,6 +150,7 @@ public:
 				else
 					f->SetWindow(window);
 				f->SetDownSample( reader.GetBoolOr(atermName + ".downsample", true) );
+				f->SetReferenceFrequency( reader.GetDoubleOr(atermName + ".reference_frequency", 0.0) );
 				_aterms.emplace_back(std::move(f));
 			}
 			_aterms.back()->SetSaveATerms(false, _settings.prefixName);  // done by config after combining

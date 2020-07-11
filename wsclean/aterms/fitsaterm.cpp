@@ -78,17 +78,17 @@ void FitsATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 				// TODO When we are in the same timestep but at a different frequency, it would
 				// be possible to skip reading and resampling, and immediately call evaluateTEC()
 				// with the "scratch" data still there.
-				Resampler().ReadAndResample(reader, antennaFileIndex + imgIndex*NAntenna(), _scratchA, _scratchB);
+				Resampler().ReadAndResample(reader, antennaFileIndex + imgIndex*NAntenna(), _scratchA, _scratchB, 1.0);
 				evaluateTEC(antennaBuffer, _scratchB.data(), frequency);
 			} break;
 			
 			case DiagonalMode: {
 				for(size_t p=0; p!=2; ++p)
 				{
-					Resampler().ReadAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2, _scratchA, _scratchB);
+					Resampler().ReadAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2, _scratchA, _scratchB, 1.0);
 					copyToRealPolarization(antennaBuffer, _scratchB.data(), p*3);
 					
-					Resampler().ReadAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2 + 1, _scratchA, _scratchB);
+					Resampler().ReadAndResample(reader, (antennaFileIndex + imgIndex*NAntenna()) * 4 + p*2 + 1, _scratchA, _scratchB, 1.0);
 					copyToImaginaryPolarization(antennaBuffer, _scratchB.data(), p*3);
 				}
 				setPolarization(antennaBuffer, 1, std::complex<float>(0.0, 0.0));

@@ -60,8 +60,8 @@ void DLDMATerm::readImages(std::complex<float>* buffer, size_t timeIndex, double
 	_scratch.resize(Resampler().ScratchASize());
 	_dlImage.resize(Resampler().ScratchBSize(reader));
 	_dmImage.resize(Resampler().ScratchBSize(reader));
-	Resampler().ReadAndResample(reader, imgIndex * 2, _scratch, _dlImage);
-	Resampler().ReadAndResample(reader, imgIndex * 2 + 1, _scratch, _dmImage);
+	Resampler().ReadAndResample(reader, imgIndex * 2, _scratch, _dlImage, 1.0);
+	Resampler().ReadAndResample(reader, imgIndex * 2 + 1, _scratch, _dmImage, 1.0);
 
 	double wavel = BandData::FrequencyToLambda(frequency);
 	for(size_t antennaIndex = 0; antennaIndex != NAntenna(); ++antennaIndex)
