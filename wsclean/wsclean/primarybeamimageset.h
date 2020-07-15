@@ -221,9 +221,9 @@ public:
 	
 	void ApplyFullStokes(double* images[4]) const
 	{
+		size_t size = _width * _height;
 		if(_beamImages.size() == 8)
 		{
-			size_t size = _width * _height;
 			for(size_t j=0; j!=size; ++j)
 			{
 				MC2x2 beamVal;
@@ -246,6 +246,27 @@ public:
 					for(size_t p=0; p!=4; ++p)
 						images[p][j] = std::numeric_limits<double>::quiet_NaN();
 				}
+			}
+		}
+		else if(_beamImages.size() == 16)
+		{
+			for(size_t j=0; j!=size; ++j)
+			{
+				HMC4x4 beam = HMC4x4::FromData({
+					_beamImages[0][j], _beamImages[1][j], _beamImages[2][j], _beamImages[3][j],
+					_beamImages[4][j], _beamImages[5][j], _beamImages[6][j], _beamImages[7][j],
+					_beamImages[8][j], _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
+					_beamImages[12][j], _beamImages[13][j], _beamImages[14][j], _beamImages[15][j]
+				});
+				if(!beam.Invert())
+					beam = HMC4x4::Zero();
+				double stokesVal[4] = { images[0][j], images[1][j], images[2][j], images[3][j] };
+				Vector4 v;
+				aocommon::Polarization::StokesToLinear(stokesVal, v.data());
+				v = beam * v;
+				aocommon::Polarization::LinearToStokes(v.data(), stokesVal);
+				for(size_t p=0; p!=4; ++p)
+					images[p][j] = stokesVal[p];
 			}
 		}
 		else {

@@ -17,7 +17,8 @@ class Vector4 {
   };
   std::complex<double>& operator[](size_t i) { return _data[i]; }
   const std::complex<double>& operator[](size_t i) const { return _data[i]; }
-
+  std::complex<double>* data() { return _data; }
+  const std::complex<double>* data() const { return _data; }
  private:
   std::complex<double> _data[4];
 };

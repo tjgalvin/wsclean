@@ -11,13 +11,10 @@ PrimaryBeamImageSet LBeamImageMaker::Make()
 #include "../units/angle.h"
 #include "../units/radeccoord.h"
 
-#include <aocommon/banddata.h>
 #include "../fftresampler.h"
 #include "../fitsreader.h"
 #include "../fitswriter.h"
-#include <aocommon/imagecoordinates.h>
 #include "../imageweights.h"
-#include <aocommon/matrix2x2.h>
 
 #include "../progressbar.h"
 
@@ -44,7 +41,10 @@ PrimaryBeamImageSet LBeamImageMaker::Make()
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 
+#include <aocommon/banddata.h>
+#include <aocommon/imagecoordinates.h>
 #include <aocommon/uvector.h>
+#include <aocommon/matrix2x2.h>
 
 #include <stdexcept>
 
@@ -103,6 +103,13 @@ PrimaryBeamImageSet LBeamImageMaker::Make()
 				scratchA[i] = matrices[i].Data(p);
 			resampler.Resample(scratchA.data(), scratchB.data());
 			std::copy_n(scratchB.data(), _width*_height, &beamImages[p][0]);
+		}
+	}
+	else {
+		for(size_t p=0; p!=16; ++p)
+		{
+			for(size_t i=0; i!=_sampledWidth*_sampledHeight; ++i)
+				beamImages[p][i] = matrices[i].Data(p);
 		}
 	}
 	
