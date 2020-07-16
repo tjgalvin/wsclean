@@ -9,24 +9,24 @@
 class UnavailableGridder : public MSGridderBase
 {
 public:
-	UnavailableGridder(const class WSCleanSettings&, class ImageBufferAllocator&) { doThrow(); }
+	UnavailableGridder(const class WSCleanSettings&) { doThrow(); }
 	
 	virtual ~UnavailableGridder() final override { doThrow(); }
 	
 	virtual void Invert() final override { doThrow(); }
 	
-	virtual void Predict(ImageBufferAllocator::Ptr) final override { doThrow(); }
+	virtual void Predict(Image) final override { doThrow(); }
 	
-	virtual void Predict(ImageBufferAllocator::Ptr, ImageBufferAllocator::Ptr) final override { doThrow(); }
+	virtual void Predict(Image, Image) final override { doThrow(); }
 	
-	virtual ImageBufferAllocator::Ptr ImageRealResult() final override { doThrow(); return 0; }
+	virtual Image ImageRealResult() final override { doThrow(); return Image(); }
 	
-	virtual ImageBufferAllocator::Ptr ImageImaginaryResult() final override { doThrow(); return 0; }
+	virtual Image ImageImaginaryResult() final override { doThrow(); return Image(); }
 	
-	void SavePBCorrectedImages(class FitsWriter& /*writer*/, class ImageFilename& /*filename*/, const std::string& /*filenameKind*/, class ImageBufferAllocator& /*allocator*/) const
+	static void SavePBCorrectedImages(class FitsWriter& /*writer*/, class ImageFilename& /*filename*/, const std::string& /*filenameKind*/, const WSCleanSettings&)
 	{ }
 	
-	void SaveBeamImage(const class ImagingTableEntry& /*entry*/, class ImageFilename& /*filename*/) const
+	static void SaveBeamImage(const class ImagingTableEntry& /*entry*/, class ImageFilename& /*filename*/, const WSCleanSettings&, double, double, double, double, const MetaDataCache&)
 	{ }
 
 private:

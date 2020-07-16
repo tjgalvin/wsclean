@@ -1,5 +1,7 @@
 #include "gaussianfitter.h"
 
+using aocommon::Matrix2x2;
+
 void GaussianFitter::ToAnglesAndFWHM(double sx, double sy, double beta, double& ellipseMaj, double& ellipseMin, double& ellipsePA)
 {
 	//std::cout << "conv sx=" << sx << ", sy=" << sy << ", beta=" << beta << '\n';

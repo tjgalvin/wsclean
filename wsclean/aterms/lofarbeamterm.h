@@ -48,7 +48,7 @@ private:
 	LOFAR::StationResponse::vector3r_t _l_vector_itrf;
 	LOFAR::StationResponse::vector3r_t _m_vector_itrf;
 	LOFAR::StationResponse::vector3r_t _n_vector_itrf;
-	std::vector<MC2x2F> _inverseCentralGain;
+	std::vector<aocommon::MC2x2F> _inverseCentralGain;
 	LOFAR::StationResponse::vector3r_t _station0, _tile0;
 	
 	aocommon::Lane<size_t> *_lane;

@@ -26,7 +26,7 @@ public:
 		RowData() : modelData(0)
 		{	}
 		
-		MC2x2* modelData;
+		aocommon::MC2x2* modelData;
 		size_t rowIndex, timeIndex, a1, a2;
 		double u, v, w;
 	};
@@ -103,7 +103,7 @@ private:
 	std::unique_ptr<std::thread> _readThread;
 	std::vector<std::thread> _workThreadGroup;
 	std::unique_ptr<DFTPredictionAlgorithm> _predicter;
-	std::vector<MC2x2*> _buffers;
+	std::vector<aocommon::MC2x2*> _buffers;
 	aocommon::BandData _bandData;
 	size_t _startRow, _endRow, _threadCount;
 };

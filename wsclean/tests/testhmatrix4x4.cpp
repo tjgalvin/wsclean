@@ -5,6 +5,13 @@
 
 #include "../hmatrix4x4.h"
 
+#include <aocommon/matrix2x2.h>
+#include <aocommon/matrix4x4.h>
+
+using aocommon::MC2x2;
+using aocommon::MC4x4;
+using aocommon::Vector4;
+
 #define CHECK_CLOSE_MESSAGE(VAL, REF, MSG) \
   BOOST_CHECK_MESSAGE(std::fabs(VAL-REF) < 1e-6, \
   MSG << " is " << VAL << ", should be " << REF);

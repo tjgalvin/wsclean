@@ -49,6 +49,8 @@ PrimaryBeamImageSet LBeamImageMaker::Make()
 #include <stdexcept>
 
 using namespace LOFAR::StationResponse;
+using aocommon::MC2x2;
+using aocommon::MC4x4;
 
 static void dirToITRFVector(const casacore::MDirection& dir, ITRFConverter& convert, vector3r_t& itrf);
 

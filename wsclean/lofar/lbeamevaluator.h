@@ -33,11 +33,11 @@ public:
 	explicit LBeamEvaluator(casacore::MeasurementSet& ms);
 	~LBeamEvaluator();
 
-	void Evaluate(double ra, double dec, double frequency, size_t antennaIndex, MC2x2& beamValues);
+	void Evaluate(double ra, double dec, double frequency, size_t antennaIndex, aocommon::MC2x2& beamValues);
 		
-	void Evaluate(const PrecalcPosInfo& posInfo, double frequency, size_t antennaIndex, MC2x2& beamValues);
+	void Evaluate(const PrecalcPosInfo& posInfo, double frequency, size_t antennaIndex, aocommon::MC2x2& beamValues);
 	
-	void EvaluateFullArray(const PrecalcPosInfo& posInfo, double frequency, MC2x2& beamValues);
+	void EvaluateFullArray(const PrecalcPosInfo& posInfo, double frequency, aocommon::MC2x2& beamValues);
 		
 	void PrecalculatePositionInfo(PrecalcPosInfo& posInfo, double raRad, double decRad);
 	
@@ -45,7 +45,7 @@ public:
 	
 	const casacore::MEpoch& Time() const { return _time; }
 	
-	static void EvaluateFullCorrection(casacore::MeasurementSet& ms, double ra, double dec, const aocommon::BandData& band, MC2x2* beamValues);
+	static void EvaluateFullCorrection(casacore::MeasurementSet& ms, double ra, double dec, const aocommon::BandData& band, aocommon::MC2x2* beamValues);
 	
 private:
 	casacore::MeasurementSet _ms;
@@ -79,17 +79,17 @@ inline LBeamEvaluator::LBeamEvaluator(casacore::MeasurementSet&) { }
 
 inline LBeamEvaluator::~LBeamEvaluator() { }
 
-inline void LBeamEvaluator::Evaluate(double, double, double, size_t, MC2x2&)
+inline void LBeamEvaluator::Evaluate(double, double, double, size_t, aocommon::MC2x2&)
 {
 	throw std::runtime_error("LBeamEvaluator::Evaluate() was called, but the LOFAR beam library was not available/specified during compilation");
 }
 		
-inline void LBeamEvaluator::Evaluate(const PrecalcPosInfo&, double, size_t, MC2x2&)
+inline void LBeamEvaluator::Evaluate(const PrecalcPosInfo&, double, size_t, aocommon::MC2x2&)
 {
 	throw std::runtime_error("LBeamEvaluator::Evaluate() was called, but the LOFAR beam library was not available/specified during compilation");
 }
 	
-inline void LBeamEvaluator::EvaluateFullArray(const PrecalcPosInfo&, double, MC2x2&)
+inline void LBeamEvaluator::EvaluateFullArray(const PrecalcPosInfo&, double, aocommon::MC2x2&)
 {
 	throw std::runtime_error("LBeamEvaluator::Evaluate() was called, but the LOFAR beam library was not available/specified during compilation");
 }
@@ -98,7 +98,7 @@ inline void LBeamEvaluator::PrecalculatePositionInfo(PrecalcPosInfo&, double, do
 	
 inline void LBeamEvaluator::SetTime(const casacore::MEpoch& time) { _time = time; }
 
-inline void LBeamEvaluator::EvaluateFullCorrection(casacore::MeasurementSet&, double, double, const class BandData&, MC2x2*)
+inline void LBeamEvaluator::EvaluateFullCorrection(casacore::MeasurementSet&, double, double, const aocommon::BandData&, aocommon::MC2x2*)
 {
 	throw std::runtime_error("LBeamEvaluator::Evaluate() was called, but the LOFAR beam library was not available/specified during compilation");
 }

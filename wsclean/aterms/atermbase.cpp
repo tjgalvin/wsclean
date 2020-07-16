@@ -7,6 +7,8 @@
 
 #include "../wsclean/logger.h"
 
+using aocommon::Matrix2x2;
+
 void ATermBase::StoreATermsEigenvalues(const std::string& filename, const std::complex<float>* buffer, size_t nStations, size_t width, size_t height)
 {
 	size_t ny = std::floor(std::sqrt(nStations)), nx = (nStations+ny-1) / ny;

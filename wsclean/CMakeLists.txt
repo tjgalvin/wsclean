@@ -202,13 +202,13 @@ find_package(Boost COMPONENTS date_time filesystem system program_options unit_t
 if(Boost_FOUND)
   add_executable(runtest EXCLUDE_FROM_ALL
 		tests/test.cpp
-		tests/testbanddata.cpp
 		tests/testbaselinedependentaveraging.cpp
 		tests/testclean.cpp
 		tests/testcomponentlist.cpp
 		tests/testfitsdateobstime.cpp
 		tests/testfluxdensity.cpp
 		tests/testgaussianfitter.cpp
+		tests/testhmatrix4x4.cpp
 		tests/testimage.cpp
 		tests/testimageset.cpp
 		tests/testparsetreader.cpp
@@ -217,7 +217,7 @@ if(Boost_FOUND)
 		tests/testradeccoord.cpp
 		tests/testserialization.cpp
 		${WSCLEANFILES})
-  target_link_libraries(runtest ${ALL_LIBRARIES})
+  target_link_libraries(runtest ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   add_test(runtest runtest)
   add_custom_target(check COMMAND runtest DEPENDS runtest)
 else()

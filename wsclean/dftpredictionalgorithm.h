@@ -25,19 +25,19 @@
 class DFTAntennaInfo
 {
 public:
-	const MC2x2& BeamValue(size_t channelIndex) const { return _beamValuesPerChannel[channelIndex]; }
-	MC2x2& BeamValue(size_t channelIndex) { return _beamValuesPerChannel[channelIndex]; }
+	const aocommon::MC2x2& BeamValue(size_t channelIndex) const { return _beamValuesPerChannel[channelIndex]; }
+	aocommon::MC2x2& BeamValue(size_t channelIndex) { return _beamValuesPerChannel[channelIndex]; }
 	
-	std::vector<MC2x2>::iterator begin() { return _beamValuesPerChannel.begin(); }
-	std::vector<MC2x2>::iterator end() { return _beamValuesPerChannel.end(); }
+	std::vector<aocommon::MC2x2>::iterator begin() { return _beamValuesPerChannel.begin(); }
+	std::vector<aocommon::MC2x2>::iterator end() { return _beamValuesPerChannel.end(); }
 	size_t ChannelCount() const { return _beamValuesPerChannel.size(); }
 	void InitializeChannelBuffers(size_t channelCount) { _beamValuesPerChannel.resize(channelCount); }
 	void SetUnitaryBeam() {
-		for(MC2x2& m : _beamValuesPerChannel)
-			m = MC2x2::Unity();
+		for(aocommon::MC2x2& m : _beamValuesPerChannel)
+			m = aocommon::MC2x2::Unity();
 	}
 private:
-	std::vector<MC2x2> _beamValuesPerChannel;
+	std::vector<aocommon::MC2x2> _beamValuesPerChannel;
 };
 
 class DFTPredictionComponent
@@ -69,7 +69,7 @@ public:
 		initializeGaussian(positionAngle, major, minor);
 	}
 	void SetChannelCount(size_t channelCount) { _flux.resize(channelCount); }
-	void SetFlux(const std::vector<MC2x2>& fluxPerChannel)
+	void SetFlux(const std::vector<aocommon::MC2x2>& fluxPerChannel)
 	{
 		_flux = fluxPerChannel;
 	}
@@ -82,8 +82,8 @@ public:
 	const double* GausTransformationMatrix() const { return _gausTransf; }
 	const DFTAntennaInfo& AntennaInfo(size_t antennaIndex) const { return _beamValuesPerAntenna[antennaIndex]; }
 	DFTAntennaInfo& AntennaInfo(size_t antennaIndex) { return _beamValuesPerAntenna[antennaIndex]; }
-	MC2x2& LinearFlux(size_t channelIndex) { return _flux[channelIndex]; }
-	const MC2x2& LinearFlux(size_t channelIndex) const { return _flux[channelIndex]; }
+	aocommon::MC2x2& LinearFlux(size_t channelIndex) { return _flux[channelIndex]; }
+	const aocommon::MC2x2& LinearFlux(size_t channelIndex) const { return _flux[channelIndex]; }
 	size_t AntennaCount() const { return _beamValuesPerAntenna.size(); }
 	void InitializeBeamBuffers(size_t antennaCount, size_t channelCount)
 	{
@@ -124,7 +124,7 @@ private:
 	double _ra, _dec, _l, _m, _lmSqrt;
 	bool _isGaussian;
 	double _gausTransf[4];
-	std::vector<MC2x2> _flux;
+	std::vector<aocommon::MC2x2> _flux;
 	std::vector<DFTAntennaInfo> _beamValuesPerAntenna;
 };
 
@@ -185,12 +185,12 @@ public:
 	DFTPredictionAlgorithm(DFTPredictionInput& input, const aocommon::BandData& band) : _input(input), _band(band), _hasBeam(false)
 	{ }
 	
-	void Predict(MC2x2& dest, double u, double v, double w, size_t channelIndex, size_t a1, size_t a2);
+	void Predict(aocommon::MC2x2& dest, double u, double v, double w, size_t channelIndex, size_t a1, size_t a2);
 
 	void UpdateBeam(LBeamEvaluator& beamEvaluator, size_t startChannel, size_t endChannel);
 	
 private:
-	void predict(MC2x2& dest, double u, double v, double w, size_t channelIndex, size_t a1, size_t a2, const DFTPredictionComponent& component);
+	void predict(aocommon::MC2x2& dest, double u, double v, double w, size_t channelIndex, size_t a1, size_t a2, const DFTPredictionComponent& component);
 	
 	DFTPredictionInput& _input;
 	aocommon::BandData _band;

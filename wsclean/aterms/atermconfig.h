@@ -22,6 +22,8 @@
 #include "../wsclean/wscleansettings.h"
 #include "../units/radeccoord.h"
 
+using aocommon::Matrix2x2;
+
 class ATermConfig : public ATermBase
 {
 public:

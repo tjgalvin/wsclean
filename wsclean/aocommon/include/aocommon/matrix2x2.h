@@ -5,6 +5,8 @@
 #include <limits>
 #include <sstream>
 
+namespace aocommon {
+  
 class Vector4 {
  public:
   Vector4(){};
@@ -627,5 +629,7 @@ class MC2x2Base {
 
 using MC2x2 = MC2x2Base<double>;
 using MC2x2F = MC2x2Base<float>;
+
+}
 
 #endif

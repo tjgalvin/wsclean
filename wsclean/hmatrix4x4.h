@@ -17,7 +17,7 @@ public:
 		std::fill_n(_data, 16, 0.0);
 	}
 	
-	explicit HMatrix4x4(const Matrix4x4& src)
+	explicit HMatrix4x4(const aocommon::Matrix4x4& src)
 	{
 		// row 0
 		_data[0] = src[0].real();
@@ -46,7 +46,7 @@ public:
 	
 	HMatrix4x4(std::initializer_list<std::complex<double>> list)
 	{
-		*this = HMatrix4x4(Matrix4x4(list));
+		*this = HMatrix4x4(aocommon::Matrix4x4(list));
 	}
 	
 	static HMatrix4x4 FromData(std::initializer_list<double> list)
@@ -93,9 +93,9 @@ public:
 		return m;
 	}
 	
-	Vector4 operator*(const Vector4& rhs) const
+	aocommon::Vector4 operator*(const aocommon::Vector4& rhs) const
 	{
-		Vector4 v(
+		aocommon::Vector4 v(
 			_data[0]*rhs[0],
 			(*this)[4]*rhs[0],
 			(*this)[8]*rhs[0],
@@ -128,7 +128,7 @@ public:
 	
 	bool Invert()
 	{
-		Matrix4x4 inv = ToMatrix();
+		aocommon::Matrix4x4 inv = ToMatrix();
 		if(!inv.Invert())
 			return false;
 		else
@@ -156,9 +156,9 @@ public:
 			);
 	}
 	
-	Matrix4x4 ToMatrix() const
+	aocommon::Matrix4x4 ToMatrix() const
 	{
-		Matrix4x4 m;
+		aocommon::Matrix4x4 m;
 		for(size_t i=0; i!=16; ++i)
 		{
 			m[i] = (*this)[i];
@@ -194,7 +194,7 @@ public:
 		return str.str();
 	}
 	
-	static HMatrix4x4 KroneckerProduct(const MC2x2& hma, const MC2x2& hmb)
+	static HMatrix4x4 KroneckerProduct(const aocommon::MC2x2& hma, const aocommon::MC2x2& hmb)
 	{
 		HMatrix4x4 result;
 		

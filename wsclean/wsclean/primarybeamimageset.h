@@ -105,12 +105,12 @@ public:
 		if(_beamImages.size() == 8)
 		{
 			size_t index = y * _width + x;
-			MC2x2 val, squared;
+			aocommon::MC2x2 val, squared;
 			val[0] = std::complex<double>(_beamImages[0][index], _beamImages[1][index]);
 			val[1] = std::complex<double>(_beamImages[2][index], _beamImages[3][index]);
 			val[2] = std::complex<double>(_beamImages[4][index], _beamImages[5][index]);
 			val[3] = std::complex<double>(_beamImages[6][index], _beamImages[7][index]);
-			MC2x2::ATimesHermB(squared, val, val);
+			aocommon::MC2x2::ATimesHermB(squared, val, val);
 			double value;
 			if(squared.Invert())
 				value = 0.5 * (squared[0].real() + squared[3].real());
@@ -129,7 +129,7 @@ public:
 			});
 			if(!beam.Invert())
 				beam = HMC4x4::Zero();
-			Vector4 v{0.5, 0.0, 0.0, 0.5};
+			aocommon::Vector4 v{0.5, 0.0, 0.0, 0.5};
 			v = beam * v;
 			return v[0].real() + v[3].real();
 		}
@@ -184,12 +184,12 @@ public:
 			size_t size = _width * _height;
 			for(size_t j=0; j!=size; ++j)
 			{
-				MC2x2 val, squared;
+				aocommon::MC2x2 val, squared;
 				val[0] = std::complex<double>(_beamImages[0][j], _beamImages[1][j]);
 				val[1] = std::complex<double>(_beamImages[2][j], _beamImages[3][j]);
 				val[2] = std::complex<double>(_beamImages[4][j], _beamImages[5][j]);
 				val[3] = std::complex<double>(_beamImages[6][j], _beamImages[7][j]);
-				MC2x2::ATimesHermB(squared, val, val);
+				aocommon::MC2x2::ATimesHermB(squared, val, val);
 				if(squared.Invert())
 					stokesI[j] = stokesI[j] * 0.5 * (squared[0].real() + squared[3].real());
 				else
@@ -209,7 +209,7 @@ public:
 				});
 				if(!beam.Invert())
 					beam = HMC4x4::Zero();
-				Vector4 v{stokesI[j]*0.5, 0.0, 0.0, stokesI[j]*0.5};
+				aocommon::Vector4 v{stokesI[j]*0.5, 0.0, 0.0, stokesI[j]*0.5};
 				v = beam * v;
 				stokesI[j] = v[0].real() + v[3].real();
 			}
@@ -226,7 +226,7 @@ public:
 		{
 			for(size_t j=0; j!=size; ++j)
 			{
-				MC2x2 beamVal;
+				aocommon::MC2x2 beamVal;
 				beamVal[0] = std::complex<double>(_beamImages[0][j], _beamImages[1][j]);
 				beamVal[1] = std::complex<double>(_beamImages[2][j], _beamImages[3][j]);
 				beamVal[2] = std::complex<double>(_beamImages[4][j], _beamImages[5][j]);
@@ -234,10 +234,10 @@ public:
 				if(beamVal.Invert())
 				{
 					double stokesVal[4] = { images[0][j], images[1][j], images[2][j], images[3][j] };
-					MC2x2 linearVal, scratch;
+					aocommon::MC2x2 linearVal, scratch;
 					aocommon::Polarization::StokesToLinear(stokesVal, linearVal.Data());
-					MC2x2::ATimesB(scratch, beamVal, linearVal);
-					MC2x2::ATimesHermB(linearVal, scratch, beamVal);
+					aocommon::MC2x2::ATimesB(scratch, beamVal, linearVal);
+					aocommon::MC2x2::ATimesHermB(linearVal, scratch, beamVal);
 					aocommon::Polarization::LinearToStokes(linearVal.Data(), stokesVal);
 					for(size_t p=0; p!=4; ++p)
 						images[p][j] = stokesVal[p];
@@ -261,7 +261,7 @@ public:
 				if(!beam.Invert())
 					beam = HMC4x4::Zero();
 				double stokesVal[4] = { images[0][j], images[1][j], images[2][j], images[3][j] };
-				Vector4 v;
+				aocommon::Vector4 v;
 				aocommon::Polarization::StokesToLinear(stokesVal, v.data());
 				v = beam * v;
 				aocommon::Polarization::LinearToStokes(v.data(), stokesVal);

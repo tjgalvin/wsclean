@@ -6,7 +6,6 @@
 #include "noisemsrowprovider.h"
 
 #include "../progressbar.h"
-#include "../serializable.h"
 #include "../system.h"
 
 #include "../wsclean/logger.h"

@@ -7,10 +7,10 @@ else
     rm -rf /tmp/wsclean /tmp/wsclean-${VERSION}
     mkdir /tmp/wsclean
     mkdir /tmp/wsclean/aocommon
-    mkdir /tmp/wsclean/atca
     mkdir /tmp/wsclean/aterms
     mkdir /tmp/wsclean/CMake
     mkdir /tmp/wsclean/deconvolution
+    mkdir /tmp/wsclean/distributed
     mkdir /tmp/wsclean/idg
     mkdir /tmp/wsclean/interface
     mkdir /tmp/wsclean/iuwt
@@ -19,18 +19,20 @@ else
     mkdir /tmp/wsclean/msproviders
     mkdir /tmp/wsclean/multiscale
     mkdir /tmp/wsclean/mwa
+    mkdir /tmp/wsclean/primarybeam
+    mkdir /tmp/wsclean/scheduling
     mkdir /tmp/wsclean/tests
     mkdir /tmp/wsclean/units
     mkdir /tmp/wsclean/wgridder
     mkdir /tmp/wsclean/wsclean
     mkdir /tmp/wsclean/wsclean/examples
     cd ..
-    cp -v CMakeLists.txt CMakeVersionInfo.txt wscversion.h.in Doxyfile.in application.* areaset.* banddata.* buffered_lane.* casamaskreader.* dftpredictionalgorithm.* fftconvolver.* fftresampler.* fftwmanager.* fitsiochecker.* fitsreader.* fitswriter.* gaussianfitter.* hmatrix4x4.* image.* imageweights.* lane.* multibanddata.* nlplfitter.* numberlist.* matrix2x2.* matrix4x4.* modelrenderer.* msselection.* ndppp.* parsetreader.* polarization.* polynomialchannelfitter.* polynomialfitter.* progressbar.* rmsimage.* stopwatch.* system.* threadpool.* uvector.* weightmode.* windowfunction.* wscleanmain.cpp /tmp/wsclean/
-    cp -v aocommon/barrier.h aocommon/cloned_ptr.h aocommon/lane.h aocommon/lane_11.h aocommon/parallelfor.h aocommon/uvector_11.h /tmp/wsclean/aocommon/
-    cp -v atca/*.{h,cpp} /tmp/wsclean/atca/
+    cp -v CMakeLists.txt CMakeVersionInfo.txt wscversion.h.in Doxyfile.in application.* areaset.* buffered_lane.* casamaskreader.* dftpredictionalgorithm.* fftconvolver.* fftresampler.* fftwmanager.* fitsiochecker.* fitsreader.* fitswriter.* gaussianfitter.* hmatrix4x4.* image.* imageweights.* multibanddata.* nlplfitter.* numberlist.* modelrenderer.* msselection.* ndppp.* parsetreader.* polynomialchannelfitter.* polynomialfitter.* progressbar.* rmsimage.* serialistream.* serialostream.* stopwatch.* system.* threadpool.* weightmode.* windowfunction.* wscleanmain.cpp /tmp/wsclean/
+    cp -vr aocommon/include /tmp/wsclean/aocommon
     cp -v aterms/*.{h,cpp} /tmp/wsclean/aterms/
     cp -v CMake/*.cmake /tmp/wsclean/CMake/
     cp -v deconvolution/*.{h,cpp} /tmp/wsclean/deconvolution/
+    cp -v distributed/*.{h,cpp} /tmp/wsclean/distributed/
     cp -v idg/*.{h,cpp} /tmp/wsclean/idg/
     cp -v interface/*.{c,h,cpp,py} /tmp/wsclean/interface/
     cp -v iuwt/*.{h,cpp} /tmp/wsclean/iuwt/
@@ -39,6 +41,8 @@ else
     cp -v msproviders/*.{h,cpp} /tmp/wsclean/msproviders
     cp -v multiscale/*.{h,cpp} /tmp/wsclean/multiscale
     cp -v mwa/*.{h,cpp} /tmp/wsclean/mwa
+    cp -v primarybeam/*.{h,cpp} /tmp/wsclean/primarybeam
+    cp -v scheduling/*.{h,cpp} /tmp/wsclean/scheduling
     cp -v tests/*.cpp /tmp/wsclean/tests
     cp -v units/*.h /tmp/wsclean/units
     cp -v wgridder/*.{h,cpp} /tmp/wsclean/wgridder/

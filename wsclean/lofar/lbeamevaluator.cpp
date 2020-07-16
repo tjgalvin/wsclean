@@ -12,6 +12,7 @@
 #include <StationResponse/LofarMetaDataUtil.h>
 
 using namespace LOFAR::StationResponse;
+using aocommon::MC2x2;
 
 LBeamEvaluator::LBeamEvaluator(casacore::MeasurementSet& ms) : _ms(ms)
 {

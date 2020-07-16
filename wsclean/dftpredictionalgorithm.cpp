@@ -7,6 +7,8 @@
 
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 
+using aocommon::MC2x2;
+
 DFTPredictionImage::DFTPredictionImage(size_t width, size_t height) :
 	_width(width),
 	_height(height)
