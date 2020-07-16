@@ -4,8 +4,8 @@
 #include <string>
 #include <sstream>
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "serialostream.h"
+#include "serialistream.h"
 
 class WeightMode
 {

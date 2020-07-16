@@ -1,14 +1,15 @@
 #include "imageweights.h"
-#include <aocommon/banddata.h>
 #include "multibanddata.h"
 #include "fitswriter.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "serialostream.h"
+#include "serialistream.h"
 
 #include "msproviders/msprovider.h"
 #include "units/angle.h"
 #include "wsclean/logger.h"
+
+#include <aocommon/banddata.h>
 
 #include <cmath>
 #include <iostream>

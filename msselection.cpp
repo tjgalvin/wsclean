@@ -1,7 +1,7 @@
 #include "msselection.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "serialostream.h"
+#include "serialistream.h"
 
 void MSSelection::Serialize(SerialOStream& stream) const
 {

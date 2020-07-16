@@ -1,7 +1,7 @@
 #include "image.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "serialostream.h"
+#include "serialistream.h"
 
 #include <algorithm>
 #include <cmath>
