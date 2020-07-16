@@ -131,7 +131,7 @@ add_library(wsclean-object OBJECT
   multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp multiscale/threadeddeconvolutiontools.cpp
   mwa/beam2016implementation.cpp mwa/mwabeam.cpp mwa/tilebeam2016.cpp mwa/tilebeambase.cpp
   primarybeam/atcabeam.cpp primarybeam/vlabeam.cpp primarybeam/voltagepattern.cpp
-  scheduling/griddingtaskmanager.cpp scheduling/griddingresult.cpp scheduling/griddingtask.cpp scheduling/metadatacache.cpp scheduling/mpischeduler.cpp scheduling/threadedscheduler.cpp
+  scheduling/griddingtaskmanager.cpp scheduling/griddingresult.cpp scheduling/griddingtask.cpp scheduling/metadatacache.cpp scheduling/threadedscheduler.cpp
   wgridder/bufferedmsgridder.cpp wgridder/wgriddinggridder_simple.cpp
   wsclean/commandline.cpp wsclean/directmsgridder.cpp wsclean/imageoperations.cpp wsclean/imagingtable.cpp
   wsclean/logger.cpp wsclean/observationinfo.cpp
