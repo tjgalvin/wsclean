@@ -406,6 +406,8 @@ PartitionedMS::Handle PartitionedMS::Partition(const string& msPath, const std::
 		metaHeader.startTime = rowProvider->StartTime();
 		metaFiles[spwIndex]->write(reinterpret_cast<char*>(&metaHeader), sizeof(metaHeader));
 		metaFiles[spwIndex]->write(msPath.c_str(), msPath.size());
+		if(!metaFiles[spwIndex]->good())
+			throw std::runtime_error("Error writing to temporary file " + metaFilename);
 	}
 	
 	// Write actual data
