@@ -35,6 +35,41 @@ BOOST_AUTO_TEST_CASE( basic )
 	BOOST_CHECK_EQUAL(istr.String(), "hi!");
 }
 
+BOOST_AUTO_TEST_CASE( vector64 )
+{
+	std::vector<int32_t> int32vecA, int32vecB{12, 13 ,14};
+	std::vector<uint32_t> uint32vecA, uint32vecB{15, 16, 17};
+	std::vector<uint64_t> int64vecA, int64vecB{18, 19, 20};
+	
+	SerialOStream ostr;
+	ostr
+		.VectorUInt64(int32vecA)
+		.VectorUInt64(int32vecB)
+		.VectorUInt64(uint32vecA)
+		.VectorUInt64(uint32vecB)
+		.VectorUInt64(int64vecA)
+		.VectorUInt64(int64vecB);
+	
+	SerialIStream istr(std::move(ostr));
+	
+	std::vector<int32_t> out_int32vecA, out_int32vecB;
+	std::vector<uint32_t> out_uint32vecA, out_uint32vecB;
+	std::vector<uint64_t> out_int64vecA, out_int64vecB;
+	istr
+		.VectorUInt64(out_int32vecA)
+		.VectorUInt64(out_int32vecB)
+		.VectorUInt64(out_uint32vecA)
+		.VectorUInt64(out_uint32vecB)
+		.VectorUInt64(out_int64vecA)
+		.VectorUInt64(out_int64vecB);
+	BOOST_CHECK_EQUAL_COLLECTIONS(int32vecA.begin(), int32vecA.end(), out_int32vecA.begin(), out_int32vecA.end());
+	BOOST_CHECK_EQUAL_COLLECTIONS(int32vecB.begin(), int32vecB.end(), out_int32vecB.begin(), out_int32vecB.end());
+	BOOST_CHECK_EQUAL_COLLECTIONS(uint32vecA.begin(), uint32vecA.end(), out_uint32vecA.begin(), out_uint32vecA.end());
+	BOOST_CHECK_EQUAL_COLLECTIONS(uint32vecB.begin(), uint32vecB.end(), out_uint32vecB.begin(), out_uint32vecB.end());
+	BOOST_CHECK_EQUAL_COLLECTIONS(int64vecA.begin(), int64vecA.end(), out_int64vecA.begin(), out_int64vecA.end());
+	BOOST_CHECK_EQUAL_COLLECTIONS(int64vecB.begin(), int64vecB.end(), out_int64vecB.begin(), out_int64vecB.end());
+}
+
 BOOST_AUTO_TEST_CASE( empty_gridding_task )
 {
 	GriddingTask a, b;

@@ -185,7 +185,7 @@ public:
 	{
 		size_t n = UInt64();
 		values.resize(n);
-		for(const T val : values)
+		for(T& val : values)
 			UInt64(val);
 		return *this;
 	}
