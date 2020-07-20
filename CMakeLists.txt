@@ -183,6 +183,12 @@ endif(MPI_FOUND)
 add_executable(wsuvbinning EXCLUDE_FROM_ALL wsclean/examples/wsuvbinning.cpp ${WSCLEANFILES})
 target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
 
+add_executable(wspredictionexample EXCLUDE_FROM_ALL wsclean/examples/wspredictionexample.cpp wsclean/wstackinggridder.cpp fftwmanager.cpp)
+target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
+
+add_executable(mscaleexample EXCLUDE_FROM_ALL multiscale/mscaleexample.cpp fftconvolver.cpp multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp fitsiochecker.cpp fitsreader.cpp fitswriter.cpp deconvolution/simpleclean.cpp)
+target_link_libraries(mscaleexample ${ALL_LIBRARIES})
+
 install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)
 install(FILES interface/wscleaninterface.h DESTINATION include)
@@ -211,11 +217,13 @@ if(Boost_FOUND)
 		tests/testhmatrix4x4.cpp
 		tests/testimage.cpp
 		tests/testimageset.cpp
+		tests/testnlplfitter.cpp
 		tests/testparsetreader.cpp
 		tests/testpolynomialchannelfitter.cpp
 		tests/testpolynomialfitter.cpp
 		tests/testradeccoord.cpp
 		tests/testserialization.cpp
+		tests/aterms/testcache.cpp
 		${WSCLEANFILES})
   target_link_libraries(runtest ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   add_test(runtest runtest)

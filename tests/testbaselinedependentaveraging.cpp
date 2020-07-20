@@ -1,11 +1,11 @@
-#include <boost/test/unit_test.hpp>
-
 #include "../msproviders/averagingmsrowprovider.h"
 #include "../msproviders/directmsrowprovider.h"
 
-#include <boost/filesystem/operations.hpp>
-
 #include "../wsclean/logger.h"
+
+#include <boost/test/unit_test.hpp>
+
+#include <boost/filesystem/operations.hpp>
 
 BOOST_AUTO_TEST_SUITE(baseline_dependent_averaging)
 
