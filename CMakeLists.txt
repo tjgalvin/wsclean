@@ -54,12 +54,27 @@ else(MPI_FOUND)
   set(MPI_CPP_FILES)
 endif(MPI_FOUND)
 
+find_path(EVERYBEAM_INCLUDE_DIR NAMES EveryBeam/load.h)
+find_library(EVERYBEAM_LIB everybeam)
+
+if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+  include_directories(${EVERYBEAM_INCLUDE_DIR})
+  set(EVERYBEAM_FILES aterms/lofarbeamterm.cpp )
+  add_definitions(-DHAVE_EVERYBEAM)
+  message(STATUS "EveryBeam library found.")
+else()
+  set(EVERYBEAM_LIB "")
+  set(EVERYBEAM_FILES "" )
+  message("EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available.")
+endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
+
+
 find_path(LOFAR_STATION_RESPONSE_INCLUDE_DIR NAMES StationResponse/ITRFConverter.h)
 find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
 if(LOFAR_STATION_RESPONSE_INCLUDE_DIR AND LOFAR_STATION_RESPONSE_LIB)
   include_directories(${LOFAR_STATION_RESPONSE_INCLUDE_DIR})
   set(LBEAM_LIBS ${LOFAR_STATION_RESPONSE_LIB})
-  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp aterms/lofarbeamterm.cpp)
+  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp)
   # Some versions of the LOFAR code require "HAVE_BOOST" to be set explicitly
   # (This is supposed to be fixed in newer LOFAR repositories, AO 2015-11-27)
   add_definitions(-DHAVE_LOFAR_BEAM -DHAVE_BOOST)
@@ -137,7 +152,8 @@ add_library(wsclean-object OBJECT
   wsclean/logger.cpp wsclean/observationinfo.cpp
   wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
   wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
-  ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES})
+  ${EVERYBEAM_FILES} ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES})
+
 
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is
@@ -168,7 +184,7 @@ add_library(wsclean-shared SHARED ${WSCLEANFILES})
 target_link_libraries(wsclean-shared)
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
-set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${LBEAM_LIBS} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES})
+set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${LBEAM_LIBS} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_executable(wsclean wscleanmain.cpp)
 target_link_libraries(wsclean wsclean-lib ${ALL_LIBRARIES})
