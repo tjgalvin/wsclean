@@ -174,6 +174,6 @@ class Matrix4x4 {
 // typedef Matrix4x4<std::complex<double>> MC4x4;
 typedef Matrix4x4 MC4x4;
 
-} // namespace aocommon
+}  // namespace aocommon
 
 #endif

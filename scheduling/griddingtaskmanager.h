@@ -20,31 +20,33 @@
 #include <functional>
 #include <vector>
 
-class GriddingTaskManager
-{
-public:
-	virtual ~GriddingTaskManager();
-	
-	virtual void Run(GriddingTask& task, std::function<void(GriddingResult&)> finishCallback);
-	
-	GriddingResult RunDirect(GriddingTask& task);
-	
-	virtual void Finish() { };
-	
-	//MSGridderBase* Gridder() { return _gridder.get(); }
-	
-	static std::unique_ptr<GriddingTaskManager> Make(const class WSCleanSettings& settings, bool useDirectScheduler = false);
-protected:
-	const class WSCleanSettings& _settings;
-	
-	GriddingTaskManager(const class WSCleanSettings& settings);
-	
-	std::unique_ptr<MSGridderBase> createGridder() const;
-	void prepareGridder (MSGridderBase& gridder);
-	GriddingResult runDirect(GriddingTask& task, MSGridderBase& gridder);
-	
-private:
-	std::unique_ptr<MSGridderBase> _gridder;
+class GriddingTaskManager {
+ public:
+  virtual ~GriddingTaskManager();
+
+  virtual void Run(GriddingTask& task,
+                   std::function<void(GriddingResult&)> finishCallback);
+
+  GriddingResult RunDirect(GriddingTask& task);
+
+  virtual void Finish(){};
+
+  // MSGridderBase* Gridder() { return _gridder.get(); }
+
+  static std::unique_ptr<GriddingTaskManager> Make(
+      const class WSCleanSettings& settings, bool useDirectScheduler = false);
+
+ protected:
+  const class WSCleanSettings& _settings;
+
+  GriddingTaskManager(const class WSCleanSettings& settings);
+
+  std::unique_ptr<MSGridderBase> createGridder() const;
+  void prepareGridder(MSGridderBase& gridder);
+  GriddingResult runDirect(GriddingTask& task, MSGridderBase& gridder);
+
+ private:
+  std::unique_ptr<MSGridderBase> _gridder;
 };
 
 #endif

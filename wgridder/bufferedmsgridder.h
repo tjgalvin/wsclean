@@ -15,54 +15,51 @@
 #include <thread>
 
 namespace casacore {
-	class MeasurementSet;
+class MeasurementSet;
 }
 class ImageBufferAllocator;
 
-class BufferedMSGridder : public MSGridderBase
-{
-	public:
-		BufferedMSGridder(size_t threadCount, double memFraction, double absMemLimit);
-	
-		virtual void Invert() final override;
-		
-		virtual void Predict(Image image) final override;
-		virtual void Predict(Image, Image) final override
-		{
-			throw std::runtime_error("Can not do imaginary imaging in this mode");
-		}
-		
-		virtual Image ImageRealResult() final override
-		{
-			return std::move(_image);
-		}
-		virtual Image ImageImaginaryResult() final override
-		{
-			throw std::runtime_error("Can not do imaginary imaging in this mode");
-		}
-		
-		virtual size_t ActualInversionWidth() const final override { return _actualInversionWidth; }
-		virtual size_t ActualInversionHeight() const final override { return _actualInversionHeight; }
-		
-		virtual void FreeImagingData() final override
-		{ }
-		
-		virtual size_t getSuggestedWGridSize() const final override { return 1; }
-		
-	private:
-		Image _image;
-		
-		void gridMeasurementSet(MSData& msData);
+class BufferedMSGridder : public MSGridderBase {
+ public:
+  BufferedMSGridder(size_t threadCount, double memFraction, double absMemLimit);
 
-		void predictMeasurementSet(MSData& msData);
-		
-		size_t calculateMaxNRowsInMemory(size_t channelCount) const;
-		
-		void getTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
+  virtual void Invert() final override;
 
-		size_t _cpuCount;
-		int64_t _memSize;
-		std::unique_ptr<class WGriddingGridder_Simple> _gridder;
+  virtual void Predict(Image image) final override;
+  virtual void Predict(Image, Image) final override {
+    throw std::runtime_error("Can not do imaginary imaging in this mode");
+  }
+
+  virtual Image ImageRealResult() final override { return std::move(_image); }
+  virtual Image ImageImaginaryResult() final override {
+    throw std::runtime_error("Can not do imaginary imaging in this mode");
+  }
+
+  virtual size_t ActualInversionWidth() const final override {
+    return _actualInversionWidth;
+  }
+  virtual size_t ActualInversionHeight() const final override {
+    return _actualInversionHeight;
+  }
+
+  virtual void FreeImagingData() final override {}
+
+  virtual size_t getSuggestedWGridSize() const final override { return 1; }
+
+ private:
+  Image _image;
+
+  void gridMeasurementSet(MSData& msData);
+
+  void predictMeasurementSet(MSData& msData);
+
+  size_t calculateMaxNRowsInMemory(size_t channelCount) const;
+
+  void getTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
+
+  size_t _cpuCount;
+  int64_t _memSize;
+  std::unique_ptr<class WGriddingGridder_Simple> _gridder;
 };
 
 #endif

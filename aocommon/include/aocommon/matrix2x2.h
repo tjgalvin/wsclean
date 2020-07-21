@@ -6,7 +6,7 @@
 #include <sstream>
 
 namespace aocommon {
-  
+
 class Vector4 {
  public:
   Vector4(){};
@@ -21,6 +21,7 @@ class Vector4 {
   const std::complex<double>& operator[](size_t i) const { return _data[i]; }
   std::complex<double>* data() { return _data; }
   const std::complex<double>* data() const { return _data; }
+
  private:
   std::complex<double> _data[4];
 };
@@ -630,6 +631,6 @@ class MC2x2Base {
 using MC2x2 = MC2x2Base<double>;
 using MC2x2F = MC2x2Base<float>;
 
-}
+}  // namespace aocommon
 
 #endif

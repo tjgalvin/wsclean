@@ -12,72 +12,73 @@
 
 #include <set>
 
-class MWABeam
-{
-public:
-	MWABeam(const ImagingTableEntry* tableEntry) :
-	_tableEntry(tableEntry),
-	_undersample(8), _secondsBeforeBeamUpdate(1800),
-	_frequencyInterpolation(true)
-	{
-	}
-	
-	void AddMS(class MSProvider* msProvider, const MSSelection* selection, size_t msIndex)
-	{
-		_msProviders.push_back(MSProviderInfo(msProvider, selection, msIndex));
-	}
-	
-	void SetImageDetails(size_t width, size_t height, double pixelSizeX, double pixelSizeY, double phaseCentreRA, double phaseCentreDec, double phaseCentreDL, double phaseCentreDM)
-	{
-		_width = width;
-		_height = height;
-		_pixelSizeX = pixelSizeX;
-		_pixelSizeY = pixelSizeY;
-		_phaseCentreRA = phaseCentreRA;
-		_phaseCentreDec = phaseCentreDec;
-		_phaseCentreDL = phaseCentreDL;
-		_phaseCentreDM = phaseCentreDM;
-	}
-	
-	void Make(PrimaryBeamImageSet& beamImages);
-	
-	void SetUndersampling(size_t undersamplingFactor)
-	{
-		_undersample = undersamplingFactor;
-	}
-	
-	void SetSearchPath(const std::string& searchPath)
-	{
-		_searchPath = searchPath;
-	}
-	
-private:
-	void makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider& msProvider, double centralFrequency);
+class MWABeam {
+ public:
+  MWABeam(const ImagingTableEntry* tableEntry)
+      : _tableEntry(tableEntry),
+        _undersample(8),
+        _secondsBeforeBeamUpdate(1800),
+        _frequencyInterpolation(true) {}
 
-	void makeBeamSnapshot(double** imgPtr, double frequency, casacore::MeasFrame frame, casacore::MPosition arrayPos);
-	
-	struct MSProviderInfo
-	{
-		MSProviderInfo(MSProvider* _provider, const MSSelection* _selection, size_t _msIndex) :
-			provider(_provider), selection(_selection), msIndex(_msIndex)
-		{ }
-		MSProvider* provider;
-		const MSSelection* selection;
-		size_t msIndex;
-	};
-	
-	const ImagingTableEntry* _tableEntry;
-	std::vector<MSProviderInfo> _msProviders;
-	
-	size_t _width, _height, _sampledWidth, _sampledHeight;
-	size_t _undersample, _secondsBeforeBeamUpdate;
-	double _pixelSizeX, _pixelSizeY, _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
-	double _sPixelSizeX, _sPixelSizeY, _totalWeightSum;
-	casacore::MDirection _delayDir, _referenceDir, _tileBeamDir;
-	
-	double _delays[16];
-	std::string _searchPath;
-	bool _frequencyInterpolation;
+  void AddMS(class MSProvider* msProvider, const MSSelection* selection,
+             size_t msIndex) {
+    _msProviders.push_back(MSProviderInfo(msProvider, selection, msIndex));
+  }
+
+  void SetImageDetails(size_t width, size_t height, double pixelSizeX,
+                       double pixelSizeY, double phaseCentreRA,
+                       double phaseCentreDec, double phaseCentreDL,
+                       double phaseCentreDM) {
+    _width = width;
+    _height = height;
+    _pixelSizeX = pixelSizeX;
+    _pixelSizeY = pixelSizeY;
+    _phaseCentreRA = phaseCentreRA;
+    _phaseCentreDec = phaseCentreDec;
+    _phaseCentreDL = phaseCentreDL;
+    _phaseCentreDM = phaseCentreDM;
+  }
+
+  void Make(PrimaryBeamImageSet& beamImages);
+
+  void SetUndersampling(size_t undersamplingFactor) {
+    _undersample = undersamplingFactor;
+  }
+
+  void SetSearchPath(const std::string& searchPath) {
+    _searchPath = searchPath;
+  }
+
+ private:
+  void makeBeamForMS(PrimaryBeamImageSet& beamImages, MSProvider& msProvider,
+                     double centralFrequency);
+
+  void makeBeamSnapshot(double** imgPtr, double frequency,
+                        casacore::MeasFrame frame,
+                        casacore::MPosition arrayPos);
+
+  struct MSProviderInfo {
+    MSProviderInfo(MSProvider* _provider, const MSSelection* _selection,
+                   size_t _msIndex)
+        : provider(_provider), selection(_selection), msIndex(_msIndex) {}
+    MSProvider* provider;
+    const MSSelection* selection;
+    size_t msIndex;
+  };
+
+  const ImagingTableEntry* _tableEntry;
+  std::vector<MSProviderInfo> _msProviders;
+
+  size_t _width, _height, _sampledWidth, _sampledHeight;
+  size_t _undersample, _secondsBeforeBeamUpdate;
+  double _pixelSizeX, _pixelSizeY, _phaseCentreRA, _phaseCentreDec,
+      _phaseCentreDL, _phaseCentreDM;
+  double _sPixelSizeX, _sPixelSizeY, _totalWeightSum;
+  casacore::MDirection _delayDir, _referenceDir, _tileBeamDir;
+
+  double _delays[16];
+  std::string _searchPath;
+  bool _frequencyInterpolation;
 };
 
 #endif

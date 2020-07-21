@@ -12,261 +12,237 @@
 
 #include "../deconvolution/deconvolution.h"
 
-WSCFitsWriter::WSCFitsWriter(
-	const ImagingTableEntry& entry,
-	bool isImaginary,
-	const WSCleanSettings& settings,
-	const class Deconvolution& deconvolution,
-	const ObservationInfo& observationInfo,
-	size_t majorIterationNr,
-	const std::string& commandLine,
-	const OutputChannelInfo& channelInfo,
-	bool isModel
-)
-{
-	_filenamePrefix = ImageFilename::GetPrefix(settings, entry.polarization, entry.outputChannelIndex, entry.outputIntervalIndex, isImaginary);
-	setGridderConfiguration(settings, observationInfo);
-	setSettingsKeywords(settings, commandLine);
-	setChannelKeywords(entry, entry.polarization, channelInfo);
-	setDeconvolutionKeywords(settings);
-	if(deconvolution.IsInitialized())
-		setDeconvolutionResultKeywords(deconvolution.GetAlgorithm().IterationNumber(), majorIterationNr);
-	if(isModel)
-		_writer.SetUnit(FitsWriter::JanskyPerPixel);
+WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
+                             const WSCleanSettings& settings,
+                             const class Deconvolution& deconvolution,
+                             const ObservationInfo& observationInfo,
+                             size_t majorIterationNr,
+                             const std::string& commandLine,
+                             const OutputChannelInfo& channelInfo,
+                             bool isModel) {
+  _filenamePrefix = ImageFilename::GetPrefix(
+      settings, entry.polarization, entry.outputChannelIndex,
+      entry.outputIntervalIndex, isImaginary);
+  setGridderConfiguration(settings, observationInfo);
+  setSettingsKeywords(settings, commandLine);
+  setChannelKeywords(entry, entry.polarization, channelInfo);
+  setDeconvolutionKeywords(settings);
+  if (deconvolution.IsInitialized())
+    setDeconvolutionResultKeywords(
+        deconvolution.GetAlgorithm().IterationNumber(), majorIterationNr);
+  if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }
 
 WSCFitsWriter::WSCFitsWriter(
-	const ImagingTableEntry& entry,
-	aocommon::PolarizationEnum polarization,
-	bool isImaginary,
-	const WSCleanSettings& settings,
-	const Deconvolution& deconvolution,
-	const ObservationInfo& observationInfo,
-	size_t majorIterationNr,
-	const std::string& commandLine,
-	const OutputChannelInfo& channelInfo,
-	bool isModel)
-{
-	_filenamePrefix = ImageFilename::GetPrefix(settings, polarization, entry.outputChannelIndex, entry.outputIntervalIndex, isImaginary);
-	setGridderConfiguration(settings, observationInfo);
-	setSettingsKeywords(settings, commandLine);
-	setChannelKeywords(entry, polarization, channelInfo);
-	setDeconvolutionKeywords(settings);
-	if(deconvolution.IsInitialized())
-		setDeconvolutionResultKeywords(deconvolution.GetAlgorithm().IterationNumber(), majorIterationNr);
-	if(isModel)
-		_writer.SetUnit(FitsWriter::JanskyPerPixel);
+    const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
+    bool isImaginary, const WSCleanSettings& settings,
+    const Deconvolution& deconvolution, const ObservationInfo& observationInfo,
+    size_t majorIterationNr, const std::string& commandLine,
+    const OutputChannelInfo& channelInfo, bool isModel) {
+  _filenamePrefix =
+      ImageFilename::GetPrefix(settings, polarization, entry.outputChannelIndex,
+                               entry.outputIntervalIndex, isImaginary);
+  setGridderConfiguration(settings, observationInfo);
+  setSettingsKeywords(settings, commandLine);
+  setChannelKeywords(entry, polarization, channelInfo);
+  setDeconvolutionKeywords(settings);
+  if (deconvolution.IsInitialized())
+    setDeconvolutionResultKeywords(
+        deconvolution.GetAlgorithm().IterationNumber(), majorIterationNr);
+  if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }
 
-WSCFitsWriter::WSCFitsWriter(FitsReader& templateReader) : _writer(templateReader)
-{
-	copyWSCleanKeywords(templateReader);
+WSCFitsWriter::WSCFitsWriter(FitsReader& templateReader)
+    : _writer(templateReader) {
+  copyWSCleanKeywords(templateReader);
 }
 
-void WSCFitsWriter::setSettingsKeywords(const WSCleanSettings& settings, const std::string& commandLine)
-{
-	_writer.SetOrigin("WSClean", "W-stacking imager written by Andre Offringa");
-	_writer.AddHistory(commandLine);
-	_writer.SetExtraKeyword("WSCVERSI", WSCLEAN_VERSION_STR);
-	_writer.SetExtraKeyword("WSCVDATE", WSCLEAN_VERSION_DATE);
-	if(settings.endChannel != 0)
-	{
-		_writer.SetExtraKeyword("WSCCHANS", settings.startChannel);
-		_writer.SetExtraKeyword("WSCCHANE", settings.endChannel);
-	}
-	if(settings.endTimestep != 0)
-	{
-		_writer.SetExtraKeyword("WSCTIMES", settings.startTimestep);
-		_writer.SetExtraKeyword("WSCTIMEE", settings.endTimestep);
-	}
-	_writer.SetExtraKeyword("WSCFIELD", settings.fieldIds[0]);
+void WSCFitsWriter::setSettingsKeywords(const WSCleanSettings& settings,
+                                        const std::string& commandLine) {
+  _writer.SetOrigin("WSClean", "W-stacking imager written by Andre Offringa");
+  _writer.AddHistory(commandLine);
+  _writer.SetExtraKeyword("WSCVERSI", WSCLEAN_VERSION_STR);
+  _writer.SetExtraKeyword("WSCVDATE", WSCLEAN_VERSION_DATE);
+  if (settings.endChannel != 0) {
+    _writer.SetExtraKeyword("WSCCHANS", settings.startChannel);
+    _writer.SetExtraKeyword("WSCCHANE", settings.endChannel);
+  }
+  if (settings.endTimestep != 0) {
+    _writer.SetExtraKeyword("WSCTIMES", settings.startTimestep);
+    _writer.SetExtraKeyword("WSCTIMEE", settings.endTimestep);
+  }
+  _writer.SetExtraKeyword("WSCFIELD", settings.fieldIds[0]);
 }
 
-void WSCFitsWriter::setGridderConfiguration(const WSCleanSettings& settings, const ObservationInfo& observationInfo)
-{
-	const double
-		ra = observationInfo.phaseCentreRA,
-		dec = observationInfo.phaseCentreDec,
-		pixelScaleX = settings.pixelScaleX,
-		pixelScaleY = settings.pixelScaleY,
-		dateObs = observationInfo.startTime;
-		
-	_writer.SetImageDimensions(settings.trimmedImageWidth, settings.trimmedImageHeight, ra, dec, pixelScaleX, pixelScaleY);
-	_writer.SetDate(dateObs);
-	if(observationInfo.hasDenormalPhaseCentre)
-		_writer.SetPhaseCentreShift(observationInfo.phaseCentreDL, observationInfo.phaseCentreDM);
-	_writer.SetTelescopeName(observationInfo.telescopeName);
-	_writer.SetObserver(observationInfo.observer);
-	_writer.SetObjectName(observationInfo.fieldName);
-	
-	/* This is the normalization factor that was applied. The factor is useful
-	 * to undo the normalization for e.g. conversion to Kelvins. */ 
-	_writer.SetExtraKeyword("WSCDATAC", settings.dataColumnName);
-	_writer.SetExtraKeyword("WSCWEIGH", settings.weightMode.ToString());
-	_writer.SetExtraKeyword("WSCGKRNL", settings.antialiasingKernelSize);
+void WSCFitsWriter::setGridderConfiguration(
+    const WSCleanSettings& settings, const ObservationInfo& observationInfo) {
+  const double ra = observationInfo.phaseCentreRA,
+               dec = observationInfo.phaseCentreDec,
+               pixelScaleX = settings.pixelScaleX,
+               pixelScaleY = settings.pixelScaleY,
+               dateObs = observationInfo.startTime;
+
+  _writer.SetImageDimensions(settings.trimmedImageWidth,
+                             settings.trimmedImageHeight, ra, dec, pixelScaleX,
+                             pixelScaleY);
+  _writer.SetDate(dateObs);
+  if (observationInfo.hasDenormalPhaseCentre)
+    _writer.SetPhaseCentreShift(observationInfo.phaseCentreDL,
+                                observationInfo.phaseCentreDM);
+  _writer.SetTelescopeName(observationInfo.telescopeName);
+  _writer.SetObserver(observationInfo.observer);
+  _writer.SetObjectName(observationInfo.fieldName);
+
+  /* This is the normalization factor that was applied. The factor is useful
+   * to undo the normalization for e.g. conversion to Kelvins. */
+  _writer.SetExtraKeyword("WSCDATAC", settings.dataColumnName);
+  _writer.SetExtraKeyword("WSCWEIGH", settings.weightMode.ToString());
+  _writer.SetExtraKeyword("WSCGKRNL", settings.antialiasingKernelSize);
 }
 
-void WSCFitsWriter::setDeconvolutionKeywords(const WSCleanSettings& settings)
-{
-	_writer.SetExtraKeyword("WSCNITER", settings.deconvolutionIterationCount);
-	_writer.SetExtraKeyword("WSCTHRES", settings.deconvolutionThreshold);
-	_writer.SetExtraKeyword("WSCGAIN", settings.deconvolutionGain);
-	_writer.SetExtraKeyword("WSCMGAIN", settings.deconvolutionMGain);
-	_writer.SetExtraKeyword("WSCNEGCM", settings.allowNegativeComponents);
-	_writer.SetExtraKeyword("WSCNEGST", settings.stopOnNegativeComponents);
+void WSCFitsWriter::setDeconvolutionKeywords(const WSCleanSettings& settings) {
+  _writer.SetExtraKeyword("WSCNITER", settings.deconvolutionIterationCount);
+  _writer.SetExtraKeyword("WSCTHRES", settings.deconvolutionThreshold);
+  _writer.SetExtraKeyword("WSCGAIN", settings.deconvolutionGain);
+  _writer.SetExtraKeyword("WSCMGAIN", settings.deconvolutionMGain);
+  _writer.SetExtraKeyword("WSCNEGCM", settings.allowNegativeComponents);
+  _writer.SetExtraKeyword("WSCNEGST", settings.stopOnNegativeComponents);
 }
 
-void WSCFitsWriter::setDeconvolutionResultKeywords(size_t minorIterationNr, size_t majorIterationNr)
-{
-	_writer.SetExtraKeyword("WSCMINOR", minorIterationNr);
-	_writer.SetExtraKeyword("WSCMAJOR", majorIterationNr);
+void WSCFitsWriter::setDeconvolutionResultKeywords(size_t minorIterationNr,
+                                                   size_t majorIterationNr) {
+  _writer.SetExtraKeyword("WSCMINOR", minorIterationNr);
+  _writer.SetExtraKeyword("WSCMAJOR", majorIterationNr);
 }
 
-void WSCFitsWriter::setChannelKeywords(const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization, const OutputChannelInfo& channelInfo)
-{
-	const double
-		bandStart = entry.bandStartFrequency,
-		bandEnd = entry.bandEndFrequency,
-		centreFrequency = 0.5*(bandStart+bandEnd),
-		bandwidth = bandEnd-bandStart;
-	_writer.SetFrequency(centreFrequency, bandwidth);
-	_writer.SetExtraKeyword("WSCIMGWG", channelInfo.weight);
-	_writer.SetExtraKeyword("WSCNORMF", channelInfo.normalizationFactor);
-	_writer.SetExtraKeyword("WSCNWLAY", channelInfo.wGridSize);
-	_writer.SetExtraKeyword("WSCNVIS", channelInfo.visibilityCount);
-	_writer.SetExtraKeyword("WSCENVIS", channelInfo.effectiveVisibilityCount);
-	_writer.SetExtraKeyword("WSCVWSUM", channelInfo.visibilityWeightSum);
-	_writer.SetBeamInfo(
-		channelInfo.beamMaj,
-		channelInfo.beamMin,
-		channelInfo.beamPA);
-	_writer.SetPolarization(polarization);
+void WSCFitsWriter::setChannelKeywords(const ImagingTableEntry& entry,
+                                       aocommon::PolarizationEnum polarization,
+                                       const OutputChannelInfo& channelInfo) {
+  const double bandStart = entry.bandStartFrequency,
+               bandEnd = entry.bandEndFrequency,
+               centreFrequency = 0.5 * (bandStart + bandEnd),
+               bandwidth = bandEnd - bandStart;
+  _writer.SetFrequency(centreFrequency, bandwidth);
+  _writer.SetExtraKeyword("WSCIMGWG", channelInfo.weight);
+  _writer.SetExtraKeyword("WSCNORMF", channelInfo.normalizationFactor);
+  _writer.SetExtraKeyword("WSCNWLAY", channelInfo.wGridSize);
+  _writer.SetExtraKeyword("WSCNVIS", channelInfo.visibilityCount);
+  _writer.SetExtraKeyword("WSCENVIS", channelInfo.effectiveVisibilityCount);
+  _writer.SetExtraKeyword("WSCVWSUM", channelInfo.visibilityWeightSum);
+  _writer.SetBeamInfo(channelInfo.beamMaj, channelInfo.beamMin,
+                      channelInfo.beamPA);
+  _writer.SetPolarization(polarization);
 }
 
-void WSCFitsWriter::copyWSCleanKeywords(FitsReader& reader)
-{
-	const size_t
-		N_STRKEYWORDS=4, N_DBLKEYWORDS=20;
-	const char* strKeywords[N_STRKEYWORDS] =
-		{ "WSCVERSI", "WSCVDATE", "WSCDATAC", "WSCWEIGH" };
-	const char* dblKeywords[N_DBLKEYWORDS] =
-		{ "WSCIMGWG", "WSCNWLAY", "WSCGKRNL", "WSCCHANS", "WSCCHANE", "WSCTIMES", "WSCTIMEE", "WSCFIELD",
-			"WSCNITER", "WSCNORMF", "WSCTHRES", "WSCGAIN" , "WSCMGAIN", "WSCNEGCM", "WSCNEGST",
-			"WSCMINOR", "WSCMAJOR", "WSCNVIS" , "WSCENVIS", "WSCVWSUM"
-		};
-	for(size_t i=0; i!=N_STRKEYWORDS; ++i)
-		_writer.CopyStringKeywordIfExists(reader, strKeywords[i]);
-	for(size_t i=0; i!=N_DBLKEYWORDS; ++i)
-		_writer.CopyDoubleKeywordIfExists(reader, dblKeywords[i]);
+void WSCFitsWriter::copyWSCleanKeywords(FitsReader& reader) {
+  const size_t N_STRKEYWORDS = 4, N_DBLKEYWORDS = 20;
+  const char* strKeywords[N_STRKEYWORDS] = {"WSCVERSI", "WSCVDATE", "WSCDATAC",
+                                            "WSCWEIGH"};
+  const char* dblKeywords[N_DBLKEYWORDS] = {
+      "WSCIMGWG", "WSCNWLAY", "WSCGKRNL", "WSCCHANS", "WSCCHANE",
+      "WSCTIMES", "WSCTIMEE", "WSCFIELD", "WSCNITER", "WSCNORMF",
+      "WSCTHRES", "WSCGAIN",  "WSCMGAIN", "WSCNEGCM", "WSCNEGST",
+      "WSCMINOR", "WSCMAJOR", "WSCNVIS",  "WSCENVIS", "WSCVWSUM"};
+  for (size_t i = 0; i != N_STRKEYWORDS; ++i)
+    _writer.CopyStringKeywordIfExists(reader, strKeywords[i]);
+  for (size_t i = 0; i != N_DBLKEYWORDS; ++i)
+    _writer.CopyDoubleKeywordIfExists(reader, dblKeywords[i]);
 }
 
-void WSCFitsWriter::WriteImage(const std::string& suffix, const double* image)
-{
-	std::string name = _filenamePrefix + '-' + suffix;
-	_writer.Write(name, image);
+void WSCFitsWriter::WriteImage(const std::string& suffix, const double* image) {
+  std::string name = _filenamePrefix + '-' + suffix;
+  _writer.Write(name, image);
 }
 
-void WSCFitsWriter::WriteUV(const std::string& suffix, const double* image)
-{
-	std::string name = _filenamePrefix + '-' + suffix;
-	FitsWriter::Unit unit = _writer.GetUnit();
-	_writer.SetIsUV(true);
-	_writer.SetUnit(FitsWriter::Jansky);
-	_writer.Write(name, image);
-	_writer.SetIsUV(false);
-	_writer.SetUnit(unit);
+void WSCFitsWriter::WriteUV(const std::string& suffix, const double* image) {
+  std::string name = _filenamePrefix + '-' + suffix;
+  FitsWriter::Unit unit = _writer.GetUnit();
+  _writer.SetIsUV(true);
+  _writer.SetUnit(FitsWriter::Jansky);
+  _writer.Write(name, image);
+  _writer.SetIsUV(false);
+  _writer.SetUnit(unit);
 }
 
-void WSCFitsWriter::WritePSF(const std::string& fullname, const double* image)
-{
-	_writer.Write(fullname, image);
+void WSCFitsWriter::WritePSF(const std::string& fullname, const double* image) {
+  _writer.Write(fullname, image);
 }
 
-void WSCFitsWriter::Restore(const WSCleanSettings& settings)
-{
-	FitsReader imgReader(settings.restoreInput), modReader(settings.restoreModel);
-	if(imgReader.ImageWidth() != modReader.ImageWidth() ||
-		imgReader.ImageHeight() != modReader.ImageHeight())
-		throw std::runtime_error("Image and model images have different dimensions!");
-	aocommon::UVector<double>
-		image(imgReader.ImageWidth() * imgReader.ImageHeight()),
-		model(modReader.ImageWidth() * modReader.ImageHeight());
-	imgReader.Read(image.data());
-	modReader.Read(model.data());
-	
-	double beamMaj, beamMin, beamPA;
-	if(settings.manualBeamMajorSize != 0.0)
-	{
-		beamMaj = settings.manualBeamMajorSize;
-		beamMin = settings.manualBeamMinorSize;
-		beamPA = settings.manualBeamPA;
-	}
-	else {
-		beamMaj = imgReader.BeamMajorAxisRad();
-		beamMin = imgReader.BeamMinorAxisRad();
-		beamPA = imgReader.BeamPositionAngle();
-	}
-	
-	ModelRenderer::Restore(image.data(), model.data(),
-					imgReader.ImageWidth(), imgReader.ImageHeight(),
-					beamMaj, beamMin, beamPA,
-					imgReader.PixelSizeX(),
-					imgReader.PixelSizeY());
-	
-	FitsWriter writer(WSCFitsWriter(imgReader).Writer());
-	writer.SetBeamInfo(beamMaj, beamMin, beamPA);
-	writer.Write(settings.restoreOutput, image.data());
+void WSCFitsWriter::Restore(const WSCleanSettings& settings) {
+  FitsReader imgReader(settings.restoreInput), modReader(settings.restoreModel);
+  if (imgReader.ImageWidth() != modReader.ImageWidth() ||
+      imgReader.ImageHeight() != modReader.ImageHeight())
+    throw std::runtime_error(
+        "Image and model images have different dimensions!");
+  aocommon::UVector<double> image(imgReader.ImageWidth() *
+                                  imgReader.ImageHeight()),
+      model(modReader.ImageWidth() * modReader.ImageHeight());
+  imgReader.Read(image.data());
+  modReader.Read(model.data());
+
+  double beamMaj, beamMin, beamPA;
+  if (settings.manualBeamMajorSize != 0.0) {
+    beamMaj = settings.manualBeamMajorSize;
+    beamMin = settings.manualBeamMinorSize;
+    beamPA = settings.manualBeamPA;
+  } else {
+    beamMaj = imgReader.BeamMajorAxisRad();
+    beamMin = imgReader.BeamMinorAxisRad();
+    beamPA = imgReader.BeamPositionAngle();
+  }
+
+  ModelRenderer::Restore(image.data(), model.data(), imgReader.ImageWidth(),
+                         imgReader.ImageHeight(), beamMaj, beamMin, beamPA,
+                         imgReader.PixelSizeX(), imgReader.PixelSizeY());
+
+  FitsWriter writer(WSCFitsWriter(imgReader).Writer());
+  writer.SetBeamInfo(beamMaj, beamMin, beamPA);
+  writer.Write(settings.restoreOutput, image.data());
 }
 
-void WSCFitsWriter::RestoreList(const WSCleanSettings& settings)
-{
-	const Model model = BBSModel::Read(settings.restoreModel);
-	FitsReader imgReader(settings.restoreInput);
-	aocommon::UVector<double>
-		image(imgReader.ImageWidth() * imgReader.ImageHeight());
-	imgReader.Read(image.data());
-	
-	double beamMaj, beamMin, beamPA;
-	if(settings.manualBeamMajorSize != 0.0)
-	{
-		beamMaj = settings.manualBeamMajorSize;
-		beamMin = settings.manualBeamMinorSize;
-		beamPA = settings.manualBeamPA;
-	}
-	else {
-		beamMaj = imgReader.BeamMajorAxisRad();
-		beamMin = imgReader.BeamMinorAxisRad();
-		beamPA = imgReader.BeamPositionAngle();
-	}
-	
-	double frequency = imgReader.Frequency();
-	double bandwidth = imgReader.Bandwidth();
-	
-	ModelRenderer renderer(
-		imgReader.PhaseCentreRA(), imgReader.PhaseCentreDec(),
-		imgReader.PixelSizeX(), imgReader.PixelSizeY(),
-		imgReader.PhaseCentreDL(), imgReader.PhaseCentreDM());
-	
-	renderer.Restore(image.data(),
-		imgReader.ImageWidth(), imgReader.ImageHeight(),
-		model, beamMaj, beamMin, beamPA,
-		frequency-bandwidth*0.5, frequency+bandwidth*0.5,
-		aocommon::Polarization::StokesI);
-	
-	FitsWriter writer(WSCFitsWriter(imgReader).Writer());
-	writer.SetBeamInfo(beamMaj, beamMin, beamPA);
-	writer.Write(settings.restoreOutput, image.data());
+void WSCFitsWriter::RestoreList(const WSCleanSettings& settings) {
+  const Model model = BBSModel::Read(settings.restoreModel);
+  FitsReader imgReader(settings.restoreInput);
+  aocommon::UVector<double> image(imgReader.ImageWidth() *
+                                  imgReader.ImageHeight());
+  imgReader.Read(image.data());
+
+  double beamMaj, beamMin, beamPA;
+  if (settings.manualBeamMajorSize != 0.0) {
+    beamMaj = settings.manualBeamMajorSize;
+    beamMin = settings.manualBeamMinorSize;
+    beamPA = settings.manualBeamPA;
+  } else {
+    beamMaj = imgReader.BeamMajorAxisRad();
+    beamMin = imgReader.BeamMinorAxisRad();
+    beamPA = imgReader.BeamPositionAngle();
+  }
+
+  double frequency = imgReader.Frequency();
+  double bandwidth = imgReader.Bandwidth();
+
+  ModelRenderer renderer(imgReader.PhaseCentreRA(), imgReader.PhaseCentreDec(),
+                         imgReader.PixelSizeX(), imgReader.PixelSizeY(),
+                         imgReader.PhaseCentreDL(), imgReader.PhaseCentreDM());
+
+  renderer.Restore(image.data(), imgReader.ImageWidth(),
+                   imgReader.ImageHeight(), model, beamMaj, beamMin, beamPA,
+                   frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
+                   aocommon::Polarization::StokesI);
+
+  FitsWriter writer(WSCFitsWriter(imgReader).Writer());
+  writer.SetBeamInfo(beamMaj, beamMin, beamPA);
+  writer.Write(settings.restoreOutput, image.data());
 }
 
-ObservationInfo WSCFitsWriter::ReadObservationInfo(FitsReader& reader)
-{
-	ObservationInfo obsInfo;
-	obsInfo.phaseCentreRA = reader.PhaseCentreRA();
-	obsInfo.phaseCentreDec = reader.PhaseCentreDec();
-	obsInfo.phaseCentreDL = reader.PhaseCentreDL();
-	obsInfo.phaseCentreDM = reader.PhaseCentreDM();
-	obsInfo.startTime = reader.DateObs();
-	obsInfo.telescopeName = reader.TelescopeName();
-	obsInfo.observer = reader.Observer();
-	return obsInfo;
+ObservationInfo WSCFitsWriter::ReadObservationInfo(FitsReader& reader) {
+  ObservationInfo obsInfo;
+  obsInfo.phaseCentreRA = reader.PhaseCentreRA();
+  obsInfo.phaseCentreDec = reader.PhaseCentreDec();
+  obsInfo.phaseCentreDL = reader.PhaseCentreDL();
+  obsInfo.phaseCentreDM = reader.PhaseCentreDM();
+  obsInfo.startTime = reader.DateObs();
+  obsInfo.telescopeName = reader.TelescopeName();
+  obsInfo.observer = reader.Observer();
+  return obsInfo;
 }
