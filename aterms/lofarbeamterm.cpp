@@ -7,7 +7,7 @@
 
 #include <EveryBeam/coords/ITRFDirection.h>
 #include <EveryBeam/coords/ITRFConverter.h>
-#include <EveryBeam/gridded_response/griddedresponse.h>
+#include <EveryBeam/griddedresponse/griddedresponse.h>
 
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
 #include <casacore/measures/Measures/MEpoch.h>
@@ -32,7 +32,7 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms,
   ElementResponseModel response_model = ElementResponseModel::kHamaker;
 
   // Load telescope
-  telescope_ = Load(ms, response_model, options);
+  _telescope = Load(ms, options, response_model);
 
   casacore::MSAntenna aTable(ms.antenna());
   casacore::MSField fieldTable(ms.field());
@@ -72,11 +72,11 @@ LofarBeamTerm::LofarBeamTerm(casacore::MeasurementSet& ms,
 bool LofarBeamTerm::calculateBeam(std::complex<float>* buffer, double time,
                                   double frequency, size_t) {
   // Get the gridded response
-  std::unique_ptr<gridded_response::GriddedResponse> grid_response =
-      telescope_->GetGriddedResponse(_coordinate_system);
-  grid_response->CalculateAllStations(buffer, time, frequency);
+  std::unique_ptr<griddedresponse::GriddedResponse> grid_response =
+      _telescope->GetGriddedResponse(_coordinate_system);
+  grid_response->CalculateAllStations(buffer, time, frequency, 0);
 
-  saveATermsIfNecessary(buffer, telescope_->GetNrStations(),
+  saveATermsIfNecessary(buffer, _telescope->GetNrStations(),
                         _coordinate_system.width, _coordinate_system.height);
   return true;
 }

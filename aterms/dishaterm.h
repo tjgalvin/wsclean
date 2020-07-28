@@ -7,6 +7,10 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+#ifdef HAVE_EVERYBEAM
+#include <EveryBeam/load.h>
+#include <EveryBeam/coords/coord_utils.h>
+
 /**
  * This class calculates the a-terms for dishes with a circularly symmetric
  * response.
@@ -22,12 +26,13 @@ class DishATerm : public ATermBeam {
   bool calculateBeam(std::complex<float>* buffer, double time, double frequency,
                      size_t fieldId) final override;
 
-  size_t _width, _height, _nAntenna;
-  double _phaseCentreRA, _phaseCentreDec, _dl, _dm, _phaseCentreDL,
-      _phaseCentreDM;
+  std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   size_t _cachedFieldId;
   double _cachedFrequency;
-  std::vector<std::pair<double, double>> _fieldPointing;
+  everybeam::coords::CoordinateSystem _coordinate_system;
 };
+#else
+using DishATerm = ATermStub;
+#endif  // HAVE_EVERYBEAM
 
 #endif

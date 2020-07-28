@@ -33,7 +33,7 @@ class LofarBeamTerm : public ATermBeam {
   bool calculateBeam(std::complex<float>* buffer, double time, double frequency,
                      size_t fieldId) final override;
 
-  std::unique_ptr<everybeam::telescope::Telescope> telescope_;
+  std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   bool _useDifferentialBeam, _useChannelFrequency;
 
   everybeam::coords::CoordinateSystem _coordinate_system;
