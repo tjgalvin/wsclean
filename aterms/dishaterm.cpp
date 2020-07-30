@@ -3,10 +3,6 @@
 
 #include <EveryBeam/griddedresponse/griddedresponse.h>
 
-#include <limits>
-
-#include <casacore/tables/Tables/ArrayColumn.h>
-
 using everybeam::Load;
 using everybeam::coords::CoordinateSystem;
 using everybeam::griddedresponse::GriddedResponse;

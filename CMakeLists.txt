@@ -59,7 +59,7 @@ find_library(EVERYBEAM_LIB everybeam)
 
 if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   include_directories(${EVERYBEAM_INCLUDE_DIR})
-  set(EVERYBEAM_FILES aterms/dishaterm.cpp aterms/lofarbeamterm.cpp )
+  set(EVERYBEAM_FILES aterms/dishaterm.cpp aterms/lofarbeamterm.cpp aterms/mwabeamterm.cpp )
   add_definitions(-DHAVE_EVERYBEAM)
   message(STATUS "EveryBeam library found.")
 else()
@@ -134,7 +134,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(wsclean-object OBJECT
   casamaskreader.cpp dftpredictionalgorithm.cpp fftconvolver.cpp fftresampler.cpp fftwmanager.cpp fitsiochecker.cpp fitsreader.cpp fitswriter.cpp gaussianfitter.cpp image.cpp imageweights.cpp modelrenderer.cpp msselection.cpp multibanddata.cpp nlplfitter.cpp parsetreader.cpp polynomialchannelfitter.cpp polynomialfitter.cpp progressbar.cpp rmsimage.cpp stopwatch.cpp system.cpp
   aterms/atermbase.cpp aterms/cache.cpp aterms/dldmaterm.cpp
-  aterms/fitsaterm.cpp aterms/fitsatermbase.cpp aterms/mwabeamterm.cpp
+  aterms/fitsaterm.cpp aterms/fitsatermbase.cpp
   aterms/pafbeamterm.cpp aterms/atermresampler.cpp
   deconvolution/componentlist.cpp deconvolution/deconvolution.cpp deconvolution/deconvolutionalgorithm.cpp deconvolution/genericclean.cpp deconvolution/imageset.cpp deconvolution/paralleldeconvolution.cpp deconvolution/moresane.cpp deconvolution/simpleclean.cpp deconvolution/spectralfitter.cpp deconvolution/subminorloop.cpp
   idg/averagebeam.cpp

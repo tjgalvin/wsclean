@@ -13,7 +13,7 @@
 #ifdef HAVE_EVERYBEAM
 
 #include <EveryBeam/load.h>
-#include <EveryBeam/coords/coord_utils.h>
+#include <EveryBeam/coords/coordutils.h>
 
 class LofarBeamTerm : public ATermBeam {
  public:
@@ -34,9 +34,9 @@ class LofarBeamTerm : public ATermBeam {
                      size_t fieldId) final override;
 
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
-  bool _useDifferentialBeam, _useChannelFrequency;
-
   everybeam::coords::CoordinateSystem _coordinate_system;
+  // TODO: can be removed, will be stored in telescope::Options anyway
+  bool _useDifferentialBeam, _useChannelFrequency;
 };
 
 #else

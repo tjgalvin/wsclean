@@ -9,7 +9,7 @@
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
-#include <EveryBeam/coords/coord_utils.h>
+#include <EveryBeam/coords/coordutils.h>
 
 /**
  * This class calculates the a-terms for dishes with a circularly symmetric

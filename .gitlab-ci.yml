@@ -27,13 +27,11 @@ format:
   stage: format
   script:
     - apt-get -y install python3-pip
-    - pip3 install clang-format
-    # clang-format should be version 9
-    - clang-format -version
+    - pip3 install clang-format==9.0.0
     # Check formatting of header (*.h) and source (*.cpp) files
-    - ./scripts/clang-format-check.sh -i '*.h' -i '*.cpp'
+    - ./scripts/run-clang-format.sh
 
-build:
+build-without-everybeam:
   stage: build
   script:
     - mkdir build
@@ -43,3 +41,14 @@ build:
     - make install
     - make check
 
+build-with-everybeam:
+  stage: build
+  script:
+    - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git 
+    - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4 
+    - export LD_LIBRARY_PATH=/opt/everybeam/lib/:$LD_LIBRARY_PATH
+    - cd $CI_PROJECT_DIR && mkdir build && cd build
+    - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
+    - make
+    - make install
+    - make check

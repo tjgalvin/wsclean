@@ -192,10 +192,10 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
           return std::move(beam);
         }
         case Telescope::MWA: {
-          std::unique_ptr<MWABeamTerm> beam(new MWABeamTerm(*ms, system));
+          std::unique_ptr<MWABeamTerm> beam(
+              new MWABeamTerm(*ms, system, _settings.mwaPath));
           beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
           beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
-          beam->SetSearchPath(_settings.mwaPath);
           return std::move(beam);
         }
         case Telescope::VLA: {

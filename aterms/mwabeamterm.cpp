@@ -1,103 +1,42 @@
 #include "mwabeamterm.h"
 
-#include <aocommon/imagecoordinates.h>
+#include <EveryBeam/griddedresponse/griddedresponse.h>
+#include <EveryBeam/options.h>
 
 #include "../wsclean/logger.h"
+#include "../mwa/findcoefffile.h"
 
-#include <casacore/tables/Tables/TableRecord.h>
-#include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
-#include <casacore/measures/Measures/MCPosition.h>
-#include <casacore/measures/Measures/MEpoch.h>
-
-using namespace aocommon;
+using everybeam::Load;
+using everybeam::Options;
+using everybeam::coords::CoordinateSystem;
+using everybeam::griddedresponse::GriddedResponse;
+using wsclean::mwa::FindCoeffFile;
 
 MWABeamTerm::MWABeamTerm(casacore::MeasurementSet& ms,
-                         const CoordinateSystem& coordinateSystem)
-    : _width(coordinateSystem.width),
-      _height(coordinateSystem.height),
-      _phaseCentreRA(coordinateSystem.ra),
-      _phaseCentreDec(coordinateSystem.dec),
-      _dl(coordinateSystem.dl),
-      _dm(coordinateSystem.dm),
-      _phaseCentreDL(coordinateSystem.phaseCentreDL),
-      _phaseCentreDM(coordinateSystem.phaseCentreDM),
-      _frequencyInterpolation(true) {
-  casacore::MSAntenna aTable = ms.antenna();
-  if (aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
-  _nStations = aTable.nrow();
-
-  casacore::MPosition::ScalarColumn antPosColumn(
-      aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
-  _arrayPos = antPosColumn(0);
-
-  casacore::Table mwaTilePointing =
-      ms.keywordSet().asTable("MWA_TILE_POINTING");
-  casacore::ArrayColumn<int> delaysCol(mwaTilePointing, "DELAYS");
-  casacore::Array<int> delaysArr = delaysCol(0);
-  casacore::Array<int>::contiter delaysArrPtr = delaysArr.cbegin();
-  for (int i = 0; i != 16; ++i) _delays[i] = delaysArrPtr[i];
-
-  Logger::Debug << "MWA beam delays: [";
-  for (int i = 0; i != 16; ++i) {
-    Logger::Debug << _delays[i];
-    if (i != 15) Logger::Debug << ',';
-  }
-  Logger::Debug << "]\n";
+                         const CoordinateSystem& coordinateSystem,
+                         const std::string& search_path)
+    : _coordinate_system(
+          {coordinateSystem.width, coordinateSystem.height, coordinateSystem.ra,
+           coordinateSystem.dec, coordinateSystem.dl, coordinateSystem.dm,
+           coordinateSystem.phaseCentreDL, coordinateSystem.phaseCentreDM}),
+      _frequencyInterpolation(true),
+      _coeff_path(FindCoeffFile(search_path)) {
+  // Telescope options
+  Options options;
+  options.coeff_path = _coeff_path;
+  options.frequency_interpolation = _frequencyInterpolation;
+  _telescope = Load(ms, options);
 }
 
 bool MWABeamTerm::calculateBeam(std::complex<float>* buffer, double time,
                                 double frequency, size_t) {
-  casacore::MEpoch timeEpoch(casacore::Quantity(time, "s"));
-  casacore::MeasFrame frame(_arrayPos, timeEpoch);
+  // Get the gridded response
+  std::unique_ptr<GriddedResponse> grid_response =
+      _telescope->GetGriddedResponse(_coordinate_system);
+  grid_response->CalculateAllStations(buffer, time, frequency, 0);
 
-  const casacore::MDirection::Ref hadecRef(casacore::MDirection::HADEC, frame);
-  const casacore::MDirection::Ref azelgeoRef(casacore::MDirection::AZELGEO,
-                                             frame);
-  const casacore::MDirection::Ref j2000Ref(casacore::MDirection::J2000, frame);
-  casacore::MDirection::Convert j2000ToHaDecRef(j2000Ref, hadecRef),
-      j2000ToAzelGeoRef(j2000Ref, azelgeoRef);
-  casacore::MPosition wgs =
-      casacore::MPosition::Convert(_arrayPos, casacore::MPosition::WGS84)();
-  double arrLatitude = wgs.getValue().getLat();
-
-  casacore::MDirection zenith(casacore::MVDirection(0.0, 0.0, 1.0), azelgeoRef);
-  casacore::MDirection zenithHaDec =
-      casacore::MDirection::Convert(zenith, hadecRef)();
-  double zenithHa = zenithHaDec.getAngle().getValue()[0];
-  double zenithDec = zenithHaDec.getAngle().getValue()[1];
-
-  if (!_tileBeam) {
-    _tileBeam.reset(new TileBeamBase<TileBeam2016>(
-        _delays, _frequencyInterpolation, _searchPath));
-  }
-  std::complex<float>* bufferPtr = buffer;
-  for (size_t y = 0; y != _height; ++y) {
-    for (size_t x = 0; x != _width; ++x) {
-      double l, m, ra, dec;
-      ImageCoordinates::XYToLM(x, y, _dl, _dm, _width, _height, l, m);
-      l += _phaseCentreDL;
-      m += _phaseCentreDM;
-      ImageCoordinates::LMToRaDec(l, m, _phaseCentreRA, _phaseCentreDec, ra,
-                                  dec);
-
-      std::complex<double> gain[4];
-      _tileBeam->ArrayResponse(ra, dec, j2000Ref, j2000ToHaDecRef,
-                               j2000ToAzelGeoRef, arrLatitude, zenithHa,
-                               zenithDec, frequency, gain);
-
-      for (size_t i = 0; i != 4; ++i) {
-        *bufferPtr = gain[i];
-        ++bufferPtr;
-      }
-    }
-  }
-
-  // Now, copy the beam response to all antennas
-  size_t nValues = _width * _height * 4;
-  for (size_t station = 1; station != _nStations; ++station)
-    std::copy_n(buffer, nValues, buffer + nValues * station);
-
-  saveATermsIfNecessary(buffer, _nStations, _width, _height);
+  saveATermsIfNecessary(buffer, _telescope->GetNrStations(),
+                        _coordinate_system.width, _coordinate_system.height);
 
   return true;
 }

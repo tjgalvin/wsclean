@@ -115,8 +115,7 @@ class ATermConfig : public ATermBase {
           }
           case Telescope::MWA: {
             std::unique_ptr<MWABeamTerm> mwaTerm(
-                new MWABeamTerm(ms, _coordinateSystem));
-            mwaTerm->SetSearchPath(_settings.mwaPath);
+                new MWABeamTerm(ms, _coordinateSystem, _settings.mwaPath));
             beam = std::move(mwaTerm);
             break;
           }

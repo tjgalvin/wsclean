@@ -16,25 +16,24 @@
 
 #include <boost/math/special_functions/legendre.hpp>
 
-#include <boost/filesystem.hpp>
+// #include <boost/filesystem.hpp>
 
 #include <H5Cpp.h>
 
 #include "beam2016implementation.h"
+#include "findcoefffile.h"
 
 #include "../system.h"
 
 using namespace std;
 using namespace H5;
+using wsclean::mwa::FindCoeffFile;
 
 // constants :
 static const double deg2rad = M_PI / 180.00;
 
 // beamformer step in pico-seconds
 #define DELAY_STEP 435.0e-12
-
-#define DEFAULT_H5_FILE "mwa_full_embedded_element_pattern.h5"
-#define DEFAULT_H5_FILE_PATH "mwapy/data/"
 #define N_ANT_COUNT 16
 
 bool Beam2016Implementation::has_freq(int freq_hz) const {
@@ -668,21 +667,7 @@ void Beam2016Implementation::ReadDataSet(const std::string& dataset_name,
 // Functions for reading H5 file and its datasets :
 // Read data from H5 file, file name is specified in the object constructor
 void Beam2016Implementation::Read() {
-  std::string h5_path;
-  if (_searchPath.empty()) {
-    string h5_test_path = DEFAULT_H5_FILE_PATH;
-    h5_test_path += DEFAULT_H5_FILE;
-    h5_path = System::FindPythonFilePath(h5_test_path);
-  } else {
-    boost::filesystem::path p =
-        boost::filesystem::path(_searchPath) / DEFAULT_H5_FILE;
-    if (!boost::filesystem::exists(p))
-      throw std::runtime_error(
-          "Manually specified MWA directory did not contain H5 beam file: '" +
-          p.string() + "' not found.");
-    h5_path = p.string();
-  }
-
+  std::string h5_path = FindCoeffFile(_searchPath);
   _h5File.reset(new H5File(h5_path.c_str(), H5F_ACC_RDONLY));
 
   // hid_t group_id = m_pH5File->getId();
