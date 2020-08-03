@@ -22,25 +22,37 @@ static const std::string badDecValues[11] = {
     "", "-", "00.00.00.a", "-00d", "-00d01",
 };
 
-BOOST_DATA_TEST_CASE(testRightAscensionParsesConsistently,
+BOOST_DATA_TEST_CASE(testRAParsesConsistently,
                      boost::unit_test::data::make(raValues)) {
-  double val = RaDecCoord::ParseRA(sample);
+  long double val = RaDecCoord::ParseRA(sample);
+  if (val < 0.0) val += 2.0L * M_PIl;
   std::string recomposed = RaDecCoord::RAToString(val);
 
-  BOOST_CHECK_EQUAL(RaDecCoord::ParseRA(sample),
-                    RaDecCoord::ParseRA(recomposed));
+  BOOST_CHECK_CLOSE_FRACTION(val, RaDecCoord::ParseRA(recomposed), 1e-9);
 }
 
-BOOST_DATA_TEST_CASE(testRightAscensionToString,
-                     boost::unit_test::data::make(raValues)) {
+BOOST_DATA_TEST_CASE(testRAToString, boost::unit_test::data::make(raValues)) {
   double val = RaDecCoord::ParseRA(sample);
+  if (val < 0.0) val += 2.0L * M_PIl;
   std::string recomposed = RaDecCoord::RAToString(val);
 
-  BOOST_CHECK_EQUAL(recomposed,
-                    RaDecCoord::RAToString(RaDecCoord::ParseRA(recomposed)));
+  BOOST_CHECK_CLOSE_FRACTION(val, RaDecCoord::ParseRA(recomposed), 1e-9);
 }
 
-BOOST_DATA_TEST_CASE(testRightAscensionParseException,
+BOOST_AUTO_TEST_CASE(testNegativeRAToString) {
+  // A negative RA should parse fine and produce a negative
+  // value in radians:
+  double val = RaDecCoord::ParseRA("-10h30m00s");
+  BOOST_CHECK_CLOSE_FRACTION(val, -10.5 * M_PIl / 12.0L, 1e-9);
+
+  // A negative value in radians should however still produce a
+  // "positive" RA string, because it is uncommon to write
+  // an RA as "-10h30m".
+  std::string recomposed = RaDecCoord::RAToString(val);
+  BOOST_CHECK_EQUAL(recomposed.substr(0, 10), "13h30m00.0");
+}
+
+BOOST_DATA_TEST_CASE(testRAParseException,
                      boost::unit_test::data::make(badRaValues)) {
   BOOST_CHECK_THROW(RaDecCoord::ParseRA(sample), std::runtime_error);
 }

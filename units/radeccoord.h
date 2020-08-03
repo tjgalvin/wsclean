@@ -122,9 +122,8 @@ class RaDecCoord {
     long double hrs = fmodl(ra * (12.0L / M_PIl), 24.0L);
     hrs = roundl(hrs * partsPerHour) / partsPerHour;
     std::stringstream s;
-    if (hrs < 0) {
-      hrs = -hrs;
-      s << '-';
+    if (hrs < 0.0L) {
+      hrs += 24.0L;
     }
     hrs = (roundl(hrs * partsPerHour) + 0.5) / partsPerHour;
     int hrsInt = int(floorl(hrs)),
