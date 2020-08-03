@@ -8,6 +8,8 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -DNDEBUG -march=native -std=c++11")
 endif(PORTABLE)
 
+include_directories(../aocommon/include)
+
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
@@ -40,7 +42,7 @@ IF("${isSystemDir}" STREQUAL "-1")
    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 ENDIF("${isSystemDir}" STREQUAL "-1")
 
-add_executable(chgcentre main.cpp multibanddata.cpp progressbar.cpp)
+add_executable(chgcentre main.cpp ../multibanddata.cpp progressbar.cpp)
 
 target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 
