@@ -20,10 +20,8 @@
 #include "../fitswriter.h"
 
 #include "../aterms/atermconfig.h"
-#include "../aterms/dishaterm.h"
-#include "../aterms/lofarbeamterm.h"
-#include "../aterms/mwabeamterm.h"
-#include "../aterms/telescope.h"
+
+#include "../aterms/everybeamaterm.h"
 
 #include "idgconfiguration.h"
 
@@ -181,32 +179,17 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
       config->Read(ms.Filename(), *ms, _settings.atermConfigFilename);
       return std::move(config);
     } else {
-      switch (Telescope::GetType(*ms)) {
-        case Telescope::AARTFAAC:
-        case Telescope::LOFAR: {
-          std::unique_ptr<LofarBeamTerm> beam(
-              new LofarBeamTerm(*ms, system, _settings.dataColumnName));
-          beam->SetUseDifferentialBeam(_settings.useDifferentialLofarBeam);
-          beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
-          beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
-          return std::move(beam);
-        }
-        case Telescope::MWA: {
-          std::unique_ptr<MWABeamTerm> beam(
-              new MWABeamTerm(*ms, system, _settings.mwaPath));
-          beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
-          beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
-          return std::move(beam);
-        }
-        case Telescope::VLA: {
-          std::unique_ptr<DishATerm> beam(new DishATerm(*ms, system));
-          beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
-          beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
-          return std::move(beam);
-        }
-        default:
-          throw std::runtime_error("Can't make beam for this telescope");
-      }
+      bool frequencyInterpolation = true;
+      bool useChannelFrequency = true;
+      std::string elementResponseModel = "hamaker";
+
+      std::unique_ptr<ATermBeam> beam = ATermConfig::GetATermBeam(
+          *ms, system, _settings.mwaPath, frequencyInterpolation,
+          _settings.dataColumnName, _settings.useDifferentialLofarBeam,
+          useChannelFrequency, elementResponseModel);
+      beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
+      beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
+      return std::move(beam);
     }
   } else {
     return std::unique_ptr<ATermBase>();

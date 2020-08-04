@@ -16,8 +16,6 @@
 
 #include <boost/math/special_functions/legendre.hpp>
 
-// #include <boost/filesystem.hpp>
-
 #include <H5Cpp.h>
 
 #include "beam2016implementation.h"

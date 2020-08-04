@@ -9,19 +9,23 @@
 # "./scripts/run-clang-format.sh" to .git/hooks/pre-commit
 # and make sure pre-commit is an executable shell script.
 
-#Script configuration for this repo. Adjust it when copying to a different repo.
+SCRIPT_PATH=$(dirname "$0")
+cd $SCRIPT_PATH
 
-#The directory that contains the source files, which clang-format should format.
-SOURCE_DIR=$(dirname "$0")/..
+#SCRIPT CONFIGURATION FOR THIS REPO. Adjust it when copying to a different repo.
+
+#The directory that contains the source files, which clang-format should format. 
+#Should be relative to $SCRIPT_PATH
+SOURCE_DIR=..
 
 #Directories that must be excluded from formatting. These paths are
-#relative to SOURCE_DIR.
+#relative to SCRIPT_PATH.
 EXCLUDE_DIRS=()
 
 #The extensions of the source files, which clang-format should format.
 SOURCE_EXT=(*.cpp *.h)
 
-#End script configuration.
+#END SCRIPT CONFIGURATION.
 
 set -e
 
@@ -37,11 +41,10 @@ done
 # Convert EXCLUDE_DIRS into "-path ./dir1 -prune -o -path ./dir2 -prune -o ..."
 FIND_EXCLUDES=
 for e in ${EXCLUDE_DIRS[*]}; do
-  FIND_EXCLUDES+="-path ./$e -prune -o "
+  FIND_EXCLUDES+="-path $e -prune -o "
 done
 
-cd $SOURCE_DIR
-find . $FIND_EXCLUDES -type f \( $FIND_NAMES \) \
+find $SOURCE_DIR $FIND_EXCLUDES -type f \( $FIND_NAMES \) \
   -exec clang-format -i -style=file \{\} +
 
 if git diff --exit-code --quiet; then

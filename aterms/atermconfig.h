@@ -7,11 +7,8 @@
 #include "atermbase.h"
 #include "atermbeam.h"
 #include "atermstub.h"
-#include "dishaterm.h"
 #include "dldmaterm.h"
 #include "fitsaterm.h"
-#include "lofarbeamterm.h"
-#include "mwabeamterm.h"
 #include "pafbeamterm.h"
 #include "telescope.h"
 
@@ -19,8 +16,17 @@
 
 #include "../parsetreader.h"
 
+#include "../wsclean/logger.h"
 #include "../wsclean/wscleansettings.h"
+#include "../mwa/findcoefffile.h"
 #include "../units/radeccoord.h"
+#include "../aterms/everybeamaterm.h"
+
+#ifdef HAVE_EVERYBEAM
+#include <EveryBeam/load.h>
+#include <EveryBeam/options.h>
+#include <EveryBeam/elementresponse.h>
+#endif
 
 using aocommon::Matrix2x2;
 
@@ -99,38 +105,18 @@ class ATermConfig : public ATermBase {
         f->SetDownSample(reader.GetBoolOr(atermName + ".downsample", true));
         _aterms.emplace_back(std::move(f));
       } else if (atermType == "beam") {
-        std::unique_ptr<ATermBeam> beam;
-        switch (Telescope::GetType(ms)) {
-          case Telescope::AARTFAAC:
-          case Telescope::LOFAR: {
-            bool differential = reader.GetBoolOr("beam.differential", false);
-            bool useChannelFrequency =
-                reader.GetBoolOr("beam.usechannelfreq", true);
-            std::unique_ptr<LofarBeamTerm> lofarBeam(new LofarBeamTerm(
-                ms, _coordinateSystem, _settings.dataColumnName));
-            lofarBeam->SetUseDifferentialBeam(differential);
-            lofarBeam->SetUseChannelFrequency(useChannelFrequency);
-            beam = std::move(lofarBeam);
-            break;
-          }
-          case Telescope::MWA: {
-            std::unique_ptr<MWABeamTerm> mwaTerm(
-                new MWABeamTerm(ms, _coordinateSystem, _settings.mwaPath));
-            beam = std::move(mwaTerm);
-            break;
-          }
-          case Telescope::VLA: {
-            beam.reset(new DishATerm(ms, _coordinateSystem));
-            break;
-          }
-          default: {
-            // This is here to make sure ATermStub compiles. This call should be
-            // the same as the call for LofarBeamTerm(..)
-            beam.reset(
-                new ATermStub(ms, _coordinateSystem, _settings.dataColumnName));
-            throw std::runtime_error("Can't make beam for this telescope");
-          }
-        }
+        bool frequencyInterpolation =
+            reader.GetBoolOr("beam.frequency_interpolation", true);
+        bool differential = reader.GetBoolOr("beam.differential", false);
+        bool useChannelFrequency =
+            reader.GetBoolOr("beam.usechannelfreq", true);
+        std::string elementResponseModel =
+            reader.GetStringOr("beam.element_response_model", "hamaker");
+
+        std::unique_ptr<ATermBeam> beam = GetATermBeam(
+            ms, _coordinateSystem, _settings.mwaPath, frequencyInterpolation,
+            _settings.dataColumnName, differential, useChannelFrequency,
+            elementResponseModel);
         double updateInterval = reader.GetDoubleOr(
             "beam.update_interval", _settings.beamAtermUpdateTime);
         beam->SetUpdateInterval(updateInterval);
@@ -239,6 +225,69 @@ class ATermConfig : public ATermBase {
       avgTime = std::min(avgTime, _aterms[i]->AverageUpdateTime());
     return avgTime;
   }
+
+  static std::unique_ptr<ATermBeam> GetATermBeam(
+      casacore::MeasurementSet& ms, const CoordinateSystem& coordinate_system,
+      const std::string& search_path, bool frequency_interpolation,
+      const std::string& data_column_name, bool use_differential_beam,
+      bool use_channel_frequency, const std::string& element_response_model) {
+    std::unique_ptr<ATermBeam> beam;
+#ifdef HAVE_EVERYBEAM
+    everybeam::Options options = ConvertToEBOptions(
+        ms, search_path, frequency_interpolation, data_column_name,
+        use_differential_beam, use_channel_frequency, element_response_model);
+    beam.reset(new EveryBeamATerm(ms, coordinate_system, options));
+#else
+    // This is here to make sure ATermStub compiles.
+    beam.reset(new ATermStub(ms, coordinate_system, data_column_name));
+    throw std::runtime_error(
+        "Beams for this telescope can not be made, because EveryBeam was not "
+        "found during compilation. Make sure that EveryBeam is found during "
+        "compilation of WSClean.");
+#endif
+    return std::move(beam);
+  }
+
+#ifdef HAVE_EVERYBEAM
+  static everybeam::Options ConvertToEBOptions(
+      const casacore::MeasurementSet& ms, const std::string& search_path,
+      bool frequency_interpolation, const std::string& data_column_name,
+      bool use_differential_beam, bool use_channel_frequency,
+      const std::string& element_response_model) {
+    everybeam::Options options;
+    // MWA related
+    if (everybeam::GetTelescopeType(ms) ==
+        everybeam::TelescopeType::kMWATelescope) {
+      options.coeff_path = wsclean::mwa::FindCoeffFile(search_path);
+      options.frequency_interpolation = frequency_interpolation;
+    }
+    // LOFAR related
+    std::string element_response_tmp = element_response_model;
+    std::for_each(element_response_tmp.begin(), element_response_tmp.end(),
+                  [](char& c) { c = ::toupper(c); });
+    everybeam::ElementResponseModel element_response_enum;
+    if (element_response_tmp == "HAMAKER")
+      element_response_enum = everybeam::ElementResponseModel::kHamaker;
+    else if (element_response_tmp == "LOBES")
+      element_response_enum = everybeam::ElementResponseModel::kLOBES;
+    else if (element_response_tmp == "OSKARDIPOLE")
+      element_response_enum = everybeam::ElementResponseModel::kOSKARDipole;
+    else if (element_response_tmp == "OSKARSPHERICALWAVE")
+      element_response_enum =
+          everybeam::ElementResponseModel::kOSKARSphericalWave;
+    else {
+      std::stringstream message;
+      message << "The specified element response model "
+              << element_response_model << " is not implemented.";
+      throw std::runtime_error(message.str());
+    }
+    options.data_column_name = data_column_name;
+    options.use_differential_beam = use_differential_beam;
+    options.use_channel_frequency = use_channel_frequency;
+    options.element_response_model = element_response_enum;
+    return options;
+  };
+#endif
 
  private:
   size_t _nAntenna;

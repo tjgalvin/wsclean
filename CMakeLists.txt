@@ -59,7 +59,7 @@ find_library(EVERYBEAM_LIB everybeam)
 
 if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   include_directories(${EVERYBEAM_INCLUDE_DIR})
-  set(EVERYBEAM_FILES aterms/dishaterm.cpp aterms/lofarbeamterm.cpp aterms/mwabeamterm.cpp )
+  set(EVERYBEAM_FILES aterms/everybeamaterm.cpp)
   add_definitions(-DHAVE_EVERYBEAM)
   message(STATUS "EveryBeam library found.")
 else()

@@ -247,13 +247,15 @@ void processField(MeasurementSet& set, const std::string& dataColumn,
   double newRA = newDirection.getAngle().getValue()[0];
   double newDec = newDirection.getAngle().getValue()[1];
   if (shiftback)
-    aocommon::ImageCoordinates::RaDecToLM(oldRA, oldDec, newRA, newDec, newDl, newDm);
+    aocommon::ImageCoordinates::RaDecToLM(oldRA, oldDec, newRA, newDec, newDl,
+                                          newDm);
   double oldDl, oldDm;
   getShift(fieldTable, oldDl, oldDm);
   std::cout << "Processing field \"" << nameCol(fieldIndex)
             << "\": " << dirToString(phaseDirection) << " -> "
             << dirToString(newDirection) << " ("
-            << aocommon::ImageCoordinates::AngularDistance(oldRA, oldDec, newRA, newDec) *
+            << aocommon::ImageCoordinates::AngularDistance(oldRA, oldDec, newRA,
+                                                           newDec) *
                    (180.0 / M_PI)
             << " deg)\n";
   if (oldDl != 0.0 || oldDm != 0.0 || newDl != 0.0 || newDm != 0.0) {
@@ -394,7 +396,8 @@ void showChanges(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
   std::cout << "Showing UVWs for \"" << nameCol(fieldIndex)
             << "\": " << dirToString(phaseDirection) << " -> "
             << dirToString(newDirection) << " ("
-            << aocommon::ImageCoordinates::AngularDistance(oldRA, oldDec, newRA, newDec) *
+            << aocommon::ImageCoordinates::AngularDistance(oldRA, oldDec, newRA,
+                                                           newDec) *
                    (180.0 / M_PI)
             << " deg)\n";
 
@@ -494,14 +497,15 @@ void rotateToGeoZenith(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
         std::cout << "Processing timestep in field \"" << nameCol(fieldIndex)
                   << "\": " << dirToString(phaseDirection) << " -> "
                   << dirToString(newDirection) << " ("
-                  << aocommon::ImageCoordinates::AngularDistance(oldRA, oldDec, newRA,
-                                                       newDec) *
+                  << aocommon::ImageCoordinates::AngularDistance(
+                         oldRA, oldDec, newRA, newDec) *
                          (180.0 / M_PI)
                   << " deg)\n";
         MDirection refDirection = MDirection::Convert(
             newDirection, MDirection::Ref(MDirection::J2000))();
         double dl, dm;
-        aocommon::ImageCoordinates::RaDecToLM(oldRA, oldDec, newRA, newDec, dl, dm);
+        aocommon::ImageCoordinates::RaDecToLM(oldRA, oldDec, newRA, newDec, dl,
+                                              dm);
 
         for (size_t a = 0; a != antennas.size(); ++a)
           uvws[a] = calculateUVW(antennas[a], antennas[0], time, refDirection);
