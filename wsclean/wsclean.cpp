@@ -1178,6 +1178,7 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
 
   const std::string rootPrefix = _settings.prefixName;
 
+  _predictingWatch.Start();
   for (size_t e = 0; e != imagingGroup.EntryCount(); ++e) {
     const ImagingTableEntry& entry = imagingGroup[e];
 
@@ -1185,6 +1186,7 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
 
     predict(entry);
   }  // end of polarization loop
+  _predictingWatch.Pause();
 
   _griddingTaskManager->Finish();
 

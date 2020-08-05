@@ -405,7 +405,7 @@ void showChanges(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
       MDirection::Convert(newDirection, MDirection::Ref(MDirection::J2000))();
   std::vector<Muvw> uvws(antennas.size());
   MEpoch time(MVEpoch(-1.0));
-  for (unsigned row = 0; row != std::min(set.nrow(), 50u); ++row) {
+  for (size_t row = 0; row != std::min<size_t>(set.nrow(), 50u); ++row) {
     if (fieldIdCol(row) == fieldIndex) {
       // Read values from set
       const int antenna1 = antenna1Col(row), antenna2 = antenna2Col(row);

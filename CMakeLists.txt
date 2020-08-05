@@ -213,7 +213,7 @@ if(MPI_FOUND)
 endif(MPI_FOUND)
 
 add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp multibanddata.cpp)
-target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB})
+target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB} ${MPI_LIBRARIES})
 
 add_executable(wsuvbinning EXCLUDE_FROM_ALL wsclean/examples/wsuvbinning.cpp ${WSCLEANFILES})
 target_link_libraries(wsuvbinning ${ALL_LIBRARIES})

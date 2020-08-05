@@ -20,7 +20,6 @@
 #include "../fitswriter.h"
 
 #include "../aterms/atermconfig.h"
-
 #include "../aterms/everybeamaterm.h"
 
 #include "idgconfiguration.h"
