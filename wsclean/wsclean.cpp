@@ -15,7 +15,6 @@
 
 #include "../application.h"
 #include "../areaset.h"
-#include "../dftpredictionalgorithm.h"
 #include "../fftresampler.h"
 #include "../fitswriter.h"
 #include "../image.h"
@@ -29,8 +28,6 @@
 #include "../deconvolution/imageset.h"
 
 #include "../idg/idgmsgridder.h"
-
-#include "../lofar/lmspredicter.h"
 
 #include "../model/model.h"
 

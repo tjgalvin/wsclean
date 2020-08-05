@@ -90,15 +90,15 @@ find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
 if(LOFAR_STATION_RESPONSE_INCLUDE_DIR AND LOFAR_STATION_RESPONSE_LIB)
   include_directories(${LOFAR_STATION_RESPONSE_INCLUDE_DIR})
   set(LBEAM_LIBS ${LOFAR_STATION_RESPONSE_LIB})
-  set(LBEAM_FILES lofar/lbeamevaluator.cpp lofar/lmspredicter.cpp)
+  set(LBEAM_FILES lofar/lbeamevaluator.cpp)
   # Some versions of the LOFAR code require "HAVE_BOOST" to be set explicitly
   # (This is supposed to be fixed in newer LOFAR repositories, AO 2015-11-27)
   add_definitions(-DHAVE_LOFAR_BEAM -DHAVE_BOOST)
   message("LOFAR beam library found.")
 else()
   set(LBEAM_LIBS "")
-  set(LBEAM_FILES lofar/lmspredicter.cpp)
-  message("LOFAR beam library not found: LOFAR beam will not be available in WSClean. This is not an error, it means that LOFAR beam correction and the 'lofar-dft' mode will be unavailable.")
+  set(LBEAM_FILES "")
+  message("LOFAR beam library not found: LOFAR beam will not be available in WSClean. This is not an error, it means that LOFAR beam correction will be unavailable.")
 endif(LOFAR_STATION_RESPONSE_INCLUDE_DIR AND LOFAR_STATION_RESPONSE_LIB)
 
 find_package(IDGAPI NO_MODULE QUIET)
@@ -148,7 +148,7 @@ configure_file("${PROJECT_SOURCE_DIR}/wscversion.h.in" "${PROJECT_BINARY_DIR}/ws
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(wsclean-object OBJECT
-  casamaskreader.cpp dftpredictionalgorithm.cpp fftconvolver.cpp fftresampler.cpp fftwmanager.cpp fitsiochecker.cpp fitsreader.cpp fitswriter.cpp gaussianfitter.cpp image.cpp imageweights.cpp modelrenderer.cpp msselection.cpp multibanddata.cpp nlplfitter.cpp parsetreader.cpp polynomialchannelfitter.cpp polynomialfitter.cpp progressbar.cpp rmsimage.cpp stopwatch.cpp system.cpp
+  casamaskreader.cpp fftconvolver.cpp fftresampler.cpp fftwmanager.cpp fitsiochecker.cpp fitsreader.cpp fitswriter.cpp gaussianfitter.cpp image.cpp imageweights.cpp modelrenderer.cpp msselection.cpp multibanddata.cpp nlplfitter.cpp parsetreader.cpp polynomialchannelfitter.cpp polynomialfitter.cpp progressbar.cpp rmsimage.cpp stopwatch.cpp system.cpp
   aterms/atermbase.cpp aterms/cache.cpp aterms/dldmaterm.cpp
   aterms/fitsaterm.cpp aterms/fitsatermbase.cpp
   aterms/pafbeamterm.cpp aterms/atermresampler.cpp
@@ -212,6 +212,9 @@ if(MPI_FOUND)
   target_link_libraries(wsclean-mp wsclean-lib ${ALL_LIBRARIES})
 endif(MPI_FOUND)
 
+add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp multibanddata.cpp)
+target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB})
+
 add_executable(wsuvbinning EXCLUDE_FROM_ALL wsclean/examples/wsuvbinning.cpp ${WSCLEANFILES})
 target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
 
@@ -223,6 +226,7 @@ target_link_libraries(mscaleexample ${ALL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)
+install(TARGETS chgcentre DESTINATION bin)
 install(FILES interface/wscleaninterface.h DESTINATION include)
 
 # add target to generate API documentation with Doxygen
