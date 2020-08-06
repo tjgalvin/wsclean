@@ -46,7 +46,6 @@ build-with-everybeam:
   script:
     - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git 
     - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4 
-    - export LD_LIBRARY_PATH=/opt/everybeam/lib/:$LD_LIBRARY_PATH
     - cd $CI_PROJECT_DIR && mkdir build && cd build
     - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
     - make

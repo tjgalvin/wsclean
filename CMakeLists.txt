@@ -9,6 +9,7 @@ include(CMakeVersionInfo.txt)
 #endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -DNDEBUG")
+string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
  
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
@@ -205,24 +206,25 @@ set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
 
+set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${LBEAM_LIBS} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB})
+
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
+target_link_libraries(wsclean-lib ${ALL_LIBRARIES})
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_library(wsclean-shared SHARED ${WSCLEANFILES})
-target_link_libraries(wsclean-shared)
+target_link_libraries(wsclean-shared ${ALL_LIBRARIES})
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
-set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${LBEAM_LIBS} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB})
-
 add_executable(wsclean wscleanmain.cpp)
-target_link_libraries(wsclean wsclean-lib ${ALL_LIBRARIES})
+target_link_libraries(wsclean wsclean-lib)
 
 if(MPI_FOUND)
   add_executable(wsclean-mp
     "distributed/wsclean-mp.cpp"
     distributed/slave.cpp)
-  target_link_libraries(wsclean-mp wsclean-lib ${ALL_LIBRARIES})
+  target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 
 add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp multibanddata.cpp)
