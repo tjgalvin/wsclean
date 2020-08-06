@@ -8,7 +8,10 @@
 #include "../wsclean/directmsgridder.h"
 
 #include "../idg/idgmsgridder.h"
+
+#ifdef HAVE_WGRIDDER
 #include "../wgridder/bufferedmsgridder.h"
+#endif
 
 GriddingTaskManager::GriddingTaskManager(const class WSCleanSettings& settings)
     : _settings(settings) {}
@@ -33,12 +36,19 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
 }
 
 std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
-  if (_settings.useIDG)
+  if (_settings.useIDG) {
     return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
-  else if (_settings.useWGridder)
+  } else if (_settings.useWGridder) {
+#ifdef HAVE_WGRIDDER
     return std::unique_ptr<MSGridderBase>(new BufferedMSGridder(
         _settings.threadCount, _settings.memFraction, _settings.absMemLimit));
-  else if (_settings.directFT) {
+#else
+    throw std::runtime_error(
+        "WGridder cannot be used: WGridder requires a C++17 compiler, which "
+        "was not found during compilation. Update your compiler and recompile "
+        "wsclean.");
+#endif
+  } else if (_settings.directFT) {
     switch (_settings.directFTPrecision) {
       case DirectFTPrecision::Half:
         throw std::runtime_error("Half precision is not implemented");

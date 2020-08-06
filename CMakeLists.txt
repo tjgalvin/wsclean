@@ -8,13 +8,27 @@ include(CMakeVersionInfo.txt)
 #  set(CMAKE_BUILD_TYPE "Release")
 #endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -DNDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -DNDEBUG")
+ 
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
 
-if(PORTABLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
+if(COMPILER_HAS_CXX17)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+  add_definitions(-DHAVE_WGRIDDER)
+  set(WGRIDDER_FILES wgridder/bufferedmsgridder.cpp
+    external/wgridder/ducc0/infra/threading.cc
+    wgridder/wgriddinggridder_simple.cpp)
+  include_directories(external/wgridder)
 else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  message(WARNING "Selected compiler does not support the C++17 standard. This will disable the 'wgridder' gridder, which requires C++17.")
+  set(WGRIDDER_FILES)
+endif()
+
+if(NOT PORTABLE)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-endif(PORTABLE)
+endif(NOT PORTABLE)
 
 # Find and include git submodules
 find_package(Git QUIET)
@@ -163,12 +177,11 @@ add_library(wsclean-object OBJECT
   mwa/beam2016implementation.cpp mwa/mwabeam.cpp mwa/tilebeam2016.cpp mwa/tilebeambase.cpp
   primarybeam/atcabeam.cpp primarybeam/vlabeam.cpp primarybeam/voltagepattern.cpp
   scheduling/griddingtaskmanager.cpp scheduling/griddingresult.cpp scheduling/griddingtask.cpp scheduling/metadatacache.cpp scheduling/threadedscheduler.cpp
-  wgridder/bufferedmsgridder.cpp wgridder/wgriddinggridder_simple.cpp
   wsclean/commandline.cpp wsclean/directmsgridder.cpp wsclean/imageoperations.cpp wsclean/imagingtable.cpp
   wsclean/logger.cpp wsclean/observationinfo.cpp
   wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
   wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
-  ${EVERYBEAM_FILES} ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES})
+  ${EVERYBEAM_FILES} ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES} ${WGRIDDER_FILES})
 
 
 # A number of files perform the 'core' high-performance floating point
