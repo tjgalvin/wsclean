@@ -62,8 +62,9 @@ class ATermConfig : public ATermBase {
         f->OpenTECFiles(tecFiles);
         std::string windowStr =
             reader.GetStringOr(atermName + ".window", "raised-hann");
-        WindowFunction::Type window = WindowFunction::GetType(windowStr);
-        if (window == WindowFunction::Tukey)
+        aocommon::WindowFunction::Type window =
+            aocommon::WindowFunction::GetType(windowStr);
+        if (window == aocommon::WindowFunction::Tukey)
           f->SetTukeyWindow(double(_settings.paddedImageWidth) /
                             _settings.trimmedImageWidth);
         else
@@ -78,8 +79,9 @@ class ATermConfig : public ATermBase {
         f->OpenDiagGainFiles(diagFiles);
         std::string windowStr =
             reader.GetStringOr(atermName + ".window", "raised-hann");
-        WindowFunction::Type window = WindowFunction::GetType(windowStr);
-        if (window == WindowFunction::Tukey)
+        aocommon::WindowFunction::Type window =
+            aocommon::WindowFunction::GetType(windowStr);
+        if (window == aocommon::WindowFunction::Tukey)
           f->SetTukeyWindow(double(_settings.paddedImageWidth) /
                             _settings.trimmedImageWidth);
         else
@@ -96,8 +98,9 @@ class ATermConfig : public ATermBase {
             reader.GetDoubleOr("dldm.update_interval", 5.0 * 60.0));
         std::string windowStr =
             reader.GetStringOr(atermName + ".window", "raised-hann");
-        WindowFunction::Type window = WindowFunction::GetType(windowStr);
-        if (window == WindowFunction::Tukey)
+        aocommon::WindowFunction::Type window =
+            aocommon::WindowFunction::GetType(windowStr);
+        if (window == aocommon::WindowFunction::Tukey)
           f->SetTukeyWindow(double(_settings.paddedImageWidth) /
                             _settings.trimmedImageWidth);
         else
@@ -153,8 +156,9 @@ class ATermConfig : public ATermBase {
                 beamDec);
         std::string windowStr =
             reader.GetStringOr(atermName + ".window", "raised-hann");
-        WindowFunction::Type window = WindowFunction::GetType(windowStr);
-        if (window == WindowFunction::Tukey)
+        aocommon::WindowFunction::Type window =
+            aocommon::WindowFunction::GetType(windowStr);
+        if (window == aocommon::WindowFunction::Tukey)
           f->SetTukeyWindow(double(_settings.paddedImageWidth) /
                             _settings.trimmedImageWidth);
         else

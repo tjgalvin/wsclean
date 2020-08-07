@@ -6,7 +6,8 @@
 #include "cache.h"
 
 #include "../fitsreader.h"
-#include "../windowfunction.h"
+
+#include <aocommon/windowfunction.h>
 
 class FitsATermBase : public ATermBase {
  public:
@@ -17,7 +18,9 @@ class FitsATermBase : public ATermBase {
 
   void SetTukeyWindow(double padding) { _resampler.SetTukeyWindow(padding); }
 
-  void SetWindow(WindowFunction::Type window) { _resampler.SetWindow(window); }
+  void SetWindow(aocommon::WindowFunction::Type window) {
+    _resampler.SetWindow(window);
+  }
 
   void SetDownSample(bool downsample) { _resampler.SetDownSample(downsample); }
 

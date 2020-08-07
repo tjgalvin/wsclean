@@ -4,6 +4,8 @@
 
 #include <aocommon/imagecoordinates.h>
 
+using aocommon::WindowFunction;
+
 ATermResampler::ATermResampler(
     const ATermBase::CoordinateSystem& coordinateSystem)
     : _coordinateSystem(coordinateSystem),

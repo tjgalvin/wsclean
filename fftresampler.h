@@ -1,10 +1,9 @@
 #ifndef FFT_RESAMPLE_H
 #define FFT_RESAMPLE_H
 
-#include "windowfunction.h"
-
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
+#include <aocommon/windowfunction.h>
 
 #include <vector>
 #include <thread>
@@ -57,7 +56,7 @@ class FFTResampler {
    * Only to be used with SingleFT (it makes resampling thread unsafe!)
    */
   void SetTukeyWindow(double insetSize, bool correctWindow) {
-    _windowFunction = WindowFunction::Tukey;
+    _windowFunction = aocommon::WindowFunction::Tukey;
     _tukeyInsetSize = insetSize;
     _correctWindow = correctWindow;
     _windowRowIn.clear();
@@ -65,7 +64,8 @@ class FFTResampler {
     _windowOut.clear();
   }
 
-  void SetWindowFunction(WindowFunction::Type window, bool correctWindow) {
+  void SetWindowFunction(aocommon::WindowFunction::Type window,
+                         bool correctWindow) {
     _windowFunction = window;
     _correctWindow = correctWindow;
     _windowRowIn.clear();
@@ -84,7 +84,7 @@ class FFTResampler {
   size_t _inputWidth, _inputHeight;
   size_t _outputWidth, _outputHeight;
   size_t _fftWidth, _fftHeight;
-  WindowFunction::Type _windowFunction;
+  aocommon::WindowFunction::Type _windowFunction;
   double _tukeyInsetSize;
   mutable aocommon::UVector<double> _windowRowIn;
   mutable aocommon::UVector<double> _windowColIn;

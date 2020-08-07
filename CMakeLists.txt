@@ -265,7 +265,6 @@ if(Boost_FOUND)
 		tests/testfitsdateobstime.cpp
 		tests/testfluxdensity.cpp
 		tests/testgaussianfitter.cpp
-		tests/testhmatrix4x4.cpp
 		tests/testimage.cpp
 		tests/testimageset.cpp
 		tests/testnlplfitter.cpp

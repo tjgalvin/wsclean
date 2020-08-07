@@ -5,10 +5,10 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include "../hmatrix4x4.h"
+#include <aocommon/hmatrix4x4.h>
 #include <aocommon/matrix2x2.h>
-
 #include <aocommon/polarization.h>
+
 #include "../fitsreader.h"
 #include "../image.h"
 
@@ -104,14 +104,14 @@ class PrimaryBeamImageSet {
       return value;
     } else if (_beamImages.size() == 16) {
       size_t j = y * _width + x;
-      HMC4x4 beam = HMC4x4::FromData(
+      aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
           {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
            _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
            _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
            _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
            _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
            _beamImages[15][j]});
-      if (!beam.Invert()) beam = HMC4x4::Zero();
+      if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
       aocommon::Vector4 v{0.5, 0.0, 0.0, 0.5};
       v = beam * v;
       return v[0].real() + v[3].real();
@@ -171,14 +171,14 @@ class PrimaryBeamImageSet {
     } else if (_beamImages.size() == 16) {
       size_t size = _width * _height;
       for (size_t j = 0; j != size; ++j) {
-        HMC4x4 beam = HMC4x4::FromData(
+        aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
             {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
              _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
              _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
              _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
              _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
              _beamImages[15][j]});
-        if (!beam.Invert()) beam = HMC4x4::Zero();
+        if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
         aocommon::Vector4 v{stokesI[j] * 0.5, 0.0, 0.0, stokesI[j] * 0.5};
         v = beam * v;
         stokesI[j] = v[0].real() + v[3].real();
@@ -214,14 +214,14 @@ class PrimaryBeamImageSet {
       }
     } else if (_beamImages.size() == 16) {
       for (size_t j = 0; j != size; ++j) {
-        HMC4x4 beam = HMC4x4::FromData(
+        aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
             {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
              _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
              _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
              _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
              _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
              _beamImages[15][j]});
-        if (!beam.Invert()) beam = HMC4x4::Zero();
+        if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
         double stokesVal[4] = {images[0][j], images[1][j], images[2][j],
                                images[3][j]};
         aocommon::Vector4 v;

@@ -4,9 +4,9 @@
 #include "atermbase.h"
 
 #include "../fitsreader.h"
-#include "../windowfunction.h"
 
 #include <aocommon/uvector.h>
+#include <aocommon/windowfunction.h>
 
 class ATermResampler {
  public:
@@ -22,11 +22,11 @@ class ATermResampler {
                        aocommon::UVector<double>& output, double stretchFactor);
 
   void SetTukeyWindow(double padding) {
-    _window = WindowFunction::Tukey;
+    _window = aocommon::WindowFunction::Tukey;
     _padding = padding;
   }
 
-  void SetWindow(WindowFunction::Type window) { _window = window; }
+  void SetWindow(aocommon::WindowFunction::Type window) { _window = window; }
 
   void SetDownSample(bool downsample) { _downsample = downsample; }
 
@@ -54,7 +54,7 @@ class ATermResampler {
   size_t _allocatedWidth, _allocatedHeight;
   std::unique_ptr<class FFTResampler> _resampler;
   bool _downsample;
-  WindowFunction::Type _window;
+  aocommon::WindowFunction::Type _window;
   double _padding;
   bool _overrideFitsPhaseCentre;
   double _overrideRa, _overrideDec;

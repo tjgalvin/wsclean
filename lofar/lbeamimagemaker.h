@@ -1,11 +1,11 @@
 #ifndef BEAM_IMAGE_MAKER
 #define BEAM_IMAGE_MAKER
 
-#include "../hmatrix4x4.h"
-#include <aocommon/polarization.h>
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/primarybeamimageset.h"
 
+#include <aocommon/hmatrix4x4.h>
+#include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -90,12 +90,13 @@ class LBeamImageMaker {
     aocommon::UVector<double> _weights;
   };
 
-  void makeBeamForMS(std::vector<HMC4x4>& _matrices, MSProvider& msProvider,
-                     const MSSelection& selection, double centralFrequency);
+  void makeBeamForMS(std::vector<aocommon::HMC4x4>& _matrices,
+                     MSProvider& msProvider, const MSSelection& selection,
+                     double centralFrequency);
 
   void makeBeamSnapshot(
       const std::vector<LOFAR::StationResponse::Station::Ptr>& stations,
-      const WeightMatrix& weights, HMC4x4* matrices, double time,
+      const WeightMatrix& weights, aocommon::HMC4x4* matrices, double time,
       double frequency, double subbandFrequency,
       const casacore::MeasFrame& frame);
 

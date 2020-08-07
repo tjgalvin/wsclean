@@ -4,6 +4,8 @@
 #include <complex>
 #include <iostream>
 
+using aocommon::WindowFunction;
+
 FFTResampler::FFTResampler(size_t inWidth, size_t inHeight, size_t outWidth,
                            size_t outHeight, size_t cpuCount, bool verbose)
     : _inputWidth(inWidth),

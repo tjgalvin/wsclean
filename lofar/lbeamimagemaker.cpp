@@ -51,6 +51,8 @@ PrimaryBeamImageSet LBeamImageMaker::Make() {
 #include <stdexcept>
 
 using namespace LOFAR::StationResponse;
+
+using aocommon::HMC4x4;
 using aocommon::MC2x2;
 using aocommon::MC4x4;
 
@@ -65,7 +67,8 @@ PrimaryBeamImageSet LBeamImageMaker::Make() {
 
   _totalWeightSum = 0.0;
 
-  std::vector<HMC4x4> matrices(_sampledWidth * _sampledHeight, HMC4x4::Zero());
+  std::vector<aocommon::HMC4x4> matrices(_sampledWidth * _sampledHeight,
+                                         aocommon::HMC4x4::Zero());
 
   Logger::Debug << "Making beam for " << _msProviders.size() << " parts ("
                 << _tableEntry->msData.size() << " ms)\n";
@@ -116,7 +119,7 @@ PrimaryBeamImageSet LBeamImageMaker::Make() {
   return beamImages;
 }
 
-void LBeamImageMaker::makeBeamForMS(std::vector<HMC4x4>& matrices,
+void LBeamImageMaker::makeBeamForMS(std::vector<aocommon::HMC4x4>& matrices,
                                     MSProvider& msProvider,
                                     const MSSelection& selection,
                                     double centralFrequency) {
@@ -249,7 +252,8 @@ void LBeamImageMaker::makeBeamForMS(std::vector<HMC4x4>& matrices,
                   << " %\n";
 
     if (intervalWeight != 0.0) {
-      std::vector<HMC4x4> singleMatrices(_sampledWidth * _sampledHeight);
+      std::vector<aocommon::HMC4x4> singleMatrices(_sampledWidth *
+                                                   _sampledHeight);
 
       makeBeamSnapshot(stations, baselineWeights, singleMatrices.data(),
                        timeEpoch.getValue().get() * 86400.0, centralFrequency,
@@ -290,8 +294,8 @@ static void dirToITRFVector(const casacore::MDirection& dir,
 
 void LBeamImageMaker::makeBeamSnapshot(
     const std::vector<Station::Ptr>& stations, const WeightMatrix& weights,
-    HMC4x4* matrices, double time, double frequency, double subbandFrequency,
-    const casacore::MeasFrame& frame) {
+    aocommon::HMC4x4* matrices, double time, double frequency,
+    double subbandFrequency, const casacore::MeasFrame& frame) {
   static const casacore::Unit radUnit("rad");
   const casacore::MDirection::Ref j2000Ref(casacore::MDirection::J2000, frame);
   ITRFConverter converter(time);
