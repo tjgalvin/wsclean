@@ -384,7 +384,7 @@ void WSMSGridder::Invert() {
     Logger::Debug << '\n';
   }
 
-  _gridder->FinalizeImage(1.0 / totalWeight(), false);
+  _gridder->FinalizeImage(1.0 / totalWeight());
   Logger::Info << "Gridded visibility count: "
                << double(GriddedVisibilityCount());
   if (Weighting().IsNatural())

@@ -687,12 +687,8 @@ void WStackingGridderBase<T>::SampleDataSample(std::complex<SampleT> &value,
 }
 
 template <typename T>
-void WStackingGridderBase<T>::FinalizeImage(double multiplicationFactor,
-                                            bool correctFFTFactor) {
+void WStackingGridderBase<T>::FinalizeImage(double multiplicationFactor) {
   _layeredUVData.clear();
-  if (correctFFTFactor) {
-    multiplicationFactor /= std::sqrt(_width * _height);
-  }
   finalizeImage(multiplicationFactor, _imageData);
   if (_isComplex) finalizeImage(multiplicationFactor, _imageDataImaginary);
 }

@@ -192,7 +192,7 @@ void BufferedMSGridder::Invert() {
     gridMeasurementSet(msData);
   }
 
-  _gridder->FinalizeImage(1.0 / totalWeight(), false);
+  _gridder->FinalizeImage(1.0 / totalWeight());
 
   Logger::Info << "Gridded visibility count: "
                << double(GriddedVisibilityCount());

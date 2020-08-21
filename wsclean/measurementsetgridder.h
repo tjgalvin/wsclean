@@ -5,6 +5,7 @@
 #include "observationinfo.h"
 
 #include <aocommon/polarization.h>
+
 #include "../msselection.h"
 #include "../weightmode.h"
 #include "../image.h"

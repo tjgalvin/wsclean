@@ -326,12 +326,8 @@ class WStackingGridderBase {
    * Finalize inversion once all passes are performed.
    * @param multiplicationFactor Apply this factor to all pixels. This can be
    * used to normalize the image for the weighting scheme.
-   * @param correctFFTFactor For normal imaging this should be false. It can be
-   * set to true when no correcting for weighting is performed, but the FFT
-   * factor should be taken out. WSClean uses this for certain values of
-   * "-visibility-weighting-mode".
    */
-  void FinalizeImage(double multiplicationFactor, bool correctFFTFactor);
+  void FinalizeImage(double multiplicationFactor);
 
   /**
    * Initialize gridder for prediction and specify image to predict for.

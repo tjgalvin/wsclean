@@ -49,9 +49,7 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty[i];
 }
 
-void WGriddingGridder_Simple::FinalizeImage(double multiplicationFactor,
-                                            bool correctFFTFactor) {
-  if (correctFFTFactor) multiplicationFactor /= sqrt(width_ * height_);
+void WGriddingGridder_Simple::FinalizeImage(double multiplicationFactor) {
   for (auto &pix : img) pix *= multiplicationFactor;
 }
 
