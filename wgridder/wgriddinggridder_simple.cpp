@@ -22,7 +22,8 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(
 
 void WGriddingGridder_Simple::memUsage(size_t &constant,
                                        size_t &per_vis) const {
-  constant = width_ * height_ * sizeof(complex<float>) *
+  // pessimistically assume an oversampling factor of 2
+  constant = 4 * width_t_ * height_t_ * sizeof(complex<float>) *
                  2  // sometimes we have two arrays in memory
              + width_t_ * height_t_ * sizeof(float);  // trimmed dirty image
   per_vis =
@@ -40,12 +41,12 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   mav<double, 2> uvw2(uvw, {nrows, 3});
   mav<double, 1> freq2(freq, {nchan});
   mav<complex<float>, 2> ms(vis, {nrows, nchan});
-  vector<float> tmp(width_t_ * height_t_, 0);
-  mav<float, 2> tdirty(tmp.data(), {width_t_, height_t_}, true);
+  mav<float, 2> tdirty({width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
-  ms2dirty(uvw2, freq2, ms, twgt, pixelSizeX_, pixelSizeY_, width_, height_,
+  mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
+  ms2dirty(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_, 0, 0,
            epsilon_, true, nthreads_, tdirty, verbosity_, true);
-  for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tmp[i];
+  for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty[i];
 }
 
 void WGriddingGridder_Simple::FinalizeImage(double multiplicationFactor,
@@ -82,6 +83,7 @@ void WGriddingGridder_Simple::PredictVisibilities(
   mav<complex<float>, 2> ms(vis, {nrows, nchan}, true);
   mav<float, 2> tdirty(img.data(), {width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
-  dirty2ms(uvw2, freq2, tdirty, twgt, pixelSizeX_, pixelSizeY_, width_, height_,
+  mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
+  dirty2ms(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_, pixelSizeY_, 0, 0,
            epsilon_, true, nthreads_, ms, verbosity_, true);
 }
