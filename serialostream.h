@@ -16,7 +16,10 @@ class SerialOStream {
   SerialOStream() {}
 
   size_t size() const { return _buffer.size(); }
+
   const unsigned char* data() const { return _buffer.data(); }
+  unsigned char* data() { return _buffer.data(); }
+
   std::string ToString() const {
     return std::string(reinterpret_cast<const char*>(_buffer.data()), size());
   }

@@ -78,7 +78,7 @@ if(MPI_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
   add_definitions(-DHAVE_MPI)
   include_directories(SYSTEM ${MPI_INCLUDE_PATH})
-  set(MPI_CPP_FILES scheduling/mpischeduler.cpp)
+  set(MPI_CPP_FILES scheduling/mpischeduler.cpp distributed/mpibig.cpp)
 else(MPI_FOUND)
   message(WARNING "MPI not found, multi-processing executable wsclean-mp will not be build.")
   set(MPI_LIBRARIES "")
@@ -222,7 +222,7 @@ target_link_libraries(wsclean wsclean-lib)
 
 if(MPI_FOUND)
   add_executable(wsclean-mp
-    "distributed/wsclean-mp.cpp"
+    distributed/wsclean-mp.cpp
     distributed/slave.cpp)
   target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)

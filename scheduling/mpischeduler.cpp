@@ -4,6 +4,7 @@
 
 #include "../wsclean/logger.h"
 
+#include "../distributed/mpibig.h"
 #include "../distributed/taskmessage.h"
 
 #include "../serialostream.h"
@@ -85,6 +86,8 @@ void MPIScheduler::sendLoop() {
   while (_taskList.read(taskPair)) {
     const GriddingTask &task = taskPair.first;
     SerialOStream stream;
+    // To use MPI_Send_Big, a uint64_t need to be reserved
+    stream.UInt64(0);
     task.Serialize(stream);
 
     int node = findAndSetNodeState(AvailableNode,
@@ -101,7 +104,7 @@ void MPIScheduler::sendLoop() {
       message.bodySize = stream.size();
       MPI_Send(&message, sizeof(TaskMessage), MPI_BYTE, node, 0,
                MPI_COMM_WORLD);
-      MPI_Send(stream.data(), stream.size(), MPI_BYTE, node, 0, MPI_COMM_WORLD);
+      MPI_Send_Big(stream.data(), stream.size(), node, 0, MPI_COMM_WORLD);
     }
   }
 
@@ -145,11 +148,11 @@ void MPIScheduler::receiveLoop() {
                                  std::to_string(node));
 
       aocommon::UVector<unsigned char> buffer(message.bodySize);
-      MPI_Recv(buffer.data(), message.bodySize, MPI_BYTE, node, 0,
-               MPI_COMM_WORLD, &status);
-
+      MPI_Recv_Big(buffer.data(), message.bodySize, node, 0, MPI_COMM_WORLD,
+                   &status);
       GriddingResult result;
       SerialIStream stream(std::move(buffer));
+      stream.UInt64();  // storage for MPI_Recv_Big
       result.Unserialize(stream);
 
       lock.lock();
