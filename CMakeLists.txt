@@ -99,23 +99,6 @@ else()
   message("EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available.")
 endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
-
-find_path(LOFAR_STATION_RESPONSE_INCLUDE_DIR NAMES StationResponse/ITRFConverter.h)
-find_library(LOFAR_STATION_RESPONSE_LIB stationresponse)
-if(LOFAR_STATION_RESPONSE_INCLUDE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-  include_directories(${LOFAR_STATION_RESPONSE_INCLUDE_DIR})
-  set(LBEAM_LIBS ${LOFAR_STATION_RESPONSE_LIB})
-  set(LBEAM_FILES lofar/lbeamevaluator.cpp)
-  # Some versions of the LOFAR code require "HAVE_BOOST" to be set explicitly
-  # (This is supposed to be fixed in newer LOFAR repositories, AO 2015-11-27)
-  add_definitions(-DHAVE_LOFAR_BEAM -DHAVE_BOOST)
-  message("LOFAR beam library found.")
-else()
-  set(LBEAM_LIBS "")
-  set(LBEAM_FILES "")
-  message("LOFAR beam library not found: LOFAR beam will not be available in WSClean. This is not an error, it means that LOFAR beam correction will be unavailable.")
-endif(LOFAR_STATION_RESPONSE_INCLUDE_DIR AND LOFAR_STATION_RESPONSE_LIB)
-
 find_package(IDGAPI NO_MODULE QUIET)
 
 if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
@@ -171,18 +154,15 @@ add_library(wsclean-object OBJECT
   idg/averagebeam.cpp
   interface/wscleaninterface.cpp
   iuwt/imageanalysis.cpp iuwt/iuwtdecomposition.cpp iuwt/iuwtdeconvolutionalgorithm.cpp iuwt/iuwtmask.cpp
-  lofar/lbeamimagemaker.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp msproviders/contiguousms.cpp msproviders/msdatadescription.cpp msproviders/directmsrowprovider.cpp msproviders/msprovider.cpp msproviders/msrowprovider.cpp msproviders/partitionedms.cpp msproviders/synchronizedms.cpp
   multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp multiscale/threadeddeconvolutiontools.cpp
-  mwa/beam2016implementation.cpp mwa/mwabeam.cpp mwa/tilebeam2016.cpp mwa/tilebeambase.cpp
-  primarybeam/atcabeam.cpp primarybeam/vlabeam.cpp primarybeam/voltagepattern.cpp
   scheduling/griddingtaskmanager.cpp scheduling/griddingresult.cpp scheduling/griddingtask.cpp scheduling/metadatacache.cpp scheduling/threadedscheduler.cpp
   wsclean/commandline.cpp wsclean/directmsgridder.cpp wsclean/imageoperations.cpp wsclean/imagingtable.cpp
   wsclean/logger.cpp wsclean/observationinfo.cpp
   wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
   wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
-  ${EVERYBEAM_FILES} ${LBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES} ${WGRIDDER_FILES})
+  ${EVERYBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES} ${WGRIDDER_FILES})
 
 
 # A number of files perform the 'core' high-performance floating point
@@ -206,7 +186,7 @@ set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
 
-set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${LBEAM_LIBS} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB})
+set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
 target_link_libraries(wsclean-lib ${ALL_LIBRARIES})

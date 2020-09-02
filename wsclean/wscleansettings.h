@@ -81,6 +81,7 @@ class WSCleanSettings {
   bool forceReorder, forceNoReorder, doReorder;
   bool subtractModel, modelUpdateRequired, mfWeighting;
   size_t fullResOffset, fullResWidth, fullResPad;
+  std::string beamModel;
   bool applyPrimaryBeam, reusePrimaryBeam, useDifferentialLofarBeam, savePsfPb;
   std::string mwaPath;
   size_t primaryBeamUndersampling, primaryBeamUpdateTime;
@@ -249,6 +250,7 @@ inline WSCleanSettings::WSCleanSettings()
       fullResOffset(0),
       fullResWidth(0),
       fullResPad(0),
+      beamModel(),
       applyPrimaryBeam(false),
       reusePrimaryBeam(false),
       useDifferentialLofarBeam(false),

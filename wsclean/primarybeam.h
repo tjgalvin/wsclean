@@ -7,9 +7,16 @@
 #include "imagingtable.h"
 #include "primarybeamimageset.h"
 
-#include <aocommon/polarization.h>
+#include "../msproviders/msprovider.h"
 
-#include "../aterms/telescope.h"
+#include <aocommon/polarization.h>
+#include <aocommon/uvector.h>
+
+namespace everybeam {
+namespace coords {
+struct CoordinateSystem;
+}  // namespace coords
+}  // namespace everybeam
 
 class PrimaryBeam {
  public:
@@ -51,28 +58,83 @@ class PrimaryBeam {
 
  private:
   const WSCleanSettings& _settings;
-  std::vector<std::unique_ptr<class MSDataDescription>> _msList;
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
+  size_t _undersample, _secondsBeforeBeamUpdate;
+  std::vector<std::unique_ptr<class MSDataDescription>> _msList;
+  struct MSProviderInfo {
+    MSProviderInfo(MSProvider* _provider, const MSSelection* _selection,
+                   size_t _msIndex)
+        : provider(_provider), selection(_selection), msIndex(_msIndex) {}
+    MSProvider* provider;
+    const MSSelection* selection;
+    size_t msIndex;
+  };
+  std::vector<MSProviderInfo> _msProviders;
 
   static PrimaryBeamImageSet load(const ImageFilename& imageName,
                                   const WSCleanSettings& settings);
+#ifdef HAVE_EVERYBEAM
+  /**
+   * @brief Lower triangular matrix representation of baseline weights.
+   *
+   */
+  class WeightMatrix {
+   public:
+    explicit WeightMatrix(size_t nAntenna)
+        : _nAntenna(nAntenna), _weights(nAntenna * nAntenna, 0) {}
+    double& Value(size_t a1, size_t a2) {
+      if (a1 < a2)
+        return _weights[a1 * _nAntenna + a2];
+      else
+        return _weights[a1 + a2 * _nAntenna];
+    }
+    const double& Value(size_t a1, size_t a2) const {
+      if (a1 < a2)
+        return _weights[a1 * _nAntenna + a2];
+      else
+        return _weights[a1 + a2 * _nAntenna];
+    }
 
-  PrimaryBeamImageSet makeLOFARImage(
-      const ImagingTableEntry& entry,
-      std::shared_ptr<class ImageWeights> imageWeights);
+    /**
+     * @brief Get the weights per baseline
+     *
+     * @return aocommon::UVector<double>
+     */
+    aocommon::UVector<double> GetBaselineWeights() const {
+      int nbaselines = _nAntenna * (_nAntenna + 1) / 2;
+      aocommon::UVector<double> baseline_weights(nbaselines, 0);
 
-  void makeMWAImage(PrimaryBeamImageSet& beamImages,
-                    const ImagingTableEntry& entry);
+      int index = 0;
+      for (size_t a1 = 0; a1 != _nAntenna; ++a1) {
+        for (size_t a2 = a1; a2 != _nAntenna; ++a2) {
+          baseline_weights[index] = _weights[a1 * _nAntenna + a2];
+          ++index;
+        }
+      }
+      return baseline_weights;
+    }
 
-  void makeATCAImage(PrimaryBeamImageSet& beamImages,
-                     const ImagingTableEntry& entry);
+   private:
+    size_t _nAntenna;
+    aocommon::UVector<double> _weights;
+  };
 
-  void makeVLAImage(PrimaryBeamImageSet& beamImages,
-                    const ImagingTableEntry& entry);
+  PrimaryBeamImageSet MakeImage(const ImagingTableEntry& entry,
+                                std::shared_ptr<ImageWeights> imageWeights);
 
-  void makeFromVoltagePattern(PrimaryBeamImageSet& beamImages,
-                              const ImagingTableEntry& entry,
-                              class VoltagePattern& vp);
+  double MakeBeamForMS(
+      aocommon::UVector<double>& buffer, MSProvider& msProvider,
+      const MSSelection& selection, const ImageWeights& imageWeights,
+      const everybeam::coords::CoordinateSystem& coordinateSystem,
+      double centralFrequency);
+
+  std::tuple<double, double, size_t> GetTimeInfo(MSProvider& msProvider);
+
+  void CalculateStationWeights(const class ImageWeights& imageWeights,
+                               WeightMatrix& baselineWeights,
+                               SynchronizedMS& ms, MSProvider& msProvider,
+                               const MSSelection& selection, double endTime);
+#endif  // HAVE_EVERYBEAM
 };
 
-#endif
+#endif  // PRIMARY_BEAM_H

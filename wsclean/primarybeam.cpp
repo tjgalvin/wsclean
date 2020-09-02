@@ -2,142 +2,40 @@
 #include "wscleansettings.h"
 #include "logger.h"
 
+#include "../aterms/atermconfig.h"
 #include "../fitswriter.h"
-#include <aocommon/matrix2x2.h>
-
 #include "../fitsreader.h"
-
-#include "../lofar/lbeamimagemaker.h"
+#include "../imageweights.h"
 
 #include "../msproviders/msdatadescription.h"
-#include "../mwa/mwabeam.h"
-
-#include "../primarybeam/atcabeam.h"
-#include "../primarybeam/vlabeam.h"
 
 #include <boost/filesystem/operations.hpp>
-
 #include <boost/algorithm/string/case_conv.hpp>
+
+#include <stdexcept>
+
+#ifdef HAVE_EVERYBEAM
+#include <EveryBeam/load.h>
+#include <EveryBeam/griddedresponse/griddedresponse.h>
+#include <EveryBeam/coords/coordutils.h>
+#endif
 
 PrimaryBeam::PrimaryBeam(const WSCleanSettings& settings)
     : _settings(settings),
       _phaseCentreRA(0.0),
       _phaseCentreDec(0.0),
       _phaseCentreDL(0.0),
-      _phaseCentreDM(0.0) {}
+      _phaseCentreDM(0.0) {
+  // Undersampling factor (default 8) and beam update time (default 1800s), see
+  // wscleansettings.h
+  _undersample = _settings.primaryBeamUndersampling;
+  _secondsBeforeBeamUpdate = _settings.primaryBeamUpdateTime;
+}
 
 PrimaryBeam::~PrimaryBeam() {}
 
 void PrimaryBeam::AddMS(std::unique_ptr<class MSDataDescription> description) {
   _msList.emplace_back(std::move(description));
-}
-
-void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
-                                 const ImagingTableEntry& entry,
-                                 std::shared_ptr<ImageWeights> imageWeights) {
-  bool useExistingBeam = false;
-  if (_settings.reusePrimaryBeam) {
-    ImageFilename firstPolName(imageName);
-    firstPolName.SetPolarization(aocommon::Polarization::XX);
-    firstPolName.SetIsImaginary(false);
-    std::string f(firstPolName.GetBeamPrefix(_settings) + ".fits");
-    if (boost::filesystem::exists(f)) {
-      FitsReader reader(f);
-      if (reader.ImageWidth() == _settings.trimmedImageWidth &&
-          reader.ImageHeight() == _settings.trimmedImageHeight) {
-        useExistingBeam = true;
-        Logger::Info << "File '" << f
-                     << "' exists on disk -- reusing files for primary beam.\n";
-      } else {
-        Logger::Info << "File '" << f
-                     << "' exists on disk but has different dimensions. Beam "
-                        "will be recreated.\n";
-      }
-    } else {
-      Logger::Info << "Primary beam not yet available (file '" << f
-                   << "' does not exist). Beam will be created.\n";
-    }
-  }
-  if (!useExistingBeam) {
-    Logger::Info << " == Constructing primary beam ==\n";
-
-    PrimaryBeamImageSet beamImages;
-
-    {
-      // A single outputimage/entry might consist of multiple measurement sets.
-      // In that case we only use the first measurement set:
-      std::unique_ptr<MSProvider> provider = _msList.front()->GetProvider();
-      SynchronizedMS ms(provider->MS());
-      Telescope::TelescopeType type = Telescope::GetType(*ms);
-      ms.Reset();
-      provider.reset();
-      switch (type) {
-        case Telescope::LOFAR:
-        case Telescope::AARTFAAC:
-          beamImages = makeLOFARImage(entry, imageWeights);
-          break;
-        case Telescope::MWA:
-          beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth,
-                                           _settings.trimmedImageHeight, 8);
-          beamImages.SetToZero();
-          makeMWAImage(beamImages, entry);
-          break;
-        case Telescope::ATCA:
-          beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth,
-                                           _settings.trimmedImageHeight, 8);
-          beamImages.SetToZero();
-          makeATCAImage(beamImages, entry);
-          break;
-        case Telescope::VLA:
-          beamImages = PrimaryBeamImageSet(_settings.trimmedImageWidth,
-                                           _settings.trimmedImageHeight, 8);
-          beamImages.SetToZero();
-          makeVLAImage(beamImages, entry);
-          break;
-        default:
-          throw std::runtime_error("Can't make beam for this telescope");
-      }
-    }
-
-    if (beamImages.NImages() == 8) {
-      // Save the 8 beam images as fits files
-      aocommon::PolarizationEnum linPols[4] = {
-          aocommon::Polarization::XX, aocommon::Polarization::XY,
-          aocommon::Polarization::YX, aocommon::Polarization::YY};
-      FitsWriter writer;
-      writer.SetImageDimensions(_settings.trimmedImageWidth,
-                                _settings.trimmedImageHeight, _phaseCentreRA,
-                                _phaseCentreDec, _settings.pixelScaleX,
-                                _settings.pixelScaleY);
-      writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
-      for (size_t i = 0; i != 8; ++i) {
-        aocommon::PolarizationEnum p = linPols[i / 2];
-        ImageFilename polName(imageName);
-        polName.SetPolarization(p);
-        polName.SetIsImaginary(i % 2 != 0);
-        writer.SetPolarization(p);
-        writer.SetFrequency(entry.CentralFrequency(),
-                            entry.bandEndFrequency - entry.bandStartFrequency);
-        writer.Write<double>(polName.GetBeamPrefix(_settings) + ".fits",
-                             beamImages[i].data());
-      }
-    } else {
-      // Save the 16 beam images as fits files
-      FitsWriter writer;
-      writer.SetImageDimensions(_settings.trimmedImageWidth,
-                                _settings.trimmedImageHeight, _phaseCentreRA,
-                                _phaseCentreDec, _settings.pixelScaleX,
-                                _settings.pixelScaleY);
-      writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
-      for (size_t i = 0; i != 16; ++i) {
-        writer.SetFrequency(entry.CentralFrequency(),
-                            entry.bandEndFrequency - entry.bandStartFrequency);
-        writer.Write<double>(imageName.GetBeamPrefix(_settings) + "-" +
-                                 std::to_string(i) + ".fits",
-                             beamImages[i].data());
-      }
-    }
-  }
 }
 
 void PrimaryBeam::CorrectImages(FitsWriter& writer,
@@ -256,96 +154,300 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
   }
 }
 
-PrimaryBeamImageSet PrimaryBeam::makeLOFARImage(
+#ifndef HAVE_EVERYBEAM
+void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
+                                 const ImagingTableEntry& entry,
+                                 std::shared_ptr<ImageWeights> imageWeights) {
+  throw std::runtime_error(
+      "PrimaryBeam correction requested, but the software has been compiled "
+      "without EveryBeam. Recompile your software and make sure that "
+      "cmake finds the EveryBeam library.");
+}
+#else
+void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
+                                 const ImagingTableEntry& entry,
+                                 std::shared_ptr<ImageWeights> imageWeights) {
+  bool useExistingBeam = false;
+  if (_settings.reusePrimaryBeam) {
+    ImageFilename firstPolName(imageName);
+    firstPolName.SetPolarization(aocommon::Polarization::XX);
+    firstPolName.SetIsImaginary(false);
+    std::string f(firstPolName.GetBeamPrefix(_settings) + ".fits");
+    if (boost::filesystem::exists(f)) {
+      FitsReader reader(f);
+      if (reader.ImageWidth() == _settings.trimmedImageWidth &&
+          reader.ImageHeight() == _settings.trimmedImageHeight) {
+        useExistingBeam = true;
+        Logger::Info << "File '" << f
+                     << "' exists on disk -- reusing files for primary beam.\n";
+      } else {
+        Logger::Info << "File '" << f
+                     << "' exists on disk but has different dimensions. Beam "
+                        "will be recreated.\n";
+      }
+    } else {
+      Logger::Info << "Primary beam not yet available (file '" << f
+                   << "' does not exist). Beam will be created.\n";
+    }
+  }
+  if (!useExistingBeam) {
+    Logger::Info << " == Constructing primary beam ==\n";
+
+    PrimaryBeamImageSet beamImages;
+    beamImages = MakeImage(entry, imageWeights);
+
+    // Save the 16 beam images as fits files
+    FitsWriter writer;
+    writer.SetImageDimensions(_settings.trimmedImageWidth,
+                              _settings.trimmedImageHeight, _phaseCentreRA,
+                              _phaseCentreDec, _settings.pixelScaleX,
+                              _settings.pixelScaleY);
+    writer.SetPhaseCentreShift(_phaseCentreDL, _phaseCentreDM);
+    for (size_t i = 0; i != 16; ++i) {
+      writer.SetFrequency(entry.CentralFrequency(),
+                          entry.bandEndFrequency - entry.bandStartFrequency);
+      writer.Write<double>(imageName.GetBeamPrefix(_settings) + "-" +
+                               std::to_string(i) + ".fits",
+                           beamImages[i].data());
+    }
+  }
+}
+
+PrimaryBeamImageSet PrimaryBeam::MakeImage(
     const ImagingTableEntry& entry,
     std::shared_ptr<ImageWeights> imageWeights) {
-  LBeamImageMaker lbeam(&entry);
-  std::vector<std::unique_ptr<MSProvider>> providers;
+  std::vector<std::unique_ptr<MSProvider> > providers;
   for (size_t i = 0; i != _msList.size(); ++i) {
     providers.emplace_back(_msList[i]->GetProvider());
-    lbeam.AddMS(providers.back().get(), &_msList[i]->Selection(), i);
+    _msProviders.push_back(
+        MSProviderInfo(providers.back().get(), &_msList[i]->Selection(), i));
   }
-  lbeam.SetUseDifferentialBeam(_settings.useDifferentialLofarBeam);
-  lbeam.SetSaveIntermediateImages(_settings.saveATerms);
-  lbeam.SetImageDetails(_settings.trimmedImageWidth,
-                        _settings.trimmedImageHeight, _settings.pixelScaleX,
-                        _settings.pixelScaleY, _phaseCentreRA, _phaseCentreDec,
-                        _phaseCentreDL, _phaseCentreDM);
-  lbeam.SetImageWeight(std::move(imageWeights));
-  lbeam.SetUndersampling(_settings.primaryBeamUndersampling);
-  lbeam.SetSecondsBeforeBeamUpdate(_settings.primaryBeamUpdateTime);
-  return lbeam.Make();
+
+  size_t width(_settings.trimmedImageWidth),
+      height(_settings.trimmedImageHeight);
+  everybeam::coords::CoordinateSystem coordinateSystem{width,
+                                                       height,
+                                                       _phaseCentreRA,
+                                                       _phaseCentreDec,
+                                                       _settings.pixelScaleX,
+                                                       _settings.pixelScaleY,
+                                                       _phaseCentreDL,
+                                                       _phaseCentreDM};
+
+  aocommon::UVector<double> buffer_total(width * height * 16, 0);
+  double ms_weight_sum = 0;
+  for (const MSProviderInfo& msProviderInfo : _msProviders) {
+    // TODO: channelFrequency calculation might be telescope specific?
+    const ImagingTableEntry::MSInfo& msInfo =
+        entry.msData[msProviderInfo.msIndex];
+    const MSSelection& selection = *msProviderInfo.selection;
+
+    SynchronizedMS ms = msProviderInfo.provider->MS();
+    MultiBandData band(ms->spectralWindow(), ms->dataDescription());
+    ms.Reset();
+    double centralFrequency = 0.0;
+    for (size_t dataDescId = 0; dataDescId != band.DataDescCount();
+         ++dataDescId) {
+      BandData subBand(band[dataDescId], selection.ChannelRangeStart(),
+                       selection.ChannelRangeEnd());
+      centralFrequency += subBand.CentreFrequency();
+    }
+    centralFrequency /= msInfo.bands.size();
+
+    aocommon::UVector<double> buffer(width * height * 16, 0);
+    double ms_weight =
+        MakeBeamForMS(buffer, *msProviderInfo.provider, selection,
+                      *imageWeights, coordinateSystem, centralFrequency);
+    for (size_t i = 0; i != buffer_total.size(); ++i) {
+      buffer_total[i] += ms_weight * buffer[i];
+    }
+    ms_weight_sum += ms_weight;
+  }
+
+  // Apply MS weights
+  for (size_t i = 0; i != buffer_total.size(); ++i) {
+    buffer_total[i] /= ms_weight_sum;
+  }
+
+  PrimaryBeamImageSet beamImages(width, height, 16);
+  beamImages.SetToZero();
+
+  // Copy buffer_total data into beam_images
+  for (size_t p = 0; p != 16; ++p) {
+    std::copy_n(buffer_total.data() + p * width * height, width * height,
+                &beamImages[p][0]);
+  }
+  return beamImages;
 }
 
-void PrimaryBeam::makeMWAImage(PrimaryBeamImageSet& beamImages,
-                               const ImagingTableEntry& entry) {
-  MWABeam mwaBeam(&entry);
-  std::vector<std::unique_ptr<MSProvider>> providers;
-  for (size_t i = 0; i != _msList.size(); ++i) {
-    providers.emplace_back(_msList[i]->GetProvider());
-    mwaBeam.AddMS(providers.back().get(), &_msList[i]->Selection(), i);
+double PrimaryBeam::MakeBeamForMS(
+    aocommon::UVector<double>& buffer, MSProvider& msProvider,
+    const MSSelection& selection, const ImageWeights& imageWeights,
+    const everybeam::coords::CoordinateSystem& coordinateSystem,
+    double centralFrequency) {
+  SynchronizedMS ms = msProvider.MS();
+
+  // Get time info
+  double startTime, endTime;
+  size_t intervalCount;
+  std::tie(startTime, endTime, intervalCount) = GetTimeInfo(msProvider);
+
+  casacore::MEpoch::ScalarColumn timeColumn(
+      *ms, ms->columnName(casacore::MSMainEnums::TIME));
+
+  // Pass the settings to EveryBeam::Options struct
+  bool frequencyInterpolation = true;
+  bool useChannelFrequency = true;
+  std::string elementResponseModel =
+      !_settings.beamModel.empty() ? _settings.beamModel : "HAMAKER";
+  everybeam::Options options = ATermConfig::ConvertToEBOptions(
+      *ms, _settings.mwaPath, frequencyInterpolation, _settings.dataColumnName,
+      _settings.useDifferentialLofarBeam, useChannelFrequency,
+      elementResponseModel);
+
+  // Make telescope
+  std::unique_ptr<everybeam::telescope::Telescope> telescope =
+      everybeam::Load(ms.MS(), options);
+
+  std::size_t nbaselines =
+      telescope->GetNrStations() * (telescope->GetNrStations() + 1) / 2;
+  std::vector<double> baseline_weights(nbaselines * intervalCount, 0);
+  std::vector<double> time_array(intervalCount, 0);
+  everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
+
+  // Time array and baseline weights only relevant for LOFAR, MWA (and probably
+  // SKA-LOW). MWA beam needs scrutiny, this telescope might be amenable to a
+  // more efficient implementation
+  double ms_weight = 0;
+  if (telescope_type == everybeam::TelescopeType::kLofarTelescope ||
+      telescope_type == everybeam::TelescopeType::kAARTFAAC ||
+      telescope_type == everybeam::TelescopeType::kMWATelescope) {
+    // Loop over the intervalCounts
+    msProvider.Reset();
+    for (size_t intervalIndex = 0; intervalIndex != intervalCount;
+         ++intervalIndex) {
+      // Find the mid time step
+      double firstTime =
+          startTime + (endTime - startTime) * intervalIndex / intervalCount;
+      double lastTime = startTime + (endTime - startTime) *
+                                        (intervalIndex + 1) / intervalCount;
+      casacore::MEpoch timeEpoch = casacore::MEpoch(
+          casacore::MVEpoch((0.5 / 86400.0) * (firstTime + lastTime)),
+          timeColumn(0).getRef());
+
+      // Set value in time array
+      time_array[intervalIndex] = timeEpoch.getValue().get() * 86400.0;
+
+      WeightMatrix baselineWeights(telescope->GetNrStations());
+      CalculateStationWeights(imageWeights, baselineWeights, ms, msProvider,
+                              selection, lastTime);
+
+      // Get the baseline weights from the baselineWeight matrix
+      aocommon::UVector<double> interval_weights =
+          baselineWeights.GetBaselineWeights();
+      std::copy(interval_weights.begin(), interval_weights.end(),
+                baseline_weights.begin() + nbaselines * intervalIndex);
+    }
+    // Compute MS weight
+    ms_weight =
+        std::accumulate(baseline_weights.begin(), baseline_weights.end(), 0.0);
+  } else if (telescope_type == everybeam::TelescopeType::kVLATelescope ||
+             telescope_type == everybeam::TelescopeType::kATCATelescope) {
+    if (telescope_type == everybeam::TelescopeType::kATCATelescope) {
+      Logger::Warn << "ATCA primary beam correction not yet tested!\n";
+    }
+    // Assign weight of 1 for these "time independent" telescopes
+    ms_weight = 1.0;
+    size_t fieldRow = _settings.fieldIds[0];
+    if (fieldRow == MSSelection::ALL_FIELDS) {
+      Logger::Warn << "Warning: primary beam correction together with '-fields "
+                      "ALL' is not properly supported\n";
+      Logger::Warn
+          << "       : The beam will be calculated only for the first field!\n";
+    }
+  } else {
+    throw std::runtime_error("Can't make beam for this telescope");
   }
-  mwaBeam.SetImageDetails(_settings.trimmedImageWidth,
-                          _settings.trimmedImageHeight, _settings.pixelScaleX,
-                          _settings.pixelScaleY, _phaseCentreRA,
-                          _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
-  mwaBeam.SetUndersampling(_settings.primaryBeamUndersampling);
-  if (!_settings.mwaPath.empty()) mwaBeam.SetSearchPath(_settings.mwaPath);
-  mwaBeam.Make(beamImages);
+
+  std::unique_ptr<everybeam::griddedresponse::GriddedResponse> grid_response =
+      telescope->GetGriddedResponse(coordinateSystem);
+
+  // Note: field id is hard coded to 0
+  grid_response->CalculateIntegratedResponse(buffer.data(), time_array,
+                                             centralFrequency, 0, _undersample,
+                                             baseline_weights);
+  return ms_weight;
 }
 
-void PrimaryBeam::makeFromVoltagePattern(PrimaryBeamImageSet& beamImages,
-                                         const ImagingTableEntry& entry,
-                                         VoltagePattern& vp) {
-  std::unique_ptr<MSProvider> msProvider = _msList.front()->GetProvider();
-  SynchronizedMS ms(msProvider->MS());
-  casacore::ArrayColumn<double> pointingDirCol(
-      ms->field(), casacore::MSField::columnName(casacore::MSField::DELAY_DIR));
-  size_t fieldRow = _settings.fieldIds[0];
-  if (fieldRow == MSSelection::ALL_FIELDS) {
-    Logger::Warn << "Warning: primary beam correction together with '-fields "
-                    "ALL' is not properly supported\n";
-    Logger::Warn
-        << "       : The beam will be calculated only for the first field!\n";
-    fieldRow = 0;
+void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
+                                          WeightMatrix& baselineWeights,
+                                          SynchronizedMS& ms,
+                                          MSProvider& msProvider,
+                                          const MSSelection& selection,
+                                          double endTime) {
+  casacore::MSAntenna antTable(ms->antenna());
+  aocommon::UVector<double> perAntennaWeights(antTable.nrow(), 0.0);
+
+  MultiBandData multiband(ms->spectralWindow(), ms->dataDescription());
+  size_t channelCount =
+      selection.ChannelRangeEnd() - selection.ChannelRangeStart();
+  size_t polarizationCount =
+      (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4
+                                                                          : 1;
+  aocommon::UVector<float> weightArr(channelCount * polarizationCount);
+
+  while (msProvider.CurrentRowAvailable()) {
+    MSProvider::MetaData metaData;
+    msProvider.ReadMeta(metaData);
+    if (metaData.time >= endTime) break;
+    const BandData& band(multiband[metaData.dataDescId]);
+    msProvider.ReadWeights(weightArr.data());
+
+    for (size_t ch = 0; ch != channelCount; ++ch) {
+      double u = metaData.uInM / band.ChannelWavelength(ch),
+             v = metaData.vInM / band.ChannelWavelength(ch);
+      double iw = imageWeights.GetWeight(u, v);
+      double w = weightArr[ch * polarizationCount] * iw;
+      baselineWeights.Value(metaData.antenna1, metaData.antenna2) += w;
+    }
+    msProvider.NextRow();
   }
-  casacore::Array<double> pDir = pointingDirCol(fieldRow);
-  double pDirRA = *pDir.cbegin();
-  double pDirDec = *(pDir.cbegin() + 1);
-  vp.Render(beamImages, _settings.pixelScaleX, _settings.pixelScaleY,
-            _phaseCentreRA, _phaseCentreDec, pDirRA, pDirDec, _phaseCentreDL,
-            _phaseCentreDM, entry.CentralFrequency());
 }
 
-void PrimaryBeam::makeATCAImage(PrimaryBeamImageSet& beamImages,
-                                const ImagingTableEntry& entry) {
-  Logger::Info << "Calculating ATCA primary beam...\n";
-  ATCABeam::Band band = ATCABeam::GetBand(entry.CentralFrequency() * 1e-9);
-  VoltagePattern vp = ATCABeam::CalculateVoltagePattern(band);
-  makeFromVoltagePattern(beamImages, entry, vp);
-}
-
-void PrimaryBeam::makeVLAImage(PrimaryBeamImageSet& beamImages,
-                               const ImagingTableEntry& entry) {
-  Logger::Info << "Calculating VLA primary beam...\n";
-  std::string bandName;
-  {
-    std::unique_ptr<MSProvider> msProvider = _msList.front()->GetProvider();
-    SynchronizedMS ms(msProvider->MS());
-    casacore::ScalarColumn<casacore::String> bandNameCol(
-        ms->spectralWindow(), casacore::MSSpectralWindow::columnName(
-                                  casacore::MSSpectralWindow::NAME));
-    // TODO for now, just pick the first band. Of course, this should be an
-    // integral over all bands!
-    size_t bandIndex = entry.msData[0].bands[0].bandIndex;
-    bandName = bandNameCol(bandIndex);
+std::tuple<double, double, size_t> PrimaryBeam::GetTimeInfo(
+    MSProvider& msProvider) {
+  Logger::Debug << "Counting timesteps...\n";
+  msProvider.Reset();
+  size_t timestepCount = 0;
+  double startTime = 0.0, endTime = 0.0;
+  if (msProvider.CurrentRowAvailable()) {
+    MSProvider::MetaData meta;
+    msProvider.ReadMeta(meta);
+    startTime = meta.time;
+    endTime = meta.time;
+    ++timestepCount;
+    msProvider.NextRow();
+    while (msProvider.CurrentRowAvailable()) {
+      msProvider.ReadMeta(meta);
+      if (endTime != meta.time) {
+        ++timestepCount;
+        endTime = meta.time;
+      }
+      msProvider.NextRow();
+    }
   }
-  std::array<double, 5> coefs =
-      VLABeam::GetCoefficients(bandName, entry.CentralFrequency());
-  VoltagePattern vp;
-  vp.frequencies.assign(1, entry.CentralFrequency());
-  vp.maximumRadiusArcMin = 53.0;
-  aocommon::UVector<double> coefsVec(coefs.begin(), coefs.end());
-  vp.EvaluatePolynomial(coefsVec, false);
-  makeFromVoltagePattern(beamImages, entry, vp);
+  if (startTime == endTime) {
+    ++endTime;
+    --startTime;
+  }
+  const double totalSeconds = endTime - startTime;
+  size_t intervalCount =
+      std::max<size_t>(1, (totalSeconds + _secondsBeforeBeamUpdate - 1) /
+                              _secondsBeforeBeamUpdate);
+  if (intervalCount > timestepCount) intervalCount = timestepCount;
+
+  Logger::Debug << "MS spans " << totalSeconds << " seconds, dividing in "
+                << intervalCount << " intervals.\n";
+  return std::make_tuple(startTime, endTime, intervalCount);
 }
+#endif  // HAVE_EVERYBEEAM

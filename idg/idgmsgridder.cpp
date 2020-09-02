@@ -180,7 +180,8 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
     } else {
       bool frequencyInterpolation = true;
       bool useChannelFrequency = true;
-      std::string elementResponseModel = "hamaker";
+      std::string elementResponseModel =
+          !_settings.beamModel.empty() ? _settings.beamModel : "HAMAKER";
 
       std::unique_ptr<ATermBeam> beam = ATermConfig::GetATermBeam(
           *ms, system, _settings.mwaPath, frequencyInterpolation,

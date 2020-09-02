@@ -107,6 +107,11 @@ void CommandLine::printHelp() {
          "   computationally expensive. The amount of undersampling can be "
          "controlled by this parameter, or set to '1' for no\n"
          "   undersampling. Default: 8.\n"
+         "-beam-model\n"
+         "   Specify the beam model, only relevant for SKA and LOFAR. "
+         "Available "
+         "models are Hamaker, Lobes, OskarDipole, OskarSphericalWave.\n"
+         "   Input is case insensitive. Default is Hamaker.\n"
          "-dry-run\n"
          "   Parses the command line and quits afterwards. No imaging is "
          "done.\n"
@@ -790,6 +795,18 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[],
     } else if (param == "pol") {
       ++argi;
       settings.polarizations = aocommon::Polarization::ParseList(argv[argi]);
+    } else if (param == "beam-model") {
+      ++argi;
+      std::string beamModel = argv[argi];
+      boost::to_upper(beamModel);
+      if (beamModel == "HAMAKER" || beamModel == "LOBES" ||
+          beamModel == "OSKARDIPOLE" || beamModel == "OSKARSPHERICALWAVE") {
+        settings.beamModel = beamModel;
+      } else {
+        throw std::runtime_error(
+            "Invalid beam-model: should be either Hamaker, Lobes, OskarDipole "
+            "or OskarSphericalWave (case insensitive)");
+      }
     } else if (param == "apply-primary-beam") {
       settings.applyPrimaryBeam = true;
     } else if (param == "reuse-primary-beam") {

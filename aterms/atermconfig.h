@@ -10,7 +10,6 @@
 #include "dldmaterm.h"
 #include "fitsaterm.h"
 #include "pafbeamterm.h"
-#include "telescope.h"
 
 #include <aocommon/matrix2x2.h>
 

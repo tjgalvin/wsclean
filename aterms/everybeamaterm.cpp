@@ -1,5 +1,4 @@
 #include "everybeamaterm.h"
-#include "../mwa/findcoefffile.h"
 
 #include <EveryBeam/options.h>
 #include <EveryBeam/elementresponse.h>
