@@ -33,6 +33,7 @@ class ImageFilename {
                          _isImaginary);
   }
 
+  aocommon::PolarizationEnum GetPolarization() const { return _polarization; }
   void SetPolarization(aocommon::PolarizationEnum p) { _polarization = p; }
   void SetIsImaginary(bool isImaginary) { _isImaginary = isImaginary; }
 

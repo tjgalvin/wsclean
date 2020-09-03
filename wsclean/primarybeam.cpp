@@ -170,9 +170,9 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
   bool useExistingBeam = false;
   if (_settings.reusePrimaryBeam) {
     ImageFilename firstPolName(imageName);
-    firstPolName.SetPolarization(aocommon::Polarization::XX);
+    firstPolName.SetPolarization(imageName.GetPolarization());
     firstPolName.SetIsImaginary(false);
-    std::string f(firstPolName.GetBeamPrefix(_settings) + ".fits");
+    std::string f(firstPolName.GetBeamPrefix(_settings) + "-0.fits");
     if (boost::filesystem::exists(f)) {
       FitsReader reader(f);
       if (reader.ImageWidth() == _settings.trimmedImageWidth &&
