@@ -151,6 +151,15 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
                     "continuing deconvolution.\n";
   }
 
+  if (_settings.deconvolutionIterationCount != 0 &&
+      _parallelDeconvolution.FirstAlgorithm().IterationNumber() >=
+          _settings.deconvolutionIterationCount) {
+    reachedMajorThreshold = false;
+    Logger::Info
+        << "Maximum number of minor deconvolution iterations was reached: not "
+           "continuing deconvolution.\n";
+  }
+
   residualSet.AssignAndStore(*_residualImages);
   modelSet.InterpolateAndStore(
       *_modelImages, _parallelDeconvolution.FirstAlgorithm().Fitter());
