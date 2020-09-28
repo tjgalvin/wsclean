@@ -3,6 +3,7 @@
 #include "imageset.h"
 #include "simpleclean.h"
 #include "moresane.h"
+#include "pythondeconvolution.h"
 #include "iuwtdeconvolution.h"
 #include "genericclean.h"
 
@@ -190,7 +191,10 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
 
   std::unique_ptr<class DeconvolutionAlgorithm> algorithm;
 
-  if (_settings.useMoreSaneDeconvolution) {
+  if (!_settings.pythonDeconvolutionFilename.empty()) {
+    algorithm.reset(
+        new PythonDeconvolution(_settings.pythonDeconvolutionFilename));
+  } else if (_settings.useMoreSaneDeconvolution) {
     algorithm.reset(
         new MoreSane(_settings.moreSaneLocation, _settings.moreSaneArgs,
                      _settings.moreSaneSigmaLevels, _settings.prefixName,

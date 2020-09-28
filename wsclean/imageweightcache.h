@@ -101,7 +101,6 @@ class ImageWeightCache {
     }
     weights->FinishGridding();
     initializeWeightTapers(*weights);
-    Logger::Info << "\n";
     return weights;
   }
 

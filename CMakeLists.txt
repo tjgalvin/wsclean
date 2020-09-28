@@ -64,6 +64,11 @@ find_library(FFTW3F_LIB fftw3f REQUIRED)
 find_library(FFTW3F_THREADS_LIB fftw3f_threads REQUIRED)
 find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h)
 
+find_package(PythonLibs 3 REQUIRED)
+find_package(PythonInterp REQUIRED)
+message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
+find_package(pybind11 REQUIRED)
+
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost COMPONENTS date_time filesystem system program_options REQUIRED)
@@ -118,6 +123,8 @@ include_directories(${CFITSIO_INCLUDE_DIR})
 include_directories(${FFTW3_INCLUDE_DIR})
 include_directories(${GSL_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIRS})
+include_directories(${pybind11_INCLUDE_DIR})
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 include(CheckCXXSourceCompiles)
 
@@ -150,7 +157,17 @@ add_library(wsclean-object OBJECT
   aterms/atermbase.cpp aterms/cache.cpp aterms/dldmaterm.cpp
   aterms/fitsaterm.cpp aterms/fitsatermbase.cpp
   aterms/pafbeamterm.cpp aterms/atermresampler.cpp
-  deconvolution/componentlist.cpp deconvolution/deconvolution.cpp deconvolution/deconvolutionalgorithm.cpp deconvolution/genericclean.cpp deconvolution/imageset.cpp deconvolution/paralleldeconvolution.cpp deconvolution/moresane.cpp deconvolution/simpleclean.cpp deconvolution/spectralfitter.cpp deconvolution/subminorloop.cpp
+  deconvolution/componentlist.cpp
+  deconvolution/deconvolution.cpp
+  deconvolution/deconvolutionalgorithm.cpp
+  deconvolution/genericclean.cpp
+  deconvolution/imageset.cpp
+  deconvolution/moresane.cpp
+  deconvolution/paralleldeconvolution.cpp
+  deconvolution/pythondeconvolution.cpp
+  deconvolution/simpleclean.cpp
+  deconvolution/spectralfitter.cpp
+  deconvolution/subminorloop.cpp
   idg/averagebeam.cpp
   interface/wscleaninterface.cpp
   iuwt/imageanalysis.cpp iuwt/iuwtdecomposition.cpp iuwt/iuwtdeconvolutionalgorithm.cpp iuwt/iuwtmask.cpp
@@ -189,11 +206,13 @@ set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
 set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
+target_link_libraries(wsclean-lib PRIVATE pybind11::embed)
 target_link_libraries(wsclean-lib ${ALL_LIBRARIES})
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_library(wsclean-shared SHARED ${WSCLEANFILES})
+target_link_libraries(wsclean-shared PRIVATE pybind11::embed)
 target_link_libraries(wsclean-shared ${ALL_LIBRARIES})
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
@@ -238,23 +257,24 @@ endif(DOXYGEN_FOUND)
 find_package(Boost COMPONENTS date_time filesystem system program_options unit_test_framework)
 if(Boost_FOUND)
   add_executable(runtest EXCLUDE_FROM_ALL
-		tests/test.cpp
-		tests/testbaselinedependentaveraging.cpp
-		tests/testclean.cpp
-		tests/testcomponentlist.cpp
-		tests/testfitsdateobstime.cpp
-		tests/testfluxdensity.cpp
-		tests/testgaussianfitter.cpp
-		tests/testimage.cpp
-		tests/testimageset.cpp
-		tests/testnlplfitter.cpp
-		tests/testparsetreader.cpp
-		tests/testpolynomialchannelfitter.cpp
-		tests/testpolynomialfitter.cpp
-		tests/testradeccoord.cpp
-		tests/testserialization.cpp
-		tests/aterms/testcache.cpp
-		${WSCLEANFILES})
+    tests/test.cpp
+    tests/testbaselinedependentaveraging.cpp
+    tests/testclean.cpp
+    tests/testcomponentlist.cpp
+    tests/testfitsdateobstime.cpp
+    tests/testfluxdensity.cpp
+    tests/testgaussianfitter.cpp
+    tests/testimage.cpp
+    tests/testimageset.cpp
+    tests/testnlplfitter.cpp
+    tests/testparsetreader.cpp
+    tests/testpolynomialchannelfitter.cpp
+    tests/testpolynomialfitter.cpp
+    tests/testradeccoord.cpp
+    tests/testserialization.cpp
+    tests/aterms/testcache.cpp
+    ${WSCLEANFILES})
+  target_link_libraries(runtest PRIVATE pybind11::embed)
   target_link_libraries(runtest ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   add_test(runtest runtest)
   add_custom_target(check COMMAND runtest DEPENDS runtest)

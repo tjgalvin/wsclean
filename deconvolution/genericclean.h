@@ -7,7 +7,7 @@
 
 #include <aocommon/uvector.h>
 
-#include <boost/thread/thread.hpp>
+#include <boost/optional/optional.hpp>
 
 /**
  * This class implements a generalized version of Högbom clean. It performs a

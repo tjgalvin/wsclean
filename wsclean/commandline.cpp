@@ -460,6 +460,10 @@ void CommandLine::printHelp() {
          "search a part of the\n"
          "   image during the multi-scale subminor loop. The optimization is "
          "on by default.\n"
+         "-python-deconvolution <filename>\n"
+         "   Run a custom deconvolution algorithm written in Python. See "
+         "manual\n"
+         "   for the interface.\n"
          "-iuwt\n"
          "   Use the IUWT deconvolution algorithm.\n"
          "-iuwt-snr-test / -no-iuwt-snr-test\n"
@@ -832,6 +836,11 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[],
     } else if (param == "stop-negative" || param == "stopnegative") {
       settings.stopOnNegativeComponents = true;
       if (param == "stopnegative") deprecated(isSlave, param, "stop-negative");
+    } else if (param == "python-deconvolution") {
+      ++argi;
+      settings.pythonDeconvolutionFilename = argv[argi];
+      settings.deconvolutionIterationCount =
+          std::max(size_t{1}, settings.deconvolutionIterationCount);
     } else if (param == "iuwt") {
       settings.useIUWTDeconvolution = true;
       // Currently (WSClean 1.9, 2015-08-19) IUWT deconvolution

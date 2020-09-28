@@ -127,6 +127,7 @@ class WSCleanSettings {
   bool horizonMask;
   double horizonMaskDistance;
   std::string localRMSImage;
+  std::string pythonDeconvolutionFilename;
   bool useMoreSaneDeconvolution, useIUWTDeconvolution, iuwtSNRTest;
   std::string moreSaneLocation, moreSaneArgs;
   aocommon::UVector<double> moreSaneSigmaLevels;
@@ -305,6 +306,7 @@ inline WSCleanSettings::WSCleanSettings()
       casaDeconvolutionMask(),
       horizonMask(false),
       horizonMaskDistance(0.0),
+      pythonDeconvolutionFilename(),
       useMoreSaneDeconvolution(false),
       useIUWTDeconvolution(false),
       iuwtSNRTest(false),
