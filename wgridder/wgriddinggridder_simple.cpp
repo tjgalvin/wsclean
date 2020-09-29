@@ -22,12 +22,14 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(
 
 void WGriddingGridder_Simple::memUsage(size_t &constant,
                                        size_t &per_vis) const {
-  // pessimistically assume an oversampling factor of 2
-  constant = 4 * width_t_ * height_t_ * sizeof(complex<float>) *
-                 2  // sometimes we have two arrays in memory
-             + width_t_ * height_t_ * sizeof(float);  // trimmed dirty image
-  per_vis =
-      sizeof(uint32_t) * 2;  // overestimation, but the best we can do here
+  // storage for "grid": pessimistically assume an oversampling factor of 2
+  constant = 4 * width_t_ * height_t_ * sizeof(complex<float>);
+  // for prediction, we also need a copy of the dirty image
+  constant += width_t_ * height_t_ * sizeof(float);  // trimmed dirty image
+  // Storage for the indexing information is really hard to estimate ...
+  // it can go up to 8 bytes per visibility, but this is a really pathological
+  // scenario; should typically be below 1 byte/visibility
+  per_vis = 8;  // overestimation, but the best we can do here
 }
 
 void WGriddingGridder_Simple::InitializeInversion() {
@@ -44,8 +46,8 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   mav<float, 2> tdirty({width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  ms2dirty(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_, 0, 0,
-           epsilon_, true, nthreads_, tdirty, verbosity_, true, false);
+  ms2dirty(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_,
+           true, nthreads_, tdirty, verbosity_, true, false);
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty[i];
 }
 
@@ -82,6 +84,6 @@ void WGriddingGridder_Simple::PredictVisibilities(
   mav<float, 2> tdirty(img.data(), {width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  dirty2ms(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_, pixelSizeY_, 0, 0,
-           epsilon_, true, nthreads_, ms, verbosity_, true, false);
+  dirty2ms(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_,
+           true, nthreads_, ms, verbosity_, true, false);
 }

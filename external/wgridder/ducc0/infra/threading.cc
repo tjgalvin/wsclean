@@ -29,6 +29,7 @@
 #include <queue>
 #include <atomic>
 #include <vector>
+#include <exception>
 #if __has_include(<pthread.h>)
 #include <pthread.h>
 #endif
@@ -82,77 +83,136 @@ template <typename T> class concurrent_queue
   {
     std::queue<T> q_;
     std::mutex mut_;
-    std::condition_variable item_added_;
-    bool shutdown_;
-    using lock_t = std::unique_lock<std::mutex>;
+    std::atomic<size_t> size_;
+    using lock_t = std::lock_guard<std::mutex>;
 
   public:
-    concurrent_queue(): shutdown_(false) {}
-
     void push(T val)
       {
-      {
       lock_t lock(mut_);
-      if (shutdown_)
-        throw std::runtime_error("Item added to queue after shutdown");
-      q_.push(move(val));
-      }
-      item_added_.notify_one();
+      ++size_;
+      q_.push(std::move(val));
       }
 
-    bool pop(T & val)
+    bool try_pop(T &val)
       {
+      if (size_==0) return false;
       lock_t lock(mut_);
-      item_added_.wait(lock, [this] { return (!q_.empty() || shutdown_); });
-      if (q_.empty())
-        return false;  // We are shutting down
+      // Queue might have been emptied while we acquired the lock
+      if (q_.empty()) return false;
 
       val = std::move(q_.front());
+      --size_;
       q_.pop();
       return true;
       }
 
-    void shutdown()
-      {
-      {
-      lock_t lock(mut_);
-      shutdown_ = true;
-      }
-      item_added_.notify_all();
-      }
-
-    void restart() { shutdown_ = false; }
+    bool empty() const { return size_==0; }
   };
 
 class thread_pool
   {
-    concurrent_queue<std::function<void()>> work_queue_;
-    std::vector<std::thread> threads_;
-
-    void worker_main()
+  private:
+    // A reasonable guess, probably close enough for most hardware
+    static constexpr size_t cache_line_size = 64;
+    struct alignas(cache_line_size) worker
       {
+      std::thread thread;
+      std::condition_variable work_ready;
+      std::mutex mut;
+      std::atomic_flag busy_flag = ATOMIC_FLAG_INIT;
       std::function<void()> work;
-      while (work_queue_.pop(work))
-        work();
-      }
+
+      void worker_main(
+        std::atomic<bool> &shutdown_flag,
+        std::atomic<size_t> &unscheduled_tasks,
+        concurrent_queue<std::function<void()>> &overflow_work)
+        {
+        using lock_t = std::unique_lock<std::mutex>;
+        bool expect_work = true;
+        while (!shutdown_flag || expect_work)
+          {
+          std::function<void()> local_work;
+          if (expect_work || unscheduled_tasks == 0)
+            {
+            lock_t lock(mut);
+            // Wait until there is work to be executed
+            work_ready.wait(lock, [&]{ return (work || shutdown_flag); });
+            local_work.swap(work);
+            expect_work = false;
+            }
+
+          bool marked_busy = false;
+          if (local_work)
+            {
+            marked_busy = true;
+            local_work();
+            }
+
+          if (!overflow_work.empty())
+            {
+            if (!marked_busy && busy_flag.test_and_set())
+              {
+              expect_work = true;
+              continue;
+              }
+            marked_busy = true;
+
+            while (overflow_work.try_pop(local_work))
+              {
+              --unscheduled_tasks;
+              local_work();
+              }
+            }
+
+          if (marked_busy) busy_flag.clear();
+          }
+        }
+      };
+
+    concurrent_queue<std::function<void()>> overflow_work_;
+    std::mutex mut_;
+    std::vector<worker> workers_;
+    std::atomic<bool> shutdown_;
+    std::atomic<size_t> unscheduled_tasks_;
+    using lock_t = std::lock_guard<std::mutex>;
 
     void create_threads()
       {
-      size_t nthreads = threads_.size();
+      lock_t lock(mut_);
+      size_t nthreads=workers_.size();
       for (size_t i=0; i<nthreads; ++i)
         {
-        try { threads_[i] = std::thread([this]{ worker_main(); }); }
+        try
+          {
+          auto *worker = &workers_[i];
+          worker->busy_flag.clear();
+          worker->work = nullptr;
+          worker->thread = std::thread(
+            [worker, this]{ worker->worker_main(shutdown_, unscheduled_tasks_, overflow_work_); });
+          }
         catch (...)
           {
-          shutdown();
+          shutdown_locked();
           throw;
           }
         }
       }
 
+    void shutdown_locked()
+      {
+      shutdown_ = true;
+      for (auto &worker : workers_)
+        worker.work_ready.notify_all();
+
+      for (auto &worker : workers_)
+        if (worker.thread.joinable())
+          worker.thread.join();
+      }
+
   public:
     explicit thread_pool(size_t nthreads):
-      threads_(nthreads)
+      workers_(nthreads)
       { create_threads(); }
 
     thread_pool(): thread_pool(max_threads_) {}
@@ -161,20 +221,38 @@ class thread_pool
 
     void submit(std::function<void()> work)
       {
-      work_queue_.push(move(work));
+      lock_t lock(mut_);
+      if (shutdown_)
+        throw std::runtime_error("Work item submitted after shutdown");
+
+      ++unscheduled_tasks_;
+
+      // First check for any idle workers and wake those
+      for (auto &worker : workers_)
+        if (!worker.busy_flag.test_and_set())
+          {
+          --unscheduled_tasks_;
+          {
+          lock_t lock(worker.mut);
+          worker.work = std::move(work);
+          }
+          worker.work_ready.notify_one();
+          return;
+          }
+
+      // If no workers were idle, push onto the overflow queue for later
+      overflow_work_.push(std::move(work));
       }
 
     void shutdown()
       {
-      work_queue_.shutdown();
-      for (auto &thread : threads_)
-        if (thread.joinable())
-          thread.join();
+      lock_t lock(mut_);
+      shutdown_locked();
       }
 
     void restart()
       {
-      work_queue_.restart();
+      shutdown_ = false;
       create_threads();
       }
   };
@@ -340,7 +418,7 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
     }
   counter.wait();
   if (ex)
-    rethrow_exception(ex);
+    std::rethrow_exception(ex);
   }
 
 void execSingle(size_t nwork, std::function<void(Scheduler &)> func)
