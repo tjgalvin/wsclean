@@ -662,6 +662,9 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[],
 #ifdef HAVE_LOFAR_BEAM
         Logger::Info << "LOFAR beam is available.\n";
 #endif
+#ifdef HAVE_EVERYBEAM
+        Logger::Info << "EveryBeam is available.\n";
+#endif
 #ifdef HAVE_IDG
         Logger::Info << "IDG is available.\n";
 #endif
