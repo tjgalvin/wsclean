@@ -12,8 +12,8 @@ void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data,
   v = _currentUVWArray(1);
   w = _currentUVWArray(2);
   dataDescId = _currentDataDescId;
-  _dataColumn.get(_currentRow, data);
-  _flagColumn.get(_currentRow, flags);
+  _dataColumn.get(_currentRow, data, true);
+  _flagColumn.get(_currentRow, flags, true);
   antenna1 = _antenna1Column(_currentRow);
   antenna2 = _antenna2Column(_currentRow);
   fieldId = _fieldIdColumn(_currentRow);

@@ -138,20 +138,19 @@ void MSGridderBase::initializeBandData(casacore::MeasurementSet& ms,
     msData.endChannel = Selection(msData.msIndex).ChannelRangeEnd();
     Logger::Debug << "Selected channels: " << msData.startChannel << '-'
                   << msData.endChannel << '\n';
-    const BandData& firstBand = msData.bandData.FirstBand();
-    if (msData.startChannel >= firstBand.ChannelCount() ||
-        msData.endChannel > firstBand.ChannelCount() ||
+    if (msData.startChannel >= msData.bandData.MaxChannels() ||
+        msData.endChannel > msData.bandData.MaxChannels() ||
         msData.startChannel == msData.endChannel) {
       std::ostringstream str;
       str << "An invalid channel range was specified! Measurement set only has "
-          << firstBand.ChannelCount()
+          << msData.bandData.MaxChannels()
           << " channels, requested imaging range is " << msData.startChannel
           << " -- " << msData.endChannel << '.';
       throw std::runtime_error(str.str());
     }
   } else {
     msData.startChannel = 0;
-    msData.endChannel = msData.bandData.FirstBand().ChannelCount();
+    msData.endChannel = msData.bandData.MaxChannels();
   }
 }
 

@@ -370,8 +370,10 @@ PartitionedMS::Handle PartitionedMS::Partition(
   // Ordered as files[pol x channelpart]
   std::vector<PartitionFiles> files(channelParts * polsOut.size());
 
-  size_t fileIndex = 0;
+  size_t fileIndex = 0, maxChannels = 0;
   for (size_t part = 0; part != channelParts; ++part) {
+    maxChannels =
+        std::max(maxChannels, channels[part].end - channels[part].start);
     for (aocommon::PolarizationEnum p : polsOut) {
       PartitionFiles& f = files[fileIndex];
       std::string partPrefix = getPartPrefix(
@@ -413,7 +415,6 @@ PartitionedMS::Handle PartitionedMS::Partition(
   size_t nAntennas = rowProvider->MS().antenna().nrow();
 
   const casacore::IPosition shape(rowProvider->DataShape());
-  size_t channelCount = shape[1];
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << msPath << " into " << channelParts << " x "
@@ -446,8 +447,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
   // Write actual data
   size_t polarizationsPerFile = settings.useIDG ? 4 : 1;
   std::vector<std::complex<float>> dataBuffer(polarizationsPerFile *
-                                              channelCount);
-  std::vector<float> weightBuffer(polarizationsPerFile * channelCount);
+                                              maxChannels);
+  std::vector<float> weightBuffer(polarizationsPerFile * maxChannels);
 
   casacore::Array<std::complex<float>> dataArray(shape), modelArray(shape);
   casacore::Array<float> weightSpectrumArray(shape);
@@ -557,7 +558,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
   memset(&header, 0, sizeof(PartHeader));
   header.hasModel = includeModel;
   fileIndex = 0;
-  dataBuffer.assign(channelCount * polarizationsPerFile, 0.0);
+  dataBuffer.assign(maxChannels * polarizationsPerFile, 0.0);
   std::unique_ptr<ProgressBar> progress2;
   if (includeModel && !initialModelRequired && settings.parallelReordering == 1)
     progress2.reset(new ProgressBar("Initializing model visibilities"));

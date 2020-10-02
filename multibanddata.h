@@ -37,7 +37,9 @@ class MultiBandData {
 
   /**
    * Construct a MultiBandData from another instance but only select a part of
-   * each band data.
+   * each band data. This function also works when not all bands have the
+   * same number of channels. If endChannel is larger than the number of
+   * channels for one of the bands, the band is selected up to its last channel.
    * @param source Other instance that will be partially copied.
    * @param startChannel Start of channel range to initialize this instance
    * with.
@@ -58,12 +60,6 @@ class MultiBandData {
   }
 
   /**
-   * Retrieve the first band.
-   * @returns The first band.
-   */
-  const BandData& FirstBand() const { return _bandData.front(); }
-
-  /**
    * Get number of bands stored.
    * @returns Number of bands.
    */
@@ -80,6 +76,7 @@ class MultiBandData {
    * @returns The channel frequency of the channel with lowest frequency.
    */
   double LowestFrequency() const {
+    if (_bandData.empty()) return 0.0;
     double freq = _bandData[0].LowestFrequency();
     for (size_t i = 0; i != _bandData.size(); ++i)
       freq = std::min(freq, _bandData[i].LowestFrequency());
@@ -88,17 +85,16 @@ class MultiBandData {
 
   /**
    * Get centre frequency.
-   * @returns (LowestFrequency() + HighestFrequency()) * 0.5.
+   * @returns (BandStart() + BandEnd()) * 0.5.
    */
-  double CentreFrequency() const {
-    return (LowestFrequency() + HighestFrequency()) * 0.5;
-  }
+  double CentreFrequency() const { return (BandStart() + BandEnd()) * 0.5; }
 
   /**
    * Get highest frequency.
    * @returns The channel frequency of the channel with highest frequency.
    */
   double HighestFrequency() const {
+    if (_bandData.empty()) return 0.0;
     double freq = _bandData[0].HighestFrequency();
     for (size_t i = 0; i != _bandData.size(); ++i)
       freq = std::max(freq, _bandData[i].HighestFrequency());
@@ -116,6 +112,7 @@ class MultiBandData {
    * @return Start of covered bandwidth.
    */
   double BandStart() const {
+    if (_bandData.empty()) return 0.0;
     double freq = std::min(_bandData[0].BandStart(), _bandData[0].BandEnd());
     for (size_t i = 0; i != _bandData.size(); ++i)
       freq = std::min(
@@ -128,6 +125,7 @@ class MultiBandData {
    * @return End of covered bandwidth.
    */
   double BandEnd() const {
+    if (_bandData.empty()) return 0.0;
     double freq = std::max(_bandData[0].BandStart(), _bandData[0].BandEnd());
     for (size_t i = 0; i != _bandData.size(); ++i)
       freq = std::max(
@@ -141,9 +139,8 @@ class MultiBandData {
    */
   size_t MaxChannels() const {
     size_t maxChannels = 0;
-    for (std::vector<BandData>::const_iterator i = _bandData.begin();
-         i != _bandData.end(); ++i) {
-      if (i->ChannelCount() > maxChannels) maxChannels = i->ChannelCount();
+    for (const BandData& band : _bandData) {
+      if (band.ChannelCount() > maxChannels) maxChannels = band.ChannelCount();
     }
     return maxChannels;
   }
@@ -166,6 +163,20 @@ class MultiBandData {
    */
   std::set<size_t> GetUsedDataDescIds(
       casacore::MeasurementSet& mainTable) const;
+
+  /**
+   * Adds a new band at the end of the list of bands.
+   * The band will be linked to the first available dataDescId, which
+   * is the number returned by @ref DataDescCount().
+   * @returns the dataDescId of this band.
+   */
+  size_t AddBand(const BandData& data) {
+    const size_t swdId = _dataDescToBand.size();
+    const size_t bandId = _bandData.size();
+    _dataDescToBand.emplace_back(bandId);
+    _bandData.emplace_back(data);
+    return swdId;
+  }
 
   iterator begin() { return _bandData.begin(); }
   const_iterator begin() const { return _bandData.begin(); }

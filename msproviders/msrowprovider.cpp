@@ -106,7 +106,7 @@ bool MSRowProvider::isCurrentRowSelected(int fieldId, int a1, int a2) const {
 
 void MSRowProvider::getCurrentWeights(WeightArray& weights) {
   if (_msHasWeights)
-    _weightSpectrumColumn->get(_currentRow, weights);
+    _weightSpectrumColumn->get(_currentRow, weights, true);
   else {
     _weightScalarColumn->get(_currentRow, _scratchWeightScalarArray);
     MSProvider::expandScalarWeights(_scratchWeightScalarArray, weights);

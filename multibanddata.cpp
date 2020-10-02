@@ -17,8 +17,16 @@ MultiBandData::MultiBandData(casacore::MSSpectralWindow& spwTable,
 MultiBandData::MultiBandData(const MultiBandData& source, size_t startChannel,
                              size_t endChannel)
     : _dataDescToBand(source._dataDescToBand), _bandData(source.BandCount()) {
-  for (size_t spw = 0; spw != source.BandCount(); ++spw)
-    _bandData[spw] = BandData(source._bandData[spw], startChannel, endChannel);
+  for (size_t spw = 0; spw != source.BandCount(); ++spw) {
+    // In case endChannel is beyond the nr of channels in this band,
+    // set endChannel to the last channel of this band.
+    const size_t bandEndChannel =
+        std::min(source._bandData[spw].ChannelCount(), endChannel);
+    if (startChannel > bandEndChannel)
+      throw std::runtime_error("Invalid band selection");
+    _bandData[spw] =
+        BandData(source._bandData[spw], startChannel, bandEndChannel);
+  }
 }
 
 std::set<size_t> MultiBandData::GetUsedDataDescIds(

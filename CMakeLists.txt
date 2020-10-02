@@ -266,6 +266,7 @@ if(Boost_FOUND)
     tests/testgaussianfitter.cpp
     tests/testimage.cpp
     tests/testimageset.cpp
+    tests/testmultibanddata.cpp
     tests/testnlplfitter.cpp
     tests/testparsetreader.cpp
     tests/testpolynomialchannelfitter.cpp
