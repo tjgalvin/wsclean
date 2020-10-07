@@ -219,7 +219,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.verbose = isFirstInversion && _isFirstInversion;
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights =
-      !isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
+      isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
