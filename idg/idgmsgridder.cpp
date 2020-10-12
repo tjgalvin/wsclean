@@ -1,6 +1,3 @@
-// kate: space-indent off; tab-width 2; indent-width 2; replace-tabs off; eol
-// unix;
-
 #include "idgmsgridder.h"
 
 #include <cmath>
@@ -363,6 +360,11 @@ bool IdgMsGridder::prepareForMeasurementSet(
 
   uint64_t memSize =
       getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
+  // Only one-third of the mem is allocated to the buffers, so that memory
+  // remains available for the images and other things done by IDG.
+  memSize = memSize / 3;
+  // Never use more than 16 GB
+  memSize = std::min<uint64_t>(16ul * 1024ul * 1024ul * 1024ul, memSize);
   uint64_t memPerTimestep =
       idg::api::BufferSet::get_memory_per_timestep(nStations, nChannels);
   if (aTermMaker) {
@@ -386,9 +388,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
   // IDG can allocate two visibility buffers: (for parallel processing)
   memPerTimestep *= 2;
 
-  // Only one-third of the mem is allocated to the buffers, so that memory
-  // remains available for the images and other things done by IDG.
-  _buffersize = std::max<size_t>(1, memSize / 3 / memPerTimestep);
+  _buffersize = std::max<size_t>(1, memSize / memPerTimestep);
 
   Logger::Debug << "Allocatable timesteps (" << nStations << " stations, "
                 << nChannels << " channels, " << memSize / (1024 * 1024 * 1024)
