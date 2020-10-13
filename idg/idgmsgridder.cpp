@@ -13,8 +13,7 @@
 #include "../wsclean/logger.h"
 #include "../wsclean/wscleansettings.h"
 
-#include "../fitsreader.h"
-#include "../fitswriter.h"
+#include <aocommon/fits/fitsreader.h>
 
 #include "../aterms/atermconfig.h"
 #include "../aterms/everybeamaterm.h"
@@ -150,14 +149,14 @@ void IdgMsGridder::Invert() {
   }
 }
 
-std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
+std::unique_ptr<class aocommon::ATermBase> IdgMsGridder::getATermMaker(
     MSGridderBase::MSData& msData) {
   SynchronizedMS ms = msData.msProvider->MS();
   size_t nr_stations = ms->antenna().nrow();
-  std::unique_ptr<ATermBase> aTermMaker;
+  std::unique_ptr<aocommon::ATermBase> aTermMaker;
   aocommon::UVector<std::complex<float>> aTermBuffer;
   if (!_settings.atermConfigFilename.empty() || _settings.gridWithBeam) {
-    ATermBase::CoordinateSystem system;
+    aocommon::ATermBase::CoordinateSystem system;
     // IDG uses a flipped coordinate system which is moved by half a pixel:
     system.dl = -_bufferset->get_subgrid_pixelsize();
     system.dm = -_bufferset->get_subgrid_pixelsize();
@@ -189,12 +188,12 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
       return std::move(beam);
     }
   } else {
-    return std::unique_ptr<ATermBase>();
+    return std::unique_ptr<aocommon::ATermBase>();
   }
 }
 
 void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
-  std::unique_ptr<ATermBase> aTermMaker;
+  std::unique_ptr<aocommon::ATermBase> aTermMaker;
   aocommon::UVector<std::complex<float>> aTermBuffer;
   if (!prepareForMeasurementSet(msData, aTermMaker, aTermBuffer,
                                 idg::api::BufferSetType::gridding))
@@ -334,7 +333,8 @@ void IdgMsGridder::setIdgType() {
 }
 
 bool IdgMsGridder::prepareForMeasurementSet(
-    MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker,
+    MSGridderBase::MSData& msData,
+    std::unique_ptr<aocommon::ATermBase>& aTermMaker,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
   const float max_baseline = msData.maxBaselineInM;
@@ -400,7 +400,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 }
 
 void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
-  std::unique_ptr<ATermBase> aTermMaker;
+  std::unique_ptr<aocommon::ATermBase> aTermMaker;
   aocommon::UVector<std::complex<float>> aTermBuffer;
   if (!prepareForMeasurementSet(msData, aTermMaker, aTermBuffer,
                                 idg::api::BufferSetType::degridding))
@@ -499,7 +499,7 @@ void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry,
         "IDG gridder can not save the beam image. Beam has not been computed "
         "yet.");
   }
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   writer.SetImageDimensions(settings.trimmedImageWidth,
                             settings.trimmedImageHeight, ra, dec,
                             settings.pixelScaleX, settings.pixelScaleY);
@@ -513,13 +513,13 @@ void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry,
                cache.averageBeam->ScalarBeam()->data());
 }
 
-void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer,
+void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
                                          const ImageFilename& filename,
                                          const std::string& filenameKind,
                                          const WSCleanSettings& settings) {
   ImageFilename beamName(filename);
   beamName.SetPolarization(aocommon::Polarization::StokesI);
-  FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");
+  aocommon::FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");
 
   Image beam(reader.ImageWidth(), reader.ImageHeight());
   reader.Read(beam.data());
@@ -530,7 +530,8 @@ void IdgMsGridder::SavePBCorrectedImages(FitsWriter& writer,
         aocommon::Polarization::IndexToStokes(polIndex);
     ImageFilename name(filename);
     name.SetPolarization(pol);
-    FitsReader reader(name.GetPrefix(settings) + "-" + filenameKind + ".fits");
+    aocommon::FitsReader reader(name.GetPrefix(settings) + "-" + filenameKind +
+                                ".fits");
     if (image.empty()) image = Image(reader.ImageWidth(), reader.ImageHeight());
     reader.Read(image.data());
 

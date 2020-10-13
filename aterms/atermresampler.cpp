@@ -7,7 +7,7 @@
 using aocommon::WindowFunction;
 
 ATermResampler::ATermResampler(
-    const ATermBase::CoordinateSystem& coordinateSystem)
+    const aocommon::ATermBase::CoordinateSystem& coordinateSystem)
     : _coordinateSystem(coordinateSystem),
       _allocatedWidth(coordinateSystem.maxSupport),
       _allocatedHeight(coordinateSystem.maxSupport),
@@ -20,7 +20,8 @@ ATermResampler::ATermResampler(
 
 ATermResampler::~ATermResampler() {}
 
-void ATermResampler::ReadAndResample(FitsReader& reader, size_t fileIndex,
+void ATermResampler::ReadAndResample(aocommon::FitsReader& reader,
+                                     size_t fileIndex,
                                      aocommon::UVector<double>& scratch,
                                      aocommon::UVector<double>& output,
                                      double stretchFactor) {
@@ -51,7 +52,7 @@ void ATermResampler::ReadAndResample(FitsReader& reader, size_t fileIndex,
   }
 }
 
-void ATermResampler::regrid(const FitsReader& reader, double* dest,
+void ATermResampler::regrid(const aocommon::FitsReader& reader, double* dest,
                             const double* source, double stretchFactor) {
   size_t inWidth = reader.ImageWidth(), inHeight = reader.ImageHeight();
   const double inPixelSizeX = reader.PixelSizeX() / stretchFactor,

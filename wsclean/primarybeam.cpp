@@ -3,8 +3,6 @@
 #include "logger.h"
 
 #include "../aterms/atermconfig.h"
-#include "../fitswriter.h"
-#include "../fitsreader.h"
 #include "../imageweights.h"
 
 #include "../msproviders/msdatadescription.h"
@@ -38,7 +36,7 @@ void PrimaryBeam::AddMS(std::unique_ptr<class MSDataDescription> description) {
   _msList.emplace_back(std::move(description));
 }
 
-void PrimaryBeam::CorrectImages(FitsWriter& writer,
+void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
                                 const ImageFilename& imageName,
                                 const std::string& filenameKind) {
   PrimaryBeamImageSet beamImages = load(imageName, _settings);
@@ -53,7 +51,7 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer,
         prefix = stokesIName.GetPSFPrefix(_settings);
       else
         prefix = stokesIName.GetPrefix(_settings);
-      FitsReader reader(prefix + "-" + filenameKind + ".fits");
+      aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
       Image image(reader.ImageWidth(), reader.ImageHeight());
       reader.Read(image.data());
 
@@ -68,14 +66,14 @@ void PrimaryBeam::CorrectImages(FitsWriter& writer,
   } else if (aocommon::Polarization::HasFullStokesPolarization(
                  _settings.polarizations)) {
     Image images[4];
-    std::unique_ptr<FitsReader> reader;
+    std::unique_ptr<aocommon::FitsReader> reader;
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
       aocommon::PolarizationEnum pol =
           aocommon::Polarization::IndexToStokes(polIndex);
       ImageFilename name(imageName);
       name.SetPolarization(pol);
-      reader.reset(new FitsReader(name.GetPrefix(_settings) + "-" +
-                                  filenameKind + ".fits"));
+      reader.reset(new aocommon::FitsReader(name.GetPrefix(_settings) + "-" +
+                                            filenameKind + ".fits"));
       images[polIndex] = Image(reader->ImageWidth(), reader->ImageHeight());
       reader->Read(images[polIndex].data());
     }
@@ -110,7 +108,7 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
     // require a better strategy for big images.
     ImageFilename polName(imageName);
     polName.SetPolarization(aocommon::Polarization::StokesI);
-    FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
+    aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
     reader.Read(beamImages[0].data());
     for (size_t i = 0;
          i != settings.trimmedImageWidth * settings.trimmedImageHeight; ++i)
@@ -137,7 +135,7 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
         ImageFilename polName(imageName);
         polName.SetPolarization(p);
         polName.SetIsImaginary(i % 2 != 0);
-        FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
+        aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
         reader.Read(beamImages[i].data());
       }
       return beamImages;
@@ -145,8 +143,8 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
       PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
                                      settings.trimmedImageHeight, 16);
       for (size_t i = 0; i != 16; ++i) {
-        FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
-                          std::to_string(i) + ".fits");
+        aocommon::FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
+                                    std::to_string(i) + ".fits");
         reader.Read(beamImages[i].data());
       }
       return beamImages;
@@ -174,7 +172,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
     firstPolName.SetIsImaginary(false);
     std::string f(firstPolName.GetBeamPrefix(_settings) + "-0.fits");
     if (boost::filesystem::exists(f)) {
-      FitsReader reader(f);
+      aocommon::FitsReader reader(f);
       if (reader.ImageWidth() == _settings.trimmedImageWidth &&
           reader.ImageHeight() == _settings.trimmedImageHeight) {
         useExistingBeam = true;
@@ -197,7 +195,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
     beamImages = MakeImage(entry, imageWeights);
 
     // Save the 16 beam images as fits files
-    FitsWriter writer;
+    aocommon::FitsWriter writer;
     writer.SetImageDimensions(_settings.trimmedImageWidth,
                               _settings.trimmedImageHeight, _phaseCentreRA,
                               _phaseCentreDec, _settings.pixelScaleX,

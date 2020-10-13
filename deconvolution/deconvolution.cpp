@@ -10,7 +10,6 @@
 #include "../multiscale/multiscalealgorithm.h"
 
 #include "../casamaskreader.h"
-#include "../fitsreader.h"
 #include "../image.h"
 #include "../ndppp.h"
 #include "../rmsimage.h"
@@ -19,6 +18,8 @@
 
 #include "../wsclean/imagingtable.h"
 #include "../wsclean/wscleansettings.h"
+
+#include <aocommon/fits/fitsreader.h>
 
 using namespace aocommon;
 

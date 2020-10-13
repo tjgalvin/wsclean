@@ -1,7 +1,7 @@
 #ifndef IUWT_DECOMPOSITION_H
 #define IUWT_DECOMPOSITION_H
 
-#include "../fitswriter.h"
+#include <aocommon/fits/fitswriter.h>
 
 #include "iuwtmask.h"
 
@@ -10,6 +10,8 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+
+using aocommon::FitsWriter;
 
 class IUWTDecompositionScale {
  public:

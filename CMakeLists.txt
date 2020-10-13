@@ -153,8 +153,8 @@ configure_file("${PROJECT_SOURCE_DIR}/wscversion.h.in" "${PROJECT_BINARY_DIR}/ws
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(wsclean-object OBJECT
-  casamaskreader.cpp fftconvolver.cpp fftresampler.cpp fftwmanager.cpp fitsiochecker.cpp fitsreader.cpp fitswriter.cpp gaussianfitter.cpp image.cpp imageweights.cpp modelrenderer.cpp msselection.cpp multibanddata.cpp nlplfitter.cpp parsetreader.cpp polynomialchannelfitter.cpp polynomialfitter.cpp progressbar.cpp rmsimage.cpp stopwatch.cpp system.cpp
-  aterms/atermbase.cpp aterms/cache.cpp aterms/dldmaterm.cpp
+  casamaskreader.cpp fftconvolver.cpp fftresampler.cpp fftwmanager.cpp gaussianfitter.cpp image.cpp imageweights.cpp modelrenderer.cpp msselection.cpp multibanddata.cpp nlplfitter.cpp parsetreader.cpp polynomialchannelfitter.cpp polynomialfitter.cpp progressbar.cpp rmsimage.cpp stopwatch.cpp system.cpp
+  aterms/cache.cpp aterms/dldmaterm.cpp
   aterms/fitsaterm.cpp aterms/fitsatermbase.cpp
   aterms/pafbeamterm.cpp aterms/atermresampler.cpp
   deconvolution/componentlist.cpp
@@ -235,7 +235,7 @@ target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
 add_executable(wspredictionexample EXCLUDE_FROM_ALL wsclean/examples/wspredictionexample.cpp wsclean/wstackinggridder.cpp fftwmanager.cpp)
 target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
 
-add_executable(mscaleexample EXCLUDE_FROM_ALL multiscale/mscaleexample.cpp fftconvolver.cpp multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp fitsiochecker.cpp fitsreader.cpp fitswriter.cpp deconvolution/simpleclean.cpp)
+add_executable(mscaleexample EXCLUDE_FROM_ALL multiscale/mscaleexample.cpp fftconvolver.cpp multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
 target_link_libraries(mscaleexample ${ALL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)

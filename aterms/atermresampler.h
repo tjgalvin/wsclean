@@ -1,23 +1,22 @@
 #ifndef ATERM_RESAMPLER_H
 #define ATERM_RESAMPLER_H
 
-#include "atermbase.h"
+#include <aocommon/aterms/atermbase.h>
 
-#include "../fitsreader.h"
-
+#include <aocommon/fits/fitsreader.h>
 #include <aocommon/uvector.h>
 #include <aocommon/windowfunction.h>
 
 class ATermResampler {
  public:
-  ATermResampler(const ATermBase::CoordinateSystem& coordinateSystem);
+  ATermResampler(const aocommon::ATermBase::CoordinateSystem& coordinateSystem);
   ~ATermResampler();
 
   /**
    * @param scratch vector of size at least ScratchASize()
    * @param output vector of size at least ScratchBSize()
    */
-  void ReadAndResample(FitsReader& reader, size_t fileIndex,
+  void ReadAndResample(aocommon::FitsReader& reader, size_t fileIndex,
                        aocommon::UVector<double>& scratch,
                        aocommon::UVector<double>& output, double stretchFactor);
 
@@ -35,7 +34,7 @@ class ATermResampler {
 
   size_t ScratchASize() const { return _allocatedWidth * _allocatedHeight; }
 
-  size_t ScratchBSize(const FitsReader& reader) const {
+  size_t ScratchBSize(const aocommon::FitsReader& reader) const {
     return std::max(_coordinateSystem.width * _coordinateSystem.height,
                     reader.ImageWidth() * reader.ImageHeight());
   }
@@ -47,10 +46,10 @@ class ATermResampler {
   }
 
  private:
-  void regrid(const FitsReader& reader, double* dest, const double* source,
-              double stretchFactor);
+  void regrid(const aocommon::FitsReader& reader, double* dest,
+              const double* source, double stretchFactor);
 
-  const ATermBase::CoordinateSystem _coordinateSystem;
+  const aocommon::ATermBase::CoordinateSystem _coordinateSystem;
   size_t _allocatedWidth, _allocatedHeight;
   std::unique_ptr<class FFTResampler> _resampler;
   bool _downsample;

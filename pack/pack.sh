@@ -27,7 +27,7 @@ else
     mkdir /tmp/wsclean/wsclean
     mkdir /tmp/wsclean/wsclean/examples
     cd ..
-    cp -v CMakeLists.txt CMakeVersionInfo.txt wscversion.h.in Doxyfile.in application.* areaset.* buffered_lane.* casamaskreader.* dftpredictionalgorithm.* fftconvolver.* fftresampler.* fftwmanager.* fitsiochecker.* fitsreader.* fitswriter.* gaussianfitter.* hmatrix4x4.* image.* imageweights.* multibanddata.* nlplfitter.* numberlist.* modelrenderer.* msselection.* ndppp.* parsetreader.* polynomialchannelfitter.* polynomialfitter.* progressbar.* rmsimage.* serialistream.* serialostream.* stopwatch.* system.* threadpool.* weightmode.* windowfunction.* wscleanmain.cpp /tmp/wsclean/
+    cp -v CMakeLists.txt CMakeVersionInfo.txt wscversion.h.in Doxyfile.in application.* areaset.* buffered_lane.* casamaskreader.* dftpredictionalgorithm.* fftconvolver.* fftresampler.* fftwmanager.* gaussianfitter.* hmatrix4x4.* image.* imageweights.* multibanddata.* nlplfitter.* numberlist.* modelrenderer.* msselection.* ndppp.* parsetreader.* polynomialchannelfitter.* polynomialfitter.* progressbar.* rmsimage.* serialistream.* serialostream.* stopwatch.* system.* threadpool.* weightmode.* windowfunction.* wscleanmain.cpp /tmp/wsclean/
     cp -vr aocommon/include /tmp/wsclean/aocommon
     cp -v aterms/*.{h,cpp} /tmp/wsclean/aterms/
     cp -v CMake/*.cmake /tmp/wsclean/CMake/

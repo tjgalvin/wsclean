@@ -55,7 +55,7 @@ void FitsATerm::readImages(std::complex<float>* buffer, size_t timeIndex,
             _readers.front().FrequencyDimensionIncr());
   const size_t imgIndex =
       _timesteps[timeIndex].imgIndex * NFrequencies() + freqIndex;
-  FitsReader& reader = _readers[_timesteps[timeIndex].readerIndex];
+  aocommon::FitsReader& reader = _readers[_timesteps[timeIndex].readerIndex];
   _scratchA.resize(Resampler().ScratchASize());
   _scratchB.resize(Resampler().ScratchBSize(reader));
   // TODO do this in parallel. Needs to fix Resampler too, as currently it can't

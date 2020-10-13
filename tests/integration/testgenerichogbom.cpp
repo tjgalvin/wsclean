@@ -1,12 +1,13 @@
 #include "fftwmanager.h"
-#include "fitsreader.h"
-#include "fitswriter.h"
+#include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include "wsclean/imagingtable.h"
 #include "deconvolution/imageset.h"
 #include "deconvolution/genericclean.h"
 #include "stopwatch.h"
 #include "wsclean/logger.h"
+
+#include <aocommon/fits/fitsreader.h>
 
 int main(int argc, char* argv[]) {
   if (argc <= 1) {
@@ -54,14 +55,14 @@ int main(int argc, char* argv[]) {
   ImageSet dirtySet(&table, settings), modelSet(&table, settings);
   std::vector<aocommon::UVector<double>> psfs(freqCount);
 
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
 
   for (size_t i = 0; i != freqCount; ++i) {
     std::string imageName(argv[argi]), psfName(argv[argi + 1]);
     argi += 2;
-    FitsReader reader(imageName);
+    aocommon::FitsReader reader(imageName);
     if (i == 0) {
-      writer = FitsWriter(reader);
+      writer = aocommon::FitsWriter(reader);
       width = reader.ImageWidth();
       height = reader.ImageHeight();
     }
@@ -78,7 +79,7 @@ int main(int argc, char* argv[]) {
     reader.Read(dirtySet[i]);
 
     std::cout << "Reading " << psfName << "...\n";
-    reader = FitsReader(psfName);
+    reader = aocommon::FitsReader(psfName);
     reader.Read(psf.data());
   }
 

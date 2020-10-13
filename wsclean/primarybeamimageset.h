@@ -9,8 +9,11 @@
 #include <aocommon/matrix2x2.h>
 #include <aocommon/polarization.h>
 
-#include "../fitsreader.h"
+#include <aocommon/fits/fitsreader.h>
+
 #include "../image.h"
+
+using aocommon::FitsReader;
 
 class PrimaryBeamImageSet {
  public:

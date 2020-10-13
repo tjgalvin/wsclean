@@ -10,6 +10,8 @@
 
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
+#include <aocommon/fits/fitswriter.h>
+#include <aocommon/aterms/atermbase.h>
 
 #include <boost/thread/mutex.hpp>
 
@@ -29,7 +31,7 @@ class IdgMsGridder : public MSGridderBase {
 
   virtual Image ImageImaginaryResult() final override;
 
-  static void SavePBCorrectedImages(class FitsWriter& writer,
+  static void SavePBCorrectedImages(class aocommon::FitsWriter& writer,
                                     const class ImageFilename& filename,
                                     const std::string& filenameKind,
                                     const WSCleanSettings& settings);
@@ -55,9 +57,11 @@ class IdgMsGridder : public MSGridderBase {
 
   void setIdgType();
 
-  std::unique_ptr<class ATermBase> getATermMaker(MSGridderBase::MSData& msData);
+  std::unique_ptr<class aocommon::ATermBase> getATermMaker(
+      MSGridderBase::MSData& msData);
   bool prepareForMeasurementSet(
-      MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker,
+      MSGridderBase::MSData& msData,
+      std::unique_ptr<aocommon::ATermBase>& aTermMaker,
       aocommon::UVector<std::complex<float>>& aTermBuffer,
       idg::api::BufferSetType);
 

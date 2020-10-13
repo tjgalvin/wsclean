@@ -4,9 +4,10 @@
 #include <cassert>
 #include <string>
 
-#include "atermbase.h"
-#include "atermbeam.h"
-#include "atermstub.h"
+#include <aocommon/aterms/atermbase.h>
+#include <aocommon/aterms/atermbeam.h>
+#include <aocommon/aterms/atermstub.h>
+
 #include "dldmaterm.h"
 #include "fitsaterm.h"
 #include "pafbeamterm.h"
@@ -29,7 +30,7 @@
 
 using aocommon::Matrix2x2;
 
-class ATermConfig : public ATermBase {
+class ATermConfig : public aocommon::ATermBase {
  public:
   ATermConfig(size_t nAntenna, const CoordinateSystem& coordinateSystem,
               const WSCleanSettings& settings)

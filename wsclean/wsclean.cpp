@@ -16,7 +16,7 @@
 #include "../application.h"
 #include "../areaset.h"
 #include "../fftresampler.h"
-#include "../fitswriter.h"
+#include <aocommon/fits/fitswriter.h>
 #include "../image.h"
 #include "../imageweights.h"
 #include "../modelrenderer.h"

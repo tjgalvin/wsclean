@@ -1,11 +1,12 @@
 #include "fftwmanager.h"
-#include "fitsreader.h"
-#include "fitswriter.h"
+#include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include "stopwatch.h"
 #include "wsclean/imagingtable.h"
 #include "deconvolution/imageset.h"
 #include "multiscale/multiscalealgorithm.h"
+
+#include <aocommon/fits/fitsreader.h>
 
 int main(int argc, char* argv[]) {
   if (argc <= 1) {

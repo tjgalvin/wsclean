@@ -4,8 +4,6 @@
 
 #include "../wsclean/logger.h"
 
-#include "../fitsreader.h"
-
 PAFBeamTerm::PAFBeamTerm(const ATermBase::CoordinateSystem& coordinateSystem)
     : _coordinateSystem(coordinateSystem),
       _resampler(coordinateSystem),

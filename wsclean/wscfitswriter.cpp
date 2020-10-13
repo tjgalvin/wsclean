@@ -5,7 +5,8 @@
 #include "imagefilename.h"
 #include "msgridderbase.h"
 
-#include "../fitsreader.h"
+#include <aocommon/fits/fitsreader.h>
+
 #include "../modelrenderer.h"
 
 #include "../model/bbsmodel.h"

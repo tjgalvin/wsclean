@@ -2,11 +2,13 @@
 #define WSCLEAN_ATERMS_EVERYBEAMATERMS_H_
 
 #include <complex>
-
-#include "atermbeam.h"
-#include "atermstub.h"
+#include <aocommon/aterms/atermbeam.h>
+#include <aocommon/aterms/atermstub.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
+using aocommon::ATermBeam;
+using aocommon::ATermStub;
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>

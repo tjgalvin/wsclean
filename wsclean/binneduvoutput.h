@@ -4,10 +4,11 @@
 #include "imagebufferallocator.h"
 
 #include "../fftresampler.h"
-#include "../fitsreader.h"
-#include "../fitswriter.h"
 #include "../image.h"
 #include "../rmsimage.h"
+
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/fits/fitswriter.h>
 
 #include <fstream>
 
@@ -17,9 +18,9 @@ class BinnedUVOutput {
                    const std::string& dirtyPrefix, double psfLimit = 1e-4) {
     ImageBufferAllocator allocator;
 
-    FitsReader dirtyReader(dirtyPrefix + "-dirty.fits");
-    FitsReader psfReader(dirtyPrefix + "-psf.fits");
-    FitsReader uvCoverageReader(uvCoveragePrefix + "-psf.fits");
+    aocommon::FitsReader dirtyReader(dirtyPrefix + "-dirty.fits");
+    aocommon::FitsReader psfReader(dirtyPrefix + "-psf.fits");
+    aocommon::FitsReader uvCoverageReader(uvCoveragePrefix + "-psf.fits");
     const size_t width = dirtyReader.ImageWidth(),
                  height = dirtyReader.ImageHeight();
     Image dirty(width, height, allocator), psf(width, height, allocator),
@@ -107,7 +108,7 @@ class BinnedUVOutput {
         }
       }
     }
-    FitsWriter writer(dirtyReader);
+    aocommon::FitsWriter writer(dirtyReader);
     writer.Write(dirtyPrefix + "-binneduvoutput.fits", binned.data());
     Logger::Info << "UV bins were written. " << nBins
                  << " bins were selected, with an effective nvis of "

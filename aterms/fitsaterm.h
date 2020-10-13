@@ -3,7 +3,7 @@
 
 #include "fitsatermbase.h"
 
-#include "../fitsreader.h"
+#include <aocommon/fits/fitsreader.h>
 
 #include <aocommon/uvector.h>
 
@@ -34,7 +34,8 @@ class FitsATerm final : public FitsATermBase {
   void readImages(std::complex<float>* buffer, size_t timeIndex,
                   double frequency);
 
-  void resample(const FitsReader& reader, double* dest, const double* source);
+  void resample(const aocommon::FitsReader& reader, double* dest,
+                const double* source);
 
   void evaluateTEC(std::complex<float>* dest, const double* source,
                    double frequency);
@@ -47,7 +48,7 @@ class FitsATerm final : public FitsATermBase {
                        std::complex<float> value);
 
   aocommon::UVector<double> _scratchA, _scratchB;
-  std::vector<FitsReader> _readers;
+  std::vector<aocommon::FitsReader> _readers;
 };
 
 #endif

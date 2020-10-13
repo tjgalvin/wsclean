@@ -1,6 +1,7 @@
 #include "imageweights.h"
 #include "multibanddata.h"
-#include "fitswriter.h"
+
+#include <aocommon/fits/fitswriter.h>
 
 #include "serialostream.h"
 #include "serialistream.h"
@@ -380,7 +381,7 @@ void ImageWeights::GetGrid(double* image) const {
 void ImageWeights::Save(const string& filename) const {
   aocommon::UVector<double> image(_imageWidth * _imageHeight);
   GetGrid(&image[0]);
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   writer.SetImageDimensions(_imageWidth, _imageHeight);
   writer.Write(filename, image.data());
 }

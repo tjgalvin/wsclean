@@ -5,8 +5,9 @@
 
 #include <unistd.h>
 
-#include "../fitsreader.h"
-#include "../fitswriter.h"
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/fits/fitswriter.h>
+
 #include "../fftconvolver.h"
 
 #include "../wsclean/logger.h"
@@ -29,7 +30,7 @@ void MoreSane::ExecuteMajorIteration(double* dataImage, double* modelImage,
       psfName(_prefixName + "-tmp-moresaneinput-psf.fits"),
       maskName(_prefixName + "-tmp-moresaneinput-mask.fits"),
       outputName(outputStr.str());
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   writer.SetImageDimensions(width, height);
   if (this->_cleanMask != 0) writer.WriteMask(maskName, _cleanMask);
   writer.Write(dirtyName, dataImage);
@@ -75,9 +76,9 @@ void MoreSane::ExecuteMajorIteration(double* dataImage, double* modelImage,
     throw std::runtime_error("MoreSane returned an error");
   }
 
-  FitsReader modelReader(outputName + "_model.fits");
+  aocommon::FitsReader modelReader(outputName + "_model.fits");
   modelReader.Read(modelImage);
-  FitsReader residualReader(outputName + "_residual.fits");
+  aocommon::FitsReader residualReader(outputName + "_residual.fits");
   residualReader.Read(dataImage);
 
   unlink(dirtyName.c_str());

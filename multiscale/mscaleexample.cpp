@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "../fitsreader.h"
-#include "../fitswriter.h"
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/fits/fitswriter.h>
 
 #include "multiscalealgorithm.h"
 

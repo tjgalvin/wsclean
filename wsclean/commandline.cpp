@@ -8,7 +8,7 @@
 #include "../numberlist.h"
 
 #include "wsclean.h"
-#include "wscfitswriter.h"
+#include <aocommon/fits/fitswriter.h>
 #include "logger.h"
 
 #include <boost/algorithm/string.hpp>

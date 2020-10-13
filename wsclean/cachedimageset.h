@@ -1,13 +1,16 @@
 #ifndef CACHED_IMAGE_SET_H
 #define CACHED_IMAGE_SET_H
 
-#include "../fitswriter.h"
-#include "../fitsreader.h"
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/fits/fitswriter.h>
 
 #include "../wsclean/logger.h"
 
 #include <string.h>
 #include <set>
+
+using aocommon::FitsReader;
+using aocommon::FitsWriter;
 
 class CachedImageSet {
  public:

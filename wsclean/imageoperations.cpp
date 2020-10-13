@@ -4,7 +4,8 @@
 #include "wscleansettings.h"
 #include "wscfitswriter.h"
 
-#include "../fitsreader.h"
+#include <aocommon/fits/fitsreader.h>
+
 #include "../gaussianfitter.h"
 #include "../modelrenderer.h"
 

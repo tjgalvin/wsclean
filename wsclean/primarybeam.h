@@ -9,6 +9,8 @@
 
 #include "../msproviders/msprovider.h"
 
+#include <aocommon/fits/fitswriter.h>
+#include <aocommon/fits/fitsreader.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
@@ -53,7 +55,8 @@ class PrimaryBeam {
                       const ImagingTableEntry& entry,
                       std::shared_ptr<class ImageWeights> imageWeights);
 
-  void CorrectImages(class FitsWriter& writer, const ImageFilename& imageName,
+  void CorrectImages(class aocommon::FitsWriter& writer,
+                     const ImageFilename& imageName,
                      const std::string& filenameKind);
 
  private:

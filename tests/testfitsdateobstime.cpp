@@ -1,5 +1,5 @@
-#include "../fitsreader.h"
-#include "../fitswriter.h"
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/fits/fitswriter.h>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
@@ -29,13 +29,13 @@ BOOST_DATA_TEST_CASE(functionMJDToHMS,
   long double mjd = timeValues[sample].second;
 
   int hour, min, sec, dsec;
-  FitsWriter::MJDToHMS(mjd, hour, min, sec, dsec);
+  aocommon::FitsWriter::MJDToHMS(mjd, hour, min, sec, dsec);
   char dateStrA[40], dateStrB[40];
   std::sprintf(dateStrA, "%02d:%02d:%02d.%01d", hour, min, sec, dsec);
   BOOST_CHECK_EQUAL(str.substr(11), std::string(dateStrA));
 
-  double fMJD = FitsReader::ParseFitsDateToMJD(str.c_str());
-  FitsWriter::MJDToHMS(fMJD, hour, min, sec, dsec);
+  double fMJD = aocommon::FitsReader::ParseFitsDateToMJD(str.c_str());
+  aocommon::FitsWriter::MJDToHMS(fMJD, hour, min, sec, dsec);
   std::sprintf(dateStrB, "%02d:%02d:%02d.%01d", hour, min, sec, dsec);
   BOOST_CHECK_EQUAL(str.substr(11), std::string(dateStrB));
 }

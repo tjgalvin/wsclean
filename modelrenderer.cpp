@@ -3,10 +3,10 @@
 
 #include <aocommon/uvector.h>
 
-#include "fitsreader.h"
 #include "modelrenderer.h"
 #include "model/model.h"
 
+#include <aocommon/fits/fitsreader.h>
 #include <aocommon/imagecoordinates.h>
 
 #include "fftconvolver.h"

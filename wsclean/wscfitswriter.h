@@ -7,10 +7,13 @@
 #include "outputchannelinfo.h"
 #include "wscleansettings.h"
 
-#include "../fitswriter.h"
+#include <aocommon/fits/fitswriter.h>
 #include <aocommon/polarization.h>
 
 #include <string>
+
+using aocommon::FitsReader;
+using aocommon::FitsWriter;
 
 class WSCFitsWriter {
  public:

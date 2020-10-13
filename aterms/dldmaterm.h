@@ -3,7 +3,7 @@
 
 #include "fitsatermbase.h"
 
-#include "../fitsreader.h"
+#include <aocommon/fits/fitsreader.h>
 
 #include <complex>
 
@@ -28,7 +28,7 @@ class DLDMATerm final : public FitsATermBase {
   }
 
  private:
-  std::vector<FitsReader> _readers;
+  std::vector<aocommon::FitsReader> _readers;
   aocommon::UVector<double> _scratch, _dlImage, _dmImage;
   std::vector<std::array<double, 2>> _uvws;
   double _updateInterval, _previousTime;

@@ -5,14 +5,15 @@
 #include <string>
 #include <vector>
 
-#include "atermbase.h"
+#include <aocommon/aterms/atermbase.h>
+
 #include "atermresampler.h"
 
 /**
  * Class for reading fits files as they are used in "Phased-array feed"
  * such as Apertif.
  */
-class PAFBeamTerm final : public ATermBase {
+class PAFBeamTerm final : public aocommon::ATermBase {
  public:
   PAFBeamTerm(const CoordinateSystem& coordinateSystem);
 
@@ -45,7 +46,7 @@ class PAFBeamTerm final : public ATermBase {
   }
 
  private:
-  std::vector<FitsReader> _readers;
+  std::vector<aocommon::FitsReader> _readers;
   const CoordinateSystem _coordinateSystem;
   ATermResampler _resampler;
   size_t _nAntenna, _nFrequencies;

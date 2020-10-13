@@ -24,15 +24,17 @@ FitsATermBase::FitsATermBase(size_t nAntenna,
 
 FitsATermBase::~FitsATermBase() {}
 
-void FitsATermBase::initializeFromFiles(std::vector<FitsReader>& readers) {
+void FitsATermBase::initializeFromFiles(
+    std::vector<aocommon::FitsReader>& readers) {
   // Sort the readers on observation time
-  std::sort(readers.begin(), readers.end(),
-            [](const FitsReader& a, const FitsReader& b) -> bool {
-              return a.TimeDimensionStart() < b.TimeDimensionStart();
-            });
+  std::sort(
+      readers.begin(), readers.end(),
+      [](const aocommon::FitsReader& a, const aocommon::FitsReader& b) -> bool {
+        return a.TimeDimensionStart() < b.TimeDimensionStart();
+      });
   _nFrequencies = readers.front().NFrequencies();
   for (size_t readerIndex = 0; readerIndex != readers.size(); ++readerIndex) {
-    const FitsReader& reader = readers[readerIndex];
+    const aocommon::FitsReader& reader = readers[readerIndex];
     if (_nFrequencies != reader.NFrequencies())
       throw std::runtime_error(
           "A-term FITS files have inconsistent number of frequencies");

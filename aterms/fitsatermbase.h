@@ -1,15 +1,16 @@
 #ifndef FITS_ATERM_BASE_H
 #define FITS_ATERM_BASE_H
 
-#include "atermbase.h"
+#include <aocommon/aterms/atermbase.h>
+
 #include "atermresampler.h"
 #include "cache.h"
 
-#include "../fitsreader.h"
+#include <aocommon/fits/fitsreader.h>
 
 #include <aocommon/windowfunction.h>
 
-class FitsATermBase : public ATermBase {
+class FitsATermBase : public aocommon::ATermBase {
  public:
   FitsATermBase(size_t nAntenna, const CoordinateSystem& coordinateSystem);
   ~FitsATermBase();
@@ -27,7 +28,7 @@ class FitsATermBase : public ATermBase {
   ATermResampler& Resampler() { return _resampler; }
 
  protected:
-  void initializeFromFiles(std::vector<FitsReader>& readers);
+  void initializeFromFiles(std::vector<aocommon::FitsReader>& readers);
 
   bool findFilePosition(std::complex<float>* buffer, double time,
                         double frequency, size_t& timeindex,
