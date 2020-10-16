@@ -243,6 +243,10 @@ install(TARGETS wsclean-lib DESTINATION lib)
 install(TARGETS chgcentre DESTINATION bin)
 install(FILES interface/wscleaninterface.h DESTINATION include)
 
+if(MPI_FOUND)
+  install(TARGETS wsclean-mp DESTINATION bin)
+endif(MPI_FOUND)
+
 # add target to generate API documentation with Doxygen
 find_package(Doxygen)
 
