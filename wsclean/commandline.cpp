@@ -639,8 +639,8 @@ double CommandLine::parse_double(const char* param, double lowerLimit,
   return v;
 }
 
-bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[],
-                        bool isSlave) {
+bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
+                                         char* argv[], bool isSlave) {
   if (argc < 2) {
     if (!isSlave) {
       printHeader();
@@ -1319,10 +1319,12 @@ bool CommandLine::Parse(WSClean& wsclean, int argc, char* argv[],
   for (int i = 1; i != argc; ++i) commandLineStr << ' ' << argv[i];
   wsclean.SetCommandLine(commandLineStr.str());
 
-  settings.Validate();
-  if (!dryRun) settings.Propogate();
-
   return !dryRun;
+}
+
+void CommandLine::Validate(WSClean& wsclean, bool isFullRun) {
+  wsclean.Settings().Validate();
+  if (isFullRun) wsclean.Settings().Propogate();
 }
 
 void CommandLine::Run(class WSClean& wsclean) {

@@ -8,8 +8,32 @@
 
 class CommandLine {
  public:
+  /**
+   * Initialize wsclean from the given command line options
+   * @returns @c true when parameters indicate wsclean should
+   * be run, @c false e.g. when this is a dry run.
+   */
   static bool Parse(class WSClean& wsclean, int argc, char* argv[],
-                    bool isSlave);
+                    bool isSlave) {
+    bool fullRun = ParseWithoutValidation(wsclean, argc, argv, isSlave);
+    Validate(wsclean, fullRun);
+    return fullRun;
+  }
+
+  /**
+   * Initialize wsclean from the given command line options, but
+   * do only limitted validation of the parameters. This is useful
+   * when the logging needs to be set up before further validation
+   * is done, as is used in distributed/wsclean-mp.cpp.
+   * Otherwise similar to @ref Parse().
+   */
+  static bool ParseWithoutValidation(class WSClean& wsclean, int argc,
+                                     char* argv[], bool isSlave);
+  /**
+   * Finish a call to ParseWithoutValidation().
+   */
+  static void Validate(class WSClean& wsclean, bool isFullRun);
+
   static void Run(class WSClean& wsclean);
 
  private:
