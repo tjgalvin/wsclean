@@ -298,7 +298,7 @@ double PrimaryBeam::MakeBeamForMS(
   bool useChannelFrequency = true;
   std::string elementResponseModel =
       !_settings.beamModel.empty() ? _settings.beamModel : "HAMAKER";
-  everybeam::Options options = ATermConfig::ConvertToEBOptions(
+  everybeam::Options options = ATermConfig::ConvertToEveryBeamOptions(
       *ms, _settings.mwaPath, frequencyInterpolation, _settings.dataColumnName,
       _settings.useDifferentialLofarBeam, useChannelFrequency,
       elementResponseModel);

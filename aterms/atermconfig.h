@@ -237,7 +237,7 @@ class ATermConfig : public aocommon::ATermBase {
       bool use_channel_frequency, const std::string& element_response_model) {
     std::unique_ptr<ATermBeam> beam;
 #ifdef HAVE_EVERYBEAM
-    everybeam::Options options = ConvertToEBOptions(
+    everybeam::Options options = ConvertToEveryBeamOptions(
         ms, search_path, frequency_interpolation, data_column_name,
         use_differential_beam, use_channel_frequency, element_response_model);
     beam.reset(new EveryBeamATerm(ms, coordinate_system, options));
@@ -253,7 +253,7 @@ class ATermConfig : public aocommon::ATermBase {
   }
 
 #ifdef HAVE_EVERYBEAM
-  static everybeam::Options ConvertToEBOptions(
+  static everybeam::Options ConvertToEveryBeamOptions(
       const casacore::MeasurementSet& ms, const std::string& search_path,
       bool frequency_interpolation, const std::string& data_column_name,
       bool use_differential_beam, bool use_channel_frequency,

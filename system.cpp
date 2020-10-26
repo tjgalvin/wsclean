@@ -56,7 +56,15 @@ std::string System::FindPythonFilePath(const std::string& filename) {
     }
   }
   searchPathsFile.close();
+  std::string err(std::string("Could not find Python file ") + filename +
+                  ". Paths searched:\n");
+  searchPathsFile = std::ifstream(tempFilename.c_str());
+  while (searchPathsFile.good()) {
+    std::string prefixPath;
+    std::getline(searchPathsFile, prefixPath);
+    err += prefixPath + '\n';
+  }
+  searchPathsFile.close();
   boost::filesystem::remove(tempPath);
-  throw std::runtime_error(std::string("Could not find Python file ") +
-                           filename);
+  throw std::runtime_error(err);
 }

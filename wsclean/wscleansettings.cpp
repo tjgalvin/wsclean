@@ -198,16 +198,17 @@ void WSCleanSettings::checkPolarizations() const {
   }
 }
 
-void WSCleanSettings::RecalculatePaddedDimensions() {
+void WSCleanSettings::RecalculatePaddedDimensions(bool verbose) {
   paddedImageWidth = (size_t)ceil(trimmedImageWidth * imagePadding);
   paddedImageHeight = (size_t)ceil(trimmedImageHeight * imagePadding);
   // Make the width and height divisable by four.
   paddedImageWidth += (4 - (paddedImageWidth % 4)) % 4;
   paddedImageHeight += (4 - (paddedImageHeight % 4)) % 4;
   if (trimmedImageWidth != 0 && trimmedImageHeight != 0) {
-    Logger::Debug << "Using image size of " << trimmedImageWidth << " x "
-                  << trimmedImageHeight << ", padded to " << paddedImageWidth
-                  << " x " << paddedImageHeight << ".\n";
+    if (verbose)
+      Logger::Debug << "Using image size of " << trimmedImageWidth << " x "
+                    << trimmedImageHeight << ", padded to " << paddedImageWidth
+                    << " x " << paddedImageHeight << ".\n";
   }
 }
 
@@ -219,7 +220,7 @@ bool WSCleanSettings::determineReorder() const {
          !forceNoReorder;
 }
 
-std::string WSCleanSettings::determineDataColumn() const {
+std::string WSCleanSettings::determineDataColumn(bool verbose) const {
   // If no column specified, determine column to use
   if (mode == PredictMode) return "DATA";
   std::string col = dataColumnName;
@@ -227,12 +228,16 @@ std::string WSCleanSettings::determineDataColumn() const {
     casacore::MeasurementSet ms(filenames.front());
     bool hasCorrected = ms.tableDesc().isColumn("CORRECTED_DATA");
     if (hasCorrected) {
-      Logger::Info << "First measurement set has corrected data: tasks will be "
-                      "applied on the corrected data column.\n";
+      if (verbose)
+        Logger::Info
+            << "First measurement set has corrected data: tasks will be "
+               "applied on the corrected data column.\n";
       col = "CORRECTED_DATA";
     } else {
-      Logger::Info << "No corrected data in first measurement set: tasks will "
-                      "be applied on the data column.\n";
+      if (verbose)
+        Logger::Info
+            << "No corrected data in first measurement set: tasks will "
+               "be applied on the data column.\n";
       col = "DATA";
     }
   }

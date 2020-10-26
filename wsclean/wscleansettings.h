@@ -22,15 +22,15 @@ class WSCleanSettings {
 
   void Validate() const;
 
-  void Propogate() {
+  void Propogate(bool verbose = true) {
     if (mode == ImagingMode || mode == PredictMode) {
-      RecalculatePaddedDimensions();
+      RecalculatePaddedDimensions(verbose);
       doReorder = determineReorder();
-      dataColumnName = determineDataColumn();
+      dataColumnName = determineDataColumn(verbose);
     }
   }
 
-  void RecalculatePaddedDimensions();
+  void RecalculatePaddedDimensions(bool verbose = true);
 
   std::vector<std::string> filenames;
   enum Mode { ImagingMode, PredictMode, RestoreMode, RestoreListMode } mode;
@@ -161,7 +161,7 @@ class WSCleanSettings {
  private:
   void checkPolarizations() const;
   bool determineReorder() const;
-  std::string determineDataColumn() const;
+  std::string determineDataColumn(bool verbose) const;
 };
 
 inline WSCleanSettings::WSCleanSettings()
