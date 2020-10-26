@@ -22,7 +22,8 @@ std::string System::FindPythonFilePath(const std::string& filename) {
   const std::string tempFilename = tempPath.string();  // optional
   std::string command =
       std::string(
-          "echo \"import sys\nfor a in sys.path:\n  print a\"|python>") +
+          "echo \"from __future__ import print_function\nimport sys\nfor a in "
+          "sys.path:\n  print(a)\"|python>") +
       tempFilename;
   int status = system(command.c_str());
   if (status != 0)
