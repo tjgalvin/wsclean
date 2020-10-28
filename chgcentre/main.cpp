@@ -87,8 +87,7 @@ void rotateVisibilities(const BandData& bandData, double shiftFactor,
                         Array<Complex>::contiter dataIter) {
   for (unsigned ch = 0; ch != bandData.ChannelCount(); ++ch) {
     const double wShiftRad = shiftFactor / bandData.ChannelWavelength(ch);
-    double rotSin, rotCos;
-    sincos(wShiftRad, &rotSin, &rotCos);
+    double rotSin = std::sin(wShiftRad), rotCos = std::cos(wShiftRad);
     for (unsigned p = 0; p != polarizationCount; ++p) {
       Complex v = *dataIter;
       *dataIter = Complex(v.real() * rotCos - v.imag() * rotSin,

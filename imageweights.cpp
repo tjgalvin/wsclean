@@ -224,7 +224,8 @@ void ImageWeights::FinishGridding() {
       double avgW = 0.0;
       for (double val : _grid) avgW += val * val;
       avgW /= _totalSum;
-      double numeratorSqrt = 5.0 * exp10(-_weightMode.BriggsRobustness());
+      double numeratorSqrt =
+          5.0 * std::exp((-M_LN10) * _weightMode.BriggsRobustness());
       double sSq = numeratorSqrt * numeratorSqrt / avgW;
       for (double& val : _grid) {
         val = 1.0 / (1.0 + val * sSq);
