@@ -23,6 +23,7 @@ class WSCleanSettings {
   void Validate() const;
 
   void Propogate(bool verbose = true) {
+    if (verbose) logImportantSettings();
     if (mode == ImagingMode || mode == PredictMode) {
       RecalculatePaddedDimensions(verbose);
       doReorder = determineReorder();
@@ -162,6 +163,7 @@ class WSCleanSettings {
   void checkPolarizations() const;
   bool determineReorder() const;
   std::string determineDataColumn(bool verbose) const;
+  void logImportantSettings() const;
 };
 
 inline WSCleanSettings::WSCleanSettings()

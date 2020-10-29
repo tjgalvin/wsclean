@@ -243,3 +243,7 @@ std::string WSCleanSettings::determineDataColumn(bool verbose) const {
   }
   return col;
 }
+
+void WSCleanSettings::logImportantSettings() const {
+  Logger::Debug << "Number of threads selected: " << threadCount << '\n';
+}
