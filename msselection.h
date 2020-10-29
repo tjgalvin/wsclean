@@ -2,7 +2,6 @@
 #define MS_SELECTION
 
 #include <cstring>
-#include <limits>
 
 #include <casacore/casa/Arrays/Vector.h>
 
@@ -12,7 +11,7 @@ class MSSelection {
  public:
   enum EvenOddSelection { AllTimesteps, EvenTimesteps, OddTimesteps };
 
-  const static size_t ALL_FIELDS = std::numeric_limits<size_t>::max();
+  const static size_t ALL_FIELDS;
 
   MSSelection()
       : _fieldIds{0},

@@ -3,6 +3,10 @@
 #include "serialostream.h"
 #include "serialistream.h"
 
+#include <limits>
+
+const size_t MSSelection::ALL_FIELDS = std::numeric_limits<size_t>::max();
+
 void MSSelection::Serialize(SerialOStream& stream) const {
   stream.VectorUInt64(_fieldIds)
       .UInt64(_bandId)
