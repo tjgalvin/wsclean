@@ -45,7 +45,7 @@ class ThreadPool {
     _threads.resize(n);
     for (size_t i = 0; i != n; ++i) {
       _threads[i] =
-          std::thread(std::mem_fun(&ThreadPool::thread_function), this);
+          std::thread(std::mem_fn(&ThreadPool::thread_function), this);
     }
   }
 

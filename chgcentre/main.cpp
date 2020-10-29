@@ -592,7 +592,7 @@ MDirection MinWDirection(MeasurementSet& set) {
 
   double wkopt;
   std::vector<double> s(n), u(ldu * m), vt(ldvt * n);
-  integer lwork = -1, info;
+  integer lwork = -1, info = 0;
   dgesvd_("All", "All", &m, &n, &a[0], &lda, &s[0], &u[0], &ldu, &vt[0], &ldvt,
           &wkopt, &lwork, &info);
   lwork = (int)wkopt;
