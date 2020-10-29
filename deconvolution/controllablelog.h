@@ -10,7 +10,7 @@
 class ControllableLog : public LogReceiver {
  public:
   ControllableLog(std::mutex* mutex)
-      : _mutex(mutex), _atNewLine(true), _isMuted(false), _isActive(true) {}
+      : _mutex(mutex), _isMuted(false), _isActive(true) {}
 
   virtual ~ControllableLog() {}
 
@@ -52,7 +52,7 @@ class ControllableLog : public LogReceiver {
  private:
   std::mutex* _mutex;
   std::string _tag;
-  bool _atNewLine, _isMuted, _isActive;
+  bool _isMuted, _isActive;
   std::string _lineBuffer, _outputOnce;
 };
 
