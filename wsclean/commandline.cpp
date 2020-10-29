@@ -1066,6 +1066,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       ++argi;
       settings.parallelDeconvolutionMaxSize =
           parse_size_t(argv[argi], "parallel-deconvolution");
+    } else if (param == "deconvolution-threads") {
+      ++argi;
+      settings.parallelDeconvolutionMaxThreads =
+          parse_size_t(argv[argi], "deconvolution-threads");
     } else if (param == "field") {
       ++argi;
       if (argv[argi] == std::string("all"))

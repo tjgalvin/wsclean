@@ -72,7 +72,7 @@ class WSCleanSettings {
   std::string prefixName;
   bool joinedPolarizationCleaning, joinedFrequencyCleaning;
   std::set<aocommon::PolarizationEnum> linkedPolarizations;
-  size_t parallelDeconvolutionMaxSize;
+  size_t parallelDeconvolutionMaxSize, parallelDeconvolutionMaxThreads;
   bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved,
       isDirtySaved, isFirstResidualSaved;
   bool reusePsf, reuseDirty;
@@ -231,6 +231,7 @@ inline WSCleanSettings::WSCleanSettings()
       joinedFrequencyCleaning(false),
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),
+      parallelDeconvolutionMaxThreads(threadCount),
       smallInversion(true),
       makePSF(false),
       makePSFOnly(false),

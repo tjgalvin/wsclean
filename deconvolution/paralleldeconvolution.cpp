@@ -40,8 +40,9 @@ void ParallelDeconvolution::SetAlgorithm(
     _verImages = (height + maxSubImageSize - 1) / maxSubImageSize;
     _algorithms.resize(_horImages * _verImages);
     _algorithms.front() = std::move(algorithm);
-    size_t threadsPerAlg = (System::ProcessorCount() + _algorithms.size() - 1) /
-                           _algorithms.size();
+    size_t threadsPerAlg =
+        (_settings.parallelDeconvolutionMaxThreads + _algorithms.size() - 1) /
+        _algorithms.size();
     _algorithms.front()->SetThreadCount(threadsPerAlg);
     Logger::Debug << "Parallel cleaning will use " << _algorithms.size()
                   << " subimages.\n";
@@ -279,7 +280,8 @@ void ParallelDeconvolution::executeParallelRun(
     _algorithms[i]->SetLogReceiver(_logs[i]);
 
   // Find the starting peak over all subimages
-  aocommon::ParallelFor<size_t> loop(System::ProcessorCount());
+  const size_t nThreads = _settings.parallelDeconvolutionMaxThreads;
+  aocommon::ParallelFor<size_t> loop(nThreads);
   loop.Run(0, _algorithms.size(), [&](size_t index, size_t) {
     _logs.Activate(index);
     runSubImage(subImages[index], dataImage, modelImage, psfImages, 0.0, true,
