@@ -6,8 +6,6 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-#include <boost/thread/mutex.hpp>
-
 #include "../units/angle.h"
 
 #include <aocommon/banddata.h>
@@ -28,7 +26,7 @@ struct WSCleanUserData {
   std::string dataColumn;
   size_t nACalls, nAtCalls;
 
-  boost::mutex mutex;
+  std::mutex mutex;
 };
 
 template <typename T>
@@ -54,7 +52,7 @@ void wsclean_main(const std::vector<std::string>& parms) {
 void wsclean_initialize(void** userData, const imaging_parameters* parameters,
                         imaging_data* imgData) {
   WSCleanUserData* wscUserData = new WSCleanUserData();
-  boost::mutex::scoped_lock lock(wscUserData->mutex);
+  std::lock_guard<std::mutex> lock(wscUserData->mutex);
 
   wscUserData->msPath = parameters->msPath;
   wscUserData->width = parameters->imageWidth;
@@ -104,7 +102,7 @@ void wsclean_initialize(void** userData, const imaging_parameters* parameters,
 
 void wsclean_deinitialize(void* userData) {
   WSCleanUserData* wscUserData = static_cast<WSCleanUserData*>(userData);
-  boost::mutex::scoped_lock lock(wscUserData->mutex);
+  std::lock_guard<std::mutex> lock(wscUserData->mutex);
   if (wscUserData->nAtCalls != 0) std::remove("tmp-operator-At-0-image.fits");
 
   delete wscUserData;
@@ -112,7 +110,7 @@ void wsclean_deinitialize(void* userData) {
 
 void wsclean_read(void* userData, DCOMPLEX* data, double* weights) {
   WSCleanUserData* wscUserData = static_cast<WSCleanUserData*>(userData);
-  boost::mutex::scoped_lock lock(wscUserData->mutex);
+  std::lock_guard<std::mutex> lock(wscUserData->mutex);
 
   casacore::MeasurementSet ms(wscUserData->msPath);
   BandData bandData(ms.spectralWindow());
@@ -175,7 +173,7 @@ void wsclean_read(void* userData, DCOMPLEX* data, double* weights) {
 
 void wsclean_write(void* userData, const char* filename, const double* image) {
   WSCleanUserData* wscUserData = static_cast<WSCleanUserData*>(userData);
-  boost::mutex::scoped_lock lock(wscUserData->mutex);
+  std::lock_guard<std::mutex> lock(wscUserData->mutex);
 
   std::cout << "wsclean_write() : Writing " << filename << "...\n";
   FitsWriter writer;
@@ -220,7 +218,7 @@ void getCommandLine(std::vector<std::string>& commandline,
 void wsclean_operator_A(void* userData, DCOMPLEX* dataOut,
                         const double* dataIn) {
   WSCleanUserData* wscUserData = static_cast<WSCleanUserData*>(userData);
-  boost::mutex::scoped_lock lock(wscUserData->mutex);
+  std::lock_guard<std::mutex> lock(wscUserData->mutex);
 
   std::cout << "------ wsclean_operator_A(), image: " << wscUserData->width
             << " x " << wscUserData->height
@@ -311,7 +309,7 @@ void wsclean_operator_A(void* userData, DCOMPLEX* dataOut,
 void wsclean_operator_At(void* userData, double* dataOut,
                          const DCOMPLEX* dataIn) {
   WSCleanUserData* wscUserData = static_cast<WSCleanUserData*>(userData);
-  boost::mutex::scoped_lock lock(wscUserData->mutex);
+  std::lock_guard<std::mutex> lock(wscUserData->mutex);
 
   // Write dataIn to the MODEL_DATA column
   std::cout << "------ wsclean_operator_At(), image: " << wscUserData->width
