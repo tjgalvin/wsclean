@@ -100,7 +100,7 @@ void rotateVisibilities(const BandData& bandData, double shiftFactor,
 casacore::MPosition ArrayCentroid(MeasurementSet& set) {
   casacore::MSAntenna aTable = set.antenna();
   if (aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
-  casacore::MPosition::ROScalarColumn antPosColumn(
+  casacore::MPosition::ScalarColumn antPosColumn(
       aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
   double x = 0.0, y = 0.0, z = 0.0;
   for (size_t row = 0; row != aTable.nrow(); ++row) {
@@ -123,7 +123,7 @@ casacore::MPosition ArrayPosition(MeasurementSet& set,
   static MPosition arrayPos;
   if (!hasArrayPos) {
     MSObservation obsTable(set.observation());
-    ROScalarColumn<String> telescopeNameColumn(
+    ScalarColumn<String> telescopeNameColumn(
         obsTable, obsTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
     bool hasTelescopeName = telescopeNameColumn.nrow() != 0;
     bool hasObservatoryInfo = false;
@@ -163,7 +163,7 @@ casacore::MPosition ArrayPosition(MeasurementSet& set,
 
 MDirection ZenithDirection(MeasurementSet& set, size_t rowIndex) {
   casacore::MPosition arrayPos = ArrayPosition(set);
-  casacore::MEpoch::ROScalarColumn timeColumn(
+  casacore::MEpoch::ScalarColumn timeColumn(
       set, set.columnName(casacore::MSMainEnums::TIME));
   casacore::MEpoch time = timeColumn(rowIndex);
   casacore::MeasFrame frame(arrayPos, time);
@@ -202,17 +202,17 @@ void processField(MeasurementSet& set, const std::string& dataColumn,
                   const MDirection& newDirection, bool onlyUVW, bool shiftback,
                   double newDl, double newDm, bool flipUVWSign, bool force) {
   MultiBandData bandData(set.spectralWindow(), set.dataDescription());
-  ROScalarColumn<casacore::String> nameCol(
+  ScalarColumn<casacore::String> nameCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
   MDirection::ArrayColumn phaseDirCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
-  MEpoch::ROScalarColumn timeCol(set, set.columnName(MSMainEnums::TIME));
+  MEpoch::ScalarColumn timeCol(set, set.columnName(MSMainEnums::TIME));
 
-  ROScalarColumn<int> antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
+  ScalarColumn<int> antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
       antenna2Col(set, set.columnName(MSMainEnums::ANTENNA2)),
       fieldIdCol(set, set.columnName(MSMainEnums::FIELD_ID)),
       dataDescIdCol(set, set.columnName(MSMainEnums::DATA_DESC_ID));
-  Muvw::ROScalarColumn uvwCol(set, set.columnName(MSMainEnums::UVW));
+  Muvw::ScalarColumn uvwCol(set, set.columnName(MSMainEnums::UVW));
   ArrayColumn<double> uvwOutCol(set, set.columnName(MSMainEnums::UVW));
 
   const bool hasCorrData = dataColumn.empty() &&
@@ -374,16 +374,16 @@ void processField(MeasurementSet& set, const std::string& dataColumn,
 
 void showChanges(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
                  const MDirection& newDirection, bool flipUVWSign) {
-  ROScalarColumn<casacore::String> nameCol(
+  ScalarColumn<casacore::String> nameCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
-  MDirection::ROArrayColumn phaseDirCol(
+  MDirection::ArrayColumn phaseDirCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
-  MEpoch::ROScalarColumn timeCol(set, set.columnName(MSMainEnums::TIME));
+  MEpoch::ScalarColumn timeCol(set, set.columnName(MSMainEnums::TIME));
 
-  ROScalarColumn<int> antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
+  ScalarColumn<int> antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
       antenna2Col(set, set.columnName(MSMainEnums::ANTENNA2)),
       fieldIdCol(set, set.columnName(MSMainEnums::FIELD_ID));
-  Muvw::ROScalarColumn uvwCol(set, set.columnName(MSMainEnums::UVW));
+  Muvw::ScalarColumn uvwCol(set, set.columnName(MSMainEnums::UVW));
 
   MPosition arrayPos = ArrayPosition(set);
   Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
@@ -430,17 +430,17 @@ void showChanges(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
 void rotateToGeoZenith(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
                        bool onlyUVW, bool flipUVWSign) {
   MultiBandData bandData(set.spectralWindow(), set.dataDescription());
-  ROScalarColumn<casacore::String> nameCol(
+  ScalarColumn<casacore::String> nameCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
   MDirection::ArrayColumn phaseDirCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
-  MEpoch::ROScalarColumn timeCol(set, set.columnName(MSMainEnums::TIME));
+  MEpoch::ScalarColumn timeCol(set, set.columnName(MSMainEnums::TIME));
 
-  ROScalarColumn<int> antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
+  ScalarColumn<int> antenna1Col(set, set.columnName(MSMainEnums::ANTENNA1)),
       antenna2Col(set, set.columnName(MSMainEnums::ANTENNA2)),
       fieldIdCol(set, set.columnName(MSMainEnums::FIELD_ID)),
       dataDescIdCol(set, set.columnName(MSMainEnums::DATA_DESC_ID));
-  Muvw::ROScalarColumn uvwCol(set, set.columnName(MSMainEnums::UVW));
+  Muvw::ScalarColumn uvwCol(set, set.columnName(MSMainEnums::UVW));
   ArrayColumn<double> uvwOutCol(set, set.columnName(MSMainEnums::UVW));
 
   const bool hasCorrData = set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
@@ -563,7 +563,7 @@ void rotateToGeoZenith(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
 
 void readAntennas(MeasurementSet& set, std::vector<MPosition>& antennas) {
   MSAntenna antennaTable = set.antenna();
-  MPosition::ROScalarColumn posCol(
+  MPosition::ScalarColumn posCol(
       antennaTable, antennaTable.columnName(MSAntennaEnums::POSITION));
 
   antennas.resize(antennaTable.nrow());
@@ -578,7 +578,7 @@ MDirection MinWDirection(MeasurementSet& set) {
   double cx = cvec[0], cy = cvec[1], cz = cvec[2];
 
   casacore::MSAntenna aTable = set.antenna();
-  casacore::MPosition::ROScalarColumn antPosColumn(
+  casacore::MPosition::ScalarColumn antPosColumn(
       aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
   integer n = 3, m = aTable.nrow(), lda = m, ldu = m, ldvt = n;
   std::vector<double> a(m * n);
@@ -614,7 +614,7 @@ MDirection MinWDirection(MeasurementSet& set) {
       z = -z;
     }
 
-    casacore::MEpoch::ROScalarColumn timeColumn(
+    casacore::MEpoch::ScalarColumn timeColumn(
         set, set.columnName(casacore::MSMainEnums::TIME));
     casacore::MEpoch time = timeColumn(set.nrow() / 2);
     casacore::MeasFrame frame(centroid, time);
@@ -690,6 +690,9 @@ int main(int argc, char** argv) {
            "Otherwise, the columns\n"
            "\tDATA, MODEL_DATA and CORRECTED_DATA will all be processed if "
            "they exist.\n"
+           "-from-ms <ms>\n"
+           "\tRotate the measurement set to the same direction as specified\n"
+           "\tin the provided measurement set.\n"
            "\n";
   } else {
     int argi = 1;
@@ -749,14 +752,14 @@ int main(int argc, char** argv) {
       } else if (toMinW) {
         newDirection = MinWDirection(set);
       } else if (same) {
-        MDirection::ROArrayColumn phaseDirCol(
+        MDirection::ArrayColumn phaseDirCol(
             set.field(), set.field().columnName(MSFieldEnums::PHASE_DIR));
         Vector<MDirection> phaseDirVector = phaseDirCol(0);
         newDirection = phaseDirVector[0];
       } else if (!templateMS.empty()) {
         MeasurementSet fromMS(templateMS);
         MSField fromField(fromMS.field());
-        MDirection::ROArrayColumn phaseDirCol(
+        MDirection::ArrayColumn phaseDirCol(
             fromField, fromField.columnName(MSFieldEnums::PHASE_DIR));
         Vector<MDirection> phaseDirVector = phaseDirCol(0);
         newDirection = phaseDirVector[0];
