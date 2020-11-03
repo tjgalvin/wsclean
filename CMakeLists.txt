@@ -250,15 +250,24 @@ if(MPI_FOUND)
   install(TARGETS wsclean-mp DESTINATION bin)
 endif(MPI_FOUND)
 
+add_custom_target(sphinxdoc
+  make html
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doc
+  COMMENT "Generating documentation with Sphinx" VERBATIM)
+
 # add target to generate API documentation with Doxygen
 find_package(Doxygen)
 
 if(DOXYGEN_FOUND)
   configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-  add_custom_target(doc
+  add_custom_target(doxygendoc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating API documentation with Doxygen" VERBATIM)
+  add_custom_target(doc DEPENDS doxygendoc sphinxdoc)
+else(DOXYGEN_FOUND)
+  message(STATUS "Doxygen not found: API documentation can not compiled.")  
+  add_custom_target(doc DEPENDS sphinxdoc)  
 endif(DOXYGEN_FOUND)
 
 find_package(Boost COMPONENTS date_time filesystem system program_options unit_test_framework)
