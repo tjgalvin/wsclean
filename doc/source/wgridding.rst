@@ -6,9 +6,10 @@ of assigning every visibility to its nearest w-plane, it extends the concept
 of uv-gridding to the w-direction and therefore grids each visibility to a small
 range of w-planes, weighted with a kernel function.
 The theoretical foundations of the algorithm are described in
-<https://www.repository.cam.ac.uk/handle/1810/292298> (pp. 139); a technical
+`the thesis of H. Ye (2019) <https://www.repository.cam.ac.uk/handle/1810/292298>`_
+(pp. 139); a technical
 description of the implementation is given in
-<https://arxiv.org/abs/2010.10122>.
+`Arras, Reinecke, Westermann & Enßlin (2020) <https://arxiv.org/abs/2010.10122>`_.
 
 W-gridding is enabled via the command-line ``-use-wgridder``. The algorithm will
 select appropriate parameters (like amount of padding, kernel shape and kernel
