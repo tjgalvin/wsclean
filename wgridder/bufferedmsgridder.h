@@ -21,7 +21,8 @@ class ImageBufferAllocator;
 
 class BufferedMSGridder : public MSGridderBase {
  public:
-  BufferedMSGridder(size_t threadCount, double memFraction, double absMemLimit);
+  BufferedMSGridder(size_t threadCount, double memFraction, double absMemLimit,
+                    double accuracy);
 
   virtual void Invert() final override;
 
@@ -59,6 +60,7 @@ class BufferedMSGridder : public MSGridderBase {
 
   size_t _cpuCount;
   int64_t _memSize;
+  double _accuracy;
   std::unique_ptr<class WGriddingGridder_Simple> _gridder;
 };
 

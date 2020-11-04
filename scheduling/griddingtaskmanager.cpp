@@ -41,7 +41,8 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
   } else if (_settings.useWGridder) {
 #ifdef HAVE_WGRIDDER
     return std::unique_ptr<MSGridderBase>(new BufferedMSGridder(
-        _settings.threadCount, _settings.memFraction, _settings.absMemLimit));
+        _settings.threadCount, _settings.memFraction, _settings.absMemLimit,
+        _settings.wgridderAccuracy));
 #else
     throw std::runtime_error(
         "WGridder cannot be used: WGridder requires a C++17 compiler, which "

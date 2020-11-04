@@ -89,6 +89,7 @@ class WSCleanSettings {
   bool directFT;
   DirectFTPrecision directFTPrecision;
   bool useIDG, useWGridder;
+  double wgridderAccuracy;
   std::string atermConfigFilename;
   double atermKernelSize;
   bool gridWithBeam;
@@ -265,6 +266,7 @@ inline WSCleanSettings::WSCleanSettings()
       directFTPrecision(DirectFTPrecision::Double),
       useIDG(false),
       useWGridder(false),
+      wgridderAccuracy(1e-4),
       atermConfigFilename(),
       atermKernelSize(5.0),
       gridWithBeam(false),

@@ -15,8 +15,8 @@
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 BufferedMSGridder::BufferedMSGridder(size_t threadCount, double memFraction,
-                                     double absMemLimit)
-    : MSGridderBase(), _cpuCount(threadCount) {
+                                     double absMemLimit, double accuracy)
+    : MSGridderBase(), _cpuCount(threadCount), _accuracy(accuracy) {
   _memSize = getAvailableMemory(memFraction, absMemLimit);
 }
 
@@ -182,7 +182,8 @@ void BufferedMSGridder::Invert() {
 
   _gridder.reset(new WGriddingGridder_Simple(
       _actualInversionWidth, _actualInversionHeight, trimmedWidth,
-      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
+      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount,
+      _accuracy));
   _gridder->InitializeInversion();
 
   resetVisibilityCounters();
@@ -239,7 +240,8 @@ void BufferedMSGridder::Predict(Image image) {
 
   _gridder.reset(new WGriddingGridder_Simple(
       _actualInversionWidth, _actualInversionHeight, trimmedWidth,
-      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount));
+      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount,
+      _accuracy));
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Image untrimmedImage(ImageWidth(), ImageHeight());

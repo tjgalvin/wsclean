@@ -288,6 +288,8 @@ void CommandLine::printHelp() {
          "is available.\n"
          "-use-wgridder\n"
          "   Use the w-gridding gridder developed by Martin Reinecke.\n"
+         "-wgridder-accuracy <value>\n"
+         "   Set the w-gridding accuracy. Default: 1e-4\n"
          "\n"
          "  ** A-TERM GRIDDING **\n"
          "-aterm-config <filename>\n"
@@ -1283,6 +1285,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         throw std::runtime_error("Unknown IDG mode: " + mode);
     } else if (param == "use-wgridder") {
       settings.useWGridder = true;
+    } else if (param == "wgridder-accuracy") {
+      ++argi;
+      settings.wgridderAccuracy =
+          parse_double(argv[argi], 0.0, "wgridder-accuracy", false);
     } else if (param == "no-dirty") {
       settings.isDirtySaved = false;
     } else if (param == "save-first-residual") {
