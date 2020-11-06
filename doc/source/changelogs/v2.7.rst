@@ -1,0 +1,49 @@
+WSClean version 2.7
+===================
+
+Released 2019-04-18
+
+WSClean 2.7 can be compiled together with `IDG version 0.5 <https://gitlab.com/astron-idg/idg/tags/0.5>`_.
+
+Summary of changes: This is a major release with many new functions. Imaging with IDG has matured to a fully functional form, providing speed improvements and new features: It is now possible to grid with beams from several arrays, as well as with a-term screens and gain solutions by using IDG. This has shown excellent results to correct for DD effects. The MWA and ATCA beams have been implemented, gridding different channels can be parallelized which majorly speeds up multi-frequency imaging, a direct FT option was implemented, the default accuracy has been increased while at the same time imaging has become faster, and finally many small isues were solved.
+
+Major & visible changes:
+
+* WSClean now implements the AARTFAAC, the MWA and the ATCA (ATCA_16 band) beam.
+* Imaging tasks can be run in parallel, which greatly speeds up multi-frequency imaging in normal *w*-stacking mode.
+* Reordering can also be in parallel now, but remains experimental as casacore sometimes causes race bug.
+* Several ways to apply direction dependent effect during the gridding with IDG:
+    * LOFAR & MWA beam gridding
+    * TEC screens
+    * "Generic" solution gain screens
+    * Any combination of the above.
+* Calculate average IDG beam and output pb corrected images.
+* Option to set IDG beam update rate (``-beam-aterm-update``).
+* Option to set a-term kernel size (``-aterm-kernel-size``).
+* Allow saving of a-term screens (``-save-aterms``).
+* IDG settings can now be specified in a separate config file.
+* Add countdown system to multiscale algorithm to prevent iterating too many times around the stopping criterium.
+* The first residual image is no longer saved by default; new option ``-save-first-residual`` can enable old behaviour.
+* Determine correct beam automatically from LOFAR beam keywords stored by DP3 in data column.
+* Implemented option ``-use-weights-as-taper`` (after communication with V. Mahatma).
+* Option ``-direct-ft`` implements a fully accurate direct FT.
+* Several new gridding kernels (implemented for EoR gridding accuracy paper).
+* New option to set location of MWA h5 file manually (``-mwa-path``).
+* Add option ``-nwlayers-factor`` to make it easier to increase *w*-term accuracy.
+* Increased default oversampling factor to 1023.
+
+Bugfixes / technical changes:
+
+* When using temporary directory, an ending slash in the ms name would lead to incorrect temporary filenames, causing multi-ms imaging to fail.
+* Always resample tec/gain screens onto the correct a-term kernel resolution (reported by T. Hodgson, see `IDG ticket 12 <https://gitlab.com/astron-idg/idg/issues/12>`_).
+* Output error when frequency axis is not correct (reported by F. De Gasperin).
+* Fix by M. Mevius to be able to predict LOFAR beam at NCP.
+* Store model files with Jy/px units.
+* Fix several compilation errors, including when using newer gccs and Casacore versions
+* LOFAR centroid gridding was removed.
+* Increase size of bounding box for Gaussians in multiscale.
+* Make sure that reversed channels work when using small inversion optimization (ATCA sets seem to (sometimes?) have the frequency channels in reverse (low index = high frequency)).
+* Fix prediction issue when manually setting nwlayers.
+* Clear cache between imaging of different intervals (SF #146), reported by J. Morgan).
+* Don't restore NaN components to avoid corrupting pb mf image (Reported by C. Riseley).
+* Foundations for multi-node distribution were implemented.

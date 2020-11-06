@@ -86,4 +86,4 @@ Note that these examples only differ in how cleaning is performed, they do not a
 Availability
 ------------
 
-``-squared-channel-joining`` is available since :doc:`WSClean 1.12 <changelog-1.12>`.
+``-squared-channel-joining`` is available since :doc:`WSClean 1.12 <changelogs/v1.12>`.

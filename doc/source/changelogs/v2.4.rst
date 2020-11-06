@@ -1,0 +1,33 @@
+WSClean version 2.4
+===================
+
+Released 2017-05-28
+
+Summary: Version 2.4 mostly contains small improvements on various points. Improved source component output allows better integration with (DD and DI) self-calibration pipelines, and continued work on the integration with IDG is aiming towards a fast, full A-correction imager.
+
+New features:
+
+ * Option ``-save-source-list`` to save a component list including Gaussians for multi-scale components. The output format is supported by DPPP. Old option ``-save-component-list`` has been removed.
+ * Source lists can be primary-beam corrected by combining ``-save-source-list`` with ``-apply-primary-beam`` (SF #111).
+ * Added keywords ``TELESCOP``, ``OBSERVER`` and ``OBJECT`` to fits output (SF #112).
+ * Fitting a Gaussian to the PSF is now more stable, and deals better with border cases (reported by G . Heald).
+ * Multi-frequency cleaning will now properly take channel weights into account during spectral fitting and peak finding (SF #109)
+ * Flux density values are now reported with sensible units, and units can be given on the cmdline (SF #104).
+ * WSClean will by default now stop deconvolution after 20 major iterations, which can be changed with the new option ``-nmiter`` (SF #117, requested by N. Hurley Walker).
+ * Option ``-save-psf-pb`` to be able to get a corrected PSF.
+ * Option ``-circularbeam`` now properly performs a constrained fit (SF #55).
+ * Option ``-multiscale-convolution-padding`` to change the default padding.
+ * WSClean now reports the reason for stopping cleaning.
+ * Slight increase of gridding speed, because X and Y dimensions of gridding kernel are now stored separately. Larger oversampling rates are now also supported.
+
+Bugfixes:
+
+ * Parameter ``-stopnegative`` was ignored since the new generalized cleaning algorithm was implemented (reported by N. Hurley-Walker and C. Tremblay).
+ * In multi-scale, joined polarizations mode, WSClean could not determine scale sizes when last channel has no unflagged visibilities (Reported by R. van Weeren).
+ * In joined polarization mode, WSClean could continuously perform further major iterations without improving the residuals any further (reported by N. Hurley-Walker).
+ * Deprecated parameter name ``-rms-background``, which was renamed to ``-local-rms``.
+ * Fixes for IDG gridding; CPU and GPU gridding & cleaning with IDG works.
+ * Version information now includes availability of IDG.
+ * More unit tests.
+ * Support proper displaying of negative angles.
+ * Refactoring of primary beam correction code.

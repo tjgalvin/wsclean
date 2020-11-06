@@ -49,4 +49,4 @@ Finally, the MORESANE algorithm does not support joined deconvolutions, so it wi
 
 History
 -------
-WSClean supports deconvolution with the MORESANE algorithm since :doc:`version 1.7 <changelog-1.7>`. :doc:`WSClean 1.8 <changelog-1.8>` added parameters "``-moresane-arg``" and added support for passing masks to Moresane. :doc:`Version 1.9 <changelog-1.9>` added parameter "``-moresane-sl``".
+WSClean supports deconvolution with the MORESANE algorithm since :doc:`version 1.7 <changelogs/v1.7>`. :doc:`WSClean 1.8 <changelogs/v1.8>` added parameters "``-moresane-arg``" and added support for passing masks to Moresane. :doc:`Version 1.9 <changelogs/v1.9>` added parameter "``-moresane-sl``".

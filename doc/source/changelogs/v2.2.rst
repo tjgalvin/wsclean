@@ -1,0 +1,28 @@
+WSClean Version 2.2
+===================
+
+Released 2017-01-20
+
+Summary: This version improves the speed of Högbom clean and joined clean significantly, improves the stability of multi-scale clean, and replaces several specialized cleaning methods by one generic algorithm that makes several features work in all clean modes.
+
+New features:
+
+ * Use the Clark optimization (`Clark 1980 <http://adsabs.harvard.edu/abs/1980A%26A....89..377C>`_) in Högbom clean and joined clean, which typically speeds up cleaning by a factor of ~5 (SF #14).
+ * Faster multi-scale clean, by adding option ``-multiscale-gain`` and setting it to 0.2 by default.
+ * Turned the weight rank filter on by default with a value of 3.0.
+ * Auto-masking works now also in Högbom clean mode (SF #101).
+ * Refactored cleaning algorithms to use the same code for single-scale cleaning, which makes all generic parameters work now in all cleaning modes (e.g. ``-deconvolution-channels`` and ``-squared-channel-joining``; (SF #58).
+
+Bugfixes:
+
+ * Report an error when invalid characters are used in integer parameters, like ``-niter 1e5``.
+ * Multi-scale clean will no longer put large-scale kernels through the image edge, which makes the algorithm more stable (#103).
+ * Perform FFT convolutions with padding in Multiscale fast subminor optimization and Clark optimization in normal clean, which improves stability.
+ * Make auto-masking work without specifying an auto-threshold.
+ * Fixing possible race condition in inversion code of the gridder.
+ * Always use C++11 versions of lane and uvector.
+ * Removed old code for old 'fast multi-scale algorithm' which did not work as well.
+ * Optimized clean functions in ImageSet class when only one image is cleaned.
+ * Adding test utilities for Högbom clean.
+ * Cleaning up of code using cppcheck.
+ 

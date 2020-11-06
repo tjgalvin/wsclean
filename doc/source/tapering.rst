@@ -3,7 +3,7 @@ Tapering
 
 Tapering can be used to shape the synthesized beam, by tapering off the weight of visibilities in the uv plane. This page lists the tapering options supported by WSClean.
 
-Tapering works cumulatively with weights set by the imaging weights (uniform, Briggs, natural, see :doc:`the image weighting chapter <image_weighting>`) and the visibility weight. Tapering is available in WSClean since :doc:`version 1.10 <changelog-1.10>`. 
+Tapering works cumulatively with weights set by the imaging weights (uniform, Briggs, natural, see :doc:`the image weighting chapter <image_weighting>`) and the visibility weight. Tapering is available in WSClean since :doc:`version 1.10 <changelogs/v1.10>`. 
 
 Gaussian taper
 --------------

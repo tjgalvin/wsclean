@@ -3,7 +3,7 @@ chgcentre
 
 The 'chgcentre' tool can be used to change the phase centre of a measurement set. It will recalculate the *uvw*-values (from the antenna locations, phase centre and time) and phase-rotate the visibilities. We found that the casa task 'fixvis' has several bugs (as of March 2014), and cannot be used to phase rotate a MWA measurement set properly.
 
-Since :doc:`wsclean 2.10 <changelog-2.10>`, chgcentre is compiled and installed when wsclean is installed. See the :doc:`general installation instruction <installation>` for help.
+Since :doc:`wsclean 2.10 <changelogs/v2.10>`, chgcentre is compiled and installed when wsclean is installed. See the :doc:`general installation instruction <installation>` for help.
 
 Execute chgcentre without parameters to get help on the syntax:
 

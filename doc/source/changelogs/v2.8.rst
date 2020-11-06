@@ -1,0 +1,32 @@
+WSClean version 2.8
+===================
+
+Released 2019-09-16
+
+WSClean 2.8 is released together with `IDG version 0.6 <https://gitlab.com/astron-idg/idg/tags/0.6>`_. Together, these two new versions bring a ton of bug fixes. 
+
+Summary of changes: The combination of WSClean 2.8 + IDG 0.6 allows for the first time all major imaging use-cases, including a-term corrections (screens of diagonal Jones matrices, TEC values or beam corrections), fast GPU and CPU gridding of really large images together with all deconvolution methods. In WSClean, much work was done to allow parallel deconvolution in all major modes, thereby speeding up the deconvolution by an order of magnitude. Fixing (SF #116) improved multi-scale convergence & stability.
+
+Major & visible changes:
+
+* Use a better multiscale convolution padding by default (SF #116).
+* Implemented ``-local-rms`` in combination with parallel cleaning
+* Implemented source list output in combination with parallel cleaning
+* Add a ``-horizon-mask parameter`` to automatically mask out emission beyond the horizon
+* Option ``-direct-allocation`` added for experimenting with skipping the image buffer allocator
+* Allow a-terms to have a frequency axis
+
+Bug fixes & other changes:
+
+* Multi-channel deconvolution bug causing multi-channel imaging to use the automask of channel 0. Reported by P. Serra.
+* Fixed issued when using the combination of multiscale + auto mask + paparallel deconvolution (many identified by F. De Gasperin).
+* Fixed issue causing parallel deconvolution to stay in infinite loop when niter low.
+* Fix predict crash when image size not specified
+* Fix non-parallel cleaning in two cases (local rms and saving source lists wouldn't work properly anymore).
+* Fixing bug when using indivisable nr of deconvolution channels
+* Using ``-channel-range`` caused wrong behaviour or exception.
+* Remove requirement on boost threads.
+* Solve bug in reordering of multi-interval imaging, causing a tempfiles not found error.
+* Improved some error messages and spelling.
+* Solve crash in LOFAR beam creation
+* Fix hang when creating a primary beam

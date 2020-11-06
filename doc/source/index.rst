@@ -20,7 +20,6 @@ Contents:
    results_and_problems
    technical_details
    further_information
-   changelogs/list.rst
 
 To contact me, mail me on offringa at gmail dot com.
 

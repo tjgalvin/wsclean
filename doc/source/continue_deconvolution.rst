@@ -40,7 +40,7 @@ There are few considerations:
  * One cannot change the image dimensions, phase center or pixel scale between the first and a continued run.
  * The second run can not include more visibilities than the first run. E.g., if selection parameters such as ``-maxuv-l`` are used, the first run should not be more restrictive than the second run, because the ``MODEL_DATA`` column would not be set for those visibilities.
 
-This option is available since :doc:`WSClean version 2.0 <changelog-2.0>`.
+This option is available since :doc:`WSClean version 2.0 <changelogs/v2.0>`.
 
 Example: change weighting
 -------------------------

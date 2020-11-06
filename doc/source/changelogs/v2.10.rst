@@ -1,0 +1,29 @@
+WSClean version 2.10
+====================
+
+Released 2020-07-15
+
+WSClean 2.10 depends on `IDG version 0.7 <https://gitlab.com/astron-idg/idg/-/tags/0.7>`_ or newer.
+
+Summary of changes: WSClean can now run on multiple nodes using MPI. Several new methods for calculating a-terms were added: position-delta screens, better kernel windowing, gridding with the VLA beam and joint deconvolution of multibeam/PAF systems (which was demonstrated using Apertif).
+
+This is the last version that is released via SourceForge. Future development will move to GitLab: https://gitlab.com/aroffringa/wsclean.
+
+Major & visible changes:
+
+* Support for distributed computing using MPI
+* Support for "position shift screens" (dldm-screens) during a-correction gridding
+* Support for joint deconvolution of PAF / multi-beam observations
+* More windowing options for a-correction kernels, defaults now to "raisen Hann"
+* The VLA beam has been implemented
+* Support imaging of multiple fields
+* Add parameter ``-multiscale-max-scales``
+* Restore source component models using ``-restore-list``
+
+Bug fixes & other changes:
+
+* Properly weigh channels when averaging with user-set deconvolution channels.
+* WSClean could iterate infinitely when first multiscale scale is not 0
+* GCC 10 fixes
+* Improved error reporting
+* Fix inversion timing

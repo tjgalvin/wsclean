@@ -126,7 +126,7 @@ Diagonal gain correction can correct the visibilities with a diagonal Jones matr
 
     RA, DEC, MATRIX, ANTENNA, FREQ, TIME
     
-Like with TEC correction, the dimensions need to be given in this exact order. Compared to the TEC aterms file, there's one extra dimension: ``MATRIX``. For diagonal gains, this matrix dimension has 4 elements: real XX, imaginary XX, real YY and imaginary YY. The other dimensions have their same use. The frequency axis is used to find the nearest image-frequency for each visibility (this works since :doc:`version 2.8 <changelog-2.8>`).
+Like with TEC correction, the dimensions need to be given in this exact order. Compared to the TEC aterms file, there's one extra dimension: ``MATRIX``. For diagonal gains, this matrix dimension has 4 elements: real XX, imaginary XX, real YY and imaginary YY. The other dimensions have their same use. The frequency axis is used to find the nearest image-frequency for each visibility (this works since :doc:`version 2.8 <changelogs/v2.8>`).
 
 If you get images out with all NaNs, the gains might be all zero at some position. For TEC or dldm correction, this obviously is not a problem (zero phase=no correction), but for diagonal gains, a zero matrix leads to division by zero at some point. This can in particular happen because IDG pads the image -- so if one makes TEC aterm images that are exactly the size of the output image, they won't cover the border.
 

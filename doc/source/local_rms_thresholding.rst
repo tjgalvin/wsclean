@@ -1,7 +1,7 @@
 Local RMS thresholding
 ======================
 
-Since :doc:`WSClean 2.3 <changelog-2.3>`, WSClean supports setting thresholding levels that are relative to the local RMS. This is useful when the RMS varies strongly over the field of view. A typical use-case for local RMS thresholding is for cleaning images that contain strong calibration artefacts. In this case, strong sources might generate strong artefacts. Those artefacts might be much stronger than faint sources elsewhere in the field of view. To be able to clean those faint sources, but not clean the artefacts, local RMS thresholding is required.
+Since :doc:`WSClean 2.3 <changelogs/v2.3>`, WSClean supports setting thresholding levels that are relative to the local RMS. This is useful when the RMS varies strongly over the field of view. A typical use-case for local RMS thresholding is for cleaning images that contain strong calibration artefacts. In this case, strong sources might generate strong artefacts. Those artefacts might be much stronger than faint sources elsewhere in the field of view. To be able to clean those faint sources, but not clean the artefacts, local RMS thresholding is required.
 
 There are two ways of using local RMS thresholding:
 
@@ -31,7 +31,7 @@ The local RMS thresholding is typically to be used together with the ``-auto-thr
       -auto-threshold 0.3 -auto-mask 3 -mgain 0.8 -niter 1000000 \
       -multiscale [...] observation.ms
     
-Note that the ``-local-rms`` parameter was called ``-rms-background`` before :doc:`WSClean 2.4 <changelog-2.4>`.
+Note that the ``-local-rms`` parameter was called ``-rms-background`` before :doc:`WSClean 2.4 <changelogs/v2.4>`.
 
 The default configuration is to calculate the RMS over a Gaussian kernel with dimensions of 25 times the PSF. This value can be changed with the ``-local-rms-window`` option, for example:
 

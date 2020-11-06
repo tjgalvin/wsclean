@@ -30,9 +30,9 @@ The default size over which the RMS is calculated, is 16 uv-pixels. During this 
     wsclean -weighting-rank-filter 3 -weighting-rank-filter-size 64 \
         [other options] observation.ms
 
-Since :doc:`WSClean 2.2 <changelog-2.2>`, the default in WSClean is to apply a weighting rank filter with a value of 3. It is recommended to always apply a weak rank filter, because it improves the noise with hardly any change on the PSF. In case there are no visibilities with excessive weight, this filter will do nothing.
+Since :doc:`WSClean 2.2 <changelogs/v2.2>`, the default in WSClean is to apply a weighting rank filter with a value of 3. It is recommended to always apply a weak rank filter, because it improves the noise with hardly any change on the PSF. In case there are no visibilities with excessive weight, this filter will do nothing.
 
-The weight rank filter is available since :doc:`WSClean 1.8 <changelog-1.8>`. In versions before :doc:`WSClean 2.2 <changelog-2.2>`, the default setting was to not apply a weight rank filter, and since 2.2 it was turned on with a value of 3. As far as I'm aware, there's no weight rank filter option in CASA.
+The weight rank filter is available since :doc:`WSClean 1.8 <changelogs/v1.8>`. In versions before :doc:`WSClean 2.2 <changelogs/v2.2>`, the default setting was to not apply a weight rank filter, and since 2.2 it was turned on with a value of 3. As far as I'm aware, there's no weight rank filter option in CASA.
 
 Related topics
 --------------

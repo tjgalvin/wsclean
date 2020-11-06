@@ -16,7 +16,7 @@ Be aware that the specified name (here '``-name my-image``') still specifies the
 
 The normal use-case of using prediction is for self-calibration or subtraction. For these cases one should use a "model" image, which contains the clean components. If the input image is in absolute flux, it might be necessary to first apply the beam to the model image.
 
-Prediction is supported since :doc:`WSClean version 1.2 <changelog-1.2>`. Since :doc:`WSClean 2.1 <changelog-2.1>`, it is no longer necessary to manually specify the image dimensions and pixel size. It is still allowed though, in which case the specified dimensions are checked against the image dimensions.
+Prediction is supported since :doc:`WSClean version 1.2 <changelogs/v1.2>`. Since :doc:`WSClean 2.1 <changelogs/v2.1>`, it is no longer necessary to manually specify the image dimensions and pixel size. It is still allowed though, in which case the specified dimensions are checked against the image dimensions.
 
 Frequency information during prediction
 ---------------------------------------

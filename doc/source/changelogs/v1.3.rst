@@ -1,0 +1,22 @@
+WSClean Version 1.3
+===================
+
+Released 2014-08-05
+
+In this version, it is now possible to select the new & supposedly fast multi-scale algorithm I've been working on. It works well without tweaking on some MWA data of Vela & Puppis A, but other telescopes / sets might require tweaking of the parameters (with ``-multiscale-threshold-bias`` and ``-multiscale-scale-bias``). For those using Cotton-Schwab cleaning that includes XY/YX polarizations, I urge upgrading to this version for some of the bug fixes.
+
+Changes:
+
+* Feature: multi-scale cleaning can now be selected by using ``wsclean -multiscale``. This is a new, supposedly fast algorithm for multi-scale cleaning and has shown good initial results. It's still somewhat experimental, and might require tweaking the threshold bias and scale bias parameters (see the help).
+* Feature: ``wsclean -version`` will now report version info
+* Bugfix: Fixing big bug in prediction for XY and YX -- sign error in imaginary image values before prediction, on baselines with w>=0. This could potentially cause noisier/incorrectly deconvolved XY/YX images.
+* Bugfix: Fixing writing of wrong imaginary residual image -- the actual saved image in XYi-residual was the real value of XY
+* Bugfix: Throw exception when cleaning XY/YX polarizations without joined pol
+* Bugfix: Fixing help on -joinpolarizations and -pol
+* Bugfix: Fixing copy constructor of fitsreader -- causing segfault on complex image prediction
+* Bugfix: Fixing error in -predict mode with XY/YX polarizations
+* Bugfix: Fixing issue with -predict: wouldn't use Kaiser-Bessel gridding by default
+* Bugfix: Fixing problem in -predict with uninitialized reader causing possibly undefined behaviour
+* Bugfix: Making sure that uvw samples outside the field of view do not force more w-layers
+* Bugfix: Fixing possible crash when imaging beyond horizon
+* Bugfix: Extra safety check on input parameters in WSInversion

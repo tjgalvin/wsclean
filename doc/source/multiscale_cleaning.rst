@@ -74,4 +74,4 @@ WSClean uses a multi-scale algorithm that is an optimized version of `Cornwell (
 
 History
 -------
-This section will describe the multi-scale algorithm introduced in :doc:`WSClean 1.9 <changelog-1.9>`. Previous WSClean versions had a different multi-scale implementation, which is now deprecated.
+This section will describe the multi-scale algorithm introduced in :doc:`WSClean 1.9 <changelogs/v1.9>`. Previous WSClean versions had a different multi-scale implementation, which is now deprecated.

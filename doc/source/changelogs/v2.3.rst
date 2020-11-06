@@ -1,0 +1,27 @@
+WSClean Version 2.3
+===================
+
+Released 2017-03-01
+
+Summary: The most prominent new feature is :doc:`local RMS thresholding <../local_rms_thresholding>` using either an automatically generated RMS map or by providing an RMS map. When using multi-scale clean, a component list using Gaussians can now be requested. This release also fixes some larger bugs that had been introduced in the Hogbom/generalized Clark clean transition, so I recommend to upgrade.
+
+New features:
+
+ * :doc:`Local RMS thresholding <../local_rms_thresholding>`, options ``-rms-background``, ``-rms-background-window`` and ``-rms-background-method`` (SF #102, SF #105).
+ * Use channel weights when fitting spectral polynomials. This helps in particular to properly ignore missing channels, which would formerly cause bad fits (SF #107).
+ * Option ``-save-component-list`` for outputting the Gaussian component lists in multi-scale clean.
+ * Improve speed of multi-scale clean, by setting the clark masking threshold lower than the stopping threshold in the subminor loop optimization.
+ * Added a ``-multiscale-shape`` parameter to either select Gaussians or a tapered squared function.
+ * WSClean now ships with an example program ``wsuvbinning`` to produce a csv file with binned visibilities, properly normalized to values in Jy (requested by C. Spingola).
+ * Fits files now contain a sum-of-visibility-weights keyword ``WSCVWSUM`` which can be used to calculate the nr vis per uv bin (this is required to use the ``wsuvbinning`` tool).
+
+Bugfixes:
+
+ * Rectangular images (i.e., width != height) caused cleaning to fail.
+ * Crash when performing full XX/XY/YX/YY imaging, causing missing MFS files. Reported by T. Franzen.
+ * Bug in -intervalsout; interval index would not increase, causing each next index to overwrite the previous index.
+ * Segfault when chosing an odd image size and enabling beam correction, reported by M. Iacobelli. Caused by FFTW not properly supporting unaligned r2c fft.
+ * Segmentation fault when auto-masking with multiple output intervals.
+ * Some improvements to the IDG connection.
+ * Work on a polynomial channel fitter as described in the WSClean multi-scale clean paper, which in the end will allow better multi-frequency fitting. This is not finished, see ticket (SF #110).
+ * On some platforms, parsing any integer command line parameter resulted in an exception (fixed between 2.2.0 and 2.2.1).

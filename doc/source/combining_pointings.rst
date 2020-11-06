@@ -1,7 +1,7 @@
 Combining pointings
 ===================
 
-WSClean makes it possible to image and clean a combination of pointings and/or a drift-scan, sometimes referred to as joint deconvolution. It is advisable to use :doc:`version 2.10 <changelog-2.10>` -- older versions support some of the features, but in particular the 'measurementset multi-field' support was added only in 2.10.
+WSClean makes it possible to image and clean a combination of pointings and/or a drift-scan, sometimes referred to as joint deconvolution. It is advisable to use :doc:`version 2.10 <changelogs/v2.10>` -- older versions support some of the features, but in particular the 'measurementset multi-field' support was added only in 2.10.
 
 What is discussed in this page, is to grid multiple pointings together on one grid, and applying the primary beam of each observation separately. It also allows to combine observations with different antenna responses (e.g. LOFAR international stations + LOFAR core stations; heterogenous VLBI arrays; interferometers with PAF like Apertif, etc.). It is somewhat similar to mosaicking a number of pointings together with the beam in image space, except that it additionally allows deconvolution on the full, combined image. This makes it possible to deconvolve images deeper.
 

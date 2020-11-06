@@ -1,19 +1,19 @@
 Wideband deconvolution
 ======================
 
-Since :doc:`version 1.1 <changelog-1.1>`, WSClean has a 'wideband' multi-frequency deconvolution mode, which allows cleaning channels joinedly. This means that peak finding is performed in the sum of all channels, allowing deep cleaning, and the psf is subtracted from each channel & polarization individually, scaled to the value of the peak in that image, which takes care of spectral variation.
+Since :doc:`version 1.1 <changelogs/v1.1>`, WSClean has a 'wideband' multi-frequency deconvolution mode, which allows cleaning channels joinedly. This means that peak finding is performed in the sum of all channels, allowing deep cleaning, and the psf is subtracted from each channel & polarization individually, scaled to the value of the peak in that image, which takes care of spectral variation.
 
 Relation to CASA's multi-term deconvolution
 -------------------------------------------
 
 To avoid confusion, WSClean's wide-band mode is not the same as the multi-frequency deconvolution algorithm in CASA, i.e., the algorithm described in `Sault & Wieringa (1994) <http://adsabs.harvard.edu/abs/1994A%26AS..108..585S>`_, further enhanced in `Rau and Cornwell (2011) <http://arxiv.org/abs/1106.2745>`_. The multi-frequency deconvolution algorithm in WSClean is called "joined-channel deconvolution" and is described in `Offringa and Smirnov (2017) <https://arxiv.org/abs/1706.06786>`_. As shown there, the multi-frequency implementation of WSClean is computationally *orders of magnitude* faster than MSMFS, which is the most important difference between the two algorithms. Accuracy wise, they produce similar results.
 
-Although WSClean's mode and CASA's mode both mitigate the problem of spectral variation over the imaged bandwidth, the underlying algorithms are different and have different settings. Both CASA and WSClean can fit smooth functions over frequency. WSClean has additionally functionality for imaging of cubes that can have unsmooth spectral functions, such as for spectral lines or off-axis imaging (where the beam causes large/steep fluctuations over frequency). Smooth function fitting is implemented in :doc:`WSClean version 1.10 <changelog-1.10>`.
+Although WSClean's mode and CASA's mode both mitigate the problem of spectral variation over the imaged bandwidth, the underlying algorithms are different and have different settings. Both CASA and WSClean can fit smooth functions over frequency. WSClean has additionally functionality for imaging of cubes that can have unsmooth spectral functions, such as for spectral lines or off-axis imaging (where the beam causes large/steep fluctuations over frequency). Smooth function fitting is implemented in :doc:`WSClean version 1.10 <changelogs/v1.10>`.
 
 Usage
 -----
 
-WSClean's wideband mode can work together with joined polarization cleaning or for imaging a single polarization (from :doc:`version 1.5 <changelog-1.5>`).
+WSClean's wideband mode can work together with joined polarization cleaning or for imaging a single polarization (from :doc:`version 1.5 <changelogs/v1.5>`).
 
 A typical run in multi-frequency deconvolution would look like:
 
@@ -60,7 +60,7 @@ In case the measurement sets have a different amout of channels *and* have gaps 
       +-J- 6  I   6  0  6  0  150-152 (39)
       +-J- 7  I   7  0  7  0  156-158 (40)
 
-To remedy this, an option called ``-gap-channel-division`` exists (since :doc:`WSClean 2.6 <changelog-2.6>`), which calculates the gaps between channels, and splits the input channels into output channels by splitting the largest gap until the number of output channels has been reached. For the above situation, this gives the following table: 
+To remedy this, an option called ``-gap-channel-division`` exists (since :doc:`WSClean 2.6 <changelogs/v2.6>`), which calculates the gaps between channels, and splits the input channels into output channels by splitting the largest gap until the number of output channels has been reached. For the above situation, this gives the following table: 
 
 .. code-block:: text
 
@@ -100,7 +100,7 @@ As you might imagine, doing a clean with 64 images in memory is expensive, both 
       -deconvolution-channels 8 observations.ms
 
 This will decrease the number of images from 64 to 8 before starting the deconvolution by averaging 8 groups together. Cleaning is then performed with just 8 images. After cleaning, the requested function (3rd order polynomial in this case) is fitted to the model, and the model is interpolated using that function.
-This is much faster than the previous command, and equally precise. Setting the deconvolution channels is supported in all modes since :doc:`WSClean 2.2 <changelog-2.2>`. The spectral-fitting features were added in :doc:`WSClean version 1.11 <changelog-1.11>`.
+This is much faster than the previous command, and equally precise. Setting the deconvolution channels is supported in all modes since :doc:`WSClean 2.2 <changelogs/v2.2>`. The spectral-fitting features were added in :doc:`WSClean version 1.11 <changelogs/v1.11>`.
 
 Fit normal or logarithmic polynomials?
 --------------------------------------

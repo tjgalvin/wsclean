@@ -1,0 +1,34 @@
+WSClean version 2.9
+===================
+
+Released 2020-03-27
+
+WSClean 2.9 is released together with `IDG version 0.7 <https://gitlab.com/astron-idg/idg/-/tags/0.7>`_.
+
+Summary of changes: WSClean+IDG is now much faster, in particular with fast-changing aterms.  The combination of WSClean 2.9 + IDG 0.7 supports the efficient use of GPUs to grid large data volumes with complex a-terms. Furthermore, a new gridder that is more accurate compared to the default w-stacking gridder, and for some cases also faster! (in particular large images, many visibilities). The plan is also to move WSClean to Github in the next version of thereafter.
+
+Major & visible changes:
+
+* Add new gridder ":doc:`wgridder <../wgridding>`", a stand-alone gridder written by Martin Reinecke that is now integrated in WSClean.
+* Applying a second aterm to all antennas is possible by setting dimension of antenna axis to one in aterm fits file.
+* Make source list output possible in IDG.
+* The FFTs are now performed with floats instead of doubles, thereby descreasing memory usage by 2 and increasing the speed anywhere from 20-100%.
+* LOFAR image-based beam correction (i.e. no aterm correction) now uses full Mueller matrix calculations instead of Jones, which removes some biases in beam correction that were seen.
+* New options ``-reuse-psf`` and ``reuse-dirty`` to skip these steps when they already exist.
+* WSClean makes use of IDG's API changes to allocate optimal buffer sizes, greatly increasing the speed of IDG, and solving allocation problems on low-mem platforms
+* When parallel deconvolution is used, the logging is now much improved: only one thread reports its full progress.
+* Correct smallest multi-scale scale when using Gaussian tapering. Multi-scale cleaning was using just the longest baseline for determining the smallest scale to clean with. This causes tapered imaging to almost never use the smallest scale.
+* Add a 'dry run' mode, requested by J. Morgan. Fixes #162.
+
+Bug fixes & other changes:
+
+* Stokes V imaging with R/L pols results in zero image (reported by Chiara Stuardi)
+* Don't allow direct MS access for multi spw sets, to prevent a deadlock.
+* Output error when trying to combine parallelgridding with IDG.
+* Don't incorrectly apply the average beam when using idg + apply-primary-beam.
+* Support newer casacore versions.
+* Remove dependency on boost thread.
+* Image the gridding kernel as option was removed, as both IDG and WGridder don't support it.
+* Fix beam calculation for 1 timestep mses
+* Fix a crash when using pb correction + deconvolution channels
+* Solve reported problem with HDF5/Intel compilation

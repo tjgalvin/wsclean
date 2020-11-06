@@ -10,4 +10,4 @@ WSClean uses by default the *w*-stacking quite a low number of *w*-layers. This 
 
 If you suspect your image is affected by *w*-term corrections, you could:
 * Use the :doc:`w-gridding gridder <wgridding>`;
-* Increase the number of *w*-layers. The easiest way to do that is by setting the `-nwlayers-factor` option. The default is 1. With a value of 3, the number of *w*-layers will be 3 times higher, implying that the decorrelation between *w*-layers is over 1/3 radian. (The `-nwlayers-factor` option is available since :doc:`WSClean version 2.7 <changelog-2.7>`
+* Increase the number of *w*-layers. The easiest way to do that is by setting the `-nwlayers-factor` option. The default is 1. With a value of 3, the number of *w*-layers will be 3 times higher, implying that the decorrelation between *w*-layers is over 1/3 radian. (The `-nwlayers-factor` option is available since :doc:`WSClean version 2.7 <changelogs/v2.7>`

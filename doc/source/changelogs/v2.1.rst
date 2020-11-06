@@ -1,0 +1,36 @@
+WSClean Version 2.1
+===================
+
+Released 2016-12-19
+
+Summary: This version adds important enhancements to multi-scale clean. Deep cleaning (>=100k - 1M iterations) of large images with multi-scale clean is now 5-10 times faster in sets where deconvolution is the bottleneck. Furthermore, an [automatic masking feature](Masking) using ``auto-mask`` is now available in multi-scale clean, which allows automated deep cleaning. Together with ``auto-threshold``, it makes deep cleaning quite easy. A typical run now looks something like this:
+
+.. code-block:: bash
+
+    wsclean -auto-threshold 0.3 -auto-mask 3 \
+      -niter 1000000 -mgain 0.8 -multiscale \
+      -size 4096 4096 -trim 3072 3072 -scale 30asec \
+      obs.ms...
+
+This cleans to 3 sigma and keeps track of what components at what scales are cleaned. Once a maximum 3 sigma peak is reached, it will turn this information into a scale-dependent mask, such from then on, only components/scales are selected that were already found, and continues cleaning up to 0.3 sigma. This typically is good enough to only show residuals caused by calibration errors and noise.
+
+New features:
+
+ * Automatic masking with ``-auto-mask`` parameter.
+ * Much faster multi-scale algorithm (can be disabled with ``-no-multiscale-fast-subminor``).
+ * Parameter '``-restore``' can be used to restore a model image on a residual image (SF #71).
+ * Parameter '``-help``' was added.
+ * In prediction-only mode, the image size and scale is now read from the fits file, instead of requiring manually setting the size and scale (SF #97).
+
+Bugfixes:
+
+ * For linear polarizations, the signs of Q and V have been flipped! The polarization labelled X now represents N-S instead of E-W. After much debate, it was agreed that this is the proper Casacore Measurement set convention, even though it is different in UVFits files and importuvfits will not rotate the polarization angle.
+ * Make sure compilation succeeds when no SSE is available
+ * When all w-values are set exactly to zero, w-stacking would fail (Reported by B. van der Tol).
+ * Major refactoring of fits writing code (SF #94).
+ * Improved FITS keywords of UV fits files (SF #96).
+ * Better imput parameter checking and improved error messages.
+ * Added information about whether lofar beam lib was found to output of ``-version``.
+ * WSClean now requires ``-size`` and ``-scale`` to be set, instead of using default values when they are not set.
+ * Improve output and cleaning up of WSClean when an exception occurs.
+

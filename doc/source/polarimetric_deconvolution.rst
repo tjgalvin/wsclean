@@ -23,7 +23,7 @@ If you are looking to do rotation measure synthesis with WSClean, have a look at
 Linking polarizations
 ---------------------
 
-Since :doc:`WSClean 2.6 <changelog-2.6>` it is possible to "link" polarizations. This has the effect of selecting a subset of polarizations for cleaning, but then subtracting components from all imaged polarizations. This results in that the subset of polarizations are cleaned as if they are the only polarizations being imaged, while the others polarizations are still saved, and sources that appear in the subset of polarizations are also cleaned in the other polarizations. Effectively, structure that appears mostly in the linked polarization(s) will be cleaned better. Hence, this is particularly useful for cleaning Stokes I or the XX,YY polarizations.
+Since :doc:`WSClean 2.6 <changelogs/v2.6>` it is possible to "link" polarizations. This has the effect of selecting a subset of polarizations for cleaning, but then subtracting components from all imaged polarizations. This results in that the subset of polarizations are cleaned as if they are the only polarizations being imaged, while the others polarizations are still saved, and sources that appear in the subset of polarizations are also cleaned in the other polarizations. Effectively, structure that appears mostly in the linked polarization(s) will be cleaned better. Hence, this is particularly useful for cleaning Stokes I or the XX,YY polarizations.
 
 Note that this is not the recommended setting for RM synthesis; see above.
 

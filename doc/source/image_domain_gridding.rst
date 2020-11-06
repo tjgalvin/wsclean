@@ -3,7 +3,7 @@ Image domain gridding
 
 The `image-domain gridder (IDG) <https://gitlab.com/astron-idg/idg>`_ is a new, fast gridder that makes *w*-term correction and *a*-term correction computationally very cheap. It performs extremely well on gpus.
 
-To use IDG, the `IDG library <https://gitlab.com/astron-idg/idg>`_ needs to be available during compilation. :doc:`WSClean 2.5 <changelog-2.5>` is compatible with IDG version 0.2. See :doc:`installation <installation>` for more information. 
+To use IDG, the `IDG library <https://gitlab.com/astron-idg/idg>`_ needs to be available during compilation. :doc:`WSClean 2.5 <changelogs/v2.5>` is compatible with IDG version 0.2. See :doc:`installation <installation>` for more information. 
 
 Considerations
 --------------
@@ -89,7 +89,7 @@ WSClean+IDG allows a combination of several direction-dependent corrections to b
 Information for older IDG versions
 ----------------------------------
 
-Before :doc:`WSClean version 2.9 <changelog-2.9>`, IDG's memory usage was highly dependant on the number of channels in the set. IDG can be made to use considerably less memory by splitting the bandwidth using ``-channels-out`` and wide-band deconvolution (see :doc:`making image cube <making_image_cubes>` and :doc:`wideband deconvolution <wideband_deconvolution>`). For example, splitting the bandwidth in 4 output channels has allowed imaging one of the MWA sets on a 32 GB machine:
+Before :doc:`WSClean version 2.9 <changelogs/v2.9>`, IDG's memory usage was highly dependant on the number of channels in the set. IDG can be made to use considerably less memory by splitting the bandwidth using ``-channels-out`` and wide-band deconvolution (see :doc:`making image cube <making_image_cubes>` and :doc:`wideband deconvolution <wideband_deconvolution>`). For example, splitting the bandwidth in 4 output channels has allowed imaging one of the MWA sets on a 32 GB machine:
 
   wsclean -grid-with-beam -beam-aterm-update 10 -channels-out 4 -join-channels -link-polarizations i -use-idg -size 1536 1536 -scale 1amin -niter 1000000 -auto-threshold 0.5 -auto-mask 4 -multiscale -mgain 0.8 observation.ms
   

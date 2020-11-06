@@ -1,0 +1,40 @@
+WSClean Version 2.0
+===================
+
+Released 2016-11-04
+
+Summary: This version adds :doc:`baseline-based averaging <../baseline_dependent_averaging>`, a feature that can improve the computational performance of imaging. Two other new features are ``-auto-threshold``: using :doc:`a threshold relative to the noise level <../basic_cleaning>`; and ``-continue`` to :doc:`start off where a previous deconvolution finished <../continue_deconvolution>`. Furthermore, quite a lot of small bugs were fixed.
+
+New features:
+
+ * :doc:`Baseline-based averaging <../baseline_dependent_averaging>` ) (SF #85).
+ * Option ``-continue`` to :doc:`continue a previous run <../continue_deconvolution>` (SF #79).
+ * Option ``-auto-threshold`` to :doc:`calculate the threshold <../basic_cleaning>` from the residual noise level.
+ * Option ``-spws`` to select which bands to image (SF #83).
+ * Primary beam correction for MF image. Primary beam corrected versions of the residual and model images are saved too (SF #82, requested by T. Shimwell).
+ * Option ``-simulate-noise`` to perform a noise-only simulation.
+ * Connection to the Image Domain Gridder (IDG) is finished, testing continues.
+ * Cleaned up FITS keywords, added keyword 'WSCNORMF' to allow easier PS normalization (SF #75).
+ * WSClean unit tests are now shipped in the distribution and can be run with 'make check'.
+ 
+Fixes:
+
+ * Use no cleaning border when a trimmed size is specified (SF #81).
+ * Frequency headers in FITS file were wrong for datasets with multiple spectral windows (reported by R. van Weeren).
+ * Channel width not set in fits if input has 1 channel (SF #87, reported by S. Bourke).
+ * Incorrect frequency headers in PSFs (SF #93).
+ * Incorrect frequency headers when imaging multi-spw sets (SF #90, reported by R. van Weeren).
+ * Fitting of MFS image fails when highest frequency is flagged (reported by K. Emig).
+ * Fix for imaging sets with reversed channels, which seems common for Miriad sets (Reported by L. Pratley).
+ * Adding error message when requesting joined channels but not requesting more than one output channel (suggested by F. de Gasperin).
+ * Solving bad deconvolution accuracy when single polarizations are flagged.
+ * Improved speed of convolving the model with the restoring beam.
+ * LOFAR beam did not use the right ra,dec in the first instance of beam creation.
+ * Update help of ``-beamsize``, ``-beamshape`` and ``-theoreticbeam``.
+ * Make sure that primary beam is not updated faster than the integration time (Reported by A. Nilsson).
+ * Fixed crash when applying beam on multi-channel set
+ * Fixed compilation of the 'operator' library interface for connecting with custom deconvolution algorithms.
+ * Enabled fast math for gridder (although no significant change in speed).
+ * Fixed compilation on a Mac.
+ * Better validation and error repporting of input.
+ * Some refactoring.

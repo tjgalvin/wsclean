@@ -1,0 +1,16 @@
+WSClean Version 1.6
+===================
+
+Released 2015-01-23
+
+Summary: This version has a few changes that are especially useful for reducing LOFAR data: it supports correcting the LOFAR beam during prediction, and the speed of major iterations on typical LOFAR measurement sets was increased.
+
+When compiling version 1.6, cmake will now search for the LOFAR StationResponse library. If not found, the ``-dft-with-beam`` option will not work.
+
+Full list of changes:
+
+* Feature: It is now possible to do the prediction with a DFT, option ``-dft-prediction``. This is very slow, but allows correcting for a beam.
+* Feature: LOFAR beam can be computed, option ``-dft-with-beam``.
+* Performance fix: Normal prediction during major iterations is now buffered, which leads to ~3x faster prediction.
+* Bugfix: Predicting with option ``-predict`` crashes (reported by N. Hurley-Walker).
+* Bugfix: Joined-frequency cleaning with one polarization did not clean negative components.

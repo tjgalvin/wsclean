@@ -22,6 +22,7 @@ before_script:
     pkg-config
     pybind11-dev
     python3-dev python3-numpy
+    python3-sphinx
     wget
 
 format:
@@ -39,6 +40,7 @@ build-without-everybeam:
     - cd build
     - cmake ../
     - make
+    - make doc
     - make install
     - make check
 

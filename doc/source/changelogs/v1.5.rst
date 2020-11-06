@@ -1,0 +1,24 @@
+WSClean Version 1.5
+===================
+
+Released 2014-12-16
+
+Summary: The PSF can now be fitted with an elliptical Gaussian, it is now possible to use "-scale 1asec" as well as set a uv-cut in lambda on top of in meters and several bugs were fixed.
+
+Full list of changes:
+
+* Beam fitting: option ``-fitbeam`` (/ ``-nofitbeam``) enables fitting an elliptical Gaussian to the PSF, and restoring is subsequently also performed with this elliptical PSF. This is not yet the default. (SF #17)
+* New options ``-circularbeam`` and ``-ellipticalbeam`` to control beam fitting.
+* New option ``-beamshape`` to set major/minor/position angle for elliptical beam shape.
+* Option ``-beamsize`` now takes arcseconds by default. It sets a manual circular beam, and understands units (e.g. ``-beamsize 2arcmin``).
+* Wide-band mode can now also be enabled for single-polarisation imaging (SF #11).
+* The -scale parameter now accepts units, e.g. "-scale 1arcmin" (SF #21).
+* New option ``-tempdir`` for specifying alternative temporary directory for reordered files (SF #25).
+* No longer save gridding correction image by default, only save when new option ``-savegridding`` is given.
+* New option ``-minuv-l`` and ``-maxuv-l``, which set the maximum uv values that are still gridded.
+* Options ``-minuvw`` and ``-maxuvw`` are renamed to ``-minuvw-m`` and ``-maxuvw-m`` to distinguish from above new options. 
+* Bug fix: WSClean keywords were missing in MFS images (SF #20). Reported by N. Hurley-Walker.
+* Bug fix: parameters -multiscale-threshold-bias and -multiscale-scale-bias didn't have effect in some multiscale modi.
+* Bug fix: Crash "Table column WEIGHT_SPECTRUM is unknown" when no weight column present. Reported by S. Makhathini (SF #22).
+* Bug fix: -interval parameter didn't work correctly when using reordering. Reported by A. Rowlinson.
+* Bug fix: DATE-OBS keyword in fits output should reflect -interval setting. Reported by A. Rowlinson (SF #23).

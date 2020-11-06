@@ -1,0 +1,30 @@
+WSClean Version 1.11
+====================
+
+Released 2016-03-11
+
+Summary: This version adds :doc:`primary beam correction for LOFAR <../primary_beam_correction>` and uses a stronger default anti-aliasing kernel (SF #76). The new kernel decreases the chance of sources far out appearing as ghost sources, but increases the noise added near the borders of the image. It is recommended to trim the borders with the ``-trim`` option.
+
+Full list of changes:
+
+ * New feature: Correct Stokes I or IQUV images with the LOFAR primary beam (SF #70).
+ * New feature: Option ``-multiscale-scales`` to select scales that are to be used in multiscale (SF #72).
+ * New feature: Rectangular images (i.e. non-square images) can now be made (SF #49).
+ * New feature: Report multiscale clean statistics (SF #69).
+ * New feature: Added option -make-psf-only and renamed -makepsf to -make-psf.
+ * New feature: Rectangular gridding function added, option ``-gridmode rect``.
+ * Bugfix: Improved default anti-aliasing kernel, uses Kaiser-Bessel parameter of 8 instead of 3 (SF #67).
+ * Bugfix: Fix calculation of theoretic beam and max/min w-values when multiple measurement sets are specified (reported by R. van Weeren).
+ * Bugfix: PSF normalization bug, now always normalizing the PSF to be unitary in the centre. Only affected large/high-w-term images (reported by O. Smirnov).
+ * Bugfix: Improved Casacore CMake scripts to improve compatibility with different Casacore setups (reported by T. J. Dijkema).
+ * Bugfix: Non-normalized images for power spectrum creation should be multiplied by 2 for correct unit-level UV values.
+ * Bugfix: Delay opening of measurement set in PartionedMS to have less files open.
+ * Bugfix: Fixing possible valgrind warning in FitsReader.
+ * Bugfix: Adding error message when specifying invalid trim size (noted by M. Iacobelli).
+ * Bugfix: Better error check when something is wrong with the data selection and/or scale.
+ * Bugfix: Multi-frequency modes do not work when channels are reversed (SF #68).
+ * Fixing possible leaking of FITS cio file handlers during reading
+ * Some refactoring (SF #46).
+ * Textual: Some help fixes.
+
+In the mean time, chgcentre 1.3 and 1.4 were also released. For version 1.3, chgcentre was converted to work with casacore 2. Version 1.4 solves an issue when trying to rotate a set with denormal phase centre (option ``-shift-back``) for the second time (requested by M. Rioja).

@@ -1,0 +1,30 @@
+WSClean Version 1.1
+===================
+
+Released 2014-04-23
+
+This version introduces new features including a wideband deconvolution method, and fixes quite a few bugs.
+
+Changes:
+
+* New dependency: GSL and CBLAS are now required to build WSClean.
+* New feature: :doc:`Cleaning channels joinedly <../wideband_deconvolution>` with cmdline parameter: ``-joinchannels``. This performs peak finding in the sum over all output channels, but subtracts components independently from the channels.
+* New feature: Option to grid weights once for all output channels (``-mfsweighting``).
+* New feature: When spectral imaging (with ``-channelsout``), a weighted MFS image will be created.
+* New feature: Direct imaging of Stokes IQUV, and possibility to clean joinedly over these too (requested by O. Smirnov, SF #2).
+* New feature: Support imaging specific polarizations (rr / Q / ..) in measurement sets with circular polarizations.
+* New feature: Specify absolute memory limit instead of relative limit (``-absmem``), requested by M. Bell.
+* New feature: Implemented options -minuvw and -maxuvw to set range of baselines to be gridded.
+* Syntax change: explicit option for performing joined-polarization cleaning (``-joinpolarizations``), no longer the default.
+* Change: When imaging >= 4 polarizations, reorder by default.
+* Bugfix: Fixing some valgrind errors and a possible segmentation fault.
+* Bugfix: 'make install' does not work (reported by G. Molenaar, SF #1).
+* Bugfix: With spectral imaging, the uvw are not correctly divided by lambda, leading to incorrectly scaled images.
+* Bugfix: Problem with ``-smallinversion`` and used memory.
+* Bugfix: PartitionedMS handler does not handle an invalid WEIGHT_SPECTRUM column (reported by I. Heywood).
+* Bugfix: When reordering an MS, end with writing reordered model data back to measurement set, so that self-cal etc is still possible when using Cotton-Schwab cleaning.
+* Bugfix: ``-interval`` parameter does not work properly.
+* Bugfix: Documentation for ``-pol`` parameter is out-dated (reported by O. Smirnov, SF #3).
+* Bugfix: Remove temporary image files
+
+André Offringa

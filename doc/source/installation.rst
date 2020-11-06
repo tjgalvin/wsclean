@@ -1,5 +1,8 @@
 .. toctree::
    :maxdepth: 2
+   :hidden:
+
+   changelogs/list.rst
 
 Installation instructions
 =========================
@@ -118,7 +121,7 @@ You should note that this makes the binary in general slower, so you should not 
 Using the LOFAR/MWA/... beam
 ----------------------------
 
-The latest versions of WSClean require the `EveryBeam package <https://git.astron.nl/RD/EveryBeam>`_ to apply the LOFAR beam and other known beams (VLA, MWA, LWA, ATCA, ...). Older versions used the LOFAR beam from the LOFAR repository or (since :doc:`version 2.6 <changelog-2.6>`) the `"LOFARBeam" package from Github <https://github.com/lofar-astron/LOFARBeam>`_ instead.
+The latest versions of WSClean require the `EveryBeam package <https://git.astron.nl/RD/EveryBeam>`_ to apply the LOFAR beam and other known beams (VLA, MWA, LWA, ATCA, ...). Older versions used the LOFAR beam from the LOFAR repository or (since :doc:`version 2.6 <changelogs/v2.6>`) the `"LOFARBeam" package from Github <https://github.com/lofar-astron/LOFARBeam>`_ instead.
 
 To have these primary beams available in WSClean, CMake needs to find the EveryBeam installation on your computer. If you have installed EveryBeam in a custom directory, you can add it to your search path. For example, if EveryBeam been installed to ``~/Software/EveryBeam-install``, this cmake command will use it:
 

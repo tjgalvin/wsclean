@@ -62,4 +62,4 @@ The **MajorAxis**, **MinorAxis** and **Orientation** columns define the shape of
 History
 -------
 
-WSClean supports output of a component list since :doc:`version 2.4 <changelog-2.4>`. Note that :doc:`version 2.3 <changelog-2.3>` supported a different format which is now deprecated.
+WSClean supports output of a component list since :doc:`version 2.4 <changelogs/v2.4>`. Note that :doc:`version 2.3 <changelogs/v2.3>` supported a different format which is now deprecated.

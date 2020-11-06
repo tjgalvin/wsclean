@@ -1,0 +1,29 @@
+WSClean Version 1.8
+===================
+
+Released 2015-05-21
+
+Summary: The new weight rank filter allows uniform weighting with better noise properties. Programming interfaces to use the inversion engine of WSClean and a simple Python interface to call WSClean were added. A lot of bugs were fixed; many small ones but also pretty big ones, including incorrect flux scaling for very wide images.
+
+Full list of changes:
+
+* Adding weighting rank filter options "``-weightingrankfilter``" and "``-weighting-rank-filter-size``". This decreases the weight of uv-samples with very few samples in it, thereby decreasing the noise in the image (with no effect on the beam).
+* New option "``-saveuv``", which stores the gridded uv data & sampling function after w-correction .
+* Added a C interface to use the WSClean inversion/prediction algorithm as an operator, useful for testing compressed sensing algorithms.
+* Added a Python interface to enable calling WSClean from Python code, both as an operator (like the C interface) or the whole imaging algorithm.
+* Setting default behaviour to prefer reordering also when mgain!=1.0.
+* Support masks in Moresane deconvolution.
+* Bugfix: Removing sqrt(1-l^2-m^2) normalization. This changes the flux scaling of wide field imaging (>~20deg), which used to be wrong. Reported by S. Bourke and M. Eastwood; see SF #35 for more info (SF #35)
+* Bugfix: Crashes when cleaning near the horizon, caused by incorrect bounding box calculation during restoring. Reported by S. Bourke. (SF #33)
+* Bugfix: With natural weighting, the uv-l cuts did not work. Uniform, Briggs and Natural weighting now follow the same code path for determing the weight.
+* Bugfix: Issues with beam keywords and restoration in multi-channel runs. (SF #41, related to SF #42)
+* Bugfix: Fixing polarization keyword in model FITS files when using joined polarization and/or channel cleaning (reported by D. Rafferty).
+* Bugfix: Integrated "MFS" images have wrong phase centre keywords when using ``chgcentre -shiftback``
+* Bugfix: When no reordering is performed, NaNs in an MS would still be counted in calculating the total weight (but they should not).
+* Bugfix: Making sure first threshold in multiscale cleaning is not negative, which would lead to a diverging clean
+* Bugfix: A bug that could cause DATE-OBS to be set like 2013-08-18T16:60:01.0, reported by N. Hurley-Walker
+* Optimization: Significantly increased speed of reordering when using interval range (``-interval`` or ``-intervalsout``).
+* Some work on a minimal-noise deconvolution technique.
+* Textfix: Some extra detail in ``-circularbeam`` help
+
+André Offringa

@@ -1,0 +1,27 @@
+WSClean Version 1.2 and 1.2.1
+=============================
+
+Released 2014-05-29
+
+This version fixes one major bug (cleaning didn't always work, SF #6) and adds support for dual-polarization cleaning.
+
+Changes:
+
+* New feature: Joined cleaning of two polarizations; previous version could only joinedly clean 4 polarizations. Particularly useful for cleaning XX,YY. Enabled by e.g. ``-joinpolarizations -pol xx,yy``.
+* New feature: Prediction-only mode (option ``-predict``).
+* New feature: Added -j option to limit nr of cores used.
+* New feature: Added option ``-cleanborder`` to prevent cleaning of border, now defaults to 5%.
+* Major bug fix: Fixing issue with restored images in single pol mode not being restored from residual properly (SF #6).
+* Bug fix: Intel compiler didn't like certain C++11 features.
+* Bug fix: Only one psf is saved in multi-channel mode (reported by A. Neben).
+* Bug fix: when using natural weighting and when imaging below the synthesized beam resolution, uv-samples would wrap around in the uv field, causing imaging artefacts (reported by A. Neben).
+* Bug fix: Fixing imaging of sets with multiple spectral windows.
+* Bug fix: Malfunctioning MFS weighting mode with continuous reader.
+* Bug fix: Cleaning of images with only zeros does not end.
+* Bug fix: Issue with FindPeak, causing incorrect indices and not proper cleaning in certain modi.
+* Textual: Improved help message and some other output.
+* New (disabled) feature: A fast, new multi-scale clean algorithm is implemented, but it is not compiled in at the moment pending further testing.
+
+Version 1.2.1, released one day after 1.2, fixes a missing "``uvector_03.h``" error that made older (non-C++11) compilers fail.
+
+André Offringa

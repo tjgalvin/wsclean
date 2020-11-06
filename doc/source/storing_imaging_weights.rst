@@ -1,7 +1,7 @@
 Storing imaging weights
 =======================
 
-WSClean offers the option ``-store-imaging-weights`` (since :doc:`WSClean 2.5 <changelog-2.5>`) to store the imaging weights in a column named ``IMAGING_WEIGHT_SPECTRUM``. Its use is very similar to the ``IMAGING_WEIGHT`` column that CASA uses, but WSClean stores the imaging weights per polarization and channel, instead of only per channel as CASA does. The weights are written only when this parameter is given, and are not written by default (for reasons of performance).
+WSClean offers the option ``-store-imaging-weights`` (since :doc:`WSClean 2.5 <changelogs/v2.5>`) to store the imaging weights in a column named ``IMAGING_WEIGHT_SPECTRUM``. Its use is very similar to the ``IMAGING_WEIGHT`` column that CASA uses, but WSClean stores the imaging weights per polarization and channel, instead of only per channel as CASA does. The weights are written only when this parameter is given, and are not written by default (for reasons of performance).
 
 Meaning of weight values
 ------------------------

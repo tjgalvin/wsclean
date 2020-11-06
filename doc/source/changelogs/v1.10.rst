@@ -1,0 +1,37 @@
+WSClean Version 1.10
+====================
+
+Released 2015-12-12
+
+Summary: New features include :doc:`several tapering options <../tapering>`, new multi-frequency deconvolution strategies that impose spectral smoothness in a fast way. Furthermore, lots of small improvements were made and some bugs were solved.
+
+Note that WSClean needs Casacore 2.0 or higher, with C++11 support turned on (since WSClean 1.9).
+
+Full list of changes:
+
+* Implemented a Gaussian taper (SF #62; option "-taper-gaussian").
+* Implemented a "don't grid near the uv-plane-edge" taper ("-taper-edge").
+* Implemented Tukey tapers: inner, outer (uv-distance; these have a circular shape) and edge (distance to uv-plane-border; these have a square shape) taper, options "-taper-tukey", "-taper-inner-tukey", "-taper-edge-tukey". See :doc:`tapering <../tapering>`.
+* Support for fitting a spectral function during joined channel deconvolution in multiscale, IUWT and normal cleaning was added. Linear and power-law fitting is supported. (SF #36)
+* Decrease frequency resolution during cleaning (option "-deconvolution-channels"), and interpolate up/down to imaging frequency resolution with a given spectral function (SF #57).
+* New option "-trim" to trim the output image before cleaning & writing to fits, to avoid noisy borders.
+* Added option "-nwlayers-for-size" to calculate automatic nwlayers for a different size.
+* Some work on linearly-interpolated spectral fitting.
+* The low-level Python "operator" API has been extended with more documentation, it is fully tested and has been tested with RESOLVE.
+* Write the dirty MFS image when using -channelsout != 1.
+* Added option "-subtract-model", to subtract the initial model from the data and allow re-imaging an already cleaned set (SF #53).
+* The MFS PFS is now fitted with the beam, and beam keywords are added to the other MFS images (SF #42).
+* Render the MFS model onto the MFS residual image to create the MFS restored image, such that the MFS restored image matches the fitted MFS beam.
+* Allowing 'spectral moresane': The spectral fitting and deconvolution channel parameters can now be used to run Moresane (requested by O. Smirnov).
+* Measurement sets with multiple SPWs are correctly handled (SF #37).
+* Added options -quiet and -verbose to modify verbosity (SF #60).
+* Bugfix: Major bug in multi-frequency multi-scale cleaning; peak finding was not always performed on sum of channels and reported fluxes were wrong.
+* Bugfix: Updating the model data after reordering when -channelrange is specified would write to wrong channels (reported by O. Smirnov).
+* Adding option "-theoreticbeam", never use the theoretic beam otherwise (SF #43)
+* Bugfix: Multiscale crashes with multiple polarizations without joining (SF #52)
+* Bugfix: Incorrect evaluation of angles specified in radians -- WSClean would actually assume radians are asec.
+* Bugfix: Joined cleaning would no longer honour mgain and continue cleaning to threshold when initial peak is negative.
+* Bugfix: Bug in trimming ("-trim ...") with CS iterations; untrim was broken.
+* Bugfix: In the small inversion optimization, always pick an image size that is easily factorizable (SF #65).
+* Bugfix: incorrect documentation for -predict (Reported by F. de Gasperin).
+* Bugfix: Compilation errors with WSClean using older LOFAR beamresponse library (SF #56; reported by A. van Amersfoort and A. Horneffer).

@@ -1,0 +1,32 @@
+WSClean Version 1.7
+===================
+
+Released 2015-03-10
+
+Summary: Deconvolution can be performed with a compressed sensing method (:doc:`MORESANE <../moresane_deconvolution>`) and clean masks are now supported. Also, determining the restoring beam size by fitting the psf is now the default; previously this was only done when ``-fitbeam`` was specified.
+
+Besides new features, version 1.7 has a long list of bugfixes so I recommend everyone to update.
+
+Full list of changes:
+
+* :doc:`MORESANE Compressed sensing deconvolution <../moresane_deconvolution>` using J. Kenyon's python MoreSane implementation.
+* Cleaning now supports cleanmasks, either with a casa file (``-casamask``) or a fits file (``-fitsmask``).
+* Fitting a Gaussian to the PSF is now the default for determining the restoring beam size.
+* Added convenience parameter ``-intervalsout`` to make fits snapshot movies.
+* Added option ``-no-update-model-required`` to skip writing the model column when possible, which speeds up -mgain<1 runs that include reordering.
+* Added option ``-saveweights`` to store the gridded weights as fits file.
+* Bugfix: Samples which were gridded at v=0 were slightly downweighted in uniform/briggs weighting due to one-off bug in (inverse-symmetric) weighting grid. This could manifest itself in a PSF which was slightly less aesthetically pleasing, although in most cases it is hardly noticeable (especially in cleaned images).
+* Bugfix: In multi-scale mode, there was half a pixel offset in restored structures.
+* Bugfix: Rare time-rounding error, causing incorrect DATE-OBS value in output fits files. Reported by D. Kaplan.
+* Bugfix: Bug causing infinite continuing cleaning in joined channel cleaning when ending on negative component.
+* Bugfix: :doc:`Image weight keyword <../fits_keywords>` is incorrectly converted to int, leading to possible MFS images with NaN values. Reported by R. van Weeren.
+* Bugfix: WSClean used REFERENCE_DIR instead of PHASE_DIR for image centre, giving incorrect coordinates when NDPPP was used for phase shifting (SF #30). Reported by R. van Weeren.
+* Bugfix: Crashes when cleaning near the horizon, caused by incorrect bounding box calculation during restoring (SF #33). Reported by S. Bourke.
+* Bugfix: When specifying multiple measurement sets with different bands, frequency keyword now represents central frequency.
+* Bugfix: Fixing FITS keyword bug; WSClean used to write 'Hz' in CUNIT4 (the 'Stokes' dimension). Reported by M. Iacobelli.
+* Textual: Help on ``-beamsize`` parameter said default unit is arcmin, but since 2.5 it is actually in arcsec (when not specifying a unit). Reported by M. Iacobelli.
+
+These bugs were fixed after internal releases:
+
+* Bugfix: Fixing bug in masked cleaning causing spurious components.
+* Bugfix: Honour cleaning border when using masks and in single pol mode (SF #32).

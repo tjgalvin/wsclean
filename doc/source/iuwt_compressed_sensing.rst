@@ -13,7 +13,7 @@ WSClean's IUWT deconvolution method is an extension/rewrite of the [MORESANE](MO
 Usage
 -----
 
-The IUWT deconvolution method is enabled with option "``-iuwt``". This method accepts all of the normal parameters. IUWT supports masking since :doc:`WSClean 1.12 <changelog-1.12>`. Like the ``-multiscale`` parameter (see :doc:`multiscale <multiscale_cleaning>`), it is enabled with a single option and has reasonably optimized default settings. However, iterations are much slower. At the same time, it subtract much more flux per iteration, hence also needs fewer iterations. Therefore, ``-niter`` should normally be much lower than for cleaning; typical values are ~200 for complex images. Also, "``-gain``" can be somewhat higher, because each minor iteration performs a subminor iteration to deconvolve selected scales. A typical value for ``-gain`` is 0.2. Altogether, a typical IUWT run looks like this:
+The IUWT deconvolution method is enabled with option "``-iuwt``". This method accepts all of the normal parameters. IUWT supports masking since :doc:`WSClean 1.12 <changelogs/v1.12>`. Like the ``-multiscale`` parameter (see :doc:`multiscale <multiscale_cleaning>`), it is enabled with a single option and has reasonably optimized default settings. However, iterations are much slower. At the same time, it subtract much more flux per iteration, hence also needs fewer iterations. Therefore, ``-niter`` should normally be much lower than for cleaning; typical values are ~200 for complex images. Also, "``-gain``" can be somewhat higher, because each minor iteration performs a subminor iteration to deconvolve selected scales. A typical value for ``-gain`` is 0.2. Altogether, a typical IUWT run looks like this:
 
 .. code-block:: bash
 

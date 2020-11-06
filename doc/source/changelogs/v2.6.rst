@@ -1,0 +1,43 @@
+WSClean version 2.6
+===================
+
+Released 2018-06-11
+
+Summary: A "lots of little improvements" update, with no major changes at this time. Interesting new features are some very specific cleaning modes, like linked polarizations and parallel cleaning.
+
+Major & visible changes:
+
+* Support for "parallell cleaning" (option '``-parallel-clean``'), which splits up images using a path search algorithm, and allows faster and clean and larger images.
+* Polarization-linked cleaning ('``-link-polarizations``'), which allows cleaning a set polarizations using information from another set of polarizations (e.g. clean QUV only using I information).
+* Support for calculating AARTFAAC primary beam.
+* Tapering is now taken into account in the initial value of the PSF, thereby improving fit stability on tapered runs (SF #134, reported by P. Serra)
+* Circular and non-circular Gaussian fitter improvements (related to SF #134).
+* Added option '``-beam-fitting-size``' to allow changing the fitting box size (useful for MSSS).
+* Added option '``-divide-channels-by-gaps``', which changes how bandwidth is splitted in multiple-output-channels mode.
+* Adding option '``-pb-undersampling``' to turn off or change undersampling.
+* Added parameter '``-lofar-centroids``', which takes centroid information into account. This was an experiment, and seemed not to be very useful (it is very slow and does not improve accuracy).
+* WSClean can now grid only the even or odd timesteps (parameters '``-even-timesteps``' and '``-odd-timesteps``'). Useful for certain experiments, e.g. estimating noise value (SF #133).
+* Option '``-no-normalize-for-weighting``' was removed, as keywords can be used to scale images appropriately.
+* Accept 3d fits masks that have velocity instead of frequency as 3rd axis (reported by M. Ramatsoku).
+* Provide an error message when automasking threshold <= auto threshold.
+* Removing ``-force-dynamic-join`` option, as it is no longer necessary to specify it.
+* IDG command line parameters have been added to the command line help.
+
+Bugfixes / technical changes:
+
+* CMake findcasacore script updated to fix unresolved symbols with certain Casacore versions.
+* Model column was not updated when using '``-continue``' (reported by R. van Weeren and G. Di Gennaro).
+* One-off error in calculating of nr scans, and reporting proper error when requesting more intervals than available (SF #131, reported by S. Bourke)
+* When writing model data back to MS, progress bar did not actually show progress.
+* Threading and mutexes are now done with (C++11) the stdlib. This decreases the dependency on Boosts.
+* Fixed gcc 7.3 compilation: `pow10 was removed from gcc 7.3 (glibc 2.27) <https://abi-laboratory.pro/tracker/changelog/glibc/2.27/log.html>`_.
+* Fixed unit weighting to not include flagged/unavailable visibilities during imaging when used.
+* Preparations for IDG A-term correction: no longer store visibilities preweighted, pass full weighting to IDG.
+* Do output errors in quiet mode.
+* Don't allow rectangular images when IDG is enabled.
+* Improved readability of non-verbose mode a bit; be less verbose for sets with denormal phase centre and removed some other technical output.
+* Reported nr of major iterations was one too high (on cmdline as well as in fits hdr).
+* Invalid floating point cmd line parameters are reported as error instead of interpreting them as zero.
+* Independent QU imaging with multiple channels would not clean U: weight was not initialized (reported by R. van Weeren).
+* Also fixing bad keyword 'WSCMINOR' in dirty image of second polarization.
+* Lofar beam correction with only-I imaging causes segfault (Identified by A. Shulevski).

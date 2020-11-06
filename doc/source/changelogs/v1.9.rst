@@ -1,0 +1,29 @@
+WSClean Version 1.9
+===================
+
+Released 2015-08-21
+
+Summary: This release introduces some major changes, both under and above the hood. First of all, there are two new deconvolution methods: :doc:`IUWT deconvolution <../iuwt_compressed_sensing>`, which is similar to :doc:`MORESANE <../moresane_deconvolution>`), and a :doc:`new multi-scale algorithm <../multiscale_cleaning>` that is much more accurate than the previous algorithm. The 'channelsout' multi-frequency option now treats multi-measurement-set imaging properly. Finally, all combinations of "-joinchannels", "-joinpolarizations", "-channelsout", "-pol ..", "-iuwt" and "-multiscale" that one can possibly wish are supported.
+
+Note that WSClean now needs Casacore 2.0 or higher, with C++11 support turned on.
+
+Full list of changes:
+
+* :doc:`New multi-scale algorithm <../multiscale_cleaning>` which is more accurate, somewhat slower in most cases, but still fast. Enabled with option "-multiscale".
+* The older algorithm is now available with option "-fast-multiscale", but should probably not be used for anything serious.
+* The multi-scale mode now supports masks (SF #38).
+* A new :doc:`IUWT compressed sensing algorithm <../iuwt_compressed_sensing>` which is comparable to :doc:`MORESANE <../moresane_deconvolution>`, but allows multi-frequency deconvolution and is faster on CPU.
+* Support dividing total bandpass using -channelsout when specifying multiple MSs of different frequencies. (SF #44)
+* Rewrote the deconvolution code to use the generic ImagingTable. This allows jointly cleaning over less common polarizations combinations (e.g. Stokes I and Q) as well as cleaning channels jointly without jointly cleaning the polarizations. (SF #39)
+* WSClean's gridding engine (class WStackingGridder) has been refactored, and it is now possible to reuse the gridder (`API docs <http://wsclean.sourceforge.net/doc/api/classWStackingGridder.html>`_).
+* Add -moresane-sl parameter to set MORESANE deconvolution depth levels per iteration (patch by O. Smirnov).
+* Code was converted to Casacore 2: version 2 or higher compiled with C++11 support is now required.
+* Bugfix: Add prefix to MORESANE input filenames, to avoid clashes with parallell imaging runs (SF #48, patch by O. Smirnov).
+* Bugfix: Conversion from circular to Stokes Q, and from Stokes to circular was not implemented (/correctly). Cotton-Schwab iterations are now possible with circular feeds (e.g. JVLA). (SF #45)
+* Bugfix: Report error when specifying invalid channel range.
+* Bugfix: Removing -imaginarypart parameter from wsclean's help, as it has been replaced (way back) by combined real/imag imaging for xy/yx.
+* Bugfix: Make it easier to build with platform independence (SF #50).
+* Bugfix: WSClean could crash on zero-length selection (either because of no rows in the selection or no channels in selection).
+* Bugfix: Better error message when mmap fails.
+* Bugfix: Changing console output of prediction step to correspond with FTs/prediction stage, and removing redundant 'Rows that were required' output
+* Lots of cleaning up and renaming.

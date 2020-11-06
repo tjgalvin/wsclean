@@ -1,0 +1,18 @@
+WSClean Version 1.0
+===================
+
+Released 2014-03-15
+
+This is the first public WSClean version. The features currently supported:
+
+* Fast wide-field imaging
+* Hogbom cleaning & Cotton-Schwab cleaning
+* Joined-polarization cleaning (peak finding in :math:`xx^2+xy^2+yx^2+yy^2`)
+* W-snapshot imaging
+* Most common weighting modes (uniform, Briggs', natural, super and sub-pixel weighting)
+* Adjustable antialising kernel
+* All important operations are multi-threaded
+
+A paper has been submitted that shows WSClean's accuracy is at least equal to the w-projection imaging in CASA, and sometimes even better, with a considerable faster imaging time when large w-values are involved.
+
+André Offringa

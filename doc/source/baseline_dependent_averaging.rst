@@ -1,7 +1,7 @@
 Baseline-dependent averaging
 ============================
 
-This page explains baseline-dependent averaging, a feature that can increase the performance of gridding. This feature is available in WSClean since :doc:`version 2.0 <changelog-2.0>`.
+This page explains baseline-dependent averaging, a feature that can increase the performance of gridding. This feature is available in WSClean since :doc:`version 2.0 <changelogs/v2.0>`.
 
 Baseline-dependent averaging is a technique that allows more efficient averaging of data. In normal averaging, long baseline are averaged at the same level as small baselines. However, since small baselines can be averaged much more, this is inefficient. In baseline-dependent averaging, short baselines are averaged more than the long baselines.
 
@@ -47,7 +47,7 @@ This is a simple command to show the syntax of baseline-dependent averaging:
        -baseline-averaging 16 -no-update-model-required \
        -maxuvw-m 100000 observation.ms
        
-Note that baseline-dependent averaging currently only works together with :doc:`primary-beam correction <primary_beam_correction>` since :doc:`version 2.5 <changelog-2.5>`.
+Note that baseline-dependent averaging currently only works together with :doc:`primary-beam correction <primary_beam_correction>` since :doc:`version 2.5 <changelogs/v2.5>`.
        
 Some LOFAR specifics
 --------------------

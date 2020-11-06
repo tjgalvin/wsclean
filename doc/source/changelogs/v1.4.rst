@@ -1,0 +1,17 @@
+WSClean Version 1.4
+===================
+
+Released 2014-10-06
+
+This version is one of the smallest updates as of yet, but does have some important bug fixes. The small inversion is now on by default, there was something wrong with the stored XY dirty images in some cases (the 'image' restored images were not affected) which was fixed, and a big memory leak was fixed.
+
+Full list of changes:
+
+* Small inversion optimalisation is now on by default (SF #18)
+* New option ``-nosmallinversion`` to disable the small inversion
+* Bugfix: Fixing Briggs' MFS weighting in multi-channel mode, refactoring ImageWeights (SF #12)
+* Bugfix: Corrected writing of residual dirty XY image and no longer write the dirty YX-i (SF #9).
+* Bugfix: Don't crash when one of the fits keys is NaN or infinite (SF #10). This fixes a crash when creating a psf with an empty data selection.
+* Bugfix: Report an error when trying to predict from an image with NaNs or other non-finite values
+* Bugfix: Removing two memory leaks, one of which might cause some major leakage
+* Some refactoring of the weighting calculations.

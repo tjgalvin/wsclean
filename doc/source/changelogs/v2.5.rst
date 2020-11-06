@@ -1,0 +1,46 @@
+WSClean version 2.5
+===================
+
+Released 2017-12-01
+
+Summary: The previous release was about half a year old, but the long period between these releases has resulted in many improvements: a few major and a very large number of minor improvements. Full support for the fast IDG GPU gridder is one of the major changes, making it possible to make enormous images quickly, and clean them with all of WSClean's cleaning options. Future releases will additionally support fast a-term correction. Spectral line users can now use multi-frequency masks. Users no longer have to think about padding (/trimming): padding space is now by default added to the requested image size. This has resulted in the removal of the ``-trim`` parameter, which I realise will unfortunately require changes to a few pipelines. Another visible change is that many parameters were slightly changed, to make their syntax/wording be consistent. The old parameters are still accepted, but will result in deprecation warnings. 
+
+To use IDG, the external IDG library is required. See the :doc:`installation instructions <../installation>` for help on linking WSClean with IDG.
+
+Full list of new features:
+
+ * WSClean has now full support for the "IDG" GPU gridder. It allows the making of huge images in a fraction of the time of imaging with the old w-stacking gridder. Moreover, in the future it will support a-term correction *without any additional computational costs* (SF #84, SF #122, SF #123).
+ * It is now possible to use a 3-dimensional (multi-frequency) mask, in particular useful for line/HI imaging (SF #47, requested by S. Makhathini and P. Serra).
+ * New option ``-padding``, which replaced ``-trim``. Default padding is 1.2. Changing meaning of ``-size`` to mean the trimmed size. This makes ``-size`` more intuitive, and will in most cases no longer require to think about padding (SF #100).
+ * Made parameters consistent: all parameters now use the same "dashing scheme" (SF #124).
+ * Write version information to fits file (SF #120).
+ * It is now possible to :doc:`store the image weights <../storing_imaging_weights>` that WSClean calculates (SF #126, requested by O. Smirnov).
+ * Allow 'mas' as unit for milliarcseconds.
+
+Bugfixes:
+
+ * (LOFAR) primary beam correction works now with baseline-dependent averaging (SF #92)
+ * Fixing threshold & reported flux in XX/YY or XX/XY/YX/YY cleaning (SF #51).
+ * Use of auto-masking on sets that have fully flagged output channels would cause segfault. This occurs in particular in spectral line imaging (reported by S. MakHathini).
+ * Correcting :doc:`WSCNORMF keyword <../fits_keywords>` with a factor of 4. This makes the meaning of ``WSCNORMF`` equal to the number of cells gridded (when uniformly weighted).
+ * Fixed a possible stability issue in IUWT (SF #118).
+ * Fixes for compilation on Mac (avoiding ``sincos``, ``M_PIl``, ``exp10``).
+ * Documentation improvements.
+ * Make sure that values are not divided by zero when part of the image is zero and local rms is used.
+ * No longer forcing the restoring beam to be larger than 1 pixel, which could lead to bad flux scales with very exotic beams (SF #113).
+ * Speed improvement: the min/maxuv/ws values are now cached between major iterations, which saves going an extra time over the data each major iteration (SF #26).
+ * The PB corrected source list output works now together with reduced deconvolution channels (SF #125).
+
+Some technical low-level fixes:
+
+ * Use of ``boost::optional`` to represent incorrect values, thereby avoid NaN values and allowing the use of ``-ffast-math``, although no change in performance (SF #95).
+ * Use of ``unique_ptr`` instead of pointers everywhere relevant.
+ * Added r-value support to lane.
+ * Several small memory leaks were fixed, e.g. in polynomialfitter.
+ * Several new tests were added.
+ * Improvements to the Python interface; better data type validation.
+ * Improvements to buffer allocator, so that 0-sized allocation do not cause warning on WSClean exit.
+ * Work on applying the LOFAR beam a-terms with IDG. This is almost finished, but not yet available in this release.
+ * Speed improvement: Made sure that nr of threads to be used by nwlayer gridder is not more than nlayers.
+ * Fixed rare issue: exceptions could cause early destruction of image buffer allocator to segfault instead of show exception.
+ * Correct displaying of NaN value for flux density (Jy) values.

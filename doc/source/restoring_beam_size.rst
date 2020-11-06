@@ -14,5 +14,5 @@ When the fit is highly elliptical and when this is undesirable, the option ``-ci
 History
 -------
 
-* In :doc:`WSClean 2.6 <changelog-2.6>`, the option ``-beam-fitting-size`` was added. It sets the box size to be used during the fit. If the beam that is fitted is not what you can expect, you can try changing this value. It seems that in particular lowering the value to 1-3 can sometimes solve certain issues.
-* In :doc:`WSClean 2.5 <changelog-2.5>`, an improved fit for small and forced circular beams was added.
+* In :doc:`WSClean 2.6 <changelogs/v2.6>`, the option ``-beam-fitting-size`` was added. It sets the box size to be used during the fit. If the beam that is fitted is not what you can expect, you can try changing this value. It seems that in particular lowering the value to 1-3 can sometimes solve certain issues.
+* In :doc:`WSClean 2.5 <changelogs/v2.5>`, an improved fit for small and forced circular beams was added.

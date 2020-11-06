@@ -1,0 +1,32 @@
+WSClean Version 1.12
+====================
+
+Released 2016-07-09
+
+Summary: No major feature enhancements, but many small improvements and fixes. :doc:`Differential LOFAR beam <../primary_beam_correction>` is probably the biggest new feature, while :doc:`some new deconvolution modes <../rm_synthesis>` can improve RM-synthesis imaging.
+
+New features:
+
+ * Support :doc:`correction of the differential LOFAR beam <../primary_beam_correction>` instead of full beam.
+ * Option ``-squared-channel-joining`` for [using the channel-squared values during peak finding](RMSynthesis), instead of channel-summed.
+ * Option to turn off dirty image creation (``-no-dirty``).
+ * Adding WSCNVIS and WSCENVIS keywords to fits files.
+ * During imaging, WSClean now outputs the 'effective visibility count'.
+ * Rewrote dft prediction algorithm, it is now possible to use NDPPP for prediction.
+ * Adding cleaned flux to output when performing multi-scale clean (requested by A. G. de Bruyn).
+ * Better determination of available number of CPUs, to make WSClean cooperate with cluster management tools like SLURM (Using CPU affinity code from J. D. Mol).
+ * Support for masks in the IUWT deconvolution method.
+ * Adding time to output when requested new parameter with ``-log-time`` (SF #76).
+
+Fixes:
+
+ * Changed behaviour of SPWs to not count unused SPWs in calculation of output channels (Requested by R. van Weeren).
+ * Model data corrupted when using ``-predict`` because of bug in contiguous MS writer (SF #78).
+ * Issue with ``-predict`` mode -- prediction no longer used the kaiser bessel kernel, because of an unset value.
+ * Use WEIGHT column if WEIGHT_SPECTRUM is not available (SF #73).
+ * Fully flagged output channels causes joined cleaning to malfunction (reported by K. Emig).
+ * Increased precision of fits keywords to have double precision for RA and DEC output, otherwise VLBI observations have slightly inaccurate positions (Reported by R. Dean).
+ * Issue with IUWT in combination with ``-deconvolution-channels``, reported by O. Smirnov.
+ * Some usual refactoring and fixes for newer compilers.
+ * Some preparation to allow IDG as gridder.
+ * Imaging multiple polarizations in multi-frequency, multi-spw modes would lead to an error (reported by R. van Weeren).
