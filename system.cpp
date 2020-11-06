@@ -55,10 +55,10 @@ std::string System::FindPythonFilePath(const std::string& filename) {
       return result;
     }
   }
-  searchPathsFile.close();
+  searchPathsFile.clear();
+  searchPathsFile.seekg(0, std::ios::beg);
   std::string err(std::string("Could not find Python file ") + filename +
                   ". Paths searched:\n");
-  searchPathsFile = std::ifstream(tempFilename.c_str());
   while (searchPathsFile.good()) {
     std::string prefixPath;
     std::getline(searchPathsFile, prefixPath);

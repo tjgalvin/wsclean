@@ -1,4 +1,4 @@
-deconvolution modes
+Deconvolution modes
 ===================
 
 
