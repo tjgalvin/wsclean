@@ -296,8 +296,7 @@ double PrimaryBeam::MakeBeamForMS(
   // Pass the settings to EveryBeam::Options struct
   bool frequencyInterpolation = true;
   bool useChannelFrequency = true;
-  std::string elementResponseModel =
-      !_settings.beamModel.empty() ? _settings.beamModel : "HAMAKER";
+  std::string elementResponseModel = _settings.beamModel;
   everybeam::Options options = ATermConfig::ConvertToEveryBeamOptions(
       *ms, _settings.mwaPath, frequencyInterpolation, _settings.dataColumnName,
       _settings.useDifferentialLofarBeam, useChannelFrequency,
@@ -448,4 +447,4 @@ std::tuple<double, double, size_t> PrimaryBeam::GetTimeInfo(
                 << intervalCount << " intervals.\n";
   return std::make_tuple(startTime, endTime, intervalCount);
 }
-#endif  // HAVE_EVERYBEEAM
+#endif  // HAVE_EVERYBEAM

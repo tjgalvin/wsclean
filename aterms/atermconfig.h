@@ -8,11 +8,11 @@
 #include <aocommon/aterms/atermbeam.h>
 #include <aocommon/aterms/atermstub.h>
 
+#include <aocommon/matrix2x2.h>
+
 #include "dldmaterm.h"
 #include "fitsaterm.h"
 #include "pafbeamterm.h"
-
-#include <aocommon/matrix2x2.h>
 
 #include "../parsetreader.h"
 
@@ -27,6 +27,8 @@
 #include <EveryBeam/options.h>
 #include <EveryBeam/elementresponse.h>
 #endif
+
+#include <boost/algorithm/string.hpp>
 
 using aocommon::Matrix2x2;
 
@@ -265,18 +267,19 @@ class ATermConfig : public aocommon::ATermBase {
       options.coeff_path = wsclean::mwa::FindCoeffFile(search_path);
       options.frequency_interpolation = frequency_interpolation;
     }
-    // LOFAR related
-    std::string element_response_tmp = element_response_model;
-    std::for_each(element_response_tmp.begin(), element_response_tmp.end(),
-                  [](char& c) { c = ::toupper(c); });
+    // LOFAR & SKA(/OSKAR) related
+    std::string element_response_upper =
+        boost::to_upper_copy(element_response_model);
     everybeam::ElementResponseModel element_response_enum;
-    if (element_response_tmp == "HAMAKER")
+    if (element_response_upper == "" || element_response_upper == "DEFAULT")
+      element_response_enum = everybeam::ElementResponseModel::kDefault;
+    else if (element_response_upper == "HAMAKER")
       element_response_enum = everybeam::ElementResponseModel::kHamaker;
-    else if (element_response_tmp == "LOBES")
+    else if (element_response_upper == "LOBES")
       element_response_enum = everybeam::ElementResponseModel::kLOBES;
-    else if (element_response_tmp == "OSKARDIPOLE")
+    else if (element_response_upper == "OSKARDIPOLE")
       element_response_enum = everybeam::ElementResponseModel::kOSKARDipole;
-    else if (element_response_tmp == "OSKARSPHERICALWAVE")
+    else if (element_response_upper == "OSKARSPHERICALWAVE")
       element_response_enum =
           everybeam::ElementResponseModel::kOSKARSphericalWave;
     else {
