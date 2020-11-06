@@ -290,6 +290,7 @@ void CommandLine::printHelp() {
          "   Use the w-gridding gridder developed by Martin Reinecke.\n"
          "-wgridder-accuracy <value>\n"
          "   Set the w-gridding accuracy. Default: 1e-4\n"
+         "   Useful range: 1e-2 to 3e-5\n"
          "\n"
          "  ** A-TERM GRIDDING **\n"
          "-aterm-config <filename>\n"

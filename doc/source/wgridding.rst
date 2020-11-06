@@ -11,13 +11,18 @@ The theoretical foundations of the algorithm are described in
 description of the implementation is given in
 `Arras, Reinecke, Westermann & Enßlin (2020) <https://arxiv.org/abs/2010.10122>`_.
 
-W-gridding is enabled via the command-line ``-use-wgridder``. The algorithm will
-select appropriate parameters (like amount of padding, kernel shape and kernel
-support) automatically to reach the requested accuracy (currently hard-wired to
-1e-4) in the least amount of time. Therefore, many paremeters accepted by
-``wsclean``'s w-stacking gridder (e.g. ``-padding``, ``-nwlayers*``, ``-grid-mode``,
-``-kernel-size``, ``-oversampling`` and ``-parallel-gridding``) will be ignored in
-that mode.
+W-gridding is enabled by the command-line flag ``-use-wgridder``,
+and its accuracy can be controlled via the parameter ``-wgridder-accuracy``,
+which is set to ``1e-4`` by default and can be varied in the range from ``1e-2``
+(very coarse, but fast gridding) down to ``3e-5`` (most accurate gridding
+achievable with single-precision floating point). This value specifies
+the maximum acceptable rms error of the result when compared to a direct Fourier
+transform. The algorithm will select
+appropriate parameters (like amount of padding, kernel shape and kernel support)
+automatically to reach the requested accuracy in the least amount of time.
+Therefore, many parameters accepted by ``wsclean``'s w-stacking gridder (e.g.
+``-padding``, ``-nwlayers*``, ``-grid-mode``, ``-kernel-size`` and ``-oversampling``
+and ``-parallel-gridding``) will be ignored in that mode.
 
 The algorithm has a very small memory footprint: it only requires storage for
 a single complex w-plane, a copy of the dirty image and some indexing data
