@@ -9,7 +9,7 @@
 #include "../wsclean/logger.h"
 
 template <bool AllowNegatives>
-size_t SubMinorModel::GetMaxComponent(ImageF scratch, float& maxValue) const {
+size_t SubMinorModel::GetMaxComponent(ImageF& scratch, float& maxValue) const {
   _residual->GetLinearIntegrated(scratch);
   if (!_rmsFactorImage.empty()) {
     for (size_t i = 0; i != size(); ++i) scratch[i] *= _rmsFactorImage[i];

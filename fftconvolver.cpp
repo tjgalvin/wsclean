@@ -121,10 +121,9 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
       imgHeight, imgWidth, fftImageData, tempData, FFTW_ESTIMATE);
   lock.unlock();
 
-  memcpy(tempData, image, imgSize * sizeof(float));
-  fftwf_execute_dft_r2c(inToFPlan, tempData, fftImageData);
+  fftwf_execute_dft_r2c(inToFPlan, image, fftImageData);
 
-  memcpy(tempData, kernel, imgSize * sizeof(float));
+  std::copy_n(kernel, imgSize, tempData);
   fftwf_execute_dft_r2c(inToFPlan, tempData, fftKernelData);
 
   float fact = 1.0 / imgSize;
@@ -132,9 +131,8 @@ void FFTConvolver::ConvolveSameSize(FFTWManager& fftw, float* image,
     reinterpret_cast<std::complex<float>*>(fftImageData)[i] *=
         fact * reinterpret_cast<std::complex<float>*>(fftKernelData)[i];
 
-  fftwf_execute_dft_c2r(
-      fToOutPlan, reinterpret_cast<fftwf_complex*>(fftImageData), tempData);
-  memcpy(image, tempData, imgSize * sizeof(float));
+  fftwf_execute_dft_c2r(fToOutPlan,
+                        reinterpret_cast<fftwf_complex*>(fftImageData), image);
 
   fftwf_free(fftImageData);
   fftwf_free(fftKernelData);

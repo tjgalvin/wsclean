@@ -70,8 +70,8 @@ class SubMinorModel {
   size_t Y(size_t index) const { return _positions[index].second; }
   size_t FullIndex(size_t index) const { return X(index) + Y(index) * _width; }
   template <bool AllowNegatives>
-  size_t GetMaxComponent(ImageF scratch, float& maxValue) const;
-  size_t GetMaxComponent(ImageF scratch, float& maxValue,
+  size_t GetMaxComponent(ImageF& scratch, float& maxValue) const;
+  size_t GetMaxComponent(ImageF& scratch, float& maxValue,
                          bool allowNegatives) const {
     if (allowNegatives)
       return GetMaxComponent<true>(scratch, maxValue);

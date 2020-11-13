@@ -27,7 +27,11 @@ class ImageT {
 
   ImageT(const ImageT<NumT>&);
   ImageT<NumT>& operator=(const ImageT<NumT>&);
-  ImageT<NumT>& operator=(value_type value);
+
+  ImageT<NumT>& operator=(value_type value) {
+    std::fill_n(_data, _width * _height, value);
+    return *this;
+  }
 
   ImageT<NumT>& Assign(const NumT* begin, const NumT* end) {
     if (size_t(end - begin) != _width * _height)

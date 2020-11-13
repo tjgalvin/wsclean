@@ -42,12 +42,6 @@ ImageT<NumT>& ImageT<NumT>::operator=(const ImageT& source) {
 }
 
 template <typename NumT>
-ImageT<NumT>& ImageT<NumT>::operator=(value_type value) {
-  for (value_type& v : *this) v = value;
-  return *this;
-}
-
-template <typename NumT>
 ImageT<NumT>::ImageT(ImageT&& source)
     : _data(source._data), _width(source._width), _height(source._height) {
   source._width = 0;
