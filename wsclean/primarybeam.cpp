@@ -2,10 +2,9 @@
 #include "wscleansettings.h"
 #include "logger.h"
 
-#include "../aterms/atermconfig.h"
 #include "../imageweights.h"
-
 #include "../msproviders/msdatadescription.h"
+#include "../mwa/findcoefffile.h"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
@@ -14,8 +13,12 @@
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
+#include <EveryBeam/aterms/atermconfig.h>
 #include <EveryBeam/griddedresponse/griddedresponse.h>
 #include <EveryBeam/coords/coordutils.h>
+
+using everybeam::ATermSettings;
+using everybeam::aterms::ATermConfig;
 #endif
 
 PrimaryBeam::PrimaryBeam(const WSCleanSettings& settings)
@@ -297,8 +300,18 @@ double PrimaryBeam::MakeBeamForMS(
   bool frequencyInterpolation = true;
   bool useChannelFrequency = true;
   std::string elementResponseModel = _settings.beamModel;
-  everybeam::Options options = ATermConfig::ConvertToEveryBeamOptions(
-      *ms, _settings.mwaPath, frequencyInterpolation, _settings.dataColumnName,
+
+  everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
+  std::string coeff_path =
+      (telescope_type == everybeam::TelescopeType::kMWATelescope)
+          ? wsclean::mwa::FindCoeffFile(_settings.mwaPath)
+          : "";
+
+  ATermSettings aterm_settings;
+  aterm_settings.coeff_path = coeff_path;
+  aterm_settings.data_column_name = _settings.dataColumnName;
+  everybeam::Options options = ATermConfig::ConvertToEBOptions(
+      *ms, aterm_settings, frequencyInterpolation,
       _settings.useDifferentialLofarBeam, useChannelFrequency,
       elementResponseModel);
 
@@ -310,7 +323,6 @@ double PrimaryBeam::MakeBeamForMS(
       telescope->GetNrStations() * (telescope->GetNrStations() + 1) / 2;
   std::vector<double> baseline_weights(nbaselines * intervalCount, 0);
   std::vector<double> time_array(intervalCount, 0);
-  everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
 
   // Time array and baseline weights only relevant for LOFAR, MWA (and probably
   // SKA-LOW). MWA beam needs scrutiny, this telescope might be amenable to a

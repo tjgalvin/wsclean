@@ -5,13 +5,15 @@
 
 #include "../wsclean/msgridderbase.h"
 
-//#include "interface.h"
 #include <idg-api.h>
 
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
 #include <aocommon/fits/fitswriter.h>
-#include <aocommon/aterms/atermbase.h>
+
+#ifdef HAVE_EVERYBEAM
+#include <EveryBeam/aterms/atermbase.h>
+#endif  // HAVE_EVERYBEAM
 
 #include <boost/thread/mutex.hpp>
 
@@ -57,13 +59,20 @@ class IdgMsGridder : public MSGridderBase {
 
   void setIdgType();
 
-  std::unique_ptr<class aocommon::ATermBase> getATermMaker(
+#ifdef HAVE_EVERYBEAM
+  std::unique_ptr<class everybeam::aterms::ATermBase> getATermMaker(
       MSGridderBase::MSData& msData);
   bool prepareForMeasurementSet(
       MSGridderBase::MSData& msData,
-      std::unique_ptr<aocommon::ATermBase>& aTermMaker,
+      std::unique_ptr<everybeam::aterms::ATermBase>& aTermMaker,
       aocommon::UVector<std::complex<float>>& aTermBuffer,
       idg::api::BufferSetType);
+#else
+  bool prepareForMeasurementSet(
+      MSGridderBase::MSData& msData,
+      aocommon::UVector<std::complex<float>>& aTermBuffer,
+      idg::api::BufferSetType);
+#endif  // HAVE_EVERYBEAM
 
   struct IDGInversionRow : public MSGridderBase::InversionRow {
     size_t antenna1, antenna2, timeIndex;

@@ -75,15 +75,15 @@ const std::vector<std::string>& ParsetReader::ParsetEntry::GetStringListValue()
     return value->_value;
 }
 
-const std::string& ParsetReader::GetString(const std::string& key) const {
+std::string ParsetReader::GetString(const std::string& key) const {
   auto iter = _entries.find(key);
   if (iter == _entries.end())
     throw std::runtime_error("Key '" + key + "' not found");
   return iter->second.GetStringValue();
 }
 
-const std::string& ParsetReader::GetStringOr(const std::string& key,
-                                             const std::string& orValue) const {
+std::string ParsetReader::GetStringOr(const std::string& key,
+                                      const std::string& orValue) const {
   auto iter = _entries.find(key);
   if (iter == _entries.end())
     return orValue;
@@ -91,7 +91,7 @@ const std::string& ParsetReader::GetStringOr(const std::string& key,
     return iter->second.GetStringValue();
 }
 
-const std::vector<std::string>& ParsetReader::GetStringList(
+std::vector<std::string> ParsetReader::GetStringList(
     const std::string& key) const {
   auto iter = _entries.find(key);
   if (iter == _entries.end())

@@ -98,12 +98,10 @@ find_library(EVERYBEAM_LIB everybeam)
 
 if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   include_directories(${EVERYBEAM_INCLUDE_DIR})
-  set(EVERYBEAM_FILES aterms/everybeamaterm.cpp)
   add_definitions(-DHAVE_EVERYBEAM)
   message(STATUS "EveryBeam library found.")
 else()
   set(EVERYBEAM_LIB "")
-  set(EVERYBEAM_FILES "" )
   message("EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available.")
 endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
@@ -157,9 +155,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(wsclean-object OBJECT
   casamaskreader.cpp fftconvolver.cpp fftresampler.cpp fftwmanager.cpp gaussianfitter.cpp image.cpp imageweights.cpp modelrenderer.cpp msselection.cpp multibanddata.cpp nlplfitter.cpp parsetreader.cpp polynomialchannelfitter.cpp polynomialfitter.cpp progressbar.cpp rmsimage.cpp stopwatch.cpp system.cpp
-  aterms/cache.cpp aterms/dldmaterm.cpp
-  aterms/fitsaterm.cpp aterms/fitsatermbase.cpp
-  aterms/pafbeamterm.cpp aterms/atermresampler.cpp
   deconvolution/componentlist.cpp
   deconvolution/deconvolution.cpp
   deconvolution/deconvolutionalgorithm.cpp
@@ -182,7 +177,7 @@ add_library(wsclean-object OBJECT
   wsclean/logger.cpp wsclean/observationinfo.cpp
   wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
   wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
-  ${EVERYBEAM_FILES} ${IDG_FILES} ${MPI_CPP_FILES} ${WGRIDDER_FILES})
+  ${IDG_FILES} ${MPI_CPP_FILES} ${WGRIDDER_FILES})
 
 
 # A number of files perform the 'core' high-performance floating point
@@ -289,7 +284,6 @@ if(Boost_FOUND)
     tests/testpolynomialfitter.cpp
     tests/testradeccoord.cpp
     tests/testserialization.cpp
-    tests/aterms/testcache.cpp
     ${WSCLEANFILES})
   target_link_libraries(runtest PRIVATE pybind11::embed)
   target_link_libraries(runtest ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
