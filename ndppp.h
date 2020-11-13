@@ -38,7 +38,7 @@ class NDPPP {
   }
 
   static void addSITerms(std::ostream& stream,
-                         const aocommon::UVector<double>& siTerms) {
+                         const aocommon::UVector<float>& siTerms) {
     stream << '[';
     if (!siTerms.empty()) {
       stream << siTerms[0];
@@ -52,7 +52,7 @@ class NDPPP {
   static void WritePointComponent(std::ostream& stream, const std::string& name,
                                   long double ra, long double dec, double i,
                                   double q, double u, double v, double freq,
-                                  const aocommon::UVector<double>& siTerms) {
+                                  const aocommon::UVector<float>& siTerms) {
     stream << name << ",POINT," << RaDecCoord::RAToString(ra, ':') << ','
            << RaDecCoord::DecToString(dec, '.') << ',' << i << ',' << q << ','
            << u << ',' << v << ',' << freq << ",";
@@ -64,7 +64,7 @@ class NDPPP {
                                      const std::string& name, long double ra,
                                      long double dec, double i, double q,
                                      double u, double v, double freq,
-                                     const aocommon::UVector<double>& siTerms,
+                                     const aocommon::UVector<float>& siTerms,
                                      double maj, double min, double posangle) {
     stream << name << ",GAUSSIAN," << RaDecCoord::RAToString(ra, ':') << ','
            << RaDecCoord::DecToString(dec, '.') << ',' << i << ',' << q << ','
@@ -76,7 +76,7 @@ class NDPPP {
   static void WritePolynomialPointComponent(
       std::ostream& stream, const std::string& name, long double ra,
       long double dec, double i, bool useLogSI,
-      const aocommon::UVector<double>& polTerms, double referenceFrequencyHz) {
+      const aocommon::UVector<float>& polTerms, double referenceFrequencyHz) {
     stream << name << ",POINT," << RaDecCoord::RAToString(ra, ':') << ','
            << RaDecCoord::DecToString(dec, '.') << ',' << i << ',';
     addSITerms(stream, polTerms);
@@ -87,7 +87,7 @@ class NDPPP {
   static void WritePolynomialGaussianComponent(
       std::ostream& stream, const std::string& name, long double ra,
       long double dec, double i, bool useLogSI,
-      const aocommon::UVector<double>& polTerms, double referenceFrequencyHz,
+      const aocommon::UVector<float>& polTerms, double referenceFrequencyHz,
       double maj, double min, double posangle) {
     stream << name << ",GAUSSIAN," << RaDecCoord::RAToString(ra, ':') << ','
            << RaDecCoord::DecToString(dec, '.') << ',' << i << ',';
@@ -99,7 +99,7 @@ class NDPPP {
 
   static void WriteOldPolynomialPointComponent(
       std::ostream& stream, const std::string& name, long double ra,
-      long double dec, const aocommon::UVector<double>& polTerms) {
+      long double dec, const aocommon::UVector<float>& polTerms) {
     stream << name << ",POINT," << RaDecCoord::RAToString(ra, ':') << ','
            << RaDecCoord::DecToString(dec, '.') << ',';
     addSITerms(stream, polTerms);
@@ -108,7 +108,7 @@ class NDPPP {
 
   static void WriteOldPolynomialGaussianComponent(
       std::ostream& stream, const std::string& name, long double ra,
-      long double dec, const aocommon::UVector<double>& polTerms, double maj,
+      long double dec, const aocommon::UVector<float>& polTerms, double maj,
       double min, double posangle) {
     stream << name << ",GAUSSIAN," << RaDecCoord::RAToString(ra, ':') << ','
            << RaDecCoord::DecToString(dec, '.') << ',';

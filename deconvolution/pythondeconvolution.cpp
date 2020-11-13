@@ -22,13 +22,13 @@ class PySpectralFitter {
     if (size_t(values.shape()[0]) != _fitter.NFrequencies())
       throw std::runtime_error(
           "spectral_fitter.fit(): Incorrect size of values array");
-    aocommon::UVector<double> vec(_fitter.NFrequencies());
+    aocommon::UVector<float> vec(_fitter.NFrequencies());
     pybind11::buffer_info info = values.request();
     const unsigned char* buffer = static_cast<const unsigned char*>(info.ptr);
     for (size_t i = 0; i != _fitter.NFrequencies(); ++i) {
       vec[i] = *reinterpret_cast<const double*>(buffer + info.strides[0] * i);
     }
-    aocommon::UVector<double> result;
+    aocommon::UVector<float> result;
     _fitter.Fit(result, vec.data());
 
     pybind11::buffer_info resultBuf(
@@ -50,7 +50,7 @@ class PySpectralFitter {
     if (size_t(values.shape()[0]) != _fitter.NFrequencies())
       throw std::runtime_error(
           "spectral_fitter.fit_and_evaluate(): Incorrect size of values array");
-    aocommon::UVector<double> vec(_fitter.NFrequencies());
+    aocommon::UVector<float> vec(_fitter.NFrequencies());
     pybind11::buffer_info info = values.request();
     const unsigned char* buffer = static_cast<const unsigned char*>(info.ptr);
     for (size_t i = 0; i != _fitter.NFrequencies(); ++i) {
@@ -125,7 +125,7 @@ void PythonDeconvolution::setBuffer(const ImageSet& imageSet, double* ptr,
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
-      const double* img = imageSet[freq * nPol + pol];
+      const float* img = imageSet[freq * nPol + pol];
       std::copy_n(img, width * height, ptr);
       ptr += width * height;
     }
@@ -139,19 +139,19 @@ void PythonDeconvolution::getBuffer(ImageSet& imageSet, const double* ptr,
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
-      double* img = imageSet[freq * nPol + pol];
+      float* img = imageSet[freq * nPol + pol];
       std::copy_n(ptr, width * height, img);
       ptr += width * height;
     }
   }
 }
 
-void PythonDeconvolution::setPsf(const aocommon::UVector<const double*>& psfs,
+void PythonDeconvolution::setPsf(const aocommon::UVector<const float*>& psfs,
                                  double* pyPtr, size_t width, size_t height) {
   size_t nFreq = psfs.size();
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
-    const double* psf = psfs[freq];
+    const float* psf = psfs[freq];
 
     for (size_t y = 0; y != height; ++y) {
       for (size_t x = 0; x != width; ++x) pyPtr[x] = psf[x];
@@ -162,9 +162,9 @@ void PythonDeconvolution::setPsf(const aocommon::UVector<const double*>& psfs,
   }
 }
 
-double PythonDeconvolution::ExecuteMajorIteration(
+float PythonDeconvolution::ExecuteMajorIteration(
     ImageSet& dirtySet, ImageSet& modelSet,
-    const aocommon::UVector<const double*>& psfs, size_t width, size_t height,
+    const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
     bool& reachedMajorThreshold) {
   size_t nFreq = dirtySet.ChannelsInDeconvolution();
   size_t nPol = dirtySet.size() / dirtySet.ChannelsInDeconvolution();

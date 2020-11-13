@@ -15,12 +15,12 @@ class Subdivision {
   };
 
   struct Visit {
-    double distance;
+    float distance;
     Coord to, from;
     bool operator<(const Visit& rhs) const { return distance > rhs.distance; }
   };
 
-  void DivideVertically(const double* image, double* output, size_t x1,
+  void DivideVertically(const float* image, float* output, size_t x1,
                         size_t x2) const {
     using visitset = std::priority_queue<Visit>;
     visitset visits;
@@ -34,14 +34,14 @@ class Subdivision {
     }
     aocommon::UVector<Coord> path((x2 - x1) * _height);
     std::fill(output, output + _width * _height,
-              std::numeric_limits<double>::max());
+              std::numeric_limits<float>::max());
     Visit visit;
     while (!visits.empty()) {
       visit = visits.top();
       visits.pop();
       size_t x = visit.to.x, y = visit.to.y;
-      double curDistance = output[x + y * _width];
-      double newDistance = visit.distance + std::fabs(image[x + y * _width]);
+      float curDistance = output[x + y * _width];
+      float newDistance = visit.distance + std::fabs(image[x + y * _width]);
       // std::cout << x << ',' << y << " " << curDistance << " " << newDistance
       // << '\n';
       if (newDistance < curDistance) {
@@ -75,7 +75,7 @@ class Subdivision {
     output[pCoord.x] = 1.0;
   }
 
-  void DivideHorizontally(const double* image, double* output, size_t y1,
+  void DivideHorizontally(const float* image, float* output, size_t y1,
                           size_t y2) const {
     using visitset = std::priority_queue<Visit>;
     visitset visits;
@@ -89,14 +89,14 @@ class Subdivision {
     }
     aocommon::UVector<Coord> path(_width * (y2 - y1));
     std::fill(output, output + _width * _height,
-              std::numeric_limits<double>::max());
+              std::numeric_limits<float>::max());
     Visit visit;
     while (!visits.empty()) {
       visit = visits.top();
       visits.pop();
       size_t x = visit.to.x, y = visit.to.y;
-      double curDistance = output[x + y * _width];
-      double newDistance = visit.distance + std::fabs(image[x + y * _width]);
+      float curDistance = output[x + y * _width];
+      float newDistance = visit.distance + std::fabs(image[x + y * _width]);
       // std::cout << x << ',' << y << " " << curDistance << " " << newDistance
       // << '\n';
       if (newDistance < curDistance) {
@@ -137,9 +137,9 @@ class Subdivision {
     size_t minRightY, maxRightY;
   };
 
-  HorizontalSplits DivideHorizontallyWithSplits(const double* image,
-                                                const double* verticalBoundary,
-                                                double* output, size_t y1,
+  HorizontalSplits DivideHorizontallyWithSplits(const float* image,
+                                                const float* verticalBoundary,
+                                                float* output, size_t y1,
                                                 size_t y2) const {
     using visitset = std::multiset<Visit>;
     visitset visits;
@@ -153,14 +153,14 @@ class Subdivision {
     }
     aocommon::UVector<Coord> path(_width * (y2 - y1));
     std::fill(output, output + _width * _height,
-              std::numeric_limits<double>::max());
+              std::numeric_limits<float>::max());
     Visit visit;
     while (!visits.empty()) {
       visit = *visits.begin();
       visits.erase(visits.begin());
       size_t x = visit.to.x, y = visit.to.y;
-      double curDistance = output[x + y * _width];
-      double newDistance = visit.distance + std::fabs(image[x + y * _width]);
+      float curDistance = output[x + y * _width];
+      float newDistance = visit.distance + std::fabs(image[x + y * _width]);
       // std::cout << x << ',' << y << " " << curDistance << " " << newDistance
       // << '\n';
       if (newDistance < curDistance) {
@@ -226,9 +226,9 @@ class Subdivision {
     return splits;
   }
 
-  void GetBoundingMask(const double* subdivision, size_t subImgX,
-                       size_t subImgY, bool* mask, bool* visited, size_t& x,
-                       size_t& y, size_t& subWidth, size_t& subHeight) const {
+  void GetBoundingMask(const float* subdivision, size_t subImgX, size_t subImgY,
+                       bool* mask, bool* visited, size_t& x, size_t& y,
+                       size_t& subWidth, size_t& subHeight) const {
     // This function performs a flood fill of the subimage. Two results are
     // stored: the mask containing all the pixels that belong to this subimage,
     // as well as a visited image that contains the union of all masks so far

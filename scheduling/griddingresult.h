@@ -21,8 +21,8 @@ struct GriddingResult {
         actualInversionWidth(0),
         actualInversionHeight(0) {}
 
-  Image imageRealResult;
-  Image imageImaginaryResult;
+  ImageF imageRealResult;
+  ImageF imageImaginaryResult;
   ObservationInfo observationInfo;
   double beamSize;
   double imageWeight;

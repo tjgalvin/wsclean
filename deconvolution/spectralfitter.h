@@ -11,6 +11,8 @@ enum SpectralFittingMode {
 
 class SpectralFitter {
  public:
+  typedef float num_t;
+
   SpectralFitter(SpectralFittingMode mode, size_t nTerms)
       : _mode(mode), _nTerms(nTerms) {}
 
@@ -21,20 +23,19 @@ class SpectralFitter {
     _nTerms = nTerms;
   }
 
-  void FitAndEvaluate(double* values) const;
+  void FitAndEvaluate(num_t* values) const;
 
-  void Fit(aocommon::UVector<double>& terms, const double* values) const;
+  void Fit(aocommon::UVector<num_t>& terms, const num_t* values) const;
 
-  void Evaluate(double* values, const aocommon::UVector<double>& terms) const;
+  void Evaluate(num_t* values, const aocommon::UVector<num_t>& terms) const;
 
-  double Evaluate(const aocommon::UVector<double>& terms,
-                  double frequency) const;
+  num_t Evaluate(const aocommon::UVector<num_t>& terms, double frequency) const;
 
-  void SetFrequencies(const double* frequencies, const double* weights,
+  void SetFrequencies(const double* frequencies, const num_t* weights,
                       size_t n) {
     _frequencies.assign(frequencies, frequencies + n);
     _weights.assign(weights, weights + n);
-    double weightSum = 0.0;
+    num_t weightSum = 0.0;
     _referenceFrequency = 0.0;
     for (size_t i = 0; i != n; ++i) {
       _referenceFrequency += _frequencies[i] * _weights[i];
@@ -48,7 +49,7 @@ class SpectralFitter {
 
   double Frequency(size_t index) const { return _frequencies[index]; }
 
-  double Weight(size_t index) const { return _weights[index]; }
+  num_t Weight(size_t index) const { return _weights[index]; }
 
   size_t NTerms() const { return _nTerms; }
 
@@ -59,7 +60,8 @@ class SpectralFitter {
  private:
   enum SpectralFittingMode _mode;
   size_t _nTerms;
-  aocommon::UVector<double> _frequencies, _weights;
+  aocommon::UVector<double> _frequencies;
+  aocommon::UVector<num_t> _weights;
   double _referenceFrequency;
 };
 

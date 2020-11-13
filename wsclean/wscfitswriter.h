@@ -36,11 +36,14 @@ class WSCFitsWriter {
 
   FitsWriter& Writer() { return _writer; }
 
-  void WriteImage(const std::string& suffix, const double* image);
+  template <typename NumT>
+  void WriteImage(const std::string& suffix, const NumT* image);
 
-  void WriteUV(const std::string& suffix, const double* image);
+  template <typename NumT>
+  void WriteUV(const std::string& suffix, const NumT* image);
 
-  void WritePSF(const std::string& fullname, const double* image);
+  template <typename NumT>
+  void WritePSF(const std::string& fullname, const NumT* image);
 
   /**
    * Restore an elliptical beam using a FFT deconvolution directly from images.

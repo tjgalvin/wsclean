@@ -10,6 +10,7 @@ BOOST_AUTO_TEST_SUITE(image_operations)
 
 BOOST_AUTO_TEST_CASE(median_empty) {
   BOOST_CHECK_EQUAL(Image::Median(nullptr, 0), 0.0);
+  BOOST_CHECK_EQUAL(ImageF::Median(nullptr, 0), 0.0);
 }
 
 BOOST_AUTO_TEST_CASE(median_single) {

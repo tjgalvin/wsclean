@@ -57,7 +57,7 @@ class WSClean {
   void storeAndCombineXYandYX(CachedImageSet& dest,
                               aocommon::PolarizationEnum polarization,
                               size_t joinedChannelIndex, bool isImaginary,
-                              const double* image);
+                              const float* image);
   bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex,
                       const ImagingTableEntry& entry);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
@@ -78,9 +78,6 @@ class WSClean {
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 
   void multiplyImage(double factor, double* image) const;
-  void multiplyImage(double factor, Image& image) const {
-    multiplyImage(factor, image.data());
-  }
 
   GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
   void loadExistingPSF(ImagingTableEntry& entry);
@@ -104,7 +101,7 @@ class WSClean {
   // aocommon::PolarizationEnum pol, bool isImaginary, bool isPSF = false); void
   // renderMFSImage(size_t intervalIndex, aocommon::PolarizationEnum pol, bool
   // isImaginary, bool isPBCorrected) const;
-  void saveUVImage(const double* image, const ImagingTableEntry& entry,
+  void saveUVImage(const float* image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;

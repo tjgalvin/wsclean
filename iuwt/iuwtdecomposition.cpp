@@ -2,15 +2,15 @@
 
 #include "../threadpool.h"
 
-void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const double* input,
-                                    double* scratch, bool includeLargest) {
-  aocommon::UVector<double>& i1(_scales.back().Coefficients());
-  i1.resize(_width * _height);
+void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const float* input,
+                                    float* scratch, bool includeLargest) {
+  ImageF& i1(_scales.back().Coefficients());
+  i1 = ImageF(_width, _height);
 
   // The first iteration of the loop, unrolled, so that we don't have to
   // copy the input into i0.
-  aocommon::UVector<double>& coefficients0 = _scales[0].Coefficients();
-  coefficients0.resize(_width * _height);
+  ImageF& coefficients0 = _scales[0].Coefficients();
+  coefficients0 = ImageF(_width, _height);
   convolveMT(threadPool, i1.data(), input, scratch, _width, _height, 1);
   convolveMT(threadPool, coefficients0.data(), i1.data(), scratch, _width,
              _height, 1);
@@ -20,11 +20,11 @@ void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const double* input,
                _width, _height);
 
   // i0 = i1;
-  aocommon::UVector<double> i0(i1);
+  ImageF i0(i1);
 
   for (int scale = 1; scale != int(_scaleCount); ++scale) {
-    aocommon::UVector<double>& coefficients = _scales[scale].Coefficients();
-    coefficients.resize(_width * _height);
+    ImageF& coefficients = _scales[scale].Coefficients();
+    coefficients = ImageF(_width, _height);
     convolveMT(threadPool, i1.data(), i0.data(), scratch, _width, _height,
                scale + 1);
     convolveMT(threadPool, coefficients.data(), i1.data(), scratch, _width,
@@ -36,7 +36,7 @@ void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const double* input,
 
     // i0 = i1;
     if (scale + 1 != int(_scaleCount))
-      memcpy(i0.data(), i1.data(), sizeof(double) * _width * _height);
+      memcpy(i0.data(), i1.data(), sizeof(float) * _width * _height);
   }
 
   // The largest (residual) scales are in i1, but since the
@@ -46,12 +46,11 @@ void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const double* input,
   //	_scales.back().Coefficients() = i1;
 
   // Do free the memory of the largest scale if it is not necessary:
-  if (!includeLargest)
-    aocommon::UVector<double>().swap(_scales.back().Coefficients());
+  if (!includeLargest) _scales.back().Coefficients().reset();
 }
 
-void IUWTDecomposition::convolveMT(ThreadPool& threadPool, double* output,
-                                   const double* image, double* scratch,
+void IUWTDecomposition::convolveMT(ThreadPool& threadPool, float* output,
+                                   const float* image, float* scratch,
                                    size_t width, size_t height, int scale) {
   ConvolveHorizontalPartialFunc hFunc;
   hFunc._output = scratch;
@@ -79,8 +78,8 @@ void IUWTDecomposition::convolveMT(ThreadPool& threadPool, double* output,
   threadPool.wait_for_all_tasks();
 }
 
-void IUWTDecomposition::differenceMT(class ThreadPool& threadPool, double* dest,
-                                     const double* lhs, const double* rhs,
+void IUWTDecomposition::differenceMT(class ThreadPool& threadPool, float* dest,
+                                     const float* lhs, const float* rhs,
                                      size_t width, size_t height) {
   DifferencePartialFunc func;
   func._dest = dest;
@@ -95,13 +94,12 @@ void IUWTDecomposition::differenceMT(class ThreadPool& threadPool, double* dest,
   threadPool.wait_for_all_tasks();
 }
 
-void IUWTDecomposition::convolveHorizontalFast(double* output,
-                                               const double* image,
-                                               size_t width, size_t height,
-                                               int scale) {
+void IUWTDecomposition::convolveHorizontalFast(float* output,
+                                               const float* image, size_t width,
+                                               size_t height, int scale) {
   const size_t H_SIZE = 5;
-  const double h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
-                            1.0 / 16.0};
+  const float h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
+                           1.0 / 16.0};
   int scaleDist = (1 << scale);
   int dist[H_SIZE];
   size_t minX[H_SIZE], maxX[H_SIZE];
@@ -112,8 +110,8 @@ void IUWTDecomposition::convolveHorizontalFast(double* output,
     maxX[hIndex] = std::min<int>(width, width - dist[hIndex]);
   }
   for (size_t y = 0; y != height; ++y) {
-    double* outputPtr = &output[y * width];
-    const double* inputPtr = &image[y * width];
+    float* outputPtr = &output[y * width];
+    const float* inputPtr = &image[y * width];
 
     for (size_t x = 0; x != minX[1]; ++x) {
       outputPtr[x] = inputPtr[x + dist[2]] * h[2] +
@@ -150,15 +148,15 @@ void IUWTDecomposition::convolveHorizontalFast(double* output,
 
 // This version is not as fast as the one below.
 void IUWTDecomposition::convolveVerticalPartialFastFailed(
-    double* output, const double* image, size_t width, size_t height,
+    float* output, const float* image, size_t width, size_t height,
     size_t startX, size_t endX, int scale) {
   const size_t H_SIZE = 5;
-  const double h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
-                            1.0 / 16.0};
+  const float h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
+                           1.0 / 16.0};
   int scaleDist = (1 << scale);
   for (size_t y = 0; y < height; ++y) {
-    double* outputPtr = &output[y * width];
-    const double* inputPtr = &image[y * width];
+    float* outputPtr = &output[y * width];
+    const float* inputPtr = &image[y * width];
     for (size_t x = startX; x != endX; ++x) outputPtr[x] = inputPtr[x] * h[2];
   }
   for (int hIndex = 0; hIndex != H_SIZE; ++hIndex) {
@@ -168,8 +166,8 @@ void IUWTDecomposition::convolveVerticalPartialFastFailed(
       size_t minY = std::max<int>(0, -dist),
              maxY = std::min<int>(height, height - dist);
       for (size_t y = minY; y < maxY; ++y) {
-        double* outputPtr = &output[y * width];
-        const double* inputPtr = &image[(y + dist) * width];
+        float* outputPtr = &output[y * width];
+        const float* inputPtr = &image[(y + dist) * width];
         for (size_t x = startX; x != endX; ++x)
           outputPtr[x] += inputPtr[x] * h[hIndex];
       }
@@ -177,14 +175,14 @@ void IUWTDecomposition::convolveVerticalPartialFastFailed(
   }
 }
 
-void IUWTDecomposition::convolveVerticalPartialFast(double* output,
-                                                    const double* image,
+void IUWTDecomposition::convolveVerticalPartialFast(float* output,
+                                                    const float* image,
                                                     size_t width, size_t height,
                                                     size_t startX, size_t endX,
                                                     int scale) {
   const size_t H_SIZE = 5;
-  const double h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
-                            1.0 / 16.0};
+  const float h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
+                           1.0 / 16.0};
   int scaleDist = (1 << scale);
   int dist[H_SIZE];
   size_t minY[H_SIZE], maxY[H_SIZE];
@@ -196,10 +194,10 @@ void IUWTDecomposition::convolveVerticalPartialFast(double* output,
   }
 
   for (size_t y = 0; y != minY[1]; ++y) {
-    double* outputPtr = &output[y * width];
-    const double* inputPtr2 = &image[(y + dist[2]) * width];
-    const double* inputPtr3 = &image[(y + dist[3]) * width];
-    const double* inputPtr4 = &image[(y + dist[4]) * width];
+    float* outputPtr = &output[y * width];
+    const float* inputPtr2 = &image[(y + dist[2]) * width];
+    const float* inputPtr3 = &image[(y + dist[3]) * width];
+    const float* inputPtr4 = &image[(y + dist[4]) * width];
     for (size_t x = startX; x != endX; ++x) {
       outputPtr[x] =
           inputPtr2[x] * h[2] + inputPtr3[x] * h[3] + inputPtr4[x] * h[4];
@@ -207,11 +205,11 @@ void IUWTDecomposition::convolveVerticalPartialFast(double* output,
   }
 
   for (size_t y = minY[1]; y != minY[0]; ++y) {
-    double* outputPtr = &output[y * width];
-    const double* inputPtr1 = &image[(y + dist[1]) * width];
-    const double* inputPtr2 = &image[(y + dist[2]) * width];
-    const double* inputPtr3 = &image[(y + dist[3]) * width];
-    const double* inputPtr4 = &image[(y + dist[4]) * width];
+    float* outputPtr = &output[y * width];
+    const float* inputPtr1 = &image[(y + dist[1]) * width];
+    const float* inputPtr2 = &image[(y + dist[2]) * width];
+    const float* inputPtr3 = &image[(y + dist[3]) * width];
+    const float* inputPtr4 = &image[(y + dist[4]) * width];
     for (size_t x = startX; x != endX; ++x) {
       outputPtr[x] = inputPtr1[x] * h[1] + inputPtr2[x] * h[2] +
                      inputPtr3[x] * h[3] + inputPtr4[x] * h[4];
@@ -219,12 +217,12 @@ void IUWTDecomposition::convolveVerticalPartialFast(double* output,
   }
 
   for (size_t y = minY[0]; y != maxY[4]; ++y) {
-    double* outputPtr = &output[y * width];
-    const double* inputPtr0 = &image[(y + dist[0]) * width];
-    const double* inputPtr1 = &image[(y + dist[1]) * width];
-    const double* inputPtr2 = &image[(y + dist[2]) * width];
-    const double* inputPtr3 = &image[(y + dist[3]) * width];
-    const double* inputPtr4 = &image[(y + dist[4]) * width];
+    float* outputPtr = &output[y * width];
+    const float* inputPtr0 = &image[(y + dist[0]) * width];
+    const float* inputPtr1 = &image[(y + dist[1]) * width];
+    const float* inputPtr2 = &image[(y + dist[2]) * width];
+    const float* inputPtr3 = &image[(y + dist[3]) * width];
+    const float* inputPtr4 = &image[(y + dist[4]) * width];
     for (size_t x = startX; x != endX; ++x) {
       outputPtr[x] = inputPtr0[x] * h[0] + inputPtr1[x] * h[1] +
                      inputPtr2[x] * h[2] + inputPtr3[x] * h[3] +
@@ -233,11 +231,11 @@ void IUWTDecomposition::convolveVerticalPartialFast(double* output,
   }
 
   for (size_t y = maxY[4]; y != maxY[3]; ++y) {
-    double* outputPtr = &output[y * width];
-    const double* inputPtr0 = &image[(y + dist[0]) * width];
-    const double* inputPtr1 = &image[(y + dist[1]) * width];
-    const double* inputPtr2 = &image[(y + dist[2]) * width];
-    const double* inputPtr3 = &image[(y + dist[3]) * width];
+    float* outputPtr = &output[y * width];
+    const float* inputPtr0 = &image[(y + dist[0]) * width];
+    const float* inputPtr1 = &image[(y + dist[1]) * width];
+    const float* inputPtr2 = &image[(y + dist[2]) * width];
+    const float* inputPtr3 = &image[(y + dist[3]) * width];
     for (size_t x = startX; x != endX; ++x) {
       outputPtr[x] = inputPtr0[x] * h[0] + inputPtr1[x] * h[1] +
                      inputPtr2[x] * h[2] + inputPtr3[x] * h[3];
@@ -245,10 +243,10 @@ void IUWTDecomposition::convolveVerticalPartialFast(double* output,
   }
 
   for (size_t y = maxY[3]; y != height; ++y) {
-    double* outputPtr = &output[y * width];
-    const double* inputPtr0 = &image[(y + dist[0]) * width];
-    const double* inputPtr1 = &image[(y + dist[1]) * width];
-    const double* inputPtr2 = &image[(y + dist[2]) * width];
+    float* outputPtr = &output[y * width];
+    const float* inputPtr0 = &image[(y + dist[0]) * width];
+    const float* inputPtr1 = &image[(y + dist[1]) * width];
+    const float* inputPtr2 = &image[(y + dist[2]) * width];
     for (size_t x = startX; x != endX; ++x) {
       outputPtr[x] =
           inputPtr0[x] * h[0] + inputPtr1[x] * h[1] + inputPtr2[x] * h[2];

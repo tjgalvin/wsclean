@@ -15,13 +15,13 @@ class DirectMSGridder : public MSGridderBase {
 
   virtual void Invert() final override;
 
-  virtual void Predict(Image image) final override;
-  virtual void Predict(Image /*real*/, Image /*imaginary*/) final override {
+  virtual void Predict(ImageF image) final override;
+  virtual void Predict(ImageF /*real*/, ImageF /*imaginary*/) final override {
     throw std::runtime_error("Direct FT imager can not predict complex images");
   }
 
-  virtual Image ImageRealResult() final override { return std::move(_image); }
-  virtual Image ImageImaginaryResult() final override {
+  virtual ImageF ImageRealResult() final override { return std::move(_image); }
+  virtual ImageF ImageImaginaryResult() final override {
     throw std::runtime_error("Direct FT imager can not make complex images");
   }
   virtual size_t getSuggestedWGridSize() const override final { return 1; }
@@ -32,7 +32,7 @@ class DirectMSGridder : public MSGridderBase {
     std::complex<float> sample;
   };
   size_t _nThreads;
-  Image _image;
+  ImageF _image;
   num_t* _sqrtLMTable;
   std::vector<num_t*> _layers;
   aocommon::Lane<InversionSample> _inversionLane;

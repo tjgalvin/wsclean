@@ -2,7 +2,7 @@
 
 #include <gsl/gsl_multifit.h>
 
-void PolynomialFitter::Fit(aocommon::UVector<double>& terms, size_t nTerms) {
+void PolynomialFitter::Fit(aocommon::UVector<num_t>& terms, size_t nTerms) {
   size_t n = _dataPoints.size();
   terms.assign(nTerms, 0.0);
 
@@ -21,11 +21,11 @@ void PolynomialFitter::Fit(aocommon::UVector<double>& terms, size_t nTerms) {
   double chisq;
 
   for (size_t i = 0; i != n; ++i) {
-    double x = _dataPoints[i][0];
-    double y = _dataPoints[i][1];
-    double w = _dataPoints[i][2];
+    num_t x = _dataPoints[i][0];
+    num_t y = _dataPoints[i][1];
+    num_t w = _dataPoints[i][2];
 
-    double f = 1.0;
+    num_t f = 1.0;
     gsl_matrix_set(xData, i, 0, f);
     for (size_t j = 1; j != nTerms; ++j) {
       f *= x;  // f = x^j

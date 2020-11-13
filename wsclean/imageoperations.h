@@ -11,12 +11,12 @@
 class ImageOperations {
  public:
   static void FitBeamSize(const class WSCleanSettings& settings, double& bMaj,
-                          double& bMin, double& bPA, const double* image,
+                          double& bMin, double& bPA, const float* image,
                           double beamEstimate);
 
   static void DetermineBeamSize(const class WSCleanSettings& settings,
                                 double& bMaj, double& bMin, double& bPA,
-                                double& bTheoretical, const double* image,
+                                double& bTheoretical, const float* image,
                                 double initialEstimate);
 
   static void MakeMFSImage(const class WSCleanSettings& settings,

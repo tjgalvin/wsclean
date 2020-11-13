@@ -12,82 +12,82 @@ BOOST_AUTO_TEST_CASE(first_order) {
   const double xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<double> terms{1.0, -0.7};
+  aocommon::UVector<float> terms{1.0, -0.7};
 
   for (size_t x = 1; x != 10; ++x) {
-    double y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
+    float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
 
-  double e = 0.0, fact = 0.0;
+  float e = 0.0, fact = 0.0;
   fitter.Fit(e, fact);
   BOOST_CHECK_SMALL(std::fabs(1.0 - fact), 1e-6);
   BOOST_CHECK_SMALL(std::fabs(-0.7 - e), 1e-6);
 }
 
 BOOST_AUTO_TEST_CASE(second_order_zero) {
-  const double xFact = 1e1;
+  const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<double> terms{1.0, -0.7};
+  aocommon::UVector<float> terms{1.0, -0.7};
 
   for (size_t x = 1; x != 10; ++x) {
-    double y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
+    float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
-  aocommon::UVector<double> fitted;
+  aocommon::UVector<float> fitted;
   fitter.Fit(fitted, 3);
-  BOOST_CHECK_SMALL(std::fabs(1.0 - fitted[0]), 1e-6);
-  BOOST_CHECK_SMALL(std::fabs(-0.7 - fitted[1]), 1e-6);
-  BOOST_CHECK_SMALL(std::fabs(0.0 - fitted[2]), 1e-6);
+  BOOST_CHECK_SMALL(std::fabs(1.0f - fitted[0]), 1e-6f);
+  BOOST_CHECK_SMALL(std::fabs(-0.7f - fitted[1]), 1e-6f);
+  BOOST_CHECK_SMALL(std::fabs(0.0f - fitted[2]), 1e-6f);
 }
 
 BOOST_AUTO_TEST_CASE(first_order_stability) {
-  const double xFact = 1e1;
+  const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<double> terms{1.0, -0.7, -0.01};
+  aocommon::UVector<float> terms{1.0, -0.7, -0.01};
   for (size_t x = 1; x != 10; ++x) {
-    double y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
+    float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
-  double e = 0.0, fact = 0.0;
+  float e = 0.0, fact = 0.0;
   fitter.Fit(e, fact);
-  BOOST_CHECK_SMALL(std::fabs(terms[0] - fact), 0.1);
-  BOOST_CHECK_SMALL(std::fabs(terms[1] - e), 0.1);
+  BOOST_CHECK_SMALL(std::fabs(terms[0] - fact), 0.1f);
+  BOOST_CHECK_SMALL(std::fabs(terms[1] - e), 0.1f);
 }
 
 BOOST_AUTO_TEST_CASE(second_order_nonzero) {
-  const double xFact = 1e1;
+  const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<double> terms{1.0, -0.7, -0.01};
+  aocommon::UVector<float> terms{1.0, -0.7, -0.01};
   for (size_t x = 1; x != 10; ++x) {
-    double y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
+    float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
-  aocommon::UVector<double> fitted;
+  aocommon::UVector<float> fitted;
   fitter.Fit(fitted, 3);
-  BOOST_CHECK_SMALL(std::fabs(terms[0] - fitted[0]), 1e-5);
-  BOOST_CHECK_SMALL(std::fabs(terms[1] - fitted[1]), 1e-5);
-  BOOST_CHECK_SMALL(std::fabs(terms[2] - fitted[2]), 1e-5);
+  BOOST_CHECK_SMALL(std::fabs(terms[0] - fitted[0]), 1e-3f);
+  BOOST_CHECK_SMALL(std::fabs(terms[1] - fitted[1]), 1e-3f);
+  BOOST_CHECK_SMALL(std::fabs(terms[2] - fitted[2]), 1e-3f);
 }
 
 BOOST_AUTO_TEST_CASE(third_order) {
-  const double xFact = 1e1;
+  const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<double> terms{1.0, -0.7, -0.01, 0.05};
+  aocommon::UVector<float> terms{1.0, -0.7, -0.01, 0.05};
   for (size_t x = 1; x != 10; ++x) {
-    double y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
+    float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
-  aocommon::UVector<double> fitted;
+  aocommon::UVector<float> fitted;
   fitter.Fit(fitted, 4);
-  BOOST_CHECK_SMALL(std::fabs(terms[0] - fitted[0]), 1e-2);
-  BOOST_CHECK_SMALL(std::fabs(terms[1] - fitted[1]), 1e-2);
-  BOOST_CHECK_SMALL(std::fabs(terms[2] - fitted[2]), 1e-2);
-  BOOST_CHECK_SMALL(std::fabs(terms[3] - fitted[3]), 1e-2);
+  BOOST_CHECK_SMALL(std::fabs(terms[0] - fitted[0]), 1e-2f);
+  BOOST_CHECK_SMALL(std::fabs(terms[1] - fitted[1]), 1e-2f);
+  BOOST_CHECK_SMALL(std::fabs(terms[2] - fitted[2]), 1e-2f);
+  BOOST_CHECK_SMALL(std::fabs(terms[3] - fitted[3]), 1e-2f);
 }
 
 /**

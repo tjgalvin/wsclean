@@ -29,6 +29,13 @@ class ImageT {
   ImageT<NumT>& operator=(const ImageT<NumT>&);
   ImageT<NumT>& operator=(value_type value);
 
+  ImageT<NumT>& Assign(const NumT* begin, const NumT* end) {
+    if (size_t(end - begin) != _width * _height)
+      throw std::runtime_error("Invalid Assign()");
+    std::copy(begin, end, _data);
+    return *this;
+  }
+
   ImageT(ImageT<NumT>&& source);
   ImageT<NumT>& operator=(ImageT<NumT>&& source);
 
@@ -61,6 +68,11 @@ class ImageT {
 
   ImageT<NumT>& operator*=(value_type factor);
   ImageT<NumT>& operator*=(const ImageT<NumT>& other);
+
+  ImageT<NumT>& Sqrt();
+  ImageT<NumT>& Square();
+  ImageT<NumT>& AddWithFactor(const ImageT<NumT>& rhs, NumT factor);
+  ImageT<NumT>& AddSquared(const ImageT<NumT>& rhs);
 
   void reset();
 

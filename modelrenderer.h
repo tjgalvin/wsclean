@@ -28,7 +28,7 @@ class ModelRenderer {
   /**
    * Restore a model with an elliptical beam
    */
-  void Restore(double* imageData, size_t imageWidth, size_t imageHeight,
+  void Restore(float* imageData, size_t imageWidth, size_t imageHeight,
                const class Model& model, long double beamMaj,
                long double beamMin, long double beamPA,
                long double startFrequency, long double endFrequency,
@@ -37,7 +37,7 @@ class ModelRenderer {
   /**
    * Restore elliptical beam using a FFT deconvolution
    */
-  void Restore(double* imageData, const double* modelData, size_t imageWidth,
+  void Restore(float* imageData, const float* modelData, size_t imageWidth,
                size_t imageHeight, long double beamMaj, long double beamMin,
                long double beamPA) {
     Restore(imageData, modelData, imageWidth, imageHeight, beamMaj, beamMin,
@@ -47,7 +47,7 @@ class ModelRenderer {
   /**
    * Restore elliptical beam using a FFT deconvolution (static version).
    */
-  static void Restore(double* imageData, const double* modelData,
+  static void Restore(float* imageData, const float* modelData,
                       size_t imageWidth, size_t imageHeight,
                       long double beamMaj, long double beamMin,
                       long double beamPA, long double pixelScaleL,
@@ -56,7 +56,7 @@ class ModelRenderer {
   /**
    * Render without beam convolution, such that each point-source is one pixel.
    */
-  void RenderModel(double* imageData, size_t imageWidth, size_t imageHeight,
+  void RenderModel(float* imageData, size_t imageWidth, size_t imageHeight,
                    const class Model& model, long double startFrequency,
                    long double endFrequency,
                    aocommon::PolarizationEnum polarization) {
@@ -68,22 +68,22 @@ class ModelRenderer {
    * This will render a source and sinc-interpolate it so it
    * can be on non-integer positions.
    */
-  static void RenderInterpolatedSource(double* image, size_t width,
-                                       size_t height, double flux, double x,
+  static void RenderInterpolatedSource(float* image, size_t width,
+                                       size_t height, float flux, double x,
                                        double y);
 
  private:
-  void renderPointComponent(double* imageData, size_t imageWidth,
+  void renderPointComponent(float* imageData, size_t imageWidth,
                             size_t imageHeight, long double posRA,
                             long double posDec, long double flux);
 
-  void renderGaussianComponent(double* imageData, size_t imageWidth,
+  void renderGaussianComponent(float* imageData, size_t imageWidth,
                                size_t imageHeight, long double posRA,
                                long double posDec, long double gausMaj,
                                long double gausMin, long double gausPA,
                                long double flux);
 
-  void renderModel(double* imageData, size_t imageWidth, size_t imageHeight,
+  void renderModel(float* imageData, size_t imageWidth, size_t imageHeight,
                    const class Model& model, long double startFrequency,
                    long double endFrequency,
                    aocommon::PolarizationEnum polarization);

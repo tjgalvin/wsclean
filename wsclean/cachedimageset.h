@@ -35,7 +35,8 @@ class CachedImageSet {
 
   void SetFitsWriter(const FitsWriter& writer) { _writer = writer; }
 
-  void Load(double* image, aocommon::PolarizationEnum polarization,
+  template <typename NumT>
+  void Load(NumT* image, aocommon::PolarizationEnum polarization,
             size_t freqIndex, bool isImaginary) const {
     if (_writer.Width() == 0 || _writer.Height() == 0)
       throw std::runtime_error("Writer is not set.");
@@ -53,7 +54,8 @@ class CachedImageSet {
     }
   }
 
-  void Store(const double* image, aocommon::PolarizationEnum polarization,
+  template <typename NumT>
+  void Store(const NumT* image, aocommon::PolarizationEnum polarization,
              size_t freqIndex, bool isImaginary) {
     if (_writer.Width() == 0 || _writer.Height() == 0)
       throw std::runtime_error("Writer is not set.");
@@ -65,8 +67,6 @@ class CachedImageSet {
       }
       std::copy(image, image + _writer.Width() * _writer.Height(),
                 _image.data());
-      // memcpy(_image, image, _writer.Width() * _writer.Height() *
-      // sizeof(double));
     } else {
       std::string n = name(polarization, freqIndex, isImaginary);
       _writer.Write(n, image);

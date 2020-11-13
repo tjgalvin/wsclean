@@ -832,9 +832,9 @@ void WStackingGridderBase<float>::correctImageForKernel(num_t *image) const {
 
 template <typename T>
 void WStackingGridderBase<T>::initializePrediction(
-    Image image, std::vector<ImageT<num_t>> &dataArray) {
+    ImageF image, std::vector<ImageT<num_t>> &dataArray) {
   num_t *dataPtr = dataArray[0].data();
-  const double *inPtr = image.data();
+  const float *inPtr = image.data();
   for (size_t y = 0; y != _height; ++y) {
     double m = ((double)y - (_height / 2)) * _pixelSizeY + _phaseCentreDM;
     for (size_t x = 0; x != _width; ++x) {
@@ -998,26 +998,26 @@ void WStackingGridderBase<T>::SampleData(std::complex<float> *data,
 }
 
 template <>
-Image WStackingGridderBase<double>::RealImageDouble() {
+ImageF WStackingGridderBase<float>::RealImageFloat() {
   return std::move(_imageData[0]);
 }
 
 template <>
-Image WStackingGridderBase<float>::RealImageDouble() {
-  Image image(_width, _height);
+ImageF WStackingGridderBase<double>::RealImageFloat() {
+  ImageF image(_width, _height);
   for (size_t i = 0; i != _width * _height; ++i) image[i] = _imageData[0][i];
   _imageData[0].reset();
   return std::move(image);
 }
 
 template <>
-Image WStackingGridderBase<double>::ImaginaryImageDouble() {
+ImageF WStackingGridderBase<float>::ImaginaryImageFloat() {
   return std::move(_imageDataImaginary[0]);
 }
 
 template <>
-Image WStackingGridderBase<float>::ImaginaryImageDouble() {
-  Image image(_width, _height);
+ImageF WStackingGridderBase<double>::ImaginaryImageFloat() {
+  ImageF image(_width, _height);
   for (size_t i = 0; i != _width * _height; ++i)
     image[i] = _imageDataImaginary[0][i];
   _imageDataImaginary[0].reset();

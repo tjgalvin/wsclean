@@ -26,14 +26,14 @@ struct ImageSetFixtureBase {
   }
 
   void checkLinearValue(size_t index, double value, const ImageSet& dset) {
-    Image dest(2, 2, 1.0);
-    dset.GetLinearIntegrated(dest.data());
+    ImageF dest(2, 2, 1.0);
+    dset.GetLinearIntegrated(dest);
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
   }
 
   void checkSquaredValue(size_t index, double value, const ImageSet& dset) {
-    Image dest(2, 2, 1.0), scratch(2, 2);
-    dset.GetSquareIntegrated(dest.data(), scratch.data());
+    ImageF dest(2, 2, 1.0), scratch(2, 2);
+    dset.GetSquareIntegrated(dest, scratch);
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
   }
 
@@ -132,6 +132,7 @@ BOOST_FIXTURE_TEST_CASE(xxNormalization, ImageSetFixtureBase) {
   addToImageSet(table, 0, 0, 0, 0, aocommon::Polarization::XX, 100);
   table.Update();
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][1] = 5.0;
   checkLinearValue(1, 5.0, dset);
   checkSquaredValue(1, 5.0, dset);
@@ -143,6 +144,7 @@ BOOST_FIXTURE_TEST_CASE(iNormalization, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][2] = 6.0;
   checkLinearValue(2, 6.0, dset);
   checkSquaredValue(2, 6.0, dset);
@@ -157,6 +159,7 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_Normalization, ImageSetFixtureBase) {
       std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI};
   std::set<aocommon::PolarizationEnum> pols{aocommon::Polarization::StokesI};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][0] = 12.0;
   dset[1][0] = 13.0;
   checkLinearValue(0, 12.5, dset);
@@ -170,11 +173,12 @@ BOOST_FIXTURE_TEST_CASE(xxyyNormalization, ImageSetFixtureBase) {
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][3] = 7.0;
   dset[1][3] = 8.0;
   checkLinearValue(3, 7.5, dset);
   dset[0][3] = -7.0;
-  checkSquaredValue(3, sqrt((7.0 * 7.0 + 8.0 * 8.0) * 0.5), dset);
+  checkSquaredValue(3, std::sqrt((7.0 * 7.0 + 8.0 * 8.0) * 0.5), dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(iqNormalization, ImageSetFixtureBase) {
@@ -184,10 +188,11 @@ BOOST_FIXTURE_TEST_CASE(iqNormalization, ImageSetFixtureBase) {
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>{
       aocommon::Polarization::StokesI, aocommon::Polarization::StokesQ};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][0] = 6.0;
   dset[1][0] = -1.0;
   checkLinearValue(0, 5.0, dset);
-  checkSquaredValue(0, sqrt(6.0 * 6.0 + -1.0 * -1.0), dset);
+  checkSquaredValue(0, std::sqrt(6.0 * 6.0 + -1.0 * -1.0), dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(linkedINormalization, ImageSetFixtureBase) {
@@ -197,6 +202,7 @@ BOOST_FIXTURE_TEST_CASE(linkedINormalization, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][0] = 3.0;
   dset[1][0] = -1.0;
   checkLinearValue(0, 3.0, dset);
@@ -213,12 +219,13 @@ BOOST_FIXTURE_TEST_CASE(iquvNormalization, ImageSetFixtureBase) {
       aocommon::Polarization::StokesI, aocommon::Polarization::StokesQ,
       aocommon::Polarization::StokesU, aocommon::Polarization::StokesV};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][0] = 9.0;
   dset[1][0] = 0.2;
   dset[2][0] = 0.2;
   dset[3][0] = 0.2;
   checkLinearValue(0, 9.6, dset);
-  checkSquaredValue(0, sqrt(9.0 * 9.0 + 3.0 * 0.2 * 0.2), dset);
+  checkSquaredValue(0, std::sqrt(9.0 * 9.0 + 3.0 * 0.2 * 0.2), dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yyNormalization, ImageSetFixtureBase) {
@@ -231,13 +238,14 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yyNormalization, ImageSetFixtureBase) {
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][1] = 10.0;
   dset[1][1] = 0.25;
   dset[2][1] = 0.25;
   dset[3][1] = 10.0;
-  checkLinearValue(1, 10.25, dset);
-  checkSquaredValue(1, sqrt((10.0 * 10.0 * 2.0 + 0.25 * 0.25 * 2.0) * 0.5),
-                    dset);
+  checkLinearValue(1, 10.25f, dset);
+  checkSquaredValue(
+      1, std::sqrt((10.0f * 10.0f * 2.0f + 0.25f * 0.25f * 2.0f) * 0.5f), dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yy_2channel_Normalization,
@@ -256,6 +264,7 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yy_2channel_Normalization,
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][2] = 5.0;
   dset[1][2] = 0.1;
   dset[2][2] = 0.2;
@@ -270,7 +279,8 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yy_2channel_Normalization,
     sqVal2 += dset[i + 4][2] * dset[i + 4][2];
   }
   checkLinearValue(2, 27.0 * 0.25, dset);
-  checkSquaredValue(2, (sqrt(sqVal1 * 0.5) + sqrt(sqVal2 * 0.5)) * 0.5, dset);
+  checkSquaredValue(
+      2, (std::sqrt(sqVal1 * 0.5) + std::sqrt(sqVal2 * 0.5)) * 0.5, dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(linked_xx_yy_2channel_Normalization,
@@ -288,6 +298,7 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_yy_2channel_Normalization,
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][2] = 7.5;
   dset[1][2] = 0.1;
   dset[2][2] = -0.2;
@@ -299,7 +310,8 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_yy_2channel_Normalization,
   double sqVal1 = dset[0][2] * dset[0][2] + dset[3][2] * dset[3][2],
          sqVal2 = dset[4][2] * dset[4][2] + dset[7][2] * dset[7][2];
   checkLinearValue(2, 32.0 * 0.25, dset);
-  checkSquaredValue(2, (sqrt(sqVal1 * 0.5) + sqrt(sqVal2 * 0.5)) * 0.5, dset);
+  checkSquaredValue(
+      2, (std::sqrt(sqVal1 * 0.5) + std::sqrt(sqVal2 * 0.5)) * 0.5, dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(linked_xx_2channel_Normalization, ImageSetFixtureBase) {
@@ -316,6 +328,7 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_2channel_Normalization, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<aocommon::PolarizationEnum>{aocommon::Polarization::XX};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][2] = 7.5;
   dset[1][2] = 0.1;
   dset[2][2] = -0.2;
@@ -326,7 +339,7 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_2channel_Normalization, ImageSetFixtureBase) {
   dset[7][2] = 9.5;
   double sqVal1 = dset[0][2] * dset[0][2], sqVal2 = dset[4][2] * dset[4][2];
   checkLinearValue(2, 32.0 * 0.25, dset);
-  checkSquaredValue(2, (sqrt(sqVal1) + sqrt(sqVal2)) * 0.5, dset);
+  checkSquaredValue(2, (std::sqrt(sqVal1) + std::sqrt(sqVal2)) * 0.5, dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(deconvchannels_normalization, ImageSetFixtureBase) {
@@ -339,6 +352,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_normalization, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][0] = 10.0;
   dset[1][0] = 13.0;
   checkLinearValue(0, 12.0, dset);
@@ -355,6 +369,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_zeroweight, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   dset[0][0] = 10.0;
   dset[1][0] = 5.0;
   checkLinearValue(0, 6.0, dset);
@@ -370,6 +385,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_divisor, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI};
   ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
   for (size_t ch = 0; ch != 3; ++ch) dset[ch][0] = 7.0;
   checkLinearValue(0, 7.0, dset);
   checkSquaredValue(0, 7.0, dset);

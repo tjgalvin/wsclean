@@ -344,7 +344,7 @@ class WStackingGridderBase {
    * @param image The model image that is to be predicted for. This is an
    * array of width * height size, index by (x + width*y).
    */
-  void InitializePrediction(Image image) {
+  void InitializePrediction(ImageF image) {
     initializePrediction(std::move(image), _imageData);
   }
 
@@ -357,7 +357,7 @@ class WStackingGridderBase {
    * @param imaginary Array of width * height giving the imaginary (model) image
    * values.
    */
-  void InitializePrediction(Image real, Image imaginary) {
+  void InitializePrediction(ImageF real, ImageF imaginary) {
     initializePrediction(std::move(real), _imageData);
     initializePrediction(std::move(imaginary), _imageDataImaginary);
   }
@@ -420,7 +420,7 @@ class WStackingGridderBase {
    */
   ImageT<num_t> RealImage() { return std::move(_imageData[0]); }
 
-  Image RealImageDouble();
+  ImageF RealImageFloat();
 
   /**
    * Get the imaginary part of a complex image after inversion. Otherwise
@@ -429,7 +429,7 @@ class WStackingGridderBase {
    */
   ImageT<num_t> ImaginaryImage() { return std::move(_imageDataImaginary[0]); }
 
-  Image ImaginaryImageDouble();
+  ImageF ImaginaryImageFloat();
 
   /**
    * Get the number of threads used when performing the FFTs. The w-layers are
@@ -575,7 +575,8 @@ class WStackingGridderBase {
   void fftToUVThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks);
   void finalizeImage(double multiplicationFactor,
                      std::vector<ImageT<num_t>> &dataArray);
-  void initializePrediction(Image image, std::vector<ImageT<num_t>> &dataArray);
+  void initializePrediction(ImageF image,
+                            std::vector<ImageT<num_t>> &dataArray);
 
   void makeKernels();
   /**

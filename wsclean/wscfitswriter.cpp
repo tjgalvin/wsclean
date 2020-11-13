@@ -150,12 +150,18 @@ void WSCFitsWriter::copyWSCleanKeywords(FitsReader& reader) {
     _writer.CopyDoubleKeywordIfExists(reader, dblKeywords[i]);
 }
 
-void WSCFitsWriter::WriteImage(const std::string& suffix, const double* image) {
+template <typename NumT>
+void WSCFitsWriter::WriteImage(const std::string& suffix, const NumT* image) {
   std::string name = _filenamePrefix + '-' + suffix;
   _writer.Write(name, image);
 }
+template void WSCFitsWriter::WriteImage(const std::string& suffix,
+                                        const double* image);
+template void WSCFitsWriter::WriteImage(const std::string& suffix,
+                                        const float* image);
 
-void WSCFitsWriter::WriteUV(const std::string& suffix, const double* image) {
+template <typename NumT>
+void WSCFitsWriter::WriteUV(const std::string& suffix, const NumT* image) {
   std::string name = _filenamePrefix + '-' + suffix;
   FitsWriter::Unit unit = _writer.GetUnit();
   _writer.SetIsUV(true);
@@ -164,10 +170,19 @@ void WSCFitsWriter::WriteUV(const std::string& suffix, const double* image) {
   _writer.SetIsUV(false);
   _writer.SetUnit(unit);
 }
+template void WSCFitsWriter::WriteUV(const std::string& suffix,
+                                     const double* image);
+template void WSCFitsWriter::WriteUV(const std::string& suffix,
+                                     const float* image);
 
-void WSCFitsWriter::WritePSF(const std::string& fullname, const double* image) {
+template <typename NumT>
+void WSCFitsWriter::WritePSF(const std::string& fullname, const NumT* image) {
   _writer.Write(fullname, image);
 }
+template void WSCFitsWriter::WritePSF(const std::string& fullname,
+                                      const double* image);
+template void WSCFitsWriter::WritePSF(const std::string& fullname,
+                                      const float* image);
 
 void WSCFitsWriter::Restore(const WSCleanSettings& settings) {
   FitsReader imgReader(settings.restoreInput), modReader(settings.restoreModel);
@@ -175,8 +190,8 @@ void WSCFitsWriter::Restore(const WSCleanSettings& settings) {
       imgReader.ImageHeight() != modReader.ImageHeight())
     throw std::runtime_error(
         "Image and model images have different dimensions!");
-  aocommon::UVector<double> image(imgReader.ImageWidth() *
-                                  imgReader.ImageHeight()),
+  aocommon::UVector<float> image(imgReader.ImageWidth() *
+                                 imgReader.ImageHeight()),
       model(modReader.ImageWidth() * modReader.ImageHeight());
   imgReader.Read(image.data());
   modReader.Read(model.data());
@@ -204,8 +219,8 @@ void WSCFitsWriter::Restore(const WSCleanSettings& settings) {
 void WSCFitsWriter::RestoreList(const WSCleanSettings& settings) {
   const Model model = BBSModel::Read(settings.restoreModel);
   FitsReader imgReader(settings.restoreInput);
-  aocommon::UVector<double> image(imgReader.ImageWidth() *
-                                  imgReader.ImageHeight());
+  aocommon::UVector<float> image(imgReader.ImageWidth() *
+                                 imgReader.ImageHeight());
   imgReader.Read(image.data());
 
   double beamMaj, beamMin, beamPA;

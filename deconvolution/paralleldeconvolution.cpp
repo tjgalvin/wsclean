@@ -51,7 +51,7 @@ void ParallelDeconvolution::SetAlgorithm(
   }
 }
 
-void ParallelDeconvolution::SetRMSFactorImage(Image&& image) {
+void ParallelDeconvolution::SetRMSFactorImage(ImageF&& image) {
   if (_settings.parallelDeconvolutionMaxSize == 0)
     _algorithms.front()->SetRMSFactorImage(std::move(image));
   else
@@ -80,8 +80,8 @@ void ParallelDeconvolution::SetCleanMask(const bool* mask) {
 
 void ParallelDeconvolution::runSubImage(
     SubImage& subImg, ImageSet& dataImage, ImageSet& modelImage,
-    const aocommon::UVector<const double*>& psfImages,
-    double majorIterThreshold, bool findPeakOnly, std::mutex* mutex) {
+    const aocommon::UVector<const float*>& psfImages, double majorIterThreshold,
+    bool findPeakOnly, std::mutex* mutex) {
   const size_t width = _settings.trimmedImageWidth,
                height = _settings.trimmedImageHeight;
 
@@ -95,19 +95,19 @@ void ParallelDeconvolution::runSubImage(
   }
 
   // Construct the smaller psfs
-  std::vector<Image> subPsfs(psfImages.size());
-  aocommon::UVector<const double*> subPsfVector(psfImages.size());
+  std::vector<ImageF> subPsfs(psfImages.size());
+  aocommon::UVector<const float*> subPsfVector(psfImages.size());
   for (size_t i = 0; i != psfImages.size(); ++i) {
-    subPsfs[i] = Image(subImg.width, subImg.height);
-    Image::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i],
-                width, height);
+    subPsfs[i] = ImageF(subImg.width, subImg.height);
+    ImageF::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i],
+                 width, height);
     subPsfVector[i] = subPsfs[i].data();
   }
   _algorithms[subImg.index]->SetCleanMask(subImg.mask.data());
 
   // Construct smaller RMS image if necessary
   if (!_rmsImage.empty()) {
-    Image subRmsImage =
+    ImageF subRmsImage =
         _rmsImage.TrimBox(subImg.x, subImg.y, subImg.width, subImg.height);
     _algorithms[subImg.index]->SetRMSFactorImage(std::move(subRmsImage));
   }
@@ -147,7 +147,7 @@ void ParallelDeconvolution::runSubImage(
 
   // Since this was an RMS image specifically for this subimage size, we free it
   // immediately
-  _algorithms[subImg.index]->SetRMSFactorImage(Image());
+  _algorithms[subImg.index]->SetRMSFactorImage(ImageF());
 
   if (_trackPerScaleMasks) {
     std::lock_guard<std::mutex> lock(*mutex);
@@ -191,7 +191,7 @@ void ParallelDeconvolution::runSubImage(
 
 void ParallelDeconvolution::ExecuteMajorIteration(
     class ImageSet& dataImage, class ImageSet& modelImage,
-    const aocommon::UVector<const double*>& psfImages,
+    const aocommon::UVector<const float*>& psfImages,
     bool& reachedMajorThreshold) {
   const size_t width = _settings.trimmedImageWidth,
                height = _settings.trimmedImageHeight;
@@ -207,16 +207,16 @@ void ParallelDeconvolution::ExecuteMajorIteration(
 
 void ParallelDeconvolution::executeParallelRun(
     class ImageSet& dataImage, class ImageSet& modelImage,
-    const aocommon::UVector<const double*>& psfImages,
+    const aocommon::UVector<const float*>& psfImages,
     bool& reachedMajorThreshold) {
   const size_t width = _settings.trimmedImageWidth,
                height = _settings.trimmedImageHeight,
                avgHSubImageSize = width / _horImages,
                avgVSubImageSize = height / _verImages;
 
-  Image image(width, height), scratch(width, height),
+  ImageF image(width, height), scratch(width, height),
       dividingLines(width, height, 0.0);
-  dataImage.GetLinearIntegrated(image.data());
+  dataImage.GetLinearIntegrated(image);
 
   Subdivision divisor(width, height);
 

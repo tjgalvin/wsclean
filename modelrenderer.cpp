@@ -86,7 +86,7 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
 }
 
 void ModelRenderer::renderGaussianComponent(
-    double* imageData, size_t imageWidth, size_t imageHeight, long double posRA,
+    float* imageData, size_t imageWidth, size_t imageHeight, long double posRA,
     long double posDec, long double gausMaj, long double gausMin,
     long double gausPA, long double flux) {
   // Using the FWHM formula for a Gaussian:
@@ -157,7 +157,7 @@ void ModelRenderer::renderGaussianComponent(
   const double* iter = values.data();
   double factor = flux / fluxSum;
   for (int y = yTop; y != yBottom; ++y) {
-    double* imageDataPtr = imageData + y * imageWidth + xLeft;
+    float* imageDataPtr = imageData + y * imageWidth + xLeft;
     for (int x = xLeft; x != xRight; ++x) {
       (*imageDataPtr) += *iter * factor;
       ++imageDataPtr;
@@ -166,7 +166,7 @@ void ModelRenderer::renderGaussianComponent(
   }
 }
 
-void ModelRenderer::renderPointComponent(double* imageData, size_t imageWidth,
+void ModelRenderer::renderPointComponent(float* imageData, size_t imageWidth,
                                          size_t imageHeight, long double posRA,
                                          long double posDec, long double flux) {
   long double sourceL, sourceM;
@@ -182,19 +182,19 @@ void ModelRenderer::renderPointComponent(double* imageData, size_t imageWidth,
 
   if (sourceX >= 0 && sourceX < (int)imageWidth && sourceY >= 0 &&
       sourceY < (int)imageHeight) {
-    double* imageDataPtr = imageData + sourceY * imageWidth + sourceX;
+    float* imageDataPtr = imageData + sourceY * imageWidth + sourceX;
     (*imageDataPtr) += double(flux);
   }
 }
 
 /** Restore a model with an elliptical beam */
-void ModelRenderer::Restore(double* imageData, size_t imageWidth,
+void ModelRenderer::Restore(float* imageData, size_t imageWidth,
                             size_t imageHeight, const Model& model,
                             long double beamMaj, long double beamMin,
                             long double beamPA, long double startFrequency,
                             long double endFrequency,
                             aocommon::PolarizationEnum polarization) {
-  aocommon::UVector<double> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
+  aocommon::UVector<float> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
   renderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model,
               startFrequency, endFrequency, polarization);
   Restore(imageData, renderedWithoutBeam.data(), imageWidth, imageHeight,
@@ -204,7 +204,7 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
 /**
  * Restore a diffuse image (e.g. produced with multi-scale clean)
  */
-void ModelRenderer::Restore(double* imageData, const double* modelData,
+void ModelRenderer::Restore(float* imageData, const float* modelData,
                             size_t imageWidth, size_t imageHeight,
                             long double beamMaj, long double beamMin,
                             long double beamPA, long double pixelScaleL,
@@ -238,8 +238,8 @@ void ModelRenderer::Restore(double* imageData, const double* modelData,
         ceil(sigmaMax * 40.0 / std::min(pixelScaleL, pixelScaleM)),
         minDimension);
     if (boundingBoxSize % 2 != 0) ++boundingBoxSize;
-    aocommon::UVector<double> kernel(boundingBoxSize * boundingBoxSize);
-    typename aocommon::UVector<double>::iterator i = kernel.begin();
+    aocommon::UVector<float> kernel(boundingBoxSize * boundingBoxSize);
+    auto iter = kernel.begin();
     for (size_t y = 0; y != boundingBoxSize; ++y) {
       for (size_t x = 0; x != boundingBoxSize; ++x) {
         long double l, m;
@@ -249,12 +249,12 @@ void ModelRenderer::Restore(double* imageData, const double* modelData,
         long double lTransf = l * transf[0] + m * transf[1],
                     mTransf = l * transf[2] + m * transf[3];
         long double dist = sqrt(lTransf * lTransf + mTransf * mTransf);
-        *i = gaus(dist, (long double)1.0);
-        ++i;
+        *iter = gaus(dist, (long double)1.0);
+        ++iter;
       }
     }
 
-    aocommon::UVector<double> convolvedModel(
+    aocommon::UVector<float> convolvedModel(
         modelData, modelData + imageWidth * imageHeight);
 
     FFTWManager fftw;
@@ -268,7 +268,7 @@ void ModelRenderer::Restore(double* imageData, const double* modelData,
 /**
  * Render without beam convolution, such that each point-source is one pixel.
  */
-void ModelRenderer::renderModel(double* imageData, size_t imageWidth,
+void ModelRenderer::renderModel(float* imageData, size_t imageWidth,
                                 size_t imageHeight, const Model& model,
                                 long double startFrequency,
                                 long double endFrequency,
@@ -292,10 +292,10 @@ void ModelRenderer::renderModel(double* imageData, size_t imageWidth,
   }
 }
 
-void ModelRenderer::RenderInterpolatedSource(double* image, size_t width,
-                                             size_t height, double flux,
+void ModelRenderer::RenderInterpolatedSource(float* image, size_t width,
+                                             size_t height, float flux,
                                              double x, double y) {
-  aocommon::UVector<double> hSinc(std::min<size_t>(width, 128) + 1),
+  aocommon::UVector<float> hSinc(std::min<size_t>(width, 128) + 1),
       vSinc(std::min<size_t>(height, 128) + 1);
 
   int midH = hSinc.size() / 2;
@@ -324,8 +324,8 @@ void ModelRenderer::RenderInterpolatedSource(double* image, size_t width,
          endX = std::min<size_t>(xOffset + hSinc.size(), width),
          endY = std::min<size_t>(yOffset + vSinc.size(), height);
   for (size_t yi = startY; yi != endY; ++yi) {
-    double* ptr = &image[yi * width];
-    double vFlux = flux * vSinc[yi - yOffset];
+    float* ptr = &image[yi * width];
+    float vFlux = flux * vSinc[yi - yOffset];
     for (size_t xi = startX; xi != endX; ++xi) {
       ptr[xi] += vFlux * hSinc[xi - xOffset];
     }

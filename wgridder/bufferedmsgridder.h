@@ -26,13 +26,13 @@ class BufferedMSGridder : public MSGridderBase {
 
   virtual void Invert() final override;
 
-  virtual void Predict(Image image) final override;
-  virtual void Predict(Image, Image) final override {
+  virtual void Predict(ImageF image) final override;
+  virtual void Predict(ImageF, ImageF) final override {
     throw std::runtime_error("Can not do imaginary imaging in this mode");
   }
 
-  virtual Image ImageRealResult() final override { return std::move(_image); }
-  virtual Image ImageImaginaryResult() final override {
+  virtual ImageF ImageRealResult() final override { return std::move(_image); }
+  virtual ImageF ImageImaginaryResult() final override {
     throw std::runtime_error("Can not do imaginary imaging in this mode");
   }
 
@@ -48,7 +48,7 @@ class BufferedMSGridder : public MSGridderBase {
   virtual size_t getSuggestedWGridSize() const final override { return 1; }
 
  private:
-  Image _image;
+  ImageF _image;
 
   void gridMeasurementSet(MSData& msData);
 

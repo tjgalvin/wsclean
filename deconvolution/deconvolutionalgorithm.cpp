@@ -26,7 +26,7 @@ DeconvolutionAlgorithm::DeconvolutionAlgorithm()
       _spectralFitter(NoSpectralFitting, 0) {}
 
 void DeconvolutionAlgorithm::GetModelFromImage(
-    Model& model, const double* image, size_t width, size_t height,
+    Model& model, const float* image, size_t width, size_t height,
     double phaseCentreRA, double phaseCentreDec, double pixelSizeX,
     double pixelSizeY, double phaseCentreDL, double phaseCentreDM,
     double spectralIndex, double refFreq,
@@ -60,30 +60,30 @@ void DeconvolutionAlgorithm::GetModelFromImage(
   }
 }
 
-void DeconvolutionAlgorithm::ResizeImage(double* dest, size_t newWidth,
-                                         size_t newHeight, const double* source,
+void DeconvolutionAlgorithm::ResizeImage(float* dest, size_t newWidth,
+                                         size_t newHeight, const float* source,
                                          size_t width, size_t height) {
   size_t srcStartX = (width - newWidth) / 2,
          srcStartY = (height - newHeight) / 2;
   for (size_t y = 0; y != newHeight; ++y) {
-    double* destPtr = dest + y * newWidth;
-    const double* srcPtr = source + (y + srcStartY) * width + srcStartX;
+    float* destPtr = dest + y * newWidth;
+    const float* srcPtr = source + (y + srcStartY) * width + srcStartX;
     memcpy(destPtr, srcPtr, newWidth * sizeof(double));
   }
 }
 
-void DeconvolutionAlgorithm::RemoveNaNsInPSF(double* psf, size_t width,
+void DeconvolutionAlgorithm::RemoveNaNsInPSF(float* psf, size_t width,
                                              size_t height) {
-  double* endPtr = psf + width * height;
+  float* endPtr = psf + width * height;
   while (psf != endPtr) {
     if (!std::isfinite(*psf)) *psf = 0.0;
     ++psf;
   }
 }
 
-void DeconvolutionAlgorithm::PerformSpectralFit(double* values) {
+void DeconvolutionAlgorithm::PerformSpectralFit(float* values) {
   _spectralFitter.FitAndEvaluate(values);
 }
 
-double Evaluate(double x, const aocommon::UVector<double>& terms,
-                double referenceFrequencyHz = 1.0);
+float Evaluate(float x, const aocommon::UVector<float>& terms,
+               double referenceFrequencyHz = 1.0);

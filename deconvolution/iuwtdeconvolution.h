@@ -18,14 +18,14 @@ class IUWTDeconvolution : public DeconvolutionAlgorithm {
   IUWTDeconvolution(class FFTWManager& fftwManager)
       : _fftwManager(fftwManager), _useSNRTest(false) {}
 
-  virtual double ExecuteMajorIteration(
+  virtual float ExecuteMajorIteration(
       ImageSet& dataImage, ImageSet& modelImage,
-      const aocommon::UVector<const double*>& psfImages, size_t width,
+      const aocommon::UVector<const float*>& psfImages, size_t width,
       size_t height, bool& reachedMajorThreshold) final override {
     IUWTDeconvolutionAlgorithm algorithm(
         _fftwManager, width, height, _gain, _mGain, _cleanBorderRatio,
         _allowNegativeComponents, _cleanMask, _threshold, _useSNRTest);
-    double val = algorithm.PerformMajorIteration(
+    float val = algorithm.PerformMajorIteration(
         _iterationNumber, MaxNIter(), modelImage, dataImage, psfImages,
         reachedMajorThreshold);
     if (_iterationNumber >= MaxNIter()) reachedMajorThreshold = false;

@@ -385,7 +385,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
           ++n;
         }
       }
-      double eTemp = 0.0, fTemp = 1.0;
+      float eTemp = 0.0, fTemp = 1.0;
       fitter.Fit(eTemp, fTemp);
       // if(n == 0)
       //	std::cout << "No valid data in power law fit\n";
@@ -418,14 +418,14 @@ class MeasuredSED : public SpectralEnergyDistribution {
         ++n;
       }
     }
-    double aTemp = 0.0, bTemp = 1.0, cTemp = 0.0;
+    float aTemp = 0.0, bTemp = 1.0, cTemp = 0.0;
     fitter.Fit(aTemp, bTemp, cTemp);
     a = aTemp;
     b = bTemp;
     c = cTemp;
   }
 
-  void FitLogPolynomial(aocommon::UVector<double>& terms, size_t nTerms,
+  void FitLogPolynomial(aocommon::UVector<float>& terms, size_t nTerms,
                         aocommon::PolarizationEnum polarization,
                         double referenceFrequencyHz = 1.0) const {
     NonLinearPowerLawFitter fitter;

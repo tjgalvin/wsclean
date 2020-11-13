@@ -67,7 +67,8 @@ class Deconvolution {
   aocommon::UVector<bool> _cleanMask;
 
   bool _autoMaskIsFinished;
-  aocommon::UVector<double> _channelFrequencies, _channelWeights;
+  aocommon::UVector<double> _channelFrequencies;
+  aocommon::UVector<float> _channelWeights;
   std::set<aocommon::PolarizationEnum> _polarizations;
   aocommon::PolarizationEnum _psfPolarization;
   size_t _imgWidth, _imgHeight;

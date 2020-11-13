@@ -36,7 +36,7 @@ class ComponentList {
         _maxComponentsBeforeMerge(100000),
         _listPerScale(nScales) {}
 
-  void Add(size_t x, size_t y, size_t scaleIndex, const double* values) {
+  void Add(size_t x, size_t y, size_t scaleIndex, const float* values) {
     _listPerScale[scaleIndex].values.push_back(values, values + _nFrequencies);
     _listPerScale[scaleIndex].positions.emplace_back(x, y);
     ++_componentsAddedSinceLastMerge;
@@ -91,7 +91,7 @@ class ComponentList {
   }
 
   void GetComponent(size_t scaleIndex, size_t index, size_t& x, size_t& y,
-                    double* values) const {
+                    float* values) const {
     x = _listPerScale[scaleIndex].positions[index].x;
     y = _listPerScale[scaleIndex].positions[index].y;
     for (size_t f = 0; f != _nFrequencies; ++f)
@@ -115,7 +115,7 @@ class ComponentList {
      * component, such that _positions[i] corresponds with the values
      * starting at _values[i * _nFrequencies].
      */
-    aocommon::UVector<double> values;
+    aocommon::UVector<float> values;
     aocommon::UVector<Position> positions;
   };
 
@@ -129,7 +129,7 @@ class ComponentList {
 
   void mergeDuplicates(size_t scaleIndex) {
     ScaleList& list = _listPerScale[scaleIndex];
-    aocommon::UVector<double> newValues;
+    aocommon::UVector<float> newValues;
     aocommon::UVector<Position> newPositions;
 
     std::vector<Image> images(_nFrequencies);

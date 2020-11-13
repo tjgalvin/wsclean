@@ -5,22 +5,24 @@
 
 class RMSImage {
  public:
-  static void Make(Image& rmsOutput, const Image& inputImage, double windowSize,
-                   long double beamMaj, long double beamMin, long double beamPA,
-                   long double pixelScaleL, long double pixelScaleM);
+  static void Make(ImageF& rmsOutput, const ImageF& inputImage,
+                   double windowSize, long double beamMaj, long double beamMin,
+                   long double beamPA, long double pixelScaleL,
+                   long double pixelScaleM);
 
-  static void SlidingMinimum(Image& output, const Image& input,
+  static void SlidingMinimum(ImageF& output, const ImageF& input,
                              size_t windowSize);
 
-  static void SlidingMaximum(Image& output, const Image& input,
+  static void SlidingMaximum(ImageF& output, const ImageF& input,
                              size_t windowSize) {
-    Image flipped(input);
+    ImageF flipped(input);
     flipped.Negate();
     SlidingMinimum(output, flipped, windowSize);
     output.Negate();
   }
 
-  static void MakeWithNegativityLimit(Image& rmsOutput, const Image& inputImage,
+  static void MakeWithNegativityLimit(ImageF& rmsOutput,
+                                      const ImageF& inputImage,
                                       double windowSize, long double beamMaj,
                                       long double beamMin, long double beamPA,
                                       long double pixelScaleL,

@@ -1,6 +1,7 @@
 #include "threadeddeconvolutiontools.h"
 #include "multiscaletransforms.h"
 
+#include "../deconvolution/peakfinder.h"
 #include "../deconvolution/simpleclean.h"
 
 ThreadedDeconvolutionTools::ThreadedDeconvolutionTools(size_t threadCount)
@@ -28,10 +29,10 @@ ThreadedDeconvolutionTools::~ThreadedDeconvolutionTools() {
   }
 }
 
-void ThreadedDeconvolutionTools::SubtractImage(double* image, const double* psf,
+void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
                                                size_t width, size_t height,
                                                size_t x, size_t y,
-                                               double factor) {
+                                               float factor) {
   for (size_t thr = 0; thr != _threadCount; ++thr) {
     SubtractionTask* task = new SubtractionTask();
     task->image = image;
@@ -65,16 +66,16 @@ ThreadedDeconvolutionTools::SubtractionTask::operator()() {
 }
 
 void ThreadedDeconvolutionTools::MultiScaleTransform(
-    MultiScaleTransforms* msTransforms,
-    const aocommon::UVector<double*>& images, double* scratch, double scale) {
+    MultiScaleTransforms* msTransforms, std::vector<ImageF>& images,
+    ImageF& scratch, float scale) {
   size_t imageIndex = 0;
   size_t nextThread = 0;
-  msTransforms->PrepareTransform(scratch, scale);
+  msTransforms->PrepareTransform(scratch.data(), scale);
   while (imageIndex < images.size()) {
     FinishMultiScaleTransformTask* task = new FinishMultiScaleTransformTask();
     task->msTransforms = msTransforms;
-    task->image = images[imageIndex];
-    task->kernel = scratch;
+    task->image = &images[imageIndex];
+    task->kernel = &scratch;
     _taskLanes[nextThread]->write(task);
 
     ++nextThread;
@@ -89,7 +90,7 @@ void ThreadedDeconvolutionTools::MultiScaleTransform(
     ++imageIndex;
   }
   for (size_t thr = 0; thr != nextThread; ++thr) {
-    ThreadResult* result = 0;
+    ThreadResult* result = nullptr;
     _resultLanes[thr]->read(result);
     delete result;
   }
@@ -97,28 +98,27 @@ void ThreadedDeconvolutionTools::MultiScaleTransform(
 
 ThreadedDeconvolutionTools::ThreadResult*
 ThreadedDeconvolutionTools::FinishMultiScaleTransformTask::operator()() {
-  msTransforms->FinishTransform(image, kernel);
-  return 0;
+  msTransforms->FinishTransform(image->data(), kernel->data());
+  return nullptr;
 }
 
 void ThreadedDeconvolutionTools::MultiScaleTransform(
-    MultiScaleTransforms* msTransforms,
-    const aocommon::UVector<double*>& images,
-    aocommon::UVector<double> scales) {
+    MultiScaleTransforms* msTransforms, std::vector<ImageF>& images,
+    aocommon::UVector<float> scales) {
   size_t imageIndex = 0;
   size_t nextThread = 0;
 
   size_t scratchCount = std::min(images.size(), _threadCount);
-  std::unique_ptr<Image::Ptr[]> scratchImages(new Image::Ptr[scratchCount]);
+  std::unique_ptr<ImageF::Ptr[]> scratchImages(new ImageF::Ptr[scratchCount]);
   for (size_t i = 0; i != scratchCount; ++i)
     scratchImages[i] =
-        Image::Make(msTransforms->Width(), msTransforms->Height());
+        ImageF::Make(msTransforms->Width(), msTransforms->Height());
 
   while (imageIndex < images.size()) {
     MultiScaleTransformTask* task = new MultiScaleTransformTask();
     task->msTransforms = msTransforms;
-    task->image = images[imageIndex];
-    task->scratch = scratchImages[nextThread]->data();
+    task->image = &images[imageIndex];
+    task->scratch = scratchImages[nextThread].get();
     task->scale = scales[imageIndex];
     _taskLanes[nextThread]->write(task);
 
@@ -134,7 +134,7 @@ void ThreadedDeconvolutionTools::MultiScaleTransform(
     ++imageIndex;
   }
   for (size_t thr = 0; thr != nextThread; ++thr) {
-    ThreadResult* result = 0;
+    ThreadResult* result = nullptr;
     _resultLanes[thr]->read(result);
     delete result;
   }
@@ -142,38 +142,38 @@ void ThreadedDeconvolutionTools::MultiScaleTransform(
 
 ThreadedDeconvolutionTools::ThreadResult*
 ThreadedDeconvolutionTools::MultiScaleTransformTask::operator()() {
-  msTransforms->Transform(image, scratch, scale);
-  return 0;
+  msTransforms->Transform(*image, *scratch, scale);
+  return nullptr;
 }
 
 void ThreadedDeconvolutionTools::FindMultiScalePeak(
-    MultiScaleTransforms* msTransforms, const double* image,
-    const aocommon::UVector<double>& scales,
+    MultiScaleTransforms* msTransforms, const ImageF& image,
+    const aocommon::UVector<float>& scales,
     std::vector<ThreadedDeconvolutionTools::PeakData>& results,
     bool allowNegativeComponents, const bool* mask,
-    const std::vector<aocommon::UVector<bool>>& scaleMasks, double borderRatio,
-    const Image& rmsFactorImage, bool calculateRMS) {
+    const std::vector<aocommon::UVector<bool>>& scaleMasks, float borderRatio,
+    const ImageF& rmsFactorImage, bool calculateRMS) {
   size_t imageIndex = 0;
   size_t nextThread = 0;
   size_t resultIndex = 0;
 
   results.resize(scales.size());
-  const size_t dataSize = msTransforms->Width() * msTransforms->Height();
 
   size_t size = std::min(scales.size(), _threadCount);
-  std::unique_ptr<Image::Ptr[]> imageData(new Image::Ptr[size]);
-  std::unique_ptr<Image::Ptr[]> scratchData(new Image::Ptr[size]);
+  std::unique_ptr<ImageF::Ptr[]> imageData(new ImageF::Ptr[size]);
+  std::unique_ptr<ImageF::Ptr[]> scratchData(new ImageF::Ptr[size]);
   for (size_t i = 0; i != size; ++i) {
-    imageData[i] = Image::Make(msTransforms->Width(), msTransforms->Height());
-    scratchData[i] = Image::Make(msTransforms->Width(), msTransforms->Height());
+    imageData[i] = ImageF::Make(msTransforms->Width(), msTransforms->Height());
+    scratchData[i] =
+        ImageF::Make(msTransforms->Width(), msTransforms->Height());
   }
 
   while (imageIndex < scales.size()) {
     FindMultiScalePeakTask* task = new FindMultiScalePeakTask();
     task->msTransforms = msTransforms;
-    memcpy(imageData[nextThread]->data(), image, dataSize * sizeof(double));
-    task->image = imageData[nextThread]->data();
-    task->scratch = scratchData[nextThread]->data();
+    (*imageData[nextThread]) = image;
+    task->image = imageData[nextThread].get();
+    task->scratch = scratchData[nextThread].get();
     task->scale = scales[imageIndex];
     task->allowNegativeComponents = allowNegativeComponents;
     if (scaleMasks.empty())
@@ -225,7 +225,7 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(
 
 ThreadedDeconvolutionTools::ThreadResult*
 ThreadedDeconvolutionTools::FindMultiScalePeakTask::operator()() {
-  msTransforms->Transform(image, scratch, scale);
+  msTransforms->Transform(*image, *scratch, scale);
   const size_t width = msTransforms->Width(), height = msTransforms->Height(),
                scaleBorder = size_t(ceil(scale * 0.5)),
                horBorderSize =
@@ -234,39 +234,41 @@ ThreadedDeconvolutionTools::FindMultiScalePeakTask::operator()() {
                    std::max<size_t>(round(height * borderRatio), scaleBorder);
   FindMultiScalePeakResult* result = new FindMultiScalePeakResult();
   if (calculateRMS)
-    result->rms = RMS(image, width * height);
+    result->rms = RMS(*image, width * height);
   else
     result->rms = -1.0;
   if (rmsFactorImage->empty()) {
     if (mask == 0)
-      result->unnormalizedValue = SimpleClean::FindPeak(
-          image, width, height, result->x, result->y, allowNegativeComponents,
-          0, height, horBorderSize, vertBorderSize);
+      result->unnormalizedValue = PeakFinder::Find(
+          image->data(), width, height, result->x, result->y,
+          allowNegativeComponents, 0, height, horBorderSize, vertBorderSize);
     else
-      result->unnormalizedValue = SimpleClean::FindPeakWithMask(
-          image, width, height, result->x, result->y, allowNegativeComponents,
-          0, height, mask, horBorderSize, vertBorderSize);
+      result->unnormalizedValue =
+          PeakFinder::FindWithMask(image->data(), width, height, result->x,
+                                   result->y, allowNegativeComponents, 0,
+                                   height, mask, horBorderSize, vertBorderSize);
 
     result->normalizedValue = result->unnormalizedValue;
   } else {
     for (size_t i = 0; i != rmsFactorImage->size(); ++i)
-      scratch[i] = image[i] * (*rmsFactorImage)[i];
+      (*scratch)[i] = (*image)[i] * (*rmsFactorImage)[i];
 
     if (mask == 0)
-      result->unnormalizedValue = SimpleClean::FindPeak(
-          scratch, width, height, result->x, result->y, allowNegativeComponents,
-          0, height, horBorderSize, vertBorderSize);
+      result->unnormalizedValue = PeakFinder::Find(
+          scratch->data(), width, height, result->x, result->y,
+          allowNegativeComponents, 0, height, horBorderSize, vertBorderSize);
     else
-      result->unnormalizedValue = SimpleClean::FindPeakWithMask(
-          scratch, width, height, result->x, result->y, allowNegativeComponents,
-          0, height, mask, horBorderSize, vertBorderSize);
+      result->unnormalizedValue =
+          PeakFinder::FindWithMask(scratch->data(), width, height, result->x,
+                                   result->y, allowNegativeComponents, 0,
+                                   height, mask, horBorderSize, vertBorderSize);
 
     if (result->unnormalizedValue) {
       result->normalizedValue =
           (*result->unnormalizedValue) /
           (*rmsFactorImage)[result->x + result->y * width];
     } else {
-      result->normalizedValue = boost::optional<double>();
+      result->normalizedValue = boost::optional<float>();
     }
   }
   return result;

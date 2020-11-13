@@ -116,7 +116,7 @@ class WSCleanSettings {
   bool allowNegativeComponents, stopOnNegativeComponents;
   bool useMultiscale, useSubMinorOptimization, squaredJoins;
   double spectralCorrectionFrequency;
-  aocommon::UVector<double> spectralCorrection;
+  aocommon::UVector<float> spectralCorrection;
   bool multiscaleFastSubMinorLoop;
   double multiscaleGain, multiscaleDeconvolutionScaleBias;
   size_t multiscaleMaxScales;

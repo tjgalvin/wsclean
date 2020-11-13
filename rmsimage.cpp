@@ -1,36 +1,36 @@
 #include "rmsimage.h"
 #include "modelrenderer.h"
 
-void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
+void RMSImage::Make(ImageF& rmsOutput, const ImageF& inputImage,
                     double windowSize, long double beamMaj, long double beamMin,
                     long double beamPA, long double pixelScaleL,
                     long double pixelScaleM) {
-  Image image(inputImage);
-  rmsOutput = Image(image.Width(), image.Height(), 0.0);
+  ImageF image(inputImage);
+  rmsOutput = ImageF(image.Width(), image.Height(), 0.0);
 
-  for (double& val : image) val *= val;
+  for (auto& val : image) val *= val;
 
   ModelRenderer::Restore(rmsOutput.data(), image.data(), image.Width(),
                          image.Height(), beamMaj * windowSize,
                          beamMin * windowSize, beamPA, pixelScaleL,
                          pixelScaleM);
 
-  double s = sqrt(2.0 * M_PI);
+  double s = std::sqrt(2.0 * M_PI);
   const long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
   const long double sigmaMin = beamMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
   const double norm = 1.0 / (s * sigmaMaj / pixelScaleL * windowSize * s *
                              sigmaMin / pixelScaleL * windowSize);
-  for (double& val : rmsOutput) val = sqrt(val * norm);
+  for (auto& val : rmsOutput) val = std::sqrt(val * norm);
 }
 
-void RMSImage::SlidingMinimum(Image& output, const Image& input,
+void RMSImage::SlidingMinimum(ImageF& output, const ImageF& input,
                               size_t windowSize) {
   const size_t width = input.Width();
-  output = Image(width, input.Height());
-  Image temp(output);
+  output = ImageF(width, input.Height());
+  ImageF temp(output);
   for (size_t y = 0; y != input.Height(); ++y) {
-    double* outRowptr = &temp[y * width];
-    const double* inRowptr = &input[y * width];
+    float* outRowptr = &temp[y * width];
+    const float* inRowptr = &input[y * width];
     for (size_t x = 0; x != width; ++x) {
       size_t left = std::max(x, windowSize / 2) - windowSize / 2;
       size_t right = std::min(x, width - windowSize / 2) + windowSize / 2;
@@ -38,7 +38,7 @@ void RMSImage::SlidingMinimum(Image& output, const Image& input,
     }
   }
   for (size_t x = 0; x != width; ++x) {
-    aocommon::UVector<double> vals;
+    aocommon::UVector<float> vals;
     for (size_t y = 0; y != input.Height(); ++y) {
       size_t top = std::max(y, windowSize / 2) - windowSize / 2;
       size_t bottom =
@@ -51,19 +51,19 @@ void RMSImage::SlidingMinimum(Image& output, const Image& input,
   }
 }
 
-void RMSImage::MakeWithNegativityLimit(Image& rmsOutput,
-                                       const Image& inputImage,
+void RMSImage::MakeWithNegativityLimit(ImageF& rmsOutput,
+                                       const ImageF& inputImage,
                                        double windowSize, long double beamMaj,
                                        long double beamMin, long double beamPA,
                                        long double pixelScaleL,
                                        long double pixelScaleM) {
   Make(rmsOutput, inputImage, windowSize, beamMaj, beamMin, beamPA, pixelScaleL,
        pixelScaleM);
-  Image slidingMinimum(inputImage.Width(), inputImage.Height());
+  ImageF slidingMinimum(inputImage.Width(), inputImage.Height());
   double beamInPixels = std::max(beamMaj / pixelScaleL, 1.0L);
   SlidingMinimum(slidingMinimum, inputImage, windowSize * beamInPixels);
   for (size_t i = 0; i != rmsOutput.size(); ++i) {
-    rmsOutput[i] =
-        std::max(rmsOutput[i], std::abs(slidingMinimum[i]) * (1.5 / 5.0));
+    rmsOutput[i] = std::max<float>(rmsOutput[i],
+                                   std::abs(slidingMinimum[i]) * (1.5 / 5.0));
   }
 }

@@ -15,41 +15,33 @@
  */
 class NonLinearPowerLawFitter {
  public:
+  typedef float num_t;
+
   NonLinearPowerLawFitter();
 
   ~NonLinearPowerLawFitter();
 
-  void AddDataPoint(double x, double y);
+  void AddDataPoint(num_t x, num_t y);
 
-  void Fit(double& exponent, double& factor);
+  void Fit(num_t& exponent, num_t& factor);
 
-  void Fit(double& a, double& b, double& c);
+  void Fit(num_t& a, num_t& b, num_t& c);
 
-  void Fit(aocommon::UVector<double>& terms, size_t nTerms);
-  void FitStable(aocommon::UVector<double>& terms, size_t nTerms);
+  void Fit(aocommon::UVector<num_t>& terms, size_t nTerms);
+  void FitStable(aocommon::UVector<num_t>& terms, size_t nTerms);
 
-  void FastFit(double& exponent, double& factor);
+  void FastFit(num_t& exponent, num_t& factor);
 
-  static double Evaluate(double x, const aocommon::UVector<double>& terms,
-                         double referenceFrequencyHz = 1.0);
+  static num_t Evaluate(num_t x, const aocommon::UVector<num_t>& terms,
+                        num_t referenceFrequencyHz = 1.0);
 
   static long double Evaluate(long double factor, long double exponent,
                               long double frequencyHz) {
     return factor * powl(frequencyHz, exponent);
   }
 
-  /*static double Term0ToFactor(double term0, double term1)
-  {
-          return exp10(term0); // + term1*log(NLPLFact));
-  }
-
-  static double FactorToTerm0(double factor, double term1)
-  {
-          return log10(factor); // - (term1*log(NLPLFact));
-  }*/
-
  private:
-  void fit_implementation(aocommon::UVector<double>& terms, size_t nTerms);
+  void fit_implementation(aocommon::UVector<num_t>& terms, size_t nTerms);
 
   std::unique_ptr<class NLPLFitterData> _data;
 };

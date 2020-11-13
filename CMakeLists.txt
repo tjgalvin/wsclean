@@ -162,6 +162,7 @@ add_library(wsclean-object OBJECT
   deconvolution/imageset.cpp
   deconvolution/moresane.cpp
   deconvolution/paralleldeconvolution.cpp
+  deconvolution/peakfinder.cpp
   deconvolution/pythondeconvolution.cpp
   deconvolution/simpleclean.cpp
   deconvolution/spectralfitter.cpp
@@ -280,6 +281,7 @@ if(Boost_FOUND)
     tests/testmultibanddata.cpp
     tests/testnlplfitter.cpp
     tests/testparsetreader.cpp
+    tests/testpeakfinder.cpp
     tests/testpolynomialchannelfitter.cpp
     tests/testpolynomialfitter.cpp
     tests/testradeccoord.cpp

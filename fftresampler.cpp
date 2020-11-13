@@ -19,22 +19,22 @@ FFTResampler::FFTResampler(size_t inWidth, size_t inHeight, size_t outWidth,
       _correctWindow(false),
       _tasks(cpuCount),
       _verbose(verbose) {
-  double* inputData = reinterpret_cast<double*>(
-      fftw_malloc(_fftWidth * _fftHeight * sizeof(double)));
-  fftw_complex* fftData = reinterpret_cast<fftw_complex*>(
-      fftw_malloc(_fftWidth * _fftHeight * sizeof(fftw_complex)));
-  _inToFPlan = fftw_plan_dft_r2c_2d(_inputHeight, _inputWidth, inputData,
-                                    fftData, FFTW_ESTIMATE);
-  _fToOutPlan = fftw_plan_dft_c2r_2d(_outputHeight, _outputWidth, fftData,
-                                     inputData, FFTW_ESTIMATE);
-  fftw_free(fftData);
-  fftw_free(inputData);
+  float* inputData = reinterpret_cast<float*>(
+      fftwf_malloc(_fftWidth * _fftHeight * sizeof(float)));
+  fftwf_complex* fftData = reinterpret_cast<fftwf_complex*>(
+      fftwf_malloc(_fftWidth * _fftHeight * sizeof(fftwf_complex)));
+  _inToFPlan = fftwf_plan_dft_r2c_2d(_inputHeight, _inputWidth, inputData,
+                                     fftData, FFTW_ESTIMATE);
+  _fToOutPlan = fftwf_plan_dft_c2r_2d(_outputHeight, _outputWidth, fftData,
+                                      inputData, FFTW_ESTIMATE);
+  fftwf_free(fftData);
+  fftwf_free(inputData);
 }
 
 FFTResampler::~FFTResampler() {
   Finish();
-  fftw_destroy_plan(_inToFPlan);
-  fftw_destroy_plan(_fToOutPlan);
+  fftwf_destroy_plan(_inToFPlan);
+  fftwf_destroy_plan(_fToOutPlan);
 }
 
 void FFTResampler::runThread() {
@@ -45,8 +45,8 @@ void FFTResampler::runThread() {
 }
 
 void FFTResampler::runSingle(const Task& task, bool skipWindow) const {
-  double* endPtr = task.input + _inputWidth * _inputHeight;
-  for (double* i = task.input; i != endPtr; ++i) {
+  float* endPtr = task.input + _inputWidth * _inputHeight;
+  for (float* i = task.input; i != endPtr; ++i) {
     if (!std::isfinite(*i)) *i = 0.0;
   }
 
@@ -54,20 +54,20 @@ void FFTResampler::runSingle(const Task& task, bool skipWindow) const {
     applyWindow(task.input);
 
   size_t fftInWidth = _inputWidth / 2 + 1;
-  std::complex<double>* fftData = reinterpret_cast<std::complex<double>*>(
-      fftw_malloc(fftInWidth * _inputHeight * sizeof(std::complex<double>)));
+  std::complex<float>* fftData = reinterpret_cast<std::complex<float>*>(
+      fftwf_malloc(fftInWidth * _inputHeight * sizeof(std::complex<float>)));
   if (_verbose)
     Logger::Debug << "FFT " << _inputWidth << " x " << _inputHeight
                   << " real -> complex...\n";
-  fftw_execute_dft_r2c(_inToFPlan, task.input,
-                       reinterpret_cast<fftw_complex*>(fftData));
+  fftwf_execute_dft_r2c(_inToFPlan, task.input,
+                        reinterpret_cast<fftwf_complex*>(fftData));
 
   size_t fftOutWidth = _outputWidth / 2 + 1;
   // TODO this can be done without allocating more mem!
-  std::complex<double>* newfftData = reinterpret_cast<std::complex<double>*>(
-      fftw_malloc(fftOutWidth * _outputHeight * sizeof(std::complex<double>)));
+  std::complex<float>* newfftData = reinterpret_cast<std::complex<float>*>(
+      fftwf_malloc(fftOutWidth * _outputHeight * sizeof(std::complex<float>)));
   std::uninitialized_fill_n(newfftData, fftOutWidth * _outputHeight,
-                            std::complex<double>(0));
+                            std::complex<float>(0));
 
   size_t oldMidX = _inputWidth / 2;
   size_t newMidX = _outputWidth / 2;
@@ -78,7 +78,7 @@ void FFTResampler::runSingle(const Task& task, bool skipWindow) const {
   size_t minMidX = minWidth / 2;
   size_t minMidY = minHeight / 2;
 
-  double factor = 1.0 / (minWidth * minHeight);
+  float factor = 1.0 / (minWidth * minHeight);
 
   for (size_t y = 0; y != minHeight; ++y) {
     size_t oldY = y - minMidY + _inputHeight;
@@ -106,30 +106,30 @@ void FFTResampler::runSingle(const Task& task, bool skipWindow) const {
     }
   }
 
-  fftw_free(fftData);
+  fftwf_free(fftData);
 
   if (_verbose)
     Logger::Debug << "FFT " << _outputWidth << " x " << _outputHeight
                   << " complex -> real...\n";
-  fftw_execute_dft_c2r(_fToOutPlan, reinterpret_cast<fftw_complex*>(newfftData),
-                       task.output);
+  fftwf_execute_dft_c2r(
+      _fToOutPlan, reinterpret_cast<fftwf_complex*>(newfftData), task.output);
 
-  fftw_free(newfftData);
+  fftwf_free(newfftData);
 
   if (_correctWindow && _windowFunction != WindowFunction::Rectangular &&
       !skipWindow)
     unapplyWindow(task.output);
 }
 
-void FFTResampler::SingleFT(const double* input, double* realOutput,
-                            double* imaginaryOutput) {
-  aocommon::UVector<double> data(_inputWidth * _inputHeight);
+void FFTResampler::SingleFT(const float* input, float* realOutput,
+                            float* imaginaryOutput) {
+  aocommon::UVector<float> data(_inputWidth * _inputHeight);
   size_t halfWidth = _inputWidth / 2, halfHeight = _inputHeight / 2;
   for (size_t y = 0; y != _inputHeight; ++y) {
     size_t yIn = y + halfHeight;
     if (yIn >= _inputHeight) yIn -= _inputHeight;
-    double* rowOutPtr = &data[y * _inputWidth];
-    const double* rowInPtr = &input[yIn * _inputWidth];
+    float* rowOutPtr = &data[y * _inputWidth];
+    const float* rowInPtr = &input[yIn * _inputWidth];
     for (size_t x = 0; x != _inputWidth; ++x) {
       size_t xIn = x + halfWidth;
       if (xIn >= _inputWidth) xIn -= _inputWidth;
@@ -141,18 +141,18 @@ void FFTResampler::SingleFT(const double* input, double* realOutput,
   }
 
   size_t fftInWidth = _inputWidth / 2 + 1;
-  std::complex<double>* fftData = reinterpret_cast<std::complex<double>*>(
-      fftw_malloc(fftInWidth * _inputHeight * sizeof(std::complex<double>)));
+  std::complex<float>* fftData = reinterpret_cast<std::complex<float>*>(
+      fftwf_malloc(fftInWidth * _inputHeight * sizeof(std::complex<float>)));
   if (_verbose)
     Logger::Debug << "FFT " << _inputWidth << " x " << _inputHeight
                   << " real -> complex...\n";
-  fftw_execute_dft_r2c(_inToFPlan, data.data(),
-                       reinterpret_cast<fftw_complex*>(fftData));
+  fftwf_execute_dft_r2c(_inToFPlan, data.data(),
+                        reinterpret_cast<fftwf_complex*>(fftData));
 
   size_t midX = _inputWidth / 2;
   size_t midY = _inputHeight / 2;
 
-  double factor = 1.0 / sqrt(_inputWidth * _inputHeight);
+  float factor = 1.0 / sqrt(_inputWidth * _inputHeight);
 
   for (size_t y = 0; y != _inputHeight; ++y) {
     size_t oldY = y + midY;
@@ -163,7 +163,7 @@ void FFTResampler::SingleFT(const double* input, double* realOutput,
       size_t oldIndex = x + oldY * (midX + 1);
       size_t newIndex1 = midX - x + y * _inputWidth;
 
-      const std::complex<double>& val = fftData[oldIndex] * factor;
+      const std::complex<float>& val = fftData[oldIndex] * factor;
 
       realOutput[newIndex1] = val.real();
       imaginaryOutput[newIndex1] = val.imag();
@@ -177,10 +177,10 @@ void FFTResampler::SingleFT(const double* input, double* realOutput,
     }
   }
 
-  fftw_free(fftData);
+  fftwf_free(fftData);
 }
 
-void FFTResampler::makeWindow(aocommon::UVector<double>& data,
+void FFTResampler::makeWindow(aocommon::UVector<float>& data,
                               size_t width) const {
   if (_windowFunction == WindowFunction::Tukey)
     makeTukeyWindow(data, width);
@@ -191,7 +191,7 @@ void FFTResampler::makeWindow(aocommon::UVector<double>& data,
   }
 }
 
-void FFTResampler::makeTukeyWindow(aocommon::UVector<double>& data,
+void FFTResampler::makeTukeyWindow(aocommon::UVector<float>& data,
                                    size_t width) const {
   // Make a Tukey window, which consists of
   // left: a cosine going from 0 to 1
@@ -214,13 +214,13 @@ void FFTResampler::makeTukeyWindow(aocommon::UVector<double>& data,
   }
 }
 
-void FFTResampler::applyWindow(double* data) const {
+void FFTResampler::applyWindow(float* data) const {
   if (_windowRowIn.empty()) {
     makeWindow(_windowRowIn, _inputWidth);
     makeWindow(_windowColIn, _inputHeight);
     if (_correctWindow) {
-      aocommon::UVector<double> windowImgIn(_inputWidth * _inputHeight);
-      double* inPtr = windowImgIn.data();
+      aocommon::UVector<float> windowImgIn(_inputWidth * _inputHeight);
+      float* inPtr = windowImgIn.data();
       for (size_t y = 0; y != _inputHeight; ++y) {
         for (size_t x = 0; x != _inputWidth; ++x) {
           *inPtr = _windowRowIn[x] * _windowColIn[y];
@@ -243,7 +243,7 @@ void FFTResampler::applyWindow(double* data) const {
   }
 }
 
-void FFTResampler::unapplyWindow(double* data) const {
+void FFTResampler::unapplyWindow(float* data) const {
   size_t n = _outputWidth * _outputHeight;
   for (size_t i = 0; i != n; ++i) {
     data[i] /= _windowOut[i];

@@ -12,8 +12,8 @@
 #include "../units/angle.h"
 
 void ImageOperations::FitBeamSize(const WSCleanSettings& settings, double& bMaj,
-                                  double& bMin, double& bPA,
-                                  const double* image, double beamEstimate) {
+                                  double& bMin, double& bPA, const float* image,
+                                  double beamEstimate) {
   GaussianFitter beamFitter;
   Logger::Info << "Fitting beam... ";
   Logger::Info.Flush();
@@ -36,7 +36,7 @@ void ImageOperations::FitBeamSize(const WSCleanSettings& settings, double& bMaj,
 void ImageOperations::DetermineBeamSize(const WSCleanSettings& settings,
                                         double& bMaj, double& bMin, double& bPA,
                                         double& bTheoretical,
-                                        const double* image,
+                                        const float* image,
                                         double initialEstimate) {
   bTheoretical = initialEstimate;
   if (settings.gaussianTaperBeamSize != 0.0) {
@@ -80,8 +80,8 @@ void ImageOperations::MakeMFSImage(
     aocommon::PolarizationEnum pol, bool isImaginary, bool isPSF) {
   double lowestFreq = 0.0, highestFreq = 0.0;
   const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
-  aocommon::UVector<double> mfsImage(size, 0.0), addedImage(size),
-      weightImage(size, 0.0);
+  aocommon::UVector<float> mfsImage(size, 0.0);
+  aocommon::UVector<double> addedImage(size), weightImage(size, 0.0);
   double weightSum = 0.0;
   FitsWriter writer;
   for (size_t ch = 0; ch != settings.channelsOut; ++ch) {
@@ -166,7 +166,7 @@ void ImageOperations::RenderMFSImage(const WSCleanSettings& settings,
   std::string postfix = isPBCorrected ? "-pb.fits" : ".fits";
   FitsReader residualReader(mfsPrefix + "-residual" + postfix);
   FitsReader modelReader(mfsPrefix + "-model" + postfix);
-  aocommon::UVector<double> image(size), modelImage(size);
+  aocommon::UVector<float> image(size), modelImage(size);
   residualReader.Read(image.data());
   modelReader.Read(modelImage.data());
 
@@ -188,7 +188,7 @@ void ImageOperations::RenderMFSImage(const WSCleanSettings& settings,
   Logger::Info << "Rendering sources to restored image " + beamStr + "... ";
   Logger::Info.Flush();
   bool hasWarned = false;
-  for (double& v : modelImage) {
+  for (float& v : modelImage) {
     if (!std::isfinite(v) || std::fabs(v) > 1.0e9) {
       if (!hasWarned) {
         Logger::Warn

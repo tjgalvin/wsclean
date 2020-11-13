@@ -19,7 +19,7 @@
  * Loop {
  * - Measure the largest component per frequency (from S)
  * - Store the model component in S
- * - Subtract this component multiplied with the double convolved PSF and gain
+ * - Subtract this component multiplied with the twice convolved PSF and gain
  * from all components in S (per individual image)
  * - Find the new largest component in S
  * }
@@ -58,7 +58,7 @@ class SubMinorModel {
   size_t size() const { return _positions.size(); }
 
   void MakeSets(const ImageSet& templateSet);
-  void MakeRMSFactorImage(Image& rmsFactorImage);
+  void MakeRMSFactorImage(ImageF& rmsFactorImage);
 
   ImageSet& Residual() { return *_residual; }
   const ImageSet& Residual() const { return *_residual; }
@@ -70,8 +70,8 @@ class SubMinorModel {
   size_t Y(size_t index) const { return _positions[index].second; }
   size_t FullIndex(size_t index) const { return X(index) + Y(index) * _width; }
   template <bool AllowNegatives>
-  size_t GetMaxComponent(double* scratch, double& maxValue) const;
-  size_t GetMaxComponent(double* scratch, double& maxValue,
+  size_t GetMaxComponent(ImageF scratch, float& maxValue) const;
+  size_t GetMaxComponent(ImageF scratch, float& maxValue,
                          bool allowNegatives) const {
     if (allowNegatives)
       return GetMaxComponent<true>(scratch, maxValue);
@@ -118,7 +118,7 @@ class SubMinorLoop {
    * increased by the cleaning, thereby stay above the threshold. This is
    * important for making multi-scale clean efficient near a stopping threshold.
    */
-  void SetThreshold(double threshold, double consideredPixelThreshold) {
+  void SetThreshold(float threshold, float consideredPixelThreshold) {
     _threshold = threshold;
     _consideredPixelThreshold = consideredPixelThreshold;
   }
@@ -128,7 +128,7 @@ class SubMinorLoop {
     _maxIterations = maxIterations;
   }
 
-  void SetGain(double gain) { _gain = gain; }
+  void SetGain(float gain) { _gain = gain; }
 
   void SetAllowNegativeComponents(bool allowNegativeComponents) {
     _allowNegativeComponents = allowNegativeComponents;
@@ -147,15 +147,15 @@ class SubMinorLoop {
 
   void SetMask(const bool* mask) { _mask = mask; }
 
-  void SetRMSFactorImage(const Image& image) { _rmsFactorImage = image; }
+  void SetRMSFactorImage(const ImageF& image) { _rmsFactorImage = image; }
 
   size_t CurrentIteration() const { return _currentIteration; }
 
-  double FluxCleaned() const { return _fluxCleaned; }
+  float FluxCleaned() const { return _fluxCleaned; }
 
-  boost::optional<double> Run(
+  boost::optional<float> Run(
       ImageSet& convolvedResidual,
-      const aocommon::UVector<const double*>& doubleConvolvedPsfs);
+      const aocommon::UVector<const float*>& twiceConvolvedPsfs);
 
   /**
    * The produced model is convolved with the given psf, and the result is
@@ -165,13 +165,13 @@ class SubMinorLoop {
    * (_untrimmedWidth x _untrimmedHeight). scratchC only needs to store the
    * trimmed size (_width x _height).
    */
-  void CorrectResidualDirty(class FFTWManager& fftw, double* scratchA,
-                            double* scratchB, double* scratchC,
-                            size_t imageIndex, double* residual,
-                            const double* singleConvolvedPsf) const;
+  void CorrectResidualDirty(class FFTWManager& fftw, float* scratchA,
+                            float* scratchB, float* scratchC, size_t imageIndex,
+                            float* residual,
+                            const float* singleConvolvedPsf) const;
 
   void GetFullIndividualModel(size_t imageIndex,
-                              double* individualModelImg) const;
+                              float* individualModelImg) const;
 
   void UpdateAutoMask(bool* mask) const;
 
@@ -181,15 +181,15 @@ class SubMinorLoop {
   void findPeakPositions(ImageSet& convolvedResidual);
 
   size_t _width, _height, _paddedWidth, _paddedHeight;
-  double _threshold, _consideredPixelThreshold, _gain;
+  float _threshold, _consideredPixelThreshold, _gain;
   size_t _horizontalBorder, _verticalBorder;
   size_t _currentIteration, _maxIterations;
   bool _allowNegativeComponents, _stopOnNegativeComponent;
   const bool* _mask;
   const SpectralFitter* _fitter;
   SubMinorModel _subMinorModel;
-  double _fluxCleaned;
-  Image _rmsFactorImage;
+  float _fluxCleaned;
+  ImageF _rmsFactorImage;
   LogReceiver& _logReceiver;
 };
 

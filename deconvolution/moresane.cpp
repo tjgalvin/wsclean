@@ -12,12 +12,12 @@
 
 #include "../wsclean/logger.h"
 
-void MoreSane::ExecuteMajorIteration(double* dataImage, double* modelImage,
-                                     const double* psfImage, size_t width,
+void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
+                                     const float* psfImage, size_t width,
                                      size_t height) {
   if (_iterationNumber != 0) {
     Logger::Info << "Convolving model with psf...\n";
-    Image preparedPsf(width, height);
+    ImageF preparedPsf(width, height);
     FFTConvolver::PrepareKernel(preparedPsf.data(), psfImage, width, height);
     FFTConvolver::ConvolveSameSize(_fftwManager, modelImage, preparedPsf.data(),
                                    width, height);
@@ -88,13 +88,13 @@ void MoreSane::ExecuteMajorIteration(double* dataImage, double* modelImage,
   unlink((outputName + "_residual.fits").c_str());
 }
 
-double MoreSane::ExecuteMajorIteration(
+float MoreSane::ExecuteMajorIteration(
     ImageSet& dataImage, ImageSet& modelImage,
-    const aocommon::UVector<const double*>& psfImages, size_t width,
+    const aocommon::UVector<const float*>& psfImages, size_t width,
     size_t height, bool& reachedMajorThreshold) {
   for (size_t i = 0; i != dataImage.size(); ++i) {
-    double* residualData = dataImage[i];
-    double* modelData = modelImage[i];
+    float* residualData = dataImage[i];
+    float* modelData = modelImage[i];
     ExecuteMajorIteration(residualData, modelData,
                           psfImages[dataImage.PSFIndex(i)], width, height);
   }

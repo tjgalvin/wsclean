@@ -1,6 +1,7 @@
 #include "genericclean.h"
 
 #include "subminorloop.h"
+#include "peakfinder.h"
 
 #include <aocommon/lane.h>
 
@@ -18,9 +19,9 @@ GenericClean::GenericClean(class FFTWManager& fftwManager,
       _useSubMinorOptimization(useSubMinorOptimization),
       _fftwManager(fftwManager) {}
 
-double GenericClean::ExecuteMajorIteration(
+float GenericClean::ExecuteMajorIteration(
     ImageSet& dirtySet, ImageSet& modelSet,
-    const aocommon::UVector<const double*>& psfs, size_t width, size_t height,
+    const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
     bool& reachedMajorThreshold) {
   const size_t iterationCounterAtStart = _iterationNumber;
   if (_stopOnNegativeComponent) _allowNegativeComponents = true;
@@ -31,12 +32,12 @@ double GenericClean::ExecuteMajorIteration(
   if (_convolutionWidth % 2 != 0) ++_convolutionWidth;
   if (_convolutionHeight % 2 != 0) ++_convolutionHeight;
 
-  Image integrated(width, height),
+  ImageF integrated(width, height),
       scratchA(_convolutionWidth, _convolutionHeight),
       scratchB(_convolutionWidth, _convolutionHeight);
-  dirtySet.GetLinearIntegrated(integrated.data());
+  dirtySet.GetLinearIntegrated(integrated);
   size_t componentX = 0, componentY = 0;
-  boost::optional<double> maxValue =
+  boost::optional<float> maxValue =
       findPeak(integrated.data(), scratchA.data(), componentX, componentY);
   if (!maxValue) {
     _logReceiver->Info << "No peak found.\n";
@@ -47,8 +48,8 @@ double GenericClean::ExecuteMajorIteration(
                      << peakDescription(integrated.data(), componentX,
                                         componentY)
                      << '\n';
-  double firstThreshold = this->_threshold;
-  double majorIterThreshold = std::max(
+  float firstThreshold = this->_threshold;
+  float majorIterThreshold = std::max<float>(
       MajorIterThreshold(), std::fabs(*maxValue) * (1.0 - this->_mGain));
   if (majorIterThreshold > firstThreshold) {
     firstThreshold = majorIterThreshold;
@@ -89,13 +90,13 @@ double GenericClean::ExecuteMajorIteration(
 
     for (size_t imageIndex = 0; imageIndex != dirtySet.size(); ++imageIndex) {
       // TODO this can be multi-threaded if each thread has its own temporaries
-      const double* psf = psfs[dirtySet.PSFIndex(imageIndex)];
+      const float* psf = psfs[dirtySet.PSFIndex(imageIndex)];
       subMinorLoop.CorrectResidualDirty(_fftwManager, scratchA.data(),
                                         scratchB.data(), integrated.data(),
                                         imageIndex, dirtySet[imageIndex], psf);
 
       subMinorLoop.GetFullIndividualModel(imageIndex, scratchA.data());
-      double* model = modelSet[imageIndex];
+      float* model = modelSet[imageIndex];
       for (size_t i = 0; i != _width * _height; ++i)
         model[i] += scratchA.data()[i];
     }
@@ -103,11 +104,11 @@ double GenericClean::ExecuteMajorIteration(
     ThreadedDeconvolutionTools tools(_threadCount);
     size_t peakIndex = componentX + componentY * _width;
 
-    aocommon::UVector<double> peakValues(dirtySet.size());
+    aocommon::UVector<float> peakValues(dirtySet.size());
 
     while (maxValue && fabs(*maxValue) > firstThreshold &&
            this->_iterationNumber < this->_maxIter &&
-           !(maxValue < 0.0 && this->_stopOnNegativeComponent)) {
+           !(maxValue < 0.0f && this->_stopOnNegativeComponent)) {
       if (this->_iterationNumber <= 10 ||
           (this->_iterationNumber <= 100 && this->_iterationNumber % 10 == 0) ||
           (this->_iterationNumber <= 1000 &&
@@ -133,7 +134,7 @@ double GenericClean::ExecuteMajorIteration(
                             componentX, componentY, peakValues[i]);
       }
 
-      dirtySet.GetSquareIntegrated(integrated.data(), scratchA.data());
+      dirtySet.GetSquareIntegrated(integrated, scratchA);
       maxValue =
           findPeak(integrated.data(), scratchA.data(), componentX, componentY);
 
@@ -147,8 +148,8 @@ double GenericClean::ExecuteMajorIteration(
                        << FluxDensity::ToNiceString(*maxValue) << ", because ";
     bool maxIterReached = _iterationNumber >= MaxNIter(),
          finalThresholdReached =
-             std::fabs(*maxValue) <= _threshold || maxValue == 0.0,
-         negativeReached = maxValue < 0.0 && this->_stopOnNegativeComponent,
+             std::fabs(*maxValue) <= _threshold || maxValue == 0.0f,
+         negativeReached = maxValue < 0.0f && this->_stopOnNegativeComponent,
          mgainReached = std::fabs(*maxValue) <= majorIterThreshold,
          didWork = (_iterationNumber - iterationCounterAtStart) != 0;
 
@@ -173,38 +174,38 @@ double GenericClean::ExecuteMajorIteration(
   }
 }
 
-std::string GenericClean::peakDescription(const double* image, size_t& x,
+std::string GenericClean::peakDescription(const float* image, size_t& x,
                                           size_t& y) {
   std::ostringstream str;
   size_t index = x + y * _width;
-  double peak = image[index];
+  float peak = image[index];
   str << FluxDensity::ToNiceString(peak) << " at " << x << "," << y;
   return str.str();
 }
 
-boost::optional<double> GenericClean::findPeak(const double* image,
-                                               double* scratch, size_t& x,
-                                               size_t& y) {
+boost::optional<float> GenericClean::findPeak(const float* image,
+                                              float* scratch, size_t& x,
+                                              size_t& y) {
   if (_rmsFactorImage.empty()) {
     if (_cleanMask == 0)
-      return SimpleClean::FindPeak(image, _width, _height, x, y,
-                                   _allowNegativeComponents, 0, _height,
-                                   _cleanBorderRatio);
+      return PeakFinder::Find(image, _width, _height, x, y,
+                              _allowNegativeComponents, 0, _height,
+                              _cleanBorderRatio);
     else
-      return SimpleClean::FindPeakWithMask(image, _width, _height, x, y,
-                                           _allowNegativeComponents, 0, _height,
-                                           _cleanMask, _cleanBorderRatio);
+      return PeakFinder::FindWithMask(image, _width, _height, x, y,
+                                      _allowNegativeComponents, 0, _height,
+                                      _cleanMask, _cleanBorderRatio);
   } else {
     for (size_t i = 0; i != _width * _height; ++i) {
       scratch[i] = image[i] * _rmsFactorImage[i];
     }
     if (_cleanMask == 0)
-      return SimpleClean::FindPeak(scratch, _width, _height, x, y,
-                                   _allowNegativeComponents, 0, _height,
-                                   _cleanBorderRatio);
+      return PeakFinder::Find(scratch, _width, _height, x, y,
+                              _allowNegativeComponents, 0, _height,
+                              _cleanBorderRatio);
     else
-      return SimpleClean::FindPeakWithMask(scratch, _width, _height, x, y,
-                                           _allowNegativeComponents, 0, _height,
-                                           _cleanMask, _cleanBorderRatio);
+      return PeakFinder::FindWithMask(scratch, _width, _height, x, y,
+                                      _allowNegativeComponents, 0, _height,
+                                      _cleanMask, _cleanBorderRatio);
   }
 }

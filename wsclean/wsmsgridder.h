@@ -29,15 +29,15 @@ class WSMSGridder : public MSGridderBase {
 
   virtual void Invert() final override;
 
-  virtual void Predict(Image image) final override {
-    Predict(std::move(image), Image());
+  virtual void Predict(ImageF image) final override {
+    Predict(std::move(image), ImageF());
   }
-  virtual void Predict(Image real, Image imaginary) final override;
+  virtual void Predict(ImageF real, ImageF imaginary) final override;
 
-  virtual Image ImageRealResult() final override {
+  virtual ImageF ImageRealResult() final override {
     return std::move(_realImage);
   }
-  virtual Image ImageImaginaryResult() final override {
+  virtual ImageF ImageImaginaryResult() final override {
     if (!IsComplex())
       throw std::runtime_error(
           "No imaginary result available for non-complex inversion");
@@ -92,7 +92,7 @@ class WSMSGridder : public MSGridderBase {
   std::vector<std::thread> _threadGroup;
   size_t _cpuCount, _laneBufferSize;
   int64_t _memSize;
-  Image _realImage, _imaginaryImage;
+  ImageF _realImage, _imaginaryImage;
 };
 
 #endif

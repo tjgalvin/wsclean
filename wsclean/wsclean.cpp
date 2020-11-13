@@ -82,7 +82,7 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
       reader.ImageHeight() != _settings.trimmedImageHeight)
     throw std::runtime_error(
         "Image width and height of reused PSF don't match with given settings");
-  Image psfImage(reader.ImageWidth(), reader.ImageHeight());
+  ImageF psfImage(reader.ImageWidth(), reader.ImageHeight());
   reader.Read(psfImage.data());
 
   GriddingResult result;
@@ -90,7 +90,7 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
   result.observationInfo = WSCFitsWriter::ReadObservationInfo(reader);
   result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
   reader.ReadDoubleKeyIfExists("WSCVWSUM", result.visibilityWeightSum);
-  double nVis;
+  double nVis = 0.0;
   reader.ReadDoubleKeyIfExists("WSCNVIS", nVis);
   result.griddedVisibilityCount = nVis;
   reader.ReadDoubleKeyIfExists("WSCENVIS",
@@ -142,7 +142,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
 
   size_t channelIndex = entry.outputChannelIndex;
   _infoPerChannel[channelIndex].psfNormalizationFactor = normFactor;
-  multiplyImage(normFactor * entry.siCorrection, result.imageRealResult);
+  result.imageRealResult *= normFactor * entry.siCorrection;
   Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
 
   DeconvolutionAlgorithm::RemoveNaNsInPSF(result.imageRealResult.data(),
@@ -233,16 +233,16 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
                                 bool isInitialInversion) {
   size_t joinedChannelIndex = entry.outputChannelIndex;
 
-  multiplyImage(_infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
-                    entry.siCorrection,
-                result.imageRealResult);
+  result.imageRealResult *=
+      _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
+      entry.siCorrection;
   storeAndCombineXYandYX(_residualImages, entry.polarization,
                          joinedChannelIndex, false,
                          result.imageRealResult.data());
   if (aocommon::Polarization::IsComplex(entry.polarization)) {
-    multiplyImage(_infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
-                      entry.siCorrection,
-                  result.imageImaginaryResult);
+    result.imageImaginaryResult *=
+        _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
+        entry.siCorrection;
     storeAndCombineXYandYX(_residualImages, entry.polarization,
                            joinedChannelIndex, true,
                            result.imageImaginaryResult.data());
@@ -325,7 +325,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
                                      aocommon::PolarizationEnum polarization,
                                      size_t joinedChannelIndex,
-                                     bool isImaginary, const double* image) {
+                                     bool isImaginary, const float* image) {
   if (polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
@@ -350,15 +350,15 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
 void WSClean::predict(const ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Converting model image to visibilities ==\n";
-  Image modelImageReal(_settings.trimmedImageWidth,
-                       _settings.trimmedImageHeight),
+  ImageF modelImageReal(_settings.trimmedImageWidth,
+                        _settings.trimmedImageHeight),
       modelImageImaginary;
 
   if (entry.polarization == aocommon::Polarization::YX) {
     _modelImages.Load(modelImageReal.data(), aocommon::Polarization::XY,
                       entry.outputChannelIndex, false);
     modelImageImaginary =
-        Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+        ImageF(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     _modelImages.Load(modelImageImaginary.data(), aocommon::Polarization::XY,
                       entry.outputChannelIndex, true);
     const size_t size =
@@ -370,7 +370,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
                       entry.outputChannelIndex, false);
     if (aocommon::Polarization::IsComplex(entry.polarization)) {
       modelImageImaginary =
-          Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+          ImageF(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
       _modelImages.Load(modelImageImaginary.data(), entry.polarization,
                         entry.outputChannelIndex, true);
     }
@@ -972,8 +972,8 @@ void WSClean::saveRestoredImagesForGroup(
   for (size_t imageIter = 0; imageIter != tableEntry.imageCount; ++imageIter) {
     bool isImaginary = (imageIter == 1);
     WSCFitsWriter writer(createWSCFitsWriter(tableEntry, isImaginary, false));
-    Image restoredImage(_settings.trimmedImageWidth,
-                        _settings.trimmedImageHeight);
+    ImageF restoredImage(_settings.trimmedImageWidth,
+                         _settings.trimmedImageHeight);
     _residualImages.Load(restoredImage.data(), curPol, currentChannelIndex,
                          isImaginary);
 
@@ -983,7 +983,8 @@ void WSClean::saveRestoredImagesForGroup(
     if (_settings.isUVImageSaved)
       saveUVImage(restoredImage.data(), tableEntry, isImaginary, "uv");
 
-    Image modelImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    ImageF modelImage(_settings.trimmedImageWidth,
+                      _settings.trimmedImageHeight);
     _modelImages.Load(modelImage.data(), curPol, currentChannelIndex,
                       isImaginary);
     double beamMaj = _infoPerChannel[currentChannelIndex].beamMaj;
@@ -1308,9 +1309,9 @@ MSSelection WSClean::selectInterval(MSSelection& fullSelection,
   }
 }
 
-void WSClean::saveUVImage(const double* image, const ImagingTableEntry& entry,
+void WSClean::saveUVImage(const float* image, const ImagingTableEntry& entry,
                           bool isImaginary, const std::string& prefix) const {
-  Image realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
+  ImageF realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
       imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   FFTResampler fft(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
                    _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1,

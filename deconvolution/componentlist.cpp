@@ -57,7 +57,7 @@ void ComponentList::write(const std::string& filename,
       break;
   }
   NDPPP::WriteHeaderForSpectralTerms(file, fitter.ReferenceFrequency());
-  aocommon::UVector<double> terms;
+  aocommon::UVector<float> terms;
   for (size_t scaleIndex = 0; scaleIndex != NScales(); ++scaleIndex) {
     ScaleList& list = _listPerScale[scaleIndex];
     size_t componentIndex = 0;
@@ -71,7 +71,7 @@ void ComponentList::write(const std::string& filename,
     for (size_t index = 0; index != list.positions.size(); ++index) {
       const size_t x = list.positions[index].x;
       const size_t y = list.positions[index].y;
-      aocommon::UVector<double> spectrum(_nFrequencies);
+      aocommon::UVector<float> spectrum(_nFrequencies);
       for (size_t frequency = 0; frequency != _nFrequencies; ++frequency) {
         spectrum[frequency] = list.values[valueIndex];
         ++valueIndex;
@@ -80,7 +80,7 @@ void ComponentList::write(const std::string& filename,
         terms.assign(1, spectrum[0]);
       else
         fitter.Fit(terms, spectrum.data());
-      double stokesI = terms[0];
+      float stokesI = terms[0];
       terms.erase(terms.begin());
       long double l, m;
       ImageCoordinates::XYToLM<long double>(x, y, pixelScaleX, pixelScaleY,
@@ -134,7 +134,7 @@ void ComponentList::CorrectForBeam(PrimaryBeamImageSet& beam, size_t channel) {
   for (ScaleList& list : _listPerScale) {
     for (size_t i = 0; i != list.positions.size(); ++i) {
       const Position& pos = list.positions[i];
-      double& value = list.values[channel + i * _nFrequencies];
+      float& value = list.values[channel + i * _nFrequencies];
       value *= beam.GetUnpolarizedCorrectionFactor(pos.x, pos.y);
     }
   }

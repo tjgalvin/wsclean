@@ -17,10 +17,10 @@
 #include <boost/numeric/conversion/bounds.hpp>
 
 IUWTDeconvolutionAlgorithm::IUWTDeconvolutionAlgorithm(
-    FFTWManager& fftwManager, size_t width, size_t height, double gain,
-    double mGain, double cleanBorder, bool allowNegativeComponents,
-    const bool* mask, double absoluteThreshold, double thresholdSigmaLevel,
-    double tolerance, bool useSNRTest)
+    FFTWManager& fftwManager, size_t width, size_t height, float gain,
+    float mGain, float cleanBorder, bool allowNegativeComponents,
+    const bool* mask, float absoluteThreshold, float thresholdSigmaLevel,
+    float tolerance, bool useSNRTest)
     : _fftwManager(fftwManager),
       _width(width),
       _height(height),
@@ -35,7 +35,7 @@ IUWTDeconvolutionAlgorithm::IUWTDeconvolutionAlgorithm(
       _useSNRTest(useSNRTest) {}
 
 void IUWTDeconvolutionAlgorithm::measureRMSPerScale(
-    const double* image, const double* convolvedImage, double* scratch,
+    const float* image, const float* convolvedImage, float* scratch,
     size_t endScale, std::vector<ScaleResponse>& psfResponse) {
   IUWTDecomposition imageIUWT(endScale, _width, _height);
   imageIUWT.Decompose(*_threadPool, image, scratch, false);
@@ -86,7 +86,7 @@ void IUWTDeconvolutionAlgorithm::measureRMSPerScale(
         centralPeak(imageIUWT[scale].Coefficients());
   }
 
-  aocommon::UVector<double> thresholds(imageIUWT.NScales());
+  aocommon::UVector<float> thresholds(imageIUWT.NScales());
   for (size_t i = 0; i != imageIUWT.NScales(); ++i) {
     thresholds[i] = psfResponse[0].convolvedPeakResponse * _tolerance;
   }
@@ -98,22 +98,23 @@ void IUWTDeconvolutionAlgorithm::measureRMSPerScale(
                            areaSize);
   aocommon::UVector<bool> markedMask0(mask[0].size(), false);
   ImageAnalysis::Component2D c2D(_width / 2, _height / 2);
-  double threshold = psfResponse[0].convolvedPeakResponse * _tolerance;
+  float threshold = psfResponse[0].convolvedPeakResponse * _tolerance;
   ImageAnalysis::FloodFill2D(imageIUWT[0].Coefficients().data(),
                              markedMask0.data(), threshold, c2D, _width,
                              _height, psfResponse[0].convolvedArea);
 }
 
-double IUWTDeconvolutionAlgorithm::mad(const double* dest) {
-  aocommon::UVector<double> v(_width * _height);
+float IUWTDeconvolutionAlgorithm::mad(const float* dest) {
+  ImageF v(_width, _height);
   for (size_t i = 0; i != _width * _height; ++i) v[i] = std::fabs(dest[i]);
   size_t mid = (_width * _height) / 2;
   std::nth_element(v.begin(), v.begin() + mid, v.end());
   return v[mid] / 0.674559;
 }
 
-double IUWTDeconvolutionAlgorithm::getMaxAbsWithoutMask(
-    const aocommon::UVector<double>& data, size_t& x, size_t& y, size_t width) {
+float IUWTDeconvolutionAlgorithm::getMaxAbsWithoutMask(const ImageF& data,
+                                                       size_t& x, size_t& y,
+                                                       size_t width) {
   size_t height = data.size() / width;
   size_t xBorder = _cleanBorder * width;
   size_t yBorder = _cleanBorder * height;
@@ -122,11 +123,11 @@ double IUWTDeconvolutionAlgorithm::getMaxAbsWithoutMask(
   x = width;
   y = height;
 
-  double maxVal = boost::numeric::bounds<double>::lowest();
+  float maxVal = boost::numeric::bounds<float>::lowest();
   for (size_t yi = minY; yi != maxY; ++yi) {
-    const double* dataPtr = data.data() + yi * width;
+    const float* dataPtr = data.data() + yi * width;
     for (size_t xi = minX; xi != maxX; ++xi) {
-      double val =
+      float val =
           _allowNegativeComponents ? std::fabs(dataPtr[xi]) : dataPtr[xi];
       if (val > maxVal) {
         maxVal = val;
@@ -138,8 +139,9 @@ double IUWTDeconvolutionAlgorithm::getMaxAbsWithoutMask(
   return maxVal;
 }
 
-double IUWTDeconvolutionAlgorithm::getMaxAbsWithMask(
-    const aocommon::UVector<double>& data, size_t& x, size_t& y, size_t width) {
+float IUWTDeconvolutionAlgorithm::getMaxAbsWithMask(const ImageF& data,
+                                                    size_t& x, size_t& y,
+                                                    size_t width) {
   size_t height = data.size() / width;
   size_t xBorder = _cleanBorder * width;
   size_t yBorder = _cleanBorder * height;
@@ -148,13 +150,13 @@ double IUWTDeconvolutionAlgorithm::getMaxAbsWithMask(
   x = width;
   y = height;
 
-  double maxVal = boost::numeric::bounds<double>::lowest();
+  float maxVal = boost::numeric::bounds<float>::lowest();
   for (size_t yi = minY; yi != maxY; ++yi) {
-    const double* dataPtr = data.data() + yi * width;
+    const float* dataPtr = data.data() + yi * width;
     const bool* maskPtr = _mask + yi * width;
     for (size_t xi = minX; xi != maxX; ++xi) {
       if (maskPtr[xi]) {
-        double val =
+        float val =
             _allowNegativeComponents ? std::fabs(dataPtr[xi]) : dataPtr[xi];
         if (val > maxVal) {
           maxVal = val;
@@ -167,43 +169,40 @@ double IUWTDeconvolutionAlgorithm::getMaxAbsWithMask(
   return maxVal;
 }
 
-double IUWTDeconvolutionAlgorithm::dotProduct(
-    const aocommon::UVector<double>& lhs,
-    const aocommon::UVector<double>& rhs) {
-  double sum = 0.0;
+float IUWTDeconvolutionAlgorithm::dotProduct(const ImageF& lhs,
+                                             const ImageF& rhs) {
+  float sum = 0.0;
   for (size_t i = 0; i != lhs.size(); ++i) sum += lhs[i] * rhs[i];
   return sum;
 }
 
-void IUWTDeconvolutionAlgorithm::factorAdd(double* dest, const double* rhs,
-                                           double factor, size_t width,
+void IUWTDeconvolutionAlgorithm::factorAdd(float* dest, const float* rhs,
+                                           float factor, size_t width,
                                            size_t height) {
   for (size_t i = 0; i != width * height; ++i) dest[i] += rhs[i] * factor;
 }
 
-void IUWTDeconvolutionAlgorithm::factorAdd(aocommon::UVector<double>& dest,
-                                           const aocommon::UVector<double>& rhs,
-                                           double factor) {
+void IUWTDeconvolutionAlgorithm::factorAdd(ImageF& dest, const ImageF& rhs,
+                                           float factor) {
   for (size_t i = 0; i != dest.size(); ++i) dest[i] += rhs[i] * factor;
 }
 
-void IUWTDeconvolutionAlgorithm::Subtract(
-    double* dest, const aocommon::UVector<double>& rhs) {
+void IUWTDeconvolutionAlgorithm::Subtract(float* dest, const ImageF& rhs) {
   for (size_t i = 0; i != rhs.size(); ++i) dest[i] -= rhs[i];
 }
 
-void IUWTDeconvolutionAlgorithm::boundingBox(
-    size_t& x1, size_t& y1, size_t& x2, size_t& y2,
-    const aocommon::UVector<double>& image, size_t width, size_t height) {
-  double mP = *std::max_element(image.begin(), image.end());
-  double mN = *std::min_element(image.begin(), image.end());
-  double m = std::max(mP, -mN);
+void IUWTDeconvolutionAlgorithm::boundingBox(size_t& x1, size_t& y1, size_t& x2,
+                                             size_t& y2, const ImageF& image,
+                                             size_t width, size_t height) {
+  float mP = *std::max_element(image.begin(), image.end());
+  float mN = *std::min_element(image.begin(), image.end());
+  float m = std::max(mP, -mN);
   x1 = width;
   x2 = 0;
   y1 = height;
   y2 = 0;
   for (size_t y = 0; y != height; ++y) {
-    const double* ptr = image.data() + y * width;
+    const float* ptr = image.data() + y * width;
     for (size_t x = 0; x != x1; ++x) {
       if (std::fabs(ptr[x]) > m * 0.01) {
         x1 = x;
@@ -219,7 +218,7 @@ void IUWTDeconvolutionAlgorithm::boundingBox(
   }
   x2++;
   for (size_t y = 0; y != height; ++y) {
-    const double* ptr = image.data() + y * width;
+    const float* ptr = image.data() + y * width;
     for (size_t x = 0; x != width; ++x) {
       if (std::fabs(ptr[x]) > m * 0.01) {
         if (y1 > y) y1 = y;
@@ -270,31 +269,30 @@ void IUWTDeconvolutionAlgorithm::adjustBox(size_t& x1, size_t& y1, size_t& x2,
   while ((y2 - y1) % 8 != 0) y2--;
 }
 
-void IUWTDeconvolutionAlgorithm::trim(aocommon::UVector<double>& dest,
-                                      const double* source, size_t oldWidth,
-                                      size_t /*oldHeight*/, size_t x1,
-                                      size_t y1, size_t x2, size_t y2) {
+void IUWTDeconvolutionAlgorithm::trim(ImageF& dest, const float* source,
+                                      size_t oldWidth, size_t /*oldHeight*/,
+                                      size_t x1, size_t y1, size_t x2,
+                                      size_t y2) {
   // We do this so that dest and source can be the same image.
-  if (dest.size() < (x2 - x1) * (y2 - y1)) dest.resize((x2 - x1) * (y2 - y1));
+  dest = ImageF((x2 - x1), (y2 - y1));
   for (size_t y = y1; y != y2; ++y) {
-    const double* oldPtr = &source[y * oldWidth];
-    double* newPtr = &dest[(y - y1) * (x2 - x1)];
+    const float* oldPtr = &source[y * oldWidth];
+    float* newPtr = &dest[(y - y1) * (x2 - x1)];
     for (size_t x = x1; x != x2; ++x) {
       newPtr[x - x1] = oldPtr[x];
     }
   }
-  dest.resize((x2 - x1) * (y2 - y1));
 }
 
-void IUWTDeconvolutionAlgorithm::untrim(aocommon::UVector<double>& image,
-                                        size_t width, size_t height, size_t x1,
-                                        size_t y1, size_t x2, size_t y2) {
-  image.resize(width * height, 0.0);
+void IUWTDeconvolutionAlgorithm::untrim(ImageF& image, size_t width,
+                                        size_t height, size_t x1, size_t y1,
+                                        size_t x2, size_t y2) {
+  image = ImageF(width, height, 0.0);
   size_t y = y2;
   while (y != y1) {
     --y;
-    double* newPtr = &image[y * width];
-    double* oldPtr = &image[(y - y1) * (x2 - x1)];
+    float* newPtr = &image[y * width];
+    float* oldPtr = &image[(y - y1) * (x2 - x1)];
     size_t x = x2;
     while (x != x1) {
       --x;
@@ -302,69 +300,65 @@ void IUWTDeconvolutionAlgorithm::untrim(aocommon::UVector<double>& image,
     }
   }
   for (size_t y = 0; y != y1; ++y) {
-    double* ptr = &image[y * width];
+    float* ptr = &image[y * width];
     for (size_t x = 0; x != width; ++x) ptr[x] = 0;
   }
   for (size_t y = y1; y != y2; ++y) {
-    double* ptr = &image[y * width];
+    float* ptr = &image[y * width];
     for (size_t x = 0; x != x1; ++x) ptr[x] = 0.0;
     for (size_t x = x2; x != width; ++x) ptr[x] = 0.0;
   }
   for (size_t y = y2; y != height; ++y) {
-    double* ptr = &image[y * width];
+    float* ptr = &image[y * width];
     for (size_t x = 0; x != width; ++x) ptr[x] = 0;
   }
 }
 
-double IUWTDeconvolutionAlgorithm::sum(
-    const aocommon::UVector<double>& img) const {
-  double s = 0.0;
+float IUWTDeconvolutionAlgorithm::sum(const ImageF& img) const {
+  float s = 0.0;
   for (size_t i = 0; i != img.size(); ++i) s += img[i];
   return s;
 }
 
-double IUWTDeconvolutionAlgorithm::snr(const IUWTDecomposition& noisyImg,
-                                       const IUWTDecomposition& model) const {
-  double mSum = 0.0, nSum = 0.0;
+float IUWTDeconvolutionAlgorithm::snr(const IUWTDecomposition& noisyImg,
+                                      const IUWTDecomposition& model) const {
+  float mSum = 0.0, nSum = 0.0;
   for (size_t scale = 0; scale != noisyImg.NScales(); ++scale) {
-    const aocommon::UVector<double>&n = noisyImg[scale].Coefficients(),
-          &m = model[scale].Coefficients();
+    const ImageF &n = noisyImg[scale].Coefficients(),
+                 &m = model[scale].Coefficients();
     for (size_t i = 0; i != n.size(); ++i) {
       mSum += m[i] * m[i];
-      double d = m[i] - n[i];
+      float d = m[i] - n[i];
       nSum += d * d;
     }
   }
   return mSum / nSum;
 }
 
-double IUWTDeconvolutionAlgorithm::rmsDiff(const aocommon::UVector<double>& a,
-                                           const aocommon::UVector<double>& b) {
-  double sum = 0.0;
+float IUWTDeconvolutionAlgorithm::rmsDiff(const ImageF& a, const ImageF& b) {
+  float sum = 0.0;
   for (size_t i = 0; i != a.size(); ++i) {
-    double d = a[i] - b[i];
+    float d = a[i] - b[i];
     sum += d * d;
   }
   return sqrt(sum / a.size());
 }
 
-double IUWTDeconvolutionAlgorithm::rms(const aocommon::UVector<double>& image) {
-  double sum = 0.0;
+float IUWTDeconvolutionAlgorithm::rms(const ImageF& image) {
+  float sum = 0.0;
   for (size_t i = 0; i != image.size(); ++i) {
-    double v = image[i];
+    float v = image[i];
     sum += v * v;
   }
   return sqrt(sum / image.size());
 }
 
 bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
-    IUWTDecomposition& iuwt, const IUWTMask& mask,
-    aocommon::UVector<double>& maskedDirty,
-    aocommon::UVector<double>& structureModel,
-    aocommon::UVector<double>& scratch,
-    const aocommon::UVector<double>& psfKernel, size_t width, size_t height) {
-  aocommon::UVector<double> gradient = maskedDirty;
-  double modelSNR = 0.0;
+    IUWTDecomposition& iuwt, const IUWTMask& mask, ImageF& maskedDirty,
+    ImageF& structureModel, ImageF& scratch, const ImageF& psfKernel,
+    size_t width, size_t height) {
+  ImageF gradient = maskedDirty;
+  float modelSNR = 0.0;
 
   IUWTDecomposition initialDirtyIUWT(iuwt);
 
@@ -384,29 +378,29 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
     iuwt.Recompose(scratch, false);
 
     // stepsize = <residual, residual> / <gradient, scratch>
-    double gradientDotScratch = dotProduct(gradient, scratch);
+    float gradientDotScratch = dotProduct(gradient, scratch);
     if (gradientDotScratch == 0.0) return false;
-    double stepSize = dotProduct(maskedDirty, maskedDirty) / gradientDotScratch;
+    float stepSize = dotProduct(maskedDirty, maskedDirty) / gradientDotScratch;
 
     // model_i+1 = model_i + stepsize * gradient
     factorAdd(structureModel.data(), gradient.data(), stepSize, width, height);
 
     // For Dabbech's approach (see below) :
-    //  aocommon::UVector<double> scratch2 = maskedDirty;
+    //  ImageF scratch2 = maskedDirty;
 
-    double gradStepDen = dotProduct(maskedDirty, maskedDirty);
+    float gradStepDen = dotProduct(maskedDirty, maskedDirty);
     if (gradStepDen == 0.0) return false;
     // residual_i+1 = residual_i - stepsize * scratch
     factorAdd(maskedDirty.data(), scratch.data(), -stepSize, width, height);
 
     // PyMORESANE uses this:
     // gradstep = <residual_i+1, residual_i+1> / <residual_i, residual_i>
-    // double gradStep = dotProduct(maskedDirty, maskedDirty) / gradStepDen;
+    // float gradStep = dotProduct(maskedDirty, maskedDirty) / gradStepDen;
     // But in MORESANE's paper A. Dabbech says this:
     // gradstep = <residual_i+1 - residual_i, residual_i+1> / <residual_i,
-    // residual_i> scratch = maskedDirty; subtract(scratch, scratch2); double
+    // residual_i> scratch = maskedDirty; subtract(scratch, scratch2); float
     // gradStep = dotProduct(scratch, maskedDirty) / gradStepDen;
-    double gradStep = dotProduct(maskedDirty, maskedDirty) / gradStepDen;
+    float gradStep = dotProduct(maskedDirty, maskedDirty) / gradStepDen;
 
     // gradient_i+1 = residual_i+1 + gradstep * gradient_i
     scratch = gradient;
@@ -420,7 +414,7 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
     iuwt.Decompose(*_threadPool, scratch.data(), scratch.data(), false);
     iuwt.ApplyMask(mask);
 
-    double previousSNR = modelSNR;
+    float previousSNR = modelSNR;
     modelSNR = snr(iuwt, initialDirtyIUWT);
     if (modelSNR > 100 && minorIter > 2) {
       std::cout << "Converged after " << minorIter << " iterations.\n";
@@ -435,20 +429,20 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
   }
   if (modelSNR <= 3.0) {
     std::cout << "Failed to converge (SNR=" << modelSNR << ").\n";
-    structureModel.assign(width * height, 0.0);
+    structureModel = ImageF(width, height, 0.0);
     return false;
   }
   return true;
 }
 
 struct PointSource {
-  double x, y, flux;
+  float x, y, flux;
   bool operator<(const PointSource& rhs) const { return flux < rhs.flux; }
 };
 
 bool IUWTDeconvolutionAlgorithm::extractPointSources(
-    const IUWTDecomposition& iuwt, const IUWTMask& mask, const double* dirty,
-    double* model) {
+    const IUWTDecomposition& iuwt, const IUWTMask& mask, const float* dirty,
+    float* model) {
   size_t width = iuwt.Width(), height = iuwt.Height();
   IUWTMask markedMask(mask);
   bool pointSourcesWereFound = false;
@@ -456,7 +450,7 @@ bool IUWTDeconvolutionAlgorithm::extractPointSources(
   std::set<PointSource> sources;
   for (size_t y = 0; y != height; ++y) {
     for (size_t x = 0; x != width; ++x) {
-      double flux;
+      float flux;
       size_t maxX = x, maxY = y;
       if (markedMask[0][y * width + x] &&
           ImageAnalysis::IsHighestOnScale0(iuwt, markedMask, maxX, maxY,
@@ -473,15 +467,15 @@ bool IUWTDeconvolutionAlgorithm::extractPointSources(
           double v = flux, xd = maxX, yd = maxY, fl = 0.0,
                  bMaj = _psfResponse[0].bMaj, bMin = _psfResponse[0].bMin,
                  bPA = _psfResponse[0].bPA;
-          const double* d = dirty;
-          // double *d = iuwt[0].Coefficients().data();
+          const float* d = dirty;
+          // float *d = iuwt[0].Coefficients().data();
           posFitter.SetPosConstrained(2.0);
           posFitter.Fit2DGaussianFull(d, width, height, v, xd, yd, bMaj, bMin,
                                       bPA, &fl);
           bool badFit = std::fabs(maxX - xd) > 2.0 ||
                         std::fabs(maxY - yd) > 2.0 || v <= 0.0;
           if (!badFit) {
-            double iFlux =
+            float iFlux =
                 v * bMaj * bMin * (M_PI / 4.0) / (M_LOG2E * _psfVolume);
             std::cout << "Point source: " << flux << "/" << iFlux << " Jy ("
                       << maxX << ',' << maxY << "), area=" << sourceArea
@@ -540,12 +534,11 @@ bool IUWTDeconvolutionAlgorithm::extractPointSources(
   return pointSourcesWereFound;
 }
 
-void IUWTDeconvolutionAlgorithm::constrainedPSFConvolve(double* image,
-                                                        const double* psf,
+void IUWTDeconvolutionAlgorithm::constrainedPSFConvolve(float* image,
+                                                        const float* psf,
                                                         size_t width,
                                                         size_t height) {
-  aocommon::UVector<double> smallerPsf(width * height, 0.0),
-      kernel(width * height);
+  ImageF smallerPsf(width, height, 0.0), kernel(width, height);
   size_t s = round(sqrt(_psfResponse[0].convolvedArea * 25.0));
   size_t smallWidth = std::min(s, width);
   size_t smallHeight = std::min(s, height);
@@ -564,17 +557,15 @@ void IUWTDeconvolutionAlgorithm::constrainedPSFConvolve(double* image,
 }
 
 bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
-    IUWTDecomposition& iuwt, aocommon::UVector<double>& dirty,
-    const aocommon::UVector<double>& psf,
-    const aocommon::UVector<double>& psfKernel,
-    aocommon::UVector<double>& scratch, ImageSet& structureModel,
+    IUWTDecomposition& iuwt, ImageF& dirty, const ImageF& psf,
+    const ImageF& psfKernel, ImageF& scratch, ImageSet& structureModel,
     size_t curEndScale, size_t curMinScale,
     std::vector<IUWTDeconvolutionAlgorithm::ValComponent>& maxComponents) {
   iuwt.Decompose(*_threadPool, dirty.data(), scratch.data(), false);
-  aocommon::UVector<double> thresholds(curEndScale);
+  aocommon::UVector<float> thresholds(curEndScale);
   _rmses.resize(curEndScale);
   for (size_t scale = 0; scale != curEndScale; ++scale) {
-    double r = mad(iuwt[scale].Coefficients().data());
+    float r = mad(iuwt[scale].Coefficients().data());
     _rmses[scale] = r;
     thresholds[scale] = r * (_thresholdSigmaLevel * 4.0 / 5.0);
   }
@@ -583,14 +574,14 @@ bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
   maxComponents.resize(curEndScale);
   for (size_t scale = 0; scale != curEndScale; ++scale) {
     size_t x, y;
-    double maxAbsCoef = getMaxAbs(iuwt[scale].Coefficients(), x, y, _width);
+    float maxAbsCoef = getMaxAbs(iuwt[scale].Coefficients(), x, y, _width);
     maxComponents[scale].x = x;
     maxComponents[scale].y = y;
     maxComponents[scale].scale = scale;
     maxComponents[scale].val = maxAbsCoef;
   }
 
-  double maxVal = -1.0;
+  float maxVal = -1.0;
   size_t maxX = 0, maxY = 0;
   int maxValScale = -1;
   for (size_t scale = 0; scale != curEndScale; ++scale) {
@@ -602,7 +593,7 @@ bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
     //   scale 0.
 
     const ValComponent& val = maxComponents[scale];
-    double absCoef = val.val / _psfResponse[scale].rms;
+    float absCoef = val.val / _psfResponse[scale].rms;
     // std::cout << scale << ">=" << curMinScale << " && " << absCoef << " > "
     // << maxVal << " && " << val.val << " > " << _rmses[scale]*_thresholdLevel
     // << "\n";
@@ -613,7 +604,7 @@ bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
       maxY = val.y;
       maxValScale = scale;
       if (scale == 0) {
-        double lowestRMS = std::min(_psfResponse[0].rms, _psfResponse[1].rms);
+        float lowestRMS = std::min(_psfResponse[0].rms, _psfResponse[1].rms);
         maxVal = val.val / lowestRMS * _psfResponse[1].peakResponse /
                  _psfResponse[0].peakResponseToNextScale;
       } else
@@ -635,7 +626,7 @@ bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
     return false;
   }
 
-  double scaleMaxAbsVal = std::fabs(maxVal);
+  float scaleMaxAbsVal = std::fabs(maxVal);
   for (size_t scale = 0; scale != curEndScale; ++scale) {
     if (thresholds[scale] < _tolerance * scaleMaxAbsVal) {
       thresholds[scale] = _tolerance * scaleMaxAbsVal;
@@ -650,12 +641,10 @@ bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
 }
 
 bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
-    IUWTDecomposition& iuwt, aocommon::UVector<double>& dirty,
-    ImageSet& structureModelFull, aocommon::UVector<double>& scratch,
-    const aocommon::UVector<double>& psf,
-    const aocommon::UVector<double>& psfKernel, size_t curEndScale,
-    size_t curMinScale, size_t width, size_t height,
-    const aocommon::UVector<double>& thresholds,
+    IUWTDecomposition& iuwt, ImageF& dirty, ImageSet& structureModelFull,
+    ImageF& scratch, const ImageF& psf, const ImageF& psfKernel,
+    size_t curEndScale, size_t curMinScale, size_t width, size_t height,
+    const aocommon::UVector<float>& thresholds,
     const ImageAnalysis::Component& maxComp, bool allowTrimming,
     const bool* priorMask) {
   IUWTMask mask(curEndScale, width, height);
@@ -682,15 +671,15 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
               << y2 << ")\n";
     size_t newWidth = x2 - x1, newHeight = y2 - y1;
     trim(dirty, dirty, width, height, x1, y1, x2, y2);
-    aocommon::UVector<double> smallPSF;
+    ImageF smallPSF;
 
     trimPsf(smallPSF, psf.data(), width, height, newWidth, newHeight);
 
-    aocommon::UVector<double> smallPSFKernel(smallPSF.size());
+    ImageF smallPSFKernel(smallPSF.Width(), smallPSF.Height());
     FFTConvolver::PrepareKernel(smallPSFKernel.data(), smallPSF.data(),
                                 newWidth, newHeight);
 
-    scratch.resize(dirty.size());
+    scratch = ImageF(dirty.Width(), dirty.Height());
 
     int maxScale =
         std::max(IUWTDecomposition::EndScale(std::min(x2 - x1, y2 - y1)),
@@ -726,13 +715,13 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
         newMaxComp, false, trimmedPriorMaskPtr);
     for (size_t i = 0; i != structureModelFull.size(); ++i) {
       memcpy(scratch.data(), (*trimmedStructureModel)[i],
-             (y2 - y1) * (x2 - x1) * sizeof(double));
+             (y2 - y1) * (x2 - x1) * sizeof(float));
       untrim(scratch, width, height, x1, y1, x2, y2);
       memcpy(structureModelFull[i], scratch.data(),
-             width * height * sizeof(double));
+             width * height * sizeof(float));
     }
 
-    dirty.resize(scratch.size());
+    dirty = ImageF(scratch.Width(), scratch.Height());
     _curBoxXStart = 0;
     _curBoxXEnd = width;
     _curBoxYStart = 0;
@@ -752,20 +741,20 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
     iuwt.ApplyMask(mask);
     iuwt.Recompose(scratch, false);
 
-    aocommon::UVector<double> maskedDirty = scratch;
+    ImageF maskedDirty = scratch;
 
-    aocommon::UVector<double> structureModel(width * height, 0.0);
+    ImageF structureModel(width, height, 0.0);
     bool success = runConjugateGradient(iuwt, mask, maskedDirty, structureModel,
                                         scratch, psfKernel, width, height);
     if (!success) return false;
 
-    double rmsBefore = rms(dirty);
+    float rmsBefore = rms(dirty);
     scratch = structureModel;
     FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
                                    psfKernel.data(), width, height);
     maskedDirty = dirty;  // we use maskedDirty as temporary
     factorAdd(maskedDirty.data(), scratch.data(), -_gain, width, height);
-    double rmsAfter = rms(maskedDirty);
+    float rmsAfter = rms(maskedDirty);
     if (rmsAfter > rmsBefore) {
       std::cout << "RMS got worse: " << rmsBefore << " -> " << rmsAfter << '\n';
       return false;
@@ -780,19 +769,19 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
 }
 
 void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
-    IUWTDecomposition& iuwt, const IUWTMask& mask,
-    const aocommon::UVector<double>& structureModel,
-    aocommon::UVector<double>& scratchA, aocommon::UVector<double>& scratchB,
-    const ImageAnalysis::Component& maxComp, ImageSet& fittedModel,
-    const double* psf, const aocommon::UVector<double>& dirty) {
+    IUWTDecomposition& iuwt, const IUWTMask& mask, const ImageF& structureModel,
+    ImageF& scratchA, ImageF& scratchB, const ImageAnalysis::Component& maxComp,
+    ImageSet& fittedModel, const float* psf, const ImageF& dirty) {
   size_t width = iuwt.Width(), height = iuwt.Height();
 
   if (_dirtySet->size() == 1) {
     // With only one image, we don't have to refit
-    fittedModel.Set(0, structureModel.data());
+    ImageF img(width, height);
+    std::copy_n(structureModel.data(), width * height, img.begin());
+    fittedModel.SetImage(0, std::move(img));
   } else {
     std::cout << "Fitting structure in images: " << std::flush;
-    aocommon::UVector<double> correctionFactors;
+    aocommon::UVector<float> correctionFactors;
     scratchA = dirty;
     performSubImageFitSingle(iuwt, mask, structureModel, scratchB, maxComp, psf,
                              scratchA, 0, correctionFactors);
@@ -801,13 +790,13 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
 
     for (size_t imgIndex = 0; imgIndex != _dirtySet->size(); ++imgIndex) {
       std::cout << '.' << std::flush;
-      const double* subPsf = _psfs[_dirtySet->PSFIndex(imgIndex)];
+      const float* subPsf = _psfs[_dirtySet->PSFIndex(imgIndex)];
 
       trim(scratchA, (*_dirtySet)[imgIndex], _width, _height, _curBoxXStart,
            _curBoxYStart, _curBoxXEnd, _curBoxYEnd);
 
-      aocommon::UVector<double> smallSubPsf;
-      const double* subPsfData;
+      ImageF smallSubPsf;
+      const float* subPsfData;
       if (_width != width || _height != height) {
         trimPsf(smallSubPsf, subPsf, _width, _height, width, height);
         subPsfData = smallSubPsf.data();
@@ -824,28 +813,26 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
 }
 
 void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
-    IUWTDecomposition& iuwt, const IUWTMask& mask,
-    const aocommon::UVector<double>& structureModel,
-    aocommon::UVector<double>& scratchB,
-    const ImageAnalysis::Component& maxComp, const double* psf,
-    aocommon::UVector<double>& subDirty, double* fittedSubModel,
-    aocommon::UVector<double>& correctionFactors) {
+    IUWTDecomposition& iuwt, const IUWTMask& mask, const ImageF& structureModel,
+    ImageF& scratchB, const ImageAnalysis::Component& maxComp, const float* psf,
+    ImageF& subDirty, float* fittedSubModel,
+    aocommon::UVector<float>& correctionFactors) {
   size_t width = iuwt.Width(), height = iuwt.Height();
 
-  aocommon::UVector<double> psfKernel(width * height);
+  ImageF psfKernel(width, height);
   FFTConvolver::PrepareKernel(psfKernel.data(), psf, width, height);
 
-  aocommon::UVector<double>& maskedDirty = scratchB;
+  ImageF& maskedDirty = scratchB;
 
   iuwt.Decompose(*_threadPool, subDirty.data(), subDirty.data(), false);
   iuwt.ApplyMask(mask);
   iuwt.Recompose(maskedDirty, false);
   aocommon::UVector<bool> mask2d(structureModel.size(), false);
-  double peakLevel = std::fabs(structureModel[maxComp.y * width + maxComp.x]);
+  float peakLevel = std::fabs(structureModel[maxComp.y * width + maxComp.x]);
   size_t componentIndex = 0;
   for (size_t y = 0; y != height; ++y) {
     bool* maskRow = &mask2d[y * width];
-    const double* modelRow = &structureModel[y * width];
+    const float* modelRow = &structureModel[y * width];
     for (size_t x = 0; x != width; ++x) {
       if (!maskRow[x] && std::fabs(modelRow[x]) > peakLevel * 1e-4) {
         std::vector<ImageAnalysis::Component2D> area;
@@ -853,7 +840,7 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
         ImageAnalysis::FloodFill2D(structureModel.data(), mask2d.data(),
                                    peakLevel * 1e-4, comp, width, height, area);
         // Find bounding box and copy active pixels to subDirty
-        subDirty.assign(width * height, 0.0);
+        subDirty = ImageF(width, height, 0.0);
         size_t boxX1 = width, boxX2 = 0, boxY1 = height, boxY2 = 0;
         for (std::vector<ImageAnalysis::Component2D>::const_iterator a =
                  area.begin();
@@ -867,7 +854,7 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
         }
         adjustBox(boxX1, boxY1, boxX2, boxY2, width, height, iuwt.NScales());
 
-        double factor = performSubImageComponentFitBoxed(
+        float factor = performSubImageComponentFitBoxed(
             iuwt, mask, area, subDirty, maskedDirty, psf, psfKernel, boxX1,
             boxY1, boxX2, boxY2);
 
@@ -875,7 +862,7 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
         // Otherwise, scale the deconvolved model and add it to the contaminated
         // model.
         if (fittedSubModel != 0) {
-          const double integratedFactor = correctionFactors[componentIndex];
+          const float integratedFactor = correctionFactors[componentIndex];
           if (std::isfinite(factor) && std::isfinite(integratedFactor) &&
               integratedFactor != 0.0) {
             for (std::vector<ImageAnalysis::Component2D>::const_iterator a =
@@ -895,30 +882,29 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
   }
 }
 
-double IUWTDeconvolutionAlgorithm::performSubImageComponentFitBoxed(
+float IUWTDeconvolutionAlgorithm::performSubImageComponentFitBoxed(
     IUWTDecomposition& iuwt, const IUWTMask& mask,
-    const std::vector<ImageAnalysis::Component2D>& area,
-    aocommon::UVector<double>& model, aocommon::UVector<double>& maskedDirty,
-    const double* psf, const aocommon::UVector<double>& psfKernel, size_t x1,
+    const std::vector<ImageAnalysis::Component2D>& area, ImageF& model,
+    ImageF& maskedDirty, const float* psf, const ImageF& psfKernel, size_t x1,
     size_t y1, size_t x2, size_t y2) {
   const size_t width = iuwt.Width(), height = iuwt.Height();
   if (x1 > 0 || y1 > 0 || x2 < width || y2 < height) {
     size_t newWidth = x2 - x1, newHeight = y2 - y1;
     IUWTDecomposition smallIUWTW(iuwt.NScales(), newWidth, newHeight);
     std::unique_ptr<IUWTMask> smallMask(mask.CreateTrimmed(x1, y1, x2, y2));
-    aocommon::UVector<double> smallModel;
+    ImageF smallModel;
     trim(smallModel, model, width, height, x1, y1, x2, y2);
 
-    aocommon::UVector<double> smallPsf;
+    ImageF smallPsf;
     trimPsf(smallPsf, psf, width, height, newWidth, newHeight);
-    aocommon::UVector<double> smallPsfKernel(smallPsf.size());
+    ImageF smallPsfKernel(smallPsf.Width(), smallPsf.Height());
     FFTConvolver::PrepareKernel(smallPsfKernel.data(), smallPsf.data(),
                                 newWidth, newHeight);
 
-    aocommon::UVector<double> smallMaskedDirty;
+    ImageF smallMaskedDirty;
     trim(smallMaskedDirty, maskedDirty, width, height, x1, y1, x2, y2);
 
-    double factor =
+    float factor =
         performSubImageComponentFit(smallIUWTW, *smallMask, area, smallModel,
                                     smallMaskedDirty, smallPsfKernel, x1, y1);
     return factor;
@@ -928,11 +914,10 @@ double IUWTDeconvolutionAlgorithm::performSubImageComponentFitBoxed(
   }
 }
 
-double IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
+float IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
     IUWTDecomposition& iuwt, const IUWTMask& mask,
-    const std::vector<ImageAnalysis::Component2D>& area,
-    aocommon::UVector<double>& model, aocommon::UVector<double>& maskedDirty,
-    const aocommon::UVector<double>& psfKernel, size_t xOffset,
+    const std::vector<ImageAnalysis::Component2D>& area, ImageF& model,
+    ImageF& maskedDirty, const ImageF& psfKernel, size_t xOffset,
     size_t yOffset) {
   const size_t width = iuwt.Width(), height = iuwt.Height();
   // Calculate IUWT^-1 mask IUWT model (x) PSF
@@ -942,7 +927,7 @@ double IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
   iuwt.ApplyMask(mask);
   iuwt.Recompose(model, false);
 
-  double modelSum = 0.0, dirtySum = 0.0;
+  float modelSum = 0.0, dirtySum = 0.0;
   for (std::vector<ImageAnalysis::Component2D>::const_iterator a = area.begin();
        a != area.end(); ++a) {
     size_t index = (a->x - xOffset) + (a->y - yOffset) * width;
@@ -957,9 +942,9 @@ double IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
     return dirtySum / modelSum;
 }
 
-double IUWTDeconvolutionAlgorithm::PerformMajorIteration(
+float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
     size_t& iterCounter, size_t nIter, ImageSet& modelSet, ImageSet& dirtySet,
-    const aocommon::UVector<const double*>& psfs, bool& reachedMajorThreshold) {
+    const aocommon::UVector<const float*>& psfs, bool& reachedMajorThreshold) {
   FFTWManager::ThreadingScope fftwThreadsEnabled(_fftwManager);
   std::unique_ptr<ThreadPool> threadPool(new ThreadPool());
   _threadPool = &*threadPool;
@@ -976,29 +961,22 @@ double IUWTDeconvolutionAlgorithm::PerformMajorIteration(
   _curBoxYStart = 0;
   _curBoxYEnd = _height;
 
-  aocommon::UVector<double> dirty(_width * _height);
-  dirtySet.GetLinearIntegrated(dirty.data());
-  aocommon::UVector<double> psf(psfs[0], psfs[0] + _width * _height);
-  dirtySet.GetIntegratedPSF(psf.data(), psfs);
-  /*for(size_t i=1; i!=psfs.size(); ++i)
-  {
-          for(size_t j=0; j!=psf.size(); ++j)
-                  psf[j] += psfs[i][j];
-  }
-  for(size_t j=0; j!=psf.size(); ++j)
-          psf[j] /= double(psfs.size());*/
+  ImageF dirty(_width, _height);
+  dirtySet.GetLinearIntegrated(dirty);
+  ImageF psf(_width, _height);
+  dirtySet.GetIntegratedPSF(psf, psfs);
 
   int maxScale = IUWTDecomposition::EndScale(std::min(_width, _height));
   int curEndScale = 2;
 
   // Prepare the PSF for convolutions later on
-  aocommon::UVector<double> psfKernel(_width * _height);
+  ImageF psfKernel(_width, _height);
   FFTConvolver::PrepareKernel(psfKernel.data(), psf.data(), _width, _height);
 
   std::cout << "Measuring PSF...\n";
   {
-    aocommon::UVector<double> convolvedPSF(psf);
-    aocommon::UVector<double> scratch(_width * _height);
+    ImageF convolvedPSF(psf);
+    ImageF scratch(_width, _height);
 
     FFTConvolver::ConvolveSameSize(_fftwManager, convolvedPSF.data(),
                                    psfKernel.data(), _width, _height);
@@ -1012,9 +990,9 @@ double IUWTDeconvolutionAlgorithm::PerformMajorIteration(
   std::unique_ptr<IUWTDecomposition> iuwt(
       new IUWTDecomposition(curEndScale, _width, _height));
 
-  aocommon::UVector<double> dirtyBeforeIteration;
+  ImageF dirtyBeforeIteration;
 
-  double maxValue = 0.0;
+  float maxValue = 0.0;
   size_t curMinScale = 0;
   reachedMajorThreshold = false;
   bool doContinue = true;
@@ -1024,7 +1002,7 @@ double IUWTDeconvolutionAlgorithm::PerformMajorIteration(
     dirtyBeforeIteration = dirty;
     FFTConvolver::PrepareKernel(psfKernel.data(), psf.data(), _width, _height);
     std::vector<ValComponent> maxComponents;
-    aocommon::UVector<double> scratch(_width * _height);
+    ImageF scratch(_width, _height);
     bool succeeded = findAndDeconvolveStructure(
         *iuwt, dirty, psf, psfKernel, scratch, structureModel, curEndScale,
         curMinScale, maxComponents);
@@ -1035,7 +1013,7 @@ double IUWTDeconvolutionAlgorithm::PerformMajorIteration(
 
       // Calculate: dirty = dirty - structureModel (x) psf
       for (size_t i = 0; i != dirtySet.size(); ++i) {
-        scratch.assign(structureModel[i], structureModel[i] + _width * _height);
+        scratch.Assign(structureModel[i], structureModel[i] + _width * _height);
         size_t psfIndex = dirtySet.PSFIndex(i);
         FFTConvolver::PrepareKernel(psfKernel.data(), psfs[psfIndex], _width,
                                     _height);
@@ -1043,7 +1021,7 @@ double IUWTDeconvolutionAlgorithm::PerformMajorIteration(
                                        psfKernel.data(), _width, _height);
         Subtract(dirtySet[i], scratch);
       }
-      dirtySet.GetLinearIntegrated(dirty.data());
+      dirtySet.GetLinearIntegrated(dirty);
 
       while (maxComponents.size() > initialComponents.size()) {
         initialComponents.push_back(maxComponents[initialComponents.size()]);

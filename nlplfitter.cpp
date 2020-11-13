@@ -28,7 +28,7 @@ class NLPLFitterData {
     for (size_t i = 0; i != fitterData.points.size(); ++i) {
       double x = fitterData.points[i].first, y = fitterData.points[i].second;
 
-      gsl_vector_set(f, i, factor * pow(x, exponent) - y);
+      gsl_vector_set(f, i, factor * std::pow(x, exponent) - y);
     }
 
     return GSL_SUCCESS;
@@ -44,8 +44,8 @@ class NLPLFitterData {
     for (size_t i = 0; i != fitterData.points.size(); ++i) {
       double x = fitterData.points[i].first;
 
-      double xToTheE = pow(x, exponent);
-      double dfdexp = factor * log(x) * xToTheE;
+      double xToTheE = std::pow(x, exponent);
+      double dfdexp = factor * std::log(x) * xToTheE;
       double dfdfac = xToTheE;
 
       gsl_matrix_set(J, i, 0, dfdexp);
@@ -126,7 +126,7 @@ class NLPLFitterData {
       const double x = fitterData.points[i].first,
                    y = fitterData.points[i].second;
 
-      const double lg = log10(x);
+      const double lg = std::log10(x);
 
       // Horner's method
       double fity = 0.0;
@@ -136,7 +136,7 @@ class NLPLFitterData {
         fity = a_j + fity * lg;
       }
       // std::cout << x << ':' << fity << " / " << pow(10.0, fity) << "\n";
-      gsl_vector_set(f, i, pow(10.0, fity) - y);
+      gsl_vector_set(f, i, std::pow(10.0, fity) - y);
     }
 
     return GSL_SUCCESS;
@@ -150,7 +150,7 @@ class NLPLFitterData {
     for (size_t i = 0; i != fitterData.points.size(); ++i) {
       double x = fitterData.points[i].first;
 
-      const double lg = log10(x);
+      const double lg = std::log10(x);
 
       // Horner's method
       double fity = 0.0;
@@ -165,7 +165,7 @@ class NLPLFitterData {
 
       double lgPower = lg;
       for (size_t j = 1; j != fitterData.nTerms; ++j) {
-        // const double a_j = gsl_vector_get(xvec, j);
+        // const num_t a_j = gsl_vector_get(xvec, j);
         gsl_matrix_set(J, i, j, fity * lgPower);
         lgPower *= lg;
       }
@@ -185,7 +185,7 @@ class NLPLFitterData {
 };
 
 #ifdef HAVE_GSL
-void NonLinearPowerLawFitter::Fit(double &exponent, double &factor) {
+void NonLinearPowerLawFitter::Fit(num_t &exponent, num_t &factor) {
   if (_data->points.size() >= 2) {
     const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
     _data->solver = gsl_multifit_fdfsolver_alloc(T, _data->points.size(), 2);
@@ -224,11 +224,11 @@ void NonLinearPowerLawFitter::Fit(double &exponent, double &factor) {
     factor = 0.0;
     for (size_t i = 0; i != _data->points.size(); ++i)
       factor += _data->points[i].second;
-    factor /= double(_data->points.size());
+    factor /= num_t(_data->points.size());
   }
 }
 
-void NonLinearPowerLawFitter::Fit(double &a, double &b, double &c) {
+void NonLinearPowerLawFitter::Fit(num_t &a, num_t &b, num_t &c) {
   Fit(a, b);
   b = pow(b, 1.0 / a);
 
@@ -270,7 +270,7 @@ void NonLinearPowerLawFitter::Fit(double &a, double &b, double &c) {
 }
 
 void NonLinearPowerLawFitter::fit_implementation(
-    aocommon::UVector<double> &terms, size_t nTerms) {
+    aocommon::UVector<num_t> &terms, size_t nTerms) {
   _data->nTerms = nTerms;
   const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
   _data->solver = gsl_multifit_fdfsolver_alloc(T, _data->points.size(), nTerms);
@@ -283,7 +283,8 @@ void NonLinearPowerLawFitter::fit_implementation(
   fdf.p = nTerms;
   fdf.params = &*_data;
 
-  gsl_vector_view initialVals = gsl_vector_view_array(terms.data(), nTerms);
+  aocommon::UVector<double> termsView(terms.begin(), terms.end());
+  gsl_vector_view initialVals = gsl_vector_view_array(termsView.data(), nTerms);
   gsl_multifit_fdfsolver_set(_data->solver, &fdf, &initialVals.vector);
 
   int status;
@@ -303,7 +304,7 @@ void NonLinearPowerLawFitter::fit_implementation(
     std::cout << "Warning: not converged! (niter=" << iter
               << ", status=" << gsl_strerror(status) << ")\n";
     // for(size_t i=0; i!=nTerms; ++i)
-    //	terms[i] = std::numeric_limits<double>::quiet_NaN();
+    //	terms[i] = std::numeric_limits<num_t>::quiet_NaN();
   }
   for (size_t i = 0; i != nTerms; ++i)
     terms[i] = gsl_vector_get(_data->solver->x, i);
@@ -314,19 +315,19 @@ void NonLinearPowerLawFitter::fit_implementation(
 #else
 #warning "No GSL found: can not do non-linear power law fitting!"
 
-void NonLinearPowerLawFitter::Fit(double& exponent, double& factor) {
+void NonLinearPowerLawFitter::Fit(num_t& exponent, num_t& factor) {
   throw std::runtime_error(
       "Non-linear power law fitter was invoked, but GSL was not found during "
       "compilation, and is required for this");
 }
 
-void NonLinearPowerLawFitter::Fit(double& a, double& b, double& c) {
+void NonLinearPowerLawFitter::Fit(num_t& a, num_t& b, num_t& c) {
   throw std::runtime_error(
       "Non-linear power law fitter was invoked, but GSL was not found during "
       "compilation, and is required for this");
 }
 
-void NonLinearPowerLawFitter::fit_implementation(std::vector<double>& terms,
+void NonLinearPowerLawFitter::fit_implementation(std::vector<num_t>& terms,
                                                  size_t nTerms) {
   throw std::runtime_error(
       "Non-linear power law fitter was invoked, but GSL was not found during "
@@ -340,11 +341,11 @@ NonLinearPowerLawFitter::NonLinearPowerLawFitter()
 
 NonLinearPowerLawFitter::~NonLinearPowerLawFitter() {}
 
-void NonLinearPowerLawFitter::AddDataPoint(double x, double y) {
+void NonLinearPowerLawFitter::AddDataPoint(num_t x, num_t y) {
   _data->points.push_back(std::make_pair(x, y));
 }
 
-void NonLinearPowerLawFitter::Fit(aocommon::UVector<double> &terms,
+void NonLinearPowerLawFitter::Fit(aocommon::UVector<num_t> &terms,
                                   size_t nTerms) {
   terms.assign(nTerms, 0.0);
 
@@ -352,7 +353,7 @@ void NonLinearPowerLawFitter::Fit(aocommon::UVector<double> &terms,
 
   if (nTerms == 0) return;
 
-  double a = 1.0, b = 0.0;
+  num_t a = 1.0, b = 0.0;
   Fit(a, b);
   bool isNegative = b < 0.0;
   if (isNegative) {
@@ -360,10 +361,10 @@ void NonLinearPowerLawFitter::Fit(aocommon::UVector<double> &terms,
          i != _data->points.end(); ++i) {
       i->second = -i->second;
     }
-    terms[0] = -log10(-b);
+    terms[0] = -std::log10(-b);
     a = -a;
   } else {
-    terms[0] = log10(b);  // - a*log(NLPLFact);
+    terms[0] = std::log10(b);  // - a*log(NLPLFact);
   }
 
   if (b != 0.0) {
@@ -373,17 +374,17 @@ void NonLinearPowerLawFitter::Fit(aocommon::UVector<double> &terms,
   }
 
   if (isNegative)
-    terms[0] = -pow(10.0, terms[0]);
+    terms[0] = -std::pow(10.0, terms[0]);
   else
-    terms[0] = pow(10.0, terms[0]);
+    terms[0] = std::pow(10.0, terms[0]);
 }
 
-void NonLinearPowerLawFitter::FitStable(aocommon::UVector<double> &terms,
+void NonLinearPowerLawFitter::FitStable(aocommon::UVector<num_t> &terms,
                                         size_t nTerms) {
   terms.assign(nTerms, 0.0);
   if (nTerms == 0) return;
 
-  double a = 1.0, b = 0.0;
+  num_t a = 1.0, b = 0.0;
   Fit(a, b);
 
   bool isNegative = b < 0.0;
@@ -392,10 +393,10 @@ void NonLinearPowerLawFitter::FitStable(aocommon::UVector<double> &terms,
          i != _data->points.end(); ++i) {
       i->second = -i->second;
     }
-    terms[0] = -log10(-b);
+    terms[0] = -std::log10(-b);
     a = -a;
   } else {
-    terms[0] = log10(b);  // - a*log(NLPLFact);
+    terms[0] = std::log10(b);  // - a*log(NLPLFact);
   }
 
   if (b != 0.0) {
@@ -413,14 +414,14 @@ void NonLinearPowerLawFitter::FitStable(aocommon::UVector<double> &terms,
     terms[0] = pow(10.0, terms[0]);
 }
 
-void NonLinearPowerLawFitter::FastFit(double &exponent, double &factor) {
-  double sumxy = 0.0, sumx = 0.0, sumy = 0.0, sumxx = 0.0;
+void NonLinearPowerLawFitter::FastFit(num_t &exponent, num_t &factor) {
+  num_t sumxy = 0.0, sumx = 0.0, sumy = 0.0, sumxx = 0.0;
   size_t n = 0;
   bool requireNonLinear = false;
 
   for (NLPLFitterData::PointVec::const_iterator i = _data->points.begin();
        i != _data->points.end(); ++i) {
-    double x = i->first, y = i->second;
+    num_t x = i->first, y = i->second;
     if (y <= 0) {
       requireNonLinear = true;
       break;
@@ -440,10 +441,10 @@ void NonLinearPowerLawFitter::FastFit(double &exponent, double &factor) {
     Fit(exponent, factor);
   } else {
     if (n == 0) {
-      exponent = std::numeric_limits<double>::quiet_NaN();
-      factor = std::numeric_limits<double>::quiet_NaN();
+      exponent = std::numeric_limits<num_t>::quiet_NaN();
+      factor = std::numeric_limits<num_t>::quiet_NaN();
     } else {
-      double d = (n * sumxx - sumx * sumx);
+      num_t d = (n * sumxx - sumx * sumx);
       if (d == 0.0)
         exponent = 0.0;
       else
@@ -453,16 +454,16 @@ void NonLinearPowerLawFitter::FastFit(double &exponent, double &factor) {
   }
 }
 
-double NonLinearPowerLawFitter::Evaluate(double x,
-                                         const aocommon::UVector<double> &terms,
-                                         double referenceFrequencyHz) {
+NonLinearPowerLawFitter::num_t NonLinearPowerLawFitter::Evaluate(
+    num_t x, const aocommon::UVector<num_t> &terms,
+    num_t referenceFrequencyHz) {
   if (terms.empty()) return 0.0;
-  double y = 0.0;
-  const double lg = log10(x / referenceFrequencyHz);
+  num_t y = 0.0;
+  const num_t lg = std::log10(x / referenceFrequencyHz);
 
   for (size_t k = 0; k != terms.size() - 1; ++k) {
     size_t j = terms.size() - k - 1;
     y = y * lg + terms[j];
   }
-  return pow(10.0, y * lg) * terms[0];
+  return std::pow(10.0, y * lg) * terms[0];
 }

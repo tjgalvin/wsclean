@@ -5,6 +5,8 @@
 
 #include "iuwtmask.h"
 
+#include "../image.h"
+
 #include <aocommon/uvector.h>
 
 #include <iostream>
@@ -15,15 +17,13 @@ using aocommon::FitsWriter;
 
 class IUWTDecompositionScale {
  public:
-  aocommon::UVector<double>& Coefficients() { return _coefficients; }
-  const aocommon::UVector<double>& Coefficients() const {
-    return _coefficients;
-  }
-  double& operator[](size_t index) { return _coefficients[index]; }
-  const double& operator[](size_t index) const { return _coefficients[index]; }
+  ImageF& Coefficients() { return _coefficients; }
+  const ImageF& Coefficients() const { return _coefficients; }
+  float& operator[](size_t index) { return _coefficients[index]; }
+  const float& operator[](size_t index) const { return _coefficients[index]; }
 
  private:
-  aocommon::UVector<double> _coefficients;
+  ImageF _coefficients;
 };
 
 class IUWTDecomposition {
@@ -42,35 +42,35 @@ class IUWTDecomposition {
       copySmallerPart(_scales[i].Coefficients(), p->_scales[i].Coefficients(),
                       x1, y1, x2, y2);
     }
-    p->_scales.back().Coefficients().assign(0.0, (x2 - x1) * (y2 - y1));
+    p->_scales.back().Coefficients() = 0.0;
     return p.release();
   }
 
-  void Convolve(aocommon::UVector<double>& image, int toScale) {
-    aocommon::UVector<double> scratch(image.size());
+  void Convolve(ImageF& image, int toScale) {
+    ImageF scratch(image.Width(), image.Height());
     for (int scale = 0; scale != toScale; ++scale) {
       convolve(image.data(), image.data(), scratch.data(), _width, _height,
                scale + 1);
     }
   }
 
-  void DecomposeSimple(aocommon::UVector<double>& input) {
-    aocommon::UVector<double> scratch(input.size());
+  void DecomposeSimple(ImageF& input) {
+    ImageF scratch(input.Width(), input.Height());
     for (int scale = 0; scale != int(_scaleCount); ++scale) {
-      aocommon::UVector<double>& coefficients = _scales[scale].Coefficients();
-      coefficients.resize(_width * _height);
+      ImageF& coefficients = _scales[scale].Coefficients();
+      coefficients = ImageF(_width, _height);
 
-      aocommon::UVector<double> tmp(_width * _height);
+      ImageF tmp(_width, _height);
       convolve(tmp.data(), input.data(), scratch.data(), _width, _height,
                scale);
       difference(coefficients.data(), input.data(), tmp.data(), _width,
                  _height);
-      memcpy(input.data(), tmp.data(), sizeof(double) * _width * _height);
+      memcpy(input.data(), tmp.data(), sizeof(float) * _width * _height);
     }
     _scales.back().Coefficients() = input;
   }
 
-  void RecomposeSimple(aocommon::UVector<double>& output) {
+  void RecomposeSimple(ImageF& output) {
     output = _scales[0].Coefficients();
     for (size_t scale = 1; scale != _scaleCount - 1; ++scale) {
       for (size_t i = 0; i != _width * _height; ++i)
@@ -78,20 +78,20 @@ class IUWTDecomposition {
     }
   }
 
-  void Decompose(class ThreadPool& pool, const double* input, double* scratch,
+  void Decompose(class ThreadPool& pool, const float* input, float* scratch,
                  bool includeLargest) {
     DecomposeMT(pool, input, scratch, includeLargest);
   }
 
-  void DecomposeMT(class ThreadPool& pool, const double* input, double* scratch,
+  void DecomposeMT(class ThreadPool& pool, const float* input, float* scratch,
                    bool includeLargest);
 
-  void DecomposeST(const double* input, double* scratch) {
-    aocommon::UVector<double> i0(input, input + _width * _height),
-        i1(_width * _height), i2(_width * _height);
+  void DecomposeST(const float* input, float* scratch) {
+    aocommon::UVector<float> i0(input, input + _width * _height);
+    ImageF i1(_width, _height), i2(_width, _height);
     for (int scale = 0; scale != int(_scaleCount); ++scale) {
-      aocommon::UVector<double>& coefficients = _scales[scale].Coefficients();
-      coefficients.resize(_width * _height);
+      ImageF& coefficients = _scales[scale].Coefficients();
+      coefficients = ImageF(_width, _height);
       convolve(i1.data(), i0.data(), scratch, _width, _height, scale + 1);
       convolve(i2.data(), i1.data(), scratch, _width, _height, scale + 1);
 
@@ -100,25 +100,23 @@ class IUWTDecomposition {
 
       // i0 = i1;
       if (scale + 1 != int(_scaleCount))
-        memcpy(i0.data(), i1.data(), sizeof(double) * _width * _height);
+        memcpy(i0.data(), i1.data(), sizeof(float) * _width * _height);
     }
     _scales.back().Coefficients() = i1;
   }
 
-  void Recompose(aocommon::UVector<double>& output, bool includeLargest) {
-    aocommon::UVector<double> scratch1(_width * _height),
-        scratch2(_width * _height);
+  void Recompose(ImageF& output, bool includeLargest) {
+    ImageF scratch1(_width, _height), scratch2(_width, _height);
     bool isZero;
     if (includeLargest) {
       output = _scales.back().Coefficients();
       isZero = false;
     } else {
-      output.assign(scratch1.size(), 0.0);
+      output = ImageF(_width, _height, 0.0);
       isZero = true;
     }
     for (int scale = int(_scaleCount) - 1; scale != -1; --scale) {
-      const aocommon::UVector<double>& coefficients =
-          _scales[scale].Coefficients();
+      const ImageF& coefficients = _scales[scale].Coefficients();
       if (isZero) {
         output = coefficients;
         isZero = false;
@@ -153,7 +151,7 @@ class IUWTDecomposition {
         if (!mask[scale][i]) _scales[scale][i] = 0.0;
       }
     }
-    _scales[_scaleCount].Coefficients().assign(_width * _height, 0.0);
+    _scales[_scaleCount].Coefficients() = 0.0;
   }
 
   void Save(const std::string& prefix) {
@@ -184,56 +182,56 @@ class IUWTDecomposition {
   }
 
  private:
-  static void convolveComponentHorizontal(const double* input, double* output,
+  static void convolveComponentHorizontal(const float* input, float* output,
                                           size_t width, size_t height,
-                                          double val, int dist) {
+                                          float val, int dist) {
     size_t minX = std::max<int>(0, -dist),
            maxX = std::min<int>(width, width - dist);
     for (size_t y = 0; y != height; ++y) {
-      double* outputPtr = &output[y * width];
-      const double* inputPtr = &input[y * width];
+      float* outputPtr = &output[y * width];
+      const float* inputPtr = &input[y * width];
       for (size_t x = minX; x < maxX; ++x) {
         outputPtr[x] += inputPtr[x + dist] * val;
       }
     }
   }
 
-  static void convolveComponentVertical(const double* input, double* output,
-                                        size_t width, size_t height, double val,
+  static void convolveComponentVertical(const float* input, float* output,
+                                        size_t width, size_t height, float val,
                                         int dist) {
     size_t minY = std::max<int>(0, -dist),
            maxY = std::min<int>(height, height - dist);
     for (size_t y = minY; y < maxY; ++y) {
-      double* outputPtr = &output[y * width];
-      const double* inputPtr = &input[(y + dist) * width];
+      float* outputPtr = &output[y * width];
+      const float* inputPtr = &input[(y + dist) * width];
       for (size_t x = 0; x != width; ++x) {
         outputPtr[x] += inputPtr[x] * val;
       }
     }
   }
 
-  static void convolveComponentVerticalPartial(const double* input,
-                                               double* output, size_t width,
+  static void convolveComponentVerticalPartial(const float* input,
+                                               float* output, size_t width,
                                                size_t height, size_t startX,
-                                               size_t endX, double val,
+                                               size_t endX, float val,
                                                int dist) {
     size_t minY = std::max<int>(0, -dist),
            maxY = std::min<int>(height, height - dist);
     for (size_t y = minY; y < maxY; ++y) {
-      double* outputPtr = &output[y * width];
-      const double* inputPtr = &input[(y + dist) * width];
+      float* outputPtr = &output[y * width];
+      const float* inputPtr = &input[(y + dist) * width];
       for (size_t x = startX; x != endX; ++x) {
         outputPtr[x] += inputPtr[x] * val;
       }
     }
   }
 
-  static void convolve(double* output, const double* image, double* scratch,
+  static void convolve(float* output, const float* image, float* scratch,
                        size_t width, size_t height, int scale) {
     for (size_t i = 0; i != width * height; ++i) scratch[i] = 0.0;
     const size_t H_SIZE = 5;
-    const double h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
-                              1.0 / 16.0};
+    const float h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
+                             1.0 / 16.0};
     int scaleDist = (1 << scale);
     for (int hIndex = 0; hIndex != H_SIZE; ++hIndex) {
       int hShift = hIndex - H_SIZE / 2;
@@ -248,11 +246,11 @@ class IUWTDecomposition {
     }
   }
 
-  static void convolveMT(class ThreadPool& threadPool, double* output,
-                         const double* image, double* scratch, size_t width,
+  static void convolveMT(class ThreadPool& threadPool, float* output,
+                         const float* image, float* scratch, size_t width,
                          size_t height, int scale);
 
-  static void convolveHorizontalPartial(double* output, const double* image,
+  static void convolveHorizontalPartial(float* output, const float* image,
                                         size_t width, size_t startY,
                                         size_t endY, int scale) {
     size_t startIndex = startY * width;
@@ -265,20 +263,20 @@ class IUWTDecomposition {
       convolveHorizontalPartial(_output, _image, _width, _startY, _endY,
                                 _scale);
     }
-    double* _output;
-    const double* _image;
+    float* _output;
+    const float* _image;
     size_t _width;
     size_t _startY;
     size_t _endY;
     int _scale;
   };
 
-  static void convolveHorizontal(double* output, const double* image,
+  static void convolveHorizontal(float* output, const float* image,
                                  size_t width, size_t height, int scale) {
     for (size_t i = 0; i != width * height; ++i) output[i] = 0.0;
     const size_t H_SIZE = 5;
-    const double h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
-                              1.0 / 16.0};
+    const float h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
+                             1.0 / 16.0};
     int scaleDist = (1 << scale);
     for (int hIndex = 0; hIndex != H_SIZE; ++hIndex) {
       int hShift = hIndex - H_SIZE / 2;
@@ -287,16 +285,16 @@ class IUWTDecomposition {
     }
   }
 
-  static void convolveHorizontalFast(double* output, const double* image,
+  static void convolveHorizontalFast(float* output, const float* image,
                                      size_t width, size_t height, int scale);
 
-  static void convolveVerticalPartial(double* output, const double* image,
+  static void convolveVerticalPartial(float* output, const float* image,
                                       size_t width, size_t height,
                                       size_t startX, size_t endX, int scale) {
     for (size_t i = 0; i != width * height; ++i) output[i] = 0.0;
     const size_t H_SIZE = 5;
-    const double h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
-                              1.0 / 16.0};
+    const float h[H_SIZE] = {1.0 / 16.0, 4.0 / 16.0, 6.0 / 16.0, 4.0 / 16.0,
+                             1.0 / 16.0};
     int scaleDist = (1 << scale);
     for (int hIndex = 0; hIndex != H_SIZE; ++hIndex) {
       int hShift = hIndex - H_SIZE / 2;
@@ -306,13 +304,13 @@ class IUWTDecomposition {
     }
   }
 
-  static void convolveVerticalPartialFast(double* output, const double* image,
+  static void convolveVerticalPartialFast(float* output, const float* image,
                                           size_t width, size_t height,
                                           size_t startX, size_t endX,
                                           int scale);
 
-  static void convolveVerticalPartialFastFailed(double* output,
-                                                const double* image,
+  static void convolveVerticalPartialFastFailed(float* output,
+                                                const float* image,
                                                 size_t width, size_t height,
                                                 size_t startX, size_t endX,
                                                 int scale);
@@ -322,8 +320,8 @@ class IUWTDecomposition {
       convolveVerticalPartialFast(_output, _image, _width, _height, _startX,
                                   _endX, _scale);
     }
-    double* _output;
-    const double* _image;
+    float* _output;
+    const float* _image;
     size_t _width;
     size_t _height;
     size_t _startX;
@@ -331,9 +329,8 @@ class IUWTDecomposition {
     int _scale;
   };
 
-  static void differencePartial(double* dest, const double* lhs,
-                                const double* rhs, size_t width, size_t startY,
-                                size_t endY) {
+  static void differencePartial(float* dest, const float* lhs, const float* rhs,
+                                size_t width, size_t startY, size_t endY) {
     size_t startIndex = startY * width;
     difference(&dest[startIndex], &lhs[startIndex], &rhs[startIndex], width,
                endY - startY);
@@ -343,33 +340,32 @@ class IUWTDecomposition {
     void operator()() {
       differencePartial(_dest, _lhs, _rhs, _width, _startY, _endY);
     }
-    double* _dest;
-    const double* _lhs;
-    const double* _rhs;
+    float* _dest;
+    const float* _lhs;
+    const float* _rhs;
     size_t _width;
     size_t _startY;
     size_t _endY;
   };
 
-  static void differenceMT(class ThreadPool& threadPool, double* dest,
-                           const double* lhs, const double* rhs, size_t width,
+  static void differenceMT(class ThreadPool& threadPool, float* dest,
+                           const float* lhs, const float* rhs, size_t width,
                            size_t height);
 
-  static void difference(double* dest, const double* lhs, const double* rhs,
+  static void difference(float* dest, const float* lhs, const float* rhs,
                          size_t width, size_t height) {
     for (size_t i = 0; i != width * height; ++i) {
       dest[i] = lhs[i] - rhs[i];
     }
   }
 
-  void copySmallerPart(const aocommon::UVector<double>& input,
-                       aocommon::UVector<double>& output, size_t x1, size_t y1,
-                       size_t x2, size_t y2) const {
+  void copySmallerPart(const ImageF& input, ImageF& output, size_t x1,
+                       size_t y1, size_t x2, size_t y2) const {
     size_t newWidth = x2 - x1;
-    output.resize(newWidth * (y2 - y1));
+    output = ImageF(newWidth, y2 - y1);
     for (size_t y = y1; y != y2; ++y) {
-      const double* oldPtr = &input[y * _width];
-      double* newPtr = &output[(y - y1) * newWidth];
+      const float* oldPtr = &input[y * _width];
+      float* newPtr = &output[(y - y1) * newWidth];
       for (size_t x = x1; x != x2; ++x) {
         newPtr[x - x1] = oldPtr[x];
       }

@@ -153,7 +153,7 @@ class PowerLawSED final : public SpectralEnergyDistribution {
  private:
   double _referenceFrequency;
   double _factors[4];
-  aocommon::UVector<double> _terms;
+  aocommon::UVector<float> _terms;
   bool _isLogarithmic;
 };
 

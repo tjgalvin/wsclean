@@ -88,7 +88,7 @@ void GaussianFitter::FromCovariance(double sxsx, double sxsy, double sysy,
   }
 }
 
-void GaussianFitter::Fit2DGaussianCentred(const double* image, size_t width,
+void GaussianFitter::Fit2DGaussianCentred(const float* image, size_t width,
                                           size_t height, double beamEst,
                                           double& beamMaj, double& beamMin,
                                           double& beamPA, double boxScaleFactor,
@@ -128,7 +128,7 @@ void GaussianFitter::Fit2DGaussianCentred(const double* image, size_t width,
   }
 }
 
-void GaussianFitter::Fit2DCircularGaussianCentred(const double* image,
+void GaussianFitter::Fit2DCircularGaussianCentred(const float* image,
                                                   size_t width, size_t height,
                                                   double& beamSize,
                                                   double boxScaleFactor) {
@@ -161,7 +161,7 @@ void GaussianFitter::Fit2DCircularGaussianCentred(const double* image,
   }
 }
 
-void GaussianFitter::Fit2DGaussianFull(const double* image, size_t width,
+void GaussianFitter::Fit2DGaussianFull(const float* image, size_t width,
                                        size_t height, double& val, double& posX,
                                        double& posY, double& beamMaj,
                                        double& beamMin, double& beamPA,
@@ -196,18 +196,17 @@ void GaussianFitter::Fit2DGaussianFull(const double* image, size_t width,
   }
 }
 
-void GaussianFitter::fit2DGaussianCentredInBox(const double* image,
-                                               size_t width, size_t height,
-                                               double beamEst, double& beamMaj,
-                                               double& beamMin, double& beamPA,
-                                               size_t boxWidth,
+void GaussianFitter::fit2DGaussianCentredInBox(const float* image, size_t width,
+                                               size_t height, double beamEst,
+                                               double& beamMaj, double& beamMin,
+                                               double& beamPA, size_t boxWidth,
                                                size_t boxHeight, bool verbose) {
   size_t startX = (width - boxWidth) / 2;
   size_t startY = (height - boxHeight) / 2;
-  aocommon::UVector<double> smallImage(boxWidth * boxHeight);
+  aocommon::UVector<float> smallImage(boxWidth * boxHeight);
   for (size_t y = startY; y != (height + boxHeight) / 2; ++y) {
     memcpy(&smallImage[(y - startY) * boxWidth], &image[y * width + startX],
-           sizeof(double) * boxWidth);
+           sizeof(float) * boxWidth);
   }
 
   fit2DGaussianCentred(&smallImage[0], boxWidth, boxHeight, beamEst, beamMaj,
@@ -215,20 +214,20 @@ void GaussianFitter::fit2DGaussianCentredInBox(const double* image,
 }
 
 void GaussianFitter::fit2DCircularGaussianCentredInBox(
-    const double* image, size_t width, size_t height, double& beamSize,
+    const float* image, size_t width, size_t height, double& beamSize,
     size_t boxWidth, size_t boxHeight) {
   size_t startX = (width - boxWidth) / 2;
   size_t startY = (height - boxHeight) / 2;
-  aocommon::UVector<double> smallImage(boxWidth * boxHeight);
+  aocommon::UVector<float> smallImage(boxWidth * boxHeight);
   for (size_t y = startY; y != (height + boxHeight) / 2; ++y) {
     memcpy(&smallImage[(y - startY) * boxWidth], &image[y * width + startX],
-           sizeof(double) * boxWidth);
+           sizeof(float) * boxWidth);
   }
 
   fit2DCircularGaussianCentred(&smallImage[0], boxWidth, boxHeight, beamSize);
 }
 
-void GaussianFitter::fit2DGaussianCentred(const double* image, size_t width,
+void GaussianFitter::fit2DGaussianCentred(const float* image, size_t width,
                                           size_t height, double beamEst,
                                           double& beamMaj, double& beamMin,
                                           double& beamPA, bool verbose) {
@@ -280,7 +279,7 @@ void GaussianFitter::fit2DGaussianCentred(const double* image, size_t width,
   beamMin *= _scaleFactor;
 }
 
-void GaussianFitter::fit2DCircularGaussianCentred(const double* image,
+void GaussianFitter::fit2DCircularGaussianCentred(const float* image,
                                                   size_t width, size_t height,
                                                   double& beamSize) {
   _width = width;
@@ -441,16 +440,16 @@ int GaussianFitter::fitting_deriv_circular_centered(const gsl_vector* xvec,
 }
 
 void GaussianFitter::fit2DGaussianWithAmplitudeInBox(
-    const double* image, size_t width, size_t /*height*/, double& val,
+    const float* image, size_t width, size_t /*height*/, double& val,
     double& posX, double& posY, double& beamMaj, double& beamMin,
     double& beamPA, double* floorLevel, size_t xStart, size_t xEnd,
     size_t yStart, size_t yEnd) {
   size_t boxWidth = xEnd - xStart;
   size_t boxHeight = yEnd - yStart;
-  aocommon::UVector<double> smallImage(boxWidth * boxHeight);
+  aocommon::UVector<float> smallImage(boxWidth * boxHeight);
   for (size_t y = yStart; y != yEnd; ++y) {
     memcpy(&smallImage[(y - yStart) * boxWidth], &image[y * width + xStart],
-           sizeof(double) * boxWidth);
+           sizeof(float) * boxWidth);
   }
 
   posX -= xStart;
@@ -465,7 +464,7 @@ void GaussianFitter::fit2DGaussianWithAmplitudeInBox(
  * Fits the position, size and amplitude of a Gaussian. If floorLevel is not
  * a nullptr, the floor (background level, or zero level) is fitted too.
  */
-void GaussianFitter::fit2DGaussianWithAmplitude(const double* image,
+void GaussianFitter::fit2DGaussianWithAmplitude(const float* image,
                                                 size_t width, size_t height,
                                                 double& val, double& posX,
                                                 double& posY, double& beamMaj,

@@ -14,18 +14,18 @@ class UnavailableGridder : public MSGridderBase {
 
   virtual void Invert() final override { doThrow(); }
 
-  virtual void Predict(Image) final override { doThrow(); }
+  virtual void Predict(ImageF) final override { doThrow(); }
 
-  virtual void Predict(Image, Image) final override { doThrow(); }
+  virtual void Predict(ImageF, ImageF) final override { doThrow(); }
 
-  virtual Image ImageRealResult() final override {
+  virtual ImageF ImageRealResult() final override {
     doThrow();
-    return Image();
+    return ImageF();
   }
 
-  virtual Image ImageImaginaryResult() final override {
+  virtual ImageF ImageImaginaryResult() final override {
     doThrow();
-    return Image();
+    return ImageF();
   }
 
   static void SavePBCorrectedImages(class FitsWriter& /*writer*/,

@@ -20,24 +20,24 @@ class DeconvolutionAlgorithm {
  public:
   virtual ~DeconvolutionAlgorithm() {}
 
-  virtual double ExecuteMajorIteration(
+  virtual float ExecuteMajorIteration(
       class ImageSet& dataImage, class ImageSet& modelImage,
-      const aocommon::UVector<const double*>& psfImages, size_t width,
+      const aocommon::UVector<const float*>& psfImages, size_t width,
       size_t height, bool& reachedMajorThreshold) = 0;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const = 0;
 
   void SetMaxNIter(size_t nIter) { _maxIter = nIter; }
 
-  void SetThreshold(double threshold) { _threshold = threshold; }
+  void SetThreshold(float threshold) { _threshold = threshold; }
 
-  void SetMajorIterThreshold(double mThreshold) {
+  void SetMajorIterThreshold(float mThreshold) {
     _majorIterThreshold = mThreshold;
   }
 
-  void SetGain(double gain) { _gain = gain; }
+  void SetGain(float gain) { _gain = gain; }
 
-  void SetMGain(double mGain) { _mGain = mGain; }
+  void SetMGain(float mGain) { _mGain = mGain; }
 
   void SetAllowNegativeComponents(bool allowNegativeComponents) {
     _allowNegativeComponents = allowNegativeComponents;
@@ -47,7 +47,7 @@ class DeconvolutionAlgorithm {
     _stopOnNegativeComponent = stopOnNegative;
   }
 
-  void SetCleanBorderRatio(double borderRatio) {
+  void SetCleanBorderRatio(float borderRatio) {
     _cleanBorderRatio = borderRatio;
   }
 
@@ -56,11 +56,11 @@ class DeconvolutionAlgorithm {
   void SetLogReceiver(class LogReceiver& receiver) { _logReceiver = &receiver; }
 
   size_t MaxNIter() const { return _maxIter; }
-  double Threshold() const { return _threshold; }
-  double MajorIterThreshold() const { return _majorIterThreshold; }
-  double Gain() const { return _gain; }
-  double MGain() const { return _mGain; }
-  double CleanBorderRatio() const { return _cleanBorderRatio; }
+  float Threshold() const { return _threshold; }
+  float MajorIterThreshold() const { return _majorIterThreshold; }
+  float Gain() const { return _gain; }
+  float MGain() const { return _mGain; }
+  float CleanBorderRatio() const { return _cleanBorderRatio; }
   bool AllowNegativeComponents() const { return _allowNegativeComponents; }
   bool StopOnNegativeComponents() const { return _stopOnNegativeComponent; }
 
@@ -72,12 +72,12 @@ class DeconvolutionAlgorithm {
     _iterationNumber = iterationNumber;
   }
 
-  static void ResizeImage(double* dest, size_t newWidth, size_t newHeight,
-                          const double* source, size_t width, size_t height);
+  static void ResizeImage(float* dest, size_t newWidth, size_t newHeight,
+                          const float* source, size_t width, size_t height);
 
   // This is used in the 'fitsmodel' executable. Might need to find a better
   // place for it, or remove it.
-  static void GetModelFromImage(class Model& model, const double* image,
+  static void GetModelFromImage(class Model& model, const float* image,
                                 size_t width, size_t height,
                                 double phaseCentreRA, double phaseCentreDec,
                                 double pixelSizeX, double pixelSizeY,
@@ -86,7 +86,7 @@ class DeconvolutionAlgorithm {
                                 aocommon::PolarizationEnum polarization =
                                     aocommon::Polarization::StokesI);
 
-  static void RemoveNaNsInPSF(double* psf, size_t width, size_t height);
+  static void RemoveNaNsInPSF(float* psf, size_t width, size_t height);
 
   void CopyConfigFrom(const DeconvolutionAlgorithm& source) {
     _threshold = source._threshold;
@@ -106,15 +106,15 @@ class DeconvolutionAlgorithm {
   }
 
   void InitializeFrequencies(const aocommon::UVector<double>& frequencies,
-                             const aocommon::UVector<double>& weights) {
+                             const aocommon::UVector<float>& weights) {
     _spectralFitter.SetFrequencies(frequencies.data(), weights.data(),
                                    frequencies.size());
   }
 
   const SpectralFitter& Fitter() const { return _spectralFitter; }
 
-  void SetRMSFactorImage(Image&& image) { _rmsFactorImage = std::move(image); }
-  const Image& RMSFactorImage() const { return _rmsFactorImage; }
+  void SetRMSFactorImage(ImageF&& image) { _rmsFactorImage = std::move(image); }
+  const ImageF& RMSFactorImage() const { return _rmsFactorImage; }
 
  protected:
   DeconvolutionAlgorithm();
@@ -122,13 +122,13 @@ class DeconvolutionAlgorithm {
   DeconvolutionAlgorithm(const DeconvolutionAlgorithm&) = default;
   DeconvolutionAlgorithm& operator=(const DeconvolutionAlgorithm&) = default;
 
-  void PerformSpectralFit(double* values);
+  void PerformSpectralFit(float* values);
 
-  double _threshold, _majorIterThreshold, _gain, _mGain, _cleanBorderRatio;
+  float _threshold, _majorIterThreshold, _gain, _mGain, _cleanBorderRatio;
   size_t _maxIter, _iterationNumber, _threadCount;
   bool _allowNegativeComponents, _stopOnNegativeComponent;
   const bool* _cleanMask;
-  Image _rmsFactorImage;
+  ImageF _rmsFactorImage;
 
   class LogReceiver* _logReceiver;
 

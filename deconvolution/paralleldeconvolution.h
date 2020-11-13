@@ -33,7 +33,7 @@ class ParallelDeconvolution {
 
   void SetAlgorithm(std::unique_ptr<class DeconvolutionAlgorithm> algorithm);
 
-  void SetRMSFactorImage(Image&& image);
+  void SetRMSFactorImage(ImageF&& image);
 
   void SetThreshold(double threshold);
 
@@ -45,7 +45,7 @@ class ParallelDeconvolution {
 
   void ExecuteMajorIteration(class ImageSet& dataImage,
                              class ImageSet& modelImage,
-                             const aocommon::UVector<const double*>& psfImages,
+                             const aocommon::UVector<const float*>& psfImages,
                              bool& reachedMajorThreshold);
 
   void FreeDeconvolutionAlgorithms() {
@@ -68,7 +68,7 @@ class ParallelDeconvolution {
 
  private:
   void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage,
-                          const aocommon::UVector<const double*>& psfImages,
+                          const aocommon::UVector<const float*>& psfImages,
                           bool& reachedMajorThreshold);
 
   struct SubImage {
@@ -80,7 +80,7 @@ class ParallelDeconvolution {
 
   void runSubImage(SubImage& subImg, ImageSet& dataImage,
                    class ImageSet& modelImage,
-                   const aocommon::UVector<const double*>& psfImages,
+                   const aocommon::UVector<const float*>& psfImages,
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex* mutex);
 
@@ -104,7 +104,7 @@ class ParallelDeconvolution {
   bool _trackPerScaleMasks, _usePerScaleMasks;
   std::vector<aocommon::UVector<bool>> _scaleMasks;
   std::unique_ptr<class ComponentList> _componentList;
-  Image _rmsImage;
+  ImageF _rmsImage;
 };
 
 #endif

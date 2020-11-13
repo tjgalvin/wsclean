@@ -47,18 +47,18 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   residualSet.LoadAndAverage(*_residualImages);
   modelSet.LoadAndAverage(*_modelImages);
 
-  Image integrated(_imgWidth, _imgHeight);
-  residualSet.GetLinearIntegrated(integrated.data());
+  ImageF integrated(_imgWidth, _imgHeight);
+  residualSet.GetLinearIntegrated(integrated);
   double stddev = integrated.StdDevFromMAD();
   Logger::Info << "Estimated standard deviation of background noise: "
                << FluxDensity::ToNiceString(stddev) << '\n';
   if (_settings.autoMask && _autoMaskIsFinished) {
     // When we are in the second phase of automasking, don't use
     // the RMS background anymore
-    _parallelDeconvolution.SetRMSFactorImage(Image());
+    _parallelDeconvolution.SetRMSFactorImage(ImageF());
   } else {
     if (!_settings.localRMSImage.empty()) {
-      Image rmsImage(_imgWidth, _imgHeight);
+      ImageF rmsImage(_imgWidth, _imgHeight);
       FitsReader reader(_settings.localRMSImage);
       reader.Read(rmsImage.data());
       // Normalize the RMS image
@@ -69,12 +69,12 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
         throw std::runtime_error(
             "RMS image can only contain values > 0, but contains values <= "
             "0.0");
-      for (double& value : rmsImage) {
+      for (float& value : rmsImage) {
         if (value != 0.0) value = stddev / value;
       }
       _parallelDeconvolution.SetRMSFactorImage(std::move(rmsImage));
     } else if (_settings.localRMS) {
-      Image rmsImage;
+      ImageF rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
         case WSCleanSettings::RMSWindow:
@@ -92,7 +92,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
       stddev = rmsImage.Min();
       Logger::Info << "Lowest RMS in image: "
                    << FluxDensity::ToNiceString(stddev) << '\n';
-      for (double& value : rmsImage) {
+      for (float& value : rmsImage) {
         if (value != 0.0) value = stddev / value;
       }
       _parallelDeconvolution.SetRMSFactorImage(std::move(rmsImage));
@@ -107,10 +107,10 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
                  _settings.deconvolutionThreshold));
   integrated.reset();
 
-  std::vector<aocommon::UVector<double>> psfVecs(residualSet.PSFCount());
+  std::vector<aocommon::UVector<float>> psfVecs(residualSet.PSFCount());
   residualSet.LoadAndAveragePSFs(*_psfImages, psfVecs, _psfPolarization);
 
-  aocommon::UVector<const double*> psfs(residualSet.PSFCount());
+  aocommon::UVector<const float*> psfs(residualSet.PSFCount());
   for (size_t i = 0; i != psfVecs.size(); ++i) psfs[i] = psfVecs[i].data();
 
   if (_settings.useMultiscale) {
@@ -125,7 +125,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
       if (_autoMask.empty()) {
         _autoMask.resize(_imgWidth * _imgHeight);
         for (size_t imgIndex = 0; imgIndex != modelSet.size(); ++imgIndex) {
-          const double* image = modelSet[imgIndex];
+          const float* image = modelSet[imgIndex];
           for (size_t i = 0; i != _imgWidth * _imgHeight; ++i) {
             _autoMask[i] = (image[i] == 0.0) ? false : true;
           }

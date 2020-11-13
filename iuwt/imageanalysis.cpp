@@ -5,14 +5,14 @@
 bool ImageAnalysis::IsHighestOnScale0(const IUWTDecomposition& iuwt,
                                       IUWTMask& markedMask, size_t& x,
                                       size_t& y, size_t endScale,
-                                      double& highestScale0) {
+                                      float& highestScale0) {
   const size_t width = iuwt.Width(), height = iuwt.Height();
   Component component(x, y, 0);
   std::stack<Component> todo;
   todo.push(component);
   markedMask[0][x + y * width] = false;
   highestScale0 = iuwt[0][x + y * width];
-  double highestOtherScales = 0.0;
+  float highestOtherScales = 0.0;
   while (!todo.empty()) {
     Component c = todo.top();
     todo.pop();
@@ -68,9 +68,9 @@ bool ImageAnalysis::IsHighestOnScale0(const IUWTDecomposition& iuwt,
 }
 
 void ImageAnalysis::Floodfill(const IUWTDecomposition& iuwt, IUWTMask& mask,
-                              const aocommon::UVector<double>& thresholds,
+                              const aocommon::UVector<float>& thresholds,
                               size_t minScale, size_t endScale,
-                              const Component& component, double cleanBorder,
+                              const Component& component, float cleanBorder,
                               size_t& areaSize) {
   const size_t width = iuwt.Width(), height = iuwt.Height();
   size_t xBorder = cleanBorder * width;
@@ -135,10 +135,10 @@ void ImageAnalysis::Floodfill(const IUWTDecomposition& iuwt, IUWTMask& mask,
 
 void ImageAnalysis::MaskedFloodfill(const IUWTDecomposition& iuwt,
                                     IUWTMask& mask,
-                                    const aocommon::UVector<double>& thresholds,
+                                    const aocommon::UVector<float>& thresholds,
                                     size_t minScale, size_t endScale,
                                     const Component& component,
-                                    double cleanBorder, const bool* priorMask,
+                                    float cleanBorder, const bool* priorMask,
                                     size_t& areaSize) {
   const size_t width = iuwt.Width(), height = iuwt.Height();
   size_t xBorder = cleanBorder * width;
@@ -201,11 +201,12 @@ void ImageAnalysis::MaskedFloodfill(const IUWTDecomposition& iuwt,
   }
 }
 
-void ImageAnalysis::SelectStructures(
-    const IUWTDecomposition& iuwt, IUWTMask& mask,
-    const aocommon::UVector<double>& thresholds, size_t minScale,
-    size_t endScale, double cleanBorder, const bool* priorMask,
-    size_t& areaSize) {
+void ImageAnalysis::SelectStructures(const IUWTDecomposition& iuwt,
+                                     IUWTMask& mask,
+                                     const aocommon::UVector<float>& thresholds,
+                                     size_t minScale, size_t endScale,
+                                     float cleanBorder, const bool* priorMask,
+                                     size_t& areaSize) {
   const size_t width = iuwt.Width(), height = iuwt.Height();
   const size_t xBorder = cleanBorder * width, yBorder = cleanBorder * height,
                minX = xBorder, maxX = width - xBorder, minY = yBorder,
@@ -235,8 +236,7 @@ void ImageAnalysis::SelectStructures(
   }
 }
 
-void ImageAnalysis::FloodFill2D(const double* image, bool* mask,
-                                double threshold,
+void ImageAnalysis::FloodFill2D(const float* image, bool* mask, float threshold,
                                 const ImageAnalysis::Component2D& component,
                                 size_t width, size_t height, size_t& areaSize) {
   areaSize = 0;
@@ -277,8 +277,7 @@ void ImageAnalysis::FloodFill2D(const double* image, bool* mask,
   }
 }
 
-void ImageAnalysis::FloodFill2D(const double* image, bool* mask,
-                                double threshold,
+void ImageAnalysis::FloodFill2D(const float* image, bool* mask, float threshold,
                                 const ImageAnalysis::Component2D& component,
                                 size_t width, size_t height,
                                 std::vector<Component2D>& area) {

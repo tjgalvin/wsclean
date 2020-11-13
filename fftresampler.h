@@ -13,7 +13,7 @@
 class FFTResampler {
  private:
   struct Task {
-    double *input, *output;
+    float *input, *output;
   };
 
  public:
@@ -22,7 +22,7 @@ class FFTResampler {
 
   ~FFTResampler();
 
-  void AddTask(double* input, double* output) {
+  void AddTask(float* input, float* output) {
     Task task;
     task.input = input;
     task.output = output;
@@ -42,15 +42,14 @@ class FFTResampler {
     _tasks.clear();
   }
 
-  void Resample(double* input, double* output) {
+  void Resample(float* input, float* output) {
     Task task;
     task.input = input;
     task.output = output;
     runSingle(task, false);
   }
 
-  void SingleFT(const double* input, double* realOutput,
-                double* imaginaryOutput);
+  void SingleFT(const float* input, float* realOutput, float* imaginaryOutput);
 
   /**
    * Only to be used with SingleFT (it makes resampling thread unsafe!)
@@ -76,22 +75,22 @@ class FFTResampler {
  private:
   void runThread();
   void runSingle(const Task& task, bool skipWindow) const;
-  void applyWindow(double* data) const;
-  void unapplyWindow(double* data) const;
-  void makeWindow(aocommon::UVector<double>& data, size_t width) const;
-  void makeTukeyWindow(aocommon::UVector<double>& data, size_t width) const;
+  void applyWindow(float* data) const;
+  void unapplyWindow(float* data) const;
+  void makeWindow(aocommon::UVector<float>& data, size_t width) const;
+  void makeTukeyWindow(aocommon::UVector<float>& data, size_t width) const;
 
   size_t _inputWidth, _inputHeight;
   size_t _outputWidth, _outputHeight;
   size_t _fftWidth, _fftHeight;
   aocommon::WindowFunction::Type _windowFunction;
   double _tukeyInsetSize;
-  mutable aocommon::UVector<double> _windowRowIn;
-  mutable aocommon::UVector<double> _windowColIn;
-  mutable aocommon::UVector<double> _windowOut;
+  mutable aocommon::UVector<float> _windowRowIn;
+  mutable aocommon::UVector<float> _windowColIn;
+  mutable aocommon::UVector<float> _windowOut;
   bool _correctWindow;
 
-  fftw_plan _inToFPlan, _fToOutPlan;
+  fftwf_plan _inToFPlan, _fToOutPlan;
 
   aocommon::Lane<Task> _tasks;
   std::vector<std::thread> _threads;

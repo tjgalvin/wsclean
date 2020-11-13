@@ -24,8 +24,8 @@ class GriddingTask {
 
   // For prediction
   bool addToModel;
-  Image modelImageReal;
-  Image modelImageImaginary;
+  ImageF modelImageReal;
+  ImageF modelImageImaginary;
 
   void Serialize(class SerialOStream& stream) const;
   void Unserialize(class SerialIStream& stream);

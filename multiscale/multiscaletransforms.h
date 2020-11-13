@@ -1,10 +1,14 @@
 #ifndef MULTI_SCALE_TRANSFORMS_H
 #define MULTI_SCALE_TRANSFORMS_H
 
+#include "../image.h"
+
 #include <cmath>
 #include <initializer_list>
 
 #include <aocommon/uvector.h>
+
+#include <vector>
 
 class MultiScaleTransforms {
  public:
@@ -17,49 +21,43 @@ class MultiScaleTransforms {
         _height(height),
         _shape(shape) {}
 
-  void PrepareTransform(double* kernel, double scale);
-  void FinishTransform(double* image, const double* kernel);
+  void PrepareTransform(float* kernel, float scale);
+  void FinishTransform(float* image, const float* kernel);
 
-  void Transform(double* image, double* scratch, double scale) {
-    aocommon::UVector<double*> images(1, image);
+  void Transform(ImageF& image, ImageF& scratch, float scale) {
+    std::vector<ImageF> images(1, std::move(image));
     Transform(images, scratch, scale);
+    image = std::move(images[0]);
   }
 
-  void Transform(const aocommon::UVector<double*>& images, double* scratch,
-                 double scale);
+  void Transform(std::vector<ImageF>& images, ImageF& scratch, float scale);
 
   size_t Width() const { return _width; }
   size_t Height() const { return _height; }
 
-  static double KernelIntegratedValue(double scaleInPixels, size_t maxN,
-                                      Shape shape) {
+  static float KernelIntegratedValue(float scaleInPixels, size_t maxN,
+                                     Shape shape) {
     size_t n;
-    aocommon::UVector<double> kernel;
-    MakeShapeFunction(scaleInPixels, kernel, n, maxN, shape);
+    ImageF kernel = MakeShapeFunction(scaleInPixels, n, maxN, shape);
 
-    double value = 0.0;
-    for (aocommon::UVector<double>::const_iterator x = kernel.begin();
-         x != kernel.end(); ++x)
-      value += *x;
+    float value = 0.0;
+    for (float& x : kernel) value += x;
 
     return value;
   }
 
-  static double KernelPeakValue(double scaleInPixels, size_t maxN,
-                                Shape shape) {
+  static float KernelPeakValue(double scaleInPixels, size_t maxN, Shape shape) {
     size_t n;
-    aocommon::UVector<double> kernel;
-    MakeShapeFunction(scaleInPixels, kernel, n, maxN, shape);
+    ImageF kernel = MakeShapeFunction(scaleInPixels, n, maxN, shape);
     return kernel[n / 2 + (n / 2) * n];
   }
 
-  static void AddShapeComponent(double* image, size_t width, size_t height,
-                                double scaleSizeInPixels, size_t x, size_t y,
-                                double gain, Shape shape) {
+  static void AddShapeComponent(float* image, size_t width, size_t height,
+                                float scaleSizeInPixels, size_t x, size_t y,
+                                float gain, Shape shape) {
     size_t n;
-    aocommon::UVector<double> kernel;
-    MakeShapeFunction(scaleSizeInPixels, kernel, n, std::min(width, height),
-                      shape);
+    ImageF kernel =
+        MakeShapeFunction(scaleSizeInPixels, n, std::min(width, height), shape);
     int left;
     if (x > n / 2)
       left = x - n / 2;
@@ -73,8 +71,8 @@ class MultiScaleTransforms {
     size_t right = std::min(x + (n + 1) / 2, width);
     size_t bottom = std::min(y + (n + 1) / 2, height);
     for (size_t yi = top; yi != bottom; ++yi) {
-      double* imagePtr = &image[yi * width];
-      const double* kernelPtr =
+      float* imagePtr = &image[yi * width];
+      const float* kernelPtr =
           &kernel.data()[(yi + n / 2 - y) * n + left + n / 2 - x];
       for (size_t xi = left; xi != right; ++xi) {
         imagePtr[xi] += *kernelPtr * gain;
@@ -83,27 +81,23 @@ class MultiScaleTransforms {
     }
   }
 
-  static void MakeShapeFunction(double scaleSizeInPixels,
-                                aocommon::UVector<double>& output, size_t& n,
-                                size_t maxN, Shape shape) {
+  static ImageF MakeShapeFunction(float scaleSizeInPixels, size_t& n,
+                                  size_t maxN, Shape shape) {
     switch (shape) {
       default:
       case TaperedQuadraticShape:
-        makeTaperedQuadraticShapeFunction(scaleSizeInPixels, output, n);
-        break;
+        return makeTaperedQuadraticShapeFunction(scaleSizeInPixels, n);
       case GaussianShape:
-        makeGaussianFunction(scaleSizeInPixels, output, n, maxN);
-        break;
+        return makeGaussianFunction(scaleSizeInPixels, n, maxN);
     }
   }
 
-  void MakeShapeFunction(double scaleSizeInPixels,
-                         aocommon::UVector<double>& output, size_t& n) {
-    MakeShapeFunction(scaleSizeInPixels, output, n, std::min(_width, _height),
-                      _shape);
+  ImageF MakeShapeFunction(float scaleSizeInPixels, size_t& n) {
+    return MakeShapeFunction(scaleSizeInPixels, n, std::min(_width, _height),
+                             _shape);
   }
 
-  static double GaussianSigma(double scaleSizeInPixels) {
+  static float GaussianSigma(float scaleSizeInPixels) {
     return scaleSizeInPixels * (3.0 / 16.0);
   }
 
@@ -116,20 +110,17 @@ class MultiScaleTransforms {
     return size_t(ceil(scaleInPixels * 0.5) * 2.0) + 1;
   }
 
-  static void makeTaperedQuadraticShapeFunction(
-      double scaleSizeInPixels, aocommon::UVector<double>& output, size_t& n) {
+  static ImageF makeTaperedQuadraticShapeFunction(double scaleSizeInPixels,
+                                                  size_t& n) {
     n = taperedQuadraticKernelSize(scaleSizeInPixels);
-    output.resize(n * n);
+    ImageF output(n, n);
     taperedQuadraticShapeFunction(n, output, scaleSizeInPixels);
+    return output;
   }
 
-  static void makeGaussianFunction(double scaleSizeInPixels,
-                                   aocommon::UVector<double>& output, size_t& n,
-                                   size_t maxN) {
-    double sigma = GaussianSigma(scaleSizeInPixels);
-
-    // n = maxN;
-    // if((n%2) == 0 && n > 0) --n;
+  static ImageF makeGaussianFunction(double scaleSizeInPixels, size_t& n,
+                                     size_t maxN) {
+    float sigma = GaussianSigma(scaleSizeInPixels);
 
     n = int(ceil(sigma * 12.0 / 2.0)) * 2 + 1;  // bounding box of 12 sigma
     if (n > maxN) {
@@ -141,15 +132,15 @@ class MultiScaleTransforms {
       sigma = 1.0;
       n = 1;
     }
-    output.resize(n * n);
-    const double mu = int(n / 2);
-    const double twoSigmaSquared = 2.0 * sigma * sigma;
-    double sum = 0.0;
-    double* outputPtr = output.data();
-    aocommon::UVector<double> gaus(n);
+    ImageF output(n, n);
+    const float mu = int(n / 2);
+    const float twoSigmaSquared = 2.0 * sigma * sigma;
+    float sum = 0.0;
+    float* outputPtr = output.data();
+    aocommon::UVector<float> gaus(n);
     for (int i = 0; i != int(n); ++i) {
-      double vI = double(i) - mu;
-      gaus[i] = exp(-vI * vI / twoSigmaSquared);
+      float vI = float(i) - mu;
+      gaus[i] = std::exp(-vI * vI / twoSigmaSquared);
     }
     for (int y = 0; y != int(n); ++y) {
       for (int x = 0; x != int(n); ++x) {
@@ -158,44 +149,42 @@ class MultiScaleTransforms {
         ++outputPtr;
       }
     }
-    double normFactor = 1.0 / sum;
-    for (double& v : output) v *= normFactor;
+    float normFactor = 1.0 / sum;
+    output *= normFactor;
+    return output;
   }
 
-  static void taperedQuadraticShapeFunction(size_t n,
-                                            aocommon::UVector<double>& output2d,
+  static void taperedQuadraticShapeFunction(size_t n, ImageF& output2d,
                                             double scaleSizeInPixels) {
     if (scaleSizeInPixels == 0.0)
       output2d[0] = 1.0;
     else {
-      double sum = 0.0;
-      double* outputPtr = output2d.data();
+      float sum = 0.0;
+      float* outputPtr = output2d.data();
       for (int y = 0; y != int(n); ++y) {
-        double dy = y - 0.5 * (n - 1);
-        double dydy = dy * dy;
+        float dy = y - 0.5 * (n - 1);
+        float dydy = dy * dy;
         for (int x = 0; x != int(n); ++x) {
-          double dx = x - 0.5 * (n - 1);
-          double r = sqrt(dx * dx + dydy);
+          float dx = x - 0.5 * (n - 1);
+          float r = std::sqrt(dx * dx + dydy);
           *outputPtr =
               hannWindowFunction(r, n) * shapeFunction(r / scaleSizeInPixels);
           sum += *outputPtr;
           ++outputPtr;
         }
       }
-      double normFactor = 1.0 / sum;
-      for (aocommon::UVector<double>::iterator i = output2d.begin();
-           i != output2d.end(); ++i)
-        *i *= normFactor;
+      float normFactor = 1.0 / sum;
+      output2d *= normFactor;
     }
   }
 
-  static double hannWindowFunction(double x, size_t n) {
+  static float hannWindowFunction(float x, size_t n) {
     return (x * 2 <= n + 1)
-               ? (0.5 * (1.0 + cos(2.0 * M_PI * x / double(n + 1))))
+               ? (0.5 * (1.0 + std::cos(2.0 * M_PI * x / double(n + 1))))
                : 0.0;
   }
 
-  static double shapeFunction(double x) {
+  static float shapeFunction(float x) {
     return (x < 1.0) ? (1.0 - x * x) : 0.0;
   }
 };

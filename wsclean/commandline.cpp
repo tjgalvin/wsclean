@@ -434,7 +434,7 @@ void CommandLine::printHelp() {
          "published by Offringa & Smirnov (2017).\n"
          "-multiscale-scale-bias\n"
          "   Parameter to prevent cleaning small scales in the large-scale "
-         "iterations. A higher\n"
+         "iterations. A lower\n"
          "   bias will give more focus to larger scales. Default: 0.6\n"
          "-multiscale-max-scales <n>\n"
          "   Set the maximum number of scales that WSClean should use in "
@@ -960,7 +960,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "spectral-correction") {
       settings.spectralCorrectionFrequency =
           parse_double(argv[argi + 1], 0.0, "spectral-correction", false);
-      settings.spectralCorrection = NumberList::ParseDoubleList(argv[argi + 2]);
+      aocommon::UVector<double> list =
+          NumberList::ParseDoubleList(argv[argi + 2]);
+      settings.spectralCorrection.assign(list.begin(), list.end());
       argi += 2;
     } else if (param == "taper-gaussian") {
       ++argi;

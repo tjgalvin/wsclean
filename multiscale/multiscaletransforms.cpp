@@ -2,26 +2,23 @@
 
 #include "../fftconvolver.h"
 
-void MultiScaleTransforms::Transform(const aocommon::UVector<double*>& images,
-                                     double* scratch, double scale) {
-  aocommon::UVector<double> shape;
+void MultiScaleTransforms::Transform(std::vector<ImageF>& images,
+                                     ImageF& scratch, float scale) {
   size_t kernelSize;
-  MakeShapeFunction(scale, shape, kernelSize);
+  ImageF shape = MakeShapeFunction(scale, kernelSize);
 
-  std::fill_n(scratch, _width * _height, 0.0);
+  scratch = 0.0;
 
-  FFTConvolver::PrepareSmallKernel(scratch, _width, _height, shape.data(),
-                                   kernelSize);
-  for (double* const* imageIter = images.begin(); imageIter != images.end();
-       ++imageIter)
-    FFTConvolver::ConvolveSameSize(_fftwManager, *imageIter, scratch, _width,
-                                   _height);
+  FFTConvolver::PrepareSmallKernel(scratch.data(), _width, _height,
+                                   shape.data(), kernelSize);
+  for (ImageF& image : images)
+    FFTConvolver::ConvolveSameSize(_fftwManager, image.data(), scratch.data(),
+                                   _width, _height);
 }
 
-void MultiScaleTransforms::PrepareTransform(double* kernel, double scale) {
-  aocommon::UVector<double> shape;
+void MultiScaleTransforms::PrepareTransform(float* kernel, float scale) {
   size_t kernelSize;
-  MakeShapeFunction(scale, shape, kernelSize);
+  ImageF shape = MakeShapeFunction(scale, kernelSize);
 
   std::fill_n(kernel, _width * _height, 0.0);
 
@@ -29,7 +26,6 @@ void MultiScaleTransforms::PrepareTransform(double* kernel, double scale) {
                                    kernelSize);
 }
 
-void MultiScaleTransforms::FinishTransform(double* image,
-                                           const double* kernel) {
+void MultiScaleTransforms::FinishTransform(float* image, const float* kernel) {
   FFTConvolver::ConvolveSameSize(_fftwManager, image, kernel, _width, _height);
 }

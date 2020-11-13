@@ -18,42 +18,42 @@ class ThreadedDeconvolutionTools {
   ~ThreadedDeconvolutionTools();
 
   struct PeakData {
-    boost::optional<double> normalizedValue, unnormalizedValue;
-    double rms;
+    boost::optional<float> normalizedValue, unnormalizedValue;
+    float rms;
     size_t x, y;
   };
 
-  void SubtractImage(double* image, const double* psf, size_t width,
-                     size_t height, size_t x, size_t y, double factor);
+  void SubtractImage(float* image, const float* psf, size_t width,
+                     size_t height, size_t x, size_t y, float factor);
 
   // This one is for many transforms of the same scale
   void MultiScaleTransform(class MultiScaleTransforms* msTransforms,
-                           const aocommon::UVector<double*>& images,
-                           double* scratch, double scale);
+                           std::vector<ImageF>& images, ImageF& scratch,
+                           float scale);
 
   // This one is for transform of different scales
   void MultiScaleTransform(class MultiScaleTransforms* msTransforms,
-                           const aocommon::UVector<double*>& images,
-                           aocommon::UVector<double> scales);
+                           std::vector<ImageF>& images,
+                           aocommon::UVector<float> scales);
 
   void FindMultiScalePeak(
-      class MultiScaleTransforms* msTransforms, const double* image,
-      const aocommon::UVector<double>& scales, std::vector<PeakData>& results,
+      class MultiScaleTransforms* msTransforms, const ImageF& image,
+      const aocommon::UVector<float>& scales, std::vector<PeakData>& results,
       bool allowNegativeComponents, const bool* mask,
-      const std::vector<aocommon::UVector<bool>>& scaleMasks,
-      double borderRatio, const Image& rmsFactorImage, bool calculateRMS);
+      const std::vector<aocommon::UVector<bool>>& scaleMasks, float borderRatio,
+      const ImageF& rmsFactorImage, bool calculateRMS);
 
-  static double RMS(const double* image, size_t n) {
-    double result = 0.0;
+  static float RMS(const ImageF& image, size_t n) {
+    float result = 0.0;
     for (size_t i = 0; i != n; ++i) result += image[i] * image[i];
-    return std::sqrt(result / double(n));
+    return std::sqrt(result / float(n));
   }
 
  private:
   struct ThreadResult {};
   struct FindMultiScalePeakResult : public ThreadResult {
-    boost::optional<double> unnormalizedValue, normalizedValue;
-    double rms;
+    boost::optional<float> unnormalizedValue, normalizedValue;
+    float rms;
     size_t x, y;
   };
 
@@ -64,39 +64,39 @@ class ThreadedDeconvolutionTools {
   struct SubtractionTask : public ThreadTask {
     virtual ThreadResult* operator()();
 
-    double* image;
-    const double* psf;
+    float* image;
+    const float* psf;
     size_t width, height, x, y;
-    double factor;
+    float factor;
     size_t startY, endY;
   };
   struct FinishMultiScaleTransformTask : public ThreadTask {
     virtual ThreadResult* operator()();
 
     class MultiScaleTransforms* msTransforms;
-    double* image;
-    double* kernel;
+    ImageF* image;
+    ImageF* kernel;
   };
   struct MultiScaleTransformTask : public ThreadTask {
     virtual ThreadResult* operator()();
 
     class MultiScaleTransforms* msTransforms;
-    double* image;
-    double* scratch;
-    double scale;
+    ImageF* image;
+    ImageF* scratch;
+    float scale;
   };
   struct FindMultiScalePeakTask : public ThreadTask {
     virtual ThreadResult* operator()();
 
     class MultiScaleTransforms* msTransforms;
-    double* image;
-    double* scratch;
-    double scale;
+    ImageF* image;
+    ImageF* scratch;
+    float scale;
     bool allowNegativeComponents;
     const bool* mask;
-    double borderRatio;
+    float borderRatio;
     bool calculateRMS;
-    const Image* rmsFactorImage;
+    const ImageF* rmsFactorImage;
   };
 
   std::vector<aocommon::Lane<ThreadTask*>*> _taskLanes;

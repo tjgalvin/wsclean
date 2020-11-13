@@ -115,6 +115,31 @@ ImageT<NumT>& ImageT<NumT>::operator*=(const ImageT& other) {
   return *this;
 }
 
+template <typename NumT>
+ImageT<NumT>& ImageT<NumT>::AddWithFactor(const ImageT<NumT>& rhs,
+                                          NumT factor) {
+  for (size_t i = 0; i != _width * _height; ++i) _data[i] += rhs[i] * factor;
+  return *this;
+}
+
+template <typename NumT>
+ImageT<NumT>& ImageT<NumT>::Sqrt() {
+  for (size_t i = 0; i != _width * _height; ++i) _data[i] = std::sqrt(_data[i]);
+  return *this;
+}
+
+template <typename NumT>
+ImageT<NumT>& ImageT<NumT>::Square() {
+  for (size_t i = 0; i != _width * _height; ++i) _data[i] *= _data[i];
+  return *this;
+}
+
+template <typename NumT>
+ImageT<NumT>& ImageT<NumT>::AddSquared(const ImageT<NumT>& rhs) {
+  for (size_t i = 0; i != _width * _height; ++i) _data[i] += rhs[i] * rhs[i];
+  return *this;
+}
+
 // Cut-off the borders of an image.
 // @param outWidth Should be <= inWidth.
 // @param outHeight Should be <= inHeight.
@@ -176,27 +201,40 @@ template <>
 typename ImageT<double>::value_type ImageT<double>::Min() const {
   return *std::min_element(begin(), end());
 }
+template <>
+typename ImageT<float>::value_type ImageT<float>::Min() const {
+  return *std::min_element(begin(), end());
+}
 
 template <>
 typename ImageT<double>::value_type ImageT<double>::Max() const {
   return *std::max_element(begin(), end());
 }
-
 template <>
-typename ImageT<double>::value_type ImageT<double>::median_with_copy(
-    const value_type* data, size_t size, aocommon::UVector<value_type>& copy) {
+typename ImageT<float>::value_type ImageT<float>::Max() const {
+  return *std::max_element(begin(), end());
+}
+
+/**
+ * Because Image can be instantiated for complex values, a
+ * helper function is used to implement ordering operations like
+ * median that do not have complex implementations.
+ */
+template <typename NumT>
+NumT median_with_copy_impl(const NumT* data, size_t size,
+                           aocommon::UVector<NumT>& copy) {
   copy.reserve(size);
-  for (const value_type* i = data; i != data + size; ++i) {
+  for (const NumT* i = data; i != data + size; ++i) {
     if (std::isfinite(*i)) copy.push_back(*i);
   }
   if (copy.empty())
     return 0.0;
   else {
     bool even = (copy.size() % 2) == 0;
-    typename aocommon::UVector<value_type>::iterator mid =
+    typename aocommon::UVector<NumT>::iterator mid =
         copy.begin() + (copy.size() - 1) / 2;
     std::nth_element(copy.begin(), mid, copy.end());
-    value_type median = *mid;
+    NumT median = *mid;
     if (even) {
       std::nth_element(mid, mid + 1, copy.end());
       median = (median + *(mid + 1)) * 0.5;
@@ -205,27 +243,38 @@ typename ImageT<double>::value_type ImageT<double>::median_with_copy(
   }
 }
 
+template <>
+typename ImageT<float>::value_type ImageT<float>::median_with_copy(
+    const value_type* data, size_t size, aocommon::UVector<value_type>& copy) {
+  return median_with_copy_impl(data, size, copy);
+}
+
+template <>
+typename ImageT<double>::value_type ImageT<double>::median_with_copy(
+    const value_type* data, size_t size, aocommon::UVector<value_type>& copy) {
+  return median_with_copy_impl(data, size, copy);
+}
+
 template <typename NumT>
 typename ImageT<NumT>::value_type ImageT<NumT>::median_with_copy(
     const value_type*, size_t, aocommon::UVector<value_type>&) {
   throw std::runtime_error("not implemented");
 }
 
-template <>
-typename ImageT<double>::value_type ImageT<double>::MAD(const value_type* data,
-                                                        size_t size) {
-  aocommon::UVector<value_type> copy;
-  value_type median = median_with_copy(data, size, copy);
+template <typename NumT>
+NumT MAD_impl(const NumT* data, size_t size) {
+  aocommon::UVector<NumT> copy;
+  NumT median = median_with_copy_impl(data, size, copy);
   if (copy.empty()) return 0.0;
 
   // Replace all values by the difference from the mean
-  typename aocommon::UVector<value_type>::iterator mid =
+  typename aocommon::UVector<NumT>::iterator mid =
       copy.begin() + (copy.size() - 1) / 2;
-  for (typename aocommon::UVector<value_type>::iterator i = copy.begin();
+  for (typename aocommon::UVector<NumT>::iterator i = copy.begin();
        i != mid + 1; ++i)
     *i = median - *i;
-  for (typename aocommon::UVector<value_type>::iterator i = mid + 1;
-       i != copy.end(); ++i)
+  for (typename aocommon::UVector<NumT>::iterator i = mid + 1; i != copy.end();
+       ++i)
     *i = *i - median;
 
   std::nth_element(copy.begin(), mid, copy.end());
@@ -236,6 +285,18 @@ typename ImageT<double>::value_type ImageT<double>::MAD(const value_type* data,
     median = (median + *(mid + 1)) * 0.5;
   }
   return median;
+}
+
+template <>
+typename ImageT<float>::value_type ImageT<float>::MAD(const value_type* data,
+                                                      size_t size) {
+  return MAD_impl(data, size);
+}
+
+template <>
+typename ImageT<double>::value_type ImageT<double>::MAD(const value_type* data,
+                                                        size_t size) {
+  return MAD_impl(data, size);
 }
 
 template <typename NumT>

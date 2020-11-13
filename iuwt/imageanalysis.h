@@ -31,28 +31,28 @@ class ImageAnalysis {
   };
 
   static void SelectStructures(const IUWTDecomposition& iuwt, IUWTMask& mask,
-                               const aocommon::UVector<double>& thresholds,
+                               const aocommon::UVector<float>& thresholds,
                                size_t minScale, size_t endScale,
-                               double cleanBorder, const bool* priorMask,
+                               float cleanBorder, const bool* priorMask,
                                size_t& areaSize);
 
   static bool IsHighestOnScale0(const IUWTDecomposition& iuwt,
                                 IUWTMask& markedMask, size_t& x, size_t& y,
-                                size_t endScale, double& highestScale0);
+                                size_t endScale, float& highestScale0);
 
   static void Floodfill(const IUWTDecomposition& iuwt, IUWTMask& mask,
-                        const aocommon::UVector<double>& thresholds,
+                        const aocommon::UVector<float>& thresholds,
                         size_t minScale, size_t endScale,
-                        const Component& component, double cleanBorder,
+                        const Component& component, float cleanBorder,
                         size_t& areaSize);
 
   static void MaskedFloodfill(const IUWTDecomposition& iuwt, IUWTMask& mask,
-                              const aocommon::UVector<double>& thresholds,
+                              const aocommon::UVector<float>& thresholds,
                               size_t minScale, size_t endScale,
-                              const Component& component, double cleanBorder,
+                              const Component& component, float cleanBorder,
                               const bool* priorMask, size_t& areaSize);
 
-  static void FloodFill2D(const double* image, bool* mask, double threshold,
+  static void FloodFill2D(const float* image, bool* mask, float threshold,
                           const Component2D& component, size_t width,
                           size_t height, size_t& areaSize);
 
@@ -60,18 +60,18 @@ class ImageAnalysis {
    * Exactly like above, but now collecting the components in the
    * area vector, instead of returning just the area size.
    */
-  static void FloodFill2D(const double* image, bool* mask, double threshold,
+  static void FloodFill2D(const float* image, bool* mask, float threshold,
                           const Component2D& component, size_t width,
                           size_t height, std::vector<Component2D>& area);
 
  private:
-  static bool exceedsThreshold(double val, double threshold) {
+  static bool exceedsThreshold(float val, float threshold) {
     if (threshold >= 0.0)
       return val > threshold;
     else
       return val < threshold || val > -threshold;
   }
-  static bool exceedsThresholdAbs(double val, double threshold) {
+  static bool exceedsThresholdAbs(float val, float threshold) {
     return std::fabs(val) > threshold;
   }
 };

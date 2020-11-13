@@ -7,14 +7,14 @@
 
 #include <limits>
 
-void SpectralFitter::FitAndEvaluate(double* values) const {
-  aocommon::UVector<double> terms;
+void SpectralFitter::FitAndEvaluate(num_t* values) const {
+  aocommon::UVector<num_t> terms;
   Fit(terms, values);
   Evaluate(values, terms);
 }
 
-void SpectralFitter::Fit(aocommon::UVector<double>& terms,
-                         const double* values) const {
+void SpectralFitter::Fit(aocommon::UVector<num_t>& terms,
+                         const num_t* values) const {
   switch (_mode) {
     default:
     case NoSpectralFitting:
@@ -42,8 +42,8 @@ void SpectralFitter::Fit(aocommon::UVector<double>& terms,
   }
 }
 
-void SpectralFitter::Evaluate(double* values,
-                              const aocommon::UVector<double>& terms) const {
+void SpectralFitter::Evaluate(num_t* values,
+                              const aocommon::UVector<num_t>& terms) const {
   switch (_mode) {
     default:
     case NoSpectralFitting:
@@ -52,7 +52,7 @@ void SpectralFitter::Evaluate(double* values,
     case PolynomialSpectralFitting: {
       double refFreq = ReferenceFrequency();
       for (size_t i = 0; i != _frequencies.size(); ++i) {
-        double newValue =
+        num_t newValue =
             PolynomialFitter::Evaluate(_frequencies[i] / refFreq - 1.0, terms);
         // std::cout << values[i] << "->" << newValue << ' ';
         values[i] = newValue;
@@ -64,7 +64,7 @@ void SpectralFitter::Evaluate(double* values,
     case LogPolynomialSpectralFitting: {
       double refFreq = ReferenceFrequency();
       for (size_t i = 0; i != _frequencies.size(); ++i) {
-        double newValue =
+        num_t newValue =
             NonLinearPowerLawFitter::Evaluate(_frequencies[i], terms, refFreq);
         // std::cout << values[i] << "->" << newValue << ' ';
         values[i] = newValue;
@@ -75,8 +75,8 @@ void SpectralFitter::Evaluate(double* values,
   }
 }
 
-double SpectralFitter::Evaluate(const aocommon::UVector<double>& terms,
-                                double frequency) const {
+SpectralFitter::num_t SpectralFitter::Evaluate(
+    const aocommon::UVector<num_t>& terms, double frequency) const {
   switch (_mode) {
     default:
     case NoSpectralFitting:
