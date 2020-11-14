@@ -1,7 +1,7 @@
 #include "griddingresult.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "../io/serialostream.h"
+#include "../io/serialistream.h"
 
 void GriddingResult::Serialize(SerialOStream& stream) const {
   imageRealResult.Serialize(stream);

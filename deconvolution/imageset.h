@@ -3,10 +3,10 @@
 
 #include <aocommon/uvector.h>
 
-#include "../wsclean/imagingtable.h"
-#include "../wsclean/wscleansettings.h"
+#include "../main/settings.h"
 
-#include "../image.h"
+#include "../structures/image.h"
+#include "../structures/imagingtable.h"
 
 #include <vector>
 #include <map>
@@ -14,10 +14,10 @@
 
 class ImageSet {
  public:
-  ImageSet(const ImagingTable* table, const WSCleanSettings& settings);
+  ImageSet(const ImagingTable* table, const Settings& settings);
 
-  ImageSet(const ImagingTable* table, const WSCleanSettings& settings,
-           size_t width, size_t height);
+  ImageSet(const ImagingTable* table, const Settings& settings, size_t width,
+           size_t height);
 
   void AllocateImages() {
     _images.clear();
@@ -172,7 +172,7 @@ class ImageSet {
     return _linkedPolarizations;
   }
 
-  const WSCleanSettings& Settings() const { return _settings; }
+  const class Settings& Settings() const { return _settings; }
 
   static void CalculateDeconvolutionFrequencies(
       const ImagingTable& groupTable, aocommon::UVector<double>& frequencies,
@@ -284,7 +284,7 @@ class ImageSet {
   aocommon::UVector<size_t> _imageIndexToPSFIndex;
   float _polarizationNormalizationFactor;
   std::set<aocommon::PolarizationEnum> _linkedPolarizations;
-  const WSCleanSettings& _settings;
+  const class Settings& _settings;
 };
 
 #endif  // DECONVOLUTION_IMAGE_SET_H

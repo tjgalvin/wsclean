@@ -2,17 +2,17 @@
 
 #include "griddingresult.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include "../distributed/mpibig.h"
 #include "../distributed/taskmessage.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "../io/serialostream.h"
+#include "../io/serialistream.h"
 
 #include <mpi.h>
 
-MPIScheduler::MPIScheduler(const class WSCleanSettings &settings)
+MPIScheduler::MPIScheduler(const class Settings &settings)
     : GriddingTaskManager(settings), _isRunning(false), _isSendFinished(false) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);

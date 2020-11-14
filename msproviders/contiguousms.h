@@ -3,8 +3,8 @@
 
 #include "msprovider.h"
 
-#include "../msselection.h"
-#include "../multibanddata.h"
+#include "../structures/msselection.h"
+#include "../structures/multibanddata.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 

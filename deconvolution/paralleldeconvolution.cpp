@@ -2,21 +2,21 @@
 
 #include "../multiscale/multiscalealgorithm.h"
 
-#include "../wsclean/imagefilename.h"
-#include "../wsclean/primarybeam.h"
-#include "../wsclean/wscleansettings.h"
+#include "../io/imagefilename.h"
+
+#include "../main/settings.h"
 
 #include "../units/fluxdensity.h"
 
-#include "../image.h"
+#include "../structures/image.h"
+#include "../structures/primarybeam.h"
 
 #include "componentlist.h"
 #include "subdivision.h"
 
 #include <aocommon/parallelfor.h>
 
-ParallelDeconvolution::ParallelDeconvolution(
-    const class WSCleanSettings& settings)
+ParallelDeconvolution::ParallelDeconvolution(const class Settings& settings)
     : _horImages(0),
       _verImages(0),
       _settings(settings),

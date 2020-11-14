@@ -1,4 +1,4 @@
-#include "../nlplfitter.h"
+#include "../math/nlplfitter.h"
 
 #include "../model/powerlawsed.h"
 

@@ -2,10 +2,10 @@
 
 #include "contiguousms.h"
 
-#include "../wsclean/wscleansettings.h"
+#include "../main/settings.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "../io/serialostream.h"
+#include "../io/serialistream.h"
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   if (_isPartitioned)

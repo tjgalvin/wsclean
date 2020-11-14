@@ -1,7 +1,8 @@
 #include "../units/radeccoord.h"
 
-#include "../progressbar.h"
-#include "../multibanddata.h"
+#include "progressbar.h"
+
+#include "../structures/multibanddata.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 

@@ -9,7 +9,7 @@
 
 #include "../units/fluxdensity.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <boost/thread/thread.hpp>
 

@@ -1,7 +1,8 @@
 #include "averagingmsrowprovider.h"
 
-#include "../multibanddata.h"
-#include "../wsclean/logger.h"
+#include "../structures/multibanddata.h"
+
+#include "../io/logger.h"
 
 #include <casacore/tables/Tables/ArrayColumn.h>
 

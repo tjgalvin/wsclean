@@ -11,7 +11,7 @@
 
 class Deconvolution {
  public:
-  explicit Deconvolution(const class WSCleanSettings& settings);
+  explicit Deconvolution(const class Settings& settings);
   ~Deconvolution();
 
   void Perform(const class ImagingTable& groupTable,
@@ -60,7 +60,7 @@ class Deconvolution {
 
   void readMask(const ImagingTable& groupTable);
 
-  const class WSCleanSettings& _settings;
+  const class Settings& _settings;
 
   ParallelDeconvolution _parallelDeconvolution;
 

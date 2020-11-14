@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../parsetreader.h"
+#include "../io/parsetreader.h"
 
 BOOST_AUTO_TEST_SUITE(parsetreader)
 

@@ -2,8 +2,9 @@
 #define GRIDDING_TASK_H
 
 #include <aocommon/polarization.h>
-#include "../image.h"
-#include "../imageweights.h"
+
+#include "../structures/image.h"
+#include "../structures/imageweights.h"
 
 #include "../msproviders/msdatadescription.h"
 

@@ -1,6 +1,6 @@
 #include "iuwtdecomposition.h"
 
-#include "../threadpool.h"
+#include "../system/threadpool.h"
 
 void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const float* input,
                                     float* scratch, bool includeLargest) {

@@ -3,7 +3,7 @@
 
 #ifdef HAVE_IDG
 
-#include "../wsclean/msgridderbase.h"
+#include "../gridding/msgridderbase.h"
 
 #include <idg-api.h>
 
@@ -19,7 +19,7 @@
 
 class IdgMsGridder : public MSGridderBase {
  public:
-  IdgMsGridder(const class WSCleanSettings& settings);
+  IdgMsGridder(const class Settings& settings);
 
   virtual ~IdgMsGridder() final override {}
 
@@ -36,13 +36,12 @@ class IdgMsGridder : public MSGridderBase {
   static void SavePBCorrectedImages(class aocommon::FitsWriter& writer,
                                     const class ImageFilename& filename,
                                     const std::string& filenameKind,
-                                    const WSCleanSettings& settings);
+                                    const Settings& settings);
 
   static void SaveBeamImage(const class ImagingTableEntry& entry,
                             class ImageFilename& filename,
-                            const WSCleanSettings& settings, double ra,
-                            double dec, double pdl, double pdm,
-                            const MetaDataCache& cache);
+                            const Settings& settings, double ra, double dec,
+                            double pdl, double pdm, const MetaDataCache& cache);
 
  private:
   AverageBeam* _averageBeam;
@@ -91,7 +90,7 @@ class IdgMsGridder : public MSGridderBase {
   aocommon::UVector<float> _taper_grid;
   MSProvider* _outputProvider;
   MultiBandData _selectedBands;
-  const WSCleanSettings& _settings;
+  const Settings& _settings;
   idg::api::Type _proxyType;
   int _buffersize;
   idg::api::options_type _options;
@@ -106,7 +105,7 @@ void init_optimal_gridding_taper_1D(int subgridsize, int gridsize,
 
 #else
 
-#include "../wsclean/unavailablegridder.h"
+#include "../gridding/unavailablegridder.h"
 
 #define IdgMsGridder UnavailableGridder
 

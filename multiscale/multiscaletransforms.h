@@ -1,7 +1,7 @@
 #ifndef MULTI_SCALE_TRANSFORMS_H
 #define MULTI_SCALE_TRANSFORMS_H
 
-#include "../image.h"
+#include "../structures/image.h"
 
 #include <cmath>
 #include <initializer_list>

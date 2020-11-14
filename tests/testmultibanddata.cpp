@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../multibanddata.h"
+#include "../structures/multibanddata.h"
 
 #include <vector>
 

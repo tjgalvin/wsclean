@@ -1,9 +1,9 @@
 #include "spectralfitter.h"
 
-#include "../polynomialfitter.h"
-#include "../nlplfitter.h"
+#include "../math/polynomialfitter.h"
+#include "../math/nlplfitter.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <limits>
 

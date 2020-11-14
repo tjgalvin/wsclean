@@ -1,6 +1,6 @@
 #include "multiscaletransforms.h"
 
-#include "../fftconvolver.h"
+#include "../math/fftconvolver.h"
 
 void MultiScaleTransforms::Transform(std::vector<ImageF>& images,
                                      ImageF& scratch, float scale) {

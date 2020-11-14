@@ -154,7 +154,12 @@ configure_file("${PROJECT_SOURCE_DIR}/wscversion.h.in" "${PROJECT_BINARY_DIR}/ws
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(wsclean-object OBJECT
-  casamaskreader.cpp fftconvolver.cpp fftresampler.cpp fftwmanager.cpp gaussianfitter.cpp image.cpp imageweights.cpp modelrenderer.cpp msselection.cpp multibanddata.cpp nlplfitter.cpp parsetreader.cpp polynomialchannelfitter.cpp polynomialfitter.cpp progressbar.cpp rmsimage.cpp stopwatch.cpp system.cpp
+  main/commandline.cpp
+  main/progressbar.cpp
+  main/stopwatch.cpp 
+  main/wsclean.cpp
+  main/settings.cpp
+  deconvolution/casamaskreader.cpp
   deconvolution/componentlist.cpp
   deconvolution/deconvolution.cpp
   deconvolution/deconvolutionalgorithm.cpp
@@ -167,17 +172,54 @@ add_library(wsclean-object OBJECT
   deconvolution/simpleclean.cpp
   deconvolution/spectralfitter.cpp
   deconvolution/subminorloop.cpp
+  gridding/directmsgridder.cpp
+  gridding/msgridderbase.cpp
+  gridding/wsmsgridder.cpp
+  gridding/wstackinggridder.cpp
   idg/averagebeam.cpp
   interface/wscleaninterface.cpp
-  iuwt/imageanalysis.cpp iuwt/iuwtdecomposition.cpp iuwt/iuwtdeconvolutionalgorithm.cpp iuwt/iuwtmask.cpp
+  io/logger.cpp
+  io/parsetreader.cpp 
+  io/wscfitswriter.cpp
+  iuwt/imageanalysis.cpp
+  iuwt/iuwtdecomposition.cpp
+  iuwt/iuwtdeconvolutionalgorithm.cpp
+  iuwt/iuwtmask.cpp
+  math/fftconvolver.cpp 
+  math/fftresampler.cpp
+  math/gaussianfitter.cpp
+  math/imageoperations.cpp
+  math/modelrenderer.cpp
+  math/nlplfitter.cpp
+  math/polynomialchannelfitter.cpp
+  math/polynomialfitter.cpp
+  math/rmsimage.cpp
   model/model.cpp
-  msproviders/averagingmsrowprovider.cpp msproviders/contiguousms.cpp msproviders/msdatadescription.cpp msproviders/directmsrowprovider.cpp msproviders/msprovider.cpp msproviders/msrowprovider.cpp msproviders/partitionedms.cpp msproviders/synchronizedms.cpp
-  multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp multiscale/threadeddeconvolutiontools.cpp
-  scheduling/griddingtaskmanager.cpp scheduling/griddingresult.cpp scheduling/griddingtask.cpp scheduling/metadatacache.cpp scheduling/threadedscheduler.cpp
-  wsclean/commandline.cpp wsclean/directmsgridder.cpp wsclean/imageoperations.cpp wsclean/imagingtable.cpp
-  wsclean/logger.cpp wsclean/observationinfo.cpp
-  wsclean/primarybeam.cpp wsclean/msgridderbase.cpp wsclean/wscfitswriter.cpp
-  wsclean/wsclean.cpp wsclean/wscleansettings.cpp wsclean/wsmsgridder.cpp wsclean/wstackinggridder.cpp
+  msproviders/averagingmsrowprovider.cpp
+  msproviders/contiguousms.cpp
+  msproviders/msdatadescription.cpp
+  msproviders/directmsrowprovider.cpp
+  msproviders/msprovider.cpp
+  msproviders/msrowprovider.cpp
+  msproviders/partitionedms.cpp
+  msproviders/synchronizedms.cpp
+  multiscale/multiscalealgorithm.cpp
+  multiscale/multiscaletransforms.cpp
+  multiscale/threadeddeconvolutiontools.cpp
+  scheduling/griddingtaskmanager.cpp
+  scheduling/griddingresult.cpp
+  scheduling/griddingtask.cpp
+  scheduling/metadatacache.cpp
+  scheduling/threadedscheduler.cpp
+  structures/image.cpp
+  structures/imageweights.cpp
+  structures/imagingtable.cpp
+  structures/msselection.cpp
+  structures/multibanddata.cpp
+  structures/observationinfo.cpp
+  structures/primarybeam.cpp
+  system/fftwmanager.cpp
+  system/system.cpp
   ${IDG_FILES} ${MPI_CPP_FILES} ${WGRIDDER_FILES})
 
 
@@ -205,17 +247,15 @@ set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
 set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB})
 
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
-target_link_libraries(wsclean-lib PRIVATE pybind11::embed)
-target_link_libraries(wsclean-lib ${ALL_LIBRARIES})
+target_link_libraries(wsclean-lib PRIVATE pybind11::embed ${ALL_LIBRARIES})
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_library(wsclean-shared SHARED ${WSCLEANFILES})
-target_link_libraries(wsclean-shared PRIVATE pybind11::embed)
-target_link_libraries(wsclean-shared ${ALL_LIBRARIES})
+target_link_libraries(wsclean-shared PRIVATE pybind11::embed ${ALL_LIBRARIES})
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
-add_executable(wsclean wscleanmain.cpp)
+add_executable(wsclean main/main.cpp)
 target_link_libraries(wsclean wsclean-lib)
 
 if(MPI_FOUND)
@@ -225,16 +265,16 @@ if(MPI_FOUND)
   target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 
-add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp multibanddata.cpp)
+add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp structures/multibanddata.cpp)
 target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB} ${MPI_LIBRARIES})
 
-add_executable(wsuvbinning EXCLUDE_FROM_ALL wsclean/examples/wsuvbinning.cpp ${WSCLEANFILES})
+add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp ${WSCLEANFILES})
 target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
 
-add_executable(wspredictionexample EXCLUDE_FROM_ALL wsclean/examples/wspredictionexample.cpp wsclean/wstackinggridder.cpp fftwmanager.cpp)
+add_executable(wspredictionexample EXCLUDE_FROM_ALL gridding/examples/wspredictionexample.cpp gridding/wstackinggridder.cpp system/fftwmanager.cpp)
 target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
 
-add_executable(mscaleexample EXCLUDE_FROM_ALL multiscale/mscaleexample.cpp fftconvolver.cpp multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
+add_executable(mscaleexample EXCLUDE_FROM_ALL multiscale/mscaleexample.cpp math/fftconvolver.cpp multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
 target_link_libraries(mscaleexample ${ALL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)
@@ -287,8 +327,7 @@ if(Boost_FOUND)
     tests/testradeccoord.cpp
     tests/testserialization.cpp
     ${WSCLEANFILES})
-  target_link_libraries(runtest PRIVATE pybind11::embed)
-  target_link_libraries(runtest ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+  target_link_libraries(runtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   add_test(runtest runtest)
   add_custom_target(check COMMAND runtest DEPENDS runtest)
 else()

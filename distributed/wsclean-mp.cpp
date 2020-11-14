@@ -2,9 +2,10 @@
 
 #include "taskmessage.h"
 
-#include "../wsclean/commandline.h"
-#include "../wsclean/logger.h"
-#include "../wsclean/wsclean.h"
+#include "../main/commandline.h"
+#include "../main/wsclean.h"
+
+#include "../io/logger.h"
 
 #include <exception>
 #include <iostream>
@@ -40,7 +41,7 @@ int main(int argc, char* argv[]) {
     shortException = !Logger::IsVerbose();
     CommandLine::Validate(wsclean, parseResult);
     if (parseResult) {
-      WSCleanSettings& settings = wsclean.Settings();
+      Settings& settings = wsclean.Settings();
       settings.useMPI = true;
 
       if (master) {

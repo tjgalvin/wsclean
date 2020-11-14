@@ -6,9 +6,9 @@
 #include "../deconvolution/peakfinder.h"
 #include "../deconvolution/subminorloop.h"
 
-#include "../fftwmanager.h"
+#include "../system/fftwmanager.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include "../units/fluxdensity.h"
 

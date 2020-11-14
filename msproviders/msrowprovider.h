@@ -1,7 +1,7 @@
 #ifndef MS_ROW_PROVIDER_H
 #define MS_ROW_PROVIDER_H
 
-#include "../msselection.h"
+#include "../structures/msselection.h"
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>

@@ -8,9 +8,9 @@
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 
-#include "../fftconvolver.h"
+#include "../math/fftconvolver.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
                                      const float* psfImage, size_t width,

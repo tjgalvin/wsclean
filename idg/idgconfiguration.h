@@ -1,7 +1,7 @@
 #ifndef IDG_CONFIGURATION_H
 #define IDG_CONFIGURATION_H
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <idg-api.h>
 

@@ -1,7 +1,7 @@
 #include "griddingtask.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "../io/serialostream.h"
+#include "../io/serialistream.h"
 
 void GriddingTask::Serialize(SerialOStream& stream) const {
   stream.UInt32(operation)

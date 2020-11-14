@@ -1,7 +1,7 @@
 #ifndef CONTROLLABLE_LOG_H
 #define CONTROLLABLE_LOG_H
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <mutex>
 #include <string>

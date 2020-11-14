@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
   }
   table.Update();
 
-  WSCleanSettings settings;
+  Settings settings;
   settings.deconvolutionChannelCount = 0;
   settings.squaredJoins = false;
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>();

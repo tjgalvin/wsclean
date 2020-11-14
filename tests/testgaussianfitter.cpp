@@ -1,8 +1,9 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../gaussianfitter.h"
-#include "../image.h"
-#include "../modelrenderer.h"
+#include "../math/gaussianfitter.h"
+#include "../math/modelrenderer.h"
+
+#include "../structures/image.h"
 
 #include "../model/model.h"
 #include "../model/powerlawsed.h"

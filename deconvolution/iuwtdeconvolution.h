@@ -6,7 +6,7 @@
 
 #include "../iuwt/iuwtdeconvolutionalgorithm.h"
 
-#include "../wsclean/imagingtable.h"
+#include "../structures/imagingtable.h"
 
 #include <aocommon/uvector.h>
 

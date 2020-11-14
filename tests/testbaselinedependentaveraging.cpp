@@ -1,7 +1,7 @@
 #include "../msproviders/averagingmsrowprovider.h"
 #include "../msproviders/directmsrowprovider.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <boost/test/unit_test.hpp>
 

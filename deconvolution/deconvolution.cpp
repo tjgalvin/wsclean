@@ -1,5 +1,6 @@
 #include "deconvolution.h"
 
+#include "casamaskreader.h"
 #include "imageset.h"
 #include "simpleclean.h"
 #include "moresane.h"
@@ -7,23 +8,24 @@
 #include "iuwtdeconvolution.h"
 #include "genericclean.h"
 
+#include "../math/rmsimage.h"
+
 #include "../multiscale/multiscalealgorithm.h"
 
-#include "../casamaskreader.h"
-#include "../image.h"
-#include "../ndppp.h"
-#include "../rmsimage.h"
+#include "../system/dppp.h"
+
+#include "../structures/image.h"
+#include "../structures/imagingtable.h"
 
 #include "../units/fluxdensity.h"
 
-#include "../wsclean/imagingtable.h"
-#include "../wsclean/wscleansettings.h"
+#include "../main/settings.h"
 
 #include <aocommon/fits/fitsreader.h>
 
 using namespace aocommon;
 
-Deconvolution::Deconvolution(const class WSCleanSettings& settings)
+Deconvolution::Deconvolution(const class Settings& settings)
     : _settings(settings),
       _parallelDeconvolution(settings),
       _autoMaskIsFinished(false),
@@ -77,11 +79,11 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
       ImageF rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
-        case WSCleanSettings::RMSWindow:
+        case Settings::RMSWindow:
           RMSImage::Make(rmsImage, integrated, _settings.localRMSWindow,
                          _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY);
           break;
-        case WSCleanSettings::RMSAndMinimumWindow:
+        case Settings::RMSAndMinimumWindow:
           RMSImage::MakeWithNegativityLimit(
               rmsImage, integrated, _settings.localRMSWindow, _beamSize,
               _beamSize, 0.0, _pixelScaleX, _pixelScaleY);

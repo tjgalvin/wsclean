@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <limits>
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
                  MPI_Comm comm) {

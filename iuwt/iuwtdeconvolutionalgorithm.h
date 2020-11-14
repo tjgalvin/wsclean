@@ -6,7 +6,7 @@
 #include "iuwtdecomposition.h"
 #include "imageanalysis.h"
 
-#include "../image.h"
+#include "../structures/image.h"
 
 #include <vector>
 

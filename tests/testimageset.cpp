@@ -1,8 +1,9 @@
 #include "../deconvolution/imageset.h"
 #include "../deconvolution/spectralfitter.h"
 
-#include "../wsclean/cachedimageset.h"
-#include "../image.h"
+#include "../io/cachedimageset.h"
+
+#include "../structures/image.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -38,7 +39,7 @@ struct ImageSetFixtureBase {
   }
 
   ImagingTable table;
-  WSCleanSettings settings;
+  Settings settings;
 };
 
 struct ImageSetFixture : public ImageSetFixtureBase {
@@ -68,7 +69,7 @@ BOOST_AUTO_TEST_CASE(entriesInGroup) {
 }
 
 BOOST_AUTO_TEST_CASE(psfCount1) {
-  WSCleanSettings settings;
+  Settings settings;
   settings.deconvolutionChannelCount = 1;
   settings.squaredJoins = false;
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>();
@@ -77,7 +78,7 @@ BOOST_AUTO_TEST_CASE(psfCount1) {
 }
 
 BOOST_AUTO_TEST_CASE(psfCount2) {
-  WSCleanSettings settings;
+  Settings settings;
   settings.deconvolutionChannelCount = 2;
   settings.squaredJoins = false;
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>();

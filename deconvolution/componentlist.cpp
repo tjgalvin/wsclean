@@ -1,10 +1,12 @@
 #include "componentlist.h"
 
-#include "../ndppp.h"
+#include "../system/dppp.h"
 
-#include "../wsclean/imagefilename.h"
-#include "../wsclean/imagingtable.h"
-#include "../wsclean/primarybeamimageset.h"
+#include "../io/imagefilename.h"
+
+#include "../structures/imagingtable.h"
+
+#include "../structures/primarybeamimageset.h"
 
 #include "../multiscale/multiscalealgorithm.h"
 

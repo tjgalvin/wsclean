@@ -6,7 +6,7 @@
 #include "../scheduling/griddingtask.h"
 #include "../scheduling/griddingtaskmanager.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <mpi.h>
 

@@ -1,6 +1,6 @@
 #include "deconvolutionalgorithm.h"
 
-#include "../system.h"
+#include "../system/system.h"
 
 #include "../model/modelsource.h"
 #include "../model/model.h"

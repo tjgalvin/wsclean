@@ -5,11 +5,12 @@
 #include "msrowprovider.h"
 #include "noisemsrowprovider.h"
 
-#include "../progressbar.h"
-#include "../system.h"
+#include "../system/system.h"
 
-#include "../wsclean/logger.h"
-#include "../wsclean/wscleansettings.h"
+#include "../io/logger.h"
+
+#include "../main/progressbar.h"
+#include "../main/settings.h"
 
 #include <sys/mman.h>
 #include <sys/types.h>
@@ -343,7 +344,7 @@ struct PartitionFiles {
 PartitionedMS::Handle PartitionedMS::Partition(
     const string& msPath, const std::vector<ChannelRange>& channels,
     MSSelection& selection, const string& dataColumnName, bool includeModel,
-    bool initialModelRequired, const WSCleanSettings& settings) {
+    bool initialModelRequired, const Settings& settings) {
   const bool modelUpdateRequired = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> polsOut;
   if (settings.useIDG)

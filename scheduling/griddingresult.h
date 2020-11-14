@@ -1,13 +1,12 @@
 #ifndef GRIDDING_RESULT_H
 #define GRIDDING_RESULT_H
 
-#include "../wsclean/observationinfo.h"
+#include "../structures/image.h"
+#include "../structures/observationinfo.h"
 
 #include <string>
 
 #include "../scheduling/metadatacache.h"
-
-#include "../image.h"
 
 struct GriddingResult {
   GriddingResult()

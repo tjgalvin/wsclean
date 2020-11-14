@@ -1,14 +1,15 @@
 #include "imageset.h"
 #include "spectralfitter.h"
 
-#include "../nlplfitter.h"
+#include "../math/nlplfitter.h"
 
-#include "../wsclean/cachedimageset.h"
-#include "../wsclean/logger.h"
-#include "../wsclean/primarybeam.h"
-#include "../wsclean/primarybeamimageset.h"
+#include "../io/cachedimageset.h"
+#include "../io/logger.h"
 
-ImageSet::ImageSet(const ImagingTable* table, const WSCleanSettings& settings)
+#include "../structures/primarybeam.h"
+#include "../structures/primarybeamimageset.h"
+
+ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
     : _images(),
       _width(0),
       _height(0),
@@ -31,7 +32,7 @@ ImageSet::ImageSet(const ImagingTable* table, const WSCleanSettings& settings)
                                     _channelsInDeconvolution);
 }
 
-ImageSet::ImageSet(const ImagingTable* table, const WSCleanSettings& settings,
+ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings,
                    size_t width, size_t height)
     : _images(),
       _width(width),

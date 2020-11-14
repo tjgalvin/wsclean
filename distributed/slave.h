@@ -1,18 +1,18 @@
 #ifndef SLAVE_H
 #define SLAVE_H
 
-#include "../wsclean/wscleansettings.h"
+#include "../main/settings.h"
 
 class Slave {
  public:
-  Slave(const WSCleanSettings& settings) : _settings(settings) {}
+  Slave(const Settings& settings) : _settings(settings) {}
 
   void Run();
 
  private:
   void grid(size_t bodySize);
 
-  const WSCleanSettings _settings;
+  const Settings _settings;
 };
 
 #endif

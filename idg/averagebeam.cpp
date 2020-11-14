@@ -1,7 +1,7 @@
 #include "averagebeam.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "../io/serialostream.h"
+#include "../io/serialistream.h"
 
 void AverageBeam::Serialize(SerialOStream& stream) const {
   if (_scalarBeam) {

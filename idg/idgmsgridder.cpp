@@ -10,12 +10,15 @@
 #include "../msproviders/msprovider.h"
 #include "../msproviders/timestepbuffer.h"
 
-#include "../wsclean/imagefilename.h"
-#include "../wsclean/imagingtable.h"
-#include "../wsclean/logger.h"
-#include "../wsclean/wscleansettings.h"
-#include "../mwa/findcoefffile.h"
-#include "../../parsetreader.h"
+#include "../io/findmwacoefffile.h"
+#include "../io/imagefilename.h"
+#include "../io/logger.h"
+#include "../io/parsetreader.h"
+
+#include "../structures/imagingtable.h"
+
+#include "../main/settings.h"
+
 #include "idgconfiguration.h"
 
 #ifdef HAVE_EVERYBEAM
@@ -31,7 +34,7 @@ using everybeam::aterms::ATermConfig;
 using everybeam::coords::CoordinateSystem;
 #endif  // HAVE_EVERYBEAM
 
-IdgMsGridder::IdgMsGridder(const WSCleanSettings& settings)
+IdgMsGridder::IdgMsGridder(const Settings& settings)
     : _averageBeam(nullptr),
       _outputProvider(nullptr),
       _settings(settings),
@@ -296,13 +299,13 @@ void IdgMsGridder::setIdgType() {
   switch (_settings.idgMode) {
     default:
       return;
-    case WSCleanSettings::IDG_CPU:
+    case Settings::IDG_CPU:
       _proxyType = idg::api::Type::CPU_OPTIMIZED;
       return;
-    case WSCleanSettings::IDG_GPU:
+    case Settings::IDG_GPU:
       _proxyType = idg::api::Type::CUDA_GENERIC;
       return;
-    case WSCleanSettings::IDG_HYBRID:
+    case Settings::IDG_HYBRID:
       _proxyType = idg::api::Type::HYBRID_CUDA_CPU_OPTIMIZED;
       return;
   }
@@ -408,7 +411,7 @@ ImageF IdgMsGridder::ImageImaginaryResult() {
 
 void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry,
                                  ImageFilename& filename,
-                                 const WSCleanSettings& settings, double ra,
+                                 const Settings& settings, double ra,
                                  double dec, double pdl, double pdm,
                                  const MetaDataCache& cache) {
   if (!cache.averageBeam || cache.averageBeam->Empty()) {
@@ -433,7 +436,7 @@ void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry,
 void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
                                          const ImageFilename& filename,
                                          const std::string& filenameKind,
-                                         const WSCleanSettings& settings) {
+                                         const Settings& settings) {
   ImageFilename beamName(filename);
   beamName.SetPolarization(aocommon::Polarization::StokesI);
   aocommon::FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");

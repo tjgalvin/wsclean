@@ -1,8 +1,8 @@
 #include "threadedscheduler.h"
 
-#include "../wsclean/wscleansettings.h"
+#include "../main/settings.h"
 
-ThreadedScheduler::ThreadedScheduler(const class WSCleanSettings& settings)
+ThreadedScheduler::ThreadedScheduler(const class Settings& settings)
     : GriddingTaskManager(settings), _taskList(settings.parallelGridding) {}
 
 ThreadedScheduler::~ThreadedScheduler() {

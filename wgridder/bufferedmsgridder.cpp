@@ -3,14 +3,16 @@
 
 #include "wgriddinggridder_simple.h"
 
-#include "../imageweights.h"
-#include "../buffered_lane.h"
-#include "../fftresampler.h"
-#include "../image.h"
+#include "../io/logger.h"
 
-#include "../wsclean/logger.h"
+#include "../math/fftresampler.h"
 
 #include "../msproviders/msprovider.h"
+
+#include "../system/buffered_lane.h"
+
+#include "../structures/imageweights.h"
+#include "../structures/image.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 

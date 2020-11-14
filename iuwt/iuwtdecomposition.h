@@ -5,7 +5,7 @@
 
 #include "iuwtmask.h"
 
-#include "../image.h"
+#include "../structures/image.h"
 
 #include <aocommon/uvector.h>
 

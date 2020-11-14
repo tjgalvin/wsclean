@@ -1,9 +1,9 @@
 #ifndef BUFFERED_MS_GRIDDER_H
 #define BUFFERED_MS_GRIDDER_H
 
-#include "../wsclean/msgridderbase.h"
+#include "../gridding/msgridderbase.h"
 
-#include "../multibanddata.h"
+#include "../structures/multibanddata.h"
 
 #include <aocommon/lane.h>
 

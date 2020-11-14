@@ -1,7 +1,7 @@
 #ifndef THREADED_DECONVOLUTION_TOOLS_H
 #define THREADED_DECONVOLUTION_TOOLS_H
 
-#include "../image.h"
+#include "../structures/image.h"
 
 #include <boost/optional/optional.hpp>
 

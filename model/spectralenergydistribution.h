@@ -3,7 +3,8 @@
 
 #include "measurement.h"
 
-#include "../nlplfitter.h"
+#include "../math/nlplfitter.h"
+
 #include <aocommon/polarization.h>
 
 #include <cmath>

@@ -1,10 +1,10 @@
 #ifndef PARALLEL_DECONVOLUTION_H
 #define PARALLEL_DECONVOLUTION_H
 
-#include "../fftwmanager.h"
-#include "../image.h"
+#include "../system/fftwmanager.h"
 
-#include "../wsclean/primarybeamimageset.h"
+#include "../structures/image.h"
+#include "../structures/primarybeamimageset.h"
 
 #include "controllablelog.h"
 
@@ -16,7 +16,7 @@
 
 class ParallelDeconvolution {
  public:
-  ParallelDeconvolution(const class WSCleanSettings& settings);
+  ParallelDeconvolution(const class Settings& settings);
 
   ~ParallelDeconvolution();
 
@@ -98,7 +98,7 @@ class ParallelDeconvolution {
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
   FacetLogSet _logs;
   size_t _horImages, _verImages;
-  const WSCleanSettings& _settings;
+  const Settings& _settings;
   ImageBufferAllocator* _allocator;
   const bool* _mask;
   bool _trackPerScaleMasks, _usePerScaleMasks;

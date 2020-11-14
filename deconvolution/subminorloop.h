@@ -6,7 +6,8 @@
 
 #include <boost/optional/optional.hpp>
 
-#include "../image.h"
+#include "../structures/image.h"
+
 #include "../deconvolution/imageset.h"
 
 /**

@@ -3,7 +3,7 @@
 
 #include "imageset.h"
 
-#include "../image.h"
+#include "../structures/image.h"
 
 #include <aocommon/uvector.h>
 

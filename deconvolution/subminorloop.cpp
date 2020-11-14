@@ -3,10 +3,11 @@
 #include "../deconvolution/spectralfitter.h"
 #include "../deconvolution/componentlist.h"
 
-#include "../fftconvolver.h"
-#include "../image.h"
+#include "../math/fftconvolver.h"
 
-#include "../wsclean/logger.h"
+#include "../structures/image.h"
+
+#include "../io/logger.h"
 
 template <bool AllowNegatives>
 size_t SubMinorModel::GetMaxComponent(ImageF& scratch, float& maxValue) const {

@@ -1,7 +1,7 @@
 #include "directmsrowprovider.h"
 #include "msprovider.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 

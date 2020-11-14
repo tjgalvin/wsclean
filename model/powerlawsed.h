@@ -3,7 +3,7 @@
 
 #include "spectralenergydistribution.h"
 
-#include "../polynomialfitter.h"
+#include "../math/polynomialfitter.h"
 
 class PowerLawSED final : public SpectralEnergyDistribution {
  public:

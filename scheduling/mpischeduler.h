@@ -12,7 +12,7 @@
 
 class MPIScheduler final : public GriddingTaskManager {
  public:
-  MPIScheduler(const class WSCleanSettings &settings);
+  MPIScheduler(const class Settings &settings);
   ~MPIScheduler();
 
   void Run(GriddingTask &task,

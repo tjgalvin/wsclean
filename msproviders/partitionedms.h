@@ -3,9 +3,9 @@
 
 #include "msprovider.h"
 
-#include <aocommon/polarization.h>
-#include "../msselection.h"
+#include "../structures/msselection.h"
 
+#include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -89,7 +89,7 @@ class PartitionedMS final : public MSProvider {
                           class MSSelection& selection,
                           const string& dataColumnName, bool includeModel,
                           bool initialModelRequired,
-                          const class WSCleanSettings& settings);
+                          const class Settings& settings);
 
   class Handle {
    public:

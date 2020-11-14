@@ -3,9 +3,10 @@
 #include "mpischeduler.h"
 #include "threadedscheduler.h"
 
-#include "../wsclean/wscleansettings.h"
-#include "../wsclean/wsmsgridder.h"
-#include "../wsclean/directmsgridder.h"
+#include "../main/settings.h"
+
+#include "../gridding/wsmsgridder.h"
+#include "../gridding/directmsgridder.h"
 
 #include "../idg/idgmsgridder.h"
 
@@ -13,13 +14,13 @@
 #include "../wgridder/bufferedmsgridder.h"
 #endif
 
-GriddingTaskManager::GriddingTaskManager(const class WSCleanSettings& settings)
+GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
     : _settings(settings) {}
 
 GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const class WSCleanSettings& settings, bool useDirectScheduler) {
+    const class Settings& settings, bool useDirectScheduler) {
   if (settings.useMPI && !useDirectScheduler) {
 #ifdef HAVE_MPI
     return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));

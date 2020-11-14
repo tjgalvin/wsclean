@@ -6,7 +6,7 @@
 
 #include "spectralfitter.h"
 
-#include "../image.h"
+#include "../structures/image.h"
 
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>

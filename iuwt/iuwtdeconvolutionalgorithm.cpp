@@ -2,14 +2,16 @@
 
 #include "imageanalysis.h"
 
-#include "../fftconvolver.h"
-#include "../fftwmanager.h"
-#include "../gaussianfitter.h"
-#include "../modelrenderer.h"
-#include "../threadpool.h"
+#include "../system/fftwmanager.h"
+#include "../system/threadpool.h"
+
+#include "../math/fftconvolver.h"
+#include "../math/gaussianfitter.h"
+#include "../math/modelrenderer.h"
 
 #include "../deconvolution/imageset.h"
-#include "../image.h"
+
+#include "../structures/image.h"
 
 #include <algorithm>
 #include <iostream>

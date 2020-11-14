@@ -4,13 +4,14 @@
 #include "griddingtask.h"
 #include "griddingresult.h"
 
-#include "../wsclean/observationinfo.h"
-#include "../wsclean/measurementsetgridder.h"
-#include "../wsclean/msgridderbase.h"
+#include "../gridding/measurementsetgridder.h"
+#include "../gridding/msgridderbase.h"
 
-#include "../imageweights.h"
+#include "../structures/imageweights.h"
+#include "../structures/observationinfo.h"
+#include "../structures/msselection.h"
+
 #include <aocommon/polarization.h>
-#include "../msselection.h"
 
 #include "../msproviders/msdatadescription.h"
 
@@ -34,12 +35,12 @@ class GriddingTaskManager {
   // MSGridderBase* Gridder() { return _gridder.get(); }
 
   static std::unique_ptr<GriddingTaskManager> Make(
-      const class WSCleanSettings& settings, bool useDirectScheduler = false);
+      const class Settings& settings, bool useDirectScheduler = false);
 
  protected:
-  const class WSCleanSettings& _settings;
+  const class Settings& _settings;
 
-  GriddingTaskManager(const class WSCleanSettings& settings);
+  GriddingTaskManager(const class Settings& settings);
 
   std::unique_ptr<MSGridderBase> createGridder() const;
   void prepareGridder(MSGridderBase& gridder);

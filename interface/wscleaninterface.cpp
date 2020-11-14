@@ -1,10 +1,7 @@
 #include "wscleaninterface.h"
 
-#include "../wsclean/commandline.h"
-
-#include <string>
-
-#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include "../main/commandline.h"
+#include "../main/wsclean.h"
 
 #include "../units/angle.h"
 
@@ -12,7 +9,9 @@
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 
-#include "../wsclean/wsclean.h"
+#include <string>
+
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 struct WSCleanUserData {
   std::string msPath;

@@ -1,12 +1,12 @@
 #include "msprovider.h"
 
-#include "../wsclean/logger.h"
+#include "../io/logger.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 
-#include "../msselection.h"
+#include "../structures/msselection.h"
 
 void MSProvider::copyData(std::complex<float>* dest, size_t startChannel,
                           size_t endChannel,

@@ -1,7 +1,7 @@
 #include "metadatacache.h"
 
-#include "../serialostream.h"
-#include "../serialistream.h"
+#include "../io/serialostream.h"
+#include "../io/serialistream.h"
 
 void MetaDataCache::Serialize(class SerialOStream& stream) const {
   stream.UInt64(msDataVector.size());
