@@ -9,6 +9,8 @@
 #include "../structures/primarybeam.h"
 #include "../structures/primarybeamimageset.h"
 
+#include <aocommon/staticfor.h>
+
 ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
     : _images(),
       _width(0),
@@ -174,25 +176,28 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
     // TODO: this assumes that polarizations are not joined!
     size_t nTerms = fitter.NTerms();
     aocommon::UVector<float> termsImage(_width * _height * nTerms);
-    aocommon::UVector<float> spectralPixel(_channelsInDeconvolution);
-    aocommon::UVector<float> termsPixel(nTerms);
-    for (size_t px = 0; px != _width * _height; ++px) {
-      bool isZero = true;
-      for (size_t s = 0; s != _images.size(); ++s) {
-        float value = _images[s][px];
-        spectralPixel[s] = value;
-        isZero = isZero && (value == 0.0);
+    aocommon::StaticFor<size_t> loop(_settings.threadCount);
+    loop.Run(0, _width * _height, [&](size_t pxStart, size_t pxEnd) {
+      aocommon::UVector<float> spectralPixel(_channelsInDeconvolution);
+      aocommon::UVector<float> termsPixel(nTerms);
+      for (size_t px = pxStart; px != pxEnd; ++px) {
+        bool isZero = true;
+        for (size_t s = 0; s != _images.size(); ++s) {
+          float value = _images[s][px];
+          spectralPixel[s] = value;
+          isZero = isZero && (value == 0.0);
+        }
+        float* termsPtr = &termsImage[px * nTerms];
+        // Skip fitting if it is zero; most of model images will be zero, so
+        // this can save a lot of time.
+        if (isZero) {
+          for (float* p = termsPtr; p != termsPtr + nTerms; ++p) *p = 0.0;
+        } else {
+          fitter.Fit(termsPixel, spectralPixel.data());
+          for (size_t i = 0; i != nTerms; ++i) termsPtr[i] = termsPixel[i];
+        }
       }
-      float* termsPtr = &termsImage[px * nTerms];
-      // Skip fitting if it is zero; most of model images will be zero, so this
-      // can save a lot of time.
-      if (isZero) {
-        for (float* p = termsPtr; p != termsPtr + nTerms; ++p) *p = 0.0;
-      } else {
-        fitter.Fit(termsPixel, spectralPixel.data());
-        for (size_t i = 0; i != nTerms; ++i) termsPtr[i] = termsPixel[i];
-      }
-    }
+    });
 
     // Now that we know the fit for each pixel, evaluate the function for each
     // pixel of each output channel.
@@ -201,11 +206,14 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
     for (size_t eIndex = 0; eIndex != _imagingTable.EntryCount(); ++eIndex) {
       const ImagingTableEntry& e = _imagingTable[eIndex];
       double freq = e.CentralFrequency();
-      for (size_t px = 0; px != _width * _height; ++px) {
-        const float* termsPtr = &termsImage[px * nTerms];
-        for (size_t i = 0; i != nTerms; ++i) termsPixel[i] = termsPtr[i];
-        scratch[px] = fitter.Evaluate(termsPixel, freq);
-      }
+      loop.Run(0, _width * _height, [&](size_t pxStart, size_t pxEnd) {
+        aocommon::UVector<float> termsPixel(nTerms);
+        for (size_t px = pxStart; px != pxEnd; ++px) {
+          const float* termsPtr = &termsImage[px * nTerms];
+          for (size_t i = 0; i != nTerms; ++i) termsPixel[i] = termsPtr[i];
+          scratch[px] = fitter.Evaluate(termsPixel, freq);
+        }
+      });
 
       imageSet.Store(scratch.data(), e.polarization, e.outputChannelIndex,
                      false);
