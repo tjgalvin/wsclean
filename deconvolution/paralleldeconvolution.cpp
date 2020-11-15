@@ -6,13 +6,14 @@
 
 #include "../main/settings.h"
 
+#include "../math/dijkstrasplitter.h"
+
 #include "../units/fluxdensity.h"
 
 #include "../structures/image.h"
 #include "../structures/primarybeam.h"
 
 #include "componentlist.h"
-#include "subdivision.h"
 
 #include <aocommon/parallelfor.h>
 
@@ -214,45 +215,66 @@ void ParallelDeconvolution::executeParallelRun(
                avgHSubImageSize = width / _horImages,
                avgVSubImageSize = height / _verImages;
 
-  ImageF image(width, height), scratch(width, height),
-      dividingLines(width, height, 0.0);
+  ImageF image(width, height), dividingLine(width, height, 0.0);
+  aocommon::UVector<bool> largeScratchMask(width * height);
   dataImage.GetLinearIntegrated(image);
 
-  Subdivision divisor(width, height);
+  DijkstraSplitter divisor(width, height);
 
-  // Make the horizontal subdivisions (i.e. the vertical lines)
-  for (size_t divNr = 1; divNr != _horImages; ++divNr) {
-    Logger::Debug << "Vertical division " << divNr << '\n';
+  struct VerticalArea {
+    aocommon::UVector<bool> mask;
+    size_t x, width;
+  };
+  std::vector<VerticalArea> verticalAreas(_horImages);
+
+  Logger::Info << "Calculating edge paths...\n";
+  aocommon::ParallelFor<size_t> splitLoop(_settings.threadCount);
+
+  // Divide into columns (i.e. construct the vertical lines)
+  splitLoop.Run(1, _horImages, [&](size_t divNr, size_t) {
     size_t splitStart = width * divNr / _horImages - avgHSubImageSize / 4,
            splitEnd = width * divNr / _horImages + avgHSubImageSize / 4;
-    divisor.DivideVertically(image.data(), scratch.data(), splitStart,
+    divisor.DivideVertically(image.data(), dividingLine.data(), splitStart,
                              splitEnd);
-    dividingLines += scratch;
+  });
+  for (size_t divNr = 0; divNr != _horImages; ++divNr) {
+    size_t midX = divNr * width / _horImages + avgHSubImageSize / 2;
+    VerticalArea& area = verticalAreas[divNr];
+    divisor.FloodVerticalArea(dividingLine.data(), midX,
+                              largeScratchMask.data(), area.x, area.width);
+    area.mask.resize(area.width * height);
+    Image::TrimBox(area.mask.data(), area.x, 0, area.width, height,
+                   largeScratchMask.data(), width, height);
   }
 
-  // Make the vertical subdivisions (horizontal lines)
-  for (size_t divNr = 1; divNr != _verImages; ++divNr) {
-    Logger::Debug << "Horizontal division " << divNr << '\n';
+  // Make the rows (horizontal lines)
+  dividingLine = 0.0f;
+  splitLoop.Run(1, _verImages, [&](size_t divNr, size_t) {
     size_t splitStart = height * divNr / _verImages - avgVSubImageSize / 4,
            splitEnd = height * divNr / _verImages + avgVSubImageSize / 4;
-    divisor.DivideHorizontally(image.data(), scratch.data(), splitStart,
+    divisor.DivideHorizontally(image.data(), dividingLine.data(), splitStart,
                                splitEnd);
-    dividingLines += scratch;
-  }
+  });
+
+  Logger::Info << "Calculating bounding boxes and submasks...\n";
 
   // Find the bounding boxes and clean masks for each subimage
-  aocommon::UVector<bool> mask(width * height), visited(width * height, false);
+  aocommon::UVector<bool> mask(width * height);
   std::vector<SubImage> subImages;
   for (size_t y = 0; y != _verImages; ++y) {
+    size_t midY = y * height / _verImages + avgVSubImageSize / 2;
+    size_t hAreaY, hAreaWidth;
+    divisor.FloodHorizontalArea(dividingLine.data(), midY,
+                                largeScratchMask.data(), hAreaY, hAreaWidth);
+
     for (size_t x = 0; x != _horImages; ++x) {
-      size_t midX = x * width / _horImages + avgHSubImageSize / 2,
-             midY = y * height / _verImages + avgVSubImageSize / 2;
       subImages.emplace_back();
       SubImage& subImage = subImages.back();
       subImage.index = subImages.size() - 1;
-      divisor.GetBoundingMask(dividingLines.data(), midX, midY, mask.data(),
-                              visited.data(), subImage.x, subImage.y,
-                              subImage.width, subImage.height);
+      const VerticalArea& vArea = verticalAreas[x];
+      divisor.GetBoundingMask(vArea.mask.data(), vArea.x, vArea.width,
+                              largeScratchMask.data(), mask.data(), subImage.x,
+                              subImage.y, subImage.width, subImage.height);
       Logger::Debug << "Subimage " << subImages.size() << " at (" << subImage.x
                     << "," << subImage.y << ") - ("
                     << subImage.x + subImage.width << ","
@@ -272,6 +294,7 @@ void ParallelDeconvolution::executeParallelRun(
       }
     }
   }
+  verticalAreas.clear();
 
   // Initialize loggers
   std::mutex mutex;
@@ -280,8 +303,7 @@ void ParallelDeconvolution::executeParallelRun(
     _algorithms[i]->SetLogReceiver(_logs[i]);
 
   // Find the starting peak over all subimages
-  const size_t nThreads = _settings.parallelDeconvolutionMaxThreads;
-  aocommon::ParallelFor<size_t> loop(nThreads);
+  aocommon::ParallelFor<size_t> loop(_settings.parallelDeconvolutionMaxThreads);
   loop.Run(0, _algorithms.size(), [&](size_t index, size_t) {
     _logs.Activate(index);
     runSubImage(subImages[index], dataImage, modelImage, psfImages, 0.0, true,

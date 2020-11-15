@@ -315,17 +315,20 @@ if(Boost_FOUND)
     tests/testcomponentlist.cpp
     tests/testfitsdateobstime.cpp
     tests/testfluxdensity.cpp
-    tests/testgaussianfitter.cpp
     tests/testimage.cpp
     tests/testimageset.cpp
     tests/testmultibanddata.cpp
-    tests/testnlplfitter.cpp
     tests/testparsetreader.cpp
     tests/testpeakfinder.cpp
-    tests/testpolynomialchannelfitter.cpp
-    tests/testpolynomialfitter.cpp
     tests/testradeccoord.cpp
     tests/testserialization.cpp
+    
+    tests/math/tdijkstrasplitter.cpp
+    tests/math/tgaussianfitter.cpp
+    tests/math/tpolynomialfitter.cpp
+    tests/math/tnlplfitter.cpp
+    tests/math/tpolynomialchannelfitter.cpp
+    
     ${WSCLEANFILES})
   target_link_libraries(runtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   add_test(runtest runtest)

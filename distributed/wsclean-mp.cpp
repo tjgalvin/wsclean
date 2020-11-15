@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
     shortException = !Logger::IsVerbose();
     CommandLine::Validate(wsclean, parseResult);
     if (parseResult) {
-      Settings& settings = wsclean.Settings();
+      Settings& settings = wsclean.GetSettings();
       settings.useMPI = true;
 
       if (master) {
