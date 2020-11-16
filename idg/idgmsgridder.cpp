@@ -568,12 +568,6 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
     system.phase_centre_dm = PhaseCentreDM() + 0.5 * system.dm;
 
     everybeam::ATermSettings aterm_settings;
-    // If MWA MW, get the path to the coefficient file
-    if (everybeam::GetTelescopeType(*ms) ==
-        everybeam::TelescopeType::kMWATelescope) {
-      aterm_settings.coeff_path =
-          wsclean::mwa::FindCoeffFile(_settings.mwaPath);
-    }
     aterm_settings.save_aterms_prefix = _settings.prefixName;
     aterm_settings.data_column_name = _settings.dataColumnName;
     aterm_settings.filenames = _settings.filenames;
@@ -584,12 +578,28 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
 
     if (!_settings.atermConfigFilename.empty()) {
       ParsetReader parset_aterms(_settings.atermConfigFilename);
+      // If MWA MS and "beam" in aterms, get the path to the coefficient file
+      if (everybeam::GetTelescopeType(*ms) ==
+          everybeam::TelescopeType::kMWATelescope) {
+        std::vector<std::string> aterms = parset_aterms.GetStringList("aterms");
+        if (std::find(aterms.begin(), aterms.end(), "beam") != aterms.end()) {
+          aterm_settings.coeff_path =
+              wsclean::mwa::FindCoeffFile(_settings.mwaPath);
+        }
+      }
+
       std::unique_ptr<ATermConfig> config(
           new ATermConfig(nr_stations, system, aterm_settings));
       config->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
       config->Read(*ms, parset_aterms, ms.Filename());
       return std::move(config);
     } else {
+      // If MWA MS, get the path to the coefficient file
+      if (everybeam::GetTelescopeType(*ms) ==
+          everybeam::TelescopeType::kMWATelescope) {
+        aterm_settings.coeff_path =
+            wsclean::mwa::FindCoeffFile(_settings.mwaPath);
+      }
       bool frequencyInterpolation = true;
       bool useChannelFrequency = true;
       std::string elementResponseModel =
