@@ -30,6 +30,9 @@ void Settings::Validate() const {
           "doesn't clean, parameter invalid");
   }
 
+  if (threadCount == 0)
+    throw std::runtime_error("A thread count of zero (-j 0) is not valid");
+
   // antialiasingKernelSize should be odd
   if (antialiasingKernelSize % 2 == 0) {
     std::stringstream s;
