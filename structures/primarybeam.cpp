@@ -332,54 +332,56 @@ double PrimaryBeam::MakeBeamForMS(
   // SKA-LOW). MWA beam needs scrutiny, this telescope might be amenable to a
   // more efficient implementation
   double ms_weight = 0;
-  if (telescope_type == everybeam::TelescopeType::kLofarTelescope ||
-      telescope_type == everybeam::TelescopeType::kAARTFAAC ||
-      telescope_type == everybeam::TelescopeType::kMWATelescope) {
-    // Loop over the intervalCounts
-    msProvider.Reset();
-    for (size_t intervalIndex = 0; intervalIndex != intervalCount;
-         ++intervalIndex) {
-      // Find the mid time step
-      double firstTime =
-          startTime + (endTime - startTime) * intervalIndex / intervalCount;
-      double lastTime = startTime + (endTime - startTime) *
-                                        (intervalIndex + 1) / intervalCount;
-      casacore::MEpoch timeEpoch = casacore::MEpoch(
-          casacore::MVEpoch((0.5 / 86400.0) * (firstTime + lastTime)),
-          timeColumn(0).getRef());
+  switch (telescope_type) {
+    case everybeam::TelescopeType::kLofarTelescope:
+    case everybeam::TelescopeType::kAARTFAAC:
+    case everybeam::TelescopeType::kMWATelescope:
+    case everybeam::TelescopeType::kOSKARTelescope:
+      // Loop over the intervalCounts
+      msProvider.Reset();
+      for (size_t intervalIndex = 0; intervalIndex != intervalCount;
+           ++intervalIndex) {
+        // Find the mid time step
+        double firstTime =
+            startTime + (endTime - startTime) * intervalIndex / intervalCount;
+        double lastTime = startTime + (endTime - startTime) *
+                                          (intervalIndex + 1) / intervalCount;
+        casacore::MEpoch timeEpoch = casacore::MEpoch(
+            casacore::MVEpoch((0.5 / 86400.0) * (firstTime + lastTime)),
+            timeColumn(0).getRef());
 
-      // Set value in time array
-      time_array[intervalIndex] = timeEpoch.getValue().get() * 86400.0;
+        // Set value in time array
+        time_array[intervalIndex] = timeEpoch.getValue().get() * 86400.0;
 
-      WeightMatrix baselineWeights(telescope->GetNrStations());
-      CalculateStationWeights(imageWeights, baselineWeights, ms, msProvider,
-                              selection, lastTime);
+        WeightMatrix baselineWeights(telescope->GetNrStations());
+        CalculateStationWeights(imageWeights, baselineWeights, ms, msProvider,
+                                selection, lastTime);
 
-      // Get the baseline weights from the baselineWeight matrix
-      aocommon::UVector<double> interval_weights =
-          baselineWeights.GetBaselineWeights();
-      std::copy(interval_weights.begin(), interval_weights.end(),
-                baseline_weights.begin() + nbaselines * intervalIndex);
-    }
-    // Compute MS weight
-    ms_weight =
-        std::accumulate(baseline_weights.begin(), baseline_weights.end(), 0.0);
-  } else if (telescope_type == everybeam::TelescopeType::kVLATelescope ||
-             telescope_type == everybeam::TelescopeType::kATCATelescope) {
-    if (telescope_type == everybeam::TelescopeType::kATCATelescope) {
-      Logger::Warn << "ATCA primary beam correction not yet tested!\n";
-    }
-    // Assign weight of 1 for these "time independent" telescopes
-    ms_weight = 1.0;
-    size_t fieldRow = _settings.fieldIds[0];
-    if (fieldRow == MSSelection::ALL_FIELDS) {
-      Logger::Warn << "Warning: primary beam correction together with '-fields "
-                      "ALL' is not properly supported\n";
-      Logger::Warn
-          << "       : The beam will be calculated only for the first field!\n";
-    }
-  } else {
-    throw std::runtime_error("Can't make beam for this telescope");
+        // Get the baseline weights from the baselineWeight matrix
+        aocommon::UVector<double> interval_weights =
+            baselineWeights.GetBaselineWeights();
+        std::copy(interval_weights.begin(), interval_weights.end(),
+                  baseline_weights.begin() + nbaselines * intervalIndex);
+      }
+      // Compute MS weight
+      ms_weight = std::accumulate(baseline_weights.begin(),
+                                  baseline_weights.end(), 0.0);
+      break;
+    case everybeam::TelescopeType::kVLATelescope:
+    case everybeam::TelescopeType::kATCATelescope:
+      if (telescope_type == everybeam::TelescopeType::kATCATelescope) {
+        Logger::Warn << "ATCA primary beam correction not yet tested!\n";
+      }
+      // Assign weight of 1 for these "time independent" telescopes
+      ms_weight = 1.0;
+      size_t fieldRow = _settings.fieldIds[0];
+      if (fieldRow == MSSelection::ALL_FIELDS) {
+        Logger::Warn
+            << "Warning: primary beam correction together with '-fields "
+               "ALL' is not properly supported\n";
+        Logger::Warn << "       : The beam will be calculated only for the "
+                        "first field!\n";
+      }
   }
 
   std::unique_ptr<everybeam::griddedresponse::GriddedResponse> grid_response =
