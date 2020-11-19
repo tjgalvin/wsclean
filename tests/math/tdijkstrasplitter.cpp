@@ -1,4 +1,4 @@
-#include "../math/dijkstrasplitter.h"
+#include "../../math/dijkstrasplitter.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -234,8 +234,8 @@ BOOST_AUTO_TEST_CASE(flood_vertical_area) {
   size_t subX, subWidth;
   splitter.FloodVerticalArea(dividingLines.data(), 1, mask.data(), subX,
                              subWidth);
-  BOOST_CHECK_EQUAL(subX, 0);
-  BOOST_CHECK_EQUAL(subWidth, 6);
+  BOOST_CHECK_EQUAL(subX, 0u);
+  BOOST_CHECK_EQUAL(subWidth, 6u);
   BOOST_CHECK_EQUAL(PathStr(mask, width),
                     "XXX      \n"
                     "XXXX     \n"
@@ -249,8 +249,8 @@ BOOST_AUTO_TEST_CASE(flood_vertical_area) {
 
   splitter.FloodVerticalArea(dividingLines.data(), 7, mask.data(), subX,
                              subWidth);
-  BOOST_CHECK_EQUAL(subX, 2);
-  BOOST_CHECK_EQUAL(subWidth, 7);
+  BOOST_CHECK_EQUAL(subX, 2u);
+  BOOST_CHECK_EQUAL(subWidth, 7u);
   BOOST_CHECK_EQUAL(PathStr(mask, width),
                     "   XXXXXX\n"
                     "    XXXXX\n"
@@ -295,8 +295,8 @@ BOOST_AUTO_TEST_CASE(flood_horizontal_area) {
   size_t subY, subHeight;
   splitter.FloodHorizontalArea(dividingLines.data(), 1, mask.data(), subY,
                                subHeight);
-  BOOST_CHECK_EQUAL(subY, 0);
-  BOOST_CHECK_EQUAL(subHeight, 6);
+  BOOST_CHECK_EQUAL(subY, 0u);
+  BOOST_CHECK_EQUAL(subHeight, 6u);
   BOOST_CHECK_EQUAL(PathStr(mask, width),
                     "XXXXXXXXX\n"
                     "XXXXXXXXX\n"
@@ -310,8 +310,8 @@ BOOST_AUTO_TEST_CASE(flood_horizontal_area) {
 
   splitter.FloodHorizontalArea(dividingLines.data(), 7, mask.data(), subY,
                                subHeight);
-  BOOST_CHECK_EQUAL(subY, 2);
-  BOOST_CHECK_EQUAL(subHeight, 7);
+  BOOST_CHECK_EQUAL(subY, 2u);
+  BOOST_CHECK_EQUAL(subHeight, 7u);
   BOOST_CHECK_EQUAL(PathStr(mask, width),
                     "         \n"
                     "         \n"
@@ -345,8 +345,8 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
 
   splitter.FloodVerticalArea(dividingLines.data(), 1, mask.data(), subXL,
                              subWidthL);
-  BOOST_CHECK_EQUAL(subXL, 0);
-  BOOST_CHECK_EQUAL(subWidthL, 4);
+  BOOST_CHECK_EQUAL(subXL, 0u);
+  BOOST_CHECK_EQUAL(subWidthL, 4u);
   aocommon::UVector<bool> maskL(subWidthL * height);
   Image::TrimBox(maskL.data(), subXL, 0, subWidthL, height, mask.data(), width,
                  height);
@@ -363,8 +363,8 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
 
   splitter.FloodVerticalArea(dividingLines.data(), 7, mask.data(), subXR,
                              subWidthR);
-  BOOST_CHECK_EQUAL(subXR, 3);
-  BOOST_CHECK_EQUAL(subWidthR, 6);
+  BOOST_CHECK_EQUAL(subXR, 3u);
+  BOOST_CHECK_EQUAL(subWidthR, 6u);
   aocommon::UVector<bool> maskR(subWidthR * height);
   Image::TrimBox(maskR.data(), subXR, 0, subWidthR, height, mask.data(), width,
                  height);
@@ -384,8 +384,8 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
 
   splitter.FloodHorizontalArea(dividingLines.data(), 1, mask.data(), subY,
                                subHeight);
-  BOOST_CHECK_EQUAL(subY, 0);
-  BOOST_CHECK_EQUAL(subHeight, 4);
+  BOOST_CHECK_EQUAL(subY, 0u);
+  BOOST_CHECK_EQUAL(subHeight, 4u);
   BOOST_CHECK_EQUAL(PathStr(mask, width),
                     "XXXXXXXXX\n"
                     "XXXXXXXXX\n"
@@ -402,10 +402,10 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
 
   splitter.GetBoundingMask(maskL.data(), subXL, subWidthL, mask.data(),
                            output.data(), maskX, maskY, maskWidth, maskHeight);
-  BOOST_CHECK_EQUAL(maskX, 0);
-  BOOST_CHECK_EQUAL(maskY, 0);
-  BOOST_CHECK_EQUAL(maskWidth, 4);
-  BOOST_CHECK_EQUAL(maskHeight, 4);
+  BOOST_CHECK_EQUAL(maskX, 0u);
+  BOOST_CHECK_EQUAL(maskY, 0u);
+  BOOST_CHECK_EQUAL(maskWidth, 4u);
+  BOOST_CHECK_EQUAL(maskHeight, 4u);
   BOOST_CHECK_EQUAL(PathStr(output, width),
                     "XXXX     \n"
                     "XXXX     \n"
@@ -420,10 +420,10 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
   output.assign(width * height, false);
   splitter.GetBoundingMask(maskR.data(), subXR, subWidthR, mask.data(),
                            output.data(), maskX, maskY, maskWidth, maskHeight);
-  BOOST_CHECK_EQUAL(maskX, 4);
-  BOOST_CHECK_EQUAL(maskY, 0);
-  BOOST_CHECK_EQUAL(maskWidth, 5);
-  BOOST_CHECK_EQUAL(maskHeight, 4);
+  BOOST_CHECK_EQUAL(maskX, 4u);
+  BOOST_CHECK_EQUAL(maskY, 0u);
+  BOOST_CHECK_EQUAL(maskWidth, 5u);
+  BOOST_CHECK_EQUAL(maskHeight, 4u);
   BOOST_CHECK_EQUAL(PathStr(output, width),
                     "    XXXXX\n"
                     "    XXXXX\n"
@@ -437,16 +437,16 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
 
   splitter.FloodHorizontalArea(dividingLines.data(), 7, mask.data(), subY,
                                subHeight);
-  BOOST_CHECK_EQUAL(subY, 3);
-  BOOST_CHECK_EQUAL(subHeight, 6);
+  BOOST_CHECK_EQUAL(subY, 3u);
+  BOOST_CHECK_EQUAL(subHeight, 6u);
 
   output.assign(width * height, false);
   splitter.GetBoundingMask(maskL.data(), subXL, subWidthL, mask.data(),
                            output.data(), maskX, maskY, maskWidth, maskHeight);
-  BOOST_CHECK_EQUAL(maskX, 0);
-  BOOST_CHECK_EQUAL(maskY, 4);
-  BOOST_CHECK_EQUAL(maskWidth, 4);
-  BOOST_CHECK_EQUAL(maskHeight, 5);
+  BOOST_CHECK_EQUAL(maskX, 0u);
+  BOOST_CHECK_EQUAL(maskY, 4u);
+  BOOST_CHECK_EQUAL(maskWidth, 4u);
+  BOOST_CHECK_EQUAL(maskHeight, 5u);
   BOOST_CHECK_EQUAL(PathStr(output, width),
                     "         \n"
                     "         \n"
@@ -461,10 +461,10 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
   output.assign(width * height, false);
   splitter.GetBoundingMask(maskR.data(), subXR, subWidthR, mask.data(),
                            output.data(), maskX, maskY, maskWidth, maskHeight);
-  BOOST_CHECK_EQUAL(maskX, 3);
-  BOOST_CHECK_EQUAL(maskY, 3);
-  BOOST_CHECK_EQUAL(maskWidth, 6);
-  BOOST_CHECK_EQUAL(maskHeight, 6);
+  BOOST_CHECK_EQUAL(maskX, 3u);
+  BOOST_CHECK_EQUAL(maskY, 3u);
+  BOOST_CHECK_EQUAL(maskWidth, 6u);
+  BOOST_CHECK_EQUAL(maskHeight, 6u);
   BOOST_CHECK_EQUAL(PathStr(output, width),
                     "         \n"
                     "         \n"
@@ -527,7 +527,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask_on_noise) {
         std::cout << PathStr(mask2, width) << '\n';
         std::cout << PathStr(mask3, width) << '\n';
         std::cout << PathStr(mask4, width) << '\n';
-        BOOST_CHECK_EQUAL(n, 1);
+        BOOST_CHECK_EQUAL(n, 1u);
         break;
       }
     }

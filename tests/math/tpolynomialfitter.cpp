@@ -1,4 +1,4 @@
-#include "../math/polynomialfitter.h"
+#include "../../math/polynomialfitter.h"
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/floating_point_comparison.hpp>

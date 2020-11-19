@@ -1,12 +1,12 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../math/gaussianfitter.h"
-#include "../math/modelrenderer.h"
+#include "../../math/gaussianfitter.h"
+#include "../../math/modelrenderer.h"
 
-#include "../structures/image.h"
+#include "../../structures/image.h"
 
-#include "../model/model.h"
-#include "../model/powerlawsed.h"
+#include "../../model/model.h"
+#include "../../model/powerlawsed.h"
 
 BOOST_AUTO_TEST_SUITE(gaussian_fitter)
 

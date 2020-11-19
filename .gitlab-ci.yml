@@ -23,12 +23,12 @@ before_script:
     pybind11-dev
     python3-dev python3-numpy
     python3-sphinx
+    python3-pip
     wget
 
 format:
   stage: format
   script:
-    - apt-get -y install python3-pip
     - pip3 install clang-format==9.0.0
     # Check formatting of header (*.h) and source (*.cpp) files
     - ./scripts/run-clang-format.sh
@@ -36,13 +36,21 @@ format:
 build-without-everybeam:
   stage: build
   script:
+    - pip3 install gcovr
     - mkdir build
     - cd build
-    - cmake ../
+    - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
     - make
     - make doc
     - make install
     - make check
+    # gcovr to create badge
+    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*'
+    # gcovr to enable line coverage highlighting in MRs
+    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --xml > coverage.xml
+  artifacts:
+    reports:
+      cobertura: build/coverage.xml
 
 build-with-everybeam:
   stage: build
