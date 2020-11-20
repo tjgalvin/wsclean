@@ -320,7 +320,6 @@ if(Boost_FOUND)
     tests/testmultibanddata.cpp
     tests/testparsetreader.cpp
     tests/testpeakfinder.cpp
-    tests/testradeccoord.cpp
     tests/testserialization.cpp
     
     tests/integration/tveladeconvolution.cpp

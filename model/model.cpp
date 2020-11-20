@@ -2,7 +2,7 @@
 
 #include "modelparser.h"
 
-#include "../units/radeccoord.h"
+#include <aocommon/radeccoord.h>
 
 #include <algorithm>
 #include <cstdlib>

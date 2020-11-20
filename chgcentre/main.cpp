@@ -1,5 +1,3 @@
-#include "../units/radeccoord.h"
-
 #include "progressbar.h"
 
 #include "../structures/multibanddata.h"
@@ -25,11 +23,34 @@
 
 #include <aocommon/banddata.h>
 #include <aocommon/imagecoordinates.h>
+#include <aocommon/radeccoord.h>
 
 #include <iostream>
 #include <memory>
 
-using namespace casacore;
+using casacore::ArrayColumn;
+using casacore::MBaseline;
+using casacore::MDirection;
+using casacore::MeasFrame;
+using casacore::MeasTable;
+using casacore::MEpoch;
+using casacore::MPosition;
+
+using casacore::MSAntenna;
+using casacore::MSAntennaEnums;
+using casacore::MSField;
+using casacore::MSFieldEnums;
+using casacore::MSMainEnums;
+using casacore::MSObservation;
+using casacore::Muvw;
+using casacore::MVBaseline;
+using casacore::MVDirection;
+using casacore::MVEpoch;
+using casacore::MVPosition;
+using casacore::MVuvw;
+using casacore::ScalarColumn;
+
+using aocommon::RaDecCoord;
 
 std::vector<MPosition> antennas;
 
@@ -61,18 +82,18 @@ std::string posToString(const MPosition& position) {
 }
 
 double length(const Muvw& uvw) {
-  const Vector<double> v = uvw.getValue().getVector();
-  return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  const casacore::Vector<double> v = uvw.getValue().getVector();
+  return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
-double length(const Vector<double>& v) {
-  return sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+double length(const casacore::Vector<double>& v) {
+  return std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 Muvw calculateUVW(const MPosition& antennaPos, const MPosition& refPos,
                   const MEpoch& time, const MDirection& direction) {
-  const Vector<double> posVec = antennaPos.getValue().getVector();
-  const Vector<double> refVec = refPos.getValue().getVector();
+  const casacore::Vector<double> posVec = antennaPos.getValue().getVector();
+  const casacore::Vector<double> refVec = refPos.getValue().getVector();
   MVPosition relativePos(posVec[0] - refVec[0], posVec[1] - refVec[1],
                          posVec[2] - refVec[2]);
   MeasFrame frame(time, refPos, direction);
@@ -85,20 +106,20 @@ Muvw calculateUVW(const MPosition& antennaPos, const MPosition& refPos,
 
 void rotateVisibilities(const BandData& bandData, double shiftFactor,
                         unsigned polarizationCount,
-                        Array<Complex>::contiter dataIter) {
+                        casacore::Array<casacore::Complex>::contiter dataIter) {
   for (unsigned ch = 0; ch != bandData.ChannelCount(); ++ch) {
     const double wShiftRad = shiftFactor / bandData.ChannelWavelength(ch);
     double rotSin = std::sin(wShiftRad), rotCos = std::cos(wShiftRad);
     for (unsigned p = 0; p != polarizationCount; ++p) {
-      Complex v = *dataIter;
-      *dataIter = Complex(v.real() * rotCos - v.imag() * rotSin,
-                          v.real() * rotSin + v.imag() * rotCos);
+      casacore::Complex v = *dataIter;
+      *dataIter = casacore::Complex(v.real() * rotCos - v.imag() * rotSin,
+                                    v.real() * rotSin + v.imag() * rotCos);
       ++dataIter;
     }
   }
 }
 
-casacore::MPosition ArrayCentroid(MeasurementSet& set) {
+casacore::MPosition ArrayCentroid(casacore::MeasurementSet& set) {
   casacore::MSAntenna aTable = set.antenna();
   if (aTable.nrow() == 0) throw std::runtime_error("No antennae in set");
   casacore::MPosition::ScalarColumn antPosColumn(
@@ -118,13 +139,13 @@ casacore::MPosition ArrayCentroid(MeasurementSet& set) {
   return arrayPos;
 }
 
-casacore::MPosition ArrayPosition(MeasurementSet& set,
+casacore::MPosition ArrayPosition(casacore::MeasurementSet& set,
                                   bool fallBackToCentroid = false) {
   static bool hasArrayPos = false;
   static MPosition arrayPos;
   if (!hasArrayPos) {
     MSObservation obsTable(set.observation());
-    ScalarColumn<String> telescopeNameColumn(
+    ScalarColumn<casacore::String> telescopeNameColumn(
         obsTable, obsTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
     bool hasTelescopeName = telescopeNameColumn.nrow() != 0;
     bool hasObservatoryInfo = false;
@@ -162,7 +183,7 @@ casacore::MPosition ArrayPosition(MeasurementSet& set,
   return arrayPos;
 }
 
-MDirection ZenithDirection(MeasurementSet& set, size_t rowIndex) {
+MDirection ZenithDirection(casacore::MeasurementSet& set, size_t rowIndex) {
   casacore::MPosition arrayPos = ArrayPosition(set);
   casacore::MEpoch::ScalarColumn timeColumn(
       set, set.columnName(casacore::MSMainEnums::TIME));
@@ -175,30 +196,32 @@ MDirection ZenithDirection(MeasurementSet& set, size_t rowIndex) {
   return casacore::MDirection::Convert(zenithAzEl, j2000Ref)();
 }
 
-MDirection ZenithDirection(MeasurementSet& set) {
+MDirection ZenithDirection(casacore::MeasurementSet& set) {
   return ZenithDirection(set, set.nrow() / 2);
 }
 
-MDirection ZenithDirectionStart(MeasurementSet& set) {
+MDirection ZenithDirectionStart(casacore::MeasurementSet& set) {
   return ZenithDirection(set, 0);
 }
 
-MDirection ZenithDirectionEnd(MeasurementSet& set) {
+MDirection ZenithDirectionEnd(casacore::MeasurementSet& set) {
   return ZenithDirection(set, set.nrow() - 1);
 }
 
 void getShift(MSField& fieldTable, double& dl, double& dm) {
   if (fieldTable.keywordSet().isDefined("WSCLEAN_DL"))
-    dl = fieldTable.keywordSet().asDouble(RecordFieldId("WSCLEAN_DL"));
+    dl =
+        fieldTable.keywordSet().asDouble(casacore::RecordFieldId("WSCLEAN_DL"));
   else
     dl = 0.0;
   if (fieldTable.keywordSet().isDefined("WSCLEAN_DM"))
-    dm = fieldTable.keywordSet().asDouble(RecordFieldId("WSCLEAN_DM"));
+    dm =
+        fieldTable.keywordSet().asDouble(casacore::RecordFieldId("WSCLEAN_DM"));
   else
     dm = 0.0;
 }
 
-void processField(MeasurementSet& set, const std::string& dataColumn,
+void processField(casacore::MeasurementSet& set, const std::string& dataColumn,
                   int fieldIndex, MSField& fieldTable,
                   const MDirection& newDirection, bool onlyUVW, bool shiftback,
                   double newDl, double newDm, bool flipUVWSign, bool force) {
@@ -220,27 +243,27 @@ void processField(MeasurementSet& set, const std::string& dataColumn,
                            set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
              hasModelData = dataColumn.empty() &&
                             set.isColumn(casacore::MSMainEnums::MODEL_DATA);
-  std::unique_ptr<ArrayColumn<Complex> > dataCol, correctedDataCol,
+  std::unique_ptr<ArrayColumn<casacore::Complex> > dataCol, correctedDataCol,
       modelDataCol;
   if (!onlyUVW) {
     if (dataColumn.empty()) {
-      dataCol.reset(
-          new ArrayColumn<Complex>(set, set.columnName(MSMainEnums::DATA)));
+      dataCol.reset(new ArrayColumn<casacore::Complex>(
+          set, set.columnName(MSMainEnums::DATA)));
       if (hasCorrData) {
-        correctedDataCol.reset(new ArrayColumn<Complex>(
+        correctedDataCol.reset(new ArrayColumn<casacore::Complex>(
             set, set.columnName(MSMainEnums::CORRECTED_DATA)));
       }
       if (hasModelData) {
-        modelDataCol.reset(new ArrayColumn<Complex>(
+        modelDataCol.reset(new ArrayColumn<casacore::Complex>(
             set, set.columnName(MSMainEnums::MODEL_DATA)));
       }
     } else {
-      dataCol.reset(new ArrayColumn<Complex>(set, dataColumn));
+      dataCol.reset(new ArrayColumn<casacore::Complex>(set, dataColumn));
     }
   }
 
   MPosition arrayPos = ArrayPosition(set);
-  Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
+  casacore::Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
   MDirection phaseDirection = phaseDirVector[0];
   double oldRA = phaseDirection.getAngle().getValue()[0];
   double oldDec = phaseDirection.getAngle().getValue()[1];
@@ -274,13 +297,13 @@ void processField(MeasurementSet& set, const std::string& dataColumn,
 
     MDirection refDirection =
         MDirection::Convert(newDirection, MDirection::Ref(MDirection::J2000))();
-    IPosition dataShape;
+    casacore::IPosition dataShape;
     unsigned polarizationCount = 0;
-    std::unique_ptr<Array<Complex> > dataArray;
+    std::unique_ptr<casacore::Array<casacore::Complex> > dataArray;
     if (!onlyUVW) {
       dataShape = dataCol->shape(0);
       polarizationCount = dataShape[0];
-      dataArray.reset(new Array<Complex>(dataShape));
+      dataArray.reset(new casacore::Array<casacore::Complex>(dataShape));
     }
 
     std::unique_ptr<ProgressBar> progressBar;
@@ -359,22 +382,27 @@ void processField(MeasurementSet& set, const std::string& dataColumn,
 
     if (newDl == 0.0 && newDm == 0.0) {
       if (fieldTable.keywordSet().isDefined("WSCLEAN_DL")) {
-        fieldTable.rwKeywordSet().removeField(RecordFieldId("WSCLEAN_DL"));
+        fieldTable.rwKeywordSet().removeField(
+            casacore::RecordFieldId("WSCLEAN_DL"));
         std::cout << "Removing WSCLEAN_DL keyword.\n";
       }
       if (fieldTable.keywordSet().isDefined("WSCLEAN_DM")) {
-        fieldTable.rwKeywordSet().removeField(RecordFieldId("WSCLEAN_DM"));
+        fieldTable.rwKeywordSet().removeField(
+            casacore::RecordFieldId("WSCLEAN_DM"));
         std::cout << "Removing WSCLEAN_DM keyword.\n";
       }
     } else {
-      fieldTable.rwKeywordSet().define(RecordFieldId("WSCLEAN_DL"), newDl);
-      fieldTable.rwKeywordSet().define(RecordFieldId("WSCLEAN_DM"), newDm);
+      fieldTable.rwKeywordSet().define(casacore::RecordFieldId("WSCLEAN_DL"),
+                                       newDl);
+      fieldTable.rwKeywordSet().define(casacore::RecordFieldId("WSCLEAN_DM"),
+                                       newDm);
     }
   }
 }
 
-void showChanges(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
-                 const MDirection& newDirection, bool flipUVWSign) {
+void showChanges(casacore::MeasurementSet& set, int fieldIndex,
+                 MSField& fieldTable, const MDirection& newDirection,
+                 bool flipUVWSign) {
   ScalarColumn<casacore::String> nameCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
   MDirection::ArrayColumn phaseDirCol(
@@ -387,7 +415,7 @@ void showChanges(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
   Muvw::ScalarColumn uvwCol(set, set.columnName(MSMainEnums::UVW));
 
   MPosition arrayPos = ArrayPosition(set);
-  Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
+  casacore::Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
   MDirection phaseDirection = phaseDirVector[0];
   double oldRA = phaseDirection.getAngle().getValue()[0];
   double oldDec = phaseDirection.getAngle().getValue()[1];
@@ -428,8 +456,8 @@ void showChanges(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
   }
 }
 
-void rotateToGeoZenith(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
-                       bool onlyUVW, bool flipUVWSign) {
+void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
+                       MSField& fieldTable, bool onlyUVW, bool flipUVWSign) {
   MultiBandData bandData(set.spectralWindow(), set.dataDescription());
   ScalarColumn<casacore::String> nameCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
@@ -446,34 +474,34 @@ void rotateToGeoZenith(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
 
   const bool hasCorrData = set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
              hasModelData = set.isColumn(casacore::MSMainEnums::MODEL_DATA);
-  std::unique_ptr<ArrayColumn<Complex> > dataCol, correctedDataCol,
+  std::unique_ptr<ArrayColumn<casacore::Complex> > dataCol, correctedDataCol,
       modelDataCol;
   if (!onlyUVW) {
-    dataCol.reset(
-        new ArrayColumn<Complex>(set, set.columnName(MSMainEnums::DATA)));
+    dataCol.reset(new ArrayColumn<casacore::Complex>(
+        set, set.columnName(MSMainEnums::DATA)));
 
     if (hasCorrData) {
-      correctedDataCol.reset(new ArrayColumn<Complex>(
+      correctedDataCol.reset(new ArrayColumn<casacore::Complex>(
           set, set.columnName(MSMainEnums::CORRECTED_DATA)));
     }
     if (hasModelData) {
-      modelDataCol.reset(new ArrayColumn<Complex>(
+      modelDataCol.reset(new ArrayColumn<casacore::Complex>(
           set, set.columnName(MSMainEnums::MODEL_DATA)));
     }
   }
 
-  Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
+  casacore::Vector<MDirection> phaseDirVector = phaseDirCol(fieldIndex);
   MDirection phaseDirection = phaseDirVector[0];
   double oldRA = phaseDirection.getAngle().getValue()[0];
   double oldDec = phaseDirection.getAngle().getValue()[1];
 
-  IPosition dataShape;
+  casacore::IPosition dataShape;
   unsigned polarizationCount = 0;
-  std::unique_ptr<Array<Complex> > dataArray;
+  std::unique_ptr<casacore::Array<casacore::Complex> > dataArray;
   if (!onlyUVW) {
     dataShape = dataCol->shape(0);
     polarizationCount = dataShape[0];
-    dataArray.reset(new Array<Complex>(dataShape));
+    dataArray.reset(new casacore::Array<casacore::Complex>(dataShape));
   }
 
   ProgressBar* progressBar = 0;
@@ -562,7 +590,8 @@ void rotateToGeoZenith(MeasurementSet& set, int fieldIndex, MSField& fieldTable,
   phaseDirCol.put(fieldIndex, phaseDirVector);
 }
 
-void readAntennas(MeasurementSet& set, std::vector<MPosition>& antennas) {
+void readAntennas(casacore::MeasurementSet& set,
+                  std::vector<MPosition>& antennas) {
   MSAntenna antennaTable = set.antenna();
   MPosition::ScalarColumn posCol(
       antennaTable, antennaTable.columnName(MSAntennaEnums::POSITION));
@@ -573,7 +602,7 @@ void readAntennas(MeasurementSet& set, std::vector<MPosition>& antennas) {
   }
 }
 
-MDirection MinWDirection(MeasurementSet& set) {
+MDirection MinWDirection(casacore::MeasurementSet& set) {
   MPosition centroid = ArrayCentroid(set);
   casacore::Vector<casacore::Double> cvec = centroid.getValue().getVector();
   double cx = cvec[0], cy = cvec[1], cz = cvec[2];
@@ -627,19 +656,19 @@ MDirection MinWDirection(MeasurementSet& set) {
   }
 }
 
-void printPhaseDir(MeasurementSet& set) {
+void printPhaseDir(casacore::MeasurementSet& set) {
   MSField fieldTable = set.field();
   MDirection::ArrayColumn phaseDirCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::PHASE_DIR));
-  ScalarColumn<String> nameCol(fieldTable,
-                               fieldTable.columnName(MSFieldEnums::NAME));
+  ScalarColumn<casacore::String> nameCol(
+      fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
   MDirection zenith = ZenithDirection(set);
 
   std::cout << "Current phase direction:\n";
   double dl, dm;
   getShift(fieldTable, dl, dm);
   for (size_t i = 0; i != fieldTable.nrow(); ++i) {
-    Vector<MDirection> phaseDirVector = phaseDirCol(i);
+    casacore::Vector<MDirection> phaseDirVector = phaseDirCol(i);
     MDirection phaseDirection = phaseDirVector[0];
     std::cout << "  ";
     if (fieldTable.nrow() > 1) std::cout << nameCol(i) << " ";
@@ -737,15 +766,15 @@ int main(int argc, char** argv) {
       std::cout << "Missing parameter.\n";
     else if (argi + 1 == argc && !toZenith && !toMinW && !toGeozenith &&
              !same && templateMS.empty()) {
-      MeasurementSet set(argv[argi]);
+      casacore::MeasurementSet set(argv[argi]);
       readAntennas(set, antennas);
       printPhaseDir(set);
     } else {
-      MeasurementSet set;
+      casacore::MeasurementSet set;
       if (show)
-        set = MeasurementSet(argv[argi]);
+        set = casacore::MeasurementSet(argv[argi]);
       else
-        set = MeasurementSet(argv[argi], Table::Update);
+        set = casacore::MeasurementSet(argv[argi], casacore::Table::Update);
       readAntennas(set, antennas);
       MDirection newDirection;
       if (toZenith) {
@@ -755,14 +784,14 @@ int main(int argc, char** argv) {
       } else if (same) {
         MDirection::ArrayColumn phaseDirCol(
             set.field(), set.field().columnName(MSFieldEnums::PHASE_DIR));
-        Vector<MDirection> phaseDirVector = phaseDirCol(0);
+        casacore::Vector<MDirection> phaseDirVector = phaseDirCol(0);
         newDirection = phaseDirVector[0];
       } else if (!templateMS.empty()) {
-        MeasurementSet fromMS(templateMS);
+        casacore::MeasurementSet fromMS(templateMS);
         MSField fromField(fromMS.field());
         MDirection::ArrayColumn phaseDirCol(
             fromField, fromField.columnName(MSFieldEnums::PHASE_DIR));
-        Vector<MDirection> phaseDirVector = phaseDirCol(0);
+        casacore::Vector<MDirection> phaseDirVector = phaseDirCol(0);
         newDirection = phaseDirVector[0];
         getShift(fromField, newDl, newDm);
       } else if (!toGeozenith) {

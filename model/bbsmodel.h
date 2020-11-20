@@ -1,21 +1,20 @@
 #ifndef BBS_MODEL_H
 #define BBS_MODEL_H
 
-#include <string>
-#include <stdexcept>
-#include <fstream>
+#include "model.h"
+#include "modelsource.h"
+#include "powerlawsed.h"
+
+#include <aocommon/uvector.h>
+#include <aocommon/radeccoord.h>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
-#include <aocommon/uvector.h>
-
-#include "model.h"
-#include "modelsource.h"
-#include "powerlawsed.h"
-
-#include "../units/radeccoord.h"
+#include <string>
+#include <stdexcept>
+#include <fstream>
 
 class BBSModel {
  public:

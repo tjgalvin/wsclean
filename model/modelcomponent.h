@@ -5,9 +5,10 @@
 #include "measuredsed.h"
 #include "powerlawsed.h"
 
-#include "../units/radeccoord.h"
-
 #include <aocommon/imagecoordinates.h>
+#include <aocommon/radeccoord.h>
+
+using aocommon::RaDecCoord;
 
 class ModelComponent {
  public:
