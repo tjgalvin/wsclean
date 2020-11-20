@@ -36,7 +36,7 @@ std::string str(T i) {
 }
 
 void wsclean_main(const std::vector<std::string>& parms) {
-  std::vector<char*> argv(parms.size());
+  std::vector<const char*> argv(parms.size());
   for (size_t i = 0; i != parms.size(); ++i) {
     std::cout << parms[i] << ' ';
     argv[i] = const_cast<char*>(parms[i].c_str());

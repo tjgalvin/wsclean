@@ -13,7 +13,7 @@ class CommandLine {
    * @returns @c true when parameters indicate wsclean should
    * be run, @c false e.g. when this is a dry run.
    */
-  static bool Parse(class WSClean& wsclean, int argc, char* argv[],
+  static bool Parse(class WSClean& wsclean, int argc, const char* argv[],
                     bool isSlave) {
     bool fullRun = ParseWithoutValidation(wsclean, argc, argv, isSlave);
     Validate(wsclean, fullRun);
@@ -28,7 +28,7 @@ class CommandLine {
    * Otherwise similar to @ref Parse().
    */
   static bool ParseWithoutValidation(class WSClean& wsclean, int argc,
-                                     char* argv[], bool isSlave);
+                                     const char* argv[], bool isSlave);
   /**
    * Finish a call to ParseWithoutValidation().
    */

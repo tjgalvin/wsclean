@@ -323,6 +323,8 @@ if(Boost_FOUND)
     tests/testradeccoord.cpp
     tests/testserialization.cpp
     
+    tests/integration/tveladeconvolution.cpp
+    
     tests/math/tdijkstrasplitter.cpp
     tests/math/tgaussianfitter.cpp
     tests/math/tpolynomialfitter.cpp

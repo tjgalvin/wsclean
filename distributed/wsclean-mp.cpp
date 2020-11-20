@@ -36,8 +36,8 @@ int main(int argc, char* argv[]) {
   try {
     bool parseResult = false;
     shortException = !master;
-    parseResult =
-        CommandLine::ParseWithoutValidation(wsclean, argc, argv, !master);
+    parseResult = CommandLine::ParseWithoutValidation(
+        wsclean, argc, const_cast<const char**>(argv), !master);
     shortException = !Logger::IsVerbose();
     CommandLine::Validate(wsclean, parseResult);
     if (parseResult) {

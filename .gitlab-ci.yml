@@ -25,6 +25,7 @@ before_script:
     python3-sphinx
     python3-pip
     wget
+ - ./scripts/download_mwa_ms.sh
 
 format:
   stage: format

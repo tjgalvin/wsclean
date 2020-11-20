@@ -644,7 +644,7 @@ double CommandLine::parse_double(const char* param, double lowerLimit,
 }
 
 bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
-                                         char* argv[], bool isSlave) {
+                                         const char* argv[], bool isSlave) {
   if (argc < 2) {
     if (!isSlave) {
       printHeader();
