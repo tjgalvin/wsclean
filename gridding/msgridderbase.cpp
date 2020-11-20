@@ -21,6 +21,8 @@
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/TableRecord.h>
 
+#include <atomic>
+
 MSGridderBase::MSData::MSData()
     : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
 
@@ -54,18 +56,19 @@ MSGridderBase::~MSGridderBase() {}
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
                                           double absMemLimit) {
-  static bool isFirst = true;
+  static std::atomic<bool> isFirst = true;
+  bool printOutput = isFirst.exchange(false);
   long int pageCount = sysconf(_SC_PHYS_PAGES),
            pageSize = sysconf(_SC_PAGE_SIZE);
   int64_t memory = (int64_t)pageCount * (int64_t)pageSize;
   double memSizeInGB = (double)memory / (1024.0 * 1024.0 * 1024.0);
-  if (memFraction == 1.0 && absMemLimit == 0.0 && isFirst) {
+  if (memFraction == 1.0 && absMemLimit == 0.0 && printOutput) {
     Logger::Info << "Detected " << round(memSizeInGB * 10.0) / 10.0
                  << " GB of system memory, usage not limited.\n";
   } else {
     double limitInGB = memSizeInGB * memFraction;
     if (absMemLimit != 0.0 && limitInGB > absMemLimit) limitInGB = absMemLimit;
-    if (isFirst) {
+    if (printOutput) {
       Logger::Info << "Detected " << round(memSizeInGB * 10.0) / 10.0
                    << " GB of system memory, usage limited to "
                    << round(limitInGB * 10.0) / 10.0
@@ -82,7 +85,6 @@ int64_t MSGridderBase::getAvailableMemory(double memFraction,
         double(memory) > double(1024.0 * 1024.0 * 1024.0) * absMemLimit)
       memory = int64_t(double(absMemLimit) * double(1024.0 * 1024.0 * 1024.0));
   }
-  isFirst = false;
   return memory;
 }
 
