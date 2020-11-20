@@ -20,6 +20,9 @@ BufferedMSGridder::BufferedMSGridder(size_t threadCount, double memFraction,
                                      double absMemLimit, double accuracy)
     : MSGridderBase(), _cpuCount(threadCount), _accuracy(accuracy) {
   _memSize = getAvailableMemory(memFraction, absMemLimit);
+  // It may happen that several FFTResamplers are created concurrently, so we
+  // must make sure that the FFTW planner can deal with this.
+  fftwf_make_planner_thread_safe();
 }
 
 size_t BufferedMSGridder::calculateMaxNRowsInMemory(size_t channelCount) const {
