@@ -56,7 +56,7 @@ MSGridderBase::~MSGridderBase() {}
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
                                           double absMemLimit) {
-  static std::atomic<bool> isFirst = true;
+  static std::atomic<bool> isFirst(true);
   bool printOutput = isFirst.exchange(false);
   long int pageCount = sysconf(_SC_PHYS_PAGES),
            pageSize = sysconf(_SC_PAGE_SIZE);
