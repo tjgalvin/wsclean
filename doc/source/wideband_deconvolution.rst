@@ -60,7 +60,7 @@ In case the measurement sets have a different amout of channels *and* have gaps 
       +-J- 6  I   6  0  6  0  150-152 (39)
       +-J- 7  I   7  0  7  0  156-158 (40)
 
-To remedy this, an option called ``-gap-channel-division`` exists (since :doc:`WSClean 2.6 <changelogs/v2.6>`), which calculates the gaps between channels, and splits the input channels into output channels by splitting the largest gap until the number of output channels has been reached. For the above situation, this gives the following table: 
+There are two ways to remedy this. The first, most automated way is to use an option called ``-gap-channel-division`` (available since :doc:`WSClean 2.6 <changelogs/v2.6>`), which calculates the gaps between channels, and splits the input channels into output channels by splitting the largest gap until the number of output channels has been reached. For the above situation, this gives the following table: 
 
 .. code-block:: text
 
@@ -76,6 +76,23 @@ To remedy this, an option called ``-gap-channel-division`` exists (since :doc:`W
       +-J- 7  I   7  0  7  0  156-158 (40)
 
 Notice the different bandwidth per channel and output channel index 4 which now contains 36 channels.
+
+The second option is to manually add splits by specifying frequencies. For this, the option ``-channel-division-frequencies`` can be used. The list doesn't necessarily contain all splits necessary. If fewer splits are given than required, WSClean will further subdivide the remaining parts as necessary. Be aware that splits are in Hz, but can be in scientific notation (e.g. 1.4e9 is 1.4 GHz). An example:
+
+.. code-block:: text
+
+    wsclean -size 512 512 -scale 1amin -channels-out 8 -channel-division-frequencies 140e6,141e6,142e6 1052736496-averaged.ms
+    [..]
+    === IMAGING TABLE ===
+          # Pol Ch JG ²G In Freq(MHz)
+    +-+-J- 0  I   0  0  0  0  134-137 (39)
+    +-+-J- 1  I   1  1  1  0  137-140 (39)
+    +-+-J- 2  I   2  2  2  0  140-140 (6)
+    +-+-J- 3  I   3  3  3  0  140-141 (7)
+    +-+-J- 4  I   4  4  4  0  141-142 (6)
+    +-+-J- 5  I   5  5  5  0  142-142 (6)
+    +-+-J- 6  I   6  6  6  0  142-153 (140)
+    +-+-J- 7  I   7  7  7  0  153-164 (141)
 
 Fitting smooth spectra
 ----------------------
