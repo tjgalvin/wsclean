@@ -1336,9 +1336,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   return !dryRun;
 }
 
-void CommandLine::Validate(WSClean& wsclean, bool isFullRun) {
+void CommandLine::Validate(WSClean& wsclean) {
   wsclean.GetSettings().Validate();
-  if (isFullRun) wsclean.GetSettings().Propogate();
+  wsclean.GetSettings().Propagate();
 }
 
 void CommandLine::Run(class WSClean& wsclean) {

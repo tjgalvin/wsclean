@@ -16,7 +16,7 @@ class CommandLine {
   static bool Parse(class WSClean& wsclean, int argc, const char* argv[],
                     bool isSlave) {
     bool fullRun = ParseWithoutValidation(wsclean, argc, argv, isSlave);
-    Validate(wsclean, fullRun);
+    if (fullRun) Validate(wsclean);
     return fullRun;
   }
 
@@ -32,7 +32,7 @@ class CommandLine {
   /**
    * Finish a call to ParseWithoutValidation().
    */
-  static void Validate(class WSClean& wsclean, bool isFullRun);
+  static void Validate(class WSClean& wsclean);
 
   static void Run(class WSClean& wsclean);
 

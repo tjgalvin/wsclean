@@ -39,8 +39,8 @@ int main(int argc, char* argv[]) {
     parseResult = CommandLine::ParseWithoutValidation(
         wsclean, argc, const_cast<const char**>(argv), !master);
     shortException = !Logger::IsVerbose();
-    CommandLine::Validate(wsclean, parseResult);
     if (parseResult) {
+      CommandLine::Validate(wsclean);
       Settings& settings = wsclean.GetSettings();
       settings.useMPI = true;
 

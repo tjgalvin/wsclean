@@ -322,6 +322,7 @@ if(Boost_FOUND)
     tests/testpeakfinder.cpp
     tests/testserialization.cpp
     
+    tests/integration/tbasics.cpp
     tests/integration/tveladeconvolution.cpp
     
     tests/math/tdijkstrasplitter.cpp

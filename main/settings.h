@@ -23,7 +23,7 @@ class Settings {
 
   void Validate() const;
 
-  void Propogate(bool verbose = true) {
+  void Propagate(bool verbose = true) {
     if (verbose) logImportantSettings();
     if (mode == ImagingMode || mode == PredictMode) {
       RecalculatePaddedDimensions(verbose);
