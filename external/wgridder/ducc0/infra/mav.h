@@ -54,9 +54,6 @@ template<typename T> class membuf
     // externally owned data pointer, nonmodifiable
     membuf(const T *d_)
       : d(d_), rw(false) {}
-    // allocate own memory
-    membuf(size_t sz)
-      : ptr(make_shared<vector<T>>(sz)), d(ptr->data()), rw(true) {}
     // share another memory buffer, but read-only
     membuf(const membuf &other)
       : ptr(other.ptr), d(other.d), rw(false) {}
@@ -74,6 +71,9 @@ template<typename T> class membuf
 #endif
 
   public:
+    // allocate own memory
+    membuf(size_t sz)
+      : ptr(make_shared<vector<T>>(sz)), d(ptr->data()), rw(true) {}
     // read/write access to element #i
     template<typename I> T &vraw(I i)
       {
@@ -81,10 +81,10 @@ template<typename T> class membuf
       return const_cast<T *>(d)[i];
       }
     // read access to element #i
-    template<typename I> const T &operator[](I i) const
+    template<typename I> const T &craw(I i) const
       { return d[i]; }
     // read/write access to data area
-    const T *data() const
+    const T *cdata() const
       { return d; }
     // read access to data area
     T *vdata()
@@ -280,7 +280,7 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
           applyHelper<Func>(idim+1, idx+i*str[idim], func);
       else
         {
-        const T *d2 = data();
+        const T *d2 = cdata();
         for (size_t i=0; i<shp[idim]; ++i)
           func(d2[idx+i*str[idim]]);
         }
@@ -305,8 +305,8 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
         nofs+=i0[i]*str[i];
         if (extent[i]!=0)
           {
-          MR_assert(i0[i]+extent[i2]<=shp[i], "bad subset");
-          nshp[i2] = extent[i]; nstr[i2]=str[i];
+          MR_assert(i0[i]+extent[i]<=shp[i], "bad subset");
+          nshp[i2]=extent[i]; nstr[i2]=str[i];
           ++i2;
           }
         }
@@ -314,7 +314,7 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       }
 
   public:
-    using tbuf::vraw, tbuf::operator[], tbuf::vdata, tbuf::data;
+    using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
 
     fmav(const T *d_, const shape_t &shp_, const stride_t &str_)
       : tinfo(shp_, str_), tbuf(d_) {}
@@ -326,6 +326,14 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       : tinfo(shp_), tbuf(d_,rw_) {}
     fmav(const shape_t &shp_)
       : tinfo(shp_), tbuf(size()) {}
+    fmav(const shape_t &shp_, const stride_t &str_)
+      : tinfo(shp_, str_), tbuf(size())
+      {
+      ptrdiff_t ofs=0;
+      for (size_t i=0; i<ndim(); ++i)
+        ofs += (ptrdiff_t(shp[i])-1)*str[i];
+      MR_assert(ofs+1==ptrdiff_t(size()), "array is not compact");
+      }
     fmav(const T* d_, const tinfo &info)
       : tinfo(info), tbuf(d_) {}
     fmav(T* d_, const tinfo &info, bool rw_=false)
@@ -350,7 +358,7 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       : tinfo(shp_, str_), tbuf(d_, buf) {}
 
     template<typename... Ns> const T &operator()(Ns... ns) const
-      { return operator[](idx(ns...)); }
+      { return craw(idx(ns...)); }
     template<typename... Ns> T &v(Ns... ns)
       { return vraw(idx(ns...)); }
 
@@ -379,7 +387,7 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       {
       if (contiguous())
         {
-        const T *d2 = data();
+        const T *d2 = cdata();
         for (auto v=d2; v!=d2+size(); ++v)
           func(*v);
         return;
@@ -416,8 +424,6 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
 
 template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membuf<T>
   {
-//  static_assert((ndim>0) && (ndim<4), "only supports 1D, 2D, and 3D arrays");
-
   protected:
     using tinfo = mav_info<ndim>;
     using tbuf = membuf<T>;
@@ -447,7 +453,7 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
           applyHelper<idim+1, Func>(idx+i*str[idim], func);
       else
         {
-        const T *d2 = data();
+        const T *d2 = cdata();
         for (size_t i=0; i<shp[idim]; ++i)
           func(d2[idx+i*str[idim]]);
         }
@@ -465,7 +471,7 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       else
         {
         T *d2 = vdata();
-        const T2 *d3 = other.data();
+        const T2 *d3 = other.cdata();
         for (size_t i=0; i<shp[idim]; ++i)
           func(d2[idx+i*str[idim]],d3[idx2+i*other.str[idim]]);
         }
@@ -486,8 +492,8 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
         nofs+=i0[i]*str[i];
         if (extent[i]!=0)
           {
-          MR_assert(i0[i]+extent[i2]<=shp[i], "bad subset");
-          nshp[i2] = extent[i]; nstr[i2]=str[i];
+          MR_assert(i0[i]+extent[i]<=shp[i], "bad subset");
+          nshp[i2]=extent[i]; nstr[i2]=str[i];
           ++i2;
           }
         }
@@ -495,7 +501,7 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       }
 
   public:
-    using tbuf::vraw, tbuf::operator[], tbuf::vdata, tbuf::data;
+    using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
     using tinfo::contiguous, tinfo::size, tinfo::idx, tinfo::conformable;
 
     mav(const T *d_, const shape_t &shp_, const stride_t &str_)
@@ -531,7 +537,7 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       return fmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
       }
     template<typename... Ns> const T &operator()(Ns... ns) const
-      { return operator[](idx(ns...)); }
+      { return craw(idx(ns...)); }
     template<typename... Ns> T &v(Ns... ns)
       { return vraw(idx(ns...)); }
     template<typename Func> void apply(Func func)
@@ -559,6 +565,22 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       {
       auto [nshp, nstr, nofs] = subdata<nd2> (i0, extent);
       return mav<T,nd2> (nshp, nstr, tbuf::d+nofs, *this);
+      }
+
+    static mav build_empty()
+      {
+      shape_t nshp;
+      nshp.fill(0);
+      return mav(static_cast<const T *>(nullptr), nshp);
+      }
+
+    static mav build_uniform(const shape_t &shape, const T &value)
+      {
+      membuf<T> buf(1);
+      buf.vraw(0) = value;
+      stride_t nstr;
+      nstr.fill(0);
+      return mav(shape, nstr, buf.cdata(), buf);
       }
 
     static mav build_noncritical(const shape_t &shape)
@@ -629,7 +651,7 @@ template<typename T, size_t ndim> class MavIter
     template<typename... Ns> ptrdiff_t idx(Ns... ns) const
       { return idx_ + getIdx(0, ns...); }
     template<typename... Ns> const T &operator()(Ns... ns) const
-      { return mav[idx(ns...)]; }
+      { return mav.craw(idx(ns...)); }
     template<typename... Ns> T &v(Ns... ns)
       { return mav.vraw(idx(ns...)); }
   };
@@ -638,6 +660,7 @@ template<typename T, size_t ndim> class MavIter
 
 using detail_mav::fmav_info;
 using detail_mav::fmav;
+using detail_mav::mav_info;
 using detail_mav::mav;
 using detail_mav::FmavIter;
 using detail_mav::MavIter;

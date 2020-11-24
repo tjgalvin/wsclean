@@ -46,16 +46,69 @@ namespace detail_gridder {
 
 using namespace std;
 
-template<typename T> complex<T> hsum_cmplx(native_simd<T> vr, native_simd<T> vi)
-  { return complex<T>(reduce(vr, std::plus<>()), reduce(vi, std::plus<>())); }
+template<typename T> constexpr size_t simdlen()
+  { return min<size_t>(8, native_simd<T>::size()); }
 
-#if (defined(__AVX__) && (!defined(__AVX512F__)))
-inline complex<float> hsum_cmplx(native_simd<float> vr, native_simd<float> vi)
+template<typename T> using mysimd = simd<T,simdlen<T>()>;
+
+template<typename T> void quickzero(mav<T,2> &arr, size_t nthreads)
+  {
+#if 0
+  arr.fill(T(0));
+#else
+  MR_assert((arr.stride(0)>0) && (arr.stride(1)>0), "bad memory ordering");
+  MR_assert(arr.stride(0)>=arr.stride(1), "bad memory ordering");
+  size_t s0=arr.shape(0), s1=arr.shape(1);
+  execParallel(s0, nthreads, [&](size_t lo, size_t hi)
+    {
+    if (arr.stride(1)==1)
+      {
+      if (size_t(arr.stride(0))==arr.shape(1))
+        memset(reinterpret_cast<char *>(&arr.v(lo,0)), 0, sizeof(T)*s1*(hi-lo));
+      else
+        for (auto i=lo; i<hi; ++i)
+          memset(reinterpret_cast<char *>(&arr.v(i,0)), 0, sizeof(T)*s1);
+      }
+    else
+      for (auto i=lo; i<hi; ++i)
+        for (size_t j=0; j<s1; ++j)
+          arr.v(i,j) = T(0);
+    });
+#endif
+  }
+
+template<typename T, size_t len> complex<T> hsum_cmplx(simd<T, len> vr, simd<T, len> vi)
+  { return complex<T>(reduce(vr, plus<>()), reduce(vi, plus<>())); }
+
+#if (defined(__AVX__))
+#if 1
+inline complex<float> hsum_cmplx(simd<float,8> vr, simd<float,8> vi)
   {
   auto t1 = _mm256_hadd_ps(vr, vi);
   auto t2 = _mm_hadd_ps(_mm256_extractf128_ps(t1, 0), _mm256_extractf128_ps(t1, 1));
   t2 += _mm_shuffle_ps(t2, t2, _MM_SHUFFLE(1,0,3,2));
   return complex<float>(t2[0], t2[1]);
+  }
+#else
+// this version may be slightly faster, but this needs more benchmarking
+inline complex<float> hsum_cmplx(native_simd<float> vr, native_simd<float> vi)
+  {
+  auto t1 = _mm256_shuffle_ps(vr, vi, _MM_SHUFFLE(0,2,0,2));
+  auto t2 = _mm256_shuffle_ps(vr, vi, _MM_SHUFFLE(1,3,1,3));
+  auto t3 = _mm256_add_ps(t1,t2);
+  t3 = _mm256_shuffle_ps(t3, t3, _MM_SHUFFLE(3,0,2,1));
+  auto t4 = _mm_add_ps(_mm256_extractf128_ps(t3, 1), _mm256_castps256_ps128(t3));
+  auto t5 = _mm_add_ps(t4, _mm_movehl_ps(t4, t4));
+  return complex<float>(t5[0], t5[1]);
+  }
+#endif
+#endif
+#if defined(__SSE3__)
+inline complex<float> hsum_cmplx(simd<float,4> vr, simd<float,4> vi)
+  {
+  auto t1 = _mm_hadd_ps(vr, vi);
+  t1 += _mm_shuffle_ps(t1, t1, _MM_SHUFFLE(2,3,0,1));
+  return complex<float>(t1[0], t1[2]);
   }
 #endif
 
@@ -107,7 +160,7 @@ template<typename T> void hartley2complex
         size_t xv = (v==0) ? 0 : nv-v;
         T v1 = T(0.5)*grid( u, v);
         T v2 = T(0.5)*grid(xu,xv);
-        grid2.v(u,v) = std::complex<T>(v1+v2, v1-v2);
+        grid2.v(u,v) = complex<T>(v1+v2, v1-v2);
         }
       }
     });
@@ -186,11 +239,11 @@ struct UVW
   UVW operator* (double fct) const
     { return UVW(u*fct, v*fct, w*fct); }
   void Flip() { u=-u; v=-v; w=-w; }
-  bool FixW()
+  double FixW()
     {
-    bool flip = w<0;
-    if (flip) Flip();
-    return flip;
+    double res=1.-2.*(w<0);
+    u*=res; v*=res; w*=res;
+    return res;
     }
   };
 
@@ -234,6 +287,12 @@ class Baselines
 
     UVW effectiveCoord(size_t row, size_t chan) const
       { return coord[row]*f_over_c[chan]; }
+    double absEffectiveW(size_t row, size_t chan) const
+      { return abs(coord[row].w*f_over_c[chan]); }
+    UVW baseCoord(size_t row) const
+      { return coord[row]; }
+    double ffact(size_t chan) const
+      { return f_over_c[chan];}
     size_t Nrows() const { return nrows; }
     size_t Nchannels() const { return nchan; }
     double Umax() const { return umax; }
@@ -261,6 +320,7 @@ template<typename T> class Params
     size_t nthreads;
     size_t verbosity;
     bool negate_v, divide_by_n;
+    double sigma_min, sigma_max;
 
     Baselines bl;
     VVR ranges;
@@ -273,7 +333,7 @@ template<typename T> class Params
     size_t nu, nv;
     double ofactor;
 
-    shared_ptr<HornerKernel<T>> krn;
+    shared_ptr<HornerKernel> krn;
 
     size_t supp, nsafe;
     double ushift, vshift;
@@ -406,19 +466,9 @@ template<typename T> class Params
       auto cfu = krn->corfunc(nxdirty/2+1, 1./nu, nthreads);
       auto cfv = krn->corfunc(nydirty/2+1, 1./nv, nthreads);
       // only zero the parts of the grid that are not filled afterwards anyway
-      MR_assert(grid.stride(1)==1, "bad stride");
-      execParallel(nu, nthreads, [&](size_t lo, size_t hi)
-        {
-        for (auto i=lo; i<hi; ++i)
-          {
-          size_t lo2=0, hi2=nv;
-          if ((i<nxdirty/2) || (i>=nu-nxdirty/2))
-            { lo2=nydirty/2; hi2=nv-nydirty/2+1; }
-          T * DUCC0_RESTRICT ptr = &grid.v(i,0);
-          for (auto j=lo2; j<hi2; ++j)
-            ptr[j] = 0;
-          }
-        });
+      { auto a0 = grid.template subarray<2>({0,nydirty/2}, {nxdirty/2, nv-nydirty+1}); quickzero(a0, nthreads); }
+      { auto a0 = grid.template subarray<2>({nxdirty/2,0}, {nu-nxdirty+1, nv}); quickzero(a0, nthreads); }
+      { auto a0 = grid.template subarray<2>({nu-nxdirty/2+1, nydirty/2}, {nxdirty/2-1, nv-nydirty+1}); quickzero(a0, nthreads); }
       timers.poppush("grid correction");
       execParallel(nxdirty, nthreads, [&](size_t lo, size_t hi)
         {
@@ -444,20 +494,9 @@ template<typename T> class Params
       checkShape(dirty.shape(), {nxdirty, nydirty});
       checkShape(grid.shape(), {nu, nv});
       // only zero the parts of the grid that are not filled afterwards anyway
-      MR_assert(grid.stride(1)==1, "bad stride");
-      execParallel(nu, nthreads, [&](size_t lo, size_t hi)
-        {
-        for (auto i=lo; i<hi; ++i)
-          {
-          size_t lo2=0, hi2=nv;
-          if ((i<nxdirty/2) || (i>=nu-nxdirty/2))
-            { lo2=nydirty/2; hi2=nv-nydirty/2+1; }
-          complex<T> * DUCC0_RESTRICT ptr = &grid.v(i,0);
-          for (auto j=lo2; j<hi2; ++j)
-            ptr[j] = 0;
-          }
-        });
-
+      { auto a0 = grid.template subarray<2>({0,nydirty/2}, {nxdirty/2, nv-nydirty+1}); quickzero(a0, nthreads); }
+      { auto a0 = grid.template subarray<2>({nxdirty/2,0}, {nu-nxdirty+1, nv}); quickzero(a0, nthreads); }
+      { auto a0 = grid.template subarray<2>({nu-nxdirty/2+1, nydirty/2}, {nxdirty/2-1, nv-nydirty+1}); quickzero(a0, nthreads); }
       timers.poppush("wscreen+grid correction");
       double x0 = -0.5*nxdirty*pixsize_x,
              y0 = -0.5*nydirty*pixsize_y;
@@ -547,7 +586,7 @@ template<typename T> class Params
 
     void countRanges()
       {
-      timers.push("range count");
+      timers.push("building index");
       size_t nrow=bl.Nrows(),
              nchan=bl.Nchannels();
 
@@ -564,101 +603,120 @@ template<typename T> class Params
         nplanes = 0;
         wmin = 0;
         }
+      size_t nbunch = do_wgridding ? supp : 1;
+      // we want a maximum deviation of 1% in gridding time between threads
+      constexpr double max_asymm = 0.01;
+      size_t max_allowed = size_t(nvis/double(nbunch*nthreads)*max_asymm);
 
-      using Vmap = map<Uvwidx, vector<RowchanRange>>;
+      struct tmp2
+        {
+        size_t sz=0;
+        vector<vector<RowchanRange>> v;
+        void add(const RowchanRange &rng, size_t max_allowed)
+          {
+          if (v.empty() || (sz>=max_allowed))
+            {
+            v.emplace_back();
+            sz=0;
+            }
+          v.back().push_back(rng);
+          sz += rng.ch_end-rng.ch_begin;
+          }
+        };
+      using Vmap = map<Uvwidx, tmp2>;
       struct bufmap
         {
         Vmap m;
+        mutex mut;
         uint64_t dummy[8]; // separator to keep every entry on a different cache line
         };
-      vector<bufmap> buf(nthreads);
-      bool have_wgt=wgt.size()!=0;
-      if (have_wgt) checkShape(wgt.shape(),{nrow,nchan});
-      bool have_ms=ms_in.size()!=0;
-      if (have_ms) checkShape(ms_in.shape(), {nrow,nchan});
-      bool have_mask=mask.size()!=0;
-      if (have_mask) checkShape(mask.shape(), {nrow,nchan});
-      execParallel(nrow, nthreads, [&](size_t tid, size_t lo, size_t hi)
+      checkShape(wgt.shape(),{nrow,nchan});
+      checkShape(ms_in.shape(), {nrow,nchan});
+      checkShape(mask.shape(), {nrow,nchan});
+
+      size_t ntiles_u = (nu>>logsquare) + 20,
+             ntiles_v = (nv>>logsquare) + 20;
+      vector<bufmap> buf(ntiles_u*ntiles_v);
+      auto chunk = max<size_t>(1, nrow/(20*nthreads));
+      auto xdw = 1./dw;
+      auto shift = dw-(0.5*supp*dw)-wmin;
+      execDynamic(nrow, nthreads, chunk, [&](Scheduler &sched)
         {
-        auto &mymap(buf[tid].m);
-        for(auto irow=lo; irow<hi; ++irow)
+        vector<pair<uint16_t, uint16_t>> interbuf;
+        while (auto rng=sched.getNext())
+        for(auto irow=rng.lo; irow<rng.hi; ++irow)
           {
           bool on=false;
-          Uvwidx uvwlast;
+          Uvwidx uvwlast(0,0,0);
           size_t chan0=0;
+
+          auto flush=[&]()
+            {
+            if (interbuf.empty()) return;
+            auto tileidx = uvwlast.tile_u + ntiles_u*uvwlast.tile_v;
+            lock_guard<mutex> lock(buf[tileidx].mut);
+            auto &loc(buf[tileidx].m[uvwlast]);
+            for (auto &x: interbuf)
+              loc.add(RowchanRange(irow, x.first, x.second), max_allowed);
+            interbuf.clear();
+            };
+          auto add=[&](uint16_t cb, uint16_t ce)
+            { interbuf.emplace_back(cb, ce); };
+
           for (size_t ichan=0; ichan<nchan; ++ichan)
             {
-            if (((!have_ms ) || (norm(ms_in(irow,ichan))!=0)) &&
-                ((!have_wgt) || (wgt(irow,ichan)!=0)) &&
-                ((!have_mask) || (mask(irow,ichan)!=0)))
+            if (norm(ms_in(irow,ichan))*wgt(irow,ichan)*mask(irow,ichan)!=0)
               {
               auto uvw = bl.effectiveCoord(irow, ichan);
-              if (uvw.w<0) uvw.Flip();
+              uvw.FixW();
               double u, v;
               int iu0, iv0, iw;
               getpix(uvw.u, uvw.v, u, v, iu0, iv0);
               iu0 = (iu0+nsafe)>>logsquare;
               iv0 = (iv0+nsafe)>>logsquare;
-              iw = do_wgridding ?
-                max(0,int(1+(abs(uvw.w)-(0.5*supp*dw)-wmin)/dw)) : 0;
+              iw = do_wgridding ? max(0,int((uvw.w+shift)*xdw)) : 0;
               Uvwidx uvwcur(iu0, iv0, iw);
               if (!on) // new active region
                 {
                 on=true;
-                uvwlast = uvwcur;
-                chan0=ichan;
+                if (uvwlast!=uvwcur) flush();
+                uvwlast=uvwcur; chan0=ichan;
                 }
               else if (uvwlast!=uvwcur) // change of active region
                 {
-                mymap[uvwlast].emplace_back(RowchanRange(irow, chan0, ichan));
-                uvwlast = uvwcur; chan0=ichan;
+                add(chan0, ichan);
+                flush();
+                uvwlast=uvwcur; chan0=ichan;
                 }
               }
             else if (on) // end of active region
               {
-              mymap[uvwlast].emplace_back(RowchanRange(irow, chan0, ichan));
+              add(chan0, ichan);
               on=false;
               }
             }
           if (on) // end of active region at last channel
-            mymap[uvwlast].emplace_back(RowchanRange(irow, chan0, nchan));
+            add(chan0, nchan);
+          flush();
           }
         });
 
-      // free mask memory
-      timers.poppush("range merging");
-      size_t nth = nthreads;
-      while (nth>1)
-        {
-        auto nmerge=nth/2;
-        execParallel(nmerge, [&](Scheduler &sched)
-          {
-          auto tid = sched.thread_num();
-          auto &s1 = buf[tid].m;
-          auto &s2 = buf[nth-1-tid].m;
-          for (const auto &v : s2)
-            {
-            auto &v1(s1[v.first]);
-            v1.reserve(v1.size()+v.second.size());
-            copy(v.second.begin(), v.second.end(), back_inserter(v1));
-            }
-          Vmap().swap(s2);
-          });
-        nth-=nmerge;
-        }
-      ranges.reserve(buf[0].m.size());
-      for (auto &v : buf[0].m)
-        {
-        ranges.emplace_back(v.first, vector<RowchanRange>());
-        ranges.back().second.swap(v.second);
-        }
+      size_t total=0;
+      for (const auto &x: buf)
+        for (const auto &y: x.m)
+          total += y.second.v.size();
+      ranges.reserve(total);
+      for (auto &x: buf)
+        for (auto &y: x.m)
+          for (auto &z: y.second.v)
+            ranges.emplace_back(y.first, move(z));
       timers.pop();
       }
 
     template<size_t supp, bool wgrid> class HelperX2g2
       {
       public:
-        static constexpr size_t vlen = native_simd<T>::size();
+        static constexpr size_t vlen = mysimd<T>::size();
         static constexpr size_t nvec = (supp+vlen-1)/vlen;
 
       private:
@@ -668,7 +726,7 @@ template<typename T> class Params
         static constexpr int svvec = ((sv+vlen-1)/vlen)*vlen;
         static constexpr double xsupp=2./supp;
         const Params *parent;
-        TemplateKernel<supp, T> tkrn;
+        TemplateKernel<supp, mysimd<T>> tkrn;
         mav<complex<T>,2> &grid;
         int iu0, iv0; // start index of the current visibility
         int bu0, bv0; // start index of the current buffer
@@ -676,7 +734,7 @@ template<typename T> class Params
         mav<T,2> bufr, bufi;
         T *px0r, *px0i;
         double w0, xdw;
-        vector<std::mutex> &locks;
+        vector<mutex> &locks;
 
         DUCC0_NOINLINE void dump()
           {
@@ -690,7 +748,7 @@ template<typename T> class Params
             {
             int idxv = idxv0;
             {
-            std::lock_guard<std::mutex> lock(locks[idxu]);
+            lock_guard<mutex> lock(locks[idxu]);
             for (int iv=0; iv<sv; ++iv)
               {
               grid.v(idxu,idxv) += complex<T>(bufr(iu,iv), bufi(iu,iv));
@@ -706,12 +764,12 @@ template<typename T> class Params
         T * DUCC0_RESTRICT p0r, * DUCC0_RESTRICT p0i;
         union kbuf {
           T scalar[2*nvec*vlen];
-          native_simd<T> simd[2*nvec];
+          mysimd<T> simd[2*nvec];
           };
         kbuf buf;
 
         HelperX2g2(const Params *parent_, mav<complex<T>,2> &grid_,
-          vector<std::mutex> &locks_, double w0_=-1, double dw_=-1)
+          vector<mutex> &locks_, double w0_=-1, double dw_=-1)
           : parent(parent_), tkrn(*parent->krn), grid(grid_),
             iu0(-1000000), iv0(-1000000),
             bu0(-1000000), bv0(-1000000),
@@ -755,7 +813,7 @@ template<typename T> class Params
     template<size_t supp, bool wgrid> class HelperG2x2
       {
       public:
-        static constexpr size_t vlen = native_simd<T>::size();
+        static constexpr size_t vlen = mysimd<T>::size();
         static constexpr size_t nvec = (supp+vlen-1)/vlen;
 
       private:
@@ -766,7 +824,7 @@ template<typename T> class Params
         static constexpr double xsupp=2./supp;
         const Params *parent;
 
-        TemplateKernel<supp, T> tkrn;
+        TemplateKernel<supp, mysimd<T>> tkrn;
         const mav<complex<T>,2> &grid;
         int iu0, iv0; // start index of the current visibility
         int bu0, bv0; // start index of the current buffer
@@ -798,7 +856,7 @@ template<typename T> class Params
         const T * DUCC0_RESTRICT p0r, * DUCC0_RESTRICT p0i;
         union kbuf {
           T scalar[2*nvec*vlen];
-          native_simd<T> simd[2*nvec];
+          mysimd<T> simd[2*nvec];
           };
         kbuf buf;
 
@@ -809,7 +867,7 @@ template<typename T> class Params
             bu0(-1000000), bv0(-1000000),
             bufr({size_t(su),size_t(svvec)}),
             bufi({size_t(su),size_t(svvec)}),
-            px0r(bufr.data()), px0i(bufi.data()),
+            px0r(bufr.cdata()), px0i(bufi.cdata()),
             w0(w0_),
             xdw(T(1)/dw_)
           { checkShape(grid.shape(), {parent->nu,parent->nv}); }
@@ -844,20 +902,20 @@ template<typename T> class Params
     template<size_t SUPP, bool wgrid> [[gnu::hot]] void x2grid_c_helper
       (mav<complex<T>,2> &grid, size_t p0, double w0)
       {
-      bool have_wgt = wgt.size()!=0;
-      vector<std::mutex> locks(nu);
+      vector<mutex> locks(nu);
 
-      execGuided(ranges.size(), nthreads, 10, 0.2, [&](Scheduler &sched)
+      execDynamic(ranges.size(), nthreads, wgrid ? SUPP : 1, [&](Scheduler &sched)
         {
-        constexpr size_t vlen=native_simd<T>::size();
+        constexpr size_t vlen=mysimd<T>::size();
         constexpr size_t NVEC((SUPP+vlen-1)/vlen);
         HelperX2g2<SUPP,wgrid> hlp(this, grid, locks, w0, dw);
         constexpr int jump = hlp.lineJump();
         const T * DUCC0_RESTRICT ku = hlp.buf.scalar;
         const auto * DUCC0_RESTRICT kv = hlp.buf.simd+NVEC;
 
-        while (auto rng=sched.getNext()) for(auto ix=rng.lo; ix<rng.hi; ++ix)
+        while (auto rng=sched.getNext()) for(auto ix_=rng.lo; ix_<rng.hi; ++ix_)
           {
+auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           const auto &uvwidx(ranges[ix].first);
           if ((!wgrid) || ((uvwidx.minplane+SUPP>p0)&&(uvwidx.minplane<=p0)))
             {
@@ -865,41 +923,45 @@ template<typename T> class Params
             for (const auto rcr: ranges[ix].second)
               {
               size_t row = rcr.row;
+              auto bcoord = bl.baseCoord(row);
+              T imflip = T(bcoord.FixW());
               for (size_t ch=rcr.ch_begin; ch<rcr.ch_end; ++ch)
                 {
-                UVW coord = bl.effectiveCoord(row, ch);
-                auto flip = coord.FixW();
+                auto coord = bcoord*bl.ffact(ch);
                 hlp.prep(coord, nth);
                 auto v(ms_in(row, ch));
 
-                if (flip) v=conj(v);
-                if (have_wgt) v*=wgt(row, ch);
-                native_simd<T> vr(v.real()), vi(v.imag());
-                for (size_t cu=0; cu<SUPP; ++cu)
+                v*=wgt(row, ch);
+
+                if constexpr (NVEC==1)
                   {
-                  if constexpr (NVEC==1)
+                  mysimd<T> vr=v.real()*kv[0], vi=v.imag()*imflip*kv[0];
+                  for (size_t cu=0; cu<SUPP; ++cu)
                     {
-                    auto fct = kv[0]*ku[cu];
                     auto * DUCC0_RESTRICT pxr = hlp.p0r+cu*jump;
                     auto * DUCC0_RESTRICT pxi = hlp.p0i+cu*jump;
-                    auto tr = native_simd<T>::loadu(pxr);
-                    auto ti = native_simd<T>::loadu(pxi);
-                    tr += vr*fct;
-                    ti += vi*fct;
+                    auto tr = mysimd<T>::loadu(pxr);
+                    auto ti = mysimd<T>::loadu(pxi);
+                    tr += vr*ku[cu];
+                    ti += vi*ku[cu];
                     tr.storeu(pxr);
                     ti.storeu(pxi);
                     }
-                  else
+                  }
+                else
+                  {
+                  mysimd<T> vr(v.real()), vi(v.imag()*imflip);
+                  for (size_t cu=0; cu<SUPP; ++cu)
                     {
-                    native_simd<T> tmpr=vr*ku[cu], tmpi=vi*ku[cu];
+                    mysimd<T> tmpr=vr*ku[cu], tmpi=vi*ku[cu];
                     for (size_t cv=0; cv<NVEC; ++cv)
                       {
                       auto * DUCC0_RESTRICT pxr = hlp.p0r+cu*jump+cv*hlp.vlen;
                       auto * DUCC0_RESTRICT pxi = hlp.p0i+cu*jump+cv*hlp.vlen;
-                      auto tr = native_simd<T>::loadu(pxr);
+                      auto tr = mysimd<T>::loadu(pxr);
                       tr += tmpr*kv[cv];
                       tr.storeu(pxr);
-                      auto ti = native_simd<T>::loadu(pxi);
+                      auto ti = mysimd<T>::loadu(pxi);
                       ti += tmpi*kv[cv];
                       ti.storeu(pxi);
                       }
@@ -952,20 +1014,19 @@ template<typename T> class Params
     template<size_t SUPP, bool wgrid> [[gnu::hot]] void grid2x_c_helper
       (const mav<complex<T>,2> &grid, size_t p0, double w0)
       {
-      bool have_wgt = wgt.size()!=0;
-
       // Loop over sampling points
-      execGuided(ranges.size(), nthreads, 10, 0.2, [&](Scheduler &sched)
+      execDynamic(ranges.size(), nthreads, wgrid ? SUPP : 1, [&](Scheduler &sched)
         {
-        constexpr size_t vlen=native_simd<T>::size();
+        constexpr size_t vlen=mysimd<T>::size();
         constexpr size_t NVEC((SUPP+vlen-1)/vlen);
         HelperG2x2<SUPP,wgrid> hlp(this, grid, w0, dw);
         constexpr int jump = hlp.lineJump();
         const T * DUCC0_RESTRICT ku = hlp.buf.scalar;
         const auto * DUCC0_RESTRICT kv = hlp.buf.simd+NVEC;
 
-        while (auto rng=sched.getNext()) for(auto ix=rng.lo; ix<rng.hi; ++ix)
+        while (auto rng=sched.getNext()) for(auto ix_=rng.lo; ix_<rng.hi; ++ix_)
           {
+auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           const auto &uvwidx(ranges[ix].first);
           if ((!wgrid) || ((uvwidx.minplane+SUPP>p0)&&(uvwidx.minplane<=p0)))
             {
@@ -973,42 +1034,44 @@ template<typename T> class Params
             for (const auto rcr: ranges[ix].second)
               {
               size_t row = rcr.row;
+              auto bcoord = bl.baseCoord(row);
+              T imflip = T(bcoord.FixW());
               for (size_t ch=rcr.ch_begin; ch<rcr.ch_end; ++ch)
                 {
-                UVW coord = bl.effectiveCoord(row, ch);
-                auto flip = coord.FixW();
+                auto coord = bcoord*bl.ffact(ch);
                 hlp.prep(coord, nth);
-                native_simd<T> rr=0, ri=0;
-                for (size_t cu=0; cu<SUPP; ++cu)
+                mysimd<T> rr=0, ri=0;
+                if constexpr (NVEC==1)
                   {
-#if 0
-// this doesn't appear to be beneficial, in contrast to the x2grid direction ...
-                  if constexpr(NVEC==1)
+                  for (size_t cu=0; cu<SUPP; ++cu)
                     {
-                    auto fct = kv[0]*ku[cu];
                     const auto * DUCC0_RESTRICT pxr = hlp.p0r + cu*jump;
                     const auto * DUCC0_RESTRICT pxi = hlp.p0i + cu*jump;
-                    rr += native_simd<T>::loadu(pxr)*fct;
-                    ri += native_simd<T>::loadu(pxi)*fct;
+                    rr += mysimd<T>::loadu(pxr)*ku[cu];
+                    ri += mysimd<T>::loadu(pxi)*ku[cu];
                     }
-                 else
-#endif
+                  rr *= kv[0];
+                  ri *= kv[0];
+                  }
+                else
+                  {
+                  for (size_t cu=0; cu<SUPP; ++cu)
                     {
-                    native_simd<T> tmpr(0), tmpi(0);
+                    mysimd<T> tmpr(0), tmpi(0);
                     for (size_t cv=0; cv<NVEC; ++cv)
                       {
                       const auto * DUCC0_RESTRICT pxr = hlp.p0r + cu*jump + hlp.vlen*cv;
                       const auto * DUCC0_RESTRICT pxi = hlp.p0i + cu*jump + hlp.vlen*cv;
-                      tmpr += kv[cv]*native_simd<T>::loadu(pxr);
-                      tmpi += kv[cv]*native_simd<T>::loadu(pxi);
+                      tmpr += kv[cv]*mysimd<T>::loadu(pxr);
+                      tmpi += kv[cv]*mysimd<T>::loadu(pxi);
                       }
                     rr += ku[cu]*tmpr;
                     ri += ku[cu]*tmpi;
                     }
                   }
+                ri *= imflip;
                 auto r = hsum_cmplx(rr,ri);
-                if (flip) r=conj(r);
-                if (have_wgt) r*=wgt(row, ch);
+                r*=wgt(row, ch);
                 ms_out.v(row, ch) += r;
                 }
               }
@@ -1110,28 +1173,31 @@ template<typename T> class Params
     void report()
       {
       if (verbosity==0) return;
-      cout << (gridding ? "Gridding" : "Degridding")
-           << ": nthreads=" << nthreads << ", "
+      cout << (gridding ? "Gridding:" : "Degridding:") << endl
+           << "  nthreads=" << nthreads << ", "
            << "dirty=(" << nxdirty << "x" << nydirty << "), "
            << "grid=(" << nu << "x" << nv;
       if (do_wgridding) cout << "x" << nplanes;
-      cout << "), nvis=" << nvis
-           << ", supp=" << supp
+      cout << "), supp=" << supp
            << ", eps=" << (epsilon * (do_wgridding ? 3 : 2))
            << endl;
-      cout << "  w=[" << wmin_d << "; " << wmax_d << "], min(n-1)=" << nm1min
-           << ", dw=" << dw << ", wmax/dw=" << wmax_d/dw << endl;
-      size_t tmp = 0;
+      cout << "  nrow=" << bl.Nrows() << ", nchan=" << bl.Nchannels()
+           << ", nvis=" << nvis << "/" << (bl.Nrows()*bl.Nchannels()) << endl;
+      if (do_wgridding)
+        cout << "  w=[" << wmin_d << "; " << wmax_d << "], min(n-1)=" << nm1min
+             << ", dw=" << dw << ", wmax/dw=" << wmax_d/dw << endl;
+      size_t ovh0 = 0;
       for (const auto &v : ranges)
-        tmp += v.second.size()*sizeof(RowchanRange);
-      tmp += ranges.size()*sizeof(VVR);
-      size_t overhead = nu*nv*sizeof(complex<T>)         // grid
-                      + tmp;                             // ranges
+        ovh0 += v.second.size()*sizeof(RowchanRange);
+      ovh0 += ranges.size()*sizeof(VVR);
+      size_t ovh1 = nu*nv*sizeof(complex<T>);            // grid
       if (!do_wgridding)
-        overhead += nu*nv*sizeof(T);                     // rgrid
+        ovh1 += nu*nv*sizeof(T);                         // rgrid
       if (!gridding)
-        overhead += nxdirty*nydirty*sizeof(T);           // tdirty
-      cout << "memory overhead: " << overhead/double(1<<30) << " GB" << endl;
+        ovh1 += nxdirty*nydirty*sizeof(T);               // tdirty
+      cout << "  memory overhead: "
+           << ovh0/double(1<<30) << "GB (index) + "
+           << ovh1/double(1<<30) << "GB (2D arrays)" << endl;
       }
 
     void x2dirty()
@@ -1147,21 +1213,7 @@ template<typename T> class Params
           {
           double w = wmin+pl*dw;
           timers.push("zeroing grid");
-#if 1
-          MR_assert(grid.stride(1)==1, "bad stride");
-          execParallel(nu, nthreads, [&](size_t lo, size_t hi)
-            {
-            for (auto i=lo; i<hi; ++i)
-              {
-              complex<T> * DUCC0_RESTRICT ptr = &grid.v(i,0);
-              for (size_t j=0; j<nv; ++j)
-                ptr[j] = 0;
-              }
-            });
-#else
-          // FIXME: speeding this up could be quite helpful.
-          grid.fill(0);
-#endif
+          quickzero(grid, nthreads);
           timers.pop();
           x2grid_c<true>(grid, pl, w);
           grid2dirty_c_overwrite_wscreen_add(grid, dirty_out, T(w));
@@ -1227,12 +1279,12 @@ template<typename T> class Params
       nm1min = sqrt(max(1.-x0*x0-y0*y0,0.))-1.;
       if (x0*x0+y0*y0>1.)
         nm1min = -sqrt(abs(1.-x0*x0-y0*y0))-1.;
-      auto idx = getAvailableKernels<T>(epsilon);
+      auto idx = getAvailableKernels(epsilon, sigma_min, sigma_max);
       double mincost = 1e300;
       constexpr double nref_fft=2048;
       constexpr double costref_fft=0.0693;
       size_t minnu=0, minnv=0, minidx=KernelDB.size();
-      constexpr size_t vlen = native_simd<T>::size();
+      constexpr size_t vlen = mysimd<T>::size();
       for (size_t i=0; i<idx.size(); ++i)
         {
         const auto &krn(KernelDB[idx[i]]);
@@ -1271,12 +1323,9 @@ template<typename T> class Params
       timers.push("Initial scan");
       size_t nrow=bl.Nrows(),
              nchan=bl.Nchannels();
-      bool have_wgt=wgt.size()!=0;
-      if (have_wgt) checkShape(wgt.shape(),{nrow,nchan});
-      bool have_ms=ms_in.size()!=0;
-      if (have_ms) checkShape(ms_in.shape(), {nrow,nchan});
-      bool have_mask=mask.size()!=0;
-      if (have_mask) checkShape(mask.shape(), {nrow,nchan});
+      checkShape(wgt.shape(),{nrow,nchan});
+      checkShape(ms_in.shape(), {nrow,nchan});
+      checkShape(mask.shape(), {nrow,nchan});
 
       nvis=0;
       wmin_d=1e300;
@@ -1288,13 +1337,11 @@ template<typename T> class Params
         size_t lnvis=0;
         for(auto irow=lo; irow<hi; ++irow)
           for (size_t ichan=0, idx=irow*nchan; ichan<nchan; ++ichan, ++idx)
-            if (((!have_ms ) || (norm(ms_in(irow,ichan))!=0)) &&
-                ((!have_wgt) || (wgt(irow,ichan)!=0)) &&
-                ((!have_mask) || (mask(irow,ichan)!=0)))
+//            if (mask(irow,ichan) && (wgt(irow, ichan)!=0) && (norm(ms_in(irow,ichan)!=0)))
+            if (norm(ms_in(irow,ichan))*wgt(irow,ichan)*mask(irow,ichan) != 0)
               {
               ++lnvis;
-              auto uvw = bl.effectiveCoord(irow,ichan);
-              double w = abs(uvw.w);
+              double w = bl.absEffectiveW(irow, ichan);
               lwmin_d = min(lwmin_d, w);
               lwmax_d = max(lwmax_d, w);
               }
@@ -1315,8 +1362,9 @@ template<typename T> class Params
            const mav<T,2> &wgt_, const mav<uint8_t,2> &mask_,
            double pixsize_x_, double pixsize_y_, double epsilon_,
            bool do_wgridding_, size_t nthreads_, size_t verbosity_,
-           bool negate_v_, bool divide_by_n_)
-      : gridding(ms_in_.size()>0),
+           bool negate_v_, bool divide_by_n_, double sigma_min_,
+           double sigma_max_)
+      : gridding(ms_out_.size()==0),
         timers(gridding ? "gridding" : "degridding"),
         ms_in(ms_in_), ms_out(ms_out_),
         dirty_in(dirty_in_), dirty_out(dirty_out_),
@@ -1327,7 +1375,8 @@ template<typename T> class Params
         epsilon(epsilon_),
         do_wgridding(do_wgridding_),
         nthreads(nthreads_), verbosity(verbosity_),
-        negate_v(negate_v_), divide_by_n(divide_by_n_)
+        negate_v(negate_v_), divide_by_n(divide_by_n_),
+        sigma_min(sigma_min_), sigma_max(sigma_max_)
       {
       timers.push("Baseline construction");
       bl = Baselines(uvw, freq, negate_v);
@@ -1339,7 +1388,7 @@ template<typename T> class Params
       if (!gridding)
         {
         timers.push("MS zeroing");
-        ms_out.fill(0);
+        quickzero(ms_out, nthreads);
         timers.pop();
         }
       scanData();
@@ -1352,7 +1401,7 @@ template<typename T> class Params
       MR_assert((nu>>logsquare)<(size_t(1)<<16), "nu too large");
       MR_assert((nv>>logsquare)<(size_t(1)<<16), "nv too large");
       ofactor = min(double(nu)/nxdirty, double(nv)/nydirty);
-      krn = selectKernel<T>(ofactor, epsilon,kidx);
+      krn = selectKernel(ofactor, epsilon, kidx);
       supp = krn->support();
       nsafe = (supp+1)/2;
       ushift = supp*(-0.5)+1+nu;
@@ -1385,28 +1434,36 @@ template<typename T> class Params
       }
   };
 
-// Note to self: divide_by_n should always be true when doing Bayesian imaging,
-// but wsclean needs it to be false, so this must be kept as a parameter.
 template<typename T> void ms2dirty(const mav<double,2> &uvw,
   const mav<double,1> &freq, const mav<complex<T>,2> &ms,
-  const mav<T,2> &wgt, const mav<uint8_t,2> &mask, double pixsize_x, double pixsize_y, double epsilon,
+  const mav<T,2> &wgt_, const mav<uint8_t,2> &mask_, double pixsize_x, double pixsize_y, double epsilon,
   bool do_wgridding, size_t nthreads, mav<T,2> &dirty, size_t verbosity,
-  bool negate_v=false, bool divide_by_n=true)
+  bool negate_v=false, bool divide_by_n=true, double sigma_min=1.1,
+  double sigma_max=2.6)
   {
-  mav<complex<T>,2> ms_out(nullptr, {0,0}, false);
-  mav<T,2> dirty_in(nullptr, {0,0}, false);
-  Params<T> par(uvw, freq, ms, ms_out, dirty_in, dirty, wgt, mask, pixsize_x, pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v, divide_by_n);
+  auto ms_out(mav<complex<T>,2>::build_empty());
+  auto dirty_in(mav<T,2>::build_empty());
+  auto wgt(wgt_.size()!=0 ? wgt_ : wgt_.build_uniform(ms.shape(), 1.));
+  auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
+  Params<T> par(uvw, freq, ms, ms_out, dirty_in, dirty, wgt, mask, pixsize_x, 
+    pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v,
+    divide_by_n, sigma_min, sigma_max);
   }
 
 template<typename T> void dirty2ms(const mav<double,2> &uvw,
   const mav<double,1> &freq, const mav<T,2> &dirty,
-  const mav<T,2> &wgt, const mav<uint8_t,2> &mask, double pixsize_x, double pixsize_y,
+  const mav<T,2> &wgt_, const mav<uint8_t,2> &mask_, double pixsize_x, double pixsize_y,
   double epsilon, bool do_wgridding, size_t nthreads, mav<complex<T>,2> &ms,
-  size_t verbosity, bool negate_v=false, bool divide_by_n=true)
+  size_t verbosity, bool negate_v=false, bool divide_by_n=true,
+  double sigma_min=1.1, double sigma_max=2.6)
   {
-  mav<complex<T>,2> ms_in(nullptr, {0,0}, false);
-  mav<T,2> dirty_out(nullptr, {0,0}, false);
-  Params<T> par(uvw, freq, ms_in, ms, dirty, dirty_out, wgt, mask, pixsize_x, pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v, divide_by_n);
+  auto ms_in(mav<complex<T>,2>::build_uniform(ms.shape(),1.));
+  auto dirty_out(mav<T,2>::build_empty());
+  auto wgt(wgt_.size()!=0 ? wgt_ : wgt_.build_uniform(ms.shape(), 1.));
+  auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
+  Params<T> par(uvw, freq, ms_in, ms, dirty, dirty_out, wgt, mask, pixsize_x,
+    pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v,
+    divide_by_n, sigma_min, sigma_max);
   }
 
 } // namespace detail_gridder
