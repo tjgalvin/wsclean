@@ -41,9 +41,7 @@ Example:
       band-145-MHz.ms band-155-MHz.ms \
       band-190-MHz.ms band-200-MHz.ms
 
-This will perform multi-frequency deconvolution and output images at 105 MHz, 150 MHz and 195 MHz.
-
-On older WSClean's, multi-frequency deconvolution did not work properly on multiple measurement sets when the measurement sets had different frequency ranges (for example when you have different subbands in different measurement sets, which is common in LOFAR or in MWA's non-continuous frequency mode). This was fixed in [version 1.9](Changelog-1.9). 
+This will perform multi-frequency deconvolution and output images at 105 MHz, 150 MHz and 195 MHz. This works since :doc:`WSClean version 1.9 <changelogs/v1.9>`. 
 
 In case the measurement sets have a different amout of channels *and* have gaps between them, the normal division of WSClean might divide the channels somewhat undesirably. For example, the data of the MSSS survey observations are stored in 10 measurement sets, each containing one 'band', but one of those 10 has fewer channels. The default WSClean division divides those "missing" channels out over the bandwidth, producing this imaging table:
 
