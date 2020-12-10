@@ -33,7 +33,7 @@ The weighting rank filter works in combination with one of the other weighting m
 Relation to visibility weights
 ------------------------------
 
-In WSClean, image weighting normally works 'on top of' the visibility weights stored in the measurement set  (the ``WEIGHT_SPECTRUM`` column). This in particular means that uniform weighting will weight all scales (baselines) the same independent of their visibility weight. One therefore cannot increase the weight on long baselines by using uniform weighting and increasing the visibility weights of those baselines. The visibility weights nevertheless still have a function: they determine the weight in their particular uv-cell with respect to other visibilities *in that same uv-cell*. All in all, this means that WSClean assumes that the visibility weights specify the inverse variance weight of the visibility. Up or downweighting of scales has to be done by the image weighting (which can include :doc:`tapering <tapering>`). I've had reports that this behaviour is not consistent with how CASA treats the combination of visibility weights and imaging weights. 
+In WSClean, image weighting normally works 'on top of' the visibility weights stored in the measurement set  (the ``WEIGHT_SPECTRUM`` column). This in particular means that uniform weighting will weight all scales (baselines) the same independent of their visibility weight. One therefore cannot increase the weight on long baselines by using uniform weighting and increasing the visibility weights of those baselines. The visibility weights nevertheless still have a function: they determine the weight in their particular uv-cell with respect to other visibilities *in that same uv-cell*. All in all, this means that WSClean assumes that the visibility weights specify the inverse variance weight of the visibility. Up or downweighting of scales has to be done by the image weighting (which can include :doc:`tapering <tapering>`). I've had reports that this behaviour is not consistent with how CASA treats the combination of visibility weights and imaging weights.
 
 This behaviour can be altered by using the ``-use-weights-as-taper`` option. When specified, imaging weights will be determined without taking the visibility weights into account. Uniform weighting, for example, will make the visibilities have uniform weights based on the visibility *count* per uv-cell, without accounting for the visibility weights. The visibility weights are applied afterwards. This mode allows the visibility weights to be used to increase/decrease the weights of certain scales, just like an image taper.
 
@@ -42,10 +42,10 @@ An example: consider three visibilities, A, B and C. Visibilities A and B fall i
 - Visibilities A and B are added together with weights, giving visibility B 10x more weight than visibility A.
 - Visibility C is in a different cell, and since there are no other visibilities in this cell, its weight of 100 is irrelevant. In the image, the uv-cell of A and B receives the same weight as the uv-cell of C, as this is what uniform imaging weights implies.
 
-Even though that visibility C has a 10x higher weight than B, in the final image it will not be upweighted. Now, if ``-use-weights-as-taper`` would be specified:
+Even though visibility C has a 10x higher weight than B, it will not be upweighted in the final image. Now, if ``-use-weights-as-taper`` would be specified:
 
 - Again, visibilities A and B are added together with weights, giving visibility B 10x more weight than visibility A.
-- The UV cell of A and B receives a weight of 11, whereas the UV cell of C receives a weight of 100. 
+- The UV cell of A and B receives a weight of 11, whereas the UV cell of C receives a weight of 100.
 
 Other weighting-related settings
 --------------------------------

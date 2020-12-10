@@ -33,7 +33,7 @@ and the generated model is then predicted with
 
     wsclean -predict [...] ms-at-200MHz.ms
 
-the model is not extrapolated to the right frequency, so one will end up with the flux levels of the 100 MHz model. 
+the model is not extrapolated to the right frequency, so one will end up with the flux levels of the 100 MHz model.
 
 WSClean will also not look at the frequency of the FITS files when you make use of the :doc:`wide-band modes <wideband_deconvolution>` and create multiple model images. E.g. when you image with:
 
@@ -52,7 +52,7 @@ this will split the channels in the 100MHz MS into four groups and predict the f
 .. code-block:: bash
 
     wsclean -channels-out 4 -predict [...] ms-at-100MHz.ms ms-at-110MHz.ms ms-at-120MHz.ms ms-at-130MHz.ms
-    
+
 Which will split the full available bandwidth into four groups and thus predict the first channel image into the first MS and so on.
 
 Some MWA specifics
@@ -64,8 +64,8 @@ Applying the beam to an MWA image is a bit tricky, because the feeds are not ort
 
     pbcorrect -uncorrect <image-prefix> <image-postfix> <beam-prefix> <stokes-prefix>
 
-The input are absolute Stokes images and the output are apparent flux images with linear polarizations. The 'uncorrect' parameter specifies it should do the opposite of its normal operation, as it would normally make Stokes images out of wsclean's output. For example, if the <stokes-prefix> is "stokes", then pbcorrect will look for stokes-I.fits, stokes-Q.fits, stokes-U.fits and stokes-V.fits. If any of these is not present, it will be assumed zero (and a warning is issued). The 'beam' files are 8 files containing all real/imaginary components for the four linear polarizations. These can be created with the 'beam' tool in my MWA repository.
+The input are absolute Stokes images and the output are apparent flux images with linear polarizations. The ``-uncorrect`` parameter specifies it should do the opposite of its normal operation, as it would normally make Stokes images out of wsclean's output. For example, if the ``<stokes-prefix>`` is "stokes", then ``pbcorrect`` will look for stokes-I.fits, stokes-Q.fits, stokes-U.fits and stokes-V.fits. If any of these is not present, it will be assumed zero (and a warning is issued). The 'beam' files are 8 files containing all real/imaginary components for the four linear polarizations. These can be created with the 'beam' tool in my MWA repository.
 
-If you use pbcorrect to prepare an image for wsclean prediction, you should set 'image-postfix' to "model.fits", and the image prefix is the same prefix you will specify to wsclean.
+If you use ``pbcorrect`` to prepare an image for wsclean prediction, you should set ``<image-postfix>`` to "model.fits", and the image prefix is the same prefix you will specify to wsclean.
 
 **Next chapter:** :doc:`WSClean and self-cal <selfcal>`

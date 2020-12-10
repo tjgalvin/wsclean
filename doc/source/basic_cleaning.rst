@@ -23,7 +23,7 @@ To set the deconvolution threshold, one would need to know the level of the nois
     # Clean to a 3 sigma noise level
     wsclean -auto-threshold 3 -size 2048 2048 -scale 1amin \
       -mgain 0.8 -niter 50000 observation.ms
-      
+
 Note that the ``-mgain`` parameter is used, in order to enable the Cotton-Schwab style major iterations. While this is not necessary for the automatic threshold to work, if the image has a very high dynamic range, the initially computed standard deviation might not be a good estimate. By using Cotton-Schwab, the standard deviation is recalculated at the beginning of every major iteration, and this will be more accurate. The ``-mgain`` parameter is discussed in more detail in the next section.
 
 One can also specify both an automatic threshold and a manual threshold. In this case, whenever one of the thresholds is reached, the cleaning stops.
@@ -31,7 +31,7 @@ One can also specify both an automatic threshold and a manual threshold. In this
 Using Cotton-Schwab: the ``-mgain`` parameter
 ---------------------------------------------
 
-The ``-mgain`` parameter sets the major iteration gain: during every major iteration, the peak is reduces by the given factor. With an ``mgain`` of 0.8, the peak is reduced by 80%. This is quite a common and save option for cleaning. With a reasonable good PSF, using 0.9 is possible without lose of accuracy, and a bit faster. With a very bad PSF, it might be necessary to lower the ``mgain`` parameter.
+The ``-mgain`` parameter sets the major iteration gain: during every major iteration, the peak is reduced by the given factor. With an ``mgain`` of 0.8, the peak is reduced by 80%. This is quite a common and safe option for cleaning. With a reasonable good PSF, using 0.9 is possible without loss of accuracy, and a bit faster. With a very bad PSF, it might be necessary to lower the ``mgain`` parameter.
 
 When ``-mgain`` is not given, or when it is set to 1, WSClean will never go back to the visibilities. It will therefore perform a simple image-based Högbom clean. While this is fast, it limits the accuracy of the image and the dynamic range that can be reached. WSClean will also not write to the MODEL column, as would be required for self-calibration (see the chapter on :doc:`self-calibration <selfcal>`). To use Högbom clean nevertheless, while still filling the model column, one can either use an mgain of e.g. 0.9999, or one can :doc:`predict the final model <prediction>` in a second WSClean run.
 

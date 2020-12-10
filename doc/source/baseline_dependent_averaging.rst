@@ -7,17 +7,17 @@ Baseline-dependent averaging is a technique that allows more efficient averaging
 
 By decreasing the number of visibilities, the imaging will become faster. By chosing the proper averaging factor, this can be quite significant with negligible effects on the image quality. The total time it will save is dependent on many factors ; the image size, the size of the w-terms, the number of visibilities, etc. If the gridding is the dominant cost, then baseline-dependent averaging is probably a significant improvement. In cases where the image size is very large and/or the w-terms are very large, it might be that the Fourier transforms are the dominant cost, instead of the gridding, and the savings might be less.
 
-In principal, the baseline-dependent averaging can be done both in time and in frequency. However, WSClean can only do this in the time direction so far.
+In principle, the baseline-dependent averaging can be done both in time and in frequency. However, WSClean can only do this in the time direction so far.
 
 Baseline-dependent averaging in WSClean
 ---------------------------------------
 
-WSClean can perform baseline-dependent time averaging during its "reordering" step. In this mode, it reads in a normal measurement sets and averages into an internal format. The baseline-dependent averaging happens thus all internally, and other programs don't handle the averaged data. There's currently no good definition for how to store baseline-averaged data in Measurement Sets, so one cannot e.g. perform a self-calibration loop that images the baseline-averaged data, and then calibrate the baseline-averaged data. 
+WSClean can perform baseline-dependent time averaging during its "reordering" step. In this mode, it reads in a normal measurement set and averages into an internal format. The baseline-dependent averaging happens thus all internally, and other programs don't handle the averaged data. There's currently no good definition for how to store baseline-averaged data in Measurement Sets, so one cannot e.g. perform a self-calibration loop that images the baseline-averaged data, and then calibrate the baseline-averaged data.
 
 Setting the averaging factor
 ----------------------------
 
-Baseline-dependent average is enabled with option "``-baseline-averaging <nwavelengths>``", which takes a parameter that is the number of wavelengths it is allowed to average over. This value can be related to the averaging factor as follows:
+Baseline-dependent average is enabled with the option "``-baseline-averaging <nwavelengths>``", which takes a parameter that is the number of wavelengths it is allowed to average over. This value can be related to the averaging factor as follows:
 
 nwavelengths = max baseline in nwavelengths * 2pi * integration time in seconds / (24*60*60)
 
@@ -46,9 +46,9 @@ This is a simple command to show the syntax of baseline-dependent averaging:
        -niter 10000 -threshold 0.002 \
        -baseline-averaging 16 -no-update-model-required \
        -maxuvw-m 100000 observation.ms
-       
+
 Note that baseline-dependent averaging currently only works together with :doc:`primary-beam correction <primary_beam_correction>` since :doc:`version 2.5 <changelogs/v2.5>`.
-       
+
 Some LOFAR specifics
 --------------------
 

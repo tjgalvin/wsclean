@@ -15,7 +15,7 @@ You can self-cal on Stokes I or on multiple polarizations, where the latter is m
 CASA on-the-fly mode
 --------------------
 
-Certain CASA commands (e.g. ft) will put keywords in a measurement set that turn on the "on-the-fly" (otf) mode. In OTF mode, CASA will ignore the ``MODEL_DATA`` column and use other keywords to determine the model data. To make use of the ``MODEL_DATA`` after, you can use the delmod CASA command to disable OTF mode:
+Certain CASA commands (e.g. ft) will put keywords in a measurement set that turn on the "on-the-fly" (otf) mode. In OTF mode, CASA will ignore the ``MODEL_DATA`` column and use other keywords to determine the model data. To make use of the ``MODEL_DATA`` afterwards, you can use the delmod CASA command to disable OTF mode:
 
     delmod(vis='myobs.ms',otf=True,scr=False)
 
