@@ -79,7 +79,9 @@ The second option is to manually add splits by specifying frequencies. For this,
 
 .. code-block:: text
 
-    wsclean -size 512 512 -scale 1amin -channels-out 8 -channel-division-frequencies 140e6,141e6,142e6 1052736496-averaged.ms
+    wsclean -size 512 512 -scale 1amin -channels-out 8 \
+      -channel-division-frequencies 140e6,141e6,142e6 \
+      observation.ms
     [..]
     === IMAGING TABLE ===
           # Pol Ch JG ²G In Freq(MHz)

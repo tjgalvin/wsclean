@@ -64,14 +64,6 @@ class ImageWeightCache {
     return _cachedWeights;
   }
 
-  std::shared_ptr<ImageWeights> Get(casacore::MeasurementSet& ms,
-                                    MSSelection& selection) {
-    std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
-    weights->Grid(ms, selection);
-    initializeWeightTapers(*weights);
-    return std::move(weights);
-  }
-
   std::unique_ptr<ImageWeights> MakeEmptyWeights() const {
     return std::unique_ptr<ImageWeights>(new ImageWeights(
         _weightMode, _imageWidth, _imageHeight, _pixelScaleX, _pixelScaleY,

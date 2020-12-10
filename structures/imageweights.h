@@ -22,7 +22,6 @@ class ImageWeights {
 
   double GetWeight(double u, double v) const { return sampleGridValue(u, v); }
 
-  void Grid(casacore::MeasurementSet& ms, const MSSelection& selection);
   void Grid(class MSProvider& ms, const MSSelection& selection);
   void Grid(double u, double v, double weight) {
     int x, y;
