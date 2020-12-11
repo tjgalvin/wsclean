@@ -1,7 +1,7 @@
 Combining pointings
 ===================
 
-WSClean makes it possible to image and clean a combination of pointings and/or a drift-scan, sometimes referred to as joint deconvolution. It is advisable to use :doc:`version 2.10 <changelogs/v2.10>` -- older versions support some of the features, but in particular the 'measurementset multi-field' support was added only in 2.10.
+WSClean makes it possible to image and clean a combination of pointings and/or a drift-scan, also known as *joint deconvolution*. It is advisable to use :doc:`version 2.10 <changelogs/v2.10>` -- older versions support some of the features, but in particular the 'measurementset multi-field' support was added only in 2.10.
 
 What is discussed in this page, is to grid multiple pointings together on one grid, and applying the primary beam of each observation separately. It also allows to combine observations with different antenna responses (e.g. LOFAR international stations + LOFAR core stations; heterogenous VLBI arrays; interferometers with PAF like Apertif, etc.). It is somewhat similar to mosaicking a number of pointings together with the beam in image space, except that it additionally allows deconvolution on the full, combined image. This makes it possible to deconvolve images deeper.
 
@@ -25,6 +25,49 @@ WSClean needs to know the beam shape. A few arrays are supported 'out of the box
 WSClean needs the beam to have a certain level of smoothness, which results in a certain support of the kernel. In case the beam has unsmooth parts (e.g. near the horizon, or near the estimated response), the default settings might not be enough. Option ``-aterm-kernel-size`` can be used to change the default. Most beams are quite smooth, and don't require a kernel larger than 5..16 pixels. Hence, a safe start is to use a size of 16 and tweak later on for performance.
 
 It is possible to apply other direction-dependent corrections during the imaging. To do so, the list of a-terms needs to be defined using a separate config file as explained on :doc:`the a-term correction page <a_term_correction>`. Such a config file can also specify the beam gridding settings, which means that in that case the parameters like ``-grid-with-beam`` do not have to be set on the command line.
+
+PAF settings
+------------
+
+WSClean has some specific features for joint convolution of multi-beam system, such as phased-array feeds
+(e.g. APERTIF or ASKAP).
+For such telescopes, it is often desirable to provide response images per beam, for which the individual beam images
+have also been centred on the pointing direction of each beam. This is normally simpler than
+providing response images that all have been gridded to the full field centre. What this implies is that
+each beam image only has to capture the part of the beam with significant gain.
+
+To perform such 'paf' imaging, it is expected that the data for each beam is stored in a separate
+measurement set. Each beam and/or antenna may provide a separate beam fits file. The fits file may also have
+a frequency axis. Additionally, the beam can be corrected for the frequency of  the visibilities.
+
+This information can be provided by an a-term config file as described in the chapter :doc:`a-term correction <a_term_correction>`.
+Here is an example:
+
+.. code-block:: text
+
+    aterms = [ paf ]
+
+    paf.antenna_map = [ RT0 RT1 RT2 RT3 RT4 RT5 RT6 RT7 RT8 RT9 RT10 RT11 ]
+    paf.beam_map = [ 00 01 ]
+    paf.beam_pointings = [ -09h25m00.0s 55d49m59.0s -09h35m33.0s 54d47m29.0s ]
+    paf.file_template = observation_cbeam-$ANT-$BEAM.fits
+    paf.window = raised-hann
+    paf.reference_frequency = 1355e6
+
+To allow some flexibility, the filenames of the beams are specified with a file template. This
+template may use the special variables ``$ANT`` and ``$BEAM``, which will be replaced by
+values from the ``antenna_map`` and ``beam_map``, respectively. If ``$ANT`` and/or ``$BEAM`` is not used,
+the map still needs to be defined, but its values are not used. The ``beam_map`` maps
+each measurement set to the beam string that can be used in the file_template.
+The ``antenna_map`` links the antennas in the measurement set to an antenna string that can be used in
+the file_template. With the above example, visibilities from the first measurement set that need to
+be corrected for antenna 0 are corrected by the fits file ``observation_cbeam-RT0-00.fits``.
+
+The ``beam_pointings`` variable is required to hold the centres of the beam images
+(ra and dec values, separated by spaces). The ``reference_frequency`` is used as the central
+"unit scale" frequency of the fits file: for higher frequencies, the image size is shrunk
+by their ratios, and similarly stretched for lower frequencies. If this kind of
+frequency correction is not desired, the ``reference_frequency`` can be set to 0 or left out.
 
 Other image settings
 --------------------

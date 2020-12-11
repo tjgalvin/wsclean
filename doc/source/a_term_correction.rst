@@ -48,11 +48,14 @@ To use a-term correction or combine multiple corrections, a configuration file c
     # Each measurement set is assumed to contain the data for a single beam, and
     # the order of the fits files specified here should match the order of the measurement set.
     paf.antenna_map = [ ant_0 ant_1 ant_2 ant_3 ant_4 ant_5 ant_6 ant_7 ant_8 ant_9 ant_10 ]
-    paf.beam_map = [ 00 01 02 03 04 05 06 07 08 09 ]
+    paf.beam_map = [ 00 01 ]
+    paf.beam_pointings = [ -09h25m00.0s 55d49m59.0s -09h35m33.0s 54d47m29.0s ]
     paf.file_template = beammodels/$ANT/CygA_191120_$BEAM_$ANT_I.fits
     paf.window = hann
  
 The ``aterms`` keyword specifies a list of corrections to be applied, and each correction can have some parameters. The TEC and diagonal images are FITS image cubes with a special format; see the chapter below on TEC correction. Those parameters that are specified in the config file are no longer necessary on the command line (e.g. ``-grid-with-beam`` is no longer effective when a config file is specified with beam). The tec and diagonal image lists can take one or multiple fits files. The fits files are concatenated time-wise, so in an observation with 20 timesteps, the first one can specify the first 10 and the second one the last 10. This allows timegaps; e.g. if two observations are imaged that have some gap in time, different fits files can be made so that it is not required to "zero pad" the time in between.
+
+The ``paf`` correction is described in the chapter on :doc:`combining pointings <combining_pointings>`. The other corrections are discussed below.
 
 Kernel size
 -----------
