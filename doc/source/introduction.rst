@@ -5,7 +5,7 @@ WSClean stands for "w-stacking clean". W-stacking is an alternative to the w-pro
 
 It turns out that for many telescopes, the WSClean approach is a very good trade-off, and WSClean is typically an order of magnitude faster than Casa's w-projection on MWA data. It can also handle full-sky 10k x 10k images on which Casa runs out of memory. WSClean with the same number of layers is at least as accurate as w-projection. In tests it seems even to be slightly more accurate, probably because there is no need to trim down a convolution kernel. 
 
-[The "usage" page](Usage) gives an overview of how to call WSClean from the commandline.
+:doc:`The "usage" chapter <usage>` gives an overview of how to call WSClean from the commandline.
 
 WSClean Article
 ---------------
