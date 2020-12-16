@@ -20,7 +20,7 @@ SOURCE_DIR=..
 
 #Directories that must be excluded from formatting. These paths are relative to
 #$SCRIPT_PATH (e.g. ../external) or should match a pattern (e.g. */external).
-EXCLUDE_DIRS=(../external)
+EXCLUDE_DIRS=(../external ../build)
 
 #The extensions of the source files, which clang-format should format.
 SOURCE_EXT=(*.cpp *.h)

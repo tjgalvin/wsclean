@@ -339,4 +339,10 @@ else()
   message("Boost testing framework not found (not required for wsclean: only required for running make check).")
 endif()
 
+add_custom_target(
+  coverage
+  COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
+  DEPENDS check
+)
+
 message(STATUS "Flags passed to C++ compiler: " ${CMAKE_CXX_FLAGS})
