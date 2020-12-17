@@ -38,7 +38,7 @@ class IdgMsGridder : public MSGridderBase {
                                     const std::string& filenameKind,
                                     const Settings& settings);
 
-  static void SaveBeamImage(const class ImagingTableEntry& entry,
+  static void SaveBeamImage(const struct ImagingTableEntry& entry,
                             class ImageFilename& filename,
                             const Settings& settings, double ra, double dec,
                             double pdl, double pdm, const MetaDataCache& cache);

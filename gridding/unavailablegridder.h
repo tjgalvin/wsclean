@@ -33,7 +33,7 @@ class UnavailableGridder : public MSGridderBase {
                                     const std::string& /*filenameKind*/,
                                     const Settings&) {}
 
-  static void SaveBeamImage(const class ImagingTableEntry& /*entry*/,
+  static void SaveBeamImage(const struct ImagingTableEntry& /*entry*/,
                             class ImageFilename& /*filename*/, const Settings&,
                             double, double, double, double,
                             const MetaDataCache&) {}

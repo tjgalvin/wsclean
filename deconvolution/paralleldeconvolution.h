@@ -85,7 +85,7 @@ class ParallelDeconvolution {
                    std::mutex* mutex);
 
   void correctChannelForPB(class ComponentList& list,
-                           const class ImagingTableEntry& entry) const;
+                           const struct ImagingTableEntry& entry) const;
 
   PrimaryBeamImageSet loadAveragePrimaryBeam(
       size_t imageIndex, const class ImagingTable& table) const;

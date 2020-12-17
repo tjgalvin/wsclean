@@ -13,7 +13,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected: setting linking flag --no-undefined")
   string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
 endif()
- 
+
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
 
@@ -156,7 +156,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_library(wsclean-object OBJECT
   main/commandline.cpp
   main/progressbar.cpp
-  main/stopwatch.cpp 
+  main/stopwatch.cpp
   main/wsclean.cpp
   main/settings.cpp
   deconvolution/casamaskreader.cpp
@@ -179,13 +179,13 @@ add_library(wsclean-object OBJECT
   idg/averagebeam.cpp
   interface/wscleaninterface.cpp
   io/logger.cpp
-  io/parsetreader.cpp 
+  io/parsetreader.cpp
   io/wscfitswriter.cpp
   iuwt/imageanalysis.cpp
   iuwt/iuwtdecomposition.cpp
   iuwt/iuwtdeconvolutionalgorithm.cpp
   iuwt/iuwtmask.cpp
-  math/fftconvolver.cpp 
+  math/fftconvolver.cpp
   math/fftresampler.cpp
   math/gaussianfitter.cpp
   math/imageoperations.cpp
@@ -214,6 +214,7 @@ add_library(wsclean-object OBJECT
   structures/image.cpp
   structures/imageweights.cpp
   structures/imagingtable.cpp
+  structures/imagingtableentry.cpp
   structures/msselection.cpp
   structures/multibanddata.cpp
   structures/observationinfo.cpp
@@ -302,8 +303,8 @@ if(DOXYGEN_FOUND)
     COMMENT "Generating API documentation with Doxygen" VERBATIM)
   add_custom_target(doc DEPENDS doxygendoc sphinxdoc)
 else(DOXYGEN_FOUND)
-  message(STATUS "Doxygen not found: API documentation can not compiled.")  
-  add_custom_target(doc DEPENDS sphinxdoc)  
+  message(STATUS "Doxygen not found: API documentation can not compiled.")
+  add_custom_target(doc DEPENDS sphinxdoc)
 endif(DOXYGEN_FOUND)
 
 find_package(Boost COMPONENTS date_time filesystem system program_options unit_test_framework)
@@ -321,16 +322,16 @@ if(Boost_FOUND)
     tests/testparsetreader.cpp
     tests/testpeakfinder.cpp
     tests/testserialization.cpp
-    
+
     tests/integration/tbasics.cpp
     tests/integration/tveladeconvolution.cpp
-    
+
     tests/math/tdijkstrasplitter.cpp
     tests/math/tgaussianfitter.cpp
     tests/math/tpolynomialfitter.cpp
     tests/math/tnlplfitter.cpp
     tests/math/tpolynomialchannelfitter.cpp
-    
+
     ${WSCLEANFILES})
   target_link_libraries(runtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   add_test(runtest runtest)

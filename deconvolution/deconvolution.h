@@ -56,7 +56,7 @@ class Deconvolution {
 
  private:
   void correctChannelForPB(class ComponentList& list,
-                           const class ImagingTableEntry& entry) const;
+                           const struct ImagingTableEntry& entry) const;
 
   void readMask(const ImagingTable& groupTable);
 

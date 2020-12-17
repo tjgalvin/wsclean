@@ -18,6 +18,8 @@
 
 #include "../gridding/msgridderbase.h"
 
+#include "../msproviders/partitionedms.h"
+
 #include "stopwatch.h"
 #include "settings.h"
 
