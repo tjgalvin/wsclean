@@ -72,6 +72,9 @@ class ImageT {
 
   ImageT<NumT>& operator*=(value_type factor);
   ImageT<NumT>& operator*=(const ImageT<NumT>& other);
+  ImageT<NumT>& operator/=(value_type factor) {
+    return (*this) *= value_type(1.0) / factor;
+  }
 
   ImageT<NumT>& Sqrt();
   ImageT<NumT>& Square();
