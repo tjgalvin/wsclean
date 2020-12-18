@@ -23,10 +23,10 @@ BOOST_AUTO_TEST_CASE(basic) {
   SerialIStream istr(std::move(ostr));
 
   BOOST_CHECK_EQUAL(istr.Bool(), true);
-  BOOST_CHECK_EQUAL(istr.UInt8(), 80);
-  BOOST_CHECK_EQUAL(istr.UInt16(), 160);
-  BOOST_CHECK_EQUAL(istr.UInt32(), 320);
-  BOOST_CHECK_EQUAL(istr.UInt64(), 640);
+  BOOST_CHECK_EQUAL(istr.UInt8(), 80u);
+  BOOST_CHECK_EQUAL(istr.UInt16(), 160u);
+  BOOST_CHECK_EQUAL(istr.UInt32(), 320u);
+  BOOST_CHECK_EQUAL(istr.UInt64(), 640u);
   BOOST_CHECK_EQUAL(istr.Float(), 1.5);
   BOOST_CHECK_EQUAL(istr.Double(), 3.14);
   BOOST_CHECK_EQUAL(istr.LDouble(), 2.71);
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(empty_gridding_task) {
 
   SerialOStream ostr;
   a.Serialize(ostr);
-  BOOST_CHECK_NE(ostr.size(), 0);
+  BOOST_CHECK_NE(ostr.size(), 0u);
 
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(image_weights) {
 
   SerialOStream ostr;
   weightsA.Serialize(ostr);
-  BOOST_CHECK_NE(ostr.size(), 0);
+  BOOST_CHECK_NE(ostr.size(), 0u);
 
   ImageWeights weightsB;
   SerialIStream istr(std::move(ostr));
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(msselection) {
 
   SerialOStream ostr;
   a.Serialize(ostr);
-  BOOST_CHECK_NE(ostr.size(), 0);
+  BOOST_CHECK_NE(ostr.size(), 0u);
 
   MSSelection b;
   SerialIStream istr(std::move(ostr));
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(image) {
 
   SerialOStream ostr;
   a.Serialize(ostr);
-  BOOST_CHECK_NE(ostr.size(), 0);
+  BOOST_CHECK_NE(ostr.size(), 0u);
 
   Image b;
   SerialIStream istr(std::move(ostr));
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(average_beam_empty) {
 
   SerialOStream ostr;
   a.Serialize(ostr);
-  BOOST_CHECK_NE(ostr.size(), 0);
+  BOOST_CHECK_NE(ostr.size(), 0u);
 
   b.SetMatrixInverseBeam(std::shared_ptr<std::vector<std::complex<float>>>(
       new std::vector<std::complex<float>>(12, 3)));
@@ -181,12 +181,12 @@ BOOST_AUTO_TEST_CASE(average_beam_filled) {
 
   SerialOStream ostr;
   a.Serialize(ostr);
-  BOOST_CHECK_NE(ostr.size(), 0);
+  BOOST_CHECK_NE(ostr.size(), 0u);
 
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
-  BOOST_CHECK_EQUAL(b.MatrixInverseBeam()->size(), 12);
-  BOOST_CHECK_EQUAL(b.ScalarBeam()->size(), 11);
+  BOOST_CHECK_EQUAL(b.MatrixInverseBeam()->size(), 12u);
+  BOOST_CHECK_EQUAL(b.ScalarBeam()->size(), 11u);
   BOOST_CHECK_EQUAL(b.MatrixInverseBeam()->at(8), std::complex<float>(3, 0));
   BOOST_CHECK_EQUAL(b.ScalarBeam()->at(7), 4);
 }

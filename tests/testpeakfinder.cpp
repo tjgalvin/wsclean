@@ -44,8 +44,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX1Double) {
   CleanTestFixture<double> f;
   f.img[0] = 1;
   f.findPeak();
-  BOOST_CHECK_EQUAL(f.x, 0);
-  BOOST_CHECK_EQUAL(f.y, 0);
+  BOOST_CHECK_EQUAL(f.x, 0u);
+  BOOST_CHECK_EQUAL(f.y, 0u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX2Double) {
@@ -53,8 +53,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX2Double) {
   f.img[0] = 1;
   f.img[1] = 2;
   f.findPeak();
-  BOOST_CHECK_EQUAL(f.x, 1);
-  BOOST_CHECK_EQUAL(f.y, 0);
+  BOOST_CHECK_EQUAL(f.x, 1u);
+  BOOST_CHECK_EQUAL(f.y, 0u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX3Double) {
@@ -63,8 +63,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX3Double) {
   f.img[1] = 2;
   f.img[4] = 3;
   f.findPeak();
-  BOOST_CHECK_EQUAL(f.x, 0);
-  BOOST_CHECK_EQUAL(f.y, 1);
+  BOOST_CHECK_EQUAL(f.x, 0u);
+  BOOST_CHECK_EQUAL(f.y, 1u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX4Double) {
@@ -74,8 +74,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX4Double) {
   f.img[4] = 3;
   f.img[7] = 4;
   f.findPeak();
-  BOOST_CHECK_EQUAL(f.x, 3);
-  BOOST_CHECK_EQUAL(f.y, 1);
+  BOOST_CHECK_EQUAL(f.x, 3u);
+  BOOST_CHECK_EQUAL(f.y, 1u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX5Double) {
@@ -86,8 +86,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX5Double) {
   f.img[7] = 4;
   f.img[15] = 6;
   f.findPeak(4, 4, 0, 4);
-  BOOST_CHECK_EQUAL(f.x, 3);
-  BOOST_CHECK_EQUAL(f.y, 3);
+  BOOST_CHECK_EQUAL(f.x, 3u);
+  BOOST_CHECK_EQUAL(f.y, 3u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX6Double) {
@@ -99,16 +99,16 @@ BOOST_AUTO_TEST_CASE(findPeakAVX6Double) {
   f.img[15] = 6;
   f.img[14] = 5;
   f.findPeak(3, 5, 0, 5);
-  BOOST_CHECK_EQUAL(f.x, 2);
-  BOOST_CHECK_EQUAL(f.y, 4);
+  BOOST_CHECK_EQUAL(f.x, 2u);
+  BOOST_CHECK_EQUAL(f.y, 4u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX1Single) {
   CleanTestFixture<float> f(36);
   f.img[0] = 1;
   f.findPeak(6, 6, 0, 6);
-  BOOST_CHECK_EQUAL(f.x, 0);
-  BOOST_CHECK_EQUAL(f.y, 0);
+  BOOST_CHECK_EQUAL(f.x, 0u);
+  BOOST_CHECK_EQUAL(f.y, 0u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX2Single) {
@@ -116,8 +116,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX2Single) {
   f.img[0] = 1;
   f.img[1] = 2;
   f.findPeak(6, 6, 0, 6);
-  BOOST_CHECK_EQUAL(f.x, 1);
-  BOOST_CHECK_EQUAL(f.y, 0);
+  BOOST_CHECK_EQUAL(f.x, 1u);
+  BOOST_CHECK_EQUAL(f.y, 0u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX3Single) {
@@ -126,8 +126,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX3Single) {
   f.img[1] = 2;
   f.img[6] = 3;
   f.findPeak(6, 6, 0, 6);
-  BOOST_CHECK_EQUAL(f.x, 0);
-  BOOST_CHECK_EQUAL(f.y, 1);
+  BOOST_CHECK_EQUAL(f.x, 0u);
+  BOOST_CHECK_EQUAL(f.y, 1u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX4Single) {
@@ -137,8 +137,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX4Single) {
   f.img[6] = 3;
   f.img[9] = 4;
   f.findPeak(6, 6, 0, 6);
-  BOOST_CHECK_EQUAL(f.x, 3);
-  BOOST_CHECK_EQUAL(f.y, 1);
+  BOOST_CHECK_EQUAL(f.x, 3u);
+  BOOST_CHECK_EQUAL(f.y, 1u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX5Single) {
@@ -149,8 +149,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX5Single) {
   f.img[9] = 4;
   f.img[35] = 6;
   f.findPeak(6, 6, 0, 6);
-  BOOST_CHECK_EQUAL(f.x, 5);
-  BOOST_CHECK_EQUAL(f.y, 5);
+  BOOST_CHECK_EQUAL(f.x, 5u);
+  BOOST_CHECK_EQUAL(f.y, 5u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX6Single) {
@@ -161,8 +161,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX6Single) {
   f.img[9] = 4;
   f.img[35] = 6;
   f.findPeak(2, 18, 0, 18);
-  BOOST_CHECK_EQUAL(f.x, 1);
-  BOOST_CHECK_EQUAL(f.y, 17);
+  BOOST_CHECK_EQUAL(f.x, 1u);
+  BOOST_CHECK_EQUAL(f.y, 17u);
 }
 
 BOOST_AUTO_TEST_CASE(findPeakAVX7Single) {
@@ -174,8 +174,8 @@ BOOST_AUTO_TEST_CASE(findPeakAVX7Single) {
   f.img[35] = 6;
   f.img[37] = 7;
   f.findPeak(6, 6, 0, 6);
-  BOOST_CHECK_EQUAL(f.x, 5);
-  BOOST_CHECK_EQUAL(f.y, 5);
+  BOOST_CHECK_EQUAL(f.x, 5u);
+  BOOST_CHECK_EQUAL(f.y, 5u);
 }
 
 #endif

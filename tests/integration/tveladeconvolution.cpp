@@ -65,8 +65,8 @@ BOOST_AUTO_TEST_CASE(wstacking) {
 
     FitsReader dirtyReader("mwa_test_run-MFS-dirty.fits");
     FitsReader residualReader("mwa_test_run-MFS-residual.fits");
-    BOOST_CHECK_EQUAL(residualReader.ImageWidth(), 1024);
-    BOOST_CHECK_EQUAL(residualReader.ImageHeight(), 1024);
+    BOOST_CHECK_EQUAL(residualReader.ImageWidth(), 1024u);
+    BOOST_CHECK_EQUAL(residualReader.ImageHeight(), 1024u);
     Image residual(residualReader.ImageWidth(), residualReader.ImageHeight()),
         dirty(residualReader.ImageWidth(), residualReader.ImageHeight());
     residualReader.Read(residual.data());
@@ -141,8 +141,8 @@ BOOST_AUTO_TEST_CASE(wgridder) {
 
     FitsReader dirtyReader("mwa_test_run-MFS-dirty.fits");
     FitsReader residualReader("mwa_test_run-MFS-residual.fits");
-    BOOST_CHECK_EQUAL(residualReader.ImageWidth(), 1024);
-    BOOST_CHECK_EQUAL(residualReader.ImageHeight(), 1024);
+    BOOST_CHECK_EQUAL(residualReader.ImageWidth(), 1024u);
+    BOOST_CHECK_EQUAL(residualReader.ImageHeight(), 1024u);
     Image residual(residualReader.ImageWidth(), residualReader.ImageHeight()),
         dirty(residualReader.ImageWidth(), residualReader.ImageHeight());
     residualReader.Read(residual.data());

@@ -22,12 +22,12 @@ BOOST_AUTO_TEST_CASE(normal_parset) {
   std::istringstream stream(testparset);
   ParsetReader reader(stream);
 
-  BOOST_CHECK_EQUAL(reader.GetStringList("aterms").size(), 3);
+  BOOST_CHECK_EQUAL(reader.GetStringList("aterms").size(), 3u);
   BOOST_CHECK_EQUAL(reader.GetStringList("aterms")[0], "tec");
   BOOST_CHECK_EQUAL(reader.GetStringList("aterms")[1], "rm");
   BOOST_CHECK_EQUAL(reader.GetStringList("aterms")[2], "amplitude");
   BOOST_CHECK_EQUAL(reader.GetString("tec.type"), "tec");
-  BOOST_CHECK_EQUAL(reader.GetStringList("tec.images").size(), 1);
+  BOOST_CHECK_EQUAL(reader.GetStringList("tec.images").size(), 1u);
   BOOST_CHECK_EQUAL(reader.GetStringList("tec.images")[0], "tecimages.fits");
   BOOST_CHECK_EQUAL(reader.GetString("rm.type"), "rm");
   BOOST_CHECK_EQUAL(reader.GetString("amplitude.type"), "amplitude");

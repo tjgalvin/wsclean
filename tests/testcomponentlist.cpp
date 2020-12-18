@@ -18,30 +18,30 @@ BOOST_AUTO_TEST_CASE(adding_values) {
 
   list.MergeDuplicates();
 
-  BOOST_CHECK_EQUAL(list.ComponentCount(0), 1);
-  BOOST_CHECK_EQUAL(list.ComponentCount(1), 1);
-  BOOST_CHECK_EQUAL(list.ComponentCount(2), 0);
-  BOOST_CHECK_EQUAL(list.ComponentCount(3), 1);
+  BOOST_CHECK_EQUAL(list.ComponentCount(0), 1u);
+  BOOST_CHECK_EQUAL(list.ComponentCount(1), 1u);
+  BOOST_CHECK_EQUAL(list.ComponentCount(2), 0u);
+  BOOST_CHECK_EQUAL(list.ComponentCount(3), 1u);
 
   size_t x, y;
 
   list.GetComponent(0, 0, x, y, values.data());
-  BOOST_CHECK_EQUAL(x, 511);
-  BOOST_CHECK_EQUAL(y, 511);
+  BOOST_CHECK_EQUAL(x, 511u);
+  BOOST_CHECK_EQUAL(y, 511u);
   BOOST_CHECK_CLOSE_FRACTION(values[0], 8.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(values[1], 9.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(values[2], 10.0, 1e-5);
 
   list.GetComponent(1, 0, x, y, values.data());
-  BOOST_CHECK_EQUAL(x, 256);
-  BOOST_CHECK_EQUAL(y, 256);
+  BOOST_CHECK_EQUAL(x, 256u);
+  BOOST_CHECK_EQUAL(y, 256u);
   BOOST_CHECK_CLOSE_FRACTION(values[0], 6.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(values[1], 8.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(values[2], 10.0, 1e-5);
 
   list.GetComponent(3, 0, x, y, values.data());
-  BOOST_CHECK_EQUAL(x, 13);
-  BOOST_CHECK_EQUAL(y, 42);
+  BOOST_CHECK_EQUAL(x, 13u);
+  BOOST_CHECK_EQUAL(y, 42u);
   BOOST_CHECK_CLOSE_FRACTION(values[0], 11.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(values[1], 12.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(values[2], 13.0, 1e-5);

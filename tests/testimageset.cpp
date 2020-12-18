@@ -59,13 +59,13 @@ struct ImageSetFixture : public ImageSetFixtureBase {
 BOOST_FIXTURE_TEST_SUITE(imageset, ImageSetFixture)
 
 BOOST_AUTO_TEST_CASE(squaredGroupCount) {
-  BOOST_CHECK_EQUAL(table.SquaredGroupCount(), 2);
+  BOOST_CHECK_EQUAL(table.SquaredGroupCount(), 2u);
 }
 
-BOOST_AUTO_TEST_CASE(entryCount) { BOOST_CHECK_EQUAL(table.EntryCount(), 4); }
+BOOST_AUTO_TEST_CASE(entryCount) { BOOST_CHECK_EQUAL(table.EntryCount(), 4u); }
 
 BOOST_AUTO_TEST_CASE(entriesInGroup) {
-  BOOST_CHECK_EQUAL(table.GetSquaredGroup(0).EntryCount(), 2);
+  BOOST_CHECK_EQUAL(table.GetSquaredGroup(0).EntryCount(), 2u);
 }
 
 BOOST_AUTO_TEST_CASE(psfCount1) {
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(psfCount1) {
   settings.squaredJoins = false;
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>();
   ImageSet dset(&table, settings, 2, 2);
-  BOOST_CHECK_EQUAL(dset.PSFCount(), 1);
+  BOOST_CHECK_EQUAL(dset.PSFCount(), 1u);
 }
 
 BOOST_AUTO_TEST_CASE(psfCount2) {
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(psfCount2) {
   settings.squaredJoins = false;
   settings.linkedPolarizations = std::set<aocommon::PolarizationEnum>();
   ImageSet dset(&table, settings, 2, 2);
-  BOOST_CHECK_EQUAL(dset.PSFCount(), 2);
+  BOOST_CHECK_EQUAL(dset.PSFCount(), 2u);
 }
 
 struct AdvImageSetFixture : public ImageSetFixture {
@@ -391,9 +391,9 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_divisor, ImageSetFixtureBase) {
   checkLinearValue(0, 7.0, dset);
   checkSquaredValue(0, 7.0, dset);
 
-  BOOST_CHECK_EQUAL(dset.PSFIndex(0), 0);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(1), 1);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(2), 2);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(0), 0u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(1), 1u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(2), 2u);
 }
 
 BOOST_FIXTURE_TEST_CASE(psfindex, ImageSetFixtureBase) {
@@ -414,14 +414,14 @@ BOOST_FIXTURE_TEST_CASE(psfindex, ImageSetFixtureBase) {
       aocommon::Polarization::YX, aocommon::Polarization::YY};
   ImageSet dset(&table, settings, 2, 2);
 
-  BOOST_CHECK_EQUAL(dset.PSFIndex(0), 0);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(1), 0);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(2), 0);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(3), 0);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(4), 1);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(5), 1);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(6), 1);
-  BOOST_CHECK_EQUAL(dset.PSFIndex(7), 1);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(0), 0u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(1), 0u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(2), 0u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(3), 0u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(4), 1u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(5), 1u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(6), 1u);
+  BOOST_CHECK_EQUAL(dset.PSFIndex(7), 1u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

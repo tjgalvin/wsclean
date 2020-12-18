@@ -70,8 +70,8 @@ BOOST_AUTO_TEST_CASE(noAveraging) {
       ++nRow;
     }
 
-    BOOST_CHECK_GT(nRow, 0);
-    BOOST_CHECK_GT(nFinite, 0);
+    BOOST_CHECK_GT(nRow, 0u);
+    BOOST_CHECK_GT(nFinite, 0u);
     BOOST_CHECK_EQUAL(avgProvider.AtEnd(), directProvider.AtEnd());
   } else {
     BOOST_TEST_WARN(false,

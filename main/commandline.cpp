@@ -660,7 +660,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   Settings& settings = wsclean.GetSettings();
   int argi = 1;
   bool mfWeighting = false, noMFWeighting = false, dryRun = false;
-  boost::optional<double> atermKernelSize(boost::none);
+  auto atermKernelSize = boost::make_optional<double>(false, 0.0);
   while (argi < argc && argv[argi][0] == '-') {
     const std::string param =
         argv[argi][1] == '-' ? (&argv[argi][2]) : (&argv[argi][1]);

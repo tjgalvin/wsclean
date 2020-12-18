@@ -374,14 +374,17 @@ double PrimaryBeam::MakeBeamForMS(
       }
       // Assign weight of 1 for these "time independent" telescopes
       ms_weight = 1.0;
-      size_t fieldRow = _settings.fieldIds[0];
-      if (fieldRow == MSSelection::ALL_FIELDS) {
+      if (_settings.fieldIds[0] == MSSelection::ALL_FIELDS) {
         Logger::Warn
             << "Warning: primary beam correction together with '-fields "
                "ALL' is not properly supported\n";
         Logger::Warn << "       : The beam will be calculated only for the "
                         "first field!\n";
       }
+      break;
+    case everybeam::TelescopeType::kUnknownTelescope:
+      Logger::Warn << "Warning: Unknown telescope type!\n";
+      break;
   }
 
   std::unique_ptr<everybeam::griddedresponse::GriddedResponse> grid_response =

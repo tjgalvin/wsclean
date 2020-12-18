@@ -8,7 +8,9 @@ include(CMakeVersionInfo.txt)
 #  set(CMAKE_BUILD_TYPE "Release")
 #endif()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -DNDEBUG")
+# Using pybind11 requires using -fvisibility=hidden.
+# See https://pybind11.readthedocs.io/en/stable/faq.html
+add_compile_options(-O3 -Wall -DNDEBUG -fvisibility=hidden)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected: setting linking flag --no-undefined")
   string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
@@ -17,21 +19,23 @@ endif()
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
 
-if(COMPILER_HAS_CXX17)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+option(DISABLE_CXX17 "Do not use C++17 for compilation" OFF)
+
+if(COMPILER_HAS_CXX17 AND NOT DISABLE_CXX17)
+  add_compile_options(-std=c++17)
   add_definitions(-DHAVE_WGRIDDER)
   set(WGRIDDER_FILES wgridder/bufferedmsgridder.cpp
     external/wgridder/ducc0/infra/threading.cc
     wgridder/wgriddinggridder_simple.cpp)
   include_directories(external/wgridder)
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+  add_compile_options(-std=c++11)
   message(WARNING "Selected compiler does not support the C++17 standard. This will disable the 'wgridder' gridder, which requires C++17.")
   set(WGRIDDER_FILES)
 endif()
 
 if(NOT PORTABLE)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+  add_compile_options(-march=native)
 endif(NOT PORTABLE)
 
 # Find and include git submodules
@@ -83,7 +87,7 @@ find_library(GSL_CBLAS_LIB NAMES gslcblas)
 find_package(MPI)
 
 if(MPI_FOUND)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_COMPILE_FLAGS}")
+  add_compile_options(${MPI_COMPILE_FLAGS})
   add_definitions(-DHAVE_MPI)
   include_directories(SYSTEM ${MPI_INCLUDE_PATH})
   set(MPI_CPP_FILES scheduling/mpischeduler.cpp distributed/mpibig.cpp)
@@ -349,4 +353,6 @@ add_custom_target(
   DEPENDS check
 )
 
-message(STATUS "Flags passed to C++ compiler: " ${CMAKE_CXX_FLAGS})
+get_directory_property(MAIN_COMPILE_OPTIONS COMPILE_OPTIONS)
+string(REPLACE ";" " " MAIN_COMPILE_OPTIONS "${MAIN_COMPILE_OPTIONS}")
+message(STATUS "Flags passed to C++ compiler: ${MAIN_COMPILE_OPTIONS}")
