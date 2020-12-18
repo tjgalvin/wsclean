@@ -3,6 +3,7 @@
 
 #include "imagingtableentry.h"
 
+#include <limits>
 #include <memory>
 #include <vector>
 
