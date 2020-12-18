@@ -2,3 +2,4 @@ cmakestrap.sh
 .kdev4/
 build/
 wsclean.kdev4
+.vscode/

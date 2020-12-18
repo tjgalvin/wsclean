@@ -26,11 +26,10 @@ class ImagingTable {
     return *_entries[index];
   }
 
-  size_t ImageCount() const { return _imageLookup.size(); }
-
-  void GetImageInfo(size_t imageIndex, bool& isImaginary);
-
-  void Clear() { _entries.clear(); }
+  void Clear() {
+    _entries.clear();
+    Update();
+  }
 
   ImagingTableEntry& AddEntry() {
     _entries.emplace_back(new ImagingTableEntry());
@@ -40,7 +39,6 @@ class ImagingTable {
   void Update() {
     updateIndependentGroupLookup();
     updateSquaredGroupLookup();
-    updateImageLookup();
   }
 
   void Print();
@@ -80,14 +78,12 @@ class ImagingTable {
   void printIndependentGroup(bool isFinal);
   void updateIndependentGroupLookup();
   void updateSquaredGroupLookup();
-  void updateImageLookup();
 
   typedef std::shared_ptr<ImagingTableEntry> ImagingTableEntryPtr;
   std::vector<ImagingTableEntryPtr> _entries;
 
   std::vector<std::vector<ImagingTableEntryPtr>> _independentGroupLookup;
   std::vector<std::vector<ImagingTableEntryPtr>> _squaredGroupLookup;
-  std::vector<std::pair<ImagingTableEntryPtr, bool>> _imageLookup;
 };
 
 #endif

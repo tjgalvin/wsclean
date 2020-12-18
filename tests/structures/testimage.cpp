@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../structures/image.h"
+#include "../../structures/image.h"
 
 #include <aocommon/uvector.h>
 

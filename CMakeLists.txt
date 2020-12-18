@@ -307,7 +307,8 @@ else(DOXYGEN_FOUND)
   add_custom_target(doc DEPENDS sphinxdoc)
 endif(DOXYGEN_FOUND)
 
-find_package(Boost COMPONENTS date_time filesystem system program_options unit_test_framework)
+# Boost 1.59 introduced BOOST_TEST, which several tests use.
+find_package(Boost 1.59.0 COMPONENTS unit_test_framework)
 if(Boost_FOUND)
   add_executable(runtest EXCLUDE_FROM_ALL
     tests/test.cpp
@@ -316,7 +317,6 @@ if(Boost_FOUND)
     tests/testcomponentlist.cpp
     tests/testfitsdateobstime.cpp
     tests/testfluxdensity.cpp
-    tests/testimage.cpp
     tests/testimageset.cpp
     tests/testmultibanddata.cpp
     tests/testparsetreader.cpp
@@ -331,6 +331,9 @@ if(Boost_FOUND)
     tests/math/tpolynomialfitter.cpp
     tests/math/tnlplfitter.cpp
     tests/math/tpolynomialchannelfitter.cpp
+
+    tests/structures/testimage.cpp
+    tests/structures/testimagingtable.cpp
 
     ${WSCLEANFILES})
   target_link_libraries(runtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
