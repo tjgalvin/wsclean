@@ -116,9 +116,6 @@ template<size_t ndim> void checkShape
   (const array<size_t, ndim> &shp1, const array<size_t, ndim> &shp2)
   { MR_assert(shp1==shp2, "shape mismatch"); }
 
-template<typename T> inline T fmod1 (T v)
-  { return v-floor(v); }
-
 //
 // Start of real gridder functionality
 //
@@ -175,9 +172,9 @@ template<typename T> void hartley2_2D(mav<T,2> &arr, size_t vlim,
     {
     if (!first_fast)
       r2r_separable_hartley(farr, farr, {1}, T(1), nthreads);
-    auto flo = farr.subarray({0,0},{farr.shape(0),vlim});
+    auto flo = subarray(farr, {0,0},{MAXIDX,vlim});
     r2r_separable_hartley(flo, flo, {0}, T(1), nthreads);
-    auto fhi = farr.subarray({0,farr.shape(1)-vlim},{farr.shape(0),vlim});
+    auto fhi = subarray(farr, {0,farr.shape(1)-vlim},{MAXIDX,vlim});
     r2r_separable_hartley(fhi, fhi, {0}, T(1), nthreads);
     if (first_fast)
       r2r_separable_hartley(farr, farr, {1}, T(1), nthreads);
@@ -274,7 +271,7 @@ class Baselines
         }
       coord.resize(nrows);
       double vfac = negate_v ? -1 : 1;
-      vmax=0;
+      umax=vmax=0;
       for (size_t i=0; i<coord.size(); ++i)
         {
         coord[i] = UVW(coord_(i,0), vfac*coord_(i,1), coord_(i,2));
@@ -444,9 +441,9 @@ template<typename T> class Params
         {
         if (!uv_side_fast)
           c2c(inout, inout, {1}, BACKWARD, T(1), nthreads);
-        auto inout_lo = inout.subarray({0,0},{inout.shape(0),vlim});
+        auto inout_lo = inout.subarray({0,0},{MAXIDX,vlim});
         c2c(inout_lo, inout_lo, {0}, BACKWARD, T(1), nthreads);
-        auto inout_hi = inout.subarray({0,inout.shape(1)-vlim},{inout.shape(0),vlim});
+        auto inout_hi = inout.subarray({0,inout.shape(1)-vlim},{MAXIDX,vlim});
         c2c(inout_hi, inout_hi, {0}, BACKWARD, T(1), nthreads);
         if (uv_side_fast)
           c2c(inout, inout, {1}, BACKWARD, T(1), nthreads);
@@ -466,9 +463,9 @@ template<typename T> class Params
       auto cfu = krn->corfunc(nxdirty/2+1, 1./nu, nthreads);
       auto cfv = krn->corfunc(nydirty/2+1, 1./nv, nthreads);
       // only zero the parts of the grid that are not filled afterwards anyway
-      { auto a0 = grid.template subarray<2>({0,nydirty/2}, {nxdirty/2, nv-nydirty+1}); quickzero(a0, nthreads); }
-      { auto a0 = grid.template subarray<2>({nxdirty/2,0}, {nu-nxdirty+1, nv}); quickzero(a0, nthreads); }
-      { auto a0 = grid.template subarray<2>({nu-nxdirty/2+1, nydirty/2}, {nxdirty/2-1, nv-nydirty+1}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {0,nydirty/2}, {nxdirty/2, nv-nydirty+1}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {nxdirty/2,0}, {nu-nxdirty+1, nv}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {nu-nxdirty/2+1, nydirty/2}, {nxdirty/2-1, nv-nydirty+1}); quickzero(a0, nthreads); }
       timers.poppush("grid correction");
       execParallel(nxdirty, nthreads, [&](size_t lo, size_t hi)
         {
@@ -494,9 +491,9 @@ template<typename T> class Params
       checkShape(dirty.shape(), {nxdirty, nydirty});
       checkShape(grid.shape(), {nu, nv});
       // only zero the parts of the grid that are not filled afterwards anyway
-      { auto a0 = grid.template subarray<2>({0,nydirty/2}, {nxdirty/2, nv-nydirty+1}); quickzero(a0, nthreads); }
-      { auto a0 = grid.template subarray<2>({nxdirty/2,0}, {nu-nxdirty+1, nv}); quickzero(a0, nthreads); }
-      { auto a0 = grid.template subarray<2>({nu-nxdirty/2+1, nydirty/2}, {nxdirty/2-1, nv-nydirty+1}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {0,nydirty/2}, {nxdirty/2, nv-nydirty+1}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {nxdirty/2,0}, {nu-nxdirty+1, nv}); quickzero(a0, nthreads); }
+      { auto a0 = subarray<2>(grid, {nu-nxdirty/2+1, nydirty/2}, {nxdirty/2-1, nv-nydirty+1}); quickzero(a0, nthreads); }
       timers.poppush("wscreen+grid correction");
       double x0 = -0.5*nxdirty*pixsize_x,
              y0 = -0.5*nydirty*pixsize_y;
@@ -564,9 +561,9 @@ template<typename T> class Params
         {
         if (uv_side_fast)
           c2c(inout, inout, {1}, FORWARD, T(1), nthreads);
-        auto inout_lo = inout.subarray({0,0},{inout.shape(0),vlim});
+        auto inout_lo = inout.subarray({0,0},{MAXIDX,vlim});
         c2c(inout_lo, inout_lo, {0}, FORWARD, T(1), nthreads);
-        auto inout_hi = inout.subarray({0,inout.shape(1)-vlim},{inout.shape(0),vlim});
+        auto inout_hi = inout.subarray({0,inout.shape(1)-vlim},{MAXIDX,vlim});
         c2c(inout_hi, inout_hi, {0}, FORWARD, T(1), nthreads);
         if (!uv_side_fast)
           c2c(inout, inout, {1}, FORWARD, T(1), nthreads);
@@ -578,10 +575,16 @@ template<typename T> class Params
 
     [[gnu::always_inline]] void getpix(double u_in, double v_in, double &u, double &v, int &iu0, int &iv0) const
       {
-      u=fmod1(u_in*pixsize_x)*nu;
-      iu0 = min(int(u+ushift)-int(nu), maxiu0);
-      v=fmod1(v_in*pixsize_y)*nv;
-      iv0 = min(int(v+vshift)-int(nv), maxiv0);
+      auto tmp = u_in*pixsize_x;
+      u = (tmp-round(tmp))*nu;
+      int ucorr = (u<0.)*nu;
+      iu0 = min(int(u+ucorr+ushift)-int(nu), maxiu0);
+      u -= iu0-ucorr;
+      tmp = v_in*pixsize_y;
+      v = (tmp-round(tmp))*nv;
+      int vcorr = (v<0.)*nv;
+      iv0 = min(int(v+vcorr+vshift)-int(nv), maxiv0);
+      v-=iv0-vcorr;
       }
 
     void countRanges()
@@ -669,9 +672,9 @@ template<typename T> class Params
               {
               auto uvw = bl.effectiveCoord(irow, ichan);
               uvw.FixW();
-              double u, v;
+              double udum, vdum;
               int iu0, iv0, iw;
-              getpix(uvw.u, uvw.v, u, v, iu0, iv0);
+              getpix(uvw.u, uvw.v, udum, vdum, iu0, iv0);
               iu0 = (iu0+nsafe)>>logsquare;
               iv0 = (iv0+nsafe)>>logsquare;
               iw = do_wgridding ? max(0,int((uvw.w+shift)*xdw)) : 0;
@@ -765,6 +768,9 @@ template<typename T> class Params
         union kbuf {
           T scalar[2*nvec*vlen];
           mysimd<T> simd[2*nvec];
+#if defined(_MSC_VER)
+          kbuf() {}
+#endif
           };
         kbuf buf;
 
@@ -777,7 +783,7 @@ template<typename T> class Params
             bufi({size_t(su),size_t(svvec)}),
             px0r(bufr.vdata()), px0i(bufi.vdata()),
             w0(w0_),
-            xdw(T(1)/dw_),
+            xdw(1./dw_),
             locks(locks_)
           { checkShape(grid.shape(), {parent->nu,parent->nv}); }
         ~HelperX2g2() { dump(); }
@@ -786,16 +792,16 @@ template<typename T> class Params
 
         [[gnu::always_inline]] [[gnu::hot]] void prep(const UVW &in, size_t nth=0)
           {
-          double u, v;
+          double ufrac, vfrac;
           auto iu0old = iu0;
           auto iv0old = iv0;
-          parent->getpix(in.u, in.v, u, v, iu0, iv0);
-          T x0 = (iu0-T(u))*2+(supp-1);
-          T y0 = (iv0-T(v))*2+(supp-1);
+          parent->getpix(in.u, in.v, ufrac, vfrac, iu0, iv0);
+          auto x0 = -ufrac*2+(supp-1);
+          auto y0 = -vfrac*2+(supp-1);
           if constexpr(wgrid)
-            tkrn.eval2s(x0, y0, T(xdw*(w0-in.w)), nth, &buf.simd[0]);
+            tkrn.eval2s(T(x0), T(y0), T(xdw*(w0-in.w)), nth, &buf.simd[0]);
           else
-            tkrn.eval2(x0, y0, &buf.simd[0]);
+            tkrn.eval2(T(x0), T(y0), &buf.simd[0]);
           if ((iu0==iu0old) && (iv0==iv0old)) return;
           if ((iu0<bu0) || (iv0<bv0) || (iu0+int(supp)>bu0+su) || (iv0+int(supp)>bv0+sv))
             {
@@ -857,6 +863,9 @@ template<typename T> class Params
         union kbuf {
           T scalar[2*nvec*vlen];
           mysimd<T> simd[2*nvec];
+#if defined(_MSC_VER)
+          kbuf() {}
+#endif
           };
         kbuf buf;
 
@@ -869,23 +878,23 @@ template<typename T> class Params
             bufi({size_t(su),size_t(svvec)}),
             px0r(bufr.cdata()), px0i(bufi.cdata()),
             w0(w0_),
-            xdw(T(1)/dw_)
+            xdw(1./dw_)
           { checkShape(grid.shape(), {parent->nu,parent->nv}); }
 
         constexpr int lineJump() const { return svvec; }
 
         [[gnu::always_inline]] [[gnu::hot]] void prep(const UVW &in, size_t nth=0)
           {
-          double u, v;
+          double ufrac, vfrac;
           auto iu0old = iu0;
           auto iv0old = iv0;
-          parent->getpix(in.u, in.v, u, v, iu0, iv0);
-          T x0 = (iu0-T(u))*2+(supp-1);
-          T y0 = (iv0-T(v))*2+(supp-1);
+          parent->getpix(in.u, in.v, ufrac, vfrac, iu0, iv0);
+          auto x0 = -ufrac*2+(supp-1);
+          auto y0 = -vfrac*2+(supp-1);
           if constexpr(wgrid)
-            tkrn.eval2s(x0, y0, T(xdw*(w0-in.w)), nth, &buf.simd[0]);
+            tkrn.eval2s(T(x0), T(y0), T(xdw*(w0-in.w)), nth, &buf.simd[0]);
           else
-            tkrn.eval2(x0, y0, &buf.simd[0]);
+            tkrn.eval2(T(x0), T(y0), &buf.simd[0]);
           if ((iu0==iu0old) && (iv0==iv0old)) return;
           if ((iu0<bu0) || (iv0<bv0) || (iu0+int(supp)>bu0+su) || (iv0+int(supp)>bv0+sv))
             {
@@ -977,38 +986,29 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
     template<bool wgrid> void x2grid_c(mav<complex<T>,2> &grid,
       size_t p0, double w0=-1)
       {
-      timers.push("gridding proper");
       checkShape(grid.shape(), {nu, nv});
 
-      if constexpr (is_same<T, float>::value)
+      if constexpr (is_same<T, double>::value)
         switch(supp)
           {
-          case  4: x2grid_c_helper< 4, wgrid>(grid, p0, w0); break;
-          case  5: x2grid_c_helper< 5, wgrid>(grid, p0, w0); break;
-          case  6: x2grid_c_helper< 6, wgrid>(grid, p0, w0); break;
-          case  7: x2grid_c_helper< 7, wgrid>(grid, p0, w0); break;
-          case  8: x2grid_c_helper< 8, wgrid>(grid, p0, w0); break;
-          default: MR_fail("must not happen");
+          case  9: x2grid_c_helper< 9, wgrid>(grid, p0, w0); return;
+          case 10: x2grid_c_helper<10, wgrid>(grid, p0, w0); return;
+          case 11: x2grid_c_helper<11, wgrid>(grid, p0, w0); return;
+          case 12: x2grid_c_helper<12, wgrid>(grid, p0, w0); return;
+          case 13: x2grid_c_helper<13, wgrid>(grid, p0, w0); return;
+          case 14: x2grid_c_helper<14, wgrid>(grid, p0, w0); return;
+          case 15: x2grid_c_helper<15, wgrid>(grid, p0, w0); return;
+          case 16: x2grid_c_helper<16, wgrid>(grid, p0, w0); return;
           }
-      else
-        switch(supp)
-          {
-          case  4: x2grid_c_helper< 4, wgrid>(grid, p0, w0); break;
-          case  5: x2grid_c_helper< 5, wgrid>(grid, p0, w0); break;
-          case  6: x2grid_c_helper< 6, wgrid>(grid, p0, w0); break;
-          case  7: x2grid_c_helper< 7, wgrid>(grid, p0, w0); break;
-          case  8: x2grid_c_helper< 8, wgrid>(grid, p0, w0); break;
-          case  9: x2grid_c_helper< 9, wgrid>(grid, p0, w0); break;
-          case 10: x2grid_c_helper<10, wgrid>(grid, p0, w0); break;
-          case 11: x2grid_c_helper<11, wgrid>(grid, p0, w0); break;
-          case 12: x2grid_c_helper<12, wgrid>(grid, p0, w0); break;
-          case 13: x2grid_c_helper<13, wgrid>(grid, p0, w0); break;
-          case 14: x2grid_c_helper<14, wgrid>(grid, p0, w0); break;
-          case 15: x2grid_c_helper<15, wgrid>(grid, p0, w0); break;
-          case 16: x2grid_c_helper<16, wgrid>(grid, p0, w0); break;
-          default: MR_fail("must not happen");
-          }
-      timers.pop();
+      switch(supp)
+        {
+        case  4: x2grid_c_helper< 4, wgrid>(grid, p0, w0); return;
+        case  5: x2grid_c_helper< 5, wgrid>(grid, p0, w0); return;
+        case  6: x2grid_c_helper< 6, wgrid>(grid, p0, w0); return;
+        case  7: x2grid_c_helper< 7, wgrid>(grid, p0, w0); return;
+        case  8: x2grid_c_helper< 8, wgrid>(grid, p0, w0); return;
+        default: MR_fail("must not happen");
+        }
       }
 
     template<size_t SUPP, bool wgrid> [[gnu::hot]] void grid2x_c_helper
@@ -1083,38 +1083,29 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
     template<bool wgrid> void grid2x_c(const mav<complex<T>,2> &grid,
       size_t p0, double w0=-1)
       {
-      timers.push("degridding proper");
       checkShape(grid.shape(), {nu, nv});
 
-      if constexpr (is_same<T, float>::value)
+      if constexpr (is_same<T, double>::value)
         switch(supp)
           {
-          case  4: grid2x_c_helper< 4, wgrid>(grid, p0, w0); break;
-          case  5: grid2x_c_helper< 5, wgrid>(grid, p0, w0); break;
-          case  6: grid2x_c_helper< 6, wgrid>(grid, p0, w0); break;
-          case  7: grid2x_c_helper< 7, wgrid>(grid, p0, w0); break;
-          case  8: grid2x_c_helper< 8, wgrid>(grid, p0, w0); break;
-          default: MR_fail("must not happen");
+          case  9: grid2x_c_helper< 9, wgrid>(grid, p0, w0); return;
+          case 10: grid2x_c_helper<10, wgrid>(grid, p0, w0); return;
+          case 11: grid2x_c_helper<11, wgrid>(grid, p0, w0); return;
+          case 12: grid2x_c_helper<12, wgrid>(grid, p0, w0); return;
+          case 13: grid2x_c_helper<13, wgrid>(grid, p0, w0); return;
+          case 14: grid2x_c_helper<14, wgrid>(grid, p0, w0); return;
+          case 15: grid2x_c_helper<15, wgrid>(grid, p0, w0); return;
+          case 16: grid2x_c_helper<16, wgrid>(grid, p0, w0); return;
           }
-      else
-        switch(supp)
-          {
-          case  4: grid2x_c_helper< 4, wgrid>(grid, p0, w0); break;
-          case  5: grid2x_c_helper< 5, wgrid>(grid, p0, w0); break;
-          case  6: grid2x_c_helper< 6, wgrid>(grid, p0, w0); break;
-          case  7: grid2x_c_helper< 7, wgrid>(grid, p0, w0); break;
-          case  8: grid2x_c_helper< 8, wgrid>(grid, p0, w0); break;
-          case  9: grid2x_c_helper< 9, wgrid>(grid, p0, w0); break;
-          case 10: grid2x_c_helper<10, wgrid>(grid, p0, w0); break;
-          case 11: grid2x_c_helper<11, wgrid>(grid, p0, w0); break;
-          case 12: grid2x_c_helper<12, wgrid>(grid, p0, w0); break;
-          case 13: grid2x_c_helper<13, wgrid>(grid, p0, w0); break;
-          case 14: grid2x_c_helper<14, wgrid>(grid, p0, w0); break;
-          case 15: grid2x_c_helper<15, wgrid>(grid, p0, w0); break;
-          case 16: grid2x_c_helper<16, wgrid>(grid, p0, w0); break;
-          default: MR_fail("must not happen");
-          }
-      timers.pop();
+      switch(supp)
+        {
+        case  4: grid2x_c_helper< 4, wgrid>(grid, p0, w0); return;
+        case  5: grid2x_c_helper< 5, wgrid>(grid, p0, w0); return;
+        case  6: grid2x_c_helper< 6, wgrid>(grid, p0, w0); return;
+        case  7: grid2x_c_helper< 7, wgrid>(grid, p0, w0); return;
+        case  8: grid2x_c_helper< 8, wgrid>(grid, p0, w0); return;
+        default: MR_fail("must not happen");
+        }
       }
 
     void apply_global_corrections(mav<T,2> &dirty)
@@ -1214,8 +1205,9 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           double w = wmin+pl*dw;
           timers.push("zeroing grid");
           quickzero(grid, nthreads);
-          timers.pop();
+          timers.poppush("gridding proper");
           x2grid_c<true>(grid, pl, w);
+          timers.pop();
           grid2dirty_c_overwrite_wscreen_add(grid, dirty_out, T(w));
           }
         // correct for w gridding etc.
@@ -1225,9 +1217,9 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         {
         timers.push("allocating grid");
         auto grid = mav<complex<T>,2>::build_noncritical({nu,nv});
-        timers.pop();
+        timers.poppush("gridding proper");
         x2grid_c<false>(grid, 0);
-        timers.push("allocating rgrid");
+        timers.poppush("allocating rgrid");
         auto rgrid = mav<T,2>::build_noncritical(grid.shape());
         timers.poppush("complex2hartley");
         complex2hartley(grid, rgrid, nthreads);
@@ -1253,7 +1245,9 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           {
           double w = wmin+pl*dw;
           dirty2grid_c_wscreen(tdirty, grid, T(w));
+          timers.push("degridding proper");
           grid2x_c<true>(grid, pl, w);
+          timers.pop();
           }
         }
       else
@@ -1266,8 +1260,9 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         auto grid = mav<complex<T>,2>::build_noncritical(rgrid.shape());
         timers.poppush("hartley2complex");
         hartley2complex(rgrid, grid, nthreads);
-        timers.pop();
+        timers.poppush("degridding proper");
         grid2x_c<false>(grid, 0);
+        timers.pop();
         }
       }
 
@@ -1279,7 +1274,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       nm1min = sqrt(max(1.-x0*x0-y0*y0,0.))-1.;
       if (x0*x0+y0*y0>1.)
         nm1min = -sqrt(abs(1.-x0*x0-y0*y0))-1.;
-      auto idx = getAvailableKernels(epsilon, sigma_min, sigma_max);
+      auto idx = getAvailableKernels<T>(epsilon, sigma_min, sigma_max);
       double mincost = 1e300;
       constexpr double nref_fft=2048;
       constexpr double costref_fft=0.0693;
@@ -1374,7 +1369,8 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         nydirty(gridding ? dirty_out.shape(1) : dirty_in.shape(1)),
         epsilon(epsilon_),
         do_wgridding(do_wgridding_),
-        nthreads(nthreads_), verbosity(verbosity_),
+        nthreads((nthreads_==0) ? get_default_nthreads() : nthreads_),
+        verbosity(verbosity_),
         negate_v(negate_v_), divide_by_n(divide_by_n_),
         sigma_min(sigma_min_), sigma_max(sigma_max_)
       {
@@ -1401,7 +1397,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       MR_assert((nu>>logsquare)<(size_t(1)<<16), "nu too large");
       MR_assert((nv>>logsquare)<(size_t(1)<<16), "nv too large");
       ofactor = min(double(nu)/nxdirty, double(nv)/nydirty);
-      krn = selectKernel(ofactor, epsilon, kidx);
+      krn = selectKernel<T>(ofactor, epsilon, kidx);
       supp = krn->support();
       nsafe = (supp+1)/2;
       ushift = supp*(-0.5)+1+nu;

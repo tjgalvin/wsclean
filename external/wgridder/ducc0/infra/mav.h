@@ -72,8 +72,21 @@ template<typename T> class membuf
 
   public:
     // allocate own memory
+    membuf() : d(nullptr), rw(false) {}
     membuf(size_t sz)
       : ptr(make_shared<vector<T>>(sz)), d(ptr->data()), rw(true) {}
+    void assign(membuf &other)
+      {
+      ptr = other.ptr;
+      d = other.d;
+      rw = other.rw;
+      }
+    void assign(const membuf &other)
+      {
+      ptr = other.ptr;
+      d = other.d;
+      rw = false;
+      }
     // read/write access to element #i
     template<typename I> T &vraw(I i)
       {
@@ -94,6 +107,8 @@ template<typename T> class membuf
       }
     bool writable() const { return rw; }
   };
+
+constexpr size_t MAXIDX=~(size_t(0));
 
 class fmav_info
   {
@@ -121,6 +136,7 @@ class fmav_info
       { return str[dim]*ptrdiff_t(n); }
 
   public:
+    fmav_info() : shp(1,0), str(1,0), sz(0) {}
     fmav_info(const shape_t &shape_, const stride_t &stride_)
       : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>()))
       {
@@ -129,6 +145,12 @@ class fmav_info
       }
     fmav_info(const shape_t &shape_)
       : fmav_info(shape_, shape2stride(shape_)) {}
+    void assign(const fmav_info &other)
+      {
+      shp = other.shp;
+      str = other.str;
+      sz = other.sz;
+      }
     size_t ndim() const { return shp.size(); }
     size_t size() const { return sz; }
     const shape_t &shape() const { return shp; }
@@ -185,10 +207,21 @@ template<size_t ndim> class mav_info
       { return str[dim]*n; }
 
   public:
+    mav_info() : sz(0)
+      {
+      for (size_t i=0; i<ndim; ++i)
+        { shp[i]=0; str[i]=0; }
+      }
     mav_info(const shape_t &shape_, const stride_t &stride_)
       : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>())) {}
     mav_info(const shape_t &shape_)
       : mav_info(shape_, shape2stride(shape_)) {}
+    void assign(const mav_info &other)
+      {
+      shp = other.shp;
+      str = other.str;
+      sz = other.sz;
+      }
     size_t size() const { return sz; }
     const shape_t &shape() const { return shp; }
     size_t shape(size_t i) const { return shp[i]; }
@@ -292,8 +325,8 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       shape_t nshp(ndim);
       stride_t nstr(ndim);
       ptrdiff_t nofs;
-      MR_assert(i0.size()==ndim, "bad domensionality");
-      MR_assert(extent.size()==ndim, "bad domensionality");
+      MR_assert(i0.size()==ndim, "bad dimensionality");
+      MR_assert(extent.size()==ndim, "bad dimensionality");
       size_t n0=0;
       for (auto x:extent) if (x==0) ++n0;
       nofs=0;
@@ -305,8 +338,11 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
         nofs+=i0[i]*str[i];
         if (extent[i]!=0)
           {
-          MR_assert(i0[i]+extent[i]<=shp[i], "bad subset");
-          nshp[i2]=extent[i]; nstr[i2]=str[i];
+          auto ext = extent[i];
+          if (ext==MAXIDX)
+            ext = shp[i]-i0[i];
+          MR_assert(i0[i]+ext<=shp[i], "bad subset");
+          nshp[i2]=ext; nstr[i2]=str[i];
           ++i2;
           }
         }
@@ -315,7 +351,7 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
 
   public:
     using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
-
+    fmav() {}
     fmav(const T *d_, const shape_t &shp_, const stride_t &str_)
       : tinfo(shp_, str_), tbuf(d_) {}
     fmav(const T *d_, const shape_t &shp_)
@@ -340,7 +376,7 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       : tinfo(info), tbuf(d_, rw_) {}
 #if defined(_MSC_VER)
     // MSVC is broken
-    fmav(const fmav &other) : tinfo(other), tbuf(other) {};
+    fmav(const fmav &other) : tinfo(other), tbuf(other) {}
     fmav(fmav &other) : tinfo(other), tbuf(other) {}
     fmav(fmav &&other) : tinfo(other), tbuf(other) {}
 #else
@@ -357,7 +393,20 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
     fmav(const shape_t &shp_, const stride_t &str_, const T *d_, const tbuf &buf)
       : tinfo(shp_, str_), tbuf(d_, buf) {}
 
+    void assign(fmav &other)
+      {
+      fmav_info::assign(other);
+      membuf<T>::assign(other);
+      }
+    void assign(const fmav &other)
+      {
+      fmav_info::assign(other);
+      membuf<T>::assign(other);
+      }
+
     template<typename... Ns> const T &operator()(Ns... ns) const
+      { return craw(idx(ns...)); }
+    template<typename... Ns> const T &c(Ns... ns) const
       { return craw(idx(ns...)); }
     template<typename... Ns> T &v(Ns... ns)
       { return vraw(idx(ns...)); }
@@ -408,6 +457,15 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       apply([&](T &val){val=v[ii++];});
       }
   };
+
+template<typename T> fmav<T> subarray
+  (fmav<T> &arr, const typename fmav<T>::shape_t &i0, const typename fmav<T>::shape_t &extent)  
+  { return arr.subarray(i0, extent); }
+
+template<typename T> fmav<T> subarray
+  (const fmav<T> &arr, const typename fmav<T>::shape_t &i0, const typename fmav<T>::shape_t &extent)  
+  { return arr.subarray(i0, extent); }
+
 
 // template<typename Func, typename T0, typename Ts...> void fmav_pointwise_op(Func func, T0 & arg0, Ts&... args)
 //   {
@@ -492,8 +550,11 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
         nofs+=i0[i]*str[i];
         if (extent[i]!=0)
           {
-          MR_assert(i0[i]+extent[i]<=shp[i], "bad subset");
-          nshp[i2]=extent[i]; nstr[i2]=str[i];
+          auto ext = extent[i];
+          if (ext==MAXIDX)
+            ext = shp[i]-i0[i];
+          MR_assert(i0[i]+ext<=shp[i], "bad subset");
+          nshp[i2]=ext; nstr[i2]=str[i];
           ++i2;
           }
         }
@@ -504,6 +565,7 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
     using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
     using tinfo::contiguous, tinfo::size, tinfo::idx, tinfo::conformable;
 
+    mav() {}
     mav(const T *d_, const shape_t &shp_, const stride_t &str_)
       : tinfo(shp_, str_), tbuf(d_) {}
     mav(T *d_, const shape_t &shp_, const stride_t &str_, bool rw_=false)
@@ -524,6 +586,16 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
     mav(mav &other) = default;
     mav(mav &&other) = default;
 #endif
+    void assign(mav &other)
+      {
+      mav_info<ndim>::assign(other);
+      membuf<T>::assign(other);
+      }
+    void assign(const mav &other)
+      {
+      mav_info<ndim>::assign(other);
+      membuf<T>::assign(other);
+      }
     mav(const shape_t &shp_, const stride_t &str_, const T *d_, membuf<T> &mb)
       : mav_info<ndim>(shp_, str_), membuf<T>(d_, mb) {}
     mav(const shape_t &shp_, const stride_t &str_, const T *d_, const membuf<T> &mb)
@@ -537,6 +609,8 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       return fmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
       }
     template<typename... Ns> const T &operator()(Ns... ns) const
+      { return craw(idx(ns...)); }
+    template<typename... Ns> const T &c(Ns... ns) const
       { return craw(idx(ns...)); }
     template<typename... Ns> T &v(Ns... ns)
       { return vraw(idx(ns...)); }
@@ -600,6 +674,14 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       }
   };
 
+template<size_t nd2, typename T, size_t ndim> mav<T,nd2> subarray
+  (mav<T, ndim> &arr, const typename mav<T, ndim>::shape_t &i0, const typename mav<T, ndim>::shape_t &extent)  
+  { return arr.template subarray<nd2>(i0, extent); }
+
+template<size_t nd2, typename T, size_t ndim> mav<T,nd2> subarray
+  (const mav<T, ndim> &arr, const typename mav<T, ndim>::shape_t &i0, const typename mav<T, ndim>::shape_t &extent)  
+  { return arr.template subarray<nd2>(i0, extent); }
+
 template<typename T, size_t ndim> class MavIter
   {
   protected:
@@ -652,6 +734,8 @@ template<typename T, size_t ndim> class MavIter
       { return idx_ + getIdx(0, ns...); }
     template<typename... Ns> const T &operator()(Ns... ns) const
       { return mav.craw(idx(ns...)); }
+    template<typename... Ns> const T &c(Ns... ns) const
+      { return mav.craw(idx(ns...)); }
     template<typename... Ns> T &v(Ns... ns)
       { return mav.vraw(idx(ns...)); }
   };
@@ -664,6 +748,8 @@ using detail_mav::mav_info;
 using detail_mav::mav;
 using detail_mav::FmavIter;
 using detail_mav::MavIter;
+using detail_mav::MAXIDX;
+using detail_mav::subarray;
 
 }
 

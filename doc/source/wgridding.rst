@@ -14,7 +14,7 @@ description of the implementation is given in
 W-gridding is enabled by the command-line flag ``-use-wgridder``,
 and its accuracy can be controlled via the parameter ``-wgridder-accuracy``,
 which is set to ``1e-4`` by default and can be varied in the range from ``1e-2``
-(very coarse, but fast gridding) down to ``3e-5`` (most accurate gridding
+(very coarse, but fast gridding) down to ``1e-6`` (most accurate gridding
 achievable with single-precision floating point). This value specifies
 the maximum acceptable rms error of the result when compared to a direct Fourier
 transform. The algorithm will select
