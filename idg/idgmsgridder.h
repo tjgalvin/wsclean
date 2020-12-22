@@ -17,11 +17,13 @@
 
 #include <boost/thread/mutex.hpp>
 
+#include "../main/stopwatch.h"
+
 class IdgMsGridder : public MSGridderBase {
  public:
   IdgMsGridder(const class Settings& settings);
 
-  virtual ~IdgMsGridder() final override {}
+  virtual ~IdgMsGridder() final override;
 
   virtual void Invert() final override;
 
@@ -94,6 +96,8 @@ class IdgMsGridder : public MSGridderBase {
   idg::api::Type _proxyType;
   int _buffersize;
   idg::api::options_type _options;
+  Stopwatch _griddingWatch;
+  Stopwatch _degriddingWatch;
 };
 
 void init_optimal_taper_1D(int subgridsize, int gridsize, float kernelsize,

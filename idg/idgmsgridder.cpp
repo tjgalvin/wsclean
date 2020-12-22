@@ -51,6 +51,11 @@ IdgMsGridder::IdgMsGridder(const Settings& settings)
     _options["taper"] = std::string("blackman-harris");
 }
 
+IdgMsGridder::~IdgMsGridder() {
+  Logger::Info << "Gridding: " << _griddingWatch.ToString()
+               << ", degridding: " << _degriddingWatch.ToString() << '\n';
+}
+
 void IdgMsGridder::Invert() {
   const size_t untrimmedWidth = ImageWidth();
   const size_t width = TrimWidth(), height = TrimHeight();
@@ -183,6 +188,9 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   aocommon::UVector<bool> isSelected(_selectedBands.MaxChannels() * 4, true);
   aocommon::UVector<std::complex<float>> dataBuffer(
       _selectedBands.MaxChannels() * 4);
+
+  _griddingWatch.Start();
+
   // The gridder doesn't need to know the absolute time index; this value
   // indexes relatively to where we start in the measurement set, and only
   // increases when the time changes.
@@ -237,6 +245,8 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   }
 
   _bufferset->finished();
+
+  _griddingWatch.Pause();
 }
 
 void IdgMsGridder::Predict(ImageF image) {
@@ -330,6 +340,8 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
 
   aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
                                                 4);
+  _degriddingWatch.Start();
+
   int timeIndex = -1;
   double currentTime = -1.0;
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
@@ -390,6 +402,7 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
     _outputProvider->WriteModel(i.first, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
+  _degriddingWatch.Pause();
 }
 
 void IdgMsGridder::Predict(ImageF /*real*/, ImageF /*imaginary*/) {
