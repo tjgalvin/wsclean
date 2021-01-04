@@ -782,9 +782,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   const std::string rootPrefix = _settings.prefixName;
 
   _inversionWatch.Start();
-  for (size_t joinedIndex = 0; joinedIndex != groupTable.EntryCount();
-       ++joinedIndex) {
-    ImagingTableEntry& entry = groupTable[joinedIndex];
+  for (ImagingTableEntry& entry : groupTable) {
     bool isFirstPol = entry.polarization == *_settings.polarizations.begin();
     bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
                      _settings.makePSF || _settings.makePSFOnly;
@@ -798,9 +796,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _griddingTaskManager->Finish();
 
   if (parallelizePolarizations) {
-    for (size_t joinedIndex = 0; joinedIndex != groupTable.EntryCount();
-         ++joinedIndex) {
-      runFirstInversion(groupTable[joinedIndex], primaryBeam);
+    for (ImagingTableEntry& entry : groupTable) {
+      runFirstInversion(entry, primaryBeam);
     }
     _griddingTaskManager->Finish();
   } else {
@@ -850,10 +847,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _predictingWatch.Start();
             for (size_t sGroupIndex = 0;
                  sGroupIndex != groupTable.SquaredGroupCount(); ++sGroupIndex) {
-              ImagingTable sGroupTable =
-                  groupTable.GetSquaredGroup(sGroupIndex);
-              for (size_t e = 0; e != sGroupTable.EntryCount(); ++e) {
-                predict(sGroupTable[e]);
+              for (ImagingTableEntry& entry :
+                   groupTable.GetSquaredGroup(sGroupIndex)) {
+                predict(entry);
               }
             }
             _griddingTaskManager->Finish();
@@ -862,10 +858,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _inversionWatch.Start();
             for (size_t sGroupIndex = 0;
                  sGroupIndex != groupTable.SquaredGroupCount(); ++sGroupIndex) {
-              ImagingTable sGroupTable =
-                  groupTable.GetSquaredGroup(sGroupIndex);
-              for (size_t e = 0; e != sGroupTable.EntryCount(); ++e) {
-                imageMain(sGroupTable[e], false, false);
+              for (ImagingTableEntry& entry :
+                   groupTable.GetSquaredGroup(sGroupIndex)) {
+                imageMain(entry, false, false);
               }  // end of polarization loop
             }    // end of joined channels loop
             _griddingTaskManager->Finish();
@@ -876,15 +871,15 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
               _predictingWatch.Start();
               ImagingTable sGroupTable =
                   groupTable.GetSquaredGroup(sGroupIndex);
-              for (size_t e = 0; e != sGroupTable.EntryCount(); ++e) {
-                predict(sGroupTable[e]);
+              for (ImagingTableEntry& entry : sGroupTable) {
+                predict(entry);
               }
               _griddingTaskManager->Finish();
               _predictingWatch.Pause();
 
               _inversionWatch.Start();
-              for (size_t e = 0; e != sGroupTable.EntryCount(); ++e) {
-                imageMain(sGroupTable[e], false, false);
+              for (ImagingTableEntry& entry : sGroupTable) {
+                imageMain(entry, false, false);
               }  // end of polarization loop
               _griddingTaskManager->Finish();
               _inversionWatch.Pause();
@@ -1558,19 +1553,21 @@ void WSClean::addPolarizationsToImagingTable(
     size_t& joinedGroupIndex, size_t& squaredGroupIndex, size_t outChannelIndex,
     const ImagingTableEntry& templateEntry) {
   for (aocommon::PolarizationEnum p : _settings.polarizations) {
-    ImagingTableEntry& entry = _imagingTable.AddEntry();
-    entry = templateEntry;
-    entry.index = _imagingTable.EntryCount() - 1;
-    entry.outputChannelIndex = outChannelIndex;
-    entry.joinedGroupIndex = joinedGroupIndex;
-    entry.squaredDeconvolutionIndex = squaredGroupIndex;
-    entry.polarization = p;
+    std::unique_ptr<ImagingTableEntry> entry(
+        new ImagingTableEntry(templateEntry));
+    entry->index = _imagingTable.EntryCount();
+    entry->outputChannelIndex = outChannelIndex;
+    entry->joinedGroupIndex = joinedGroupIndex;
+    entry->squaredDeconvolutionIndex = squaredGroupIndex;
+    entry->polarization = p;
     if (p == aocommon::Polarization::XY)
-      entry.imageCount = 2;
+      entry->imageCount = 2;
     else if (p == aocommon::Polarization::YX)
-      entry.imageCount = 0;
+      entry->imageCount = 0;
     else
-      entry.imageCount = 1;
+      entry->imageCount = 1;
+
+    _imagingTable.AddEntry(std::move(entry));
 
     if (!_settings.joinedPolarizationCleaning) {
       ++joinedGroupIndex;

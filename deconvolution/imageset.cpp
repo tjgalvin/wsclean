@@ -63,8 +63,7 @@ void ImageSet::initializeIndices() {
   size_t lastDeconvolutionChannel = 0;
   size_t deconvolutionChannelStartIndex = 0, lastOutChannel = 0;
   size_t imgIndex = 0;
-  for (size_t i = 0; i != _imagingTable.EntryCount(); ++i) {
-    const ImagingTableEntry& entry = _imagingTable[i];
+  for (const ImagingTableEntry& entry : _imagingTable) {
     size_t outChannel = entry.outputChannelIndex;
     size_t chIndex = (outChannel * _channelsInDeconvolution) /
                      _imagingTable.SquaredGroupCount();

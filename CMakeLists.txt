@@ -314,44 +314,11 @@ endif(DOXYGEN_FOUND)
 # Boost 1.59 introduced BOOST_TEST, which several tests use.
 find_package(Boost 1.59.0 COMPONENTS unit_test_framework)
 if(Boost_FOUND)
-  add_executable(runtest EXCLUDE_FROM_ALL
-    tests/test.cpp
-    tests/testbaselinedependentaveraging.cpp
-    tests/testclean.cpp
-    tests/testcomponentlist.cpp
-    tests/testfitsdateobstime.cpp
-    tests/testfluxdensity.cpp
-    tests/testimageset.cpp
-    tests/testmultibanddata.cpp
-    tests/testparsetreader.cpp
-    tests/testpeakfinder.cpp
-    tests/testserialization.cpp
-
-    tests/integration/tbasics.cpp
-    tests/integration/tveladeconvolution.cpp
-
-    tests/math/tdijkstrasplitter.cpp
-    tests/math/tgaussianfitter.cpp
-    tests/math/tpolynomialfitter.cpp
-    tests/math/tnlplfitter.cpp
-    tests/math/tpolynomialchannelfitter.cpp
-
-    tests/structures/testimage.cpp
-    tests/structures/testimagingtable.cpp
-
-    ${WSCLEANFILES})
-  target_link_libraries(runtest PRIVATE pybind11::embed ${ALL_LIBRARIES} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-  add_test(runtest runtest)
-  add_custom_target(check COMMAND runtest DEPENDS runtest)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+  add_subdirectory(tests)
 else()
-  message("Boost testing framework not found (not required for wsclean: only required for running make check).")
+  message("Boost testing framework not found (not required for wsclean: only required for running tests).")
 endif()
-
-add_custom_target(
-  coverage
-  COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*'
-  DEPENDS check
-)
 
 get_directory_property(MAIN_COMPILE_OPTIONS COMPILE_OPTIONS)
 string(REPLACE ";" " " MAIN_COMPILE_OPTIONS "${MAIN_COMPILE_OPTIONS}")

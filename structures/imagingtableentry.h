@@ -48,8 +48,15 @@ struct ImagingTableEntry {
   size_t squaredDeconvolutionIndex;
 
   /**
-   * Entries with equal joinedGroupIndex are joinedly deconvolved.
+   * Entries with equal facetGroupIndex are joinedly deconvolved.
    * Such a group of entries can be further split up in 'squared'
+   * deconvolution groups.
+   */
+  size_t facetGroupIndex;
+
+  /**
+   * Entries with equal joinedGroupIndex are joinedly deconvolved.
+   * Such a group of entries can be further split up in 'facet' and/or 'squared'
    * deconvolution groups.
    */
   size_t joinedGroupIndex;
@@ -62,8 +69,6 @@ struct ImagingTableEntry {
   size_t imageCount;
 
   std::string tmpFilePrefix;
-
-  std::string ToString();
 
   double CentralFrequency() const {
     return 0.5 * (bandStartFrequency + bandEndFrequency);

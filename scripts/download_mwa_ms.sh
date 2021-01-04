@@ -7,11 +7,7 @@
 
 set -e
 
-SCRIPT_PATH=$(dirname "$0")
-cd $SCRIPT_PATH
-
-# Move up to parent folder which contains the source
-cd ..
+# Download into a 'test_data' directory inside the current directory.
 mkdir -p test_data
 cd test_data/
 

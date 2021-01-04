@@ -12,18 +12,19 @@ struct ImageSetFixtureBase {
                      size_t outChannel, size_t squaredIndex,
                      aocommon::PolarizationEnum pol, size_t frequencyMHz,
                      double imageWeight = 1.0) {
-    ImagingTableEntry& e = table.AddEntry();
-    e.index = index;
-    e.joinedGroupIndex = joinedGroup;
-    e.outputChannelIndex = outChannel;
-    e.squaredDeconvolutionIndex = squaredIndex;
-    e.polarization = pol;
-    e.lowestFrequency = frequencyMHz;
-    e.highestFrequency = frequencyMHz;
-    e.bandStartFrequency = frequencyMHz;
-    e.bandEndFrequency = frequencyMHz;
-    e.imageCount = 1;
-    e.imageWeight = imageWeight;
+    std::unique_ptr<ImagingTableEntry> e(new ImagingTableEntry());
+    e->index = index;
+    e->joinedGroupIndex = joinedGroup;
+    e->outputChannelIndex = outChannel;
+    e->squaredDeconvolutionIndex = squaredIndex;
+    e->polarization = pol;
+    e->lowestFrequency = frequencyMHz;
+    e->highestFrequency = frequencyMHz;
+    e->bandStartFrequency = frequencyMHz;
+    e->bandEndFrequency = frequencyMHz;
+    e->imageCount = 1;
+    e->imageWeight = imageWeight;
+    table.AddEntry(std::move(e));
   }
 
   void checkLinearValue(size_t index, double value, const ImageSet& dset) {
