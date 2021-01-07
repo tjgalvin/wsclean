@@ -35,7 +35,7 @@ class PrimaryBeam {
   }
 
   void CorrectImages(const ImageFilename& imageName,
-                     std::vector<double*>& images) {
+                     std::vector<float*>& images) {
     PrimaryBeamImageSet beamImages = load(imageName, _settings);
     if (_settings.polarizations.size() == 1 &&
         *_settings.polarizations.begin() == aocommon::Polarization::StokesI) {

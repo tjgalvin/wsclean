@@ -32,11 +32,12 @@ class AveragingMSRowProvider : public MSRowProvider {
   class AveragingBuffer {
    public:
     AveragingBuffer()
-        : _data(0),
-          _modelData(0),
+        : _data(nullptr),
+          _modelData(nullptr),
           _uvw{0.0, 0.0, 0.0},
           _time(0.0),
-          _weights(0),
+          _unweightedTime(0.0),
+          _weights(nullptr),
           _averagedDataCount(0),
           _summedWeight(0) {}
     ~AveragingBuffer() {
@@ -67,6 +68,7 @@ class AveragingMSRowProvider : public MSRowProvider {
       _uvw[1] += uvw[1] * weightSum;
       _uvw[2] += uvw[2] * weightSum;
       _time += time * weightSum;
+      _unweightedTime = time;
       _summedWeight += weightSum;
       ++_averagedDataCount;
     }
@@ -91,6 +93,7 @@ class AveragingMSRowProvider : public MSRowProvider {
       _uvw[1] += uvw[1] * weightSum;
       _uvw[2] += uvw[2] * weightSum;
       _time += time * weightSum;
+      _unweightedTime = time;
       _summedWeight += weightSum;
       ++_averagedDataCount;
     }
@@ -105,7 +108,7 @@ class AveragingMSRowProvider : public MSRowProvider {
       }
       if (_summedWeight == 0.0) {
         for (size_t i = 0; i != 3; ++i) uvw[i] = 0.0;
-        time = 0.0;
+        time = _unweightedTime;
       } else {
         for (size_t i = 0; i != 3; ++i) uvw[i] = _uvw[i] / _summedWeight;
         time = _time / _summedWeight;
@@ -123,7 +126,7 @@ class AveragingMSRowProvider : public MSRowProvider {
       }
       if (_summedWeight == 0.0) {
         for (size_t i = 0; i != 3; ++i) uvw[i] = 0.0;
-        time = 0.0;
+        time = _unweightedTime;
       } else {
         for (size_t i = 0; i != 3; ++i) uvw[i] = _uvw[i] / _summedWeight;
         time = _time / _summedWeight;
@@ -140,6 +143,7 @@ class AveragingMSRowProvider : public MSRowProvider {
       _uvw[1] = 0.0;
       _uvw[2] = 0.0;
       _time = 0.0;
+      _unweightedTime = 0.0;
       _averagedDataCount = 0;
       _summedWeight = 0.0;
     }
@@ -149,6 +153,9 @@ class AveragingMSRowProvider : public MSRowProvider {
     std::complex<float>* _modelData;
     double _uvw[3];
     double _time;
+    // In case all visibilities in an averaging buffer are flagged, it is still
+    // desirable to at least return a time that is part of the observation:
+    double _unweightedTime;
     float* _weights;
     size_t _averagedDataCount;
     double _summedWeight;

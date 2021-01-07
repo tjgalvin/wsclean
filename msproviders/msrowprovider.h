@@ -58,18 +58,18 @@ class MSRowProvider {
 
  protected:
   casacore::MeasurementSet _ms;
-  casacore::ROScalarColumn<int> _antenna1Column;
-  casacore::ROScalarColumn<int> _antenna2Column;
-  casacore::ROScalarColumn<int> _fieldIdColumn;
-  casacore::ROScalarColumn<double> _timeColumn;
-  casacore::MEpoch::ROScalarColumn _timeEpochColumn;
-  casacore::ROArrayColumn<double> _uvwColumn;
-  std::unique_ptr<casacore::ROArrayColumn<float>> _weightSpectrumColumn;
-  std::unique_ptr<casacore::ROArrayColumn<float>> _weightScalarColumn;
-  casacore::ROArrayColumn<casacore::Complex> _dataColumn;
-  casacore::ROArrayColumn<bool> _flagColumn;
-  casacore::ROScalarColumn<int> _dataDescIdColumn;
-  std::unique_ptr<casacore::ROArrayColumn<casacore::Complex>> _modelColumn;
+  casacore::ScalarColumn<int> _antenna1Column;
+  casacore::ScalarColumn<int> _antenna2Column;
+  casacore::ScalarColumn<int> _fieldIdColumn;
+  casacore::ScalarColumn<double> _timeColumn;
+  casacore::MEpoch::ScalarColumn _timeEpochColumn;
+  casacore::ArrayColumn<double> _uvwColumn;
+  std::unique_ptr<casacore::ArrayColumn<float>> _weightSpectrumColumn;
+  std::unique_ptr<casacore::ArrayColumn<float>> _weightScalarColumn;
+  casacore::ArrayColumn<casacore::Complex> _dataColumn;
+  casacore::ArrayColumn<bool> _flagColumn;
+  casacore::ScalarColumn<int> _dataDescIdColumn;
+  std::unique_ptr<casacore::ArrayColumn<casacore::Complex>> _modelColumn;
 
   void getCurrentWeights(WeightArray& weights);
   const std::map<size_t, size_t>& selectedDataDescIds() const {

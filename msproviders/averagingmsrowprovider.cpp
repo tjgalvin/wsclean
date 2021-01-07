@@ -17,7 +17,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
   casacore::MSAntenna antennaTable(_ms.antenna());
   _nAntennae = antennaTable.nrow();
 
-  casacore::ROArrayColumn<double> positionColumn(
+  casacore::ArrayColumn<double> positionColumn(
       antennaTable,
       casacore::MSAntenna::columnName(casacore::MSAntennaEnums::POSITION));
   std::vector<Pos> positions(_nAntennae);
@@ -48,7 +48,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
       double dx = std::get<0>(pos1) - std::get<0>(pos2);
       double dy = std::get<1>(pos1) - std::get<1>(pos2);
       double dz = std::get<2>(pos1) - std::get<2>(pos2);
-      double dist = sqrt(dx * dx + dy * dy + dz * dz);
+      double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
       for (std::map<size_t, size_t>::const_iterator spwIter =
                selectedDataDescIds.begin();
            spwIter != selectedDataDescIds.end(); ++spwIter) {
@@ -65,8 +65,6 @@ AveragingMSRowProvider::AveragingMSRowProvider(
           maxAvgFactor =
               std::max<size_t>(maxAvgFactor, _averagingFactors[element]);
         }
-        // Logger::Debug << a1 << '\t' << a2 << '\t' <<
-        // _averagingFactors[element] << '\n';
         ++element;
       }
     }
@@ -111,9 +109,6 @@ bool AveragingMSRowProvider::processCurrentTimestep() {
   size_t avgFactor = _averagingFactors[elementIndex];
   _averageFactorSum += avgFactor;
   ++_rowCount;
-
-  // if(a1==1 && a2==2)
-  //	Logger::Debug << a1 <<'\t' << a2 << '\t' << avgFactor << '\n';
 
   _dataColumn.get(_currentRow, _currentData);
   _flagColumn.get(_currentRow, _currentFlags);

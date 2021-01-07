@@ -59,7 +59,7 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
       else
         prefix = stokesIName.GetPrefix(_settings);
       aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
-      Image image(reader.ImageWidth(), reader.ImageHeight());
+      ImageF image(reader.ImageWidth(), reader.ImageHeight());
       reader.Read(image.data());
 
       beamImages.ApplyStokesI(image.data());
@@ -72,7 +72,7 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
     }
   } else if (aocommon::Polarization::HasFullStokesPolarization(
                  _settings.polarizations)) {
-    Image images[4];
+    ImageF images[4];
     std::unique_ptr<aocommon::FitsReader> reader;
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
       aocommon::PolarizationEnum pol =
@@ -81,12 +81,12 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
       name.SetPolarization(pol);
       reader.reset(new aocommon::FitsReader(name.GetPrefix(_settings) + "-" +
                                             filenameKind + ".fits"));
-      images[polIndex] = Image(reader->ImageWidth(), reader->ImageHeight());
+      images[polIndex] = ImageF(reader->ImageWidth(), reader->ImageHeight());
       reader->Read(images[polIndex].data());
     }
 
-    double* imagePtrs[4] = {images[0].data(), images[1].data(),
-                            images[2].data(), images[3].data()};
+    float* imagePtrs[4] = {images[0].data(), images[1].data(), images[2].data(),
+                           images[3].data()};
     beamImages.ApplyFullStokes(imagePtrs);
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
       aocommon::PolarizationEnum pol =
@@ -211,9 +211,9 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
     for (size_t i = 0; i != 16; ++i) {
       writer.SetFrequency(entry.CentralFrequency(),
                           entry.bandEndFrequency - entry.bandStartFrequency);
-      writer.Write<double>(imageName.GetBeamPrefix(_settings) + "-" +
-                               std::to_string(i) + ".fits",
-                           beamImages[i].data());
+      writer.Write(imageName.GetBeamPrefix(_settings) + "-" +
+                       std::to_string(i) + ".fits",
+                   beamImages[i].data());
     }
   }
 }

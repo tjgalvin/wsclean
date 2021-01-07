@@ -21,7 +21,8 @@ class PrimaryBeamImageSet {
 
   PrimaryBeamImageSet(size_t width, size_t height, size_t nImages)
       : _beamImages(nImages), _width(width), _height(height) {
-    for (size_t i = 0; i != nImages; ++i) _beamImages[i] = Image(width, height);
+    for (size_t i = 0; i != nImages; ++i)
+      _beamImages[i] = ImageF(width, height);
   }
 
   static FitsReader GetAReader(const std::string& beamPrefix,
@@ -82,7 +83,7 @@ class PrimaryBeamImageSet {
   }
 
   void SetToZero() {
-    for (Image& img : _beamImages)
+    for (ImageF& img : _beamImages)
       std::fill_n(img.data(), _width * _height, 0.0);
   }
 
@@ -125,8 +126,8 @@ class PrimaryBeamImageSet {
     }
   }
 
-  const Image& operator[](size_t index) const { return _beamImages[index]; }
-  Image& operator[](size_t index) { return _beamImages[index]; }
+  const ImageF& operator[](size_t index) const { return _beamImages[index]; }
+  ImageF& operator[](size_t index) { return _beamImages[index]; }
 
   PrimaryBeamImageSet& operator+=(const PrimaryBeamImageSet& rhs) {
     if (_beamImages.size() != rhs._beamImages.size())
@@ -146,7 +147,7 @@ class PrimaryBeamImageSet {
     return *this;
   }
 
-  void ApplyStokesI(double* stokesI) const {
+  void ApplyStokesI(float* stokesI) const {
     if (_beamImages.size() == 8) {
       // If Iu is uncorrected and Ic is corrected:
       // Iu = B Ic B^*
@@ -159,17 +160,17 @@ class PrimaryBeamImageSet {
 
       size_t size = _width * _height;
       for (size_t j = 0; j != size; ++j) {
-        aocommon::MC2x2 val, squared;
-        val[0] = std::complex<double>(_beamImages[0][j], _beamImages[1][j]);
-        val[1] = std::complex<double>(_beamImages[2][j], _beamImages[3][j]);
-        val[2] = std::complex<double>(_beamImages[4][j], _beamImages[5][j]);
-        val[3] = std::complex<double>(_beamImages[6][j], _beamImages[7][j]);
-        aocommon::MC2x2::ATimesHermB(squared, val, val);
+        aocommon::MC2x2F val, squared;
+        val[0] = std::complex<float>(_beamImages[0][j], _beamImages[1][j]);
+        val[1] = std::complex<float>(_beamImages[2][j], _beamImages[3][j]);
+        val[2] = std::complex<float>(_beamImages[4][j], _beamImages[5][j]);
+        val[3] = std::complex<float>(_beamImages[6][j], _beamImages[7][j]);
+        aocommon::MC2x2F::ATimesHermB(squared, val, val);
         if (squared.Invert())
           stokesI[j] =
               stokesI[j] * 0.5 * (squared[0].real() + squared[3].real());
         else
-          stokesI[j] = std::numeric_limits<double>::quiet_NaN();
+          stokesI[j] = std::numeric_limits<float>::quiet_NaN();
       }
     } else if (_beamImages.size() == 16) {
       size_t size = _width * _height;
@@ -192,27 +193,27 @@ class PrimaryBeamImageSet {
     }
   }
 
-  void ApplyFullStokes(double* images[4]) const {
+  void ApplyFullStokes(float* images[4]) const {
     size_t size = _width * _height;
     if (_beamImages.size() == 8) {
       for (size_t j = 0; j != size; ++j) {
-        aocommon::MC2x2 beamVal;
-        beamVal[0] = std::complex<double>(_beamImages[0][j], _beamImages[1][j]);
-        beamVal[1] = std::complex<double>(_beamImages[2][j], _beamImages[3][j]);
-        beamVal[2] = std::complex<double>(_beamImages[4][j], _beamImages[5][j]);
-        beamVal[3] = std::complex<double>(_beamImages[6][j], _beamImages[7][j]);
+        aocommon::MC2x2F beamVal;
+        beamVal[0] = std::complex<float>(_beamImages[0][j], _beamImages[1][j]);
+        beamVal[1] = std::complex<float>(_beamImages[2][j], _beamImages[3][j]);
+        beamVal[2] = std::complex<float>(_beamImages[4][j], _beamImages[5][j]);
+        beamVal[3] = std::complex<float>(_beamImages[6][j], _beamImages[7][j]);
         if (beamVal.Invert()) {
-          double stokesVal[4] = {images[0][j], images[1][j], images[2][j],
-                                 images[3][j]};
-          aocommon::MC2x2 linearVal, scratch;
+          float stokesVal[4] = {images[0][j], images[1][j], images[2][j],
+                                images[3][j]};
+          aocommon::MC2x2F linearVal, scratch;
           aocommon::Polarization::StokesToLinear(stokesVal, linearVal.Data());
-          aocommon::MC2x2::ATimesB(scratch, beamVal, linearVal);
-          aocommon::MC2x2::ATimesHermB(linearVal, scratch, beamVal);
+          aocommon::MC2x2F::ATimesB(scratch, beamVal, linearVal);
+          aocommon::MC2x2F::ATimesHermB(linearVal, scratch, beamVal);
           aocommon::Polarization::LinearToStokes(linearVal.Data(), stokesVal);
           for (size_t p = 0; p != 4; ++p) images[p][j] = stokesVal[p];
         } else {
           for (size_t p = 0; p != 4; ++p)
-            images[p][j] = std::numeric_limits<double>::quiet_NaN();
+            images[p][j] = std::numeric_limits<float>::quiet_NaN();
         }
       }
     } else if (_beamImages.size() == 16) {
@@ -243,7 +244,7 @@ class PrimaryBeamImageSet {
   size_t Height() const { return _height; }
 
  private:
-  std::vector<Image> _beamImages;
+  std::vector<ImageF> _beamImages;
   size_t _width, _height;
 };
 

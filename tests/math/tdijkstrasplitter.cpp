@@ -521,15 +521,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask_on_noise) {
       if (mask2[n]) ++n;
       if (mask3[n]) ++n;
       if (mask4[n]) ++n;
-      if (n != 1) {
-        std::cout << (i % width) << ' ' << (i % height) << '\n';
-        std::cout << PathStr(mask1, width) << '\n';
-        std::cout << PathStr(mask2, width) << '\n';
-        std::cout << PathStr(mask3, width) << '\n';
-        std::cout << PathStr(mask4, width) << '\n';
-        BOOST_CHECK_EQUAL(n, 1u);
-        break;
-      }
+      BOOST_CHECK_EQUAL(n, 1u);
     }
   }
 }

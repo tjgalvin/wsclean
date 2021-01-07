@@ -14,10 +14,6 @@ BOOST_AUTO_TEST_CASE(wstacking) {
 
   WSClean wsclean;
   CommandLine commandLine;
-  // wsclean -niter 1000000 -size 1024 1024 -scale 1amin -parallel-gridding 4
-  // -parallel-deconvolution 512 -multiscale -auto-threshold 1 -auto-mask 4
-  // -channels-out 8 -join-channels -mgain 0.8 -deconvolution-channels 4
-  // -fit-spectral-pol 2 ../MWA_MOCK.ms/
   std::vector<const char*> args = {"wsclean",
                                    "-quiet",
                                    "-size",
@@ -88,10 +84,6 @@ BOOST_AUTO_TEST_CASE(wgridder) {
 
   WSClean wsclean;
   CommandLine commandLine;
-  // wsclean -niter 1000000 -size 1024 1024 -scale 1amin -use-wgridder
-  // -parallel-gridding 4 -parallel-deconvolution 512 -multiscale
-  // -auto-threshold 1 -auto-mask 4 -channels-out 8 -join-channels -mgain 0.8
-  // -deconvolution-channels 4 -fit-spectral-pol 2 ../MWA_MOCK.ms/
   std::vector<const char*> args = {"wsclean",
                                    "-quiet",
                                    "-size",
