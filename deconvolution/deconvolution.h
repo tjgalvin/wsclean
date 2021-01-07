@@ -4,7 +4,6 @@
 #include "paralleldeconvolution.h"
 
 #include <aocommon/polarization.h>
-
 #include <aocommon/uvector.h>
 
 #include <cstring>

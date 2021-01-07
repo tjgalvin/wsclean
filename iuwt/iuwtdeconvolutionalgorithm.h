@@ -162,9 +162,6 @@ class IUWTDeconvolutionAlgorithm {
   void constrainedPSFConvolve(float* image, const float* psf, size_t width,
                               size_t height);
 
-  bool extractPointSources(const IUWTDecomposition& iuwt, const IUWTMask& mask,
-                           const float* dirty, float* model);
-
   class FFTWManager& _fftwManager;
   size_t _width, _height;
   size_t _curBoxXStart, _curBoxXEnd;

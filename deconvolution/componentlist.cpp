@@ -10,7 +10,7 @@
 
 #include "../multiscale/multiscalealgorithm.h"
 
-using namespace aocommon;
+using aocommon::ImageCoordinates;
 
 void ComponentList::Write(const std::string& filename,
                           const MultiScaleAlgorithm& multiscale,

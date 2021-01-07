@@ -7,13 +7,15 @@
 
 #include "../system/fftwmanager.h"
 
-#include <aocommon/fits/fitsreader.h>
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/uvector.h>
 
 #include <cmath>
 
-using namespace aocommon;
+#include <boost/algorithm/clamp.hpp>
+
+using aocommon::ImageCoordinates;
+using boost::algorithm::clamp;
 
 template <typename T>
 T ModelRenderer::gaus(T x, T sigma) {
@@ -43,29 +45,17 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
       const long double intFlux =
           sed.IntegratedFlux(startFrequency, endFrequency, polarization);
 
-      // std::cout << "Source: " << comp->PosRA() << "," << comp->PosDec() << "
-      // Phase centre: " << _phaseCentreRA << "," << _phaseCentreDec << "
-      // beamsize: " << beamSize << "\n";
-
       int sourceX, sourceY;
       ImageCoordinates::LMToXY<long double>(
           sourceL - _phaseCentreDL, sourceM - _phaseCentreDM, _pixelScaleL,
           _pixelScaleM, imageWidth, imageHeight, sourceX, sourceY);
-      // std::cout << "Adding source " << comp->Name() << " at " << sourceX <<
-      // "," << sourceY << " of "
-      //	<< intFlux << " Jy ("
-      //	<< startFrequency/1000000.0 << "-" << endFrequency/1000000.0 <<
-      //" MHz).\n";
-      int xLeft = sourceX - boundingBoxSize, xRight = sourceX + boundingBoxSize,
-          yTop = sourceY - boundingBoxSize, yBottom = sourceY + boundingBoxSize;
-      if (xLeft < 0) xLeft = 0;
-      if (xLeft > (int)imageWidth) xLeft = (int)imageWidth;
-      if (xRight < xLeft) xRight = xLeft;
-      if (xRight > (int)imageWidth) xRight = (int)imageWidth;
-      if (yTop < 0) yTop = 0;
-      if (yTop > (int)imageHeight) yTop = (int)imageHeight;
-      if (yBottom < yTop) yBottom = yTop;
-      if (yBottom > (int)imageHeight) yBottom = (int)imageHeight;
+
+      const int xLeft = clamp(sourceX - boundingBoxSize, 0, int(imageWidth));
+      const int xRight =
+          clamp(sourceX + boundingBoxSize, xLeft, int(imageWidth));
+      const int yTop = clamp(sourceY - boundingBoxSize, 0, int(imageHeight));
+      const int yBottom =
+          clamp(sourceY + boundingBoxSize, yTop, int(imageHeight));
 
       for (int y = yTop; y != yBottom; ++y) {
         double* imageDataPtr = imageData + y * imageWidth + xLeft;
@@ -95,10 +85,6 @@ void ModelRenderer::renderGaussianComponent(
   long double sigmaMin = gausMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
   // TODO this won't work for non-equally spaced dimensions
   long double minPixelScale = std::min(_pixelScaleL, _pixelScaleM);
-  // It is better to actually integrate the flux under the gaussian after
-  // gridding, since a small gaussian might blow up with the following way.
-  // double factor = 2.0L * M_PI * sigmaMaj * sigmaMin / (minPixelScale *
-  // minPixelScale); flux /= factor;
 
   // Make rotation matrix
   long double transf[4];
@@ -125,16 +111,10 @@ void ModelRenderer::renderGaussianComponent(
   ImageCoordinates::LMToXY<long double>(
       sourceL - _phaseCentreDL, sourceM - _phaseCentreDM, _pixelScaleL,
       _pixelScaleM, imageWidth, imageHeight, sourceX, sourceY);
-  int xLeft = sourceX - boundingBoxSize, xRight = sourceX + boundingBoxSize,
-      yTop = sourceY - boundingBoxSize, yBottom = sourceY + boundingBoxSize;
-  if (xLeft < 0) xLeft = 0;
-  if (xLeft > (int)imageWidth) xLeft = (int)imageWidth;
-  if (xRight < xLeft) xRight = xLeft;
-  if (xRight > (int)imageWidth) xRight = (int)imageWidth;
-  if (yTop < 0) yTop = 0;
-  if (yTop > (int)imageHeight) yTop = (int)imageHeight;
-  if (yBottom < yTop) yBottom = yTop;
-  if (yBottom > (int)imageHeight) yBottom = (int)imageHeight;
+  const int xLeft = clamp(sourceX - boundingBoxSize, 0, int(imageWidth));
+  const int xRight = clamp(sourceX + boundingBoxSize, xLeft, int(imageWidth));
+  const int yTop = clamp(sourceY - boundingBoxSize, 0, int(imageHeight));
+  const int yBottom = clamp(sourceY + boundingBoxSize, yTop, int(imageHeight));
 
   aocommon::UVector<double> values;
   double fluxSum = 0.0;
@@ -211,8 +191,9 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
                             long double beamPA, long double pixelScaleL,
                             long double pixelScaleM) {
   if (beamMaj == 0.0 && beamMin == 0.0) {
-    for (size_t j = 0; j != imageWidth * imageHeight; ++j)
+    for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
       imageData[j] += modelData[j];
+    }
   } else {
     // Using the FWHM formula for a Gaussian:
     long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
@@ -238,7 +219,9 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     size_t boundingBoxSize = std::min<size_t>(
         ceil(sigmaMax * 40.0 / std::min(pixelScaleL, pixelScaleM)),
         minDimension);
-    if (boundingBoxSize % 2 != 0) ++boundingBoxSize;
+    if (boundingBoxSize % 2 != 0) {
+      ++boundingBoxSize;
+    }
     aocommon::UVector<float> kernel(boundingBoxSize * boundingBoxSize);
     auto iter = kernel.begin();
     for (size_t y = 0; y != boundingBoxSize; ++y) {
@@ -261,8 +244,9 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     FFTWManager fftw;
     FFTConvolver::Convolve(fftw, convolvedModel.data(), imageWidth, imageHeight,
                            kernel.data(), boundingBoxSize);
-    for (size_t j = 0; j != imageWidth * imageHeight; ++j)
+    for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
       imageData[j] += convolvedModel[j];
+    }
   }
 }
 
@@ -289,46 +273,6 @@ void ModelRenderer::renderModel(float* imageData, size_t imageWidth,
       } else
         renderPointComponent(imageData, imageWidth, imageHeight, posRA, posDec,
                              intFlux);
-    }
-  }
-}
-
-void ModelRenderer::RenderInterpolatedSource(float* image, size_t width,
-                                             size_t height, float flux,
-                                             double x, double y) {
-  aocommon::UVector<float> hSinc(std::min<size_t>(width, 128) + 1),
-      vSinc(std::min<size_t>(height, 128) + 1);
-
-  int midH = hSinc.size() / 2;
-  int midV = vSinc.size() / 2;
-
-  double xr = x - floor(x);
-  double yr = y - floor(y);
-
-  for (size_t i = 0; i != hSinc.size(); ++i) {
-    double xi = (int(i) - midH - xr) * M_PI;
-    if (xi == 0.0)
-      hSinc[i] = 1.0;
-    else
-      hSinc[i] = sin(xi) / xi;
-  }
-  for (size_t i = 0; i != vSinc.size(); ++i) {
-    double yi = (int(i) - midV - yr) * M_PI;
-    if (yi == 0.0)
-      vSinc[i] = 1.0;
-    else
-      vSinc[i] = sin(yi) / yi;
-  }
-
-  size_t xOffset = floor(x) - midH, yOffset = floor(y) - midV,
-         startX = std::max<int>(xOffset, 0), startY = std::max<int>(yOffset, 0),
-         endX = std::min<size_t>(xOffset + hSinc.size(), width),
-         endY = std::min<size_t>(yOffset + vSinc.size(), height);
-  for (size_t yi = startY; yi != endY; ++yi) {
-    float* ptr = &image[yi * width];
-    float vFlux = flux * vSinc[yi - yOffset];
-    for (size_t xi = startX; xi != endX; ++xi) {
-      ptr[xi] += vFlux * hSinc[xi - xOffset];
     }
   }
 }

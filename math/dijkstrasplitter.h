@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cmath>
 #include <queue>
-#include <set>
 
 class DijkstraSplitter {
  public:
@@ -34,6 +33,13 @@ class DijkstraSplitter {
     }
   }
 
+  /**
+   * Find the shortest vertical path through an image. The path is
+   * constrained to lie between vertical lines given by x1 and x2.
+   * The output is set to 1 for pixels that are part of the path, and
+   * set to 0 otherwise. The reason it's a floating point is because
+   * it is also used as scratch.
+   */
   void DivideVertically(const float* image, float* output, size_t x1,
                         size_t x2) const {
     using visitset = std::priority_queue<Visit>;
@@ -92,6 +98,10 @@ class DijkstraSplitter {
     for (size_t i = y1 * _width; i != y2 * _width; ++i) output[i] += scratch[i];
   }
 
+  /**
+   * Like DivideVertically, but for horizontal paths. The path is
+   * constrained to lie between horizontal lines given by y1 and y2.
+   */
   void DivideHorizontally(const float* image, float* output, size_t y1,
                           size_t y2) const {
     using visitset = std::priority_queue<Visit>;
@@ -145,6 +155,17 @@ class DijkstraSplitter {
     output[pCoord.y * _width] = 1.0;
   }
 
+  /**
+   * Mask the space between (typically) two vertical divisions.
+   * @param subdivision An image that is the result of earlier calls
+   * to DivideVertically().
+   * @param subImgX An x-position that is in between the two splits.
+   * @param mask A mask image for which pixels will be set to true if
+   *   and only if they are part of the area specified by the
+   *   two divisions.
+   * @param [out] x The left side of the bounding box of the divisions.
+   * @param [out] subWidth The bounding width of the two divisions.
+   */
   void FloodVerticalArea(const float* subdivision, size_t subImgX, bool* mask,
                          size_t& x, size_t& subWidth) const {
     std::fill(mask, mask + _width * _height, false);
@@ -179,6 +200,9 @@ class DijkstraSplitter {
       subWidth = x2 - x;
   }
 
+  /**
+   * Like FloodVerticalArea(), but for horizontal flooding.
+   */
   void FloodHorizontalArea(const float* subdivision, size_t subImgY, bool* mask,
                            size_t& y, size_t& subHeight) const {
     std::fill(mask, mask + _width * _height, false);
@@ -212,6 +236,21 @@ class DijkstraSplitter {
       subHeight = y2 - y;
   }
 
+  /**
+   * Combines a horizontally and vertically filled area and extracts a
+   * single mask where the areas overlap.
+   * @param vMask Mask returned by FloodHorizontalArea(), but trimmed
+   * to have the specified width.
+   * @param vMaskX x-value returned by FloodHorizontalArea().
+   * @param vMaskWidth Width return by FloodHorizontalArea(), and width
+   * of vMask.
+   * @param hMask Mask returned by FloodVerticalArea().
+   * @param [in,out] mask Result
+   * @param [out] subX Bounding box x-value
+   * @param [out] subY Bounding box y-value
+   * @param [out] subWidth Bounding box width
+   * @param [out] subHeight Bounding box height
+   */
   void GetBoundingMask(const bool* vMask, size_t vMaskX, size_t vMaskWidth,
                        const bool* hMask, bool* mask, size_t& subX,
                        size_t& subY, size_t& subWidth,

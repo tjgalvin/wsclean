@@ -2,6 +2,7 @@
 #define MODELRENDERER_H
 
 #include <cstring>
+
 #include <aocommon/polarization.h>
 
 class ModelRenderer {
@@ -63,14 +64,6 @@ class ModelRenderer {
     renderModel(imageData, imageWidth, imageHeight, model, startFrequency,
                 endFrequency, polarization);
   }
-
-  /**
-   * This will render a source and sinc-interpolate it so it
-   * can be on non-integer positions.
-   */
-  static void RenderInterpolatedSource(float* image, size_t width,
-                                       size_t height, float flux, double x,
-                                       double y);
 
  private:
   void renderPointComponent(float* imageData, size_t imageWidth,

@@ -36,12 +36,21 @@ set(TEST_LIBRARIES
 target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 target_link_libraries(integrationtest PRIVATE ${TEST_LIBRARIES})
 
-add_custom_target(check
-  DEPENDS unittest;integrationtest
+add_custom_target(checkunit
+  DEPENDS unittest
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND unittest
+)
+
+add_custom_target(checkintegration
+  DEPENDS integrationtest
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
-  COMMAND unittest
   COMMAND integrationtest
+)
+
+add_custom_target(check
+  DEPENDS checkunit;checkintegration
 )
 
 add_custom_target(coverage

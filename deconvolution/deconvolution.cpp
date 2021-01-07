@@ -8,6 +8,8 @@
 #include "iuwtdeconvolution.h"
 #include "genericclean.h"
 
+#include "../main/settings.h"
+
 #include "../math/rmsimage.h"
 
 #include "../multiscale/multiscalealgorithm.h"
@@ -19,11 +21,10 @@
 
 #include "../units/fluxdensity.h"
 
-#include "../main/settings.h"
-
 #include <aocommon/fits/fitsreader.h>
+#include <aocommon/imagecoordinates.h>
 
-using namespace aocommon;
+using aocommon::ImageCoordinates;
 
 Deconvolution::Deconvolution(const class Settings& settings)
     : _settings(settings),

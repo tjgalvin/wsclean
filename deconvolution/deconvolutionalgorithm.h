@@ -75,17 +75,6 @@ class DeconvolutionAlgorithm {
   static void ResizeImage(float* dest, size_t newWidth, size_t newHeight,
                           const float* source, size_t width, size_t height);
 
-  // This is used in the 'fitsmodel' executable. Might need to find a better
-  // place for it, or remove it.
-  static void GetModelFromImage(class Model& model, const float* image,
-                                size_t width, size_t height,
-                                double phaseCentreRA, double phaseCentreDec,
-                                double pixelSizeX, double pixelSizeY,
-                                double phaseCentreDL, double phaseCentreDM,
-                                double spectralIndex, double refFreq,
-                                aocommon::PolarizationEnum polarization =
-                                    aocommon::Polarization::StokesI);
-
   static void RemoveNaNsInPSF(float* psf, size_t width, size_t height);
 
   void CopyConfigFrom(const DeconvolutionAlgorithm& source) {
