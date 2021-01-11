@@ -4,12 +4,15 @@
 #include "imagingtableentry.h"
 
 #include <functional>
-#include <limits>
 #include <memory>
 #include <vector>
 
 class ImagingTable {
  public:
+  using EntryPtr = std::shared_ptr<ImagingTableEntry>;
+  using Group = std::vector<EntryPtr>;
+  using Groups = std::vector<Group>;
+
   /**
    * Iterator class for looping over entries.
    *
@@ -17,8 +20,7 @@ class ImagingTable {
    * of a reference to the shared pointer for the object.
    */
   class EntryIterator {
-    using BaseIterator =
-        std::vector<std::shared_ptr<ImagingTableEntry>>::const_iterator;
+    using BaseIterator = Group::const_iterator;
 
    public:
     explicit EntryIterator(BaseIterator baseIt) : _baseIterator(baseIt) {}
@@ -29,6 +31,9 @@ class ImagingTable {
     bool operator!=(const EntryIterator& other) const {
       return _baseIterator != other._baseIterator;
     }
+    bool operator==(const EntryIterator& other) const {
+      return _baseIterator == other._baseIterator;
+    }
 
    private:
     BaseIterator _baseIterator;
@@ -36,25 +41,27 @@ class ImagingTable {
 
   ImagingTable() = default;
 
-  size_t IndependentGroupCount() const {
-    return _independentGroupLookup.size();
-  }
+  size_t IndependentGroupCount() const { return _independentGroups.size(); }
 
   ImagingTable GetIndependentGroup(size_t index) const {
-    return ImagingTable(_independentGroupLookup[index]);
+    return ImagingTable(_independentGroups[index]);
   }
 
-  size_t FacetGroupCount() const { return _facetGroupLookup.size(); }
-
-  ImagingTable GetFacetGroup(size_t index) const {
-    return ImagingTable(_facetGroupLookup[index]);
-  }
-
-  size_t SquaredGroupCount() const { return _squaredGroupLookup.size(); }
+  size_t SquaredGroupCount() const { return _squaredGroups.size(); }
 
   ImagingTable GetSquaredGroup(size_t index) const {
-    return ImagingTable(_squaredGroupLookup[index]);
+    return ImagingTable(_squaredGroups[index]);
   }
+
+  const Groups& SquaredGroups() const { return _squaredGroups; }
+
+  size_t FacetGroupCount() const { return _facetGroups.size(); }
+
+  ImagingTable GetFacetGroup(size_t index) const {
+    return ImagingTable(_facetGroups[index]);
+  }
+
+  const Groups& FacetGroups() const { return _facetGroups; }
 
   size_t EntryCount() const { return _entries.size(); }
 
@@ -75,17 +82,16 @@ class ImagingTable {
   }
 
   void AddEntry(std::unique_ptr<ImagingTableEntry> entry) {
+    entry->index = _entries.size();
     _entries.push_back(std::move(entry));
   }
 
   void Update() {
-    updateGroupLookup(_independentGroupLookup, [](const ImagingTableEntry& e) {
-      return e.joinedGroupIndex;
-    });
-    updateGroupLookup(_facetGroupLookup, [](const ImagingTableEntry& e) {
-      return e.facetGroupIndex;
-    });
-    updateGroupLookup(_squaredGroupLookup, [](const ImagingTableEntry& e) {
+    updateGroups(_independentGroups,
+                 [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
+    updateGroups(_facetGroups,
+                 [](const ImagingTableEntry& e) { return e.facetIndex; });
+    updateGroups(_squaredGroups, [](const ImagingTableEntry& e) {
       return e.squaredDeconvolutionIndex;
     });
   }
@@ -95,50 +101,19 @@ class ImagingTable {
   ImagingTableEntry& Front() { return *_entries.front(); }
   const ImagingTableEntry& Front() const { return *_entries.front(); }
 
-  const ImagingTableEntry* FirstWithHigherFrequency(double frequency) const {
-    double currentDistance = std::numeric_limits<double>::max();
-    const ImagingTableEntry* entry = nullptr;
-
-    for (const auto& e : _entries) {
-      if (e->CentralFrequency() > frequency &&
-          e->CentralFrequency() - frequency < currentDistance) {
-        currentDistance = e->CentralFrequency() - frequency;
-        entry = &*e;
-      }
-    }
-    return entry;
-  }
-
-  const ImagingTableEntry* FirstWithLowerFrequency(double frequency) const {
-    double currentDistance = std::numeric_limits<double>::max();
-    const ImagingTableEntry* entry = nullptr;
-
-    for (const auto& e : _entries) {
-      if (e->CentralFrequency() < frequency &&
-          frequency - e->CentralFrequency() < currentDistance) {
-        currentDistance = frequency - e->CentralFrequency();
-        entry = &*e;
-      }
-    }
-    return entry;
-  }
-
  private:
-  using ImagingTableEntryPtr = std::shared_ptr<ImagingTableEntry>;
-  using GroupLookup = std::vector<std::vector<ImagingTableEntryPtr>>;
-
-  explicit ImagingTable(const std::vector<ImagingTableEntryPtr>& entries);
+  explicit ImagingTable(const Group& entries);
 
   static void PrintEntry(const ImagingTableEntry& entry);
-  void updateGroupLookup(
-      GroupLookup& group,
+  void updateGroups(
+      Groups& groups,
       std::function<size_t(const ImagingTableEntry&)> getIndex) const;
 
-  std::vector<ImagingTableEntryPtr> _entries;
+  Group _entries;
 
-  GroupLookup _independentGroupLookup;
-  GroupLookup _facetGroupLookup;
-  GroupLookup _squaredGroupLookup;
+  Groups _independentGroups;
+  Groups _facetGroups;
+  Groups _squaredGroups;
 };
 
 #endif

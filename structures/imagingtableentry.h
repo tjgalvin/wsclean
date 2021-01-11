@@ -6,6 +6,12 @@
 #include <string>
 #include <vector>
 
+namespace schaapcommon {
+namespace facets {
+class Facet;
+}
+}  // namespace schaapcommon
+
 struct ImagingTableEntry {
   struct MSBandInfo {
     size_t bandIndex;
@@ -18,6 +24,9 @@ struct ImagingTableEntry {
 
   ImagingTableEntry();
 
+  /**
+   * Unique index of the entry within its ImagingTable.
+   */
   size_t index;
 
   /**
@@ -29,6 +38,17 @@ struct ImagingTableEntry {
   size_t inputChannelCount;
 
   aocommon::PolarizationEnum polarization;
+
+  /**
+   * Index of the facet in WSClean::_facets.
+   * ImagingTable uses this index for creating groups per facet.
+   */
+  size_t facetIndex;
+
+  /**
+   * Non-owning pointer to a Facet. If it is null, faceting is not used.
+   */
+  const schaapcommon::facets::Facet* facet;
 
   size_t outputChannelIndex;
 
@@ -46,13 +66,6 @@ struct ImagingTableEntry {
    * (output)channel / timestep form such a group.
    */
   size_t squaredDeconvolutionIndex;
-
-  /**
-   * Entries with equal facetGroupIndex are joinedly deconvolved.
-   * Such a group of entries can be further split up in 'squared'
-   * deconvolution groups.
-   */
-  size_t facetGroupIndex;
 
   /**
    * Entries with equal joinedGroupIndex are joinedly deconvolved.

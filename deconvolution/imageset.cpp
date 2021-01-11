@@ -23,7 +23,7 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
       _imageIndexToPSFIndex(),
       _linkedPolarizations(settings.linkedPolarizations),
       _settings(settings) {
-  size_t nPol = table->GetSquaredGroup(0).EntryCount();
+  size_t nPol = table->SquaredGroups().front().size();
   size_t nImages = nPol * _channelsInDeconvolution;
   _images.resize(nImages);
   _imageIndexToPSFIndex.resize(nImages);
@@ -40,14 +40,14 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings,
       _width(width),
       _height(height),
       _channelsInDeconvolution((settings.deconvolutionChannelCount == 0)
-                                   ? table->SquaredGroupCount()
+                                   ? table->SquaredGroups().size()
                                    : settings.deconvolutionChannelCount),
       _squareJoinedChannels(settings.squaredJoins),
       _imagingTable(*table),
       _imageIndexToPSFIndex(),
       _linkedPolarizations(settings.linkedPolarizations),
       _settings(settings) {
-  size_t nPol = table->GetSquaredGroup(0).EntryCount();
+  size_t nPol = table->SquaredGroups().front().size();
   size_t nImages = nPol * _channelsInDeconvolution;
   _images.resize(nImages);
   _imageIndexToPSFIndex.resize(nImages);
@@ -66,7 +66,7 @@ void ImageSet::initializeIndices() {
   for (const ImagingTableEntry& entry : _imagingTable) {
     size_t outChannel = entry.outputChannelIndex;
     size_t chIndex = (outChannel * _channelsInDeconvolution) /
-                     _imagingTable.SquaredGroupCount();
+                     _imagingTable.SquaredGroups().size();
     if (outChannel != lastOutChannel && chIndex == lastDeconvolutionChannel) {
       // New output channel maps to an earlier deconvolution channel:
       // start at index of previous deconvolution channel
@@ -75,17 +75,16 @@ void ImageSet::initializeIndices() {
     if (chIndex != lastDeconvolutionChannel) {
       deconvolutionChannelStartIndex = imgIndex;
     }
-    _tableIndexToImageIndex.insert(std::make_pair(entry.index, imgIndex));
+    _entryIndexToImageIndex.emplace(entry.index, imgIndex);
     lastOutChannel = outChannel;
     lastDeconvolutionChannel = chIndex;
     ++imgIndex;
   }
   for (size_t channel = 0; channel != _channelsInDeconvolution; ++channel) {
     size_t sqIndex = channelToSqIndex(channel);
-    ImagingTable subTable = _imagingTable.GetSquaredGroup(sqIndex);
-    for (size_t eIndex = 0; eIndex != subTable.EntryCount(); ++eIndex) {
-      const ImagingTableEntry& entry = subTable[eIndex];
-      size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;
+    const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
+    for (const ImagingTable::EntryPtr& entry : sqGroup) {
+      size_t imageIndex = _entryIndexToImageIndex.find(entry->index)->second;
       _imageIndexToPSFIndex[imageIndex] = channel;
     }
   }
@@ -105,11 +104,10 @@ void ImageSet::LoadAndAverage(CachedImageSet& imageSet) {
     // makes sure that images of the same polarizations and that belong to the
     // same deconvolution channel are averaged together.
     size_t imgIndexForChannel = imgIndex;
-    ImagingTable subTable = _imagingTable.GetSquaredGroup(sqIndex);
-    for (size_t eIndex = 0; eIndex != subTable.EntryCount(); ++eIndex) {
-      const ImagingTableEntry& e = subTable[eIndex];
-      for (size_t i = 0; i != e.imageCount; ++i) {
-        imageSet.Load(scratch.data(), e.polarization, e.outputChannelIndex,
+    const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
+    for (const ImagingTable::EntryPtr& e : sqGroup) {
+      for (size_t i = 0; i != e->imageCount; ++i) {
+        imageSet.Load(scratch.data(), e->polarization, e->outputChannelIndex,
                       i == 1);
         _images[imgIndex] += scratch;
         weights[imgIndex]++;
@@ -143,8 +141,8 @@ void ImageSet::LoadAndAveragePSFs(
        ++sqIndex) {
     size_t chIndex = (sqIndex * _channelsInDeconvolution) /
                      _imagingTable.SquaredGroupCount();
-    ImagingTable subTable = _imagingTable.GetSquaredGroup(sqIndex);
-    const ImagingTableEntry& e = subTable.Front();
+    const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
+    const ImagingTableEntry& e = *sqGroup.front();
     psfSet.Load(scratch.data(), psfPolarization, e.outputChannelIndex, 0);
     for (size_t i = 0; i != _width * _height; ++i)
       psfImages[chIndex][i] += scratch[i];
@@ -202,8 +200,7 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
     // pixel of each output channel.
     Image scratch(_width, _height);
     size_t imgIndex = 0;
-    for (size_t eIndex = 0; eIndex != _imagingTable.EntryCount(); ++eIndex) {
-      const ImagingTableEntry& e = _imagingTable[eIndex];
+    for (const ImagingTableEntry& e : _imagingTable) {
       double freq = e.CentralFrequency();
       loop.Run(0, _width * _height, [&](size_t pxStart, size_t pxEnd) {
         aocommon::UVector<float> termsPixel(nTerms);
@@ -228,31 +225,29 @@ void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
     Logger::Info << "Assigning from " << _channelsInDeconvolution << " to "
                  << _imagingTable.SquaredGroupCount() << " channels...\n";
     size_t imgIndex = 0;
-    for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroupCount();
-         ++sqIndex) {
+    size_t sqIndex = 0;
+    for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
       size_t imgIndexForChannel = imgIndex;
-      ImagingTable subTable = _imagingTable.GetSquaredGroup(sqIndex);
-      for (size_t eIndex = 0; eIndex != subTable.EntryCount(); ++eIndex) {
-        const ImagingTableEntry& e = subTable[eIndex];
-        for (size_t i = 0; i != e.imageCount; ++i) {
-          imageSet.Store(_images[imgIndex].data(), e.polarization,
-                         e.outputChannelIndex, i == 1);
+      for (const ImagingTable::EntryPtr& e : sqGroup) {
+        for (size_t i = 0; i != e->imageCount; ++i) {
+          imageSet.Store(_images[imgIndex].data(), e->polarization,
+                         e->outputChannelIndex, i == 1);
           ++imgIndex;
         }
       }
       size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
-                                _imagingTable.SquaredGroupCount();
+                                _imagingTable.SquaredGroups().size();
       size_t nextChannelIndex = ((sqIndex + 1) * _channelsInDeconvolution) /
-                                _imagingTable.SquaredGroupCount();
+                                _imagingTable.SquaredGroups().size();
       if (thisChannelIndex == nextChannelIndex) imgIndex = imgIndexForChannel;
+      ++sqIndex;
     }
   }
 }
 
 void ImageSet::directStore(CachedImageSet& imageSet) {
   size_t imgIndex = 0;
-  for (size_t i = 0; i != _imagingTable.EntryCount(); ++i) {
-    const ImagingTableEntry& e = _imagingTable[i];
+  for (const ImagingTableEntry& e : _imagingTable) {
     for (size_t i = 0; i != e.imageCount; ++i) {
       imageSet.Store(_images[imgIndex].data(), e.polarization,
                      e.outputChannelIndex, i == 1);
@@ -266,23 +261,22 @@ void ImageSet::getSquareIntegratedWithNormalChannels(ImageF& dest,
   // In case only one frequency channel is used, we do not have to use
   // 'scratch', which saves copying and normalizing the data.
   if (_channelsInDeconvolution == 1) {
-    ImagingTable subTable = _imagingTable.GetSquaredGroup(0);
-    if (subTable.EntryCount() == 1) {
-      const ImagingTableEntry& entry = subTable[0];
-      size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;
-      dest = _images[imageIndex];
+    const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups().front();
+    if (sqGroup.size() == 1) {
+      const ImagingTable::EntryPtr& entry = sqGroup.front();
+      dest = entryToImage(entry);
     } else {
       const bool useAllPolarizations = _linkedPolarizations.empty();
-      for (size_t eIndex = 0; eIndex != subTable.EntryCount(); ++eIndex) {
-        const ImagingTableEntry& entry = subTable[eIndex];
+      bool isFirst = true;
+      for (const ImagingTable::EntryPtr& entry : sqGroup) {
         if (useAllPolarizations ||
-            _linkedPolarizations.count(entry.polarization) != 0) {
-          size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;
-          if (eIndex == 0) {
-            dest = _images[0];
+            _linkedPolarizations.count(entry->polarization) != 0) {
+          if (isFirst) {
+            dest = entryToImage(entry);
             dest.Square();
+            isFirst = false;
           } else {
-            dest.AddSquared(_images[imageIndex]);
+            dest.AddSquared(entryToImage(entry));
           }
         }
       }
@@ -292,26 +286,25 @@ void ImageSet::getSquareIntegratedWithNormalChannels(ImageF& dest,
     double weightSum = 0.0;
     for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex) {
       size_t sqIndex = channelToSqIndex(chIndex);
-      ImagingTable subTable = _imagingTable.GetSquaredGroup(sqIndex);
+      const ImagingTable::Group& sqGroup =
+          _imagingTable.SquaredGroups()[sqIndex];
       const double groupWeight = _weights[chIndex];
       weightSum += groupWeight;
-      if (subTable.EntryCount() == 1) {
-        const ImagingTableEntry& entry = subTable[0];
-        size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;
-        scratch = _images[imageIndex];
+      if (sqGroup.size() == 1) {
+        const ImagingTable::EntryPtr& entry = sqGroup.front();
+        scratch = entryToImage(entry);
       } else {
         const bool useAllPolarizations = _linkedPolarizations.empty();
-        for (size_t eIndex = 0; eIndex != subTable.EntryCount(); ++eIndex) {
-          const ImagingTableEntry& entry = subTable[eIndex];
+        bool isFirst = true;
+        for (const ImagingTable::EntryPtr& entry : sqGroup) {
           if (useAllPolarizations ||
-              _linkedPolarizations.count(entry.polarization) != 0) {
-            size_t imageIndex =
-                _tableIndexToImageIndex.find(entry.index)->second;
-            if (eIndex == 0) {
-              scratch = _images[imageIndex];
+              _linkedPolarizations.count(entry->polarization) != 0) {
+            if (isFirst) {
+              scratch = entryToImage(entry);
               scratch.Square();
+              isFirst = false;
             } else {
-              scratch.AddSquared(_images[imageIndex]);
+              scratch.AddSquared(entryToImage(entry));
             }
           }
         }
@@ -336,18 +329,16 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(ImageF& dest) const {
   for (size_t channel = 0; channel != _channelsInDeconvolution; ++channel) {
     // TODO this should be weighted
     size_t sqIndex = channelToSqIndex(channel);
-    ImagingTable subTable = _imagingTable.GetSquaredGroup(sqIndex);
-    for (size_t eIndex = 0; eIndex != subTable.EntryCount(); ++eIndex) {
-      const ImagingTableEntry& entry = subTable[eIndex];
+    const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
+    for (const ImagingTable::EntryPtr& entry : sqGroup) {
       if (useAllPolarizations ||
-          _linkedPolarizations.count(entry.polarization) != 0) {
-        size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;
+          _linkedPolarizations.count(entry->polarization) != 0) {
         if (isFirst) {
-          dest = _images[imageIndex];
+          dest = entryToImage(entry);
           dest.Square();
           isFirst = false;
         } else {
-          dest.AddSquared(_images[imageIndex]);
+          dest.AddSquared(entryToImage(entry));
         }
       }
     }
@@ -362,29 +353,27 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(ImageF& dest) const {
 void ImageSet::getLinearIntegratedWithNormalChannels(ImageF& dest) const {
   const bool useAllPolarizations = _linkedPolarizations.empty();
   if (_channelsInDeconvolution == 1 &&
-      _imagingTable.GetSquaredGroup(0).EntryCount() == 1) {
-    ImagingTable subTable = _imagingTable.GetSquaredGroup(0);
-    const ImagingTableEntry& entry = subTable[0];
-    size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;
-    dest = _images[imageIndex];
+      _imagingTable.SquaredGroups().front().size() == 1) {
+    const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups().front();
+    const ImagingTable::EntryPtr& entry = sqGroup.front();
+    dest = entryToImage(entry);
   } else {
     bool isFirst = true;
     double weightSum = 0.0;
     for (size_t channel = 0; channel != _channelsInDeconvolution; ++channel) {
       size_t sqIndex = channelToSqIndex(channel);
-      ImagingTable subTable = _imagingTable.GetSquaredGroup(sqIndex);
+      const ImagingTable::Group& sqGroup =
+          _imagingTable.SquaredGroups()[sqIndex];
       const double groupWeight = _weights[channel];
       weightSum += groupWeight;
-      for (size_t eIndex = 0; eIndex != subTable.EntryCount(); ++eIndex) {
-        const ImagingTableEntry& entry = subTable[eIndex];
+      for (const ImagingTable::EntryPtr& entry : sqGroup) {
         if (useAllPolarizations ||
-            _linkedPolarizations.count(entry.polarization) != 0) {
-          size_t imageIndex = _tableIndexToImageIndex.find(entry.index)->second;
+            _linkedPolarizations.count(entry->polarization) != 0) {
           if (isFirst) {
-            assignMultiply(dest, _images[imageIndex], groupWeight);
+            assignMultiply(dest, entryToImage(entry), groupWeight);
             isFirst = false;
           } else {
-            dest.AddWithFactor(_images[imageIndex], groupWeight);
+            dest.AddWithFactor(entryToImage(entry), groupWeight);
           }
         }
       }
@@ -405,7 +394,7 @@ void ImageSet::CalculateDeconvolutionFrequencies(
   weights.assign(nDeconvolutionChannels, 0.0);
   aocommon::UVector<double> weightSums(nDeconvolutionChannels, 0);
   for (size_t i = 0; i != nInputChannels; ++i) {
-    const ImagingTableEntry& entry = groupTable.GetSquaredGroup(i)[0];
+    const ImagingTableEntry& entry = *groupTable.SquaredGroups()[i].front();
     double freq = entry.CentralFrequency(), weight = entry.imageWeight;
     size_t deconvolutionChannel = i * nDeconvolutionChannels / nInputChannels;
     frequencies[deconvolutionChannel] += freq * weight;

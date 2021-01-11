@@ -45,7 +45,7 @@ void ParallelDeconvolution::SetAlgorithm(
         (_settings.parallelDeconvolutionMaxThreads + _algorithms.size() - 1) /
         _algorithms.size();
     _algorithms.front()->SetThreadCount(threadsPerAlg);
-    Logger::Debug << "Parallel cleaning will use " << _algorithms.size()
+    Logger::Debug << "Parallel deconvolution will use " << _algorithms.size()
                   << " subimages.\n";
     for (size_t i = 1; i != _algorithms.size(); ++i)
       _algorithms[i] = _algorithms.front()->Clone();

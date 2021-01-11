@@ -200,12 +200,13 @@ class ImageSet {
   void initializeIndices();
 
   void initializePolFactor() {
-    ImagingTable firstChannelGroup = _imagingTable.GetSquaredGroup(0);
+    const ImagingTable::Group& firstChannelGroup =
+        _imagingTable.SquaredGroups().front();
     std::set<aocommon::PolarizationEnum> pols;
-    for (size_t i = 0; i != firstChannelGroup.EntryCount(); ++i) {
+    for (const ImagingTable::EntryPtr& entry : firstChannelGroup) {
       if (_linkedPolarizations.empty() ||
-          _linkedPolarizations.count(firstChannelGroup[i].polarization) != 0) {
-        pols.insert(firstChannelGroup[i].polarization);
+          _linkedPolarizations.count(entry->polarization) != 0) {
+        pols.insert(entry->polarization);
       }
     }
     bool isDual =
@@ -273,6 +274,11 @@ class ImageSet {
     return fromFloor;
   }
 
+  const ImageF& entryToImage(const ImagingTable::EntryPtr& entry) const {
+    size_t imageIndex = _entryIndexToImageIndex.find(entry->index)->second;
+    return _images[imageIndex];
+  }
+
   std::vector<ImageF> _images;
   size_t _width, _height, _channelsInDeconvolution;
   // These vectors contain the info per deconvolution channel
@@ -280,7 +286,7 @@ class ImageSet {
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
   const ImagingTable& _imagingTable;
-  std::map<size_t, size_t> _tableIndexToImageIndex;
+  std::map<size_t, size_t> _entryIndexToImageIndex;
   aocommon::UVector<size_t> _imageIndexToPSFIndex;
   float _polarizationNormalizationFactor;
   std::set<aocommon::PolarizationEnum> _linkedPolarizations;

@@ -172,6 +172,10 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
 void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
                                  const ImagingTableEntry& entry,
                                  std::shared_ptr<ImageWeights> imageWeights) {
+  if (entry.facet)
+    throw std::runtime_error(
+        "Making beam images for facets is not implemented");
+
   bool useExistingBeam = false;
   if (_settings.reusePrimaryBeam) {
     ImageFilename firstPolName(imageName);

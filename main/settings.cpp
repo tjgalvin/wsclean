@@ -20,14 +20,14 @@ void Settings::Validate() const {
       throw std::runtime_error(
           "Invalid pixel scale given: one direction was set to zero.");
   } else if (mode == PredictMode) {
-    if (joinedFrequencyCleaning)
+    if (joinedFrequencyDeconvolution)
       throw std::runtime_error(
-          "Joined frequency cleaning specified for prediction: prediction "
-          "doesn't clean, parameter invalid");
-    if (joinedPolarizationCleaning)
+          "Joined frequency deconvolution specified for prediction: "
+          "prediction doesn't clean, parameter invalid");
+    if (joinedPolarizationDeconvolution)
       throw std::runtime_error(
-          "Joined polarization cleaning specified for prediction: prediction "
-          "doesn't clean, parameter invalid");
+          "Joined polarization deconvolution specified for prediction: "
+          "prediction doesn't clean, parameter invalid");
   }
 
   if (threadCount == 0)
@@ -53,11 +53,11 @@ void Settings::Validate() const {
           "When using IDG, it is only possible to either image Stokes I or to "
           "image all 4 Stokes polarizations: use -pol i or -pol iquv.");
     }
-    if (allStokes && !joinedPolarizationCleaning &&
+    if (allStokes && !joinedPolarizationDeconvolution &&
         deconvolutionIterationCount != 0)
       throw std::runtime_error(
-          "Cleaning IDG images with multiple polarizations is only possible in "
-          "joined polarization mode.");
+          "Deconvolving IDG images with multiple polarizations is only "
+          "possible in joined polarization mode.");
     if (trimmedImageWidth != trimmedImageHeight)
       throw std::runtime_error(
           "IDG can not yet make rectangular images -- this will be implemented "
@@ -109,10 +109,10 @@ void Settings::Validate() const {
         "You have specified 0 output channels -- at least one output channel "
         "is required.");
 
-  if (joinedFrequencyCleaning && channelsOut == 1)
+  if (joinedFrequencyDeconvolution && channelsOut == 1)
     throw std::runtime_error(
-        "Joined frequency cleaning was requested, but only one output channel "
-        "is being requested. Did you forget -channels-out?");
+        "Joined frequency deconvolution was requested, but only one output "
+        "channel is being requested. Did you forget -channels-out?");
 
   if (forceReorder && forceNoReorder)
     throw std::runtime_error(
@@ -150,10 +150,10 @@ void Settings::Validate() const {
 void Settings::checkPolarizations() const {
   bool hasXY = polarizations.count(aocommon::Polarization::XY) != 0;
   bool hasYX = polarizations.count(aocommon::Polarization::YX) != 0;
-  if (joinedPolarizationCleaning) {
+  if (joinedPolarizationDeconvolution) {
     if (polarizations.size() == 1)
       throw std::runtime_error(
-          "Joined/linked polarization cleaning requested, but only one "
+          "Joined/linked polarization deconvolution requested, but only one "
           "polarization is being imaged. Specify multiple polarizations, or do "
           "not request to join the polarizations.");
   } else {
@@ -181,12 +181,12 @@ void Settings::checkPolarizations() const {
         "output of imaging both polarizations will be the XY and imaginary XY "
         "images).");
   if (IsSpectralFittingEnabled()) {
-    if (joinedPolarizationCleaning)
+    if (joinedPolarizationDeconvolution)
       throw std::runtime_error(
           "You have requested spectral fitting, but you are joining multiple "
           "polarizations. This is not supported. You probably want to turn off "
           "the joining of polarizations (leave out -join-polarizations).");
-    if (!joinedFrequencyCleaning)
+    if (!joinedFrequencyDeconvolution)
       throw std::runtime_error(
           "You have requested spectral fitting, but you are not joining "
           "channels. This is not possible: you probably want to turn channel "
@@ -199,6 +199,16 @@ void Settings::checkPolarizations() const {
           "The auto-masking threshold was smaller or equal to the "
           "auto-threshold. This does not make sense. Did you accidentally "
           "reverse the auto-mask and auto-threshold values?");
+  }
+}
+
+void Settings::Propagate(bool verbose) {
+  if (verbose) logImportantSettings();
+
+  if (mode == ImagingMode || mode == PredictMode) {
+    RecalculatePaddedDimensions(verbose);
+    doReorder = determineReorder();
+    dataColumnName = determineDataColumn(verbose);
   }
 }
 

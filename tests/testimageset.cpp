@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(squaredGroupCount) {
 BOOST_AUTO_TEST_CASE(entryCount) { BOOST_CHECK_EQUAL(table.EntryCount(), 4u); }
 
 BOOST_AUTO_TEST_CASE(entriesInGroup) {
-  BOOST_CHECK_EQUAL(table.GetSquaredGroup(0).EntryCount(), 2u);
+  BOOST_CHECK_EQUAL(table.SquaredGroups().front().size(), 2u);
 }
 
 BOOST_AUTO_TEST_CASE(psfCount1) {

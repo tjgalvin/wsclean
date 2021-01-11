@@ -54,7 +54,12 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
+# Include aocommon
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
+
+# Schaapcommon
+add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
+include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)

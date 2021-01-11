@@ -2,6 +2,7 @@
 #define WSCLEAN_H
 
 #include <aocommon/polarization.h>
+#include <schaapcommon/facets/facet.h>
 
 #include "../deconvolution/deconvolution.h"
 
@@ -76,10 +77,8 @@ class WSClean {
       const std::vector<aocommon::ChannelInfo>& channels,
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
-  void addPolarizationsToImagingTable(size_t& joinedGroupIndex,
-                                      size_t& squaredGroupIndex,
-                                      size_t outChannelIndex,
-                                      const ImagingTableEntry& templateEntry);
+  void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
+  void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 
   void multiplyImage(double factor, double* image) const;
@@ -99,8 +98,6 @@ class WSClean {
                          bool isInitialInversion);
 
   void predict(const ImagingTableEntry& entry);
-  void predictCallback(const ImagingTableEntry& entry,
-                       struct GriddingResult& result);
 
   // void makeMFSImage(const string& suffix, size_t intervalIndex,
   // aocommon::PolarizationEnum pol, bool isImaginary, bool isPSF = false); void
@@ -142,6 +139,7 @@ class WSClean {
   Deconvolution _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
+  std::vector<schaapcommon::facets::Facet> _facets;
 };
 
 #endif

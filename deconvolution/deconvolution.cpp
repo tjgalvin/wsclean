@@ -42,7 +42,12 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
                             bool& reachedMajorThreshold,
                             size_t majorIterationNr) {
   Logger::Info.Flush();
-  Logger::Info << " == Cleaning (" << majorIterationNr << ") ==\n";
+  Logger::Info << " == Deconvolving (" << majorIterationNr << ") ==\n";
+
+  const ImagingTable::Groups& facetGroups = groupTable.FacetGroups();
+  if (!facetGroups.empty() && !facetGroups.front().empty() &&
+      facetGroups.front().front()->facet)
+    throw std::runtime_error("Deconvolving facets is not implemented");
 
   ImageSet residualSet(&groupTable, _settings, _imgWidth, _imgHeight),
       modelSet(&groupTable, _settings, _imgWidth, _imgHeight);
@@ -191,15 +196,14 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   }
 
   ImagingTable firstSquaredGroup = groupTable.GetSquaredGroup(0);
-  size_t squaredCount = firstSquaredGroup.EntryCount();
   _polarizations.clear();
-  for (size_t p = 0; p != squaredCount; ++p) {
-    if (_polarizations.count(firstSquaredGroup[p].polarization) != 0)
+  for (const ImagingTableEntry& entry : firstSquaredGroup) {
+    if (_polarizations.count(entry.polarization) != 0)
       throw std::runtime_error(
           "Two equal polarizations were given to the deconvolution algorithm "
           "within a single polarized group");
     else
-      _polarizations.insert(firstSquaredGroup[p].polarization);
+      _polarizations.insert(entry.polarization);
   }
 
   std::unique_ptr<class DeconvolutionAlgorithm> algorithm;

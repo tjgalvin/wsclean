@@ -44,7 +44,6 @@
 #include <aocommon/parallelfor.h>
 
 #include <iostream>
-#include <functional>
 #include <memory>
 
 std::string commandLine;
@@ -119,6 +118,10 @@ void WSClean::loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo) {
 void WSClean::imagePSF(ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Constructing PSF ==\n";
+
+  if (entry.facet)
+    throw std::runtime_error("Imaging facets is not implemented");
+
   GriddingTask task;
   task.operation = GriddingTask::Invert;
   task.imagePSF = true;
@@ -130,9 +133,9 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
-  _griddingTaskManager->Run(
-      task, std::bind(&WSClean::imagePSFCallback, this, std::ref(entry),
-                      std::placeholders::_1));
+  _griddingTaskManager->Run(task, [this, &entry](GriddingResult& result) {
+    imagePSFCallback(entry, result);
+  });
 }
 
 void WSClean::imagePSFCallback(ImagingTableEntry& entry,
@@ -216,6 +219,9 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   Logger::Info.Flush();
   Logger::Info << " == Constructing image ==\n";
 
+  if (entry.facet)
+    throw std::runtime_error("Imaging facets is not implemented");
+
   GriddingTask task;
   task.operation = GriddingTask::Invert;
   task.imagePSF = false;
@@ -229,9 +235,10 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
-  _griddingTaskManager->Run(
-      task, std::bind(&WSClean::imageMainCallback, this, std::ref(entry),
-                      std::placeholders::_1, updateBeamInfo, isFirstInversion));
+  _griddingTaskManager->Run(task, [this, &entry, updateBeamInfo,
+                                   isFirstInversion](GriddingResult& result) {
+    imageMainCallback(entry, result, updateBeamInfo, isFirstInversion);
+  });
 }
 
 void WSClean::imageMainCallback(ImagingTableEntry& entry,
@@ -360,6 +367,9 @@ void WSClean::predict(const ImagingTableEntry& entry) {
                         _settings.trimmedImageHeight),
       modelImageImaginary;
 
+  if (entry.facet)
+    throw std::runtime_error("Predicting facets is not implemented");
+
   if (entry.polarization == aocommon::Polarization::YX) {
     _modelImages.Load(modelImageReal.data(), aocommon::Polarization::XY,
                       entry.outputChannelIndex, false);
@@ -393,14 +403,9 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.modelImageImaginary = std::move(modelImageImaginary);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
-  _griddingTaskManager->Run(
-      task, std::bind(&WSClean::predictCallback, this, std::ref(entry),
-                      std::placeholders::_1));
-}
-
-void WSClean::predictCallback(const ImagingTableEntry& entry,
-                              GriddingResult& result) {
-  _msGridderMetaCache[entry.index] = std::move(result.cache);
+  _griddingTaskManager->Run(task, [this, &entry](GriddingResult& result) {
+    _msGridderMetaCache[entry.index] = std::move(result.cache);
+  });
 }
 
 std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
@@ -486,8 +491,7 @@ void WSClean::performReordering(bool isPredictMode) {
     std::map<aocommon::PolarizationEnum, size_t> nextIndex;
     for (size_t j = 0; j != _imagingTable.SquaredGroupCount(); ++j) {
       ImagingTable squaredGroup = _imagingTable.GetSquaredGroup(j);
-      for (size_t s = 0; s != squaredGroup.EntryCount(); ++s) {
-        ImagingTableEntry& entry = _imagingTable[squaredGroup[s].index];
+      for (ImagingTableEntry& entry : squaredGroup) {
         for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
           if (selectChannels(selection, i, d, entry)) {
@@ -743,8 +747,7 @@ bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
 
 double WSClean::minTheoreticalBeamSize(const ImagingTable& table) const {
   double beam = 0.0;
-  for (size_t i = 0; i != table.EntryCount(); ++i) {
-    const ImagingTableEntry& e = table[i];
+  for (const ImagingTableEntry& e : table) {
     const OutputChannelInfo& info = _infoPerChannel[e.outputChannelIndex];
     if (std::isfinite(info.theoreticBeamSize) &&
         (info.theoreticBeamSize < beam || beam == 0.0))
@@ -938,9 +941,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
     //_gridder->FreeImagingData();
 
-    for (size_t joinedIndex = 0; joinedIndex != groupTable.EntryCount();
-         ++joinedIndex)
-      saveRestoredImagesForGroup(groupTable[joinedIndex], primaryBeam);
+    for (const ImagingTableEntry& joinedEntry : groupTable) {
+      saveRestoredImagesForGroup(joinedEntry, primaryBeam);
+    }
 
     if (_settings.saveSourceList) {
       _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
@@ -1049,8 +1052,7 @@ void WSClean::saveRestoredImagesForGroup(
 void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing first iteration image(s)...\n";
   Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  for (size_t e = 0; e != groupTable.EntryCount(); ++e) {
-    const ImagingTableEntry& entry = groupTable[e];
+  for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
       _residualImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
@@ -1068,8 +1070,7 @@ void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
 void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing model image...\n";
   Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  for (size_t e = 0; e != groupTable.EntryCount(); ++e) {
-    const ImagingTableEntry& entry = groupTable[e];
+  for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
       _modelImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
@@ -1181,9 +1182,7 @@ void WSClean::predictGroup(const ImagingTable& imagingGroup) {
   const std::string rootPrefix = _settings.prefixName;
 
   _predictingWatch.Start();
-  for (size_t e = 0; e != imagingGroup.EntryCount(); ++e) {
-    const ImagingTableEntry& entry = imagingGroup[e];
-
+  for (const ImagingTableEntry& entry : imagingGroup) {
     readEarlierModelImages(entry);
 
     predict(entry);
@@ -1394,35 +1393,24 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   Logger::Debug << "Total nr of channels found in measurement sets: "
                 << inputChannelFrequencies.size() << '\n';
 
-  size_t joinedGroupIndex = 0, squaredGroupIndex = 0;
   _imagingTable.Clear();
+
+  ImagingTableEntry templateEntry;
+  templateEntry.joinedGroupIndex = 0;
+  templateEntry.squaredDeconvolutionIndex = 0;
 
   // for(size_t interval=0; interval!=_settings.intervalsOut; ++interval)
   //{
-  if (_settings.joinedFrequencyCleaning) {
-    size_t maxLocalJGI = joinedGroupIndex;
-    for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
-         ++outChannelIndex) {
-      ImagingTableEntry freqTemplate;
-      makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
-                            outChannelIndex, freqTemplate);
+  for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
+       ++outChannelIndex) {
+    makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
+                          outChannelIndex, templateEntry);
+    templateEntry.outputChannelIndex = outChannelIndex;
 
-      size_t localJGI = joinedGroupIndex;
-      addPolarizationsToImagingTable(localJGI, squaredGroupIndex,
-                                     outChannelIndex, freqTemplate);
-      if (localJGI > maxLocalJGI) maxLocalJGI = localJGI;
+    if (_settings.joinedFrequencyDeconvolution) {
+      templateEntry.joinedGroupIndex = 0;
     }
-    joinedGroupIndex = maxLocalJGI;
-  } else {
-    for (size_t outChannelIndex = 0; outChannelIndex != _settings.channelsOut;
-         ++outChannelIndex) {
-      ImagingTableEntry freqTemplate;
-      makeImagingTableEntry(inputChannelFrequencies, outputIntervalIndex,
-                            outChannelIndex, freqTemplate);
-
-      addPolarizationsToImagingTable(joinedGroupIndex, squaredGroupIndex,
-                                     outChannelIndex, freqTemplate);
-    }
+    addFacetsToImagingTable(templateEntry);
   }
   //}
   _imagingTable.Update();
@@ -1549,35 +1537,43 @@ void WSClean::makeImagingTableEntryChannelSettings(
   entry.outputIntervalIndex = outIntervalIndex;
 }
 
-void WSClean::addPolarizationsToImagingTable(
-    size_t& joinedGroupIndex, size_t& squaredGroupIndex, size_t outChannelIndex,
-    const ImagingTableEntry& templateEntry) {
+void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
+  if (_facets.empty()) {
+    templateEntry.facetIndex = 0;
+    templateEntry.facet = nullptr;
+    addPolarizationsToImagingTable(templateEntry);
+  } else {
+    for (size_t f = 0; f != _facets.size(); ++f) {
+      templateEntry.facetIndex = f;
+      templateEntry.facet = &_facets[f];
+      addPolarizationsToImagingTable(templateEntry);
+    }
+  }
+}
+
+void WSClean::addPolarizationsToImagingTable(ImagingTableEntry& templateEntry) {
   for (aocommon::PolarizationEnum p : _settings.polarizations) {
+    templateEntry.polarization = p;
+    if (p == aocommon::Polarization::XY)
+      templateEntry.imageCount = 2;
+    else if (p == aocommon::Polarization::YX)
+      templateEntry.imageCount = 0;
+    else
+      templateEntry.imageCount = 1;
+
     std::unique_ptr<ImagingTableEntry> entry(
         new ImagingTableEntry(templateEntry));
-    entry->index = _imagingTable.EntryCount();
-    entry->outputChannelIndex = outChannelIndex;
-    entry->joinedGroupIndex = joinedGroupIndex;
-    entry->squaredDeconvolutionIndex = squaredGroupIndex;
-    entry->polarization = p;
-    if (p == aocommon::Polarization::XY)
-      entry->imageCount = 2;
-    else if (p == aocommon::Polarization::YX)
-      entry->imageCount = 0;
-    else
-      entry->imageCount = 1;
-
     _imagingTable.AddEntry(std::move(entry));
 
-    if (!_settings.joinedPolarizationCleaning) {
-      ++joinedGroupIndex;
-      ++squaredGroupIndex;
+    if (!_settings.joinedPolarizationDeconvolution) {
+      ++templateEntry.joinedGroupIndex;
+      ++templateEntry.squaredDeconvolutionIndex;
     }
   }
 
-  if (_settings.joinedPolarizationCleaning) {
-    ++joinedGroupIndex;
-    ++squaredGroupIndex;
+  if (_settings.joinedPolarizationDeconvolution) {
+    ++templateEntry.joinedGroupIndex;
+    ++templateEntry.squaredDeconvolutionIndex;
   }
 }
 
