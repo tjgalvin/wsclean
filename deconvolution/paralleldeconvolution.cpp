@@ -423,11 +423,10 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages,
   }
 
   if (_settings.deconvolutionChannelCount == 0 ||
-      _settings.deconvolutionChannelCount == table.SquaredGroupCount()) {
+      _settings.deconvolutionChannelCount == table.SquaredGroups().size()) {
     // No beam averaging is required
-    for (size_t i = 0; i != table.SquaredGroupCount(); ++i) {
-      const ImagingTableEntry entry = table.GetSquaredGroup(i).Front();
-      correctChannelForPB(*list, entry);
+    for (const ImagingTable::Group& sqGroup : table.SquaredGroups()) {
+      correctChannelForPB(*list, *sqGroup.front());
     }
   } else {
     for (size_t ch = 0; ch != _settings.deconvolutionChannelCount; ++ch) {
@@ -476,11 +475,12 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
   /// TODO : use real weights of images
   size_t count = 0;
   PrimaryBeam pb(_settings);
-  for (size_t sqIndex = 0; sqIndex != table.SquaredGroupCount(); ++sqIndex) {
+  const ImagingTable::Groups& squaredGroups = table.SquaredGroups();
+  for (size_t sqIndex = 0; sqIndex != squaredGroups.size(); ++sqIndex) {
     size_t curImageIndex =
-        (sqIndex * deconvolutionChannels) / table.SquaredGroupCount();
+        (sqIndex * deconvolutionChannels) / squaredGroups.size();
     if (curImageIndex == imageIndex) {
-      const ImagingTableEntry e = table.GetSquaredGroup(sqIndex).Front();
+      const ImagingTableEntry& e = *squaredGroups[sqIndex].front();
       Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6
                     << " MHz\n";
       ImageFilename filename(e.outputChannelIndex, e.outputIntervalIndex);

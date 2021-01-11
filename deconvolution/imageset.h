@@ -264,11 +264,11 @@ class ImageSet {
 
   size_t channelToSqIndex(size_t channel) const {
     // Calculate reverse of
-    // (outChannel*_channelsInDeconvolution)/_imagingTable.SquaredGroupCount();
-    size_t fromFloor =
-        channel * _imagingTable.SquaredGroupCount() / _channelsInDeconvolution;
+    // (outChannel*_channelsInDeconvolution)/_imagingTable.SquaredGroups().size();
+    size_t fromFloor = channel * _imagingTable.SquaredGroups().size() /
+                       _channelsInDeconvolution;
     while (fromFloor * _channelsInDeconvolution /
-               _imagingTable.SquaredGroupCount() !=
+               _imagingTable.SquaredGroups().size() !=
            channel)
       ++fromFloor;
     return fromFloor;

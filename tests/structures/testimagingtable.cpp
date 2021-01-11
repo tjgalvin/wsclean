@@ -165,9 +165,9 @@ BOOST_AUTO_TEST_CASE(squared_groups) {
   table.AddEntry(entry0_1.take());
   table.AddEntry(entry0_2.take());
 
-  BOOST_TEST(table.SquaredGroupCount() == 0u);
+  BOOST_TEST(table.SquaredGroups().size() == 0u);
   table.Update();
-  BOOST_TEST_REQUIRE(table.SquaredGroupCount() == 2u);
+  BOOST_TEST_REQUIRE(table.SquaredGroups().size() == 2u);
   TestGroupCounts(table, 1, 1, 2);
 
   // Test GetSquaredGroup

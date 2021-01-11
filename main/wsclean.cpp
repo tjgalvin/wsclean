@@ -430,9 +430,8 @@ void WSClean::initializeMFSImageWeights() {
                << _settings.weightMode.ToString() << " weighting...\n";
   std::unique_ptr<ImageWeights> weights = _imageWeightCache->MakeEmptyWeights();
   if (_settings.doReorder) {
-    for (size_t sg = 0; sg != _imagingTable.SquaredGroupCount(); ++sg) {
-      const ImagingTable subTable = _imagingTable.GetSquaredGroup(sg);
-      const ImagingTableEntry& entry = subTable.Front();
+    for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
+      const ImagingTableEntry& entry = *sqGroup.front();
       for (size_t msIndex = 0; msIndex != _settings.filenames.size();
            ++msIndex) {
         const ImagingTableEntry::MSInfo& ms = entry.msData[msIndex];
@@ -440,8 +439,8 @@ void WSClean::initializeMFSImageWeights() {
              dataDescId != _msBands[msIndex].DataDescCount(); ++dataDescId) {
           MSSelection partSelection(_globalSelection);
           partSelection.SetBandId(dataDescId);
-          bool hasSelection = selectChannels(partSelection, msIndex, dataDescId,
-                                             subTable.Front());
+          const bool hasSelection =
+              selectChannels(partSelection, msIndex, dataDescId, entry);
           if (hasSelection) {
             aocommon::PolarizationEnum pol =
                 _settings.useIDG ? aocommon::Polarization::Instrumental
@@ -489,21 +488,21 @@ void WSClean::performReordering(bool isPredictMode) {
   loop.Run(0, _settings.filenames.size(), [&](size_t i, size_t) {
     std::vector<PartitionedMS::ChannelRange> channels;
     std::map<aocommon::PolarizationEnum, size_t> nextIndex;
-    for (size_t j = 0; j != _imagingTable.SquaredGroupCount(); ++j) {
-      ImagingTable squaredGroup = _imagingTable.GetSquaredGroup(j);
-      for (ImagingTableEntry& entry : squaredGroup) {
+    for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
+      for (const ImagingTable::EntryPtr& entry : sqGroup) {
         for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
-          if (selectChannels(selection, i, d, entry)) {
-            if (entry.polarization == *_settings.polarizations.begin()) {
+          if (selectChannels(selection, i, d, *entry)) {
+            if (entry->polarization == *_settings.polarizations.begin()) {
               PartitionedMS::ChannelRange r;
               r.dataDescId = d;
               r.start = selection.ChannelRangeStart();
               r.end = selection.ChannelRangeEnd();
               channels.push_back(r);
             }
-            entry.msData[i].bands[d].partIndex = nextIndex[entry.polarization];
-            ++nextIndex[entry.polarization];
+            entry->msData[i].bands[d].partIndex =
+                nextIndex[entry->polarization];
+            ++nextIndex[entry->polarization];
           }
         }
       }
@@ -691,9 +690,8 @@ void WSClean::RunPredict() {
 
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
-    for (size_t groupIndex = 0; groupIndex != _imagingTable.SquaredGroupCount();
-         ++groupIndex) {
-      predictGroup(_imagingTable.GetSquaredGroup(groupIndex));
+    for (const ImagingTable::Group& group : _imagingTable.SquaredGroups()) {
+      predictGroup(group);
     }
 
     // Needs to be destructed before image allocator, or image allocator will
@@ -768,7 +766,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                              _settings.channelsOut,
                              _settings.prefixName + "-residual");
   if (groupTable.Front().polarization == *_settings.polarizations.begin())
-    _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroupCount(),
+    _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroups().size(),
                           _settings.prefixName + "-psf");
 
   // In the case of IDG we have to directly ask for all Four polarizations. This
@@ -805,18 +803,16 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
     _griddingTaskManager->Finish();
   } else {
     bool hasMore;
-    size_t sIndex = 0;
+    size_t sqIndex = 0;
     do {
       hasMore = false;
-      for (size_t sGroupIndex = 0;
-           sGroupIndex != groupTable.SquaredGroupCount(); ++sGroupIndex) {
-        ImagingTable sGroupTable = groupTable.GetSquaredGroup(sGroupIndex);
-        if (sIndex < sGroupTable.EntryCount()) {
+      for (const ImagingTable::Group& sqGroup : groupTable.SquaredGroups()) {
+        if (sqIndex < sqGroup.size()) {
           hasMore = true;
-          runFirstInversion(sGroupTable[sIndex], primaryBeam);
+          runFirstInversion(*sqGroup[sqIndex], primaryBeam);
         }
       }
-      ++sIndex;
+      ++sqIndex;
       _griddingTaskManager->Finish();
     } while (hasMore);
   }
@@ -848,41 +844,37 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         if (_settings.deconvolutionMGain != 1.0) {
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
-            for (size_t sGroupIndex = 0;
-                 sGroupIndex != groupTable.SquaredGroupCount(); ++sGroupIndex) {
-              for (ImagingTableEntry& entry :
-                   groupTable.GetSquaredGroup(sGroupIndex)) {
-                predict(entry);
+            for (const ImagingTable::Group& sqGroup :
+                 groupTable.SquaredGroups()) {
+              for (const ImagingTable::EntryPtr& entry : sqGroup) {
+                predict(*entry);
               }
             }
             _griddingTaskManager->Finish();
             _predictingWatch.Pause();
 
             _inversionWatch.Start();
-            for (size_t sGroupIndex = 0;
-                 sGroupIndex != groupTable.SquaredGroupCount(); ++sGroupIndex) {
-              for (ImagingTableEntry& entry :
-                   groupTable.GetSquaredGroup(sGroupIndex)) {
-                imageMain(entry, false, false);
+            for (const ImagingTable::Group& sqGroup :
+                 groupTable.SquaredGroups()) {
+              for (const ImagingTable::EntryPtr& entry : sqGroup) {
+                imageMain(*entry, false, false);
               }  // end of polarization loop
             }    // end of joined channels loop
             _griddingTaskManager->Finish();
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
-            for (size_t sGroupIndex = 0;
-                 sGroupIndex != groupTable.SquaredGroupCount(); ++sGroupIndex) {
+            for (const ImagingTable::Group& sqGroup :
+                 groupTable.SquaredGroups()) {
               _predictingWatch.Start();
-              ImagingTable sGroupTable =
-                  groupTable.GetSquaredGroup(sGroupIndex);
-              for (ImagingTableEntry& entry : sGroupTable) {
-                predict(entry);
+              for (const ImagingTable::EntryPtr& entry : sqGroup) {
+                predict(*entry);
               }
               _griddingTaskManager->Finish();
               _predictingWatch.Pause();
 
               _inversionWatch.Start();
-              for (ImagingTableEntry& entry : sGroupTable) {
-                imageMain(entry, false, false);
+              for (const ImagingTable::EntryPtr& entry : sqGroup) {
+                imageMain(*entry, false, false);
               }  // end of polarization loop
               _griddingTaskManager->Finish();
               _inversionWatch.Pause();
@@ -892,39 +884,33 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
           else {  // only parallize channels
             _predictingWatch.Start();
             bool hasMore;
-            size_t sIndex = 0;
+            size_t sqIndex = 0;
             do {
               hasMore = false;
-              for (size_t sGroupIndex = 0;
-                   sGroupIndex != groupTable.SquaredGroupCount();
-                   ++sGroupIndex) {
-                ImagingTable sGroupTable =
-                    groupTable.GetSquaredGroup(sGroupIndex);
-                if (sIndex < sGroupTable.EntryCount()) {
+              for (const ImagingTable::Group& sqGroup :
+                   groupTable.SquaredGroups()) {
+                if (sqIndex < sqGroup.size()) {
                   hasMore = true;
-                  predict(sGroupTable[sIndex]);
+                  predict(*sqGroup[sqIndex]);
                 }
               }
-              ++sIndex;
+              ++sqIndex;
               _griddingTaskManager->Finish();
             } while (hasMore);
             _predictingWatch.Pause();
 
             _inversionWatch.Start();
-            sIndex = 0;
+            sqIndex = 0;
             do {
               hasMore = false;
-              for (size_t sGroupIndex = 0;
-                   sGroupIndex != groupTable.SquaredGroupCount();
-                   ++sGroupIndex) {
-                ImagingTable sGroupTable =
-                    groupTable.GetSquaredGroup(sGroupIndex);
-                if (sIndex < sGroupTable.EntryCount()) {
+              for (const ImagingTable::Group& sqGroup :
+                   groupTable.SquaredGroups()) {
+                if (sqIndex < sqGroup.size()) {
                   hasMore = true;
-                  imageMain(sGroupTable[sIndex], false, false);
+                  imageMain(*sqGroup[sqIndex], false, false);
                 }
               }
-              ++sIndex;
+              ++sqIndex;
               _griddingTaskManager->Finish();
             } while (hasMore);
             _inversionWatch.Pause();
@@ -1174,18 +1160,18 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry) {
   }
 }
 
-void WSClean::predictGroup(const ImagingTable& imagingGroup) {
+void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
   _modelImages.Initialize(
-      createWSCFitsWriter(imagingGroup.Front(), false, true).Writer(),
+      createWSCFitsWriter(*imagingGroup.front(), false, true).Writer(),
       _settings.polarizations.size(), 1, _settings.prefixName + "-model");
 
   const std::string rootPrefix = _settings.prefixName;
 
   _predictingWatch.Start();
-  for (const ImagingTableEntry& entry : imagingGroup) {
-    readEarlierModelImages(entry);
+  for (const ImagingTable::EntryPtr& entry : imagingGroup) {
+    readEarlierModelImages(*entry);
 
-    predict(entry);
+    predict(*entry);
   }  // end of polarization loop
   _predictingWatch.Pause();
 

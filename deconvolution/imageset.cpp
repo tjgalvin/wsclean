@@ -16,7 +16,7 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
       _width(0),
       _height(0),
       _channelsInDeconvolution((settings.deconvolutionChannelCount == 0)
-                                   ? table->SquaredGroupCount()
+                                   ? table->SquaredGroups().size()
                                    : settings.deconvolutionChannelCount),
       _squareJoinedChannels(settings.squaredJoins),
       _imagingTable(*table),
@@ -98,7 +98,7 @@ void ImageSet::LoadAndAverage(CachedImageSet& imageSet) {
   /// TODO : use real weights of images
   aocommon::UVector<size_t> weights(_images.size(), 0.0);
   size_t imgIndex = 0;
-  for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroupCount();
+  for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroups().size();
        ++sqIndex) {
     // The next loop iterates over the polarizations. The logic in the next loop
     // makes sure that images of the same polarizations and that belong to the
@@ -115,9 +115,9 @@ void ImageSet::LoadAndAverage(CachedImageSet& imageSet) {
       }
     }
     size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
-                              _imagingTable.SquaredGroupCount();
+                              _imagingTable.SquaredGroups().size();
     size_t nextChannelIndex = ((sqIndex + 1) * _channelsInDeconvolution) /
-                              _imagingTable.SquaredGroupCount();
+                              _imagingTable.SquaredGroups().size();
     // If the next loaded image belongs to the same deconvolution channel as the
     // previously loaded, they need to be averaged together.
     if (thisChannelIndex == nextChannelIndex) imgIndex = imgIndexForChannel;
@@ -137,10 +137,10 @@ void ImageSet::LoadAndAveragePSFs(
 
   /// TODO : use real weights of images
   aocommon::UVector<size_t> weights(_channelsInDeconvolution, 0.0);
-  for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroupCount();
+  for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroups().size();
        ++sqIndex) {
     size_t chIndex = (sqIndex * _channelsInDeconvolution) /
-                     _imagingTable.SquaredGroupCount();
+                     _imagingTable.SquaredGroups().size();
     const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
     const ImagingTableEntry& e = *sqGroup.front();
     psfSet.Load(scratch.data(), psfPolarization, e.outputChannelIndex, 0);
@@ -158,11 +158,11 @@ void ImageSet::LoadAndAveragePSFs(
 
 void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
                                    const SpectralFitter& fitter) {
-  if (_channelsInDeconvolution == _imagingTable.SquaredGroupCount()) {
+  if (_channelsInDeconvolution == _imagingTable.SquaredGroups().size()) {
     directStore(imageSet);
   } else {
     Logger::Info << "Interpolating from " << _channelsInDeconvolution << " to "
-                 << _imagingTable.SquaredGroupCount() << " channels...\n";
+                 << _imagingTable.SquaredGroups().size() << " channels...\n";
 
     // TODO should use spectralimagefitter to do the interpolation of images;
     // here we should just unpack the data structure
@@ -219,11 +219,11 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
 }
 
 void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
-  if (_channelsInDeconvolution == _imagingTable.SquaredGroupCount()) {
+  if (_channelsInDeconvolution == _imagingTable.SquaredGroups().size()) {
     directStore(imageSet);
   } else {
     Logger::Info << "Assigning from " << _channelsInDeconvolution << " to "
-                 << _imagingTable.SquaredGroupCount() << " channels...\n";
+                 << _imagingTable.SquaredGroups().size() << " channels...\n";
     size_t imgIndex = 0;
     size_t sqIndex = 0;
     for (const ImagingTable::Group& sqGroup : _imagingTable.SquaredGroups()) {
@@ -388,7 +388,7 @@ void ImageSet::getLinearIntegratedWithNormalChannels(ImageF& dest) const {
 void ImageSet::CalculateDeconvolutionFrequencies(
     const ImagingTable& groupTable, aocommon::UVector<double>& frequencies,
     aocommon::UVector<float>& weights, size_t nDeconvolutionChannels) {
-  size_t nInputChannels = groupTable.SquaredGroupCount();
+  size_t nInputChannels = groupTable.SquaredGroups().size();
   if (nDeconvolutionChannels == 0) nDeconvolutionChannels = nInputChannels;
   frequencies.assign(nDeconvolutionChannels, 0.0);
   weights.assign(nDeconvolutionChannels, 0.0);

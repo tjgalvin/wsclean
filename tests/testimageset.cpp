@@ -60,7 +60,7 @@ struct ImageSetFixture : public ImageSetFixtureBase {
 BOOST_FIXTURE_TEST_SUITE(imageset, ImageSetFixture)
 
 BOOST_AUTO_TEST_CASE(squaredGroupCount) {
-  BOOST_CHECK_EQUAL(table.SquaredGroupCount(), 2u);
+  BOOST_CHECK_EQUAL(table.SquaredGroups().size(), 2u);
 }
 
 BOOST_AUTO_TEST_CASE(entryCount) { BOOST_CHECK_EQUAL(table.EntryCount(), 4u); }

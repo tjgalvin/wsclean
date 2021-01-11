@@ -15,29 +15,30 @@ ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
 void ImagingTable::Print() const {
   Logger::Info << "=== IMAGING TABLE ===\n"
                   "       # Pol Ch JG ²G FG In Freq(MHz)\n";
-  for (size_t i = 0; i != IndependentGroupCount(); ++i) {
+  for (size_t i = 0; i != _independentGroups.size(); ++i) {
     Logger::Info << "| Independent group:\n";
-    const ImagingTable independent = GetIndependentGroup(i);
+    const ImagingTable independent(_independentGroups[i]);
 
-    for (size_t s = 0; s != independent.SquaredGroupCount(); ++s) {
-      const ImagingTable squared = independent.GetSquaredGroup(s);
+    const ImagingTable::Groups& squaredGroups = independent.SquaredGroups();
+    for (size_t s = 0; s != squaredGroups.size(); ++s) {
+      const ImagingTable::Group& squared = squaredGroups[s];
 
-      for (size_t e = 0; e != squared._entries.size(); ++e) {
+      for (size_t e = 0; e != squared.size(); ++e) {
         if (s == 0 && e == 0)
           Logger::Info << "+-";
-        else if ((i + 1) == IndependentGroupCount())
+        else if ((i + 1) == _independentGroups.size())
           Logger::Info << "  ";
         else
           Logger::Info << "| ";
 
         if (e == 0)
           Logger::Info << "+-";
-        else if ((s + 1) == independent.SquaredGroupCount())
+        else if ((s + 1) == squaredGroups.size())
           Logger::Info << "  ";
         else
           Logger::Info << "| ";
 
-        PrintEntry(*squared._entries[e]);
+        PrintEntry(*squared[e]);
       }
     }
   }
