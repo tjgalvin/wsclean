@@ -108,7 +108,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);
-  gridder.SetVerbose(task.verbose);
+  gridder.SetIsFirstIteration(task.verbose);
   if (task.cache)
     gridder.SetMetaDataCache(std::move(task.cache));
   else

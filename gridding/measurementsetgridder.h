@@ -50,7 +50,7 @@ class MeasurementSetGridder {
         _polarization(aocommon::Polarization::StokesI),
         _isComplex(false),
         _weighting(WeightMode::UniformWeighted),
-        _verbose(false),
+        _isFirstIteration(false),
         _antialiasingKernelSize(7),
         _overSamplingFactor(63),
         _visibilityWeightingMode(NormalVisibilityWeighting),
@@ -94,7 +94,6 @@ class MeasurementSetGridder {
     return _precalculatedWeightInfo;
   }
   bool IsComplex() const { return _isComplex; }
-  bool Verbose() const { return _verbose; }
   size_t AntialiasingKernelSize() const { return _antialiasingKernelSize; }
   size_t OverSamplingFactor() const { return _overSamplingFactor; }
   bool HasWLimit() const { return _wLimit != 0.0; }
@@ -132,7 +131,15 @@ class MeasurementSetGridder {
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
   }
-  void SetVerbose(bool verbose) { _verbose = verbose; }
+  /**
+   * If this is the first gridder iteration, the gridder may output more
+   * information.
+   */
+  bool IsFirstIteration() const { return _isFirstIteration; }
+  void SetIsFirstIteration(bool isFirstIteration) {
+    _isFirstIteration = isFirstIteration;
+  }
+
   void SetAntialiasingKernelSize(size_t kernelSize) {
     _antialiasingKernelSize = kernelSize;
   }
@@ -207,7 +214,7 @@ class MeasurementSetGridder {
   aocommon::PolarizationEnum _polarization;
   bool _isComplex;
   WeightMode _weighting;
-  bool _verbose;
+  bool _isFirstIteration;
   std::vector<MSSelection> _selections;
   size_t _antialiasingKernelSize, _overSamplingFactor;
   enum VisibilityWeightingMode _visibilityWeightingMode;

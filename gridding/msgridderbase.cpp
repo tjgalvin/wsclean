@@ -344,8 +344,10 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   }
 
   _theoreticalBeamSize = 1.0 / maxBaseline;
-  Logger::Info << "Theoretic beam = "
-               << Angle::ToNiceString(_theoreticalBeamSize) << "\n";
+  if (IsFirstIteration()) {
+    Logger::Info << "Theoretic beam = "
+                 << Angle::ToNiceString(_theoreticalBeamSize) << "\n";
+  }
   if (HasWLimit()) {
     _maxW *= (1.0 - WLimit());
     if (_maxW < _minW) _maxW = _minW;
@@ -370,9 +372,11 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
           std::max(std::min(optWidth, _actualInversionWidth), size_t(32));
       size_t newHeight =
           std::max(std::min(optHeight, _actualInversionHeight), size_t(32));
-      Logger::Info << "Minimal inversion size: " << minWidth << " x "
-                   << minHeight << ", using optimal: " << newWidth << " x "
-                   << newHeight << "\n";
+      if (IsFirstIteration()) {
+        Logger::Info << "Minimal inversion size: " << minWidth << " x "
+                     << minHeight << ", using optimal: " << newWidth << " x "
+                     << newHeight << "\n";
+      }
       _actualPixelSizeX = (double(_actualInversionWidth) * _actualPixelSizeX) /
                           double(newWidth);
       _actualPixelSizeY = (double(_actualInversionHeight) * _actualPixelSizeY) /
@@ -380,13 +384,15 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
       _actualInversionWidth = newWidth;
       _actualInversionHeight = newHeight;
     } else {
-      Logger::Info
-          << "Small inversion enabled, but inversion resolution already "
-             "smaller than beam size: not using optimization.\n";
+      if (IsFirstIteration()) {
+        Logger::Info
+            << "Small inversion enabled, but inversion resolution already "
+               "smaller than beam size: not using optimization.\n";
+      }
     }
   }
 
-  if (Verbose() || !HasWGridSize()) {
+  if (IsFirstIteration() || !HasWGridSize()) {
     size_t suggestedGridSize = getSuggestedWGridSize();
     if (!HasWGridSize())
       SetActualWGridSize(suggestedGridSize);
