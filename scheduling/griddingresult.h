@@ -1,12 +1,13 @@
 #ifndef GRIDDING_RESULT_H
 #define GRIDDING_RESULT_H
 
+#include "../scheduling/metadatacache.h"
 #include "../structures/image.h"
 #include "../structures/observationinfo.h"
 
-#include <string>
+#include <aocommon/io/serialstreamfwd.h>
 
-#include "../scheduling/metadatacache.h"
+#include <string>
 
 struct GriddingResult {
   GriddingResult()
@@ -33,8 +34,8 @@ struct GriddingResult {
   size_t actualInversionWidth, actualInversionHeight;
   std::unique_ptr<MetaDataCache> cache;
 
-  void Serialize(class SerialOStream& stream) const;
-  void Unserialize(class SerialIStream& stream);
+  void Serialize(aocommon::SerialOStream& stream) const;
+  void Unserialize(aocommon::SerialIStream& stream);
 };
 
 #endif

@@ -1,11 +1,11 @@
 #ifndef WEIGHTMODE_H
 #define WEIGHTMODE_H
 
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
+
 #include <string>
 #include <sstream>
-
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
 
 class WeightMode {
  public:
@@ -75,7 +75,7 @@ class WeightMode {
     }
   }
 
-  void Serialize(SerialOStream& stream) const {
+  void Serialize(aocommon::SerialOStream& stream) const {
     stream.UInt32(_mode);
     if (_mode == BriggsWeighted) {
       stream.Double(_briggsRobustness);
@@ -83,7 +83,7 @@ class WeightMode {
     }
   }
 
-  void Unserialize(SerialIStream& stream) {
+  void Unserialize(aocommon::SerialIStream& stream) {
     stream.UInt32(_mode);
     if (_mode == BriggsWeighted) {
       stream.Double(_briggsRobustness);

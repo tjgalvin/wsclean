@@ -4,8 +4,8 @@
 
 #include "../main/settings.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   if (_isPartitioned)
@@ -16,7 +16,7 @@ std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
         _filename, _dataColumnName, _selection, _polarization, _dataDescId));
 }
 
-void MSDataDescription::Serialize(SerialOStream& stream) const {
+void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
   stream.Bool(_isPartitioned).UInt16(_polarization).UInt32(_dataDescId);
   _selection.Serialize(stream);
   stream.String(_filename).String(_dataColumnName);
@@ -25,7 +25,7 @@ void MSDataDescription::Serialize(SerialOStream& stream) const {
 }
 
 std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(
-    SerialIStream& stream) {
+    aocommon::SerialIStream& stream) {
   std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
   stream.Bool(mdd->_isPartitioned);
   mdd->_polarization = (aocommon::PolarizationEnum)stream.UInt16();

@@ -1,9 +1,9 @@
 #include "observationinfo.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
-void ObservationInfo::Serialize(SerialOStream& stream) const {
+void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
       .Double(startTime)
@@ -15,7 +15,7 @@ void ObservationInfo::Serialize(SerialOStream& stream) const {
       .String(fieldName);
 }
 
-void ObservationInfo::Unserialize(SerialIStream& stream) {
+void ObservationInfo::Unserialize(aocommon::SerialIStream& stream) {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
       .Double(startTime)

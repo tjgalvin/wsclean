@@ -1,9 +1,9 @@
 #include "metadatacache.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
-void MetaDataCache::Serialize(class SerialOStream& stream) const {
+void MetaDataCache::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt64(msDataVector.size());
   for (const Entry& entry : msDataVector) {
     stream.Double(entry.minW)
@@ -17,7 +17,7 @@ void MetaDataCache::Serialize(class SerialOStream& stream) const {
   stream.Ptr(averageBeam);
 }
 
-void MetaDataCache::Unserialize(class SerialIStream& stream) {
+void MetaDataCache::Unserialize(aocommon::SerialIStream& stream) {
   msDataVector.resize(stream.UInt64());
   for (Entry& entry : msDataVector) {
     stream.Double(entry.minW)

@@ -5,6 +5,7 @@
 
 #include "../structures/msselection.h"
 
+#include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
@@ -95,8 +96,8 @@ class PartitionedMS final : public MSProvider {
    public:
     Handle() = default;
 
-    void Serialize(class SerialOStream& stream) const;
-    void Unserialize(class SerialIStream& stream);
+    void Serialize(aocommon::SerialOStream& stream) const;
+    void Unserialize(aocommon::SerialIStream& stream);
 
     friend class PartitionedMS;
 
@@ -131,8 +132,8 @@ class PartitionedMS final : public MSProvider {
       size_t _nAntennas;
       bool _isCopy;
 
-      void Serialize(class SerialOStream& stream) const;
-      void Unserialize(class SerialIStream& stream);
+      void Serialize(aocommon::SerialOStream& stream) const;
+      void Unserialize(aocommon::SerialIStream& stream);
     };
     std::shared_ptr<HandleData> _data;
 

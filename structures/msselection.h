@@ -1,10 +1,10 @@
 #ifndef MS_SELECTION
 #define MS_SELECTION
 
-#include <cstring>
-
+#include <aocommon/io/serialstreamfwd.h>
 #include <casacore/casa/Arrays/Vector.h>
 
+#include <cstring>
 #include <vector>
 
 class MSSelection {
@@ -119,8 +119,8 @@ class MSSelection {
   EvenOddSelection EvenOrOddTimesteps() const { return _evenOddSelection; }
   static MSSelection Everything() { return MSSelection(); }
 
-  void Serialize(class SerialOStream& stream) const;
-  void Unserialize(class SerialIStream& stream);
+  void Serialize(aocommon::SerialOStream& stream) const;
+  void Unserialize(aocommon::SerialIStream& stream);
 
  private:
   std::vector<size_t> _fieldIds;

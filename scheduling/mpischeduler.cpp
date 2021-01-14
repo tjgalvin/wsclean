@@ -7,8 +7,8 @@
 #include "../distributed/mpibig.h"
 #include "../distributed/taskmessage.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
 #include <mpi.h>
 

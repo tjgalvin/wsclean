@@ -2,8 +2,8 @@
 
 #include "multibanddata.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
 #include "../msproviders/msprovider.h"
 
@@ -45,25 +45,25 @@ ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth,
   _grid.assign(_imageWidth * _imageHeight / 2, 0.0);
 }
 
-void ImageWeights::Serialize(SerialOStream& stream) const {
+void ImageWeights::Serialize(aocommon::SerialOStream& stream) const {
   _weightMode.Serialize(stream);
   stream.UInt64(_imageWidth)
       .UInt64(_imageHeight)
       .Double(_pixelScaleX)
       .Double(_pixelScaleY)
-      .VectorDouble(_grid)
+      .Vector(_grid)
       .Double(_totalSum)
       .Bool(_isGriddingFinished)
       .Bool(_weightsAsTaper);
 }
 
-void ImageWeights::Unserialize(SerialIStream& stream) {
+void ImageWeights::Unserialize(aocommon::SerialIStream& stream) {
   _weightMode.Unserialize(stream);
   stream.UInt64(_imageWidth)
       .UInt64(_imageHeight)
       .Double(_pixelScaleX)
       .Double(_pixelScaleY)
-      .VectorDouble(_grid)
+      .Vector(_grid)
       .Double(_totalSum)
       .Bool(_isGriddingFinished)
       .Bool(_weightsAsTaper);

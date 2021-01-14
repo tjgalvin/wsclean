@@ -1,9 +1,9 @@
 #include "griddingtask.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
-void GriddingTask::Serialize(SerialOStream& stream) const {
+void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt32(operation)
       .Bool(imagePSF)
       .Bool(subtractModel)
@@ -23,7 +23,7 @@ void GriddingTask::Serialize(SerialOStream& stream) const {
   modelImageImaginary.Serialize(stream);
 }
 
-void GriddingTask::Unserialize(SerialIStream& stream) {
+void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
   operation = (Operation)stream.UInt32();
   stream.Bool(imagePSF).Bool(subtractModel);
   polarization = (aocommon::PolarizationEnum)stream.UInt32();

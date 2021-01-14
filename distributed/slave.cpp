@@ -1,5 +1,8 @@
 #include "slave.h"
 
+#include <aocommon/io/serialistream.h>
+#include <aocommon/io/serialostream.h>
+
 #include "mpibig.h"
 #include "taskmessage.h"
 
@@ -33,7 +36,7 @@ void Slave::grid(size_t bodySize) {
   MPI_Status status;
   aocommon::UVector<unsigned char> buffer(bodySize);
   MPI_Recv_Big(buffer.data(), bodySize, 0, 0, MPI_COMM_WORLD, &status);
-  SerialIStream stream(std::move(buffer));
+  aocommon::SerialIStream stream(std::move(buffer));
   stream.UInt64();  // skip the nr of packages
 
   GriddingTask task;
@@ -44,8 +47,8 @@ void Slave::grid(size_t bodySize) {
   GriddingResult result = scheduler->RunDirect(task);
   Logger::Info << "Worker node is done gridding.\n";
 
-  SerialOStream resStream;
-  resStream.UInt64(0.0);  // reserve nr of packages for MPI_Send_Big
+  aocommon::SerialOStream resStream;
+  resStream.UInt64(0);  // reserve nr of packages for MPI_Send_Big
   result.Serialize(resStream);
 
   TaskMessage message;

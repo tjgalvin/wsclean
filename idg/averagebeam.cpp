@@ -1,36 +1,36 @@
 #include "averagebeam.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialistream.h>
+#include <aocommon/io/serialostream.h>
 
-void AverageBeam::Serialize(SerialOStream& stream) const {
+void AverageBeam::Serialize(aocommon::SerialOStream& stream) const {
   if (_scalarBeam) {
     stream.Bool(true);
-    stream.VectorFloat(*_scalarBeam);
+    stream.Vector(*_scalarBeam);
   } else {
     stream.Bool(false);
   }
 
   if (_matrixInverseBeam) {
     stream.Bool(true);
-    stream.VectorCFloat(*_matrixInverseBeam);
+    stream.Vector(*_matrixInverseBeam);
   } else {
     stream.Bool(false);
   }
 }
 
-void AverageBeam::Unserialize(SerialIStream& stream) {
+void AverageBeam::Unserialize(aocommon::SerialIStream& stream) {
   bool hasScalar = stream.Bool();
   if (hasScalar) {
     _scalarBeam.reset(new std::vector<float>());
-    stream.VectorFloat(*_scalarBeam);
+    stream.Vector(*_scalarBeam);
   } else
     _scalarBeam.reset();
 
   bool hasMatrixInverse = stream.Bool();
   if (hasMatrixInverse) {
     _matrixInverseBeam.reset(new std::vector<std::complex<float>>());
-    stream.VectorCFloat(*_matrixInverseBeam);
+    stream.Vector(*_matrixInverseBeam);
   } else
     _matrixInverseBeam.reset();
 }

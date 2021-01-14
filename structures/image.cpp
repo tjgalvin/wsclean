@@ -1,7 +1,7 @@
 #include "image.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
 #include <algorithm>
 #include <cmath>
@@ -66,7 +66,7 @@ void ImageT<NumT>::reset() {
 }
 
 template <typename NumT>
-void ImageT<NumT>::Serialize(SerialOStream& stream) const {
+void ImageT<NumT>::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt64(_width).UInt64(_height);
   size_t n = sizeof(NumT) * _width * _height;
   std::copy_n(reinterpret_cast<const unsigned char*>(_data), n,
@@ -74,7 +74,7 @@ void ImageT<NumT>::Serialize(SerialOStream& stream) const {
 }
 
 template <typename NumT>
-void ImageT<NumT>::Unserialize(SerialIStream& stream) {
+void ImageT<NumT>::Unserialize(aocommon::SerialIStream& stream) {
   delete[] _data;
   stream.UInt64(_width).UInt64(_height);
   if (_width * _height == 0)

@@ -800,15 +800,16 @@ void PartitionedMS::getDataDescIdMap(
   }
 }
 
-void PartitionedMS::Handle::Serialize(SerialOStream& stream) const {
+void PartitionedMS::Handle::Serialize(aocommon::SerialOStream& stream) const {
   stream.Ptr(_data);
 }
 
-void PartitionedMS::Handle::Unserialize(SerialIStream& stream) {
+void PartitionedMS::Handle::Unserialize(aocommon::SerialIStream& stream) {
   stream.Ptr(_data);
 }
 
-void PartitionedMS::Handle::HandleData::Serialize(SerialOStream& stream) const {
+void PartitionedMS::Handle::HandleData::Serialize(
+    aocommon::SerialOStream& stream) const {
   stream.String(_msPath)
       .String(_dataColumnName)
       .String(_temporaryDirectory)
@@ -824,7 +825,8 @@ void PartitionedMS::Handle::HandleData::Serialize(SerialOStream& stream) const {
   stream.UInt64(_nAntennas);
 }
 
-void PartitionedMS::Handle::HandleData::Unserialize(SerialIStream& stream) {
+void PartitionedMS::Handle::HandleData::Unserialize(
+    aocommon::SerialIStream& stream) {
   _isCopy = true;
   stream.String(_msPath).String(_dataColumnName).String(_temporaryDirectory);
   _channels.resize(stream.UInt64());

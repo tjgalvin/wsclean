@@ -1,6 +1,8 @@
 #ifndef META_DATA_CACHE_H
 #define META_DATA_CACHE_H
 
+#include <aocommon/io/serialstreamfwd.h>
+
 #include <memory>
 #include <vector>
 
@@ -14,8 +16,8 @@ struct MetaDataCache {
   std::vector<Entry> msDataVector;
   std::unique_ptr<class AverageBeam> averageBeam;
 
-  void Serialize(class SerialOStream& stream) const;
-  void Unserialize(class SerialIStream& stream);
+  void Serialize(aocommon::SerialOStream& stream) const;
+  void Unserialize(aocommon::SerialIStream& stream);
 };
 
 #endif

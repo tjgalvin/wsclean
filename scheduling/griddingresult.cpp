@@ -1,9 +1,9 @@
 #include "griddingresult.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
 
-void GriddingResult::Serialize(SerialOStream& stream) const {
+void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
   imageRealResult.Serialize(stream);
   imageImaginaryResult.Serialize(stream);
   observationInfo.Serialize(stream);
@@ -19,7 +19,7 @@ void GriddingResult::Serialize(SerialOStream& stream) const {
       .Ptr(cache);
 }
 
-void GriddingResult::Unserialize(SerialIStream& stream) {
+void GriddingResult::Unserialize(aocommon::SerialIStream& stream) {
   imageRealResult.Unserialize(stream);
   imageImaginaryResult.Unserialize(stream);
   observationInfo.Unserialize(stream);

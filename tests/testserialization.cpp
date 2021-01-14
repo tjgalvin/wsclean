@@ -3,73 +3,13 @@
 #include "../scheduling/griddingtask.h"
 #include "../idg/averagebeam.h"
 
-#include "../io/serialostream.h"
-#include "../io/serialistream.h"
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
+
+using aocommon::SerialIStream;
+using aocommon::SerialOStream;
 
 BOOST_AUTO_TEST_SUITE(serialization)
-
-BOOST_AUTO_TEST_CASE(basic) {
-  SerialOStream ostr;
-  ostr.Bool(true)
-      .UInt8(80)
-      .UInt16(160)
-      .UInt32(320)
-      .UInt64(640)
-      .Float(1.5)
-      .Double(3.14)
-      .LDouble(2.71)
-      .String("hi!");
-
-  SerialIStream istr(std::move(ostr));
-
-  BOOST_CHECK_EQUAL(istr.Bool(), true);
-  BOOST_CHECK_EQUAL(istr.UInt8(), 80u);
-  BOOST_CHECK_EQUAL(istr.UInt16(), 160u);
-  BOOST_CHECK_EQUAL(istr.UInt32(), 320u);
-  BOOST_CHECK_EQUAL(istr.UInt64(), 640u);
-  BOOST_CHECK_EQUAL(istr.Float(), 1.5);
-  BOOST_CHECK_EQUAL(istr.Double(), 3.14);
-  BOOST_CHECK_EQUAL(istr.LDouble(), 2.71);
-  BOOST_CHECK_EQUAL(istr.String(), "hi!");
-}
-
-BOOST_AUTO_TEST_CASE(vector64) {
-  std::vector<int32_t> int32vecA, int32vecB{12, 13, 14};
-  std::vector<uint32_t> uint32vecA, uint32vecB{15, 16, 17};
-  std::vector<uint64_t> int64vecA, int64vecB{18, 19, 20};
-
-  SerialOStream ostr;
-  ostr.VectorUInt64(int32vecA)
-      .VectorUInt64(int32vecB)
-      .VectorUInt64(uint32vecA)
-      .VectorUInt64(uint32vecB)
-      .VectorUInt64(int64vecA)
-      .VectorUInt64(int64vecB);
-
-  SerialIStream istr(std::move(ostr));
-
-  std::vector<int32_t> out_int32vecA, out_int32vecB;
-  std::vector<uint32_t> out_uint32vecA, out_uint32vecB;
-  std::vector<uint64_t> out_int64vecA, out_int64vecB;
-  istr.VectorUInt64(out_int32vecA)
-      .VectorUInt64(out_int32vecB)
-      .VectorUInt64(out_uint32vecA)
-      .VectorUInt64(out_uint32vecB)
-      .VectorUInt64(out_int64vecA)
-      .VectorUInt64(out_int64vecB);
-  BOOST_CHECK_EQUAL_COLLECTIONS(int32vecA.begin(), int32vecA.end(),
-                                out_int32vecA.begin(), out_int32vecA.end());
-  BOOST_CHECK_EQUAL_COLLECTIONS(int32vecB.begin(), int32vecB.end(),
-                                out_int32vecB.begin(), out_int32vecB.end());
-  BOOST_CHECK_EQUAL_COLLECTIONS(uint32vecA.begin(), uint32vecA.end(),
-                                out_uint32vecA.begin(), out_uint32vecA.end());
-  BOOST_CHECK_EQUAL_COLLECTIONS(uint32vecB.begin(), uint32vecB.end(),
-                                out_uint32vecB.begin(), out_uint32vecB.end());
-  BOOST_CHECK_EQUAL_COLLECTIONS(int64vecA.begin(), int64vecA.end(),
-                                out_int64vecA.begin(), out_int64vecA.end());
-  BOOST_CHECK_EQUAL_COLLECTIONS(int64vecB.begin(), int64vecB.end(),
-                                out_int64vecB.begin(), out_int64vecB.end());
-}
 
 BOOST_AUTO_TEST_CASE(empty_gridding_task) {
   GriddingTask a, b;
@@ -161,10 +101,9 @@ BOOST_AUTO_TEST_CASE(average_beam_empty) {
   a.Serialize(ostr);
   BOOST_CHECK_NE(ostr.size(), 0u);
 
-  b.SetMatrixInverseBeam(std::shared_ptr<std::vector<std::complex<float>>>(
-      new std::vector<std::complex<float>>(12, 3)));
-  b.SetScalarBeam(
-      std::shared_ptr<std::vector<float>>(new std::vector<float>(11, 4)));
+  b.SetMatrixInverseBeam(
+      std::make_shared<std::vector<std::complex<float>>>(12, 3));
+  b.SetScalarBeam(std::make_shared<std::vector<float>>(11, 4));
 
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
@@ -174,10 +113,9 @@ BOOST_AUTO_TEST_CASE(average_beam_empty) {
 
 BOOST_AUTO_TEST_CASE(average_beam_filled) {
   AverageBeam a, b;
-  a.SetMatrixInverseBeam(std::shared_ptr<std::vector<std::complex<float>>>(
-      new std::vector<std::complex<float>>(12, std::complex<float>(3, 0))));
-  a.SetScalarBeam(
-      std::shared_ptr<std::vector<float>>(new std::vector<float>(11, 4)));
+  a.SetMatrixInverseBeam(
+      std::make_shared<std::vector<std::complex<float>>>(12, 3));
+  a.SetScalarBeam(std::make_shared<std::vector<float>>(11, 4));
 
   SerialOStream ostr;
   a.Serialize(ostr);

@@ -4,6 +4,8 @@
 #include "msprovider.h"
 #include "partitionedms.h"
 
+#include <aocommon/io/serialstreamfwd.h>
+
 #include <memory>
 
 /**
@@ -49,9 +51,9 @@ class MSDataDescription {
 
   const MSSelection& Selection() const { return _selection; }
 
-  void Serialize(class SerialOStream& stream) const;
+  void Serialize(aocommon::SerialOStream& stream) const;
   static std::unique_ptr<MSDataDescription> Unserialize(
-      class SerialIStream& stream);
+      aocommon::SerialIStream& stream);
 
  private:
   MSDataDescription(){};

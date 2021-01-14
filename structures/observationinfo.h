@@ -1,6 +1,8 @@
 #ifndef OBSERVATION_INFO_H
 #define OBSERVATION_INFO_H
 
+#include <aocommon/io/serialstreamfwd.h>
+
 #include <string>
 
 struct ObservationInfo {
@@ -12,8 +14,8 @@ struct ObservationInfo {
   std::string observer;
   std::string fieldName;
 
-  void Serialize(class SerialOStream& stream) const;
-  void Unserialize(class SerialIStream& stream);
+  void Serialize(aocommon::SerialOStream& stream) const;
+  void Unserialize(aocommon::SerialIStream& stream);
 };
 
 #endif

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <complex>
 
+#include <aocommon/io/serialstreamfwd.h>
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 #include "msselection.h"
@@ -55,8 +56,8 @@ class ImageWeights {
   size_t Height() const { return _imageHeight; }
   WeightMode GetWeightMode() const { return _weightMode; }
 
-  void Serialize(class SerialOStream& stream) const;
-  void Unserialize(class SerialIStream& stream);
+  void Serialize(aocommon::SerialOStream& stream) const;
+  void Unserialize(aocommon::SerialIStream& stream);
 
  private:
   ImageWeights(const ImageWeights&) = delete;
