@@ -24,7 +24,8 @@ class WSCFitsWriter {
                 const class Deconvolution& deconvolution,
                 const ObservationInfo& observationInfo, size_t majorIterationNr,
                 const std::string& commandLine,
-                const OutputChannelInfo& channelInfo, bool isModel);
+                const OutputChannelInfo& channelInfo, bool isModel,
+                double startTime);
 
   WSCFitsWriter(const ImagingTableEntry& entry,
                 aocommon::PolarizationEnum polarization, bool isImaginary,
@@ -32,7 +33,8 @@ class WSCFitsWriter {
                 const class Deconvolution& deconvolution,
                 const ObservationInfo& observationInfo, size_t majorIterationNr,
                 const std::string& commandLine,
-                const OutputChannelInfo& channelInfo, bool isModel);
+                const OutputChannelInfo& channelInfo, bool isModel,
+                double startTime);
 
   explicit WSCFitsWriter(FitsReader& templateReader);
 
@@ -61,7 +63,8 @@ class WSCFitsWriter {
                            const std::string& commandLine);
 
   void setGridderConfiguration(const Settings& settings,
-                               const ObservationInfo& observationInfo);
+                               const ObservationInfo& observationInfo,
+                               double startTime);
 
   void setDeconvolutionKeywords(const Settings& settings);
 

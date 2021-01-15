@@ -42,10 +42,6 @@ MSGridderBase::MSGridderBase()
       _bandStart(0.0),
       _bandEnd(0.0),
       _startTime(0.0),
-      _phaseCentreRA(0.0),
-      _phaseCentreDec(0.0),
-      _phaseCentreDL(0.0),
-      _phaseCentreDM(0.0),
       _denormalPhaseCentre(false),
       _griddedVisibilityCount(0),
       _totalWeight(0.0),
@@ -86,52 +82,6 @@ int64_t MSGridderBase::getAvailableMemory(double memFraction,
       memory = int64_t(double(absMemLimit) * double(1024.0 * 1024.0 * 1024.0));
   }
   return memory;
-}
-
-void MSGridderBase::GetPhaseCentreInfo(casacore::MeasurementSet& ms,
-                                       size_t fieldId, double& ra, double& dec,
-                                       double& dl, double& dm) {
-  casacore::MSAntenna aTable = ms.antenna();
-  size_t antennaCount = aTable.nrow();
-  if (antennaCount == 0) throw std::runtime_error("No antennae in set");
-  casacore::MPosition::ScalarColumn antPosColumn(
-      aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
-  casacore::MPosition ant1Pos = antPosColumn(0);
-
-  size_t fieldRow = (fieldId == MSSelection::ALL_FIELDS) ? 0 : fieldId;
-  casacore::MEpoch::ScalarColumn timeColumn(
-      ms, ms.columnName(casacore::MSMainEnums::TIME));
-  casacore::MSField fTable(ms.field());
-  casacore::MDirection::ScalarColumn phaseDirColumn(
-      fTable, fTable.columnName(casacore::MSFieldEnums::PHASE_DIR));
-  casacore::MDirection phaseDir = phaseDirColumn(fieldRow);
-  casacore::MEpoch curtime = timeColumn(0);
-  casacore::MeasFrame frame(ant1Pos, curtime);
-  casacore::MDirection::Ref j2000Ref(casacore::MDirection::J2000, frame);
-  casacore::MDirection j2000 =
-      casacore::MDirection::Convert(phaseDir, j2000Ref)();
-  casacore::Vector<casacore::Double> j2000Val = j2000.getValue().get();
-  ra = j2000Val[0];
-  dec = j2000Val[1];
-  if (fTable.keywordSet().isDefined("WSCLEAN_DL"))
-    dl = fTable.keywordSet().asDouble(casacore::RecordFieldId("WSCLEAN_DL"));
-  else
-    dl = 0.0;
-  if (fTable.keywordSet().isDefined("WSCLEAN_DM"))
-    dm = fTable.keywordSet().asDouble(casacore::RecordFieldId("WSCLEAN_DM"));
-  else
-    dm = 0.0;
-}
-
-void MSGridderBase::initializePhaseCentre(casacore::MeasurementSet& ms,
-                                          size_t fieldId) {
-  GetPhaseCentreInfo(ms, fieldId, _phaseCentreRA, _phaseCentreDec,
-                     _phaseCentreDL, _phaseCentreDM);
-
-  _denormalPhaseCentre = _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
-  if (_denormalPhaseCentre)
-    Logger::Debug << "Set has denormal phase centre: dl=" << _phaseCentreDL
-                  << ", dm=" << _phaseCentreDM << '\n';
 }
 
 void MSGridderBase::initializeBandData(casacore::MeasurementSet& ms,
@@ -266,25 +216,6 @@ void MSGridderBase::initializeMSDataVector(
   calculateOverallMetaData(msDataVector.data());
 }
 
-void MSGridderBase::initializeMetaData(casacore::MeasurementSet& ms,
-                                       size_t fieldId) {
-  casacore::MSObservation oTable = ms.observation();
-  size_t obsCount = oTable.nrow();
-  if (obsCount == 0) throw std::runtime_error("No observations in set");
-  casacore::ScalarColumn<casacore::String> telescopeNameColumn(
-      oTable, oTable.columnName(casacore::MSObservation::TELESCOPE_NAME));
-  casacore::ScalarColumn<casacore::String> observerColumn(
-      oTable, oTable.columnName(casacore::MSObservation::OBSERVER));
-  _telescopeName = telescopeNameColumn(0);
-  _observer = observerColumn(0);
-
-  casacore::MSField fTable = ms.field();
-  casacore::ScalarColumn<casacore::String> fieldNameColumn(
-      fTable, fTable.columnName(casacore::MSField::NAME));
-  size_t fieldRow = (fieldId == MSSelection::ALL_FIELDS) ? 0 : fieldId;
-  _fieldName = fieldNameColumn(fieldRow);
-}
-
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
                                              MetaDataCache::Entry& cacheEntry,
                                              bool isCacheInitialized) {
@@ -295,11 +226,12 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 
   initializeBandData(*ms, msData);
 
+  _denormalPhaseCentre = _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
+  if (_denormalPhaseCentre)
+    Logger::Debug << "Set has denormal phase centre: dl=" << _phaseCentreDL
+                  << ", dm=" << _phaseCentreDM << '\n';
+
   calculateMSLimits(msData.SelectedBand(), msProvider.StartTime());
-
-  initializePhaseCentre(*ms, Selection(msData.msIndex).FieldIds()[0]);
-
-  initializeMetaData(*ms, Selection(msData.msIndex).FieldIds()[0]);
 
   if (isCacheInitialized) {
     msData.maxW = cacheEntry.maxW;

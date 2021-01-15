@@ -187,6 +187,7 @@ add_library(wsclean-object OBJECT
   gridding/wstackinggridder.cpp
   idg/averagebeam.cpp
   interface/wscleaninterface.cpp
+  io/facetreader.cpp
   io/logger.cpp
   io/parsetreader.cpp
   io/wscfitswriter.cpp

@@ -8,7 +8,8 @@
 
 class ThreadedScheduler final : public GriddingTaskManager {
  public:
-  ThreadedScheduler(const class Settings& settings);
+  ThreadedScheduler(const class Settings& settings,
+                    const struct ObservationInfo& obsInfo);
   ~ThreadedScheduler();
 
   void Run(GriddingTask& task,

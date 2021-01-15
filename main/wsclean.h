@@ -140,6 +140,7 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::vector<schaapcommon::facets::Facet> _facets;
+  double _lastStartTime;
 };
 
 #endif

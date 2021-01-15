@@ -2,8 +2,10 @@
 
 #include "../main/settings.h"
 
-ThreadedScheduler::ThreadedScheduler(const class Settings& settings)
-    : GriddingTaskManager(settings), _taskList(settings.parallelGridding) {}
+ThreadedScheduler::ThreadedScheduler(const class Settings& settings,
+                                     const struct ObservationInfo& obsInfo)
+    : GriddingTaskManager(settings, obsInfo),
+      _taskList(settings.parallelGridding) {}
 
 ThreadedScheduler::~ThreadedScheduler() {
   if (!_threadList.empty()) Finish();

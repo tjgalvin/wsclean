@@ -14,13 +14,15 @@
 #include "../wgridder/bufferedmsgridder.h"
 #endif
 
-GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
-    : _settings(settings) {}
+GriddingTaskManager::GriddingTaskManager(const class Settings& settings,
+                                         const struct ObservationInfo& obsInfo)
+    : _settings(settings), _obsInfo(obsInfo) {}
 
 GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const class Settings& settings, bool useDirectScheduler) {
+    const class Settings& settings, const struct ObservationInfo& obsInfo,
+    bool useDirectScheduler) {
   if (settings.useMPI && !useDirectScheduler) {
 #ifdef HAVE_MPI
     return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
@@ -29,10 +31,10 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
 #endif
   } else if (settings.parallelGridding == 1 || useDirectScheduler) {
     return std::unique_ptr<GriddingTaskManager>(
-        new GriddingTaskManager(settings));
+        new GriddingTaskManager(settings, obsInfo));
   } else {
     return std::unique_ptr<GriddingTaskManager>(
-        new ThreadedScheduler(settings));
+        new ThreadedScheduler(settings, obsInfo));
   }
 }
 
@@ -134,7 +136,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
   result.imageRealResult = gridder.ImageRealResult();
   if (gridder.IsComplex())
     result.imageImaginaryResult = gridder.ImageImaginaryResult();
-  result.observationInfo = gridder.ObservationInfo();
+  result.startTime = gridder.StartTime();
   result.beamSize = gridder.BeamSize();
   result.imageWeight = gridder.ImageWeight();
   result.normalizationFactor = gridder.NormalizationFactor();
@@ -171,4 +173,8 @@ void GriddingTaskManager::prepareGridder(MSGridderBase& gridder) {
   gridder.SetWLimit(_settings.wLimit / 100.0);
   gridder.SetSmallInversion(_settings.smallInversion);
   gridder.SetVisibilityWeightingMode(_settings.visibilityWeightingMode);
+  gridder.SetPhaseCentreDec(_obsInfo.phaseCentreDec);
+  gridder.SetPhaseCentreRA(_obsInfo.phaseCentreRA);
+  gridder.SetPhaseCentreDM(_obsInfo.phaseCentreDM);
+  gridder.SetPhaseCentreDL(_obsInfo.phaseCentreDL);
 }

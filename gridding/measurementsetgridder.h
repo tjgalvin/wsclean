@@ -28,7 +28,11 @@ class MeasurementSetGridder {
   };
 
   MeasurementSetGridder()
-      : _imageWidth(0),
+      : _phaseCentreRA(0.0),
+        _phaseCentreDec(0.0),
+        _phaseCentreDL(0.0),
+        _phaseCentreDM(0.0),
+        _imageWidth(0),
         _imageHeight(0),
         _trimWidth(0),
         _trimHeight(0),
@@ -159,11 +163,23 @@ class MeasurementSetGridder {
 
   virtual ImageF ImageRealResult() = 0;
   virtual ImageF ImageImaginaryResult() = 0;
-  virtual double PhaseCentreRA() const = 0;
-  virtual double PhaseCentreDec() const = 0;
+  void SetPhaseCentreRA(const double phaseCentreRA) {
+    _phaseCentreRA = phaseCentreRA;
+  }
+  void SetPhaseCentreDec(const double phaseCentreDec) {
+    _phaseCentreDec = phaseCentreDec;
+  }
+  double PhaseCentreRA() const { return _phaseCentreRA; }
+  double PhaseCentreDec() const { return _phaseCentreDec; }
   virtual bool HasDenormalPhaseCentre() const { return false; }
-  virtual double PhaseCentreDL() const = 0;
-  virtual double PhaseCentreDM() const = 0;
+  void SetPhaseCentreDL(const double phaseCentreDL) {
+    _phaseCentreDL = phaseCentreDL;
+  }
+  void SetPhaseCentreDM(const double phaseCentreDM) {
+    _phaseCentreDM = phaseCentreDM;
+  }
+  double PhaseCentreDL() const { return _phaseCentreDL; }
+  double PhaseCentreDM() const { return _phaseCentreDM; }
   virtual double BeamSize() const = 0;
   virtual double StartTime() const = 0;
   virtual double ImageWeight() const = 0;
@@ -198,6 +214,9 @@ class MeasurementSetGridder {
     _nwHeight = nwHeight;
   }
   void SetNWFactor(double factor) { _nwFactor = factor; }
+
+ protected:
+  double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
 
  private:
   size_t _imageWidth, _imageHeight;

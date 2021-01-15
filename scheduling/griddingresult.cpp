@@ -6,7 +6,6 @@
 void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
   imageRealResult.Serialize(stream);
   imageImaginaryResult.Serialize(stream);
-  observationInfo.Serialize(stream);
   stream.Double(beamSize)
       .Double(imageWeight)
       .Double(normalizationFactor)
@@ -22,7 +21,6 @@ void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
 void GriddingResult::Unserialize(aocommon::SerialIStream& stream) {
   imageRealResult.Unserialize(stream);
   imageImaginaryResult.Unserialize(stream);
-  observationInfo.Unserialize(stream);
   stream.Double(beamSize)
       .Double(imageWeight)
       .Double(normalizationFactor)

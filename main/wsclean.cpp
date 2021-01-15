@@ -7,6 +7,7 @@
 #include "../gridding/directmsgridder.h"
 #include "../gridding/measurementsetgridder.h"
 
+#include "../io/facetreader.h"
 #include "../io/imagefilename.h"
 #include "../io/imageweightcache.h"
 #include "../io/logger.h"
@@ -56,7 +57,8 @@ WSClean::WSClean()
       _deconvolutionWatch(false),
       _isFirstInversion(true),
       _majorIterationNr(0),
-      _deconvolution(_settings) {}
+      _deconvolution(_settings),
+      _lastStartTime(0.0) {}
 
 WSClean::~WSClean() {}
 
@@ -92,7 +94,6 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
 
   GriddingResult result;
   result.imageRealResult = std::move(psfImage);
-  result.observationInfo = WSCFitsWriter::ReadObservationInfo(reader);
   result.imageWeight = reader.ReadDoubleKey("WSCIMGWG");
   reader.ReadDoubleKeyIfExists("WSCVWSUM", result.visibilityWeightSum);
   double nVis = 0.0;
@@ -161,7 +162,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _psfImages.Store(result.imageRealResult.data(),
                    *_settings.polarizations.begin(), channelIndex, false);
 
-  _observationInfo = result.observationInfo;
+  _lastStartTime = result.startTime;
   _msGridderMetaCache[entry.index] = std::move(result.cache);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
@@ -267,7 +268,7 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
       result.normalizationFactor;
 
-  _observationInfo = result.observationInfo;
+  _lastStartTime = result.startTime;
 
   // If no PSF is made, also set the beam size. If the PSF was made, these would
   // already be set after imaging the PSF.
@@ -520,6 +521,19 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
+  {
+    casacore::MeasurementSet ms(_settings.filenames[0]);
+    _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
+  }
+  _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+  for (schaapcommon::facets::Facet& facet : _facets) {
+    facet.CalculatePixelPositions(
+        _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+        _settings.pixelScaleX, _settings.pixelScaleY,
+        _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+        _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+  }
+
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
@@ -538,7 +552,8 @@ void WSClean::RunClean() {
 
     if (_settings.mfWeighting) initializeMFSImageWeights();
 
-    _griddingTaskManager = GriddingTaskManager::Make(_settings);
+    _griddingTaskManager =
+        GriddingTaskManager::Make(_settings, _observationInfo);
 
     std::unique_ptr<PrimaryBeam> primaryBeam;
     for (size_t groupIndex = 0;
@@ -670,6 +685,11 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
+  {
+    casacore::MeasurementSet ms(_settings.filenames[0]);
+    _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
+  }
+
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
 
@@ -688,7 +708,8 @@ void WSClean::RunPredict() {
 
     if (_settings.doReorder) performReordering(true);
 
-    _griddingTaskManager = GriddingTaskManager::Make(_settings);
+    _griddingTaskManager =
+        GriddingTaskManager::Make(_settings, _observationInfo);
 
     for (const ImagingTable::Group& group : _imagingTable.SquaredGroups()) {
       predictGroup(group);
@@ -1134,7 +1155,8 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry) {
     // TODO check phase centre
 
     if (resetGridder)
-      _griddingTaskManager = GriddingTaskManager::Make(_settings);
+      _griddingTaskManager =
+          GriddingTaskManager::Make(_settings, _observationInfo);
 
     if (!_imageWeightCache) {
       // The construction of the weight cache is delayed in prediction mode,
@@ -1169,7 +1191,18 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
 
   _predictingWatch.Start();
   for (const ImagingTable::EntryPtr& entry : imagingGroup) {
+    const bool calculatePixelPositions = _settings.trimmedImageWidth == 0;
     readEarlierModelImages(*entry);
+
+    if (calculatePixelPositions) {
+      for (schaapcommon::facets::Facet& facet : _facets) {
+        facet.CalculatePixelPositions(
+            _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+            _settings.pixelScaleX, _settings.pixelScaleY,
+            _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+            _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+      }
+    }
 
     predict(*entry);
   }  // end of polarization loop
@@ -1223,19 +1256,14 @@ void WSClean::runFirstInversion(
     if (_settings.applyPrimaryBeam) {
       std::vector<std::unique_ptr<MSDataDescription>> msList;
       initializeMSList(entry, msList);
-      double ra, dec, dl, dm;
-      {
-        std::unique_ptr<MSProvider> provider = msList.front()->GetProvider();
-        SynchronizedMS ms(provider->MS());
-        MSGridderBase::GetPhaseCentreInfo(*ms, _settings.fieldIds[0], ra, dec,
-                                          dl, dm);
-      }
       std::shared_ptr<ImageWeights> weights =
           initializeImageWeights(entry, msList);
       primaryBeam.reset(new PrimaryBeam(_settings));
       for (std::unique_ptr<MSDataDescription>& description : msList)
         primaryBeam->AddMS(std::move(description));
-      primaryBeam->SetPhaseCentre(ra, dec, dl, dm);
+      primaryBeam->SetPhaseCentre(
+          _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
+          _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
       primaryBeam->MakeBeamImages(imageName, entry, std::move(weights));
     }
   }
@@ -1568,7 +1596,8 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
                                            bool isModel) const {
   return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
                        _observationInfo, _majorIterationNr, _commandLine,
-                       _infoPerChannel[entry.outputChannelIndex], isModel);
+                       _infoPerChannel[entry.outputChannelIndex], isModel,
+                       _lastStartTime);
 }
 
 WSCFitsWriter WSClean::createWSCFitsWriter(
@@ -1577,5 +1606,5 @@ WSCFitsWriter WSClean::createWSCFitsWriter(
   return WSCFitsWriter(entry, polarization, isImaginary, _settings,
                        _deconvolution, _observationInfo, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
-                       isModel);
+                       isModel, _lastStartTime);
 }
