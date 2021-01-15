@@ -14,15 +14,13 @@
 #include "../wgridder/bufferedmsgridder.h"
 #endif
 
-GriddingTaskManager::GriddingTaskManager(const class Settings& settings,
-                                         const struct ObservationInfo& obsInfo)
-    : _settings(settings), _obsInfo(obsInfo) {}
+GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
+    : _settings(settings) {}
 
 GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const class Settings& settings, const struct ObservationInfo& obsInfo,
-    bool useDirectScheduler) {
+    const class Settings& settings, bool useDirectScheduler) {
   if (settings.useMPI && !useDirectScheduler) {
 #ifdef HAVE_MPI
     return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
@@ -31,10 +29,10 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
 #endif
   } else if (settings.parallelGridding == 1 || useDirectScheduler) {
     return std::unique_ptr<GriddingTaskManager>(
-        new GriddingTaskManager(settings, obsInfo));
+        new GriddingTaskManager(settings));
   } else {
     return std::unique_ptr<GriddingTaskManager>(
-        new ThreadedScheduler(settings, obsInfo));
+        new ThreadedScheduler(settings));
   }
 }
 
@@ -80,26 +78,26 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
 }
 
 void GriddingTaskManager::Run(
-    GriddingTask& task, std::function<void(GriddingResult&)> finishCallback) {
+    GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
   if (!_gridder) {
     _gridder = createGridder();
     prepareGridder(*_gridder);
   }
 
-  GriddingResult result = runDirect(task, *_gridder);
+  GriddingResult result = runDirect(std::move(task), *_gridder);
   finishCallback(result);
 }
 
-GriddingResult GriddingTaskManager::RunDirect(GriddingTask& task) {
+GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
   if (!_gridder) {
     _gridder = createGridder();
     prepareGridder(*_gridder);
   }
 
-  return runDirect(task, *_gridder);
+  return runDirect(std::move(task), *_gridder);
 }
 
-GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
+GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
                                               MSGridderBase& gridder) {
   gridder.ClearMeasurementSetList();
   std::vector<std::unique_ptr<MSProvider>> msProviders;
@@ -107,6 +105,10 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask& task,
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
+  gridder.SetPhaseCentreDec(task.obsInfo.phaseCentreDec);
+  gridder.SetPhaseCentreRA(task.obsInfo.phaseCentreRA);
+  gridder.SetPhaseCentreDM(task.obsInfo.phaseCentreDM);
+  gridder.SetPhaseCentreDL(task.obsInfo.phaseCentreDL);
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);
@@ -173,8 +175,4 @@ void GriddingTaskManager::prepareGridder(MSGridderBase& gridder) {
   gridder.SetWLimit(_settings.wLimit / 100.0);
   gridder.SetSmallInversion(_settings.smallInversion);
   gridder.SetVisibilityWeightingMode(_settings.visibilityWeightingMode);
-  gridder.SetPhaseCentreDec(_obsInfo.phaseCentreDec);
-  gridder.SetPhaseCentreRA(_obsInfo.phaseCentreRA);
-  gridder.SetPhaseCentreDM(_obsInfo.phaseCentreDM);
-  gridder.SetPhaseCentreDL(_obsInfo.phaseCentreDL);
 }

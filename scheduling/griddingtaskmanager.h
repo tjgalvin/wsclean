@@ -25,32 +25,27 @@ class GriddingTaskManager {
  public:
   virtual ~GriddingTaskManager();
 
-  virtual void Run(GriddingTask& task,
+  virtual void Run(GriddingTask&& task,
                    std::function<void(GriddingResult&)> finishCallback);
 
-  GriddingResult RunDirect(GriddingTask& task);
+  GriddingResult RunDirect(GriddingTask&& task);
 
   virtual void Finish(){};
 
-  // MSGridderBase* Gridder() { return _gridder.get(); }
-
   static std::unique_ptr<GriddingTaskManager> Make(
-      const class Settings& settings, const struct ObservationInfo& obsInfo,
-      bool useDirectScheduler = false);
+      const class Settings& settings, bool useDirectScheduler = false);
 
  protected:
   const class Settings& _settings;
 
-  GriddingTaskManager(const class Settings& settings,
-                      const struct ObservationInfo& obsInfo);
+  GriddingTaskManager(const class Settings& settings);
 
   std::unique_ptr<MSGridderBase> createGridder() const;
   void prepareGridder(MSGridderBase& gridder);
-  GriddingResult runDirect(GriddingTask& task, MSGridderBase& gridder);
+  GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
  private:
   std::unique_ptr<MSGridderBase> _gridder;
-  const struct ObservationInfo _obsInfo;
 };
 
 #endif

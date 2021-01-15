@@ -8,11 +8,10 @@
 
 class ThreadedScheduler final : public GriddingTaskManager {
  public:
-  ThreadedScheduler(const class Settings& settings,
-                    const struct ObservationInfo& obsInfo);
+  ThreadedScheduler(const class Settings& settings);
   ~ThreadedScheduler();
 
-  void Run(GriddingTask& task,
+  void Run(GriddingTask&& task,
            std::function<void(GriddingResult&)> finishCallback) override;
   void Finish() override;
 

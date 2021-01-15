@@ -6,6 +6,7 @@
 
 #include "../structures/image.h"
 #include "../structures/imageweights.h"
+#include "../structures/observationinfo.h"
 
 #include "../msproviders/msdatadescription.h"
 
@@ -28,6 +29,7 @@ class GriddingTask {
   bool addToModel;
   ImageF modelImageReal;
   ImageF modelImageImaginary;
+  struct ObservationInfo obsInfo;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

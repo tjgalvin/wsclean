@@ -44,7 +44,7 @@ void Slave::grid(size_t bodySize) {
   std::unique_ptr<GriddingTaskManager> scheduler =
       GriddingTaskManager::Make(_settings, true);
   Logger::Info << "Worker node is starting gridding.\n";
-  GriddingResult result = scheduler->RunDirect(task);
+  GriddingResult result = scheduler->RunDirect(std::move(task));
   Logger::Info << "Worker node is done gridding.\n";
 
   aocommon::SerialOStream resStream;

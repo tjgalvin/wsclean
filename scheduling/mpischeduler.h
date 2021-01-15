@@ -15,7 +15,7 @@ class MPIScheduler final : public GriddingTaskManager {
   MPIScheduler(const class Settings &settings);
   ~MPIScheduler();
 
-  void Run(GriddingTask &task,
+  void Run(GriddingTask &&task,
            std::function<void(GriddingResult &)> finishCallback) override;
   void Finish() override;
 

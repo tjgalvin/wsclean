@@ -24,7 +24,7 @@ MPIScheduler::MPIScheduler(const class Settings &settings)
 
 MPIScheduler::~MPIScheduler() { Finish(); }
 
-void MPIScheduler::Run(GriddingTask &task,
+void MPIScheduler::Run(GriddingTask &&task,
                        std::function<void(GriddingResult &)> finishCallback) {
   if (!_isRunning) {
     _taskList.clear();
@@ -72,7 +72,7 @@ void MPIScheduler::Finish() {
 }
 
 void MPIScheduler::node0gridder(GriddingTask task) {
-  GriddingResult result = RunDirect(task);
+  GriddingResult result = RunDirect(std::move(task));
   Logger::Info << "Master node is done gridding.\n";
   std::unique_lock<std::mutex> lock(_mutex);
   _readyList.emplace_back(std::move(result), _nodes[0].second);

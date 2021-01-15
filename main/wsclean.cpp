@@ -131,12 +131,14 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.verbose = _isFirstInversion;
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
+  task.obsInfo = _observationInfo;
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
-  _griddingTaskManager->Run(task, [this, &entry](GriddingResult& result) {
-    imagePSFCallback(entry, result);
-  });
+  _griddingTaskManager->Run(std::move(task),
+                            [this, &entry](GriddingResult& result) {
+                              imagePSFCallback(entry, result);
+                            });
 }
 
 void WSClean::imagePSFCallback(ImagingTableEntry& entry,
@@ -235,11 +237,13 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
       isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
+  task.obsInfo = _observationInfo;
 
-  _griddingTaskManager->Run(task, [this, &entry, updateBeamInfo,
-                                   isFirstInversion](GriddingResult& result) {
-    imageMainCallback(entry, result, updateBeamInfo, isFirstInversion);
-  });
+  _griddingTaskManager->Run(
+      std::move(task),
+      [this, &entry, updateBeamInfo, isFirstInversion](GriddingResult& result) {
+        imageMainCallback(entry, result, updateBeamInfo, isFirstInversion);
+      });
 }
 
 void WSClean::imageMainCallback(ImagingTableEntry& entry,
@@ -404,9 +408,11 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.modelImageImaginary = std::move(modelImageImaginary);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
-  _griddingTaskManager->Run(task, [this, &entry](GriddingResult& result) {
-    _msGridderMetaCache[entry.index] = std::move(result.cache);
-  });
+  task.obsInfo = _observationInfo;
+  _griddingTaskManager->Run(
+      std::move(task), [this, &entry](GriddingResult& result) {
+        _msGridderMetaCache[entry.index] = std::move(result.cache);
+      });
 }
 
 std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
@@ -552,8 +558,7 @@ void WSClean::RunClean() {
 
     if (_settings.mfWeighting) initializeMFSImageWeights();
 
-    _griddingTaskManager =
-        GriddingTaskManager::Make(_settings, _observationInfo);
+    _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
     std::unique_ptr<PrimaryBeam> primaryBeam;
     for (size_t groupIndex = 0;
@@ -708,8 +713,7 @@ void WSClean::RunPredict() {
 
     if (_settings.doReorder) performReordering(true);
 
-    _griddingTaskManager =
-        GriddingTaskManager::Make(_settings, _observationInfo);
+    _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
     for (const ImagingTable::Group& group : _imagingTable.SquaredGroups()) {
       predictGroup(group);
@@ -1155,8 +1159,7 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry) {
     // TODO check phase centre
 
     if (resetGridder)
-      _griddingTaskManager =
-          GriddingTaskManager::Make(_settings, _observationInfo);
+      _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
     if (!_imageWeightCache) {
       // The construction of the weight cache is delayed in prediction mode,
