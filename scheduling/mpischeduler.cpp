@@ -85,7 +85,7 @@ void MPIScheduler::sendLoop() {
   std::pair<GriddingTask, std::function<void(GriddingResult &)>> taskPair;
   while (_taskList.read(taskPair)) {
     const GriddingTask &task = taskPair.first;
-    SerialOStream stream;
+    aocommon::SerialOStream stream;
     // To use MPI_Send_Big, a uint64_t need to be reserved
     stream.UInt64(0);
     task.Serialize(stream);
@@ -151,7 +151,7 @@ void MPIScheduler::receiveLoop() {
       MPI_Recv_Big(buffer.data(), message.bodySize, node, 0, MPI_COMM_WORLD,
                    &status);
       GriddingResult result;
-      SerialIStream stream(std::move(buffer));
+      aocommon::SerialIStream stream(std::move(buffer));
       stream.UInt64();  // storage for MPI_Recv_Big
       result.Unserialize(stream);
 
