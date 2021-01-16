@@ -7,13 +7,14 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     pkg-config \
     casacore-data casacore-dev \
     libblas-dev liblapack-dev \
-    libpython-dev \
     libboost-date-time-dev libboost-numpy-dev libboost-python-dev libboost-test-dev \
       libboost-system-dev libboost-filesystem-dev libboost-program-options-dev \
     libcfitsio-dev \
     libfftw3-dev \
     libgsl-dev \
-    libhdf5-dev
+    libhdf5-dev \
+    libopenmpi-dev \
+    libpython-dev \
 
 ADD . /src
 WORKDIR /src

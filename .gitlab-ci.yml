@@ -18,6 +18,7 @@ before_script:
     libfftw3-dev
     libgsl-dev
     libhdf5-dev
+    libopenmpi-dev
     libpython3-dev
     pkg-config
     pybind11-dev
