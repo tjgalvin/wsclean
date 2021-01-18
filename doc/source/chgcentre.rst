@@ -67,13 +67,22 @@ You can specify '``-zenith``' or '``-minw``' as option to rephase to the local a
 
     $ chgcentre -minw myobs.ms
 
-Finally, you can provide option '-shiftback' to prepare the measurement set for w-snapshot imaging with WSClean, using the recentring technique. See the :doc:`w-snapshot algorithm page <w_snapshot_algorithm>` for more info. You can specify any phase centre with ``-shiftback``, but the common way to do this would be:
+This can be used in combination with WSClean's ``-shift`` parameter for *w*-snapshot imaging. In that case, the original phase centre should be specified with the ``-shift`` parameter. The net effect is that the measurement set is phase rotated to the sky direction with minimal *w*-terms, and shifted back along the tangent plane to the direction of interest. 
+
+In :doc:`WSClean 2.11 <changelogs/v2.11>`, this approach replaced the ``-shiftback`` option of ``chgcentre`` for shifting the visibilities along the tangent plane. See the :doc:`w-snapshot algorithm page <w_snapshot_algorithm>` for more info. 
+
+Legacy data with ``-shiftback`` applied
+---------------------------------------
+
+Before WSClean 2.11, it was possible to prepare w-snapshotting with the ``-shiftback`` option, e.g.:
 
 .. code-block::
 
     $ chgcentre -minw -shiftback myobs.ms
 
-A shifted measurement set uses wsclean-specific keywords. These are understood only by ``wsclean``, ``chgcentre`` and some LOFAR specific tools, but will be ignored by other imagers. A shifted measurement set can be restored by phase rotating it to its original RA/dec: chgcentre will detect the keywords in the measurement set, undo the shift and update the keywords.
+A shifted measurement set uses wsclean-specific keywords. Support for this was removed in WSClean 2.11 (see the :doc:`changelog <changelogs/v2.11>` for details), and any observation for which these shifting keywords are detected will produce an error in WSClean 2.11. 
+
+In case archival data to which ``-shiftback`` is applied needs to be imaged with WSClean 2.11, the option should be undone. A shifted measurement set can be restored by phase rotating it to its original RA/dec: ``chgcentre`` will detect the keywords in the measurement set, undo the shift and update the keywords.
 
 A LOFAR bug
 -----------
