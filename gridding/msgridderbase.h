@@ -168,11 +168,11 @@ class MSGridderBase : public MeasurementSetGridder {
 
   std::unique_ptr<struct MetaDataCache> _metaDataCache;
 
- private:
   template <size_t PolarizationCount>
   static void rotateVisibilities(const BandData& bandData, double shiftFactor,
                                  std::complex<float>* dataIter);
 
+ private:
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
 

@@ -1,13 +1,12 @@
 #include "wgriddinggridder_simple.h"
 #include "gridder_cxx.h"
 
-using namespace std;
 using namespace ducc0;
 
 WGriddingGridder_Simple::WGriddingGridder_Simple(
     size_t width, size_t height, size_t width_t, size_t height_t,
-    double pixelSizeX, double pixelSizeY, size_t nthreads, double epsilon,
-    size_t verbosity)
+    double pixelSizeX, double pixelSizeY, double shiftL, double shiftM,
+    size_t nthreads, double epsilon, size_t verbosity)
     : width_(width),
       height_(height),
       width_t_(width_t),
@@ -15,6 +14,8 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(
       nthreads_(nthreads),
       pixelSizeX_(pixelSizeX),
       pixelSizeY_(pixelSizeY),
+      shiftL_(shiftL),
+      shiftM_(shiftM),
       epsilon_(epsilon),
       verbosity_(verbosity) {
   MR_assert(verbosity <= 2, "verbosity must be 0, 1, or 2");
@@ -23,7 +24,8 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(
 void WGriddingGridder_Simple::memUsage(size_t &constant,
                                        size_t &per_vis) const {
   // storage for "grid": pessimistically assume an oversampling factor of 2
-  constant = 4 * width_t_ * height_t_ * sizeof(complex<float>);
+  constant = sigma_max * sigma_max * width_t_ * height_t_ *
+             sizeof(std::complex<float>);
   // for prediction, we also need a copy of the dirty image
   constant += width_t_ * height_t_ * sizeof(float);  // trimmed dirty image
   // Storage for the indexing information is really hard to estimate ...
@@ -39,15 +41,16 @@ void WGriddingGridder_Simple::InitializeInversion() {
 void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
                                                const double *uvw,
                                                const double *freq,
-                                               const complex<float> *vis) {
+                                               const std::complex<float> *vis) {
   mav<double, 2> uvw2(uvw, {nrows, 3});
   mav<double, 1> freq2(freq, {nchan});
-  mav<complex<float>, 2> ms(vis, {nrows, nchan});
+  mav<std::complex<float>, 2> ms(vis, {nrows, nchan});
   mav<float, 2> tdirty({width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  ms2dirty(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_,
-           true, nthreads_, tdirty, verbosity_, true, false);
+  ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_,
+                         epsilon_, true, nthreads_, tdirty, verbosity_, true,
+                         false, sigma_min, sigma_max, -shiftL_, shiftM_);
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.craw(i);
 }
 
@@ -55,17 +58,17 @@ void WGriddingGridder_Simple::FinalizeImage(double multiplicationFactor) {
   for (auto &pix : img) pix *= multiplicationFactor;
 }
 
-vector<float> WGriddingGridder_Simple::RealImage() {
+std::vector<float> WGriddingGridder_Simple::RealImage() {
   size_t dx = (width_ - width_t_) / 2;
   size_t dy = (height_ - height_t_) / 2;
-  vector<float> image(width_ * height_, 0);
+  std::vector<float> image(width_ * height_, 0);
   for (size_t i = 0; i < width_t_; ++i)
     for (size_t j = 0; j < height_t_; ++j)
       image[(i + dx) + (j + dy) * width_] = img[i * height_t_ + j];
   return image;
 }
 
-void WGriddingGridder_Simple::InitializePrediction(vector<float> &&image) {
+void WGriddingGridder_Simple::InitializePrediction(std::vector<float> &&image) {
   size_t dx = (width_ - width_t_) / 2;
   size_t dy = (height_ - height_t_) / 2;
   img.resize(width_t_ * height_t_);
@@ -80,10 +83,11 @@ void WGriddingGridder_Simple::PredictVisibilities(
     std::complex<float> *vis) const {
   mav<double, 2> uvw2(uvw, {nrows, 3});
   mav<double, 1> freq2(freq, {nchan});
-  mav<complex<float>, 2> ms(vis, {nrows, nchan}, true);
+  mav<std::complex<float>, 2> ms(vis, {nrows, nchan}, true);
   mav<float, 2> tdirty(img.data(), {width_t_, height_t_});
   mav<float, 2> twgt(nullptr, {0, 0}, false);
   mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
-  dirty2ms(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_,
-           true, nthreads_, ms, verbosity_, true, false);
+  dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
+                         pixelSizeY_, epsilon_, true, nthreads_, ms, verbosity_,
+                         true, false, sigma_min, sigma_max, -shiftL_, shiftM_);
 }

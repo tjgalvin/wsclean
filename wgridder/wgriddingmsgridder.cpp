@@ -1,5 +1,5 @@
 
-#include "bufferedmsgridder.h"
+#include "wgriddingmsgridder.h"
 
 #include "wgriddinggridder_simple.h"
 
@@ -16,8 +16,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-BufferedMSGridder::BufferedMSGridder(size_t threadCount, double memFraction,
-                                     double absMemLimit, double accuracy)
+WGriddingMSGridder::WGriddingMSGridder(size_t threadCount, double memFraction,
+                                       double absMemLimit, double accuracy)
     : MSGridderBase(), _cpuCount(threadCount), _accuracy(accuracy) {
   _memSize = getAvailableMemory(memFraction, absMemLimit);
   // It may happen that several FFTResamplers are created concurrently, so we
@@ -25,7 +25,8 @@ BufferedMSGridder::BufferedMSGridder(size_t threadCount, double memFraction,
   fftwf_make_planner_thread_safe();
 }
 
-size_t BufferedMSGridder::calculateMaxNRowsInMemory(size_t channelCount) const {
+size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
+    size_t channelCount) const {
   size_t constantMem, perVisMem;
   _gridder->memUsage(constantMem, perVisMem);
   if (int64_t(constantMem) >= _memSize) {
@@ -47,7 +48,7 @@ size_t BufferedMSGridder::calculateMaxNRowsInMemory(size_t channelCount) const {
   return maxNRows;
 }
 
-void BufferedMSGridder::gridMeasurementSet(MSData& msData) {
+void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   const MultiBandData selectedBands(msData.SelectedBand());
 
   aocommon::UVector<std::complex<float>> modelBuffer(
@@ -116,7 +117,7 @@ void BufferedMSGridder::gridMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
-void BufferedMSGridder::predictMeasurementSet(MSData& msData) {
+void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   const MultiBandData selectedBands(msData.SelectedBand());
 
@@ -169,8 +170,8 @@ void BufferedMSGridder::predictMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
-void BufferedMSGridder::getTrimmedSize(size_t& trimmedWidth,
-                                       size_t& trimmedHeight) const {
+void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
+                                        size_t& trimmedHeight) const {
   double padding = double(ImageWidth()) / TrimWidth();
   trimmedWidth = std::floor(_actualInversionWidth / padding);
   trimmedHeight = std::floor(_actualInversionHeight / padding);
@@ -178,7 +179,7 @@ void BufferedMSGridder::getTrimmedSize(size_t& trimmedWidth,
   if (trimmedHeight & 1) --trimmedHeight;
 }
 
-void BufferedMSGridder::Invert() {
+void WGriddingMSGridder::Invert() {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
@@ -187,8 +188,8 @@ void BufferedMSGridder::Invert() {
 
   _gridder.reset(new WGriddingGridder_Simple(
       _actualInversionWidth, _actualInversionHeight, trimmedWidth,
-      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount,
-      _accuracy));
+      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, PhaseCentreDL(),
+      PhaseCentreDM(), _cpuCount, _accuracy));
   _gridder->InitializeInversion();
 
   resetVisibilityCounters();
@@ -236,7 +237,7 @@ void BufferedMSGridder::Invert() {
   }
 }
 
-void BufferedMSGridder::Predict(ImageF image) {
+void WGriddingMSGridder::Predict(ImageF image) {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
@@ -245,8 +246,8 @@ void BufferedMSGridder::Predict(ImageF image) {
 
   _gridder.reset(new WGriddingGridder_Simple(
       _actualInversionWidth, _actualInversionHeight, trimmedWidth,
-      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, _cpuCount,
-      _accuracy));
+      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, PhaseCentreDL(),
+      PhaseCentreDM(), _cpuCount, _accuracy));
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     ImageF untrimmedImage(ImageWidth(), ImageHeight());

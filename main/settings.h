@@ -31,6 +31,8 @@ class Settings {
   enum Mode { ImagingMode, PredictMode, RestoreMode, RestoreListMode } mode;
   size_t paddedImageWidth, paddedImageHeight;
   size_t trimmedImageWidth, trimmedImageHeight;
+  bool hasShift;
+  double shiftRA, shiftDec;
   double imagePadding;
   size_t widthForNWCalculation, heightForNWCalculation;
   size_t channelsOut, intervalsOut;
@@ -170,6 +172,9 @@ inline Settings::Settings()
       paddedImageHeight(0),
       trimmedImageWidth(0),
       trimmedImageHeight(0),
+      hasShift(false),
+      shiftRA(0.0),
+      shiftDec(0.0),
       imagePadding(1.2),
       widthForNWCalculation(0),
       heightForNWCalculation(0),

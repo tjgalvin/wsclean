@@ -24,7 +24,7 @@ option(DISABLE_CXX17 "Do not use C++17 for compilation" OFF)
 if(COMPILER_HAS_CXX17 AND NOT DISABLE_CXX17)
   add_compile_options(-std=c++17)
   add_definitions(-DHAVE_WGRIDDER)
-  set(WGRIDDER_FILES wgridder/bufferedmsgridder.cpp
+  set(WGRIDDER_FILES wgridder/wgriddingmsgridder.cpp
     external/wgridder/ducc0/infra/threading.cc
     wgridder/wgriddinggridder_simple.cpp)
   include_directories(external/wgridder)

@@ -1,14 +1,24 @@
 #include "observationinfo.h"
 
+#include <casacore/measures/Measures/MDirection.h>
+#include <casacore/measures/Measures/MCDirection.h>
+#include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/Measures/MPosition.h>
+#include <casacore/measures/Measures/MCPosition.h>
+#include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+#include <casacore/tables/Tables/TableRecord.h>
+
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
+
+#include "../structures/msselection.h"
 
 void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
-      .Bool(hasDenormalPhaseCentre)
-      .Double(phaseCentreDL)
-      .Double(phaseCentreDM)
+      .Bool(hasShiftedPhaseCentre)
+      .Double(shiftL)
+      .Double(shiftM)
       .String(telescopeName)
       .String(observer)
       .String(fieldName);
@@ -17,17 +27,17 @@ void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
 void ObservationInfo::Unserialize(aocommon::SerialIStream& stream) {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
-      .Bool(hasDenormalPhaseCentre)
-      .Double(phaseCentreDL)
-      .Double(phaseCentreDM)
+      .Bool(hasShiftedPhaseCentre)
+      .Double(shiftL)
+      .Double(shiftM)
       .String(telescopeName)
       .String(observer)
       .String(fieldName);
 }
 
-struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
-                                           size_t fieldId) {
-  struct ObservationInfo obsInfo;
+ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
+                                    size_t fieldId) {
+  ObservationInfo obsInfo;
 
   casacore::MSAntenna aTable = ms.antenna();
   size_t antennaCount = aTable.nrow();
@@ -52,18 +62,20 @@ struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
 
   obsInfo.phaseCentreRA = j2000Val[0];
   obsInfo.phaseCentreDec = j2000Val[1];
-  if (fTable.keywordSet().isDefined("WSCLEAN_DL")) {
-    obsInfo.phaseCentreDL =
-        fTable.keywordSet().asDouble(casacore::RecordFieldId("WSCLEAN_DL"));
-  } else {
-    obsInfo.phaseCentreDL = 0.0;
+
+  if (fTable.keywordSet().isDefined("WSCLEAN_DL") ||
+      fTable.keywordSet().isDefined("WSCLEAN_DM")) {
+    throw std::runtime_error(
+        "This measurement was processed with chgcentre to have a shifted phase "
+        "centre. \n"
+        "This kind of shifting has been directly implemented in wsclean. "
+        "Because of this,\n"
+        "the chgcentre approach is no longer supported. Use chgcentre to undo "
+        "the shift\n"
+        "and use wsclean's -shift parameter.\n");
   }
-  if (fTable.keywordSet().isDefined("WSCLEAN_DM")) {
-    obsInfo.phaseCentreDM =
-        fTable.keywordSet().asDouble(casacore::RecordFieldId("WSCLEAN_DM"));
-  } else {
-    obsInfo.phaseCentreDM = 0.0;
-  }
+  obsInfo.shiftL = 0.0;
+  obsInfo.shiftM = 0.0;
 
   casacore::MSObservation oTable = ms.observation();
   size_t obsCount = oTable.nrow();

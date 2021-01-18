@@ -155,8 +155,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       newItem.dataDescId = dataDescId;
 
       // Any visibilities that are not gridded in this pass
-      // should not contribute to the weight sum, so set these
-      // to have zero weight.
+      // should not contribute to the weight sum
       for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
         double w = newItem.uvw[2] / curBand.ChannelWavelength(ch);
         isSelected[ch] = _gridder->IsInLayerRange(w);
@@ -165,6 +164,13 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       readAndWeightVisibilities<1>(*msData.msProvider, newItem, curBand,
                                    weightBuffer.data(), modelBuffer.data(),
                                    isSelected.data());
+
+      if (HasDenormalPhaseCentre()) {
+        const double shiftFactor = -2.0 * M_PI *
+                                   (newItem.uvw[0] * PhaseCentreDL() +
+                                    newItem.uvw[1] * PhaseCentreDM());
+        rotateVisibilities<1>(curBand, shiftFactor, newItem.data);
+      }
 
       InversionWorkSample sampleData;
       for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
@@ -245,11 +251,11 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _cpuCount; ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
-                             &writeLane);
+                             &writeLane, &selectedBandData);
 
   /* Start by reading the u,v,ws in, so we don't need IO access
    * from this thread during further processing */
-  std::vector<double> us, vs, ws;
+  std::vector<std::array<double, 3>> uvws;
   std::vector<size_t> rowIds, dataIds;
   msData.msProvider->Reset();
   while (msData.msProvider->CurrentRowAvailable()) {
@@ -260,9 +266,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
     const double w1 = wInMeters / curBand.LongestWavelength(),
                  w2 = wInMeters / curBand.SmallestWavelength();
     if (_gridder->IsInLayerRange(w1, w2)) {
-      us.push_back(uInMeters);
-      vs.push_back(vInMeters);
-      ws.push_back(wInMeters);
+      uvws.push_back({uInMeters, vInMeters, wInMeters});
       dataIds.push_back(dataDescId);
       rowIds.push_back(msData.msProvider->RowId());
       ++rowsProcessed;
@@ -271,11 +275,9 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
     msData.msProvider->NextRow();
   }
 
-  for (size_t i = 0; i != us.size(); ++i) {
+  for (size_t i = 0; i != uvws.size(); ++i) {
     PredictionWorkItem newItem;
-    newItem.u = us[i];
-    newItem.v = vs[i];
-    newItem.w = ws[i];
+    newItem.uvw = uvws[i];
     newItem.dataDescId = dataIds[i];
     newItem.data.reset(
         new std::complex<float>[selectedBandData[dataIds[i]].ChannelCount()]);
@@ -296,14 +298,22 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
 
 void WSMSGridder::predictCalcThread(
     aocommon::Lane<PredictionWorkItem>* inputLane,
-    aocommon::Lane<PredictionWorkItem>* outputLane) {
+    aocommon::Lane<PredictionWorkItem>* outputLane,
+    const MultiBandData* bandData) {
   lane_write_buffer<PredictionWorkItem> writeBuffer(outputLane,
                                                     _laneBufferSize);
 
   PredictionWorkItem item;
   while (inputLane->read(item)) {
-    _gridder->SampleData(item.data.get(), item.dataDescId, item.u, item.v,
-                         item.w);
+    _gridder->SampleData(item.data.get(), item.dataDescId, item.uvw[0],
+                         item.uvw[1], item.uvw[2]);
+    if (HasDenormalPhaseCentre()) {
+      const double shiftFactor =
+          2.0 * M_PI *
+          (item.uvw[0] * PhaseCentreDL() + item.uvw[1] * PhaseCentreDM());
+      rotateVisibilities<1>((*bandData)[item.dataDescId], shiftFactor,
+                            item.data.get());
+    }
 
     writeBuffer.write(std::move(item));
   }

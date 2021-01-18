@@ -53,6 +53,7 @@ class WSClean {
 
   void performReordering(bool isPredictMode);
 
+  ObservationInfo getObservationInfo() const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<class MSDataDescription>>& msList);

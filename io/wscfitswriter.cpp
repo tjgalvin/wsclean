@@ -89,9 +89,8 @@ void WSCFitsWriter::setGridderConfiguration(
                              pixelScaleY);
 
   _writer.SetDate(startTime);
-  if (observationInfo.hasDenormalPhaseCentre)
-    _writer.SetPhaseCentreShift(observationInfo.phaseCentreDL,
-                                observationInfo.phaseCentreDM);
+  if (observationInfo.hasShiftedPhaseCentre)
+    _writer.SetPhaseCentreShift(observationInfo.shiftL, observationInfo.shiftM);
   _writer.SetTelescopeName(observationInfo.telescopeName);
   _writer.SetObserver(observationInfo.observer);
   _writer.SetObjectName(observationInfo.fieldName);
@@ -257,8 +256,8 @@ ObservationInfo WSCFitsWriter::ReadObservationInfo(FitsReader& reader) {
   ObservationInfo obsInfo;
   obsInfo.phaseCentreRA = reader.PhaseCentreRA();
   obsInfo.phaseCentreDec = reader.PhaseCentreDec();
-  obsInfo.phaseCentreDL = reader.PhaseCentreDL();
-  obsInfo.phaseCentreDM = reader.PhaseCentreDM();
+  obsInfo.shiftL = reader.PhaseCentreDL();
+  obsInfo.shiftM = reader.PhaseCentreDM();
   obsInfo.telescopeName = reader.TelescopeName();
   obsInfo.observer = reader.Observer();
   return obsInfo;

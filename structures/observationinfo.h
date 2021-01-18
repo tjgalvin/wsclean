@@ -6,20 +6,13 @@
 #include <string>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
-#include <casacore/measures/Measures/MDirection.h>
-#include <casacore/measures/Measures/MCDirection.h>
-#include <casacore/measures/Measures/MEpoch.h>
-#include <casacore/measures/Measures/MPosition.h>
-#include <casacore/measures/Measures/MCPosition.h>
-#include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
-#include <casacore/tables/Tables/TableRecord.h>
-
-#include "../structures/msselection.h"
 
 struct ObservationInfo {
-  double phaseCentreRA = 0.0, phaseCentreDec = 0.0;
-  bool hasDenormalPhaseCentre = false;
-  double phaseCentreDL = 0.0, phaseCentreDM = 0.0;
+  double phaseCentreRA = 0.0;
+  double phaseCentreDec = 0.0;
+  bool hasShiftedPhaseCentre = false;
+  double shiftL = 0.0;
+  double shiftM = 0.0;
   std::string telescopeName;
   std::string observer;
   std::string fieldName;

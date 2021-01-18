@@ -29,7 +29,7 @@ class GriddingTask {
   bool addToModel;
   ImageF modelImageReal;
   ImageF modelImageImaginary;
-  struct ObservationInfo obsInfo;
+  ObservationInfo observationInfo;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

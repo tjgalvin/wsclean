@@ -6,25 +6,25 @@
 #include "msgridderbase.h"
 
 template <typename num_t>
-class DirectMSGridder : public MSGridderBase {
+class DirectMSGridder final : public MSGridderBase {
  public:
   const static size_t num_t_factor =
       (sizeof(num_t) + sizeof(double) - 1) / sizeof(double);
 
   DirectMSGridder(size_t nThreads);
 
-  virtual void Invert() final override;
+  virtual void Invert() override;
 
-  virtual void Predict(ImageF image) final override;
-  virtual void Predict(ImageF /*real*/, ImageF /*imaginary*/) final override {
+  virtual void Predict(ImageF image) override;
+  virtual void Predict(ImageF /*real*/, ImageF /*imaginary*/) override {
     throw std::runtime_error("Direct FT imager can not predict complex images");
   }
 
-  virtual ImageF ImageRealResult() final override { return std::move(_image); }
-  virtual ImageF ImageImaginaryResult() final override {
+  virtual ImageF ImageRealResult() override { return std::move(_image); }
+  virtual ImageF ImageImaginaryResult() override {
     throw std::runtime_error("Direct FT imager can not make complex images");
   }
-  virtual size_t getSuggestedWGridSize() const override final { return 1; }
+  virtual size_t getSuggestedWGridSize() const override { return 1; }
 
  private:
   struct InversionSample {

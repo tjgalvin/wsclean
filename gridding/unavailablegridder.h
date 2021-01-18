@@ -6,24 +6,24 @@
 #include <stdexcept>
 #include <string>
 
-class UnavailableGridder : public MSGridderBase {
+class UnavailableGridder final : public MSGridderBase {
  public:
   UnavailableGridder(const class Settings&) { doThrow(); }
 
-  virtual ~UnavailableGridder() final override { doThrow(); }
+  virtual ~UnavailableGridder() override { doThrow(); }
 
-  virtual void Invert() final override { doThrow(); }
+  virtual void Invert() override { doThrow(); }
 
-  virtual void Predict(ImageF) final override { doThrow(); }
+  virtual void Predict(ImageF) override { doThrow(); }
 
-  virtual void Predict(ImageF, ImageF) final override { doThrow(); }
+  virtual void Predict(ImageF, ImageF) override { doThrow(); }
 
-  virtual ImageF ImageRealResult() final override {
+  virtual ImageF ImageRealResult() override {
     doThrow();
     return ImageF();
   }
 
-  virtual ImageF ImageImaginaryResult() final override {
+  virtual ImageF ImageImaginaryResult() override {
     doThrow();
     return ImageF();
   }
@@ -39,7 +39,7 @@ class UnavailableGridder : public MSGridderBase {
                             const MetaDataCache&) {}
 
  private:
-  virtual size_t getSuggestedWGridSize() const final override {
+  virtual size_t getSuggestedWGridSize() const override {
     doThrow();
     return 0;
   }

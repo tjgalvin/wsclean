@@ -1,15 +1,17 @@
 #include "commandline.h"
+#include "wsclean.h"
 
 #include <wscversion.h>
+
+#include "../io/logger.h"
 
 #include "../units/angle.h"
 #include "../units/fluxdensity.h"
 
 #include "../structures/numberlist.h"
 
-#include "wsclean.h"
 #include <aocommon/fits/fitswriter.h>
-#include "../io/logger.h"
+#include <aocommon/radeccoord.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/optional/optional.hpp>
@@ -217,6 +219,9 @@ void CommandLine::printHelp() {
          "   an already cleaned image, e.g. at a different resolution.\n"
          "-channels-out <count>\n"
          "   Splits the bandwidth and makes count nr. of images. Default: 1.\n"
+         "-shift <ra> <dec>\n"
+         "   Shift the phase centre to the given location. The shift is along\n"
+         "   the tangential plane.\n"
          "-gap-channel-division\n"
          "   In case of irregular frequency spacing, this option can be used "
          "to not try and split channels\n"
@@ -931,6 +936,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.endChannel = parse_size_t(argv[argi + 2], "channel-range");
       argi += 2;
       if (param == "channelrange") deprecated(isSlave, param, "channel-range");
+    } else if (param == "shift") {
+      settings.hasShift = true;
+      settings.shiftRA = aocommon::RaDecCoord::ParseRA(argv[argi + 1]);
+      settings.shiftDec = aocommon::RaDecCoord::ParseDec(argv[argi + 2]);
+      argi += 2;
     } else if (param == "channelsout" || param == "channels-out") {
       ++argi;
       settings.channelsOut = parse_size_t(argv[argi], "channels-out");

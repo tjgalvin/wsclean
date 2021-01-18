@@ -131,7 +131,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.verbose = _isFirstInversion;
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
-  task.obsInfo = _observationInfo;
+  task.observationInfo = _observationInfo;
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
@@ -210,8 +210,8 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
                             entry.outputIntervalIndex);
     IdgMsGridder::SaveBeamImage(
         entry, imageName, _settings, _observationInfo.phaseCentreRA,
-        _observationInfo.phaseCentreDec, _observationInfo.phaseCentreDL,
-        _observationInfo.phaseCentreDM, *_msGridderMetaCache[entry.index]);
+        _observationInfo.phaseCentreDec, _observationInfo.shiftL,
+        _observationInfo.shiftM, *_msGridderMetaCache[entry.index]);
   }
 
   _isFirstInversion = false;
@@ -237,7 +237,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
       isFirstInversion && _settings.writeImagingWeightSpectrumColumn;
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
-  task.obsInfo = _observationInfo;
+  task.observationInfo = _observationInfo;
 
   _griddingTaskManager->Run(
       std::move(task),
@@ -408,11 +408,25 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.modelImageImaginary = std::move(modelImageImaginary);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
-  task.obsInfo = _observationInfo;
+  task.observationInfo = _observationInfo;
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
         _msGridderMetaCache[entry.index] = std::move(result.cache);
       });
+}
+
+ObservationInfo WSClean::getObservationInfo() const {
+  casacore::MeasurementSet ms(_settings.filenames[0]);
+  ObservationInfo observationInfo =
+      ReadObservationInfo(ms, _settings.fieldIds[0]);
+  if (_settings.hasShift) {
+    observationInfo.hasShiftedPhaseCentre = true;
+    aocommon::ImageCoordinates::RaDecToLM(
+        _settings.shiftRA, _settings.shiftDec, observationInfo.phaseCentreRA,
+        observationInfo.phaseCentreDec, observationInfo.shiftL,
+        observationInfo.shiftM);
+  }
+  return observationInfo;
 }
 
 std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
@@ -527,17 +541,14 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
-  {
-    casacore::MeasurementSet ms(_settings.filenames[0]);
-    _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
-  }
+  _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
   for (schaapcommon::facets::Facet& facet : _facets) {
     facet.CalculatePixelPositions(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+        _observationInfo.shiftL, _observationInfo.shiftM);
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -690,10 +701,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
 }
 
 void WSClean::RunPredict() {
-  {
-    casacore::MeasurementSet ms(_settings.filenames[0]);
-    _observationInfo = ReadObservationInfo(ms, _settings.fieldIds[0]);
-  }
+  _observationInfo = getObservationInfo();
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -1203,7 +1211,7 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+            _observationInfo.shiftL, _observationInfo.shiftM);
       }
     }
 
@@ -1266,7 +1274,7 @@ void WSClean::runFirstInversion(
         primaryBeam->AddMS(std::move(description));
       primaryBeam->SetPhaseCentre(
           _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-          _observationInfo.phaseCentreDL, _observationInfo.phaseCentreDM);
+          _observationInfo.shiftL, _observationInfo.shiftM);
       primaryBeam->MakeBeamImages(imageName, entry, std::move(weights));
     }
   }
