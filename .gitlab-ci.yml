@@ -45,10 +45,11 @@ build-without-everybeam:
     - make doc
     - make install
     - make check
-    # gcovr to create badge
-    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*'
+    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
     # gcovr to enable line coverage highlighting in MRs
-    - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --xml > coverage.xml
+    - gcovr --add-tracefile run-unit.json --xml > coverage.xml
+    # gcovr to create badge
+    - gcovr --add-tracefile run-unit.json
   artifacts:
     reports:
       cobertura: build/coverage.xml
