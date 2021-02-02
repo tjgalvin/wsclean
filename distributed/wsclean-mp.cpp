@@ -6,6 +6,7 @@
 #include "../main/wsclean.h"
 
 #include "../io/logger.h"
+#include "../system/check_openblas_multithreading.h"
 
 #include <exception>
 #include <iostream>
@@ -38,7 +39,8 @@ int main(int argc, char* argv[]) {
     shortException = !master;
     parseResult = CommandLine::ParseWithoutValidation(
         wsclean, argc, const_cast<const char**>(argv), !master);
-    shortException = !Logger::IsVerbose();
+    shortException = !master && !Logger::IsVerbose();
+    check_openblas_multithreading();
     if (parseResult) {
       CommandLine::Validate(wsclean);
       Settings& settings = wsclean.GetSettings();
@@ -64,9 +66,12 @@ int main(int argc, char* argv[]) {
                     << " stopped because of an exception.\n";
     else {
       Logger::Error << "+ + + + + + + + + + + + + + + + + + +\n"
-                    << "+ An exception occured in process " << rank << ":\n"
-                    << "+ >>> " << e.what() << "\n"
-                    << "+ + + + + + + + + + + + + + + + + + +\n";
+                    << "+ An exception occured in process " << rank << ":\n";
+      std::istringstream iss(e.what());
+      for (std::string line; std::getline(iss, line);) {
+        Logger::Error << "+ >>> " << line << "\n";
+      }
+      Logger::Error << "+ + + + + + + + + + + + + + + + + + +\n";
     }
     result = -1;
   }
