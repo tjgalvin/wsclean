@@ -31,7 +31,8 @@ void MPIScheduler::Run(GriddingTask &&task,
     _isSendFinished = false;
     _isFinishing = false;
     _sendThread = std::thread([&]() { sendLoop(); });
-    _receiveThread = std::thread([&]() { receiveLoop(); });
+    if (_nodes.size() > 1)
+      _receiveThread = std::thread([&]() { receiveLoop(); });
     _isRunning = true;
   }
   _taskList.write(
@@ -57,7 +58,7 @@ void MPIScheduler::Finish() {
 
     _taskList.write_end();
     _sendThread.join();
-    _receiveThread.join();
+    if (_nodes.size() > 1) _receiveThread.join();
     if (_workThread.joinable()) _workThread.join();
     _taskList.clear();
 
@@ -85,10 +86,6 @@ void MPIScheduler::sendLoop() {
   std::pair<GriddingTask, std::function<void(GriddingResult &)>> taskPair;
   while (_taskList.read(taskPair)) {
     const GriddingTask &task = taskPair.first;
-    aocommon::SerialOStream stream;
-    // To use MPI_Send_Big, a uint64_t need to be reserved
-    stream.UInt64(0);
-    task.Serialize(stream);
 
     int node = findAndSetNodeState(AvailableNode,
                                    std::make_pair(BusyNode, taskPair.second));
@@ -99,6 +96,10 @@ void MPIScheduler::sendLoop() {
       _workThread = std::thread(&MPIScheduler::node0gridder, this,
                                 std::move(taskPair.first));
     } else {
+      aocommon::SerialOStream stream;
+      // To use MPI_Send_Big, a uint64_t need to be reserved
+      stream.UInt64(0);
+      task.Serialize(stream);
       TaskMessage message;
       message.type = TaskMessage::GriddingRequest;
       message.bodySize = stream.size();
@@ -110,6 +111,7 @@ void MPIScheduler::sendLoop() {
 
   std::unique_lock<std::mutex> lock(_mutex);
   _isSendFinished = true;
+  _notify.notify_all();
 }
 
 int MPIScheduler::findAndSetNodeState(
