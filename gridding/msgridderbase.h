@@ -18,7 +18,7 @@ class MSGridderBase : public MeasurementSetGridder {
 
   virtual double StartTime() const final override { return _startTime; }
   virtual bool HasDenormalPhaseCentre() const final override {
-    return _denormalPhaseCentre;
+    return _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
   }
   virtual double ImageWeight() const final override { return _totalWeight; }
   virtual double NormalizationFactor() const final override {
@@ -180,8 +180,6 @@ class MSGridderBase : public MeasurementSetGridder {
   double _freqHigh, _freqLow;
   double _bandStart, _bandEnd;
   double _startTime;
-
-  bool _denormalPhaseCentre;
 
   size_t _griddedVisibilityCount;
   double _totalWeight;

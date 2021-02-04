@@ -71,5 +71,5 @@ fk5
 polygon(125.84566,-42.846894,125.30007,-42.849609,125.30204,-43.249613,125.8512,-43.24688)
 EOT
 # Apply the facet to the image
-wsclean -name single-facet -facet-regions ${rectdims} ${facetfile} ${ms}
+wsclean -name single-facet -facet-regions ${facetfile} ${rectdims} ${ms}
 rm ${facetfile}

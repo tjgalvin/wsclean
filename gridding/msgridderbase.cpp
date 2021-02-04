@@ -225,8 +225,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 
   initializeBandData(*ms, msData);
 
-  _denormalPhaseCentre = _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
-  if (_denormalPhaseCentre)
+  if (HasDenormalPhaseCentre())
     Logger::Debug << "Set has denormal phase centre: dl=" << _phaseCentreDL
                   << ", dm=" << _phaseCentreDM << '\n';
 
@@ -340,10 +339,9 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
                                               float* weightBuffer,
                                               std::complex<float>* modelBuffer,
                                               const bool* isSelected) {
+  const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (DoImagePSF()) {
-    for (size_t chp = 0; chp != curBand.ChannelCount() * PolarizationCount;
-         ++chp)
-      rowData.data[chp] = 1.0;
+    std::fill_n(rowData.data, dataSize, 1.0);
     if (HasDenormalPhaseCentre()) {
       const double lmsqrt = std::sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
                                       PhaseCentreDM() * PhaseCentreDM());
@@ -362,8 +360,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
     msProvider.ReadModel(modelBuffer);
     std::complex<float>* modelIter = modelBuffer;
     for (std::complex<float>* iter = rowData.data;
-         iter != rowData.data + (curBand.ChannelCount() * PolarizationCount);
-         ++iter) {
+         iter != rowData.data + dataSize; ++iter) {
       *iter -= *modelIter;
       modelIter++;
     }
@@ -374,7 +371,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
   // to have zero weight.
-  for (size_t ch = 0; ch != curBand.ChannelCount() * PolarizationCount; ++ch) {
+  for (size_t ch = 0; ch != dataSize; ++ch) {
     if (!isSelected[ch]) weightBuffer[ch] = 0.0;
   }
 
@@ -384,14 +381,12 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
       break;
     case SquaredVisibilityWeighting:
       // Square the visibility weights
-      for (size_t chp = 0; chp != curBand.ChannelCount() * PolarizationCount;
-           ++chp)
+      for (size_t chp = 0; chp != dataSize; ++chp)
         weightBuffer[chp] *= weightBuffer[chp];
       break;
     case UnitVisibilityWeighting:
       // Set the visibility weights to one
-      for (size_t chp = 0; chp != curBand.ChannelCount() * PolarizationCount;
-           ++chp) {
+      for (size_t chp = 0; chp != dataSize; ++chp) {
         if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
       }
       break;

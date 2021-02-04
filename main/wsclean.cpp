@@ -129,9 +129,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
-  if (entry.facet != nullptr) {
-    initializeFacetPhaseShift(entry.facet, task.observationInfo);
-  }
+  applyFacetPhaseShift(entry.facet, task.observationInfo);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
@@ -235,9 +233,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
-  if (entry.facet != nullptr) {
-    initializeFacetPhaseShift(entry.facet, task.observationInfo);
-  }
+  applyFacetPhaseShift(entry.facet, task.observationInfo);
 
   _griddingTaskManager->Run(
       std::move(task),
@@ -409,9 +405,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
-  if (entry.facet != nullptr) {
-    initializeFacetPhaseShift(entry.facet, task.observationInfo);
-  }
+  applyFacetPhaseShift(entry.facet, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
         _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -432,18 +426,22 @@ ObservationInfo WSClean::getObservationInfo() const {
   return observationInfo;
 }
 
-void WSClean::initializeFacetPhaseShift(
-    const schaapcommon::facets::Facet* facet,
-    ObservationInfo& observationInfo) const {
-  const schaapcommon::facets::BoundingBox box = facet->GetBoundingBox();
-  // Width and height are both divisible by 4
-  const int centre_x = box.Min().x + facet->Width() / 2;
-  const int centre_y = box.Min().y + facet->Height() / 2;
-  const int centre_x_image = _settings.trimmedImageWidth / 2;
-  const int centre_y_image = _settings.trimmedImageHeight / 2;
+void WSClean::applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
+                                   ObservationInfo& observationInfo) const {
+  using schaapcommon::facets::Vertex;
+  if (facet) {
+    const schaapcommon::facets::BoundingBox box = facet->GetBoundingBox();
+    // Width and height are both divisible by 4
+    const Vertex facet_center =
+        box.Min() + Vertex(0, 0, facet->Width() / 2, facet->Height() / 2);
+    const Vertex image_center(0, 0, _settings.trimmedImageWidth / 2,
+                              _settings.trimmedImageHeight / 2);
+    const Vertex diff(0, 0, facet_center.x - image_center.x,
+                      facet_center.y - image_center.y);
 
-  observationInfo.shiftL = (centre_x_image - centre_x) * _settings.pixelScaleX;
-  observationInfo.shiftM = (centre_y - centre_y_image) * _settings.pixelScaleY;
+    observationInfo.shiftL -= diff.x * _settings.pixelScaleX;
+    observationInfo.shiftM += diff.y * _settings.pixelScaleY;
+  }
 }
 
 std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(

@@ -54,10 +54,13 @@ class WSClean {
   void performReordering(bool isPredictMode);
 
   ObservationInfo getObservationInfo() const;
-  /// Call when the shiftL and shiftM of the input ObservationInfo need to be
-  /// changed to the phase shift of the facet.
-  void initializeFacetPhaseShift(const schaapcommon::facets::Facet*,
-                                 ObservationInfo&) const;
+  /**
+   * Add the phase shift of a facet to an ObservationInfo object.
+   * @param facet Pointer to a facet. If it null, nothing happens.
+   * @param observationInfo shiftL and shiftM of this object are updated.
+   */
+  void applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
+                            ObservationInfo& observationInfo) const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<class MSDataDescription>>& msList);
