@@ -21,6 +21,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
   stream.Bool(addToModel);
   modelImageReal.Serialize(stream);
   modelImageImaginary.Serialize(stream);
+  observationInfo.Serialize(stream);
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
@@ -37,4 +38,5 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
   addToModel = stream.Bool();
   modelImageReal.Unserialize(stream);
   modelImageImaginary.Unserialize(stream);
+  observationInfo.Unserialize(stream);
 }
