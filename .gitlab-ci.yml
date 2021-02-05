@@ -58,7 +58,6 @@ build-with-everybeam:
   stage: build
   script:
     - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
-    - cd EveryBeam && git checkout point-response && cd ..
     - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4
     - cd $CI_PROJECT_DIR && mkdir build && cd build
     - cmake -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
