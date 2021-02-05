@@ -8,7 +8,9 @@
 
 class UnavailableGridder final : public MSGridderBase {
  public:
-  UnavailableGridder(const class Settings&) { doThrow(); }
+  UnavailableGridder(const class Settings& settings) : MSGridderBase(settings) {
+    doThrow();
+  }
 
   virtual ~UnavailableGridder() override { doThrow(); }
 

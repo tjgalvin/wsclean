@@ -4,6 +4,7 @@
 #include "gridmodeenum.h"
 
 #include <aocommon/polarization.h>
+#include <aocommon/imagecoordinates.h>
 
 #include "../structures/observationinfo.h"
 #include "../structures/msselection.h"
@@ -59,7 +60,9 @@ class MeasurementSetGridder {
         _overSamplingFactor(63),
         _visibilityWeightingMode(NormalVisibilityWeighting),
         _gridMode(KaiserBesselKernel),
-        _storeImagingWeights(false) {}
+        _storeImagingWeights(false) {
+    ComputeRaDec();
+  }
   virtual ~MeasurementSetGridder() {}
 
   size_t ImageWidth() const { return _imageWidth; }
@@ -165,18 +168,22 @@ class MeasurementSetGridder {
   virtual ImageF ImageImaginaryResult() = 0;
   void SetPhaseCentreRA(const double phaseCentreRA) {
     _phaseCentreRA = phaseCentreRA;
+    ComputeRaDec();
   }
   void SetPhaseCentreDec(const double phaseCentreDec) {
     _phaseCentreDec = phaseCentreDec;
+    ComputeRaDec();
   }
   double PhaseCentreRA() const { return _phaseCentreRA; }
   double PhaseCentreDec() const { return _phaseCentreDec; }
   virtual bool HasDenormalPhaseCentre() const { return false; }
   void SetPhaseCentreDL(const double phaseCentreDL) {
     _phaseCentreDL = phaseCentreDL;
+    ComputeRaDec();
   }
   void SetPhaseCentreDM(const double phaseCentreDM) {
     _phaseCentreDM = phaseCentreDM;
+    ComputeRaDec();
   }
   double PhaseCentreDL() const { return _phaseCentreDL; }
   double PhaseCentreDM() const { return _phaseCentreDM; }
@@ -217,6 +224,12 @@ class MeasurementSetGridder {
 
  protected:
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
+  double _facetCentreRA, _facetCentreDec;
+  void ComputeRaDec() {
+    aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
+                                          _phaseCentreRA, _phaseCentreDec,
+                                          _facetCentreRA, _facetCentreDec);
+  }
 
  private:
   size_t _imageWidth, _imageHeight;

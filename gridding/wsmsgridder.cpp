@@ -17,12 +17,11 @@
 
 #include <stdexcept>
 
-WSMSGridder::WSMSGridder(size_t threadCount, double memFraction,
-                         double absMemLimit)
-    : MSGridderBase(),
-      _cpuCount(threadCount),
+WSMSGridder::WSMSGridder(const Settings& settings)
+    : MSGridderBase(settings),
+      _cpuCount(_settings.threadCount),
       _laneBufferSize(std::max<size_t>(_cpuCount * 2, 1024)) {
-  _memSize = getAvailableMemory(memFraction, absMemLimit);
+  _memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
 
   // We do this once here. WStackingGridder does this too, but by default only
   // for the float variant of fftw. FFTResampler does double fft's

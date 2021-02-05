@@ -92,6 +92,7 @@ class Settings {
   double atermKernelSize;
   bool gridWithBeam;
   double beamAtermUpdateTime;  // in seconds.
+  bool applyFacetBeam;
   bool saveATerms;
   enum IDGMode { IDG_DEFAULT, IDG_GPU, IDG_CPU, IDG_HYBRID } idgMode;
   enum GridModeEnum gridMode;
@@ -273,6 +274,7 @@ inline Settings::Settings()
       atermKernelSize(5.0),
       gridWithBeam(false),
       beamAtermUpdateTime(300.0),
+      applyFacetBeam(false),
       saveATerms(false),
       idgMode(IDG_DEFAULT),
       gridMode(KaiserBesselKernel),

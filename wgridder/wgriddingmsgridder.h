@@ -7,8 +7,7 @@
 
 class WGriddingMSGridder final : public MSGridderBase {
  public:
-  WGriddingMSGridder(size_t threadCount, double memFraction, double absMemLimit,
-                     double accuracy);
+  WGriddingMSGridder(const Settings& settings);
 
   virtual void Invert() override;
 

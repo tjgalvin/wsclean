@@ -315,6 +315,9 @@ void CommandLine::printHelp() {
          "   -apply-primary-beam when not gridding with the beam.\n"
          "-aterm-kernel-size\n"
          "   Kernel size reserved for aterms by IDG.\n"
+         "-apply-facet-beam\n"
+         "   Apply beam gains to facet center when gridding facet based "
+         "images\n"
          "-save-aterms\n"
          "   Output a fits file for every aterm update, containing the applied "
          "image for every station.\n"
@@ -1251,6 +1254,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "aterm-kernel-size") {
       ++argi;
       atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
+    } else if (param == "apply-facet-beam") {
+      settings.applyFacetBeam = true;
     } else if (param == "save-aterms") {
       settings.saveATerms = true;
     } else if (param == "visibility-weighting-mode") {

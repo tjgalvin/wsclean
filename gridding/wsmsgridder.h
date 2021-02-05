@@ -20,7 +20,7 @@ class WSMSGridder final : public MSGridderBase {
  public:
   typedef WStackingGridderF GridderType;
 
-  WSMSGridder(size_t threadCount, double memFraction, double absMemLimit);
+  WSMSGridder(const Settings& settings);
 
   virtual void Invert() override;
 

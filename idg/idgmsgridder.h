@@ -92,7 +92,6 @@ class IdgMsGridder : public MSGridderBase {
   aocommon::UVector<float> _taper_grid;
   MSProvider* _outputProvider;
   MultiBandData _selectedBands;
-  const Settings& _settings;
   idg::api::Type _proxyType;
   int _buffersize;
   idg::api::options_type _options;

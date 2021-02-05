@@ -16,10 +16,11 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-WGriddingMSGridder::WGriddingMSGridder(size_t threadCount, double memFraction,
-                                       double absMemLimit, double accuracy)
-    : MSGridderBase(), _cpuCount(threadCount), _accuracy(accuracy) {
-  _memSize = getAvailableMemory(memFraction, absMemLimit);
+WGriddingMSGridder::WGriddingMSGridder(const Settings& settings)
+    : MSGridderBase(settings),
+      _cpuCount(_settings.threadCount),
+      _accuracy(_settings.wgridderAccuracy) {
+  _memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
   // It may happen that several FFTResamplers are created concurrently, so we
   // must make sure that the FFTW planner can deal with this.
   fftwf_make_planner_thread_safe();

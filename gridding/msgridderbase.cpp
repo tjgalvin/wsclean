@@ -10,6 +10,16 @@
 
 #include "../units/angle.h"
 
+#ifdef HAVE_EVERYBEAM
+#include <EveryBeam/load.h>
+#include <EveryBeam/aterms/atermconfig.h>
+
+// Only needed for EB related options
+#include "../io/findmwacoefffile.h"
+#include <limits>
+#include <aocommon/matrix2x2.h>
+#endif
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/measures/Measures/MDirection.h>
 #include <casacore/measures/Measures/MCDirection.h>
@@ -28,7 +38,7 @@ MSGridderBase::MSData::MSData()
 
 MSGridderBase::MSData::~MSData() {}
 
-MSGridderBase::MSGridderBase()
+MSGridderBase::MSGridderBase(const Settings& settings)
     : MeasurementSetGridder(),
       _theoreticalBeamSize(0.0),
       _actualInversionWidth(0),
@@ -36,6 +46,7 @@ MSGridderBase::MSGridderBase()
       _actualPixelSizeX(0),
       _actualPixelSizeY(0),
       _metaDataCache(nullptr),
+      _settings(settings),
       _hasFrequencies(false),
       _freqHigh(0.0),
       _freqLow(0.0),
@@ -250,6 +261,54 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.maxBaselineInM = msData.maxBaselineInM;
     cacheEntry.integrationTime = msData.integrationTime;
   }
+
+#ifdef HAVE_EVERYBEAM
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    // Hard-coded for now
+    const bool frequency_interpolation = true;
+    const bool use_channel_frequency = true;
+    const std::string element_response_string =
+        !_settings.beamModel.empty() ? _settings.beamModel : "DEFAULT";
+
+    // Get path to coefficient file in case MWA telescope
+    everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
+    const std::string coeff_path =
+        (telescope_type == everybeam::TelescopeType::kMWATelescope)
+            ? wsclean::mwa::FindCoeffFile(_settings.mwaPath)
+            : "";
+
+    everybeam::ATermSettings aterm_settings;
+    aterm_settings.coeff_path = coeff_path;
+    aterm_settings.data_column_name = _settings.dataColumnName;
+
+    everybeam::Options options =
+        everybeam::aterms::ATermConfig::ConvertToEBOptions(
+            *ms, aterm_settings, frequency_interpolation,
+            _settings.useDifferentialLofarBeam, use_channel_frequency,
+            element_response_string);
+
+    _telescope = everybeam::Load(*ms, options);
+    _pointResponse = _telescope->GetPointResponse(msProvider.StartTime());
+    _cachedResponse.resize(msData.bandData.MaxChannels() *
+                           _pointResponse->GetAllStationsBufferSize());
+  } else {
+    if (_settings.applyFacetBeam) {
+      throw std::runtime_error(
+          "-apply-facet-beam was set, but no corresponding facet "
+          "regions file was specified.");
+    }
+    _pointResponse = nullptr;
+    _cachedResponse.resize(0);
+  }
+  _cachedTime = std::numeric_limits<double>::min();
+#else
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    throw std::runtime_error(
+        "-apply-facet-beam was set, but wsclean was not compiled "
+        "with EveryBeam. Please compile wsclean with EveryBeam to "
+        "use the Facet Beam functionality");
+  }
+#endif
 }
 
 void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
@@ -365,6 +424,47 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
       modelIter++;
     }
   }
+
+#ifdef HAVE_EVERYBEAM
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    MSProvider::MetaData metaData;
+    msProvider.ReadMeta(metaData);
+    if (metaData.time != _cachedTime) {
+      _cachedTime = metaData.time;
+      _pointResponse->UpdateTime(_cachedTime);
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        _pointResponse->CalculateAllStations(
+            &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+            _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
+            metaData.fieldId);
+      }
+    }
+
+    // rowData.data contains the visibilities
+    std::complex<float>* iter = rowData.data;
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
+      const size_t offset1 = offset + metaData.antenna1 * 4;
+      const size_t offset2 = offset + metaData.antenna2 * 4;
+
+      const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
+
+      if (PolarizationCount == 1) {
+        // Stokes-I
+        *iter = 0.25f * std::conj(gain1[0] + gain1[1]) * iter[ch] *
+                (gain2[0] + gain2[1]);
+      } else {
+        // All polarizations
+        const aocommon::MC2x2F visibilities(iter);
+        const aocommon::MC2x2F result =
+            gain1.HermThenMultiply(visibilities).Multiply(gain2);
+        result.AssignTo(iter);
+      }
+      iter += PolarizationCount;
+    }
+  }
+#endif
 
   msProvider.ReadWeights(weightBuffer);
 

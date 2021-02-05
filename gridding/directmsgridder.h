@@ -11,7 +11,7 @@ class DirectMSGridder final : public MSGridderBase {
   const static size_t num_t_factor =
       (sizeof(num_t) + sizeof(double) - 1) / sizeof(double);
 
-  DirectMSGridder(size_t nThreads);
+  DirectMSGridder(const Settings& settings);
 
   virtual void Invert() override;
 

@@ -305,12 +305,12 @@ double PrimaryBeam::MakeBeamForMS(
       *ms, ms->columnName(casacore::MSMainEnums::TIME));
 
   // Pass the settings to EveryBeam::Options struct
-  bool frequencyInterpolation = true;
-  bool useChannelFrequency = true;
-  std::string elementResponseModel = _settings.beamModel;
+  const bool frequencyInterpolation = true;
+  const bool useChannelFrequency = true;
+  const std::string elementResponseModel = _settings.beamModel;
 
   everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
-  std::string coeff_path =
+  const std::string coeff_path =
       (telescope_type == everybeam::TelescopeType::kMWATelescope)
           ? wsclean::mwa::FindCoeffFile(_settings.mwaPath)
           : "";
