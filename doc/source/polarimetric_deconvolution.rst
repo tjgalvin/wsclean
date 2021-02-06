@@ -16,7 +16,7 @@ Here are two examples for using joined polarization cleaning:
     -fits-mask 3c196-mask.fits -threshold 1 -mgain 0.8 -niter 10000 \
     -scale 5asec -size 6000 6000 3c196.ms
 
-Joined-polarization cleaning works in combination with:doc:`multi-scale cleaning <multiscale_cleaning>`, :doc:`multi-frequency deconvolution <wideband_deconvolution>` and :doc:`masked cleaning <masking>`.
+Joined-polarization cleaning works in combination with :doc:`multi-scale cleaning <multiscale_cleaning>`, :doc:`multi-frequency deconvolution <wideband_deconvolution>` and :doc:`masked cleaning <masking>`.
 
 If you are looking to do rotation measure synthesis with WSClean, have a look at the :doc:`RM-synthesis manual page <rm_synthesis>` that describes some particulars for this.
 

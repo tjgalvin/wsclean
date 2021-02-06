@@ -30,3 +30,7 @@ structures, which are typically much smaller than the visibility data.
 
 Both gridding and degridding directions are available and support shared-memory
 parallelization that can be controlled using the ``-j`` parameter.
+
+The w-gridder is available since :doc:`WSClean version 2.9 <changelogs/v2.9>`,
+and was further improved in speed in versions
+:doc:`2.10 <changelogs/v2.10>` and :doc:`2.11 <changelogs/v2.11>`.

@@ -14,7 +14,7 @@ Basic RM-synthesis imaging
 
 For RM-synthesis, one images the Stokes Q and Stokes U polarizations of a measurement set and produces images at many frequencies. After that, this QU-frequency cube can be Fourier transformed with an external tool to produce an RM cube.
 
-Of course, making those QU images can be done with WSClean as expected, but there are some extra options which can be useful for RM-synthesis. The basic approach to make the cube is described in the manual page ["Making image cubes"](MakingImageCubes), where it is described how to use the ``-channelsout`` option to partition the bandwidth. The ``-pol`` option can be added to do this for Q and U:
+Of course, making those QU images can be done with WSClean as expected, but there are some extra options which can be useful for RM-synthesis. The basic approach to make the cube is described in the manual page :doc:`Making image cubes <making_image_cubes>`, where it is described how to use the ``-channels-out`` option to partition the bandwidth. The ``-pol`` option can be added to do this for Q and U:
 
 .. code-block:: bash
 
