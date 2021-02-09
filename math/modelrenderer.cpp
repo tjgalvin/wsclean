@@ -222,6 +222,8 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     if (boundingBoxSize % 2 != 0) {
       ++boundingBoxSize;
     }
+    if (boundingBoxSize > std::min(imageWidth, imageHeight))
+      boundingBoxSize = std::min(imageWidth, imageHeight);
     aocommon::UVector<float> kernel(boundingBoxSize * boundingBoxSize);
     auto iter = kernel.begin();
     for (size_t y = 0; y != boundingBoxSize; ++y) {
@@ -232,7 +234,7 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
                                               l, m);
         long double lTransf = l * transf[0] + m * transf[1],
                     mTransf = l * transf[2] + m * transf[3];
-        long double dist = sqrt(lTransf * lTransf + mTransf * mTransf);
+        long double dist = std::sqrt(lTransf * lTransf + mTransf * mTransf);
         *iter = gaus(dist, (long double)1.0);
         ++iter;
       }
