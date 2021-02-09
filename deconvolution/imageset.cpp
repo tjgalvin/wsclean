@@ -90,68 +90,69 @@ void ImageSet::initializeIndices() {
   }
 }
 
-void ImageSet::LoadAndAverage(CachedImageSet& imageSet) {
+void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
   for (size_t i = 0; i != _images.size(); ++i) _images[i] = 0.0;
 
   ImageF scratch(_width, _height);
 
-  /// TODO : use real weights of images
-  aocommon::UVector<size_t> weights(_images.size(), 0.0);
+  aocommon::UVector<size_t> averagedWeights(_images.size(), 0.0);
   size_t imgIndex = 0;
   for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroups().size();
        ++sqIndex) {
     // The next loop iterates over the polarizations. The logic in the next loop
     // makes sure that images of the same polarizations and that belong to the
     // same deconvolution channel are averaged together.
-    size_t imgIndexForChannel = imgIndex;
+    const size_t imgIndexForChannel = imgIndex;
     const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
     for (const ImagingTable::EntryPtr& e : sqGroup) {
       for (size_t i = 0; i != e->imageCount; ++i) {
         imageSet.Load(scratch.data(), e->polarization, e->outputChannelIndex,
                       i == 1);
-        _images[imgIndex] += scratch;
-        weights[imgIndex]++;
+        _images[imgIndex].AddWithFactor(scratch, e->imageWeight);
+        averagedWeights[imgIndex] += e->imageWeight;
         ++imgIndex;
       }
     }
-    size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
-                              _imagingTable.SquaredGroups().size();
-    size_t nextChannelIndex = ((sqIndex + 1) * _channelsInDeconvolution) /
-                              _imagingTable.SquaredGroups().size();
+    const size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
+                                    _imagingTable.SquaredGroups().size();
+    const size_t nextChannelIndex = ((sqIndex + 1) * _channelsInDeconvolution) /
+                                    _imagingTable.SquaredGroups().size();
     // If the next loaded image belongs to the same deconvolution channel as the
     // previously loaded, they need to be averaged together.
     if (thisChannelIndex == nextChannelIndex) imgIndex = imgIndexForChannel;
   }
 
   for (size_t i = 0; i != _images.size(); ++i)
-    _images[i] *= 1.0 / double(weights[i]);
+    _images[i] *= 1.0 / double(averagedWeights[i]);
 }
 
 void ImageSet::LoadAndAveragePSFs(
-    CachedImageSet& psfSet, std::vector<aocommon::UVector<float>>& psfImages,
+    const CachedImageSet& psfSet,
+    std::vector<aocommon::UVector<float>>& psfImages,
     aocommon::PolarizationEnum psfPolarization) {
   for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex)
     psfImages[chIndex].assign(_width * _height, 0.0);
 
   ImageF scratch(_width, _height);
 
-  /// TODO : use real weights of images
-  aocommon::UVector<size_t> weights(_channelsInDeconvolution, 0.0);
+  aocommon::UVector<size_t> averagedWeights(_channelsInDeconvolution, 0.0);
   for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroups().size();
        ++sqIndex) {
     size_t chIndex = (sqIndex * _channelsInDeconvolution) /
                      _imagingTable.SquaredGroups().size();
     const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
-    const ImagingTableEntry& e = *sqGroup.front();
-    psfSet.Load(scratch.data(), psfPolarization, e.outputChannelIndex, 0);
-    for (size_t i = 0; i != _width * _height; ++i)
-      psfImages[chIndex][i] += scratch[i];
-    weights[chIndex]++;
+    const ImagingTableEntry& entry = *sqGroup.front();
+    const double inputChannelWeight = entry.imageWeight;
+    psfSet.Load(scratch.data(), psfPolarization, entry.outputChannelIndex, 0);
+    for (size_t i = 0; i != _width * _height; ++i) {
+      psfImages[chIndex][i] += scratch[i] * inputChannelWeight;
+    }
+    averagedWeights[chIndex] += inputChannelWeight;
   }
 
   for (size_t chIndex = 0; chIndex != ChannelsInDeconvolution(); ++chIndex) {
     for (size_t i = 0; i != _width * _height; ++i) {
-      psfImages[chIndex][i] *= 1.0 / double(weights[chIndex]);
+      psfImages[chIndex][i] *= 1.0 / double(averagedWeights[chIndex]);
     }
   }
 }

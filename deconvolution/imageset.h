@@ -39,9 +39,9 @@ class ImageSet {
 
   bool IsAllocated() const { return _width * _height != 0; }
 
-  void LoadAndAverage(class CachedImageSet& imageSet);
+  void LoadAndAverage(const class CachedImageSet& imageSet);
 
-  void LoadAndAveragePSFs(class CachedImageSet& psfSet,
+  void LoadAndAveragePSFs(const class CachedImageSet& psfSet,
                           std::vector<aocommon::UVector<float>>& psfImages,
                           aocommon::PolarizationEnum psfPolarization);
 
@@ -281,8 +281,9 @@ class ImageSet {
 
   std::vector<ImageF> _images;
   size_t _width, _height, _channelsInDeconvolution;
-  // These vectors contain the info per deconvolution channel
+  // Frequency per deconvolution channel
   aocommon::UVector<double> _frequencies;
+  // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
   const ImagingTable& _imagingTable;
