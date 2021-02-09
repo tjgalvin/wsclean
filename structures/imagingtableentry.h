@@ -50,6 +50,13 @@ struct ImagingTableEntry {
    */
   const schaapcommon::facets::Facet* facet;
 
+  /**
+   * Difference from the centre to the facet centre to the facet centre.
+   * Example, if the image centre was 100,100 and the facet centre 50,50, these
+   * value will be -50,-50
+   */
+  int centreShiftX, centreShiftY;
+
   size_t outputChannelIndex;
 
   size_t outputIntervalIndex;

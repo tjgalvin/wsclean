@@ -10,6 +10,8 @@ ImagingTableEntry::ImagingTableEntry()
       polarization(aocommon::Polarization::StokesI),
       facetIndex(0),
       facet(nullptr),
+      centreShiftX(0),
+      centreShiftY(0),
       outputChannelIndex(0),
       outputIntervalIndex(0),
       msData(),

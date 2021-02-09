@@ -56,10 +56,10 @@ class WSClean {
   ObservationInfo getObservationInfo() const;
   /**
    * Add the phase shift of a facet to an ObservationInfo object.
-   * @param facet Pointer to a facet. If it null, nothing happens.
+   * @param entry entry. If its facet is null, nothing happens.
    * @param observationInfo shiftL and shiftM of this object are updated.
    */
-  void applyFacetPhaseShift(const schaapcommon::facets::Facet* facet,
+  void applyFacetPhaseShift(const ImagingTableEntry& entry,
                             ObservationInfo& observationInfo) const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
