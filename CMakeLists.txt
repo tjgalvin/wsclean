@@ -79,7 +79,10 @@ find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h)
 find_package(PythonLibs 3 REQUIRED)
 find_package(PythonInterp REQUIRED)
 message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
-find_package(pybind11 REQUIRED)
+
+# Include pybind11
+add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
+include_directories(${pybind11_INCLUDE_DIR})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
@@ -133,7 +136,6 @@ include_directories(${CFITSIO_INCLUDE_DIR})
 include_directories(${FFTW3_INCLUDE_DIR})
 include_directories(${GSL_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIRS})
-include_directories(${pybind11_INCLUDE_DIR})
 include_directories(${PYTHON_INCLUDE_DIRS})
 
 include(CheckCXXSourceCompiles)
