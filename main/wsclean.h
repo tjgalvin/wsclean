@@ -68,9 +68,8 @@ class WSClean {
   void initializeMSList(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<MSDataDescription>>& msList);
-  void storeAndCombineXYandYX(CachedImageSet& dest,
-                              aocommon::PolarizationEnum polarization,
-                              size_t joinedChannelIndex, bool isImaginary,
+  void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
+                              const ImagingTableEntry& entry, bool isImaginary,
                               const float* image);
   bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex,
                       const ImagingTableEntry& entry);
@@ -107,12 +106,9 @@ class WSClean {
 
   void predict(const ImagingTableEntry& entry);
 
-  // void makeMFSImage(const string& suffix, size_t intervalIndex,
-  // aocommon::PolarizationEnum pol, bool isImaginary, bool isPSF = false); void
-  // renderMFSImage(size_t intervalIndex, aocommon::PolarizationEnum pol, bool
-  // isImaginary, bool isPBCorrected) const;
   void saveUVImage(const float* image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
+
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;
 

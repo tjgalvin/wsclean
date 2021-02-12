@@ -6,6 +6,7 @@ add_executable(unittest EXCLUDE_FROM_ALL
   testfitsdateobstime.cpp
   testfluxdensity.cpp
   testimageset.cpp
+  testcachedimageset.cpp
   testmultibanddata.cpp
   testparsetreader.cpp
   testpeakfinder.cpp

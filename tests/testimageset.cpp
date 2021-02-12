@@ -1,8 +1,6 @@
 #include "../deconvolution/imageset.h"
 #include "../deconvolution/spectralfitter.h"
-
 #include "../io/cachedimageset.h"
-
 #include "../structures/image.h"
 
 #include <aocommon/polarization.h>
@@ -98,7 +96,7 @@ struct AdvImageSetFixture : public ImageSetFixture {
 
   AdvImageSetFixture() : image(4, 0.0) {
     writer.SetImageDimensions(2, 2);
-    cSet.Initialize(writer, 2, 2, "wsctest");
+    cSet.Initialize(writer, 2, 2, 0, "wsctest");
     image[0] = 2.0;
     cSet.Store(image.data(), aocommon::Polarization::XX, 0, false);
     image[0] = -1.0;
@@ -440,7 +438,7 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
   writer.SetImageDimensions(width, height);
   CachedImageSet cachedImgs;
   const std::vector<double> weights{4.0, 4.0, 0.0, 0.0, 1.0, 1.0};
-  cachedImgs.Initialize(writer, 4, 6, "imagesettest");
+  cachedImgs.Initialize(writer, 4, 6, 0, "imagesettest");
   ImageF storedImage(width, height);
   for (size_t ch = 0; ch != nFreq; ++ch) {
     for (size_t p = 0; p != nPol; ++p) {

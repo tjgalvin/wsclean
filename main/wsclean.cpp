@@ -42,9 +42,10 @@
 #include <schaapcommon/facets/facetimage.h>
 
 #include <aocommon/fits/fitswriter.h>
-
 #include <aocommon/uvector.h>
 #include <aocommon/parallelfor.h>
+
+#include <schaapcommon/facets/facetimage.h>
 
 #include <iostream>
 #include <memory>
@@ -252,15 +253,13 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   result.imageRealResult *=
       _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
       entry.siCorrection;
-  storeAndCombineXYandYX(_residualImages, entry.polarization,
-                         joinedChannelIndex, false,
+  storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry, false,
                          result.imageRealResult.data());
   if (aocommon::Polarization::IsComplex(entry.polarization)) {
     result.imageImaginaryResult *=
         _infoPerChannel[joinedChannelIndex].psfNormalizationFactor *
         entry.siCorrection;
-    storeAndCombineXYandYX(_residualImages, entry.polarization,
-                           joinedChannelIndex, true,
+    storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry, true,
                            result.imageImaginaryResult.data());
   }
   _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -339,15 +338,16 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 }
 
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
-                                     aocommon::PolarizationEnum polarization,
                                      size_t joinedChannelIndex,
+                                     const ImagingTableEntry& entry,
                                      bool isImaginary, const float* image) {
-  if (polarization == aocommon::Polarization::YX &&
+  if (entry.polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
     Image xyImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-    dest.Load(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
-              isImaginary);
+    dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
+                   joinedChannelIndex, entry.facetIndex, entry.facet,
+                   isImaginary);
     size_t count = _settings.trimmedImageWidth * _settings.trimmedImageHeight;
     if (isImaginary) {
       for (size_t i = 0; i != count; ++i)
@@ -356,10 +356,12 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
       for (size_t i = 0; i != count; ++i)
         xyImage[i] = (xyImage[i] + image[i]) * 0.5;
     }
-    dest.Store(xyImage.data(), aocommon::Polarization::XY, joinedChannelIndex,
-               isImaginary);
+    dest.StoreFacet(xyImage.data(), aocommon::Polarization::XY,
+                    joinedChannelIndex, entry.facetIndex, entry.facet,
+                    isImaginary);
   } else {
-    dest.Store(image, polarization, joinedChannelIndex, isImaginary);
+    dest.StoreFacet(image, entry.polarization, joinedChannelIndex,
+                    entry.facetIndex, entry.facet, isImaginary);
   }
 }
 
@@ -802,15 +804,15 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   WSCFitsWriter modelWriter(
       createWSCFitsWriter(groupTable.Front(), false, true));
   _modelImages.Initialize(modelWriter.Writer(), _settings.polarizations.size(),
-                          _settings.channelsOut,
+                          _settings.channelsOut, _facets.size(),
                           _settings.prefixName + "-model");
   WSCFitsWriter writer(createWSCFitsWriter(groupTable.Front(), false, false));
   _residualImages.Initialize(writer.Writer(), _settings.polarizations.size(),
-                             _settings.channelsOut,
+                             _settings.channelsOut, _facets.size(),
                              _settings.prefixName + "-residual");
   if (groupTable.Front().polarization == *_settings.polarizations.begin())
     _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroups().size(),
-                          _settings.prefixName + "-psf");
+                          _facets.size(), _settings.prefixName + "-psf");
 
   // In the case of IDG we have to directly ask for all Four polarizations. This
   // can't be parallelized in the current structure.
@@ -1206,7 +1208,8 @@ void WSClean::readEarlierModelImages(const ImagingTableEntry& entry) {
 void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
   _modelImages.Initialize(
       createWSCFitsWriter(*imagingGroup.front(), false, true).Writer(),
-      _settings.polarizations.size(), 1, _settings.prefixName + "-model");
+      _settings.polarizations.size(), 1, _facets.size(),
+      _settings.prefixName + "-model");
 
   const std::string rootPrefix = _settings.prefixName;
 
