@@ -205,6 +205,12 @@ void Settings::checkPolarizations() const {
 void Settings::Propagate(bool verbose) {
   if (verbose) logImportantSettings();
 
+  // When using IDG with aterms, a PSF must be made, because the beam
+  // image is created during the PSF imaging stage.
+  if (useIDG && (!atermConfigFilename.empty() || gridWithBeam)) {
+    makePSF = true;
+  }
+
   if (mode == ImagingMode || mode == PredictMode) {
     RecalculatePaddedDimensions(verbose);
     doReorder = determineReorder();
