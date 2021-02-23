@@ -53,7 +53,8 @@ void Settings::Validate() const {
           "When using IDG, it is only possible to either image Stokes I or to "
           "image all 4 Stokes polarizations: use -pol i or -pol iquv.");
     }
-    if (polarizations.size() > 1 && !joinedPolarizationDeconvolution)
+    if (polarizations.size() > 1 && !joinedPolarizationDeconvolution &&
+        deconvolutionIterationCount != 0)
       throw std::runtime_error(
           "Using IDG with multiple polarizations is only possible in joined "
           "polarization mode: use -join-polarizations or -link-polarizations.");
@@ -208,6 +209,11 @@ void Settings::Propagate(bool verbose) {
   // image is created during the PSF imaging stage.
   if (useIDG && (!atermConfigFilename.empty() || gridWithBeam)) {
     makePSF = true;
+  }
+
+  // When using IDG, polarizations should always be joined
+  if (useIDG) {
+    joinedPolarizationDeconvolution = true;
   }
 
   if (mode == ImagingMode || mode == PredictMode) {
