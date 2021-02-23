@@ -1032,7 +1032,7 @@ void WSClean::saveRestoredImagesForGroup(
   for (size_t imageIter = 0; imageIter != tableEntry.imageCount; ++imageIter) {
     bool isImaginary = (imageIter == 1);
     WSCFitsWriter writer(
-        createWSCFitsWriter(tableEntry, isImaginary, false, false));
+        createWSCFitsWriter(tableEntry, isImaginary, false, true));
     ImageF restoredImage(_settings.trimmedImageWidth,
                          _settings.trimmedImageHeight);
     _residualImages.Load(restoredImage.data(), curPol, currentChannelIndex,
@@ -1132,11 +1132,11 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const {
     if (entry.polarization == aocommon::Polarization::YX) {
       _modelImages.Load(ptr.data(), aocommon::Polarization::XY, ch, true);
       WSCFitsWriter writer(createWSCFitsWriter(
-          entry, aocommon::Polarization::XY, true, true, false));
+          entry, aocommon::Polarization::XY, true, true, true));
       writer.WriteImage("model.fits", ptr.data());
     } else {
       _modelImages.Load(ptr.data(), entry.polarization, ch, false);
-      WSCFitsWriter writer(createWSCFitsWriter(entry, false, true, false));
+      WSCFitsWriter writer(createWSCFitsWriter(entry, false, true, true));
       writer.WriteImage("model.fits", ptr.data());
     }
   }
