@@ -40,8 +40,14 @@ struct ImagingTableEntry {
   aocommon::PolarizationEnum polarization;
 
   /**
-   * Index of the facet in WSClean::_facets.
-   * ImagingTable uses this index for creating groups per facet.
+   * All facets that belong to one image have the same facet group index.
+   * ImagingTable uses this index for creating facet groups.
+   */
+  size_t facetGroupIndex;
+
+  /**
+   * Index of the entry within a facet group, which equals the index of 'facet'
+   * in WSClean::_facets.
    */
   size_t facetIndex;
 

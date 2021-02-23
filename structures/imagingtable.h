@@ -7,6 +7,18 @@
 #include <memory>
 #include <vector>
 
+/**
+ * The ImagingTable contains ImagingTableEntry's and supports creating subtables
+ * with entries that have the same attribute.
+ * It supports the following grouping types:
+ * - IndependentGroup : Entries have an equal joinedGroupIndex in each group.
+ * - FacetGroup : Entries have an equal facetGroupIndex in each group.
+ *   Each group thus contains all entries that form a single image.
+ * - Facet : Entries have an equal facetIndex in each group.
+ *   Each group thus contains all entries for a single facet.
+ * - SquaredGroup : Entries have an equal squaredDeconvolutionIndex in each
+ *   group.
+ */
 class ImagingTable {
  public:
   using EntryPtr = std::shared_ptr<ImagingTableEntry>;
@@ -63,6 +75,14 @@ class ImagingTable {
 
   const Groups& FacetGroups() const { return _facetGroups; }
 
+  size_t FacetCount() const { return _facets.size(); }
+
+  ImagingTable GetFacet(size_t index) const {
+    return ImagingTable(_facets[index]);
+  }
+
+  const Groups& Facets() const { return _facets; }
+
   size_t EntryCount() const { return _entries.size(); }
 
   ImagingTableEntry& operator[](size_t index) { return *_entries[index]; }
@@ -90,6 +110,8 @@ class ImagingTable {
     updateGroups(_independentGroups,
                  [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
     updateGroups(_facetGroups,
+                 [](const ImagingTableEntry& e) { return e.facetGroupIndex; });
+    updateGroups(_facets,
                  [](const ImagingTableEntry& e) { return e.facetIndex; });
     updateGroups(_squaredGroups, [](const ImagingTableEntry& e) {
       return e.squaredDeconvolutionIndex;
@@ -113,6 +135,7 @@ class ImagingTable {
 
   Groups _independentGroups;
   Groups _facetGroups;
+  Groups _facets;
   Groups _squaredGroups;
 };
 

@@ -3,7 +3,7 @@
 # Author: Jakob Maljaars
 # Email: jakob.maljaars_@_stcorp.nl
 
-# Script for downloading a mock VLA Measurement set
+# Script for downloading a mock MWA Measurement set
 
 set -e
 

@@ -7,10 +7,13 @@
 namespace {
 
 void TestGroupCounts(const ImagingTable& table, size_t indepentGroupCount,
-                     size_t facetGroupCount, size_t squaredGroupCount) {
+                     size_t facetGroupCount, size_t facetCount,
+                     size_t squaredGroupCount) {
   BOOST_TEST(table.IndependentGroupCount() == indepentGroupCount);
   BOOST_TEST(table.FacetGroupCount() == facetGroupCount);
   BOOST_TEST(table.FacetGroups().size() == facetGroupCount);
+  BOOST_TEST(table.FacetCount() == facetCount);
+  BOOST_TEST(table.Facets().size() == facetCount);
   BOOST_TEST(table.SquaredGroupCount() == squaredGroupCount);
   BOOST_TEST(table.SquaredGroups().size() == squaredGroupCount);
 }
@@ -21,7 +24,7 @@ BOOST_AUTO_TEST_SUITE(imagingtable)
 
 BOOST_AUTO_TEST_CASE(constructor) {
   ImagingTable table;
-  TestGroupCounts(table, 0, 0, 0);
+  TestGroupCounts(table, 0, 0, 0, 0);
   BOOST_TEST(table.EntryCount() == 0u);
   BOOST_TEST((table.begin() == table.end()));
 }
@@ -32,8 +35,8 @@ BOOST_AUTO_TEST_CASE(add_update_clear) {
   test::UniquePtr<ImagingTableEntry> entry2;
   entry1->joinedGroupIndex = 42;
   entry2->joinedGroupIndex = 43;
-  entry1->facetIndex = 142;
-  entry2->facetIndex = 142;
+  entry1->facetGroupIndex = 142;
+  entry2->facetGroupIndex = 142;
   entry1->squaredDeconvolutionIndex = 242;
   entry2->squaredDeconvolutionIndex = 242;
   table.AddEntry(entry1.take());
@@ -55,14 +58,14 @@ BOOST_AUTO_TEST_CASE(add_update_clear) {
   BOOST_TEST((iterator == table.end()));
 
   // No Update called -> only EntryCount is correct.
-  TestGroupCounts(table, 0, 0, 0);
+  TestGroupCounts(table, 0, 0, 0, 0);
 
   table.Update();
-  TestGroupCounts(table, 2, 1, 1);
+  TestGroupCounts(table, 2, 1, 1, 1);
 
   table.Clear();
   BOOST_TEST(table.EntryCount() == 0u);
-  TestGroupCounts(table, 0, 0, 0);
+  TestGroupCounts(table, 0, 0, 0, 0);
 }
 
 BOOST_AUTO_TEST_CASE(independent_groups) {
@@ -86,7 +89,7 @@ BOOST_AUTO_TEST_CASE(independent_groups) {
   BOOST_TEST(table.IndependentGroupCount() == 0u);
   table.Update();
   BOOST_TEST_REQUIRE(table.IndependentGroupCount() == 2u);
-  TestGroupCounts(table, 2, 1, 1);
+  TestGroupCounts(table, 2, 1, 1, 1);
 
   ImagingTable group0 = table.GetIndependentGroup(0);
   ImagingTable group1 = table.GetIndependentGroup(1);
@@ -98,11 +101,56 @@ BOOST_AUTO_TEST_CASE(independent_groups) {
   BOOST_TEST(&group1[1] == entry1_1.get());
 
   // Test that Update() was called on group0 and group1.
-  TestGroupCounts(group0, 1, 1, 1);
-  TestGroupCounts(group1, 1, 1, 1);
+  TestGroupCounts(group0, 1, 1, 1, 1);
+  TestGroupCounts(group1, 1, 1, 1, 1);
 }
 
 BOOST_AUTO_TEST_CASE(facet_groups) {
+  ImagingTable table;
+
+  test::UniquePtr<ImagingTableEntry> entry0_0;
+  test::UniquePtr<ImagingTableEntry> entry0_1;
+  test::UniquePtr<ImagingTableEntry> entry0_2;
+  test::UniquePtr<ImagingTableEntry> entry1_0;
+  entry0_0->facetGroupIndex = 43;
+  entry0_1->facetGroupIndex = 43;
+  entry0_2->facetGroupIndex = 43;
+  entry1_0->facetGroupIndex = 42;
+  table.AddEntry(entry0_0.take());
+  table.AddEntry(entry0_1.take());
+  table.AddEntry(entry0_2.take());
+  table.AddEntry(entry1_0.take());
+
+  BOOST_TEST(table.FacetGroupCount() == 0u);
+  table.Update();
+  BOOST_TEST_REQUIRE(table.FacetGroupCount() == 2u);
+  TestGroupCounts(table, 1, 2, 1, 1);
+
+  // Test GetFacetGroup. The ImagingTable orders the groups by group index.
+  ImagingTable group0 = table.GetFacetGroup(0);
+  ImagingTable group1 = table.GetFacetGroup(1);
+  BOOST_TEST_REQUIRE(group1.EntryCount() == 3u);
+  BOOST_TEST_REQUIRE(group0.EntryCount() == 1u);
+  BOOST_TEST(&group1[0] == entry0_0.get());
+  BOOST_TEST(&group1[1] == entry0_1.get());
+  BOOST_TEST(&group1[2] == entry0_2.get());
+  BOOST_TEST(&group0[0] == entry1_0.get());
+  // Test that Update() was called on group0 and group1.
+  TestGroupCounts(group0, 1, 1, 1, 1);
+  TestGroupCounts(group1, 1, 1, 1, 1);
+
+  // Test FacetGroups. The ImagingTable orders the groups by group index.
+  const ImagingTable::Groups& groups = table.FacetGroups();
+  BOOST_TEST_REQUIRE(groups.size() == 2u);
+  BOOST_TEST_REQUIRE(groups[1].size() == 3u);
+  BOOST_TEST_REQUIRE(groups[0].size() == 1u);
+  BOOST_TEST(groups[1][0].get() == entry0_0.get());
+  BOOST_TEST(groups[1][1].get() == entry0_1.get());
+  BOOST_TEST(groups[1][2].get() == entry0_2.get());
+  BOOST_TEST(groups[0][0].get() == entry1_0.get());
+}
+
+BOOST_AUTO_TEST_CASE(facets) {
   ImagingTable table;
 
   test::UniquePtr<ImagingTableEntry> entry0_0;
@@ -118,14 +166,14 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
   table.AddEntry(entry0_2.take());
   table.AddEntry(entry1_0.take());
 
-  BOOST_TEST(table.FacetGroupCount() == 0u);
+  BOOST_TEST(table.FacetCount() == 0u);
   table.Update();
-  BOOST_TEST_REQUIRE(table.FacetGroupCount() == 2u);
-  TestGroupCounts(table, 1, 2, 1);
+  BOOST_TEST_REQUIRE(table.FacetCount() == 2u);
+  TestGroupCounts(table, 1, 1, 2, 1);
 
-  // Test GetFacetGroup. The ImagingTable orders the groups by group index.
-  ImagingTable group0 = table.GetFacetGroup(0);
-  ImagingTable group1 = table.GetFacetGroup(1);
+  // Test GetFacet. The ImagingTable orders the facets by facet index.
+  ImagingTable group0 = table.GetFacet(0);
+  ImagingTable group1 = table.GetFacet(1);
   BOOST_TEST_REQUIRE(group1.EntryCount() == 3u);
   BOOST_TEST_REQUIRE(group0.EntryCount() == 1u);
   BOOST_TEST(&group1[0] == entry0_0.get());
@@ -133,11 +181,11 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
   BOOST_TEST(&group1[2] == entry0_2.get());
   BOOST_TEST(&group0[0] == entry1_0.get());
   // Test that Update() was called on group0 and group1.
-  TestGroupCounts(group0, 1, 1, 1);
-  TestGroupCounts(group1, 1, 1, 1);
+  TestGroupCounts(group0, 1, 1, 1, 1);
+  TestGroupCounts(group1, 1, 1, 1, 1);
 
-  // Test FacetGroups. The ImagingTable orders the groups by group index.
-  const ImagingTable::Groups& groups = table.FacetGroups();
+  // Test Facets. The ImagingTable orders the facets by facet index.
+  const ImagingTable::Groups& groups = table.Facets();
   BOOST_TEST_REQUIRE(groups.size() == 2u);
   BOOST_TEST_REQUIRE(groups[1].size() == 3u);
   BOOST_TEST_REQUIRE(groups[0].size() == 1u);
@@ -168,7 +216,7 @@ BOOST_AUTO_TEST_CASE(squared_groups) {
   BOOST_TEST(table.SquaredGroups().size() == 0u);
   table.Update();
   BOOST_TEST_REQUIRE(table.SquaredGroups().size() == 2u);
-  TestGroupCounts(table, 1, 1, 2);
+  TestGroupCounts(table, 1, 1, 1, 2);
 
   // Test GetSquaredGroup
   ImagingTable group0 = table.GetSquaredGroup(0);
@@ -180,8 +228,8 @@ BOOST_AUTO_TEST_CASE(squared_groups) {
   BOOST_TEST(&group0[2] == entry0_2.get());
   BOOST_TEST(&group1[0] == entry1_0.get());
   // Test that Update() was called on group0 and group1.
-  TestGroupCounts(group0, 1, 1, 1);
-  TestGroupCounts(group1, 1, 1, 1);
+  TestGroupCounts(group0, 1, 1, 1, 1);
+  TestGroupCounts(group1, 1, 1, 1, 1);
 
   // Test SquaredGroups
   const ImagingTable::Groups& groups = table.SquaredGroups();

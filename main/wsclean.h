@@ -26,6 +26,12 @@
 
 #include <set>
 
+namespace schaapcommon {
+namespace facets {
+class FacetImage;
+}
+}  // namespace schaapcommon
+
 class WSClean {
  public:
   WSClean();
@@ -74,7 +80,6 @@ class WSClean {
   bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex,
                       const ImagingTableEntry& entry);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
-  void readEarlierModelImages(const ImagingTableEntry& entry);
 
   void makeImagingTable(size_t outputIntervalIndex);
   void makeImagingTableEntry(const std::vector<aocommon::ChannelInfo>& channels,
@@ -90,6 +95,13 @@ class WSClean {
 
   void multiplyImage(double factor, double* image) const;
 
+  /**
+   * Initializes full-size model images for the given entry. Depending on the
+   * settings, this might load existing images from disk or initialize
+   * them to zero.
+   */
+  void initializeModelImages(const ImagingTableEntry& entry);
+  void readExistingModelImages(const ImagingTableEntry& entry);
   GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
   void loadExistingPSF(ImagingTableEntry& entry);
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
@@ -106,8 +118,29 @@ class WSClean {
 
   void predict(const ImagingTableEntry& entry);
 
-  void saveUVImage(const float* image, const ImagingTableEntry& entry,
+  void saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
+
+  void processFullPSF(ImageF& image, const ImagingTableEntry& entry);
+
+  /**
+   * @brief Stitch facets for all FacetGroups
+   *
+   * @param table Imaging table
+   * @param cachedImage CachedImages
+   * @param writeDirty Write dirty image?
+   * @param writePSF Write PSF image?
+   */
+  void stitchFacets(const ImagingTable& table, CachedImageSet& imageCache,
+                    bool writeDirty, bool isPSF);
+
+  /**
+   * @brief Stitch facet for a single (Facet)Group
+   */
+  void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
+                         CachedImageSet& imageCache, bool writeDirty,
+                         bool isPSF, ImageF& fullImage,
+                         schaapcommon::facets::FacetImage& facetImage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;
@@ -117,11 +150,13 @@ class WSClean {
   void makeBeam();
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
-                                    bool isImaginary, bool isModel) const;
+                                    bool isImaginary, bool isModel,
+                                    bool isFullImage) const;
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
                                     aocommon::PolarizationEnum polarization,
-                                    bool isImaginary, bool isModel) const;
+                                    bool isImaginary, bool isModel,
+                                    bool isFullImage) const;
 
   MSSelection _globalSelection;
   std::string _commandLine;

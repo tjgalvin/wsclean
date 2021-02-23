@@ -8,13 +8,14 @@ ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
     : _entries(entries),
       _independentGroups(),
       _facetGroups(),
+      _facets(),
       _squaredGroups() {
   Update();
 }
 
 void ImagingTable::Print() const {
   Logger::Info << "=== IMAGING TABLE ===\n"
-                  "       # Pol Ch JG ²G FG In Freq(MHz)\n";
+                  "       # Pol Ch JG ²G FG FI In Freq(MHz)\n";
   for (size_t i = 0; i != _independentGroups.size(); ++i) {
     Logger::Info << "| Independent group:\n";
     const ImagingTable independent(_independentGroups[i]);
@@ -52,6 +53,7 @@ void ImagingTable::PrintEntry(const ImagingTableEntry& entry) {
   str << std::setw(2) << entry.outputChannelIndex << " ";
   str << std::setw(2) << entry.joinedGroupIndex << " ";
   str << std::setw(2) << entry.squaredDeconvolutionIndex << " ";
+  str << std::setw(2) << entry.facetGroupIndex << " ";
   str << std::setw(2) << entry.facetIndex << " ";
   str << std::setw(2) << entry.outputIntervalIndex << "  ";
   str << round(entry.bandStartFrequency * 1e-6) << "-"

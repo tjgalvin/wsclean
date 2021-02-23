@@ -25,7 +25,7 @@ void DeconvolutionAlgorithm::ResizeImage(float* dest, size_t newWidth,
   for (size_t y = 0; y != newHeight; ++y) {
     float* destPtr = dest + y * newWidth;
     const float* srcPtr = source + (y + srcStartY) * width + srcStartX;
-    memcpy(destPtr, srcPtr, newWidth * sizeof(double));
+    std::copy_n(srcPtr, newWidth, destPtr);
   }
 }
 

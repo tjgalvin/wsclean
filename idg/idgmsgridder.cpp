@@ -165,7 +165,7 @@ void IdgMsGridder::Invert() {
     // result is now in _image member
     // Can be accessed by subsequent calls to ImageRealResult()
 
-  } else if (_image.empty()) {
+  } else if (_image.size() != 4 * width * height) {
     throw std::runtime_error(
         "IdgMsGridder::Invert() was called out of sequence");
   }
@@ -268,11 +268,14 @@ void IdgMsGridder::Predict(ImageF image) {
       _metaDataCache->averageBeam.reset(new AverageBeam());
     }
     _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
+  } else if (_image.size() != 4 * width * height) {
+    throw std::runtime_error(
+        "IdgMsGridder::Predict() was called out of sequence");
   }
 
   size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
-  for (size_t i = 0; i != width * height; ++i)
-    _image[i + polIndex * width * height] = image[i];
+  std::copy_n(image.data(), width * height,
+              _image.data() + polIndex * width * height);
 
   // Stokes V is the last requested pol, unless only Stokes I is imaged. Only
   // when the last polarization is given, do the actual prediction.

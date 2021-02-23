@@ -36,26 +36,9 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
 
 ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings,
                    size_t width, size_t height)
-    : _images(),
-      _width(width),
-      _height(height),
-      _channelsInDeconvolution((settings.deconvolutionChannelCount == 0)
-                                   ? table->SquaredGroups().size()
-                                   : settings.deconvolutionChannelCount),
-      _squareJoinedChannels(settings.squaredJoins),
-      _imagingTable(*table),
-      _imageIndexToPSFIndex(),
-      _linkedPolarizations(settings.linkedPolarizations),
-      _settings(settings) {
-  size_t nPol = table->SquaredGroups().front().size();
-  size_t nImages = nPol * _channelsInDeconvolution;
-  _images.resize(nImages);
-  _imageIndexToPSFIndex.resize(nImages);
-
-  initializePolFactor();
-  initializeIndices();
-  CalculateDeconvolutionFrequencies(*table, _frequencies, _weights,
-                                    _channelsInDeconvolution);
+    : ImageSet(table, settings) {
+  _width = width;
+  _height = height;
   allocateImages();
 }
 
@@ -410,7 +393,7 @@ void ImageSet::GetIntegratedPSF(ImageF& dest,
   // TODO should use weighting!
   std::copy_n(psfs[0], _width * _height, dest.data());
   for (size_t img = 1; img != PSFCount(); ++img) {
-    for (size_t i = 0; i != _width * _height; ++i) dest[img] += psfs[img][i];
+    for (size_t i = 0; i != _width * _height; ++i) dest[i] += psfs[img][i];
   }
   if (PSFCount() != 1) {
     for (size_t i = 0; i != _width * _height; ++i)

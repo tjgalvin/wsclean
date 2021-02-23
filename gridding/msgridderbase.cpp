@@ -401,7 +401,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (DoImagePSF()) {
     std::fill_n(rowData.data, dataSize, 1.0);
-    if (HasDenormalPhaseCentre()) {
+    if (HasDenormalPhaseCentre() && _settings.facetRegionFilename.empty()) {
       const double lmsqrt = std::sqrt(1.0 - PhaseCentreDL() * PhaseCentreDL() -
                                       PhaseCentreDM() * PhaseCentreDM());
       const double shiftFactor = 2.0 * M_PI *
@@ -444,16 +444,16 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
     std::complex<float>* iter = rowData.data;
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
       const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
-      const size_t offset1 = offset + metaData.antenna1 * 4;
-      const size_t offset2 = offset + metaData.antenna2 * 4;
+      const size_t offset1 = offset + metaData.antenna1 * 4u;
+      const size_t offset2 = offset + metaData.antenna2 * 4u;
 
       const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
 
       if (PolarizationCount == 1) {
         // Stokes-I
-        *iter = 0.25f * std::conj(gain1[0] + gain1[1]) * iter[ch] *
-                (gain2[0] + gain2[1]);
+        *iter = 0.25f * std::conj(gain1[0] + gain1[3]) * (*iter) *
+                (gain2[0] + gain2[3]);
       } else {
         // All polarizations
         const aocommon::MC2x2F visibilities(iter);

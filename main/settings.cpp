@@ -42,10 +42,10 @@ void Settings::Validate() const {
   }
 
   if (useIDG) {
-    bool stokesIOnly =
+    const bool stokesIOnly =
         polarizations.size() == 1 &&
         *polarizations.begin() == aocommon::Polarization::StokesI;
-    bool allStokes =
+    const bool allStokes =
         aocommon::Polarization::HasFullStokesPolarization(polarizations) &&
         polarizations.size() == 4;
     if (!allStokes && !stokesIOnly) {
@@ -53,11 +53,10 @@ void Settings::Validate() const {
           "When using IDG, it is only possible to either image Stokes I or to "
           "image all 4 Stokes polarizations: use -pol i or -pol iquv.");
     }
-    if (allStokes && !joinedPolarizationDeconvolution &&
-        deconvolutionIterationCount != 0)
+    if (polarizations.size() > 1 && !joinedPolarizationDeconvolution)
       throw std::runtime_error(
-          "Deconvolving IDG images with multiple polarizations is only "
-          "possible in joined polarization mode.");
+          "Using IDG with multiple polarizations is only possible in joined "
+          "polarization mode: use -join-polarizations or -link-polarizations.");
     if (trimmedImageWidth != trimmedImageHeight)
       throw std::runtime_error(
           "IDG can not yet make rectangular images -- this will be implemented "

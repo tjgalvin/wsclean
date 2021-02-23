@@ -75,8 +75,8 @@ float GenericClean::ExecuteMajorIteration(
     if (!_rmsFactorImage.empty())
       subMinorLoop.SetRMSFactorImage(_rmsFactorImage);
     if (_cleanMask) subMinorLoop.SetMask(_cleanMask);
-    const size_t horBorderSize = round(_width * CleanBorderRatio()),
-                 vertBorderSize = round(_height * CleanBorderRatio());
+    const size_t horBorderSize = std::round(_width * CleanBorderRatio()),
+                 vertBorderSize = std::round(_height * CleanBorderRatio());
     subMinorLoop.SetCleanBorders(horBorderSize, vertBorderSize);
 
     maxValue = subMinorLoop.Run(dirtySet, psfs);

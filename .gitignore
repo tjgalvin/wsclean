@@ -3,3 +3,4 @@ cmakestrap.sh
 build/
 wsclean.kdev4
 .vscode/
+*.fits

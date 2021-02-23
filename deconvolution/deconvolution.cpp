@@ -44,11 +44,6 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   Logger::Info.Flush();
   Logger::Info << " == Deconvolving (" << majorIterationNr << ") ==\n";
 
-  const ImagingTable::Groups& facetGroups = groupTable.FacetGroups();
-  if (!facetGroups.empty() && !facetGroups.front().empty() &&
-      facetGroups.front().front()->facet)
-    throw std::runtime_error("Deconvolving facets is not implemented");
-
   ImageSet residualSet(&groupTable, _settings, _imgWidth, _imgHeight),
       modelSet(&groupTable, _settings, _imgWidth, _imgHeight);
 
@@ -199,7 +194,12 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
       groupTable.SquaredGroups().front();
   _polarizations.clear();
   for (const ImagingTable::EntryPtr& entry : firstSquaredGroup) {
-    if (_polarizations.count(entry->polarization) != 0)
+    // TODO: condition below needs attention when extending facetting
+    // to deconvolution. We'd rather want to read one entry per full image
+    // (independent of number of facets), this might need additional
+    // functionality in the imaging table, e.g. CollapseFacetGroup
+    if (entry->facet == nullptr &&
+        _polarizations.count(entry->polarization) != 0)
       throw std::runtime_error(
           "Two equal polarizations were given to the deconvolution algorithm "
           "within a single polarized group");
@@ -336,7 +336,7 @@ void Deconvolution::readMask(const ImagingTable& groupTable) {
     }
 
     Logger::Info << "Saving horizon mask...\n";
-    Image image(_imgWidth, _imgHeight);
+    ImageF image(_imgWidth, _imgHeight);
     for (size_t i = 0; i != _imgWidth * _imgHeight; ++i)
       image[i] = _cleanMask[i] ? 1.0 : 0.0;
 

@@ -1,12 +1,14 @@
 if [[ "$1" == "" ]] ; then
-    echo Syntax: various-tests.sh \<ms\>
+    echo Syntax: various-tests.sh \<ms\> [optional] \<mwa_coefficients\>
     exit 1
 fi
 
 ms="$1"
+mwa_path="$2"
 dims="-size 1024 1024 -scale 1amin"
 rectdims="-size 1536 1024 -scale 1amin"
-facetfile="facets.reg"
+facetfile_2facets="../tests/data/ds9_2facets.reg"
+facetfile_nfacets="../tests/data/ds9_nfacets.reg"
 
 # Make dirty image
 wsclean -name test-dirty ${dims} ${ms}
@@ -62,14 +64,20 @@ wsclean -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf ${rectdims} -shift
 # Shift the image with w-gridder
 wsclean -mgain 0.8 -use-wgridder -auto-threshold 5 -niter 1000000 -make-psf ${rectdims} -shift 08h09m20s -39d06m54s -name shift-wg -no-update-model-required ${ms}
 
-# Create a facet centered slightly to the left and bottom of the image center
-cat <<EOT >> ${facetfile}
-# Region file format: DS9 version 4.1
-global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1 highlite=1 dash=0 fixed=0 edit=1 move=1 delete=1 include=1 source=1
-fk5
-
-polygon(125.84566,-42.846894,125.30007,-42.849609,125.30204,-43.249613,125.8512,-43.24688)
-EOT
 # Apply the facet to the image
-wsclean -name single-facet -facet-regions ${facetfile} ${rectdims} ${ms}
-rm ${facetfile}
+wsclean -name two-facets -facet-regions ${facetfile_2facets} ${rectdims} ${ms}
+
+# Request two polarizations on approximately 25 facets
+wsclean -name nfacets-XX_YY -pol XX,YY -facet-regions ${facetfile_nfacets} ${rectdims} ${ms}
+
+# Request two polarizations on approximately 25 facets, and apply facet beam
+# NOTE: :
+#    - requires EveryBeam!
+#    - requires the path to an MWA coefficient file to be set
+if [ -z "${mwa_path}" ]
+then
+    echo "\$mwa_path is not set, skipping the test with the facet beam applied"
+    exit 0
+else
+    wsclean -name nfacets-XX_YY-facet-beam -apply-facet-beam -pol XX,YY -facet-regions ${facetfile_nfacets} ${rectdims} -mwa-path ${mwa_path} ${ms}
+fi

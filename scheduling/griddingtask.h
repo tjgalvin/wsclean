@@ -12,6 +12,12 @@
 
 #include "metadatacache.h"
 
+namespace schaapcommon {
+namespace facets {
+class Facet;
+}
+}  // namespace schaapcommon
+
 class GriddingTask {
  public:
   enum Operation { Invert, Predict } operation;
@@ -30,6 +36,8 @@ class GriddingTask {
   ImageF modelImageReal;
   ImageF modelImageImaginary;
   ObservationInfo observationInfo;
+
+  const schaapcommon::facets::Facet* facet;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

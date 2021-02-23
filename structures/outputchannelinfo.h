@@ -14,12 +14,16 @@ struct OutputChannelInfo {
         beamMaj(0.0),
         beamMin(0.0),
         beamPA(0.0),
+        beamSizeEstimate(0.0),
         theoreticBeamSize(0.0),
         psfNormalizationFactor(1.0) {}
   double weight, normalizationFactor;
   std::size_t wGridSize, visibilityCount;
   double effectiveVisibilityCount, visibilityWeightSum;
   double beamMaj, beamMin, beamPA;
+  // The beam size estimate is calculated from the longest baseline, and used
+  // as initial value when fitting the (accurate) beam
+  double beamSizeEstimate;
   double theoreticBeamSize, psfNormalizationFactor;
 };
 

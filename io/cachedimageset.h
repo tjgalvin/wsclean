@@ -108,10 +108,12 @@ class CachedImageSet {
           nameFacet(polarization, freqIndex, facetIndex, isImaginary);
       Logger::Debug << "Storing " << filename << '\n';
 
-      // Initialize FacetWriter, using facet_width and facet_height
+      // Initialize FacetWriter, use the trimmed facet width and
+      // height as dimensions. The image argument that is fed into
+      // the Write() function should have the same size.
       FitsWriter facetWriter;
-      facetWriter.SetImageDimensions(facet->GetBoundingBox().Width(),
-                                     facet->GetBoundingBox().Height());
+      facetWriter.SetImageDimensions(facet->GetTrimmedBoundingBox().Width(),
+                                     facet->GetTrimmedBoundingBox().Height());
       facetWriter.Write(filename, image);
       _storedNames.insert(filename);
     }
