@@ -20,6 +20,8 @@ include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
 
 option(DISABLE_CXX17 "Do not use C++17 for compilation" OFF)
+option(PORTABLE "Generate portable code" OFF)
+option(BUILD_PACKAGES "Build Debian packages" OFF)
 
 if(COMPILER_HAS_CXX17 AND NOT DISABLE_CXX17)
   add_compile_options(-std=c++17)
@@ -89,9 +91,15 @@ set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost COMPONENTS date_time filesystem system program_options REQUIRED)
 find_library(PTHREAD_LIB pthread REQUIRED)
 find_library(DL_LIB dl REQUIRED)
+
+# Once we bump minimum CMake version to >= 3.2, we can use `find_package(GSL REQUIRED)`.
 find_library(GSL_LIB NAMES gsl)
 find_path(GSL_INCLUDE_DIR NAMES gsl/gsl_version.h)
 find_library(GSL_CBLAS_LIB NAMES gslcblas)
+if(NOT GSL_LIB OR NOT GSL_INCLUDE_DIR OR NOT GSL_CBLAS_LIB)
+  message(FATAL_ERROR "GSL not found, but required to build WSClean!")
+endif()
+
 find_package(MPI)
 
 if(MPI_FOUND)
@@ -163,6 +171,11 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 configure_file("${PROJECT_SOURCE_DIR}/wscversion.h.in" "${PROJECT_BINARY_DIR}/wscversion.h")
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+# Add CPack directory if user wants to generate Debian packages
+if(BUILD_PACKAGES)
+  add_subdirectory(CPack)
+endif()
 
 add_library(wsclean-object OBJECT
   main/commandline.cpp
