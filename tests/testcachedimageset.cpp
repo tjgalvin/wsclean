@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
     facets[i].CalculatePixels(writer.RA(), writer.Dec(), writer.PixelSizeX(),
                               writer.PixelSizeY(), writer.Width(),
                               writer.Height(), writer.PhaseCentreDL(),
-                              writer.PhaseCentreDM(), false, 1.5, 1u, false);
+                              writer.PhaseCentreDM(), 1.5, 1u, false);
     facets_data[i].assign(facets[i].GetTrimmedBoundingBox().Width() *
                               facets[i].GetTrimmedBoundingBox().Height(),
                           static_cast<float>(i + 1));

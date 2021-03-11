@@ -574,7 +574,7 @@ void WSClean::RunClean() {
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-        _observationInfo.shiftL, _observationInfo.shiftM, false,
+        _observationInfo.shiftL, _observationInfo.shiftM,
         _settings.imagePadding, alignment, _settings.useIDG);
   }
 
@@ -1272,7 +1272,7 @@ void WSClean::predictGroup(const ImagingTable::Group& imagingGroup) {
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
-            _observationInfo.shiftL, _observationInfo.shiftM, false,
+            _observationInfo.shiftL, _observationInfo.shiftM,
             _settings.imagePadding, alignment, _settings.useIDG);
       }
     }
