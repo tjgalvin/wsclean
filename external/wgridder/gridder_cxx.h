@@ -722,7 +722,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
         static constexpr int nsafe = (supp+1)/2;
         static constexpr int su = 2*nsafe+(1<<logsquare);
         static constexpr int sv = 2*nsafe+(1<<logsquare);
-        static constexpr int svvec = ((sv+vlen-1)/vlen)*vlen;
+        static constexpr int svvec = sv+vlen-1;
         static constexpr double xsupp=2./supp;
         const Params *parent;
         TemplateKernel<supp, mysimd<Tacc>> tkrn;
@@ -822,7 +822,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
         static constexpr int nsafe = (supp+1)/2;
         static constexpr int su = 2*nsafe+(1<<logsquare);
         static constexpr int sv = 2*nsafe+(1<<logsquare);
-        static constexpr int svvec = ((sv+vlen-1)/vlen)*vlen;
+        static constexpr int svvec = sv+vlen-1;
         static constexpr double xsupp=2./supp;
         const Params *parent;
 
@@ -1421,7 +1421,7 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
         verbosity(verbosity_),
         negate_v(negate_v_), divide_by_n(divide_by_n_),
         sigma_min(sigma_min_), sigma_max(sigma_max_),
-        lshift(center_x), mshift(center_y),
+        lshift(center_x), mshift(negate_v ? -center_y : center_y),
         lmshift((lshift!=0) || (mshift!=0)),
         no_nshift(!allow_nshift)
       {
