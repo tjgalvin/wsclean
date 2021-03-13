@@ -78,7 +78,7 @@ void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
 
   ImageF scratch(_width, _height);
 
-  aocommon::UVector<size_t> averagedWeights(_images.size(), 0.0);
+  aocommon::UVector<double> averagedWeights(_images.size(), 0.0);
   size_t imgIndex = 0;
   for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroups().size();
        ++sqIndex) {
@@ -106,7 +106,7 @@ void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
   }
 
   for (size_t i = 0; i != _images.size(); ++i)
-    _images[i] *= 1.0 / double(averagedWeights[i]);
+    _images[i] *= 1.0 / averagedWeights[i];
 }
 
 void ImageSet::LoadAndAveragePSFs(
@@ -118,7 +118,7 @@ void ImageSet::LoadAndAveragePSFs(
 
   ImageF scratch(_width, _height);
 
-  aocommon::UVector<size_t> averagedWeights(_channelsInDeconvolution, 0.0);
+  aocommon::UVector<double> averagedWeights(_channelsInDeconvolution, 0.0);
   for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroups().size();
        ++sqIndex) {
     size_t chIndex = (sqIndex * _channelsInDeconvolution) /
@@ -135,7 +135,7 @@ void ImageSet::LoadAndAveragePSFs(
 
   for (size_t chIndex = 0; chIndex != ChannelsInDeconvolution(); ++chIndex) {
     for (size_t i = 0; i != _width * _height; ++i) {
-      psfImages[chIndex][i] *= 1.0 / double(averagedWeights[chIndex]);
+      psfImages[chIndex][i] *= 1.0 / averagedWeights[chIndex];
     }
   }
 }
@@ -182,7 +182,7 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
 
     // Now that we know the fit for each pixel, evaluate the function for each
     // pixel of each output channel.
-    Image scratch(_width, _height);
+    ImageF scratch(_width, _height);
     size_t imgIndex = 0;
     for (const ImagingTableEntry& e : _imagingTable) {
       double freq = e.CentralFrequency();

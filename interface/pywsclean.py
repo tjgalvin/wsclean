@@ -41,7 +41,7 @@ class Operator(object):
 	def __exit__(self, type, value, traceback):
 		"""Destructor: release WSClean resources"""
 		if self._userdata != None:
-			print 'Releasing resources for WSClean...'
+			print('Releasing resources for WSClean...')
 			_wsclean.deinitialize(self._userdata)
 			self._userdata = None
 			self._imagingdata = None
@@ -162,7 +162,7 @@ class WSClean(object):
 		import os
 		msnamelist=' '.join(msnames)
 		cmd='wsclean '+str(plist)+' '+msnamelist
-		print cmd
+		print(cmd)
 		os.system(cmd)
 		return;
 	
@@ -172,7 +172,7 @@ class WSClean(object):
 		import os
 		msnamelist=' '.join(msnames)
 		cmd='wsclean -predict '+str(plist)+' '+msnamelist
-		print cmd
+		print(cmd)
 		os.system(cmd)
 		return;
 	
