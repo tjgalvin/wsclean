@@ -103,7 +103,7 @@ endif()
 find_package(MPI)
 
 if(MPI_FOUND)
-  add_compile_options(${MPI_COMPILE_FLAGS})
+  add_compile_options(${MPI_COMPILE_OPTIONS})
   add_definitions(-DHAVE_MPI)
   include_directories(SYSTEM ${MPI_INCLUDE_PATH})
   set(MPI_CPP_FILES scheduling/mpischeduler.cpp distributed/mpibig.cpp)
