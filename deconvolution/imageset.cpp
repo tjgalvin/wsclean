@@ -183,7 +183,6 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
     // Now that we know the fit for each pixel, evaluate the function for each
     // pixel of each output channel.
     ImageF scratch(_width, _height);
-    size_t imgIndex = 0;
     for (const ImagingTableEntry& e : _imagingTable) {
       double freq = e.CentralFrequency();
       loop.Run(0, _width * _height, [&](size_t pxStart, size_t pxEnd) {
@@ -197,7 +196,6 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
 
       imageSet.Store(scratch.data(), e.polarization, e.outputChannelIndex,
                      false);
-      ++imgIndex;
     }
   }
 }
