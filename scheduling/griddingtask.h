@@ -33,8 +33,8 @@ class GriddingTask {
 
   // For prediction
   bool addToModel;
-  ImageF modelImageReal;
-  ImageF modelImageImaginary;
+  Image modelImageReal;
+  Image modelImageImaginary;
   ObservationInfo observationInfo;
 
   const schaapcommon::facets::Facet* facet;

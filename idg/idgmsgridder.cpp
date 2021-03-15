@@ -252,7 +252,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   _griddingWatch.Pause();
 }
 
-void IdgMsGridder::Predict(ImageF image) {
+void IdgMsGridder::Predict(Image image) {
   const size_t untrimmedWidth = ImageWidth();
   const size_t width = TrimWidth(), height = TrimHeight();
 
@@ -414,20 +414,20 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   _degriddingWatch.Pause();
 }
 
-void IdgMsGridder::Predict(ImageF /*real*/, ImageF /*imaginary*/) {
+void IdgMsGridder::Predict(Image /*real*/, Image /*imaginary*/) {
   throw std::runtime_error("IDG gridder cannot make complex images");
 }
 
-ImageF IdgMsGridder::ImageRealResult() {
+Image IdgMsGridder::ImageRealResult() {
   const size_t width = TrimWidth(), height = TrimHeight();
   size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
-  ImageF image(height, width);
+  Image image(height, width);
   std::copy_n(_image.data() + polIndex * width * height, width * height,
               image.data());
   return std::move(image);
 }
 
-ImageF IdgMsGridder::ImageImaginaryResult() {
+Image IdgMsGridder::ImageImaginaryResult() {
   throw std::runtime_error("IDG gridder cannot make complex images");
 }
 

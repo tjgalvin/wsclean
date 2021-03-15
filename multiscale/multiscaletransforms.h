@@ -24,13 +24,13 @@ class MultiScaleTransforms {
   void PrepareTransform(float* kernel, float scale);
   void FinishTransform(float* image, const float* kernel);
 
-  void Transform(ImageF& image, ImageF& scratch, float scale) {
-    std::vector<ImageF> images(1, std::move(image));
+  void Transform(Image& image, Image& scratch, float scale) {
+    std::vector<Image> images(1, std::move(image));
     Transform(images, scratch, scale);
     image = std::move(images[0]);
   }
 
-  void Transform(std::vector<ImageF>& images, ImageF& scratch, float scale);
+  void Transform(std::vector<Image>& images, Image& scratch, float scale);
 
   size_t Width() const { return _width; }
   size_t Height() const { return _height; }
@@ -38,7 +38,7 @@ class MultiScaleTransforms {
   static float KernelIntegratedValue(float scaleInPixels, size_t maxN,
                                      Shape shape) {
     size_t n;
-    ImageF kernel = MakeShapeFunction(scaleInPixels, n, maxN, shape);
+    Image kernel = MakeShapeFunction(scaleInPixels, n, maxN, shape);
 
     float value = 0.0;
     for (float& x : kernel) value += x;
@@ -48,7 +48,7 @@ class MultiScaleTransforms {
 
   static float KernelPeakValue(double scaleInPixels, size_t maxN, Shape shape) {
     size_t n;
-    ImageF kernel = MakeShapeFunction(scaleInPixels, n, maxN, shape);
+    Image kernel = MakeShapeFunction(scaleInPixels, n, maxN, shape);
     return kernel[n / 2 + (n / 2) * n];
   }
 
@@ -56,7 +56,7 @@ class MultiScaleTransforms {
                                 float scaleSizeInPixels, size_t x, size_t y,
                                 float gain, Shape shape) {
     size_t n;
-    ImageF kernel =
+    Image kernel =
         MakeShapeFunction(scaleSizeInPixels, n, std::min(width, height), shape);
     int left;
     if (x > n / 2)
@@ -81,8 +81,8 @@ class MultiScaleTransforms {
     }
   }
 
-  static ImageF MakeShapeFunction(float scaleSizeInPixels, size_t& n,
-                                  size_t maxN, Shape shape) {
+  static Image MakeShapeFunction(float scaleSizeInPixels, size_t& n,
+                                 size_t maxN, Shape shape) {
     switch (shape) {
       default:
       case TaperedQuadraticShape:
@@ -92,7 +92,7 @@ class MultiScaleTransforms {
     }
   }
 
-  ImageF MakeShapeFunction(float scaleSizeInPixels, size_t& n) {
+  Image MakeShapeFunction(float scaleSizeInPixels, size_t& n) {
     return MakeShapeFunction(scaleSizeInPixels, n, std::min(_width, _height),
                              _shape);
   }
@@ -110,16 +110,16 @@ class MultiScaleTransforms {
     return size_t(ceil(scaleInPixels * 0.5) * 2.0) + 1;
   }
 
-  static ImageF makeTaperedQuadraticShapeFunction(double scaleSizeInPixels,
-                                                  size_t& n) {
+  static Image makeTaperedQuadraticShapeFunction(double scaleSizeInPixels,
+                                                 size_t& n) {
     n = taperedQuadraticKernelSize(scaleSizeInPixels);
-    ImageF output(n, n);
+    Image output(n, n);
     taperedQuadraticShapeFunction(n, output, scaleSizeInPixels);
     return output;
   }
 
-  static ImageF makeGaussianFunction(double scaleSizeInPixels, size_t& n,
-                                     size_t maxN) {
+  static Image makeGaussianFunction(double scaleSizeInPixels, size_t& n,
+                                    size_t maxN) {
     float sigma = GaussianSigma(scaleSizeInPixels);
 
     n = int(ceil(sigma * 12.0 / 2.0)) * 2 + 1;  // bounding box of 12 sigma
@@ -132,7 +132,7 @@ class MultiScaleTransforms {
       sigma = 1.0;
       n = 1;
     }
-    ImageF output(n, n);
+    Image output(n, n);
     const float mu = int(n / 2);
     const float twoSigmaSquared = 2.0 * sigma * sigma;
     float sum = 0.0;
@@ -154,7 +154,7 @@ class MultiScaleTransforms {
     return output;
   }
 
-  static void taperedQuadraticShapeFunction(size_t n, ImageF& output2d,
+  static void taperedQuadraticShapeFunction(size_t n, Image& output2d,
                                             double scaleSizeInPixels) {
     if (scaleSizeInPixels == 0.0)
       output2d[0] = 1.0;

@@ -4,13 +4,13 @@
 
 void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const float* input,
                                     float* scratch, bool includeLargest) {
-  ImageF& i1(_scales.back().Coefficients());
-  i1 = ImageF(_width, _height);
+  Image& i1(_scales.back().Coefficients());
+  i1 = Image(_width, _height);
 
   // The first iteration of the loop, unrolled, so that we don't have to
   // copy the input into i0.
-  ImageF& coefficients0 = _scales[0].Coefficients();
-  coefficients0 = ImageF(_width, _height);
+  Image& coefficients0 = _scales[0].Coefficients();
+  coefficients0 = Image(_width, _height);
   convolveMT(threadPool, i1.data(), input, scratch, _width, _height, 1);
   convolveMT(threadPool, coefficients0.data(), i1.data(), scratch, _width,
              _height, 1);
@@ -20,11 +20,11 @@ void IUWTDecomposition::DecomposeMT(ThreadPool& threadPool, const float* input,
                _width, _height);
 
   // i0 = i1;
-  ImageF i0(i1);
+  Image i0(i1);
 
   for (int scale = 1; scale != int(_scaleCount); ++scale) {
-    ImageF& coefficients = _scales[scale].Coefficients();
-    coefficients = ImageF(_width, _height);
+    Image& coefficients = _scales[scale].Coefficients();
+    coefficients = Image(_width, _height);
     convolveMT(threadPool, i1.data(), i0.data(), scratch, _width, _height,
                scale + 1);
     convolveMT(threadPool, coefficients.data(), i1.data(), scratch, _width,

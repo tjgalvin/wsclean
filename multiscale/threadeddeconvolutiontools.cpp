@@ -66,8 +66,8 @@ ThreadedDeconvolutionTools::SubtractionTask::operator()() {
 }
 
 void ThreadedDeconvolutionTools::MultiScaleTransform(
-    MultiScaleTransforms* msTransforms, std::vector<ImageF>& images,
-    ImageF& scratch, float scale) {
+    MultiScaleTransforms* msTransforms, std::vector<Image>& images,
+    Image& scratch, float scale) {
   size_t imageIndex = 0;
   size_t nextThread = 0;
   msTransforms->PrepareTransform(scratch.data(), scale);
@@ -103,16 +103,16 @@ ThreadedDeconvolutionTools::FinishMultiScaleTransformTask::operator()() {
 }
 
 void ThreadedDeconvolutionTools::MultiScaleTransform(
-    MultiScaleTransforms* msTransforms, std::vector<ImageF>& images,
+    MultiScaleTransforms* msTransforms, std::vector<Image>& images,
     aocommon::UVector<float> scales) {
   size_t imageIndex = 0;
   size_t nextThread = 0;
 
   size_t scratchCount = std::min(images.size(), _threadCount);
-  std::unique_ptr<ImageF::Ptr[]> scratchImages(new ImageF::Ptr[scratchCount]);
+  std::unique_ptr<Image::Ptr[]> scratchImages(new Image::Ptr[scratchCount]);
   for (size_t i = 0; i != scratchCount; ++i)
     scratchImages[i] =
-        ImageF::Make(msTransforms->Width(), msTransforms->Height());
+        Image::Make(msTransforms->Width(), msTransforms->Height());
 
   while (imageIndex < images.size()) {
     MultiScaleTransformTask* task = new MultiScaleTransformTask();
@@ -147,12 +147,12 @@ ThreadedDeconvolutionTools::MultiScaleTransformTask::operator()() {
 }
 
 void ThreadedDeconvolutionTools::FindMultiScalePeak(
-    MultiScaleTransforms* msTransforms, const ImageF& image,
+    MultiScaleTransforms* msTransforms, const Image& image,
     const aocommon::UVector<float>& scales,
     std::vector<ThreadedDeconvolutionTools::PeakData>& results,
     bool allowNegativeComponents, const bool* mask,
     const std::vector<aocommon::UVector<bool>>& scaleMasks, float borderRatio,
-    const ImageF& rmsFactorImage, bool calculateRMS) {
+    const Image& rmsFactorImage, bool calculateRMS) {
   size_t imageIndex = 0;
   size_t nextThread = 0;
   size_t resultIndex = 0;
@@ -160,12 +160,11 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(
   results.resize(scales.size());
 
   size_t size = std::min(scales.size(), _threadCount);
-  std::unique_ptr<ImageF::Ptr[]> imageData(new ImageF::Ptr[size]);
-  std::unique_ptr<ImageF::Ptr[]> scratchData(new ImageF::Ptr[size]);
+  std::unique_ptr<Image::Ptr[]> imageData(new Image::Ptr[size]);
+  std::unique_ptr<Image::Ptr[]> scratchData(new Image::Ptr[size]);
   for (size_t i = 0; i != size; ++i) {
-    imageData[i] = ImageF::Make(msTransforms->Width(), msTransforms->Height());
-    scratchData[i] =
-        ImageF::Make(msTransforms->Width(), msTransforms->Height());
+    imageData[i] = Image::Make(msTransforms->Width(), msTransforms->Height());
+    scratchData[i] = Image::Make(msTransforms->Width(), msTransforms->Height());
   }
 
   while (imageIndex < scales.size()) {

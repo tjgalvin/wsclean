@@ -59,7 +59,7 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
       else
         prefix = stokesIName.GetPrefix(_settings);
       aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
-      ImageF image(reader.ImageWidth(), reader.ImageHeight());
+      Image image(reader.ImageWidth(), reader.ImageHeight());
       reader.Read(image.data());
 
       beamImages.ApplyStokesI(image.data());
@@ -72,7 +72,7 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
     }
   } else if (aocommon::Polarization::HasFullStokesPolarization(
                  _settings.polarizations)) {
-    ImageF images[4];
+    Image images[4];
     std::unique_ptr<aocommon::FitsReader> reader;
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
       aocommon::PolarizationEnum pol =
@@ -81,7 +81,7 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
       name.SetPolarization(pol);
       reader.reset(new aocommon::FitsReader(name.GetPrefix(_settings) + "-" +
                                             filenameKind + ".fits"));
-      images[polIndex] = ImageF(reader->ImageWidth(), reader->ImageHeight());
+      images[polIndex] = Image(reader->ImageWidth(), reader->ImageHeight());
       reader->Read(images[polIndex].data());
     }
 

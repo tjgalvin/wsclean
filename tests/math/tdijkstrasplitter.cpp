@@ -8,10 +8,10 @@
 
 BOOST_AUTO_TEST_SUITE(dijkstra_splitter)
 
-ImageF MakeImage(size_t width, const std::string& str) {
+Image MakeImage(size_t width, const std::string& str) {
   const size_t height = str.size() / width;
   BOOST_CHECK_EQUAL(width * height, str.size());
-  ImageF image(width, height);
+  Image image(width, height);
 
   for (size_t y = 0; y != height; ++y) {
     for (size_t x = 0; x != width; ++x) {
@@ -24,7 +24,7 @@ ImageF MakeImage(size_t width, const std::string& str) {
   return image;
 }
 
-std::string PathStr(const ImageF& pathImage) {
+std::string PathStr(const Image& pathImage) {
   std::ostringstream str;
   for (size_t y = 0; y != pathImage.Height(); ++y) {
     for (size_t x = 0; x != pathImage.Width(); ++x) {
@@ -54,7 +54,7 @@ std::string PathStr(const aocommon::UVector<bool>& mask, size_t width) {
   return str.str();
 }
 
-std::string InputColumnStr(const ImageF& pathImage, size_t x) {
+std::string InputColumnStr(const Image& pathImage, size_t x) {
   std::ostringstream str;
   for (size_t y = 0; y != pathImage.Height(); ++y) {
     if (pathImage[y * pathImage.Width() + x] == 10.0f)
@@ -65,7 +65,7 @@ std::string InputColumnStr(const ImageF& pathImage, size_t x) {
   return str.str();
 }
 
-std::string InputRowStr(const ImageF& pathImage, size_t y) {
+std::string InputRowStr(const Image& pathImage, size_t y) {
   std::ostringstream str;
   for (size_t x = 0; x != pathImage.Width(); ++x) {
     if (pathImage[y * pathImage.Width() + x] == 10.0f)
@@ -77,18 +77,18 @@ std::string InputRowStr(const ImageF& pathImage, size_t y) {
 }
 
 BOOST_AUTO_TEST_CASE(vertical) {
-  ImageF image = MakeImage(10,
-                           "X         "
-                           " X        "
-                           "  X       "
-                           "   XXX    "
-                           "     X    "
-                           "         X"
-                           "   X      "
-                           "    XXXX  "
-                           "        X "
-                           "      XX  ");
-  ImageF output(image.Width(), image.Height(), 0.0f);
+  Image image = MakeImage(10,
+                          "X         "
+                          " X        "
+                          "  X       "
+                          "   XXX    "
+                          "     X    "
+                          "         X"
+                          "   X      "
+                          "    XXXX  "
+                          "        X "
+                          "      XX  ");
+  Image output(image.Width(), image.Height(), 0.0f);
   const DijkstraSplitter splitter(image.Width(), image.Height());
   splitter.DivideVertically(image.data(), output.data(), 0, image.Width());
 
@@ -106,18 +106,18 @@ BOOST_AUTO_TEST_CASE(vertical) {
 }
 
 BOOST_AUTO_TEST_CASE(vertical_constrained) {
-  ImageF input = MakeImage(10,
-                           " X  X     "
-                           " X        "
-                           "  X       "
-                           "   XXX    "
-                           "     X    "
-                           "XX       X"
-                           "  XX      "
-                           "    XXXX  "
-                           "        X "
-                           "      XX  ");
-  ImageF output(input);
+  Image input = MakeImage(10,
+                          " X  X     "
+                          " X        "
+                          "  X       "
+                          "   XXX    "
+                          "     X    "
+                          "XX       X"
+                          "  XX      "
+                          "    XXXX  "
+                          "        X "
+                          "      XX  ");
+  Image output(input);
   const DijkstraSplitter splitter(input.Width(), input.Height());
   splitter.DivideVertically(input.data(), output.data(), 2, 8);
 
@@ -140,18 +140,18 @@ BOOST_AUTO_TEST_CASE(vertical_constrained) {
 }
 
 BOOST_AUTO_TEST_CASE(horizontal) {
-  ImageF input = MakeImage(10,
-                           "    X     "
-                           "          "
-                           "  X       "
-                           "   XXXXXX "
-                           "     X    "
-                           " X   X   X"
-                           " X    X   "
-                           " X     X  "
-                           " X      X "
-                           "X     XX X");
-  ImageF output(input.Width(), input.Height(), 0.0f);
+  Image input = MakeImage(10,
+                          "    X     "
+                          "          "
+                          "  X       "
+                          "   XXXXXX "
+                          "     X    "
+                          " X   X   X"
+                          " X    X   "
+                          " X     X  "
+                          " X      X "
+                          "X     XX X");
+  Image output(input.Width(), input.Height(), 0.0f);
   const DijkstraSplitter splitter(input.Width(), input.Height());
   splitter.DivideHorizontally(input.data(), output.data(), 0, input.Width());
 
@@ -169,18 +169,18 @@ BOOST_AUTO_TEST_CASE(horizontal) {
 }
 
 BOOST_AUTO_TEST_CASE(horizontal_constrained) {
-  ImageF image = MakeImage(10,
-                           "  XXX     "
-                           " XXXXXX   "
-                           " X     XXX"
-                           "X   XXX   "
-                           "   XX     "
-                           "X        X"
-                           "XX        "
-                           "  X      X"
-                           "   XXXXXX "
-                           "    XXXX  ");
-  ImageF output(image);
+  Image image = MakeImage(10,
+                          "  XXX     "
+                          " XXXXXX   "
+                          " X     XXX"
+                          "X   XXX   "
+                          "   XX     "
+                          "X        X"
+                          "XX        "
+                          "  X      X"
+                          "   XXXXXX "
+                          "    XXXX  ");
+  Image output(image);
   const DijkstraSplitter splitter(image.Width(), image.Height());
   splitter.DivideHorizontally(image.data(), output.data(), 2, 8);
 
@@ -204,18 +204,18 @@ BOOST_AUTO_TEST_CASE(horizontal_constrained) {
 
 BOOST_AUTO_TEST_CASE(flood_vertical_area) {
   const size_t width = 9, height = 9;
-  ImageF image = MakeImage(width,
-                           "   X     "
-                           "    X    "
-                           "    X    "
-                           "   X     "
-                           "  X      "
-                           "   XXX   "
-                           "      X  "
-                           "      X  "
-                           "      X  ");
+  Image image = MakeImage(width,
+                          "   X     "
+                          "    X    "
+                          "    X    "
+                          "   X     "
+                          "  X      "
+                          "   XXX   "
+                          "      X  "
+                          "      X  "
+                          "      X  ");
   DijkstraSplitter splitter(width, height);
-  ImageF scratch(image), dividingLines(width, height, 0.0f);
+  Image scratch(image), dividingLines(width, height, 0.0f);
   splitter.AddVerticalDivider(image.data(), scratch.data(),
                               dividingLines.data(), 2, 7);
 
@@ -265,18 +265,18 @@ BOOST_AUTO_TEST_CASE(flood_vertical_area) {
 
 BOOST_AUTO_TEST_CASE(flood_horizontal_area) {
   const size_t width = 9, height = 9;
-  ImageF image = MakeImage(width,
-                           "         "
-                           "         "
-                           "  XX    X"
-                           " X  X  X "
-                           " X   X X "
-                           " X   X X "
-                           "X     X  "
-                           "         "
-                           "         ");
+  Image image = MakeImage(width,
+                          "         "
+                          "         "
+                          "  XX    X"
+                          " X  X  X "
+                          " X   X X "
+                          " X   X X "
+                          "X     X  "
+                          "         "
+                          "         ");
   DijkstraSplitter splitter(width, height);
-  ImageF scratch(image), dividingLines(width, height, 0.0f);
+  Image scratch(image), dividingLines(width, height, 0.0f);
   splitter.AddHorizontalDivider(image.data(), scratch.data(),
                                 dividingLines.data(), 2, 7);
 
@@ -326,18 +326,18 @@ BOOST_AUTO_TEST_CASE(flood_horizontal_area) {
 
 BOOST_AUTO_TEST_CASE(get_bounding_mask) {
   const size_t width = 9, height = 9;
-  ImageF image = MakeImage(width,
-                           "    X    "
-                           "    X    "
-                           "    X    "
-                           "    X    "
-                           "XXXXXXXXX"
-                           "    X    "
-                           "    X    "
-                           "    X    "
-                           "    X    ");
+  Image image = MakeImage(width,
+                          "    X    "
+                          "    X    "
+                          "    X    "
+                          "    X    "
+                          "XXXXXXXXX"
+                          "    X    "
+                          "    X    "
+                          "    X    "
+                          "    X    ");
   DijkstraSplitter splitter(width, height);
-  ImageF dividingLines(width, height, 0.0f);
+  Image dividingLines(width, height, 0.0f);
   splitter.DivideVertically(image.data(), dividingLines.data(), 3, 6);
 
   aocommon::UVector<bool> mask(width * height);
@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
 
 BOOST_AUTO_TEST_CASE(get_bounding_mask_on_noise) {
   const size_t width = 80, height = 80;
-  ImageF image(width, height);
+  Image image(width, height);
   std::mt19937 rnd;
   std::normal_distribution<float> gaus(0.0f, 1.0f);
 
@@ -487,7 +487,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask_on_noise) {
     for (size_t i = 0; i != width * height; ++i) image[i] = gaus(rnd);
 
     DijkstraSplitter splitter(width, height);
-    ImageF dividingLinesV(width, height, 0.0f),
+    Image dividingLinesV(width, height, 0.0f),
         dividingLinesH(width, height, 0.0f);
     splitter.DivideVertically(image.data(), dividingLinesV.data(), width / 4,
                               width * 3 / 4);

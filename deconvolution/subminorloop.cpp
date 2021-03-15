@@ -10,7 +10,7 @@
 #include "../io/logger.h"
 
 template <bool AllowNegatives>
-size_t SubMinorModel::GetMaxComponent(ImageF& scratch, float& maxValue) const {
+size_t SubMinorModel::GetMaxComponent(Image& scratch, float& maxValue) const {
   _residual->GetLinearIntegrated(scratch);
   if (!_rmsFactorImage.empty()) {
     for (size_t i = 0; i != size(); ++i) scratch[i] *= _rmsFactorImage[i];
@@ -48,7 +48,7 @@ boost::optional<float> SubMinorLoop::Run(
 
   if (_subMinorModel.size() == 0) return boost::optional<float>();
 
-  ImageF scratch(_subMinorModel.size(), 1);
+  Image scratch(_subMinorModel.size(), 1);
   float maxValue;
   size_t maxComponent = _subMinorModel.GetMaxComponent(
       scratch, maxValue, _allowNegativeComponents);
@@ -118,7 +118,7 @@ void SubMinorModel::MakeSets(const ImageSet& residualSet) {
   }
 }
 
-void SubMinorModel::MakeRMSFactorImage(ImageF& rmsFactorImage) {
+void SubMinorModel::MakeRMSFactorImage(Image& rmsFactorImage) {
   _rmsFactorImage = Image(size(), 1);
   for (size_t pxIndex = 0; pxIndex != size(); ++pxIndex) {
     size_t srcIndex =
@@ -128,7 +128,7 @@ void SubMinorModel::MakeRMSFactorImage(ImageF& rmsFactorImage) {
 }
 
 void SubMinorLoop::findPeakPositions(ImageSet& convolvedResidual) {
-  ImageF integratedScratch(_width, _height);
+  Image integratedScratch(_width, _height);
   convolvedResidual.GetLinearIntegrated(integratedScratch);
 
   if (!_rmsFactorImage.empty()) {
@@ -183,22 +183,21 @@ void SubMinorLoop::CorrectResidualDirty(class FFTWManager& fftw,
                                         float* residual,
                                         const float* singleConvolvedPsf) const {
   // Get padded kernel in scratchB
-  ImageF::Untrim(scratchA, _paddedWidth, _paddedHeight, singleConvolvedPsf,
-                 _width, _height);
+  Image::Untrim(scratchA, _paddedWidth, _paddedHeight, singleConvolvedPsf,
+                _width, _height);
   FFTConvolver::PrepareKernel(scratchB, scratchA, _paddedWidth, _paddedHeight);
 
   // Get padded model image in scratchA
   GetFullIndividualModel(imageIndex, scratchC);
-  ImageF::Untrim(scratchA, _paddedWidth, _paddedHeight, scratchC, _width,
-                 _height);
+  Image::Untrim(scratchA, _paddedWidth, _paddedHeight, scratchC, _width,
+                _height);
 
   // Convolve and store in scratchA
   FFTConvolver::ConvolveSameSize(fftw, scratchA, scratchB, _paddedWidth,
                                  _paddedHeight);
 
   // Trim the result into scratchC
-  ImageF::Trim(scratchC, _width, _height, scratchA, _paddedWidth,
-               _paddedHeight);
+  Image::Trim(scratchC, _width, _height, scratchA, _paddedWidth, _paddedHeight);
 
   for (size_t i = 0; i != _width * _height; ++i) residual[i] -= scratchC[i];
 }

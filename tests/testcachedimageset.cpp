@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
 
   schaapcommon::facets::FacetImage imageStorage(image_width, image_height, 1);
   for (size_t pol_idx = 0; pol_idx < polarizations.size(); ++pol_idx) {
-    ImageF imageMain(image_width, image_height, 0.0f);
+    Image imageMain(image_width, image_height, 0.0f);
     for (size_t facet_idx = 0; facet_idx < facets.size(); ++facet_idx) {
       // Offset in file list
       size_t offset = pol_idx * facets.size() + facet_idx;

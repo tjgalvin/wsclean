@@ -196,8 +196,18 @@ void ImageT<NumT>::CopyMasked(T* to, size_t toX, size_t toY, size_t toWidth,
   }
 }
 
-typedef ImageT<double> Image;
-typedef ImageT<float> ImageF;
+/**
+ * A single-precision two-dimensional image.
+ */
+typedef ImageT<float> Image;
+
+/**
+ * A double-precision two-dimensional image.
+ * This type is (currently) not used inside WSClean, but it is used in
+ * some other projects that share the same Image class, hence it is here.
+ */
+typedef ImageT<double> DImage;
+
 typedef ImageT<std::complex<float>> ImageCF;
 
 template <class T>

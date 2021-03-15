@@ -2,12 +2,12 @@
 
 #include "modelrenderer.h"
 
-void RMSImage::Make(ImageF& rmsOutput, const ImageF& inputImage,
+void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
                     double windowSize, long double beamMaj, long double beamMin,
                     long double beamPA, long double pixelScaleL,
                     long double pixelScaleM) {
-  ImageF image(inputImage);
-  rmsOutput = ImageF(image.Width(), image.Height(), 0.0);
+  Image image(inputImage);
+  rmsOutput = Image(image.Width(), image.Height(), 0.0);
 
   for (auto& val : image) val *= val;
 
@@ -24,11 +24,11 @@ void RMSImage::Make(ImageF& rmsOutput, const ImageF& inputImage,
   for (auto& val : rmsOutput) val = std::sqrt(val * norm);
 }
 
-void RMSImage::SlidingMinimum(ImageF& output, const ImageF& input,
+void RMSImage::SlidingMinimum(Image& output, const Image& input,
                               size_t windowSize) {
   const size_t width = input.Width();
-  output = ImageF(width, input.Height());
-  ImageF temp(output);
+  output = Image(width, input.Height());
+  Image temp(output);
   for (size_t y = 0; y != input.Height(); ++y) {
     float* outRowptr = &temp[y * width];
     const float* inRowptr = &input[y * width];
@@ -52,15 +52,15 @@ void RMSImage::SlidingMinimum(ImageF& output, const ImageF& input,
   }
 }
 
-void RMSImage::MakeWithNegativityLimit(ImageF& rmsOutput,
-                                       const ImageF& inputImage,
+void RMSImage::MakeWithNegativityLimit(Image& rmsOutput,
+                                       const Image& inputImage,
                                        double windowSize, long double beamMaj,
                                        long double beamMin, long double beamPA,
                                        long double pixelScaleL,
                                        long double pixelScaleM) {
   Make(rmsOutput, inputImage, windowSize, beamMaj, beamMin, beamPA, pixelScaleL,
        pixelScaleM);
-  ImageF slidingMinimum(inputImage.Width(), inputImage.Height());
+  Image slidingMinimum(inputImage.Width(), inputImage.Height());
   double beamInPixels = std::max(beamMaj / pixelScaleL, 1.0L);
   SlidingMinimum(slidingMinimum, inputImage, windowSize * beamInPixels);
   for (size_t i = 0; i != rmsOutput.size(); ++i) {

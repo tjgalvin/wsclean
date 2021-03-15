@@ -118,10 +118,10 @@ class WSClean {
 
   void predict(const ImagingTableEntry& entry);
 
-  void saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
+  void saveUVImage(const Image& image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
 
-  void processFullPSF(ImageF& image, const ImagingTableEntry& entry);
+  void processFullPSF(Image& image, const ImagingTableEntry& entry);
 
   /**
    * @brief Stitch facets for all FacetGroups
@@ -139,7 +139,7 @@ class WSClean {
    */
   void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& imageCache, bool writeDirty,
-                         bool isPSF, ImageF& fullImage,
+                         bool isPSF, Image& fullImage,
                          schaapcommon::facets::FacetImage& facetImage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;

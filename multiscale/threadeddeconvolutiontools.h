@@ -28,22 +28,22 @@ class ThreadedDeconvolutionTools {
 
   // This one is for many transforms of the same scale
   void MultiScaleTransform(class MultiScaleTransforms* msTransforms,
-                           std::vector<ImageF>& images, ImageF& scratch,
+                           std::vector<Image>& images, Image& scratch,
                            float scale);
 
   // This one is for transform of different scales
   void MultiScaleTransform(class MultiScaleTransforms* msTransforms,
-                           std::vector<ImageF>& images,
+                           std::vector<Image>& images,
                            aocommon::UVector<float> scales);
 
   void FindMultiScalePeak(
-      class MultiScaleTransforms* msTransforms, const ImageF& image,
+      class MultiScaleTransforms* msTransforms, const Image& image,
       const aocommon::UVector<float>& scales, std::vector<PeakData>& results,
       bool allowNegativeComponents, const bool* mask,
       const std::vector<aocommon::UVector<bool>>& scaleMasks, float borderRatio,
-      const ImageF& rmsFactorImage, bool calculateRMS);
+      const Image& rmsFactorImage, bool calculateRMS);
 
-  static float RMS(const ImageF& image, size_t n) {
+  static float RMS(const Image& image, size_t n) {
     float result = 0.0;
     for (size_t i = 0; i != n; ++i) result += image[i] * image[i];
     return std::sqrt(result / float(n));
@@ -74,29 +74,29 @@ class ThreadedDeconvolutionTools {
     virtual ThreadResult* operator()();
 
     class MultiScaleTransforms* msTransforms;
-    ImageF* image;
-    ImageF* kernel;
+    Image* image;
+    Image* kernel;
   };
   struct MultiScaleTransformTask : public ThreadTask {
     virtual ThreadResult* operator()();
 
     class MultiScaleTransforms* msTransforms;
-    ImageF* image;
-    ImageF* scratch;
+    Image* image;
+    Image* scratch;
     float scale;
   };
   struct FindMultiScalePeakTask : public ThreadTask {
     virtual ThreadResult* operator()();
 
     class MultiScaleTransforms* msTransforms;
-    ImageF* image;
-    ImageF* scratch;
+    Image* image;
+    Image* scratch;
     float scale;
     bool allowNegativeComponents;
     const bool* mask;
     float borderRatio;
     bool calculateRMS;
-    const ImageF* rmsFactorImage;
+    const Image* rmsFactorImage;
   };
 
   std::vector<aocommon::Lane<ThreadTask*>*> _taskLanes;

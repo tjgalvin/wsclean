@@ -209,7 +209,7 @@ void WGriddingMSGridder::Invert() {
                  << EffectiveGriddedVisibilityCount();
   Logger::Info << '\n';
 
-  _image = ImageF(ActualInversionWidth(), ActualInversionHeight());
+  _image = Image(ActualInversionWidth(), ActualInversionHeight());
   {
     std::vector<float> imageFloat = _gridder->RealImage();
     for (size_t i = 0; i < imageFloat.size(); ++i) _image[i] = imageFloat[i];
@@ -222,7 +222,7 @@ void WGriddingMSGridder::Invert() {
     FFTResampler resampler(_actualInversionWidth, _actualInversionHeight,
                            ImageWidth(), ImageHeight(), _cpuCount);
 
-    ImageF resized(ImageWidth(), ImageHeight());
+    Image resized(ImageWidth(), ImageHeight());
     resampler.Resample(_image.data(), resized.data());
     _image = std::move(resized);
   }
@@ -231,14 +231,14 @@ void WGriddingMSGridder::Invert() {
     Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight()
                   << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
 
-    ImageF trimmed(TrimWidth(), TrimHeight());
-    ImageF::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _image.data(),
-                 ImageWidth(), ImageHeight());
+    Image trimmed(TrimWidth(), TrimHeight());
+    Image::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _image.data(),
+                ImageWidth(), ImageHeight());
     _image = std::move(trimmed);
   }
 }
 
-void WGriddingMSGridder::Predict(ImageF image) {
+void WGriddingMSGridder::Predict(Image image) {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
@@ -251,17 +251,17 @@ void WGriddingMSGridder::Predict(ImageF image) {
       PhaseCentreDM(), _cpuCount, _accuracy));
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
-    ImageF untrimmedImage(ImageWidth(), ImageHeight());
+    Image untrimmedImage(ImageWidth(), ImageHeight());
     Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight()
                   << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
-    ImageF::Untrim(untrimmedImage.data(), ImageWidth(), ImageHeight(),
-                   image.data(), TrimWidth(), TrimHeight());
+    Image::Untrim(untrimmedImage.data(), ImageWidth(), ImageHeight(),
+                  image.data(), TrimWidth(), TrimHeight());
     image = std::move(untrimmedImage);
   }
 
   if (ImageWidth() != _actualInversionWidth ||
       ImageHeight() != _actualInversionHeight) {
-    ImageF resampledImage(ImageWidth(), ImageHeight());
+    Image resampledImage(ImageWidth(), ImageHeight());
     FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth,
                            _actualInversionHeight, _cpuCount);
 

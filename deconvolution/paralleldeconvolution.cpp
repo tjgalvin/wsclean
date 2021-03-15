@@ -52,7 +52,7 @@ void ParallelDeconvolution::SetAlgorithm(
   }
 }
 
-void ParallelDeconvolution::SetRMSFactorImage(ImageF&& image) {
+void ParallelDeconvolution::SetRMSFactorImage(Image&& image) {
   if (_settings.parallelDeconvolutionMaxSize == 0)
     _algorithms.front()->SetRMSFactorImage(std::move(image));
   else
@@ -96,19 +96,19 @@ void ParallelDeconvolution::runSubImage(
   }
 
   // Construct the smaller psfs
-  std::vector<ImageF> subPsfs(psfImages.size());
+  std::vector<Image> subPsfs(psfImages.size());
   aocommon::UVector<const float*> subPsfVector(psfImages.size());
   for (size_t i = 0; i != psfImages.size(); ++i) {
-    subPsfs[i] = ImageF(subImg.width, subImg.height);
-    ImageF::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i],
-                 width, height);
+    subPsfs[i] = Image(subImg.width, subImg.height);
+    Image::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i],
+                width, height);
     subPsfVector[i] = subPsfs[i].data();
   }
   _algorithms[subImg.index]->SetCleanMask(subImg.mask.data());
 
   // Construct smaller RMS image if necessary
   if (!_rmsImage.empty()) {
-    ImageF subRmsImage =
+    Image subRmsImage =
         _rmsImage.TrimBox(subImg.x, subImg.y, subImg.width, subImg.height);
     _algorithms[subImg.index]->SetRMSFactorImage(std::move(subRmsImage));
   }
@@ -148,7 +148,7 @@ void ParallelDeconvolution::runSubImage(
 
   // Since this was an RMS image specifically for this subimage size, we free it
   // immediately
-  _algorithms[subImg.index]->SetRMSFactorImage(ImageF());
+  _algorithms[subImg.index]->SetRMSFactorImage(Image());
 
   if (_trackPerScaleMasks) {
     std::lock_guard<std::mutex> lock(*mutex);
@@ -215,7 +215,7 @@ void ParallelDeconvolution::executeParallelRun(
                avgHSubImageSize = width / _horImages,
                avgVSubImageSize = height / _verImages;
 
-  ImageF image(width, height), dividingLine(width, height, 0.0);
+  Image image(width, height), dividingLine(width, height, 0.0);
   aocommon::UVector<bool> largeScratchMask(width * height);
   dataImage.GetLinearIntegrated(image);
 

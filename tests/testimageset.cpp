@@ -30,13 +30,13 @@ struct ImageSetFixtureBase {
   }
 
   void checkLinearValue(size_t index, double value, const ImageSet& dset) {
-    ImageF dest(2, 2, 1.0);
+    Image dest(2, 2, 1.0);
     dset.GetLinearIntegrated(dest);
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
   }
 
   void checkSquaredValue(size_t index, double value, const ImageSet& dset) {
-    ImageF dest(2, 2, 1.0), scratch(2, 2);
+    Image dest(2, 2, 1.0), scratch(2, 2);
     dset.GetSquareIntegrated(dest, scratch);
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
   }
@@ -439,7 +439,7 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
   CachedImageSet cachedImgs;
   const std::vector<double> weights{4.0, 4.0, 0.0, 0.0, 1.0, 1.0};
   cachedImgs.Initialize(writer, 4, 6, 0, "imagesettest");
-  ImageF storedImage(width, height);
+  Image storedImage(width, height);
   for (size_t ch = 0; ch != nFreq; ++ch) {
     for (size_t p = 0; p != nPol; ++p) {
       size_t index = ch * nPol + p;
@@ -474,7 +474,7 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
 
   // The total linear integrated sum should be a complete
   // weighting of all input channels
-  ImageF linearIntegrated(width, height);
+  Image linearIntegrated(width, height);
   imageSet.GetLinearIntegrated(linearIntegrated);
   BOOST_CHECK_CLOSE_FRACTION(
       linearIntegrated[0],

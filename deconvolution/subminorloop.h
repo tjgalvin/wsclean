@@ -59,7 +59,7 @@ class SubMinorModel {
   size_t size() const { return _positions.size(); }
 
   void MakeSets(const ImageSet& templateSet);
-  void MakeRMSFactorImage(ImageF& rmsFactorImage);
+  void MakeRMSFactorImage(Image& rmsFactorImage);
 
   ImageSet& Residual() { return *_residual; }
   const ImageSet& Residual() const { return *_residual; }
@@ -71,8 +71,8 @@ class SubMinorModel {
   size_t Y(size_t index) const { return _positions[index].second; }
   size_t FullIndex(size_t index) const { return X(index) + Y(index) * _width; }
   template <bool AllowNegatives>
-  size_t GetMaxComponent(ImageF& scratch, float& maxValue) const;
-  size_t GetMaxComponent(ImageF& scratch, float& maxValue,
+  size_t GetMaxComponent(Image& scratch, float& maxValue) const;
+  size_t GetMaxComponent(Image& scratch, float& maxValue,
                          bool allowNegatives) const {
     if (allowNegatives)
       return GetMaxComponent<true>(scratch, maxValue);
@@ -148,7 +148,7 @@ class SubMinorLoop {
 
   void SetMask(const bool* mask) { _mask = mask; }
 
-  void SetRMSFactorImage(const ImageF& image) { _rmsFactorImage = image; }
+  void SetRMSFactorImage(const Image& image) { _rmsFactorImage = image; }
 
   size_t CurrentIteration() const { return _currentIteration; }
 
@@ -190,7 +190,7 @@ class SubMinorLoop {
   const SpectralFitter* _fitter;
   SubMinorModel _subMinorModel;
   float _fluxCleaned;
-  ImageF _rmsFactorImage;
+  Image _rmsFactorImage;
   LogReceiver& _logReceiver;
 };
 

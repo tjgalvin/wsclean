@@ -17,7 +17,7 @@ void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
                                      size_t height) {
   if (_iterationNumber != 0) {
     Logger::Info << "Convolving model with psf...\n";
-    ImageF preparedPsf(width, height);
+    Image preparedPsf(width, height);
     FFTConvolver::PrepareKernel(preparedPsf.data(), psfImage, width, height);
     FFTConvolver::ConvolveSameSize(_fftwManager, modelImage, preparedPsf.data(),
                                    width, height);

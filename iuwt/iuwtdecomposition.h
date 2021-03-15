@@ -17,13 +17,13 @@ using aocommon::FitsWriter;
 
 class IUWTDecompositionScale {
  public:
-  ImageF& Coefficients() { return _coefficients; }
-  const ImageF& Coefficients() const { return _coefficients; }
+  Image& Coefficients() { return _coefficients; }
+  const Image& Coefficients() const { return _coefficients; }
   float& operator[](size_t index) { return _coefficients[index]; }
   const float& operator[](size_t index) const { return _coefficients[index]; }
 
  private:
-  ImageF _coefficients;
+  Image _coefficients;
 };
 
 class IUWTDecomposition {
@@ -46,21 +46,21 @@ class IUWTDecomposition {
     return p.release();
   }
 
-  void Convolve(ImageF& image, int toScale) {
-    ImageF scratch(image.Width(), image.Height());
+  void Convolve(Image& image, int toScale) {
+    Image scratch(image.Width(), image.Height());
     for (int scale = 0; scale != toScale; ++scale) {
       convolve(image.data(), image.data(), scratch.data(), _width, _height,
                scale + 1);
     }
   }
 
-  void DecomposeSimple(ImageF& input) {
-    ImageF scratch(input.Width(), input.Height());
+  void DecomposeSimple(Image& input) {
+    Image scratch(input.Width(), input.Height());
     for (int scale = 0; scale != int(_scaleCount); ++scale) {
-      ImageF& coefficients = _scales[scale].Coefficients();
-      coefficients = ImageF(_width, _height);
+      Image& coefficients = _scales[scale].Coefficients();
+      coefficients = Image(_width, _height);
 
-      ImageF tmp(_width, _height);
+      Image tmp(_width, _height);
       convolve(tmp.data(), input.data(), scratch.data(), _width, _height,
                scale);
       difference(coefficients.data(), input.data(), tmp.data(), _width,
@@ -70,7 +70,7 @@ class IUWTDecomposition {
     _scales.back().Coefficients() = input;
   }
 
-  void RecomposeSimple(ImageF& output) {
+  void RecomposeSimple(Image& output) {
     output = _scales[0].Coefficients();
     for (size_t scale = 1; scale != _scaleCount - 1; ++scale) {
       for (size_t i = 0; i != _width * _height; ++i)
@@ -88,10 +88,10 @@ class IUWTDecomposition {
 
   void DecomposeST(const float* input, float* scratch) {
     aocommon::UVector<float> i0(input, input + _width * _height);
-    ImageF i1(_width, _height), i2(_width, _height);
+    Image i1(_width, _height), i2(_width, _height);
     for (int scale = 0; scale != int(_scaleCount); ++scale) {
-      ImageF& coefficients = _scales[scale].Coefficients();
-      coefficients = ImageF(_width, _height);
+      Image& coefficients = _scales[scale].Coefficients();
+      coefficients = Image(_width, _height);
       convolve(i1.data(), i0.data(), scratch, _width, _height, scale + 1);
       convolve(i2.data(), i1.data(), scratch, _width, _height, scale + 1);
 
@@ -105,18 +105,18 @@ class IUWTDecomposition {
     _scales.back().Coefficients() = i1;
   }
 
-  void Recompose(ImageF& output, bool includeLargest) {
-    ImageF scratch1(_width, _height), scratch2(_width, _height);
+  void Recompose(Image& output, bool includeLargest) {
+    Image scratch1(_width, _height), scratch2(_width, _height);
     bool isZero;
     if (includeLargest) {
       output = _scales.back().Coefficients();
       isZero = false;
     } else {
-      output = ImageF(_width, _height, 0.0);
+      output = Image(_width, _height, 0.0);
       isZero = true;
     }
     for (int scale = int(_scaleCount) - 1; scale != -1; --scale) {
-      const ImageF& coefficients = _scales[scale].Coefficients();
+      const Image& coefficients = _scales[scale].Coefficients();
       if (isZero) {
         output = coefficients;
         isZero = false;
@@ -359,10 +359,10 @@ class IUWTDecomposition {
     }
   }
 
-  void copySmallerPart(const ImageF& input, ImageF& output, size_t x1,
-                       size_t y1, size_t x2, size_t y2) const {
+  void copySmallerPart(const Image& input, Image& output, size_t x1, size_t y1,
+                       size_t x2, size_t y2) const {
     size_t newWidth = x2 - x1;
-    output = ImageF(newWidth, y2 - y1);
+    output = Image(newWidth, y2 - y1);
     for (size_t y = y1; y != y2; ++y) {
       const float* oldPtr = &input[y * _width];
       float* newPtr = &output[(y - y1) * newWidth];

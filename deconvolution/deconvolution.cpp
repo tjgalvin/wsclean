@@ -50,7 +50,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   residualSet.LoadAndAverage(*_residualImages);
   modelSet.LoadAndAverage(*_modelImages);
 
-  ImageF integrated(_imgWidth, _imgHeight);
+  Image integrated(_imgWidth, _imgHeight);
   residualSet.GetLinearIntegrated(integrated);
   double stddev = integrated.StdDevFromMAD();
   Logger::Info << "Estimated standard deviation of background noise: "
@@ -58,10 +58,10 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   if (_settings.autoMask && _autoMaskIsFinished) {
     // When we are in the second phase of automasking, don't use
     // the RMS background anymore
-    _parallelDeconvolution.SetRMSFactorImage(ImageF());
+    _parallelDeconvolution.SetRMSFactorImage(Image());
   } else {
     if (!_settings.localRMSImage.empty()) {
-      ImageF rmsImage(_imgWidth, _imgHeight);
+      Image rmsImage(_imgWidth, _imgHeight);
       FitsReader reader(_settings.localRMSImage);
       reader.Read(rmsImage.data());
       // Normalize the RMS image
@@ -77,7 +77,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
       }
       _parallelDeconvolution.SetRMSFactorImage(std::move(rmsImage));
     } else if (_settings.localRMS) {
-      ImageF rmsImage;
+      Image rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
         case Settings::RMSWindow:
@@ -336,7 +336,7 @@ void Deconvolution::readMask(const ImagingTable& groupTable) {
     }
 
     Logger::Info << "Saving horizon mask...\n";
-    ImageF image(_imgWidth, _imgHeight);
+    Image image(_imgWidth, _imgHeight);
     for (size_t i = 0; i != _imgWidth * _imgHeight; ++i)
       image[i] = _cleanMask[i] ? 1.0 : 0.0;
 

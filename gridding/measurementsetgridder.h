@@ -161,11 +161,11 @@ class MeasurementSetGridder {
 
   virtual void Invert() = 0;
 
-  virtual void Predict(ImageF image) = 0;
-  virtual void Predict(ImageF real, ImageF imaginary) = 0;
+  virtual void Predict(Image image) = 0;
+  virtual void Predict(Image real, Image imaginary) = 0;
 
-  virtual ImageF ImageRealResult() = 0;
-  virtual ImageF ImageImaginaryResult() = 0;
+  virtual Image ImageRealResult() = 0;
+  virtual Image ImageImaginaryResult() = 0;
   void SetPhaseCentreRA(const double phaseCentreRA) {
     _phaseCentreRA = phaseCentreRA;
     ComputeRaDec();

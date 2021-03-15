@@ -102,8 +102,8 @@ class DeconvolutionAlgorithm {
 
   const SpectralFitter& Fitter() const { return _spectralFitter; }
 
-  void SetRMSFactorImage(ImageF&& image) { _rmsFactorImage = std::move(image); }
-  const ImageF& RMSFactorImage() const { return _rmsFactorImage; }
+  void SetRMSFactorImage(Image&& image) { _rmsFactorImage = std::move(image); }
+  const Image& RMSFactorImage() const { return _rmsFactorImage; }
 
  protected:
   DeconvolutionAlgorithm();
@@ -117,7 +117,7 @@ class DeconvolutionAlgorithm {
   size_t _maxIter, _iterationNumber, _threadCount;
   bool _allowNegativeComponents, _stopOnNegativeComponent;
   const bool* _cleanMask;
-  ImageF _rmsFactorImage;
+  Image _rmsFactorImage;
 
   class LogReceiver* _logReceiver;
 

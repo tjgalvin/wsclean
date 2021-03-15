@@ -21,8 +21,7 @@ class PrimaryBeamImageSet {
 
   PrimaryBeamImageSet(size_t width, size_t height, size_t nImages)
       : _beamImages(nImages), _width(width), _height(height) {
-    for (size_t i = 0; i != nImages; ++i)
-      _beamImages[i] = ImageF(width, height);
+    for (size_t i = 0; i != nImages; ++i) _beamImages[i] = Image(width, height);
   }
 
   static FitsReader GetAReader(const std::string& beamPrefix,
@@ -83,7 +82,7 @@ class PrimaryBeamImageSet {
   }
 
   void SetToZero() {
-    for (ImageF& img : _beamImages)
+    for (Image& img : _beamImages)
       std::fill_n(img.data(), _width * _height, 0.0);
   }
 
@@ -126,8 +125,8 @@ class PrimaryBeamImageSet {
     }
   }
 
-  const ImageF& operator[](size_t index) const { return _beamImages[index]; }
-  ImageF& operator[](size_t index) { return _beamImages[index]; }
+  const Image& operator[](size_t index) const { return _beamImages[index]; }
+  Image& operator[](size_t index) { return _beamImages[index]; }
 
   PrimaryBeamImageSet& operator+=(const PrimaryBeamImageSet& rhs) {
     if (_beamImages.size() != rhs._beamImages.size())
@@ -244,7 +243,7 @@ class PrimaryBeamImageSet {
   size_t Height() const { return _height; }
 
  private:
-  std::vector<ImageF> _beamImages;
+  std::vector<Image> _beamImages;
   size_t _width, _height;
 };
 

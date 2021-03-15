@@ -33,7 +33,7 @@ class ParallelDeconvolution {
 
   void SetAlgorithm(std::unique_ptr<class DeconvolutionAlgorithm> algorithm);
 
-  void SetRMSFactorImage(ImageF&& image);
+  void SetRMSFactorImage(Image&& image);
 
   void SetThreshold(double threshold);
 
@@ -104,7 +104,7 @@ class ParallelDeconvolution {
   bool _trackPerScaleMasks, _usePerScaleMasks;
   std::vector<aocommon::UVector<bool>> _scaleMasks;
   std::unique_ptr<class ComponentList> _componentList;
-  ImageF _rmsImage;
+  Image _rmsImage;
 };
 
 #endif

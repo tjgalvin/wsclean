@@ -76,7 +76,7 @@ void ImageSet::initializeIndices() {
 void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
   for (size_t i = 0; i != _images.size(); ++i) _images[i] = 0.0;
 
-  ImageF scratch(_width, _height);
+  Image scratch(_width, _height);
 
   aocommon::UVector<double> averagedWeights(_images.size(), 0.0);
   size_t imgIndex = 0;
@@ -116,7 +116,7 @@ void ImageSet::LoadAndAveragePSFs(
   for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex)
     psfImages[chIndex].assign(_width * _height, 0.0);
 
-  ImageF scratch(_width, _height);
+  Image scratch(_width, _height);
 
   aocommon::UVector<double> averagedWeights(_channelsInDeconvolution, 0.0);
   for (size_t sqIndex = 0; sqIndex != _imagingTable.SquaredGroups().size();
@@ -182,7 +182,7 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
 
     // Now that we know the fit for each pixel, evaluate the function for each
     // pixel of each output channel.
-    ImageF scratch(_width, _height);
+    Image scratch(_width, _height);
     for (const ImagingTableEntry& e : _imagingTable) {
       double freq = e.CentralFrequency();
       loop.Run(0, _width * _height, [&](size_t pxStart, size_t pxEnd) {
@@ -238,8 +238,8 @@ void ImageSet::directStore(CachedImageSet& imageSet) {
   }
 }
 
-void ImageSet::getSquareIntegratedWithNormalChannels(ImageF& dest,
-                                                     ImageF& scratch) const {
+void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
+                                                     Image& scratch) const {
   // In case only one frequency channel is used, we do not have to use
   // 'scratch', which saves copying and normalizing the data.
   if (_channelsInDeconvolution == 1) {
@@ -305,7 +305,7 @@ void ImageSet::getSquareIntegratedWithNormalChannels(ImageF& dest,
   }
 }
 
-void ImageSet::getSquareIntegratedWithSquaredChannels(ImageF& dest) const {
+void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
   bool isFirst = true;
   const bool useAllPolarizations = _linkedPolarizations.empty();
   for (size_t channel = 0; channel != _channelsInDeconvolution; ++channel) {
@@ -332,7 +332,7 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(ImageF& dest) const {
   squareRootMultiply(dest, factor);
 }
 
-void ImageSet::getLinearIntegratedWithNormalChannels(ImageF& dest) const {
+void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
   const bool useAllPolarizations = _linkedPolarizations.empty();
   if (_channelsInDeconvolution == 1 &&
       _imagingTable.SquaredGroups().front().size() == 1) {
@@ -386,7 +386,7 @@ void ImageSet::CalculateDeconvolutionFrequencies(
     frequencies[i] /= weights[i];
 }
 
-void ImageSet::GetIntegratedPSF(ImageF& dest,
+void ImageSet::GetIntegratedPSF(Image& dest,
                                 const aocommon::UVector<const float*>& psfs) {
   // TODO should use weighting!
   std::copy_n(psfs[0], _width * _height, dest.data());

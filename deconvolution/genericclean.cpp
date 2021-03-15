@@ -32,7 +32,7 @@ float GenericClean::ExecuteMajorIteration(
   if (_convolutionWidth % 2 != 0) ++_convolutionWidth;
   if (_convolutionHeight % 2 != 0) ++_convolutionHeight;
 
-  ImageF integrated(width, height),
+  Image integrated(width, height),
       scratchA(_convolutionWidth, _convolutionHeight),
       scratchB(_convolutionWidth, _convolutionHeight);
   dirtySet.GetLinearIntegrated(integrated);

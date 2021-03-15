@@ -92,7 +92,7 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
       reader.ImageHeight() != _settings.trimmedImageHeight)
     throw std::runtime_error(
         "Image width and height of reused PSF don't match with given settings");
-  ImageF psfImage(reader.ImageWidth(), reader.ImageHeight());
+  Image psfImage(reader.ImageWidth(), reader.ImageHeight());
   reader.Read(psfImage.data());
 
   GriddingResult result;
@@ -184,7 +184,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
   _isFirstInversion = false;
 }
 
-void WSClean::processFullPSF(ImageF& image, const ImagingTableEntry& entry) {
+void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   size_t centralIndex =
       _settings.trimmedImageWidth / 2 +
       (_settings.trimmedImageHeight / 2) * _settings.trimmedImageWidth;
@@ -320,8 +320,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
         const bool isImaginary = (imageIndex == 1);
         WSCFitsWriter writer(
             createWSCFitsWriter(entry, isImaginary, false, false));
-        ImageF dirtyImage(_settings.trimmedImageWidth,
-                          _settings.trimmedImageHeight);
+        Image dirtyImage(_settings.trimmedImageWidth,
+                         _settings.trimmedImageHeight);
         _residualImages.Load(dirtyImage.data(), entry.polarization,
                              entry.outputChannelIndex, isImaginary);
         Logger::Info << "Writing dirty image...\n";
@@ -338,15 +338,15 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
   if (entry.polarization == aocommon::Polarization::YX &&
       _settings.polarizations.count(aocommon::Polarization::XY) != 0) {
     Logger::Info << "Adding XY and YX together...\n";
-    ImageF xyImage;
+    Image xyImage;
     if (entry.facet) {
       // Trimmed facet size
-      xyImage = ImageF(entry.facet->GetTrimmedBoundingBox().Width(),
-                       entry.facet->GetTrimmedBoundingBox().Height());
+      xyImage = Image(entry.facet->GetTrimmedBoundingBox().Width(),
+                      entry.facet->GetTrimmedBoundingBox().Height());
     } else {
       // Full image size
       xyImage =
-          ImageF(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+          Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     }
 
     dest.LoadFacet(xyImage.data(), aocommon::Polarization::XY,
@@ -371,8 +371,8 @@ void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
 void WSClean::predict(const ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Converting model image to visibilities ==\n";
-  ImageF modelImageReal(_settings.trimmedImageWidth,
-                        _settings.trimmedImageHeight),
+  Image modelImageReal(_settings.trimmedImageWidth,
+                       _settings.trimmedImageHeight),
       modelImageImaginary;
 
   if (entry.facet)
@@ -382,7 +382,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
     _modelImages.Load(modelImageReal.data(), aocommon::Polarization::XY,
                       entry.outputChannelIndex, false);
     modelImageImaginary =
-        ImageF(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+        Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     _modelImages.Load(modelImageImaginary.data(), aocommon::Polarization::XY,
                       entry.outputChannelIndex, true);
     const size_t size =
@@ -394,7 +394,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
                       entry.outputChannelIndex, false);
     if (aocommon::Polarization::IsComplex(entry.polarization)) {
       modelImageImaginary =
-          ImageF(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+          Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
       _modelImages.Load(modelImageImaginary.data(), entry.polarization,
                         entry.outputChannelIndex, true);
     }
@@ -1033,8 +1033,8 @@ void WSClean::saveRestoredImagesForGroup(
     bool isImaginary = (imageIter == 1);
     WSCFitsWriter writer(
         createWSCFitsWriter(tableEntry, isImaginary, false, true));
-    ImageF restoredImage(_settings.trimmedImageWidth,
-                         _settings.trimmedImageHeight);
+    Image restoredImage(_settings.trimmedImageWidth,
+                        _settings.trimmedImageHeight);
     _residualImages.Load(restoredImage.data(), curPol, currentChannelIndex,
                          isImaginary);
 
@@ -1044,8 +1044,7 @@ void WSClean::saveRestoredImagesForGroup(
     if (_settings.isUVImageSaved)
       saveUVImage(restoredImage, tableEntry, isImaginary, "uv");
 
-    ImageF modelImage(_settings.trimmedImageWidth,
-                      _settings.trimmedImageHeight);
+    Image modelImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     _modelImages.Load(modelImage.data(), curPol, currentChannelIndex,
                       isImaginary);
     double beamMaj = _infoPerChannel[currentChannelIndex].beamMaj;
@@ -1108,7 +1107,7 @@ void WSClean::saveRestoredImagesForGroup(
 
 void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing first iteration image(s)...\n";
-  ImageF ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
@@ -1126,7 +1125,7 @@ void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
 
 void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   Logger::Info << "Writing model image...\n";
-  ImageF ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   for (const ImagingTableEntry& entry : groupTable) {
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == aocommon::Polarization::YX) {
@@ -1152,8 +1151,8 @@ void WSClean::initializeModelImages(const ImagingTableEntry& entry) {
     // Set model to zero: already done if this is YX of XY/YX imaging combi
     if (!(entry.polarization == aocommon::Polarization::YX &&
           _settings.polarizations.count(aocommon::Polarization::XY) != 0)) {
-      ImageF modelImage(_settings.trimmedImageWidth,
-                        _settings.trimmedImageHeight, 0.0f);
+      Image modelImage(_settings.trimmedImageWidth,
+                       _settings.trimmedImageHeight, 0.0f);
       _modelImages.Store(modelImage.data(), entry.polarization,
                          entry.outputChannelIndex, false);
       if (aocommon::Polarization::IsComplex(entry.polarization))
@@ -1238,7 +1237,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry) {
     FitsWriter writer(reader);
     _modelImages.SetFitsWriter(writer);
 
-    ImageF buffer(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    Image buffer(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     reader.Read(buffer.data());
     for (size_t j = 0;
          j != _settings.trimmedImageWidth * _settings.trimmedImageHeight; ++j) {
@@ -1397,9 +1396,9 @@ MSSelection WSClean::selectInterval(MSSelection& fullSelection,
   }
 }
 
-void WSClean::saveUVImage(const ImageF& image, const ImagingTableEntry& entry,
+void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
                           bool isImaginary, const std::string& prefix) const {
-  ImageF realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
+  Image realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
       imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
   FFTResampler fft(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
                    _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1,
@@ -1424,7 +1423,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
   if (!_facets.empty()) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate full image
-    ImageF fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
+    Image fullImage(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     // Initialize FacetImage with properties of stitched image, always
     // stitch facets for 1 spectral term.
     schaapcommon::facets::FacetImage facetImage(
@@ -1448,7 +1447,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
 
 void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                                 size_t imageIndex, CachedImageSet& imageCache,
-                                bool writeDirty, bool isPSF, ImageF& fullImage,
+                                bool writeDirty, bool isPSF, Image& fullImage,
                                 schaapcommon::facets::FacetImage& facetImage) {
   const bool isImaginary = (imageIndex == 1);
   fullImage = 0.0f;

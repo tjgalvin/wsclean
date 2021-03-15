@@ -31,9 +31,9 @@ class ImageSet {
     allocateImages();
   }
 
-  ImageF Release(size_t imageIndex) { return std::move(_images[imageIndex]); }
+  Image Release(size_t imageIndex) { return std::move(_images[imageIndex]); }
 
-  void SetImage(size_t imageIndex, ImageF&& data) {
+  void SetImage(size_t imageIndex, Image&& data) {
     _images[imageIndex] = std::move(data);
   }
 
@@ -76,7 +76,7 @@ class ImageSet {
    * integrated image.
    * @param scratch Pre-allocated scratch space, same size as image.
    */
-  void GetSquareIntegrated(ImageF& dest, ImageF& scratch) const {
+  void GetSquareIntegrated(Image& dest, Image& scratch) const {
     if (_squareJoinedChannels)
       getSquareIntegratedWithSquaredChannels(dest);
     else
@@ -94,14 +94,14 @@ class ImageSet {
    * @param dest Pre-allocated output array that will be filled with the average
    * values.
    */
-  void GetLinearIntegrated(ImageF& dest) const {
+  void GetLinearIntegrated(Image& dest) const {
     if (_squareJoinedChannels)
       getSquareIntegratedWithSquaredChannels(dest);
     else
       getLinearIntegratedWithNormalChannels(dest);
   }
 
-  void GetIntegratedPSF(ImageF& dest,
+  void GetIntegratedPSF(Image& dest,
                         const aocommon::UVector<const float*>& psfs);
 
   size_t PSFCount() const { return _channelsInDeconvolution; }
@@ -109,7 +109,7 @@ class ImageSet {
   size_t ChannelsInDeconvolution() const { return _channelsInDeconvolution; }
 
   ImageSet& operator=(float val) {
-    for (ImageF& image : _images) image = val;
+    for (Image& image : _images) image = val;
     return *this;
   }
 
@@ -152,7 +152,7 @@ class ImageSet {
   }
 
   ImageSet& operator*=(float factor) {
-    for (ImageF& image : _images) image *= factor;
+    for (Image& image : _images) image *= factor;
     return *this;
   }
 
@@ -183,16 +183,16 @@ class ImageSet {
   ImageSet& operator=(const ImageSet&) = delete;
 
   void allocateImages() {
-    for (ImageF& img : _images) {
-      img = ImageF(_width, _height);
+    for (Image& img : _images) {
+      img = Image(_width, _height);
     }
   }
 
-  void assignMultiply(ImageF& lhs, const ImageF& rhs, float factor) const {
+  void assignMultiply(Image& lhs, const Image& rhs, float factor) const {
     for (size_t i = 0; i != _width * _height; ++i) lhs[i] = rhs[i] * factor;
   }
 
-  void squareRootMultiply(ImageF& image, float factor) const {
+  void squareRootMultiply(Image& image, float factor) const {
     for (size_t i = 0; i != _width * _height; ++i)
       image[i] = sqrt(image[i]) * factor;
   }
@@ -220,7 +220,7 @@ class ImageSet {
       _polarizationNormalizationFactor = 1.0;
   }
 
-  static void copySmallerPart(const ImageF& input, ImageF& output, size_t x1,
+  static void copySmallerPart(const Image& input, Image& output, size_t x1,
                               size_t y1, size_t x2, size_t y2,
                               size_t oldWidth) {
     size_t newWidth = x2 - x1;
@@ -233,8 +233,8 @@ class ImageSet {
     }
   }
 
-  static void copyToLarger(ImageF& to, size_t toX, size_t toY, size_t toWidth,
-                           const ImageF& from, size_t fromWidth,
+  static void copyToLarger(Image& to, size_t toX, size_t toY, size_t toWidth,
+                           const Image& from, size_t fromWidth,
                            size_t fromHeight) {
     for (size_t y = 0; y != fromHeight; ++y) {
       std::copy(from.data() + y * fromWidth, from.data() + (y + 1) * fromWidth,
@@ -242,8 +242,8 @@ class ImageSet {
     }
   }
 
-  static void copyToLarger(ImageF& to, size_t toX, size_t toY, size_t toWidth,
-                           const ImageF& from, size_t fromWidth,
+  static void copyToLarger(Image& to, size_t toX, size_t toY, size_t toWidth,
+                           const Image& from, size_t fromWidth,
                            size_t fromHeight, const bool* fromMask) {
     for (size_t y = 0; y != fromHeight; ++y) {
       for (size_t x = 0; x != fromWidth; ++x) {
@@ -255,12 +255,11 @@ class ImageSet {
 
   void directStore(class CachedImageSet& imageSet);
 
-  void getSquareIntegratedWithNormalChannels(ImageF& dest,
-                                             ImageF& scratch) const;
+  void getSquareIntegratedWithNormalChannels(Image& dest, Image& scratch) const;
 
-  void getSquareIntegratedWithSquaredChannels(ImageF& dest) const;
+  void getSquareIntegratedWithSquaredChannels(Image& dest) const;
 
-  void getLinearIntegratedWithNormalChannels(ImageF& dest) const;
+  void getLinearIntegratedWithNormalChannels(Image& dest) const;
 
   size_t channelToSqIndex(size_t channel) const {
     // Calculate reverse of
@@ -274,12 +273,12 @@ class ImageSet {
     return fromFloor;
   }
 
-  const ImageF& entryToImage(const ImagingTable::EntryPtr& entry) const {
+  const Image& entryToImage(const ImagingTable::EntryPtr& entry) const {
     size_t imageIndex = _entryIndexToImageIndex.find(entry->index)->second;
     return _images[imageIndex];
   }
 
-  std::vector<ImageF> _images;
+  std::vector<Image> _images;
   size_t _width, _height, _channelsInDeconvolution;
   // Frequency per deconvolution channel
   aocommon::UVector<double> _frequencies;

@@ -85,7 +85,7 @@ class CachedImageSet {
                   << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       if (_image.empty()) {
-        _image = ImageF(_writer.Width(), _writer.Height());
+        _image = Image(_writer.Width(), _writer.Height());
       }
       std::copy(image, image + _writer.Width() * _writer.Height(),
                 _image.data());
@@ -167,7 +167,7 @@ class CachedImageSet {
   size_t _polCount, _freqCount, _facetCount;
   std::string _prefix;
 
-  ImageF _image;
+  Image _image;
   std::set<std::string> _storedNames;
 };
 

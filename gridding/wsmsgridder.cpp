@@ -414,7 +414,7 @@ void WSMSGridder::Invert() {
   if (IsComplex())
     _imaginaryImage = _gridder->ImaginaryImageFloat();
   else
-    _imaginaryImage = ImageF();
+    _imaginaryImage = Image();
 
   if (ImageWidth() != _actualInversionWidth ||
       ImageHeight() != _actualInversionHeight) {
@@ -424,8 +424,8 @@ void WSMSGridder::Invert() {
                            ImageWidth(), ImageHeight(), _cpuCount);
 
     if (IsComplex()) {
-      ImageF resizedReal(ImageWidth(), ImageHeight());
-      ImageF resizedImag(ImageWidth(), ImageHeight());
+      Image resizedReal(ImageWidth(), ImageHeight());
+      Image resizedImag(ImageWidth(), ImageHeight());
       resampler.Start();
       resampler.AddTask(_realImage.data(), resizedReal.data());
       resampler.AddTask(_imaginaryImage.data(), resizedImag.data());
@@ -433,7 +433,7 @@ void WSMSGridder::Invert() {
       _realImage = std::move(resizedReal);
       _imaginaryImage = std::move(resizedImag);
     } else {
-      ImageF resized(ImageWidth(), ImageHeight());
+      Image resized(ImageWidth(), ImageHeight());
       resampler.Resample(_realImage.data(), resized.data());
       _realImage = std::move(resized);
     }
@@ -444,22 +444,22 @@ void WSMSGridder::Invert() {
                   << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
     // Perform trimming
 
-    ImageF trimmed(TrimWidth(), TrimHeight());
-    ImageF::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _realImage.data(),
-                 ImageWidth(), ImageHeight());
+    Image trimmed(TrimWidth(), TrimHeight());
+    Image::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _realImage.data(),
+                ImageWidth(), ImageHeight());
     _realImage = std::move(trimmed);
 
     if (IsComplex()) {
-      ImageF trimmedImag(TrimWidth(), TrimHeight());
-      ImageF::Trim(trimmedImag.data(), TrimWidth(), TrimHeight(),
-                   _imaginaryImage.data(), ImageWidth(), ImageHeight());
+      Image trimmedImag(TrimWidth(), TrimHeight());
+      Image::Trim(trimmedImag.data(), TrimWidth(), TrimHeight(),
+                  _imaginaryImage.data(), ImageWidth(), ImageHeight());
       _imaginaryImage = std::move(trimmedImag);
     }
   }
   Logger::Debug << "Inversion finished.\n";
 }
 
-void WSMSGridder::Predict(ImageF real, ImageF imaginary) {
+void WSMSGridder::Predict(Image real, Image imaginary) {
   if (imaginary.empty() && IsComplex())
     throw std::runtime_error("Missing imaginary in complex prediction");
   if (!imaginary.empty() && !IsComplex())
@@ -486,27 +486,27 @@ void WSMSGridder::Predict(ImageF real, ImageF imaginary) {
       countSamplesPerLayer(msDataVector[i]);
   }
 
-  ImageF untrimmedReal, untrimmedImag;
+  Image untrimmedReal, untrimmedImag;
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight()
                   << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
     // Undo trimming (i.e., extend with zeros)
     // The input is of size TrimWidth() x TrimHeight()
     // This will make the model image of size ImageWidth() x ImageHeight()
-    untrimmedReal = ImageF(ImageWidth(), ImageHeight());
-    ImageF::Untrim(untrimmedReal.data(), ImageWidth(), ImageHeight(),
-                   real.data(), TrimWidth(), TrimHeight());
+    untrimmedReal = Image(ImageWidth(), ImageHeight());
+    Image::Untrim(untrimmedReal.data(), ImageWidth(), ImageHeight(),
+                  real.data(), TrimWidth(), TrimHeight());
     real = std::move(untrimmedReal);
 
     if (IsComplex()) {
-      untrimmedImag = ImageF(ImageWidth(), ImageHeight());
-      ImageF::Untrim(untrimmedImag.data(), ImageWidth(), ImageHeight(),
-                     imaginary.data(), TrimWidth(), TrimHeight());
+      untrimmedImag = Image(ImageWidth(), ImageHeight());
+      Image::Untrim(untrimmedImag.data(), ImageWidth(), ImageHeight(),
+                    imaginary.data(), TrimWidth(), TrimHeight());
       imaginary = std::move(untrimmedImag);
     }
   }
 
-  ImageF resampledReal, resampledImag;
+  Image resampledReal, resampledImag;
   if (ImageWidth() != _actualInversionWidth ||
       ImageHeight() != _actualInversionHeight) {
     // Decimate the image
@@ -514,11 +514,11 @@ void WSMSGridder::Predict(ImageF real, ImageF imaginary) {
     FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth,
                            _actualInversionHeight, _cpuCount);
 
-    resampledReal = ImageF(ImageWidth(), ImageHeight());
+    resampledReal = Image(ImageWidth(), ImageHeight());
     if (imaginary.empty()) {
       resampler.Resample(real.data(), resampledReal.data());
     } else {
-      resampledImag = ImageF(ImageWidth(), ImageHeight());
+      resampledImag = Image(ImageWidth(), ImageHeight());
       resampler.Start();
       resampler.AddTask(real.data(), resampledReal.data());
       resampler.AddTask(imaginary.data(), resampledImag.data());
