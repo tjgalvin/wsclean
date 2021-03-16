@@ -8,7 +8,7 @@ Gridding with a-term screens
 
 To use a-term correction or combine multiple corrections, a configuration file can be provided to WSClean to set up the a-term corrections to be applied by IDG. The configuration file can be specified with ``-aterm-config <filename>``, and has a structure like this:
 
-.. code-block::
+.. code-block:: text
 
     # This is a test parset. Comments are made by starting a line with a hash symbol
     # The aterms option lists all the corrections that are made. For demonstration,
@@ -79,7 +79,7 @@ Since TEC values are interpolated over frequency with its 1/nu relation, it is n
 
 This is an example header of a aterm TEC fits file:
 
-.. code-block::
+.. code-block:: text
 
     SIMPLE  =                    T / file does conform to FITS standard
     BITPIX  =                  -32 / number of bits per data pixel

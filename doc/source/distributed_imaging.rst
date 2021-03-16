@@ -11,7 +11,7 @@ A typical run:
     
 And a host-file could look like this:
 
-.. code-block::
+.. code-block:: text
 
     node100 slots=1
     node116 slots=1

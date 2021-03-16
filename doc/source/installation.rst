@@ -125,13 +125,13 @@ The latest versions of WSClean require the `EveryBeam package <https://git.astro
 
 To have these primary beams available in WSClean, CMake needs to find the EveryBeam installation on your computer. If you have installed EveryBeam in a custom directory, you can add it to your search path. For example, if EveryBeam been installed to ``~/Software/EveryBeam-install``, this cmake command will use it:
 
-.. code-block::
+.. code-block:: bash
 
     cmake ../ -DCMAKE_PREFIX_PATH="~/Software/EveryBeam-install/"
     
 CMake will tell whether the LOFAR tree was found:
 
-.. code-block::
+.. code-block:: bash
 
     cmake ../ -DCMAKE_PREFIX_PATH="~/Software/EveryBeam-install/"
     [..]

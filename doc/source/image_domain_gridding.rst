@@ -19,13 +19,13 @@ Command-line options
 
 There are several IDG related WSClean parameters:
 
-.. code-block::
+.. code-block:: text
 
     -use-idg
     
 This option turns on the IDG gridder. If IDG is not available, WSClean will show an error.  
 
-.. code-block::
+.. code-block:: text
 
     -idg-mode [cpu/gpu/hybrid]
     
@@ -38,13 +38,13 @@ IDG allows gridding with a time-variable beam -- currently (as of 2.6), this inc
 
 In summary; IDG with full beam correction:
 
-.. code-block::
+.. code-block:: text
 
     wsclean -use-idg -grid-with-beam ...
     
 IDG with differential beam correction:    
 
-.. code-block::
+.. code-block:: text
 
     wsclean -use-idg -grid-with-beam -use-differential-lofar-beam ...
 

@@ -7,7 +7,7 @@ Since :doc:`wsclean 2.10 <changelogs/v2.10>`, chgcentre is compiled and installe
 
 Execute chgcentre without parameters to get help on the syntax:
 
-.. code-block::
+.. code-block:: text
 
     A program to change the phase centre of a measurement set.
     Written by André Offringa (offringa@gmail.com).
@@ -47,7 +47,7 @@ When a measurement set contains multiple data columns (e.g., ``DATA``, ``MODEL_D
 
 If you do not provide a new RA and dec, chgcentre will give you some info about the measurement set:
 
-.. code-block::
+.. code-block:: bash
 
     $ chgcentre myobs.ms
     A program to change the phase centre of a measurement set.
@@ -63,7 +63,7 @@ If you do not provide a new RA and dec, chgcentre will give you some info about 
 
 You can specify '``-zenith``' or '``-minw``' as option to rephase to the local array zenith or the direction orthogonal to the best-fit plane to the antennas. The latter is close to zenith, but provides slightly lower *w*-terms. This has not been tested on telescopes other than the MWA. The syntax for this is:
 
-.. code-block::
+.. code-block:: bash
 
     $ chgcentre -minw myobs.ms
 
@@ -76,7 +76,7 @@ Legacy data with ``-shiftback`` applied
 
 Before WSClean 2.11, it was possible to prepare w-snapshotting with the ``-shiftback`` option, e.g.:
 
-.. code-block::
+.. code-block:: bash
 
     $ chgcentre -minw -shiftback myobs.ms
 

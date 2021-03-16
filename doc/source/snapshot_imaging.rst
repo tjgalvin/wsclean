@@ -3,7 +3,7 @@ Snapshot imaging
 
 WSClean accepts a convenience parameter to make it easy to separate a measurement set in small snapshots and image each one separately. The parameter to do this is:
 
-.. code-block::
+.. code-block:: text
 
     -intervals-out <count>
 
