@@ -129,8 +129,21 @@ ImageT<NumT>& ImageT<NumT>::Square() {
 }
 
 template <typename NumT>
+ImageT<NumT>& ImageT<NumT>::SquareWithFactor(NumT factor) {
+  for (size_t i = 0; i != _width * _height; ++i) _data[i] *= _data[i] * factor;
+  return *this;
+}
+
+template <typename NumT>
 ImageT<NumT>& ImageT<NumT>::AddSquared(const ImageT<NumT>& rhs) {
   for (size_t i = 0; i != _width * _height; ++i) _data[i] += rhs[i] * rhs[i];
+  return *this;
+}
+
+template <typename NumT>
+ImageT<NumT>& ImageT<NumT>::AddSquared(const ImageT<NumT>& rhs, NumT factor) {
+  for (size_t i = 0; i != _width * _height; ++i)
+    _data[i] += rhs[i] * rhs[i] * factor;
   return *this;
 }
 

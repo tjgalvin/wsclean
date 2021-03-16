@@ -29,13 +29,13 @@ struct ImageSetFixtureBase {
     table.AddEntry(std::move(e));
   }
 
-  void checkLinearValue(size_t index, double value, const ImageSet& dset) {
+  void checkLinearValue(size_t index, float value, const ImageSet& dset) {
     Image dest(2, 2, 1.0);
     dset.GetLinearIntegrated(dest);
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
   }
 
-  void checkSquaredValue(size_t index, double value, const ImageSet& dset) {
+  void checkSquaredValue(size_t index, float value, const ImageSet& dset) {
     Image dest(2, 2, 1.0), scratch(2, 2);
     dset.GetSquareIntegrated(dest, scratch);
     BOOST_CHECK_CLOSE_FRACTION(dest[index], value, 1e-6);
@@ -168,6 +168,22 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_Normalization, ImageSetFixtureBase) {
   dset[1][0] = 13.0;
   checkLinearValue(0, 12.5, dset);
   checkSquaredValue(0, 12.5, dset);
+}
+
+BOOST_FIXTURE_TEST_CASE(i_2channel_NaNs, ImageSetFixtureBase) {
+  addToImageSet(table, 0, 0, 0, 0, aocommon::Polarization::StokesI, 100, 0.0);
+  addToImageSet(table, 1, 0, 1, 1, aocommon::Polarization::StokesI, 200, 1.0);
+  table.Update();
+  settings.deconvolutionChannelCount = 2;
+  settings.linkedPolarizations =
+      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
+  std::set<PolarizationEnum> pols{aocommon::Polarization::StokesI};
+  ImageSet dset(&table, settings, 2, 2);
+  dset = 0.0;
+  dset[0][0] = std::numeric_limits<float>::quiet_NaN();
+  dset[1][0] = 42.0;
+  checkLinearValue(0, 42.0f, dset);
+  checkSquaredValue(0, 42.0f, dset);
 }
 
 BOOST_FIXTURE_TEST_CASE(xxyyNormalization, ImageSetFixtureBase) {

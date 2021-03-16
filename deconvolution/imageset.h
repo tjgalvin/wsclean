@@ -194,7 +194,7 @@ class ImageSet {
 
   void squareRootMultiply(Image& image, float factor) const {
     for (size_t i = 0; i != _width * _height; ++i)
-      image[i] = sqrt(image[i]) * factor;
+      image[i] = std::sqrt(image[i]) * factor;
   }
 
   void initializeIndices();

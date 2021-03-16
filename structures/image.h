@@ -79,8 +79,10 @@ class ImageT {
 
   ImageT<NumT>& Sqrt();
   ImageT<NumT>& Square();
+  ImageT<NumT>& SquareWithFactor(NumT factor);
   ImageT<NumT>& AddWithFactor(const ImageT<NumT>& rhs, NumT factor);
   ImageT<NumT>& AddSquared(const ImageT<NumT>& rhs);
+  ImageT<NumT>& AddSquared(const ImageT<NumT>& rhs, NumT factor);
 
   void reset();
 

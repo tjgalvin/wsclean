@@ -271,26 +271,30 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
       const ImagingTable::Group& sqGroup =
           _imagingTable.SquaredGroups()[sqIndex];
       const double groupWeight = _weights[chIndex];
-      weightSum += groupWeight;
-      if (sqGroup.size() == 1) {
-        const ImagingTable::EntryPtr& entry = sqGroup.front();
-        scratch = entryToImage(entry);
-      } else {
-        const bool useAllPolarizations = _linkedPolarizations.empty();
-        bool isFirst = true;
-        for (const ImagingTable::EntryPtr& entry : sqGroup) {
-          if (useAllPolarizations ||
-              _linkedPolarizations.count(entry->polarization) != 0) {
-            if (isFirst) {
-              scratch = entryToImage(entry);
-              scratch.Square();
-              isFirst = false;
-            } else {
-              scratch.AddSquared(entryToImage(entry));
+      // if the groupWeight is zero, the image might contain NaNs, so we
+      // shouldn't add it to the total in that case.
+      if (groupWeight != 0.0) {
+        weightSum += groupWeight;
+        if (sqGroup.size() == 1) {
+          const ImagingTable::EntryPtr& entry = sqGroup.front();
+          scratch = entryToImage(entry);
+        } else {
+          const bool useAllPolarizations = _linkedPolarizations.empty();
+          bool isFirst = true;
+          for (const ImagingTable::EntryPtr& entry : sqGroup) {
+            if (useAllPolarizations ||
+                _linkedPolarizations.count(entry->polarization) != 0) {
+              if (isFirst) {
+                scratch = entryToImage(entry);
+                scratch.Square();
+                isFirst = false;
+              } else {
+                scratch.AddSquared(entryToImage(entry));
+              }
             }
           }
+          scratch.Sqrt();
         }
-        scratch.Sqrt();
       }
 
       if (chIndex == 0)
@@ -308,26 +312,30 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
 void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
   bool isFirst = true;
   const bool useAllPolarizations = _linkedPolarizations.empty();
+  double weightSum = 0.0;
   for (size_t channel = 0; channel != _channelsInDeconvolution; ++channel) {
-    // TODO this should be weighted
-    size_t sqIndex = channelToSqIndex(channel);
-    const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
-    for (const ImagingTable::EntryPtr& entry : sqGroup) {
-      if (useAllPolarizations ||
-          _linkedPolarizations.count(entry->polarization) != 0) {
-        if (isFirst) {
-          dest = entryToImage(entry);
-          dest.Square();
-          isFirst = false;
-        } else {
-          dest.AddSquared(entryToImage(entry));
+    const double groupWeight = _weights[channel];
+    weightSum += groupWeight;
+    if (groupWeight != 0.0) {
+      size_t sqIndex = channelToSqIndex(channel);
+      const ImagingTable::Group& sqGroup =
+          _imagingTable.SquaredGroups()[sqIndex];
+      for (const ImagingTable::EntryPtr& entry : sqGroup) {
+        if (useAllPolarizations ||
+            _linkedPolarizations.count(entry->polarization) != 0) {
+          if (isFirst) {
+            dest = entryToImage(entry);
+            dest.SquareWithFactor(groupWeight);
+            isFirst = false;
+          } else {
+            dest.AddSquared(entryToImage(entry), groupWeight);
+          }
         }
       }
     }
   }
-  double factor = _channelsInDeconvolution > 0
-                      ? sqrt(_polarizationNormalizationFactor) /
-                            double(_channelsInDeconvolution)
+  double factor = weightSum > 0.0
+                      ? std::sqrt(_polarizationNormalizationFactor) / weightSum
                       : 0.0;
   squareRootMultiply(dest, factor);
 }
@@ -347,15 +355,19 @@ void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
       const ImagingTable::Group& sqGroup =
           _imagingTable.SquaredGroups()[sqIndex];
       const double groupWeight = _weights[channel];
-      weightSum += groupWeight;
-      for (const ImagingTable::EntryPtr& entry : sqGroup) {
-        if (useAllPolarizations ||
-            _linkedPolarizations.count(entry->polarization) != 0) {
-          if (isFirst) {
-            assignMultiply(dest, entryToImage(entry), groupWeight);
-            isFirst = false;
-          } else {
-            dest.AddWithFactor(entryToImage(entry), groupWeight);
+      // if the groupWeight is zero, the image might contain NaNs, so we
+      // shouldn't add it to the total in that case.
+      if (groupWeight != 0.0) {
+        weightSum += groupWeight;
+        for (const ImagingTable::EntryPtr& entry : sqGroup) {
+          if (useAllPolarizations ||
+              _linkedPolarizations.count(entry->polarization) != 0) {
+            if (isFirst) {
+              assignMultiply(dest, entryToImage(entry), groupWeight);
+              isFirst = false;
+            } else {
+              dest.AddWithFactor(entryToImage(entry), groupWeight);
+            }
           }
         }
       }
