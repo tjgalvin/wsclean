@@ -103,7 +103,15 @@ endif()
 find_package(MPI)
 
 if(MPI_FOUND)
-  add_compile_options(${MPI_COMPILE_FLAGS})
+  # FindMPI in CMake >= 3.10 provides MPI_CXX_COMPILE_OPTIONS, a list that can
+  # be fed into add_compile_options(). In older versions of CMake, FindMPI 
+  # provides MPI_CXX_COMPILE_FLAGS, a white-space separated string that can be
+  # fed into add_definitions().
+  if(DEFINED MPI_CXX_COMPILE_OPTIONS)
+    add_compile_options(${MPI_CXX_COMPILE_OPTIONS})
+  else()
+    add_definitions(${MPI_CXX_COMPILE_FLAGS})
+  endif()
   add_definitions(-DHAVE_MPI)
   include_directories(SYSTEM ${MPI_INCLUDE_PATH})
   set(MPI_CPP_FILES scheduling/mpischeduler.cpp distributed/mpibig.cpp)
