@@ -202,7 +202,6 @@ class MSGridderBase : public MeasurementSetGridder {
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedResponse;
-  double _cachedTime;
 #endif
 };
 

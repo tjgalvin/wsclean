@@ -13,6 +13,7 @@
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
 #include <EveryBeam/aterms/atermconfig.h>
+#include <EveryBeam/pointresponse/phasedarraypoint.h>
 
 // Only needed for EB related options
 #include "../io/findmwacoefffile.h"
@@ -300,7 +301,6 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     _pointResponse = nullptr;
     _cachedResponse.resize(0);
   }
-  _cachedTime = std::numeric_limits<double>::min();
 #else
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     throw std::runtime_error(
@@ -429,9 +429,13 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     msProvider.ReadMeta(metaData);
-    if (metaData.time != _cachedTime) {
-      _cachedTime = metaData.time;
-      _pointResponse->UpdateTime(_cachedTime);
+    _pointResponse->UpdateTime(metaData.time);
+    if (_pointResponse->HasTimeUpdate()) {
+      if (auto phasedArray =
+              dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
+                  _pointResponse.get())) {
+        phasedArray->UpdateITRFVectors(_facetCentreRA, _facetCentreDec);
+      }
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _pointResponse->CalculateAllStations(
             &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
