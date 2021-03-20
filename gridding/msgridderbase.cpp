@@ -290,6 +290,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
 
     _telescope = everybeam::Load(*ms, options);
     _pointResponse = _telescope->GetPointResponse(msProvider.StartTime());
+    _pointResponse->SetUpdateInterval(_settings.facetBeamUpdateTime);
     _cachedResponse.resize(msData.bandData.MaxChannels() *
                            _pointResponse->GetAllStationsBufferSize());
   } else {

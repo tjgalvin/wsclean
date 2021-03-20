@@ -318,6 +318,9 @@ void CommandLine::printHelp() {
          "-apply-facet-beam\n"
          "   Apply beam gains to facet center when gridding facet based "
          "images\n"
+         "-facet-beam-update <seconds>\n"
+         "   Set the facet beam update time in seconds. The default is every "
+         "120 seconds.\n"
          "-save-aterms\n"
          "   Output a fits file for every aterm update, containing the applied "
          "image for every station.\n"
@@ -1256,6 +1259,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
+    } else if (param == "facet-beam-update") {
+      ++argi;
+      settings.facetBeamUpdateTime =
+          parse_double(argv[argi], 0.0, "facet-beam-update");
     } else if (param == "save-aterms") {
       settings.saveATerms = true;
     } else if (param == "visibility-weighting-mode") {
