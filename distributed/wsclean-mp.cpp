@@ -33,6 +33,9 @@ int main(int argc, char* argv[]) {
   std::cout << "Node " << rank << ", PID " << getpid() << " on " << hostname
             << "\n";
 
+  // During parsing of parameters, we don't want all processes to report
+  // bad parameters. This variable is used to keep track if full errors
+  // should be reported
   bool shortException = false;
   try {
     bool parseResult = false;
@@ -46,6 +49,7 @@ int main(int argc, char* argv[]) {
       Settings& settings = wsclean.GetSettings();
       settings.useMPI = true;
 
+      shortException = false;
       if (master) {
         CommandLine::Run(wsclean);
         TaskMessage message;
