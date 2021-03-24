@@ -59,15 +59,18 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
 
   _dataFile.open(partPrefix + ".tmp", std::ios::in);
   if (!_dataFile.good())
-    throw std::runtime_error("Error opening temporary data file");
+    throw std::runtime_error("Error opening temporary data file '" +
+                             partPrefix + ".tmp'");
   _dataFile.read(reinterpret_cast<char*>(&_partHeader), sizeof(PartHeader));
   if (!_dataFile.good())
-    throw std::runtime_error("Error reading header from file");
+    throw std::runtime_error("Error reading header from file '" + partPrefix +
+                             ".tmp'");
 
   if (_partHeader.hasModel) {
     _fd = open((partPrefix + "-m.tmp").c_str(), O_RDWR);
     if (_fd == -1)
-      throw std::runtime_error("Error opening temporary model data file");
+      throw std::runtime_error("Error opening temporary model data file '" +
+                               partPrefix + "-m.tmp'");
     size_t length = _partHeader.channelCount * _metaHeader.selectedRowCount *
                     _polarizationCountInFile * sizeof(std::complex<float>);
     if (length == 0)
@@ -89,7 +92,8 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
 
   _weightFile.open(partPrefix + "-w.tmp", std::ios::in);
   if (!_weightFile.good())
-    throw std::runtime_error("Error opening temporary data file");
+    throw std::runtime_error("Error opening temporary data weight file '" +
+                             partPrefix + "-w.tmp'");
   _weightBuffer.resize(_partHeader.channelCount * _polarizationCountInFile);
   _modelBuffer.resize(_partHeader.channelCount * _polarizationCountInFile);
 }
