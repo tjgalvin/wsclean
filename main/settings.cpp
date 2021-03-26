@@ -205,6 +205,17 @@ void Settings::checkPolarizations() const {
 void Settings::Propagate(bool verbose) {
   if (verbose) logImportantSettings();
 
+  if (trimmedImageWidth % 2 != 0) {
+    ++trimmedImageWidth;
+    Logger::Warn << "Image width is not divisable by two: changing width to "
+                 << trimmedImageWidth << '\n';
+  }
+  if (trimmedImageHeight % 2 != 0) {
+    ++trimmedImageHeight;
+    Logger::Warn << "Image height is not divisable by two: changing height to "
+                 << trimmedImageHeight << '\n';
+  }
+
   // When using IDG with aterms, a PSF must be made, because the beam
   // image is created during the PSF imaging stage.
   if (useIDG && (!atermConfigFilename.empty() || gridWithBeam)) {
