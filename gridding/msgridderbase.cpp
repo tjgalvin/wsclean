@@ -392,6 +392,11 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     SetActualWGridSize(WGridSize());
 }
 
+void MSGridderBase::writeVisibilities(MSProvider& msProvider, size_t rowId,
+                                      const std::complex<float>* buffer) const {
+  msProvider.WriteModel(rowId, buffer);
+}
+
 template <size_t PolarizationCount>
 void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
                                               InversionRow& rowData,

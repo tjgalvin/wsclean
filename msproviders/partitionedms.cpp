@@ -212,7 +212,8 @@ void PartitionedMS::ReadModel(std::complex<float>* buffer) {
          _modelFileMap + rowLength * _currentRow, rowLength);
 }
 
-void PartitionedMS::WriteModel(size_t rowId, std::complex<float>* buffer) {
+void PartitionedMS::WriteModel(size_t rowId,
+                               const std::complex<float>* buffer) {
 #ifdef REDUNDANT_VALIDATION
   if (!_partHeader.hasModel)
     throw std::runtime_error("Partitioned MS initialized without model");

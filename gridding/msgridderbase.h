@@ -155,6 +155,13 @@ class MSGridderBase : public MeasurementSetGridder {
                                  std::complex<float>* modelBuffer,
                                  const bool* isSelected);
 
+  /**
+   * @brief Write (modelled) visibilities to MS, provides an interface to
+   * MSProvider::WriteModel()
+   */
+  void writeVisibilities(MSProvider& msProvider, size_t rowId,
+                         const std::complex<float>* buffer) const;
+
   double _maxW, _minW;
   double _theoreticalBeamSize;
   size_t _actualInversionWidth, _actualInversionHeight;

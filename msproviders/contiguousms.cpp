@@ -227,7 +227,7 @@ void ContiguousMS::ReadModel(std::complex<float>* buffer) {
            _polOut);
 }
 
-void ContiguousMS::WriteModel(size_t rowId, std::complex<float>* buffer) {
+void ContiguousMS::WriteModel(size_t rowId, const std::complex<float>* buffer) {
   if (!_isModelColumnPrepared) prepareModelColumn();
 
   size_t msRowId = _idToMSRow[rowId];

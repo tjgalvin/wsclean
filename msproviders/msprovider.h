@@ -60,7 +60,7 @@ class MSProvider {
 
   virtual void ReadModel(std::complex<float>* buffer) = 0;
 
-  virtual void WriteModel(size_t rowId, std::complex<float>* buffer) = 0;
+  virtual void WriteModel(size_t rowId, const std::complex<float>* buffer) = 0;
 
   virtual void WriteImagingWeights(size_t rowId, const float* buffer) = 0;
 

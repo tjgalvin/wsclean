@@ -161,8 +161,8 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
-        msData.msProvider->WriteModel(row + totalNRows,
-                                      &visBuffer[row * band.ChannelCount()]);
+        writeVisibilities(*(msData.msProvider), row + totalNRows,
+                          &visBuffer[row * band.ChannelCount()]);
       }
       totalNRows += nRows;
     }  // end of chunk

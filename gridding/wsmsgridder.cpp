@@ -326,7 +326,8 @@ void WSMSGridder::predictWriteThread(
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
   PredictionWorkItem workItem;
   while (buffer.read(workItem)) {
-    msData->msProvider->WriteModel(workItem.rowId, workItem.data.get());
+    writeVisibilities(*(msData->msProvider), workItem.rowId,
+                      workItem.data.get());
   }
 }
 

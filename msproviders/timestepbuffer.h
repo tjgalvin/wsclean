@@ -62,7 +62,8 @@ class TimestepBuffer final : public MSProvider {
               _buffer[_bufferPosition].model.end(), buffer);
   }
 
-  virtual void WriteModel(size_t rowId, std::complex<float>* buffer) override {
+  virtual void WriteModel(size_t rowId,
+                          const std::complex<float>* buffer) override {
     _msProvider->WriteModel(rowId, buffer);
   }
 

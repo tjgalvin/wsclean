@@ -408,7 +408,7 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   for (auto i : available_row_ids) {
-    _outputProvider->WriteModel(i.first, i.second);
+    writeVisibilities(*_outputProvider, i.first, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();
