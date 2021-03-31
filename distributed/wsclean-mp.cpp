@@ -50,8 +50,11 @@ int main(int argc, char* argv[]) {
         CommandLine::Run(wsclean);
         TaskMessage message;
         message.type = TaskMessage::Finish;
+        message.bodySize = 0;
+        aocommon::SerialOStream msgStream;
+        message.Serialize(msgStream);
         for (int i = 1; i != world_size; ++i) {
-          MPI_Send(&message, sizeof(TaskMessage), MPI_BYTE, i, 0,
+          MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, i, 0,
                    MPI_COMM_WORLD);
         }
       } else {

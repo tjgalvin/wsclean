@@ -81,3 +81,6 @@ then
 else
     wsclean -name nfacets-XX_YY-facet-beam -apply-facet-beam -pol XX,YY -facet-regions ${facetfile_nfacets} ${rectdims} -mwa-path ${mwa_path} ${ms}
 fi
+
+# MPI
+mpirun wsclean-mp -name mpi ${rectdims} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required ${ms}
