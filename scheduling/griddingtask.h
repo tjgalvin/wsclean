@@ -37,7 +37,7 @@ class GriddingTask {
   Image modelImageImaginary;
   ObservationInfo observationInfo;
 
-  const schaapcommon::facets::Facet* facet;
+  const schaapcommon::facets::Facet* facet = nullptr;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
