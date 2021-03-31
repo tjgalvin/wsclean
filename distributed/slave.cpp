@@ -13,12 +13,17 @@
 
 #include <mpi.h>
 
+#include <cassert>
+
 void Slave::Run() {
   TaskMessage message;
   do {
     MPI_Status status;
-    MPI_Recv(&message, sizeof(TaskMessage), MPI_BYTE, 0, 0, MPI_COMM_WORLD,
-             &status);
+    aocommon::UVector<unsigned char> buffer(TaskMessage::kSerializedSize);
+    MPI_Recv(buffer.data(), TaskMessage::kSerializedSize, MPI_BYTE, 0, 0,
+             MPI_COMM_WORLD, &status);
+    aocommon::SerialIStream stream(std::move(buffer));
+    message.Unserialize(stream);
 
     switch (message.type) {
       case TaskMessage::GriddingRequest:
@@ -54,6 +59,11 @@ void Slave::grid(size_t bodySize) {
   TaskMessage message;
   message.type = TaskMessage::GriddingResult;
   message.bodySize = resStream.size();
-  MPI_Send(&message, sizeof(TaskMessage), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+
+  aocommon::SerialOStream msgStream;
+  message.Serialize(msgStream);
+  assert(msgStream.size() == TaskMessage::kSerializedSize);
+
+  MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
   MPI_Send_Big(resStream.data(), resStream.size(), 0, 0, MPI_COMM_WORLD);
 }

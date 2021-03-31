@@ -12,6 +12,8 @@
 
 #include <mpi.h>
 
+#include <cassert>
+
 MPIScheduler::MPIScheduler(const class Settings &settings)
     : GriddingTaskManager(settings), _isRunning(false), _isSendFinished(false) {
   int world_size;
@@ -96,16 +98,23 @@ void MPIScheduler::sendLoop() {
       _workThread = std::thread(&MPIScheduler::node0gridder, this,
                                 std::move(taskPair.first));
     } else {
-      aocommon::SerialOStream stream;
+      aocommon::SerialOStream payloadStream;
       // To use MPI_Send_Big, a uint64_t need to be reserved
-      stream.UInt64(0);
-      task.Serialize(stream);
+      payloadStream.UInt64(0);
+      task.Serialize(payloadStream);
+
       TaskMessage message;
       message.type = TaskMessage::GriddingRequest;
-      message.bodySize = stream.size();
-      MPI_Send(&message, sizeof(TaskMessage), MPI_BYTE, node, 0,
-               MPI_COMM_WORLD);
-      MPI_Send_Big(stream.data(), stream.size(), node, 0, MPI_COMM_WORLD);
+      message.bodySize = payloadStream.size();
+
+      aocommon::SerialOStream taskMessageStream;
+      message.Serialize(taskMessageStream);
+      assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
+
+      MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
+               node, 0, MPI_COMM_WORLD);
+      MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
+                   MPI_COMM_WORLD);
     }
   }
 
@@ -142,18 +151,22 @@ void MPIScheduler::receiveLoop() {
 
       TaskMessage message;
       MPI_Status status;
-      MPI_Recv(&message, sizeof(TaskMessage), MPI_BYTE, MPI_ANY_SOURCE, 0,
-               MPI_COMM_WORLD, &status);
+      aocommon::UVector<unsigned char> buffer(TaskMessage::kSerializedSize);
+      MPI_Recv(buffer.data(), TaskMessage::kSerializedSize, MPI_BYTE,
+               MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+      aocommon::SerialIStream stream(std::move(buffer));
+      message.Unserialize(stream);
+
       int node = status.MPI_SOURCE;
       if (message.type != TaskMessage::GriddingResult)
         throw std::runtime_error("Invalid message sent by node " +
                                  std::to_string(node));
 
-      aocommon::UVector<unsigned char> buffer(message.bodySize);
+      buffer.resize(message.bodySize);
       MPI_Recv_Big(buffer.data(), message.bodySize, node, 0, MPI_COMM_WORLD,
                    &status);
       GriddingResult result;
-      aocommon::SerialIStream stream(std::move(buffer));
+      stream = aocommon::SerialIStream(std::move(buffer));
       stream.UInt64();  // storage for MPI_Recv_Big
       result.Unserialize(stream);
 
