@@ -26,10 +26,20 @@ std::string System::FindPythonFilePath(const std::string& filename) {
           "sys.path:\n  print(a)\"|python>") +
       tempFilename;
   int status = system(command.c_str());
+  if (status != 0) {
+    // retry with python3
+    command = std::string(
+                  "echo \"from __future__ import print_function\nimport "
+                  "sys\nfor a in "
+                  "sys.path:\n  print(a)\"|python3>") +
+              tempFilename;
+    status = system(command.c_str());
+  }
   if (status != 0)
     throw std::runtime_error(
         "system() returned non-zero error code: might be out of memory, or "
-        "python might not be working properly");
+        "python might not be working properly.\nCommand was:\n" +
+        command);
   std::ifstream searchPathsFile(tempFilename.c_str());
   if (!searchPathsFile.good())
     throw std::runtime_error(("Error in findPythonFilePath: system call did "
