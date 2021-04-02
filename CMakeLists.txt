@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.8)
+cmake_minimum_required(VERSION 3.3)
 
 project(wsclean)
 
@@ -36,9 +36,19 @@ else()
   set(WGRIDDER_FILES)
 endif()
 
-if(NOT PORTABLE)
-  add_compile_options(-march=native)
-endif(NOT PORTABLE)
+if(PORTABLE)
+  if(DEFINED TARGET_CPU)
+    message(WARNING "You have selected to build PORTABLE binaries. "
+                    "TARGET_CPU settings will be ignored.")
+    unset(TARGET_CPU CACHE)
+  endif()
+else()
+  if(DEFINED TARGET_CPU)
+    add_compile_options(-march=${TARGET_CPU})
+  else()
+    add_compile_options(-march=native)
+  endif()
+endif()
 
 # Find and include git submodules
 find_package(Git QUIET)
