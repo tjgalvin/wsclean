@@ -4,6 +4,8 @@
 
 #include "../io/logger.h"
 
+#include "../main/settings.h"
+
 #include "../distributed/mpibig.h"
 #include "../distributed/taskmessage.h"
 
@@ -14,14 +16,18 @@
 
 #include <cassert>
 
-MPIScheduler::MPIScheduler(const class Settings &settings)
-    : GriddingTaskManager(settings), _isRunning(false), _isSendFinished(false) {
+MPIScheduler::MPIScheduler(const Settings &settings)
+    : GriddingTaskManager(settings),
+      _masterDoesWork(settings.masterDoesWork),
+      _isRunning(false) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   _nodes.assign(
       world_size,
       std::make_pair(AvailableNode, std::function<void(GriddingResult &)>()));
-  _taskList.resize(world_size);
+  if (!settings.masterDoesWork && world_size <= 1)
+    throw std::runtime_error(
+        "Master was told not to work, but no other workers available");
 }
 
 MPIScheduler::~MPIScheduler() { Finish(); }
@@ -29,25 +35,15 @@ MPIScheduler::~MPIScheduler() { Finish(); }
 void MPIScheduler::Run(GriddingTask &&task,
                        std::function<void(GriddingResult &)> finishCallback) {
   if (!_isRunning) {
-    _taskList.clear();
-    _isSendFinished = false;
     _isFinishing = false;
-    _sendThread = std::thread([&]() { sendLoop(); });
     if (_nodes.size() > 1)
       _receiveThread = std::thread([&]() { receiveLoop(); });
     _isRunning = true;
   }
-  _taskList.write(
-      std::pair<GriddingTask, std::function<void(GriddingResult &)>>(
-          std::move(task), finishCallback));
+  send(std::move(task), finishCallback);
 
-  std::unique_lock<std::mutex> lock(_mutex);
-  while (!_readyList.empty()) {
-    // Call callbacks for any finished tasks
-    _readyList.back().second(_readyList.back().first);
-    _readyList.pop_back();
-  }
-  lock.unlock();
+  std::lock_guard<std::mutex> lock(_mutex);
+  processReadyList_UNSYNCHRONIZED();
 }
 
 void MPIScheduler::Finish() {
@@ -56,27 +52,34 @@ void MPIScheduler::Finish() {
     std::unique_lock<std::mutex> lock(_mutex);
     _isFinishing = true;
     _notify.notify_all();
-    lock.unlock();
 
-    _taskList.write_end();
-    _sendThread.join();
-    if (_nodes.size() > 1) _receiveThread.join();
-    if (_workThread.joinable()) _workThread.join();
-    _taskList.clear();
-
-    while (!_readyList.empty()) {
-      // Call callbacks for any finished tasks
-      _readyList.back().second(_readyList.back().first);
-      _readyList.pop_back();
+    // As long as receive tasks are running, wait and keep processing
+    // the ready list
+    processReadyList_UNSYNCHRONIZED();
+    while (receiveTasksAreRunning_UNSYNCHRONIZED()) {
+      _notify.wait(lock);
+      processReadyList_UNSYNCHRONIZED();
     }
 
+    lock.unlock();
+
+    if (_nodes.size() > 1) _receiveThread.join();
+
+    if (_workThread.joinable()) _workThread.join();
     _isRunning = false;
+
+    // The while loop above ignores the work thread, which might
+    // be gridding on the master node. Therefore, the master thread
+    // might have added an item to the ready list. Therefore,
+    // the ready list should once more be processed.
+    // A lock is no longer required, because all threads have stopped.
+    processReadyList_UNSYNCHRONIZED();
   }
 }
 
-void MPIScheduler::node0gridder(GriddingTask task) {
+void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
   GriddingResult result = RunDirect(std::move(task));
-  Logger::Info << "Master node is done gridding.\n";
+  Logger::Info << "Master node has finished a gridding task.\n";
   std::unique_lock<std::mutex> lock(_mutex);
   _readyList.emplace_back(std::move(result), _nodes[0].second);
   _nodes[0].first = AvailableNode;
@@ -84,43 +87,35 @@ void MPIScheduler::node0gridder(GriddingTask task) {
   _notify.notify_all();
 }
 
-void MPIScheduler::sendLoop() {
-  std::pair<GriddingTask, std::function<void(GriddingResult &)>> taskPair;
-  while (_taskList.read(taskPair)) {
-    const GriddingTask &task = taskPair.first;
+void MPIScheduler::send(GriddingTask &&task,
+                        const std::function<void(GriddingResult &)> &callback) {
+  int node =
+      findAndSetNodeState(AvailableNode, std::make_pair(BusyNode, callback));
+  Logger::Info << "Sending gridding task to node : " << node << '\n';
 
-    int node = findAndSetNodeState(AvailableNode,
-                                   std::make_pair(BusyNode, taskPair.second));
-    Logger::Info << "Sending gridding task to : " << node << '\n';
+  if (node == 0) {
+    if (_workThread.joinable()) _workThread.join();
+    _workThread =
+        std::thread(&MPIScheduler::runTaskOnNode0, this, std::move(task));
+  } else {
+    aocommon::SerialOStream payloadStream;
+    // To use MPI_Send_Big, a uint64_t need to be reserved
+    payloadStream.UInt64(0);
+    task.Serialize(payloadStream);
 
-    if (node == 0) {
-      if (_workThread.joinable()) _workThread.join();
-      _workThread = std::thread(&MPIScheduler::node0gridder, this,
-                                std::move(taskPair.first));
-    } else {
-      aocommon::SerialOStream payloadStream;
-      // To use MPI_Send_Big, a uint64_t need to be reserved
-      payloadStream.UInt64(0);
-      task.Serialize(payloadStream);
+    TaskMessage message;
+    message.type = TaskMessage::GriddingRequest;
+    message.bodySize = payloadStream.size();
 
-      TaskMessage message;
-      message.type = TaskMessage::GriddingRequest;
-      message.bodySize = payloadStream.size();
+    aocommon::SerialOStream taskMessageStream;
+    message.Serialize(taskMessageStream);
+    assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
 
-      aocommon::SerialOStream taskMessageStream;
-      message.Serialize(taskMessageStream);
-      assert(taskMessageStream.size() == TaskMessage::kSerializedSize);
-
-      MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE,
-               node, 0, MPI_COMM_WORLD);
-      MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
-                   MPI_COMM_WORLD);
-    }
+    MPI_Send(taskMessageStream.data(), taskMessageStream.size(), MPI_BYTE, node,
+             0, MPI_COMM_WORLD);
+    MPI_Send_Big(payloadStream.data(), payloadStream.size(), node, 0,
+                 MPI_COMM_WORLD);
   }
-
-  std::unique_lock<std::mutex> lock(_mutex);
-  _isSendFinished = true;
-  _notify.notify_all();
 }
 
 int MPIScheduler::findAndSetNodeState(
@@ -129,11 +124,12 @@ int MPIScheduler::findAndSetNodeState(
         newState) {
   std::unique_lock<std::mutex> lock(_mutex);
   do {
-    for (size_t i = 0; i != _nodes.size(); ++i) {
-      int node = _nodes.size() - i - 1;
+    size_t iterEnd = _masterDoesWork ? _nodes.size() : _nodes.size() - 1;
+    for (size_t i = 0; i != iterEnd; ++i) {
+      const int node = _nodes.size() - i - 1;
       if (_nodes[node].first == currentState) {
-        _notify.notify_all();
         _nodes[node] = newState;
+        _notify.notify_all();
         return node;
       }
     }
@@ -143,8 +139,8 @@ int MPIScheduler::findAndSetNodeState(
 
 void MPIScheduler::receiveLoop() {
   std::unique_lock<std::mutex> lock(_mutex);
-  while (!_isFinishing || anyReceiveTasks_NeedLock()) {
-    if (!anyReceiveTasks_NeedLock()) {
+  while (!_isFinishing || receiveTasksAreRunning_UNSYNCHRONIZED()) {
+    if (!receiveTasksAreRunning_UNSYNCHRONIZED()) {
       _notify.wait(lock);
     } else {
       lock.unlock();
@@ -180,11 +176,18 @@ void MPIScheduler::receiveLoop() {
       lock.lock();
     }
   }
-  Logger::Info << "Receive loop finished.\n";
+  Logger::Info << "All worker nodes have finished their gridding tasks.\n";
 }
 
-bool MPIScheduler::anyReceiveTasks_NeedLock() {
-  if (!_isSendFinished) return true;
+void MPIScheduler::processReadyList_UNSYNCHRONIZED() {
+  while (!_readyList.empty()) {
+    // Call the callback for this finished task
+    _readyList.back().second(_readyList.back().first);
+    _readyList.pop_back();
+  }
+}
+
+bool MPIScheduler::receiveTasksAreRunning_UNSYNCHRONIZED() {
   for (size_t i = 1; i != _nodes.size(); ++i)
     if (_nodes[i].first == BusyNode) return true;
   return false;

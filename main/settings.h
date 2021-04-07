@@ -56,7 +56,7 @@ class Settings {
   double nWLayersFactor;
   size_t antialiasingKernelSize, overSamplingFactor, threadCount,
       parallelReordering, parallelGridding;
-  bool useMPI;
+  bool useMPI, masterDoesWork;
   std::vector<size_t> fieldIds;
   size_t startTimestep, endTimestep;
   size_t startChannel, endChannel;
@@ -221,6 +221,7 @@ inline Settings::Settings()
       parallelReordering(1),
       parallelGridding(1),
       useMPI(false),
+      masterDoesWork(true),
       fieldIds{0},
       startTimestep(0),
       endTimestep(0),

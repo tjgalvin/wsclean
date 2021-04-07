@@ -1209,6 +1209,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "parallel-gridding") {
       ++argi;
       settings.parallelGridding = parse_size_t(argv[argi], "parallel-gridding");
+    } else if (param == "no-work-on-master") {
+      settings.masterDoesWork = false;
     } else if (param == "mem") {
       ++argi;
       settings.memFraction =
