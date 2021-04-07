@@ -25,27 +25,49 @@ class GriddingTaskManager {
  public:
   virtual ~GriddingTaskManager();
 
+  /**
+   * Add the given task to the queue of tasks to be run. After finishing
+   * the task, the callback is called with the results. The callback will
+   * always run in the thread of the caller.
+   * Depending on the type of gridding task manager, this call might block.
+   *
+   * This implementation runs the task directly and blocks until done.
+   */
   virtual void Run(GriddingTask&& task,
                    std::function<void(GriddingResult&)> finishCallback);
 
-  GriddingResult RunDirect(GriddingTask&& task);
-
+  /**
+   * Block until all tasks have finished.
+   */
   virtual void Finish(){};
 
+  /**
+   * Run the given task. This variant of Run() does not call a
+   * callback function when finished. A gridder is created for
+   * the duration of the call.
+   */
+  GriddingResult RunDirect(GriddingTask&& task);
+
+  /**
+   * Make the gridding task manager according to the settings.
+   */
   static std::unique_ptr<GriddingTaskManager> Make(
       const class Settings& settings, bool useDirectScheduler = false);
 
  protected:
-  const class Settings& _settings;
-
   GriddingTaskManager(const class Settings& settings);
 
-  std::unique_ptr<MSGridderBase> createGridder() const;
-  void prepareGridder(MSGridderBase& gridder);
+  const class Settings& _settings;
+
+  std::unique_ptr<MSGridderBase> makeGridder() const;
+
+  /**
+   * Run the provided task with the specified gridder.
+   */
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
  private:
-  std::unique_ptr<MSGridderBase> _gridder;
+  std::unique_ptr<MSGridderBase> constructGridder() const;
 };
 
 #endif

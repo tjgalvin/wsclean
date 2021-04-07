@@ -38,62 +38,15 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
   }
 }
 
-std::unique_ptr<MSGridderBase> GriddingTaskManager::createGridder() const {
-  if (_settings.useIDG) {
-    return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
-  } else if (_settings.useWGridder) {
-#ifdef HAVE_WGRIDDER
-    return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
-#else
-    throw std::runtime_error(
-        "WGridder cannot be used: WGridder requires a C++17 compiler, which "
-        "was not found during compilation. Update your compiler and recompile "
-        "wsclean.");
-#endif
-  } else if (_settings.directFT) {
-    switch (_settings.directFTPrecision) {
-      case DirectFTPrecision::Half:
-        throw std::runtime_error("Half precision is not implemented");
-        // return std::unique_ptr<MSGridderBase>(new
-        // DirectMSGridder<half_float::half>(&_imageAllocator,
-        // _settings.threadCount));
-        break;
-      case DirectFTPrecision::Float:
-        return std::unique_ptr<MSGridderBase>(
-            new DirectMSGridder<float>(_settings));
-        break;
-      default:
-      case DirectFTPrecision::Double:
-        return std::unique_ptr<MSGridderBase>(
-            new DirectMSGridder<double>(_settings));
-        break;
-      case DirectFTPrecision::LongDouble:
-        return std::unique_ptr<MSGridderBase>(
-            new DirectMSGridder<long double>(_settings));
-        break;
-    }
-  } else
-    return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings));
-}
-
 void GriddingTaskManager::Run(
     GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
-  if (!_gridder) {
-    _gridder = createGridder();
-    prepareGridder(*_gridder);
-  }
-
-  GriddingResult result = runDirect(std::move(task), *_gridder);
+  GriddingResult result = RunDirect(std::move(task));
   finishCallback(result);
 }
 
 GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
-  if (!_gridder) {
-    _gridder = createGridder();
-    prepareGridder(*_gridder);
-  }
-
-  return runDirect(std::move(task), *_gridder);
+  std::unique_ptr<MSGridderBase> gridder(makeGridder());
+  return runDirect(std::move(task), *gridder);
 }
 
 GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
@@ -163,22 +116,62 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   return result;
 }
 
-void GriddingTaskManager::prepareGridder(MSGridderBase& gridder) {
-  gridder.SetGridMode(_settings.gridMode);
-  gridder.SetNWSize(_settings.widthForNWCalculation,
-                    _settings.heightForNWCalculation);
-  gridder.SetNWFactor(_settings.nWLayersFactor);
-  gridder.SetPixelSizeX(_settings.pixelScaleX);
-  gridder.SetPixelSizeY(_settings.pixelScaleY);
+std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
+  if (_settings.useIDG) {
+    return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
+  } else if (_settings.useWGridder) {
+#ifdef HAVE_WGRIDDER
+    return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
+#else
+    throw std::runtime_error(
+        "WGridder cannot be used: WGridder requires a C++17 compiler, which "
+        "was not found during compilation. Update your compiler and recompile "
+        "wsclean.");
+#endif
+  } else if (_settings.directFT) {
+    switch (_settings.directFTPrecision) {
+      case DirectFTPrecision::Half:
+        throw std::runtime_error("Half precision is not implemented");
+        // return std::unique_ptr<MSGridderBase>(new
+        // DirectMSGridder<half_float::half>(&_imageAllocator,
+        // _settings.threadCount));
+        break;
+      case DirectFTPrecision::Float:
+        return std::unique_ptr<MSGridderBase>(
+            new DirectMSGridder<float>(_settings));
+        break;
+      default:
+      case DirectFTPrecision::Double:
+        return std::unique_ptr<MSGridderBase>(
+            new DirectMSGridder<double>(_settings));
+        break;
+      case DirectFTPrecision::LongDouble:
+        return std::unique_ptr<MSGridderBase>(
+            new DirectMSGridder<long double>(_settings));
+        break;
+    }
+  } else
+    return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings));
+}
+
+std::unique_ptr<MSGridderBase> GriddingTaskManager::makeGridder() const {
+  std::unique_ptr<MSGridderBase> gridder(constructGridder());
+  gridder->SetGridMode(_settings.gridMode);
+  gridder->SetNWSize(_settings.widthForNWCalculation,
+                     _settings.heightForNWCalculation);
+  gridder->SetNWFactor(_settings.nWLayersFactor);
+  gridder->SetPixelSizeX(_settings.pixelScaleX);
+  gridder->SetPixelSizeY(_settings.pixelScaleY);
   if (_settings.nWLayers != 0)
-    gridder.SetWGridSize(_settings.nWLayers);
+    gridder->SetWGridSize(_settings.nWLayers);
   else
-    gridder.SetNoWGridSize();
-  gridder.SetAntialiasingKernelSize(_settings.antialiasingKernelSize);
-  gridder.SetOverSamplingFactor(_settings.overSamplingFactor);
-  gridder.SetDataColumnName(_settings.dataColumnName);
-  gridder.SetWeighting(_settings.weightMode);
-  gridder.SetWLimit(_settings.wLimit / 100.0);
-  gridder.SetSmallInversion(_settings.smallInversion);
-  gridder.SetVisibilityWeightingMode(_settings.visibilityWeightingMode);
+    gridder->SetNoWGridSize();
+  gridder->SetAntialiasingKernelSize(_settings.antialiasingKernelSize);
+  gridder->SetOverSamplingFactor(_settings.overSamplingFactor);
+  gridder->SetDataColumnName(_settings.dataColumnName);
+  gridder->SetWeighting(_settings.weightMode);
+  gridder->SetWLimit(_settings.wLimit / 100.0);
+  gridder->SetSmallInversion(_settings.smallInversion);
+  gridder->SetVisibilityWeightingMode(_settings.visibilityWeightingMode);
+  return gridder;
 }
