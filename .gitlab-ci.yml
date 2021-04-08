@@ -3,11 +3,12 @@ image: ubuntu:20.04
 stages:
  - format
  - build
+ - test
 
 before_script:
- - apt-get update -qq
- - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq
-    casacore-data casacore-dev
+  - apt-get update -qq
+  - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq
+    casacore-data casacore-dev casacore-tools
     cmake
     g++
     git
@@ -63,3 +64,15 @@ build-with-everybeam:
     - make
     - make install
     - make check
+
+# Testing job is pretty inefficient, since we can't reuse the image from
+# an earlier job. Hence, this job should be triggered manually
+testing:
+  stage: test
+  when: manual
+  script:
+    - which taql
+    - mkdir build
+    - cd build
+    - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
+    - make -j20 checksystem

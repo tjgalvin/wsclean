@@ -44,6 +44,13 @@ class WSClean {
 
   void RunClean();
 
+  /**
+   * Entry point for performing a single prediction for an existing model image.
+   *
+   * In case of a facet-based prediction, the provided model images are assumed
+   * to have the same size, so that the image size of the full image can be
+   * inferred from the first entry in the _imagingTable in an early stage.
+   */
   void RunPredict();
 
  private:
@@ -52,7 +59,7 @@ class WSClean {
   void saveRestoredImagesForGroup(
       const ImagingTableEntry& tableEntry,
       std::unique_ptr<class PrimaryBeam>& primaryBeam) const;
-  void predictGroup(const ImagingTable::Group& imagingGroup);
+  void predictGroup(const ImagingTable& groupTable);
 
   void runFirstInversion(ImagingTableEntry& entry,
                          std::unique_ptr<class PrimaryBeam>& primaryBeam);
@@ -102,6 +109,12 @@ class WSClean {
    */
   void initializeModelImages(const ImagingTableEntry& entry);
   void readExistingModelImages(const ImagingTableEntry& entry);
+  /**
+   * Override the image settings given a FitsReader object.
+   * The boolean return value indicates whether the gridder needs
+   * to be reset.
+   */
+  bool overrideImageSettings(const FitsReader& reader);
   GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
   void loadExistingPSF(ImagingTableEntry& entry);
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
@@ -141,6 +154,17 @@ class WSClean {
                          CachedImageSet& imageCache, bool writeDirty,
                          bool isPSF, Image& fullImage,
                          schaapcommon::facets::FacetImage& facetImage);
+  /**
+   * Partition model image into facets and save them into fits files
+   */
+  void partitionModelIntoFacets(const ImagingTable& table);
+
+  /**
+   * Partition image into facets for a single (Facet)Group
+   */
+  void partitionSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
+                            CachedImageSet& imageCache, const Image& fullImage,
+                            schaapcommon::facets::FacetImage& facetImage);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;

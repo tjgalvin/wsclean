@@ -1,0 +1,10 @@
+# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1
+fk5
+
+# Empty facets (i.e. not containing any sources). Uncomment for testing purposes
+#polygon(136.57391,-42.28248,135.19495,-33.92060,126.72523,-34.33201,123.51258,-41.95923,124.81509,-43.19541)
+#polygon(113.88908,-40.68386,111.84839,-50.54108,122.99107,-51.26911,124.81509,-43.19541,123.51258,-41.95923)
+#polygon(122.99107,-51.26911,138.35118,-50.51799,136.57391,-42.28248,124.81509,-43.19541)
+# Facet containing the three point sources
+polygon(126.72523,-34.33201,114.95970,-33.93339,113.88908,-40.68386,123.51258,-41.95923)
