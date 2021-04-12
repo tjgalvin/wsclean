@@ -39,11 +39,11 @@ class PrimaryBeam {
     PrimaryBeamImageSet beamImages = load(imageName, _settings);
     if (_settings.polarizations.size() == 1 &&
         *_settings.polarizations.begin() == aocommon::Polarization::StokesI) {
-      beamImages.ApplyStokesI(images[0]);
+      beamImages.ApplyStokesI(images[0], _settings.primaryBeamLimit);
     } else if (_settings.polarizations.size() == 4 &&
                aocommon::Polarization::HasFullStokesPolarization(
                    _settings.polarizations)) {
-      beamImages.ApplyFullStokes(images.data());
+      beamImages.ApplyFullStokes(images.data(), _settings.primaryBeamLimit);
     }
   }
 

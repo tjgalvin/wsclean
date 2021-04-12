@@ -14,6 +14,14 @@ Supported telescopes
 
 Primary beams are calculated using the EveryBeam library. This library, which was originally part of WSClean, supports numerous telescopes. See the `EveryBeam README <https://git.astron.nl/RD/EveryBeam/-/blob/master/README.md>`_ for a list of supported instruments. The EveryBeam will automatically determine what instrument is associated with the measurement set, and use the right beam (if available).
 
+
+Beam sensitivity limit
+----------------------
+
+By default, WSClean will clip the primary-beam-corrected image for which the response is smaller than 0.5%. This can be modified with the ``-primary-beam-limit`` parameter.
+
+The reason for clearing pixels with low response is that the primary beam may have nulls or almost-nulls in them, and because the image is divided by those value, they may cause numerical issues. The non-primary-beam-corrected images will not be clipped, and can be inspected to analyze the full imaged area. The clipping can be turned off by setting ``-primary-beam-limit 0``.
+
 LOFAR specifics
 ---------------
 

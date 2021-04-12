@@ -146,7 +146,10 @@ class PrimaryBeamImageSet {
     return *this;
   }
 
-  void ApplyStokesI(float* stokesI) const {
+  void ApplyStokesI(float* stokesI, double beam_limit) const {
+    // The beam will be compared to a squared quantity (matrix norm), so square
+    // it:
+    beam_limit = beam_limit * beam_limit;
     if (_beamImages.size() == 8) {
       // If Iu is uncorrected and Ic is corrected:
       // Iu = B Ic B^*
@@ -181,10 +184,15 @@ class PrimaryBeamImageSet {
              _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
              _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
              _beamImages[15][j]});
-        if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
-        aocommon::Vector4 v{stokesI[j] * 0.5, 0.0, 0.0, stokesI[j] * 0.5};
-        v = beam * v;
-        stokesI[j] = v[0].real() + v[3].real();
+        if (beam.Norm() > beam_limit) {
+          if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
+          const float factor = stokesI[j] * 0.5;
+          aocommon::Vector4 v{factor, 0.0, 0.0, factor};
+          v = beam * v;
+          stokesI[j] = v[0].real() + v[3].real();
+        } else {
+          stokesI[j] = std::numeric_limits<float>::quiet_NaN();
+        }
       }
     } else {
       throw std::runtime_error(
@@ -192,7 +200,10 @@ class PrimaryBeamImageSet {
     }
   }
 
-  void ApplyFullStokes(float* images[4]) const {
+  void ApplyFullStokes(float* images[4], double beam_limit) const {
+    // The beam will be compared to a squared quantity (matrix norm), so square
+    // it:
+    beam_limit = beam_limit * beam_limit;
     size_t size = _width * _height;
     if (_beamImages.size() == 8) {
       for (size_t j = 0; j != size; ++j) {
@@ -224,14 +235,19 @@ class PrimaryBeamImageSet {
              _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
              _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
              _beamImages[15][j]});
-        if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
-        double stokesVal[4] = {images[0][j], images[1][j], images[2][j],
-                               images[3][j]};
-        aocommon::Vector4 v;
-        aocommon::Polarization::StokesToLinear(stokesVal, v.data());
-        v = beam * v;
-        aocommon::Polarization::LinearToStokes(v.data(), stokesVal);
-        for (size_t p = 0; p != 4; ++p) images[p][j] = stokesVal[p];
+        if (beam.Norm() > beam_limit) {
+          if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
+          double stokesVal[4] = {images[0][j], images[1][j], images[2][j],
+                                 images[3][j]};
+          aocommon::Vector4 v;
+          aocommon::Polarization::StokesToLinear(stokesVal, v.data());
+          v = beam * v;
+          aocommon::Polarization::LinearToStokes(v.data(), stokesVal);
+          for (size_t p = 0; p != 4; ++p) images[p][j] = stokesVal[p];
+        } else {
+          for (size_t p = 0; p != 4; ++p)
+            images[p][j] = std::numeric_limits<float>::quiet_NaN();
+        }
       }
     } else {
       throw std::runtime_error("Not implemented");

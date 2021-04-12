@@ -62,7 +62,7 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
       Image image(reader.ImageWidth(), reader.ImageHeight());
       reader.Read(image.data());
 
-      beamImages.ApplyStokesI(image.data());
+      beamImages.ApplyStokesI(image.data(), _settings.primaryBeamLimit);
       writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.data());
     } else {
       throw std::runtime_error(
@@ -87,7 +87,7 @@ void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
 
     float* imagePtrs[4] = {images[0].data(), images[1].data(), images[2].data(),
                            images[3].data()};
-    beamImages.ApplyFullStokes(imagePtrs);
+    beamImages.ApplyFullStokes(imagePtrs, _settings.primaryBeamLimit);
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
       aocommon::PolarizationEnum pol =
           aocommon::Polarization::IndexToStokes(polIndex);

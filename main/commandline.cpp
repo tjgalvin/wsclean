@@ -95,13 +95,20 @@ void CommandLine::printHelp() {
          "-apply-primary-beam\n"
          "   Calculate and apply the primary beam and save images for the "
          "Jones components, with weighting identical to the\n"
-         "   weighting as used by the imager. Only available for LOFAR, "
-         "AARTFAAC, MWA and ATCA.\n"
+         "   weighting as used by the imager. Only available for instruments\n"
+         "   supported by EveryBeam.\n"
          "-reuse-primary-beam\n"
          "   If a primary beam image exists on disk, reuse those images.\n"
          "-use-differential-lofar-beam\n"
          "   Assume the visibilities have already been beam-corrected for the "
          "reference direction.\n"
+         "   By default, WSClean will use the information in the measurement "
+         "set to determine\n"
+         "   if the differential beam should be applied for obtaining proper "
+         "flux levels.\n"
+         "-primary-beam-limit <limit>\n"
+         "   Level at which to trim the beam when performing image-based beam\n"
+         "   correction,. Default: 0.005.\n"
          "-mwa-path <path>\n"
          "   Set path where to find the MWA beam file(s).\n"
          "-save-psf-pb\n"
@@ -846,6 +853,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.reusePrimaryBeam = true;
     } else if (param == "use-differential-lofar-beam") {
       settings.useDifferentialLofarBeam = true;
+    } else if (param == "primary-beam-limit") {
+      ++argi;
+      settings.primaryBeamLimit =
+          parse_double(argv[argi], 0.0, "primary-beam-limit");
     } else if (param == "mwa-path") {
       ++argi;
       settings.mwaPath = argv[argi];

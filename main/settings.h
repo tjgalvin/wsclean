@@ -82,6 +82,7 @@ class Settings {
   size_t fullResOffset, fullResWidth, fullResPad;
   std::string beamModel;
   bool applyPrimaryBeam, reusePrimaryBeam, useDifferentialLofarBeam, savePsfPb;
+  double primaryBeamLimit;
   std::string mwaPath;
   size_t primaryBeamUndersampling, primaryBeamUpdateTime;
   bool directFT;
@@ -265,6 +266,7 @@ inline Settings::Settings()
       reusePrimaryBeam(false),
       useDifferentialLofarBeam(false),
       savePsfPb(false),
+      primaryBeamLimit(0.005),
       primaryBeamUndersampling(8),
       primaryBeamUpdateTime(1800),
       directFT(false),
