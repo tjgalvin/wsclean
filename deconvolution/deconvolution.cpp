@@ -47,11 +47,14 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   ImageSet residualSet(&groupTable, _settings, _imgWidth, _imgHeight),
       modelSet(&groupTable, _settings, _imgWidth, _imgHeight);
 
+  Logger::Debug << "Loading residual images...\n";
   residualSet.LoadAndAverage(*_residualImages);
+  Logger::Debug << "Loading model images...\n";
   modelSet.LoadAndAverage(*_modelImages);
 
   Image integrated(_imgWidth, _imgHeight);
   residualSet.GetLinearIntegrated(integrated);
+  Logger::Debug << "Calculating standard deviation...\n";
   double stddev = integrated.StdDevFromMAD();
   Logger::Info << "Estimated standard deviation of background noise: "
                << FluxDensity::ToNiceString(stddev) << '\n';
@@ -77,6 +80,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
       }
       _parallelDeconvolution.SetRMSFactorImage(std::move(rmsImage));
     } else if (_settings.localRMS) {
+      Logger::Debug << "Constructing local RMS image...\n";
       Image rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
@@ -111,6 +115,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   integrated.reset();
 
   std::vector<aocommon::UVector<float>> psfVecs(residualSet.PSFCount());
+  Logger::Debug << "Loading PSFs...\n";
   residualSet.LoadAndAveragePSFs(*_psfImages, psfVecs, _psfPolarization);
 
   aocommon::UVector<const float*> psfs(residualSet.PSFCount());
