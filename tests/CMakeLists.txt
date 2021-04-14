@@ -85,6 +85,18 @@ add_custom_target(checkpredict
 )
 add_dependencies(checkpredict wsclean)
 
+# Test the facet based imaging
+add_custom_target(checkfacetdegridding
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_SOURCE_DIR}/tests/facets/resources/ds9_facet.reg
+  ${CMAKE_BINARY_DIR}/test_data/ds9_facet.reg
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_SOURCE_DIR}/tests/facets/resources/point-source-model.fits
+  ${CMAKE_BINARY_DIR}/test_data/point-source-model.fits
+  COMMAND ${CMAKE_SOURCE_DIR}/tests/facets/tFacetDegridding.sh
+)
+
 add_custom_target(checksystem
-  DEPENDS checkpredict
+  DEPENDS checkpredict;checkfacetdegridding
 )

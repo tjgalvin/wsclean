@@ -133,6 +133,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.storeImagingWeights = _settings.writeImagingWeightSpectrumColumn;
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
+  task.facetIndex = entry.facetIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
@@ -247,6 +248,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
+  task.facetIndex = entry.facetIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
 
   _griddingTaskManager->Run(
@@ -421,6 +423,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.imageWeights = initializeImageWeights(entry, task.msList);
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
+  task.facetIndex = entry.facetIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
@@ -576,6 +579,10 @@ void WSClean::performReordering(bool isPredictMode) {
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
+
+  bool hasCenter = false;
+  schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
+                                          _settings.trimmedImageHeight / 2);
   for (schaapcommon::facets::Facet& facet : _facets) {
     const size_t alignment = 4;
     facet.CalculatePixels(
@@ -584,6 +591,25 @@ void WSClean::RunClean() {
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
         _observationInfo.shiftL, _observationInfo.shiftM,
         _settings.imagePadding, alignment, _settings.useIDG);
+
+    const schaapcommon::facets::BoundingBox bbox =
+        facet.GetTrimmedBoundingBox();
+    if (!hasCenter && bbox.Contains(centerPixel)) {
+      // Point-in-poly test only evaluated if bounding box does
+      // contain the centerPixel
+      hasCenter = facet.Contains(centerPixel);
+    }
+  }
+
+  // FIXME: raise warning if facets do not cover the entire image, see AST-429
+
+  // Center pixel should be present in one of the facets for the deconvolution
+  if (!_facets.empty() && _settings.deconvolutionIterationCount > 0 &&
+      !hasCenter) {
+    throw std::runtime_error(
+        "The center pixel of the full image is not found in one of the facets. "
+        "Make sure your facet file defines a facet that covers the center "
+        "pixel of the main image.");
   }
 
   _globalSelection = _settings.GetMSSelection();
@@ -777,6 +803,9 @@ void WSClean::RunPredict() {
             _settings.imagePadding, alignment, _settings.useIDG);
       }
 
+      // FIXME: raise warning if facets do not cover the entire image, see
+      // AST-429
+
       // Set correct centre shifts for facets
       for (auto& entry : _imagingTable) {
         entry.centreShiftX = entry.facet->GetUntrimmedBoundingBox().Centre().x -
@@ -948,11 +977,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         const bool isFinished = !reachedMajorThreshold;
         if (isFinished) {
           writeModelImages(groupTable);
-        } else {
-          partitionModelIntoFacets(groupTable);
         }
 
         if (_settings.deconvolutionMGain != 1.0) {
+          partitionModelIntoFacets(groupTable);
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
             // TODO: maybe consider swapping the order?

@@ -58,6 +58,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
   if (task.facet != nullptr) {
+    gridder.SetFacetIndex(task.facetIndex);
     gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
     gridder.SetImageHeight(task.facet->GetUntrimmedBoundingBox().Height());
     gridder.SetTrimSize(task.facet->GetTrimmedBoundingBox().Width(),

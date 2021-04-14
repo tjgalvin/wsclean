@@ -438,6 +438,10 @@ void CommandLine::printHelp() {
          "-facet-regions <facets.reg>\n"
          "   Split the image into facets using the facet regions defined in "
          " the facets.reg file. Default: off.\n"
+         "-save-facet-visibilities <int>\n"
+         "   Save the degridded visibilities for the specified facet index "
+         "(zero-based). This feature is \n"
+         " for debugging purposes only.\n"
          "-join-channels\n"
          "   Perform deconvolution by searching for peaks in the MF image,\n"
          "but subtract components from individual channels.\n"
@@ -975,6 +979,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "facet-regions") {
       ++argi;
       settings.facetRegionFilename = argv[argi];
+    } else if (param == "save-facet-visibilities") {
+      ++argi;
+      settings.saveFacetVisibilities =
+          parse_size_t(argv[argi], "save-facet-visibilities");
     } else if (param == "join-polarizations" || param == "joinpolarizations") {
       settings.joinedPolarizationDeconvolution = true;
       if (param == "joinpolarizations")

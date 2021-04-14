@@ -38,6 +38,7 @@ class GriddingTask {
   ObservationInfo observationInfo;
 
   const schaapcommon::facets::Facet* facet = nullptr;
+  size_t facetIndex;
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

@@ -33,6 +33,7 @@ class MeasurementSetGridder {
         _phaseCentreDec(0.0),
         _phaseCentreDL(0.0),
         _phaseCentreDM(0.0),
+        _facetIndex(0),
         _imageWidth(0),
         _imageHeight(0),
         _trimWidth(0),
@@ -110,6 +111,7 @@ class MeasurementSetGridder {
   }
   bool StoreImagingWeights() const { return _storeImagingWeights; }
 
+  void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
   void SetPixelSizeX(double pixelSizeX) { _pixelSizeX = pixelSizeX; }
@@ -225,6 +227,7 @@ class MeasurementSetGridder {
  protected:
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
+  size_t _facetIndex;
   void ComputeRaDec() {
     aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
                                           _phaseCentreRA, _phaseCentreDec,

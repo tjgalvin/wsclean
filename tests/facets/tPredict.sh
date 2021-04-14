@@ -47,3 +47,5 @@ taql "select from MWA_MOCK_FULL.ms t1, MWA_MOCK_FACET.ms t2 where not all(near(t
 # Create expected taql output.
 echo "    select result of 0 rows" > taql.ref
 diff taql.out taql.ref  ||  exit 1
+
+rm -rf ${MWA_MOCK_FULL} ${MWA_MOCK_FACET}
