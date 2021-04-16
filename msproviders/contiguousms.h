@@ -44,8 +44,8 @@ class ContiguousMS : public MSProvider {
 
   void ReadModel(std::complex<float>* buffer) final override;
 
-  void WriteModel(size_t rowId,
-                  const std::complex<float>* buffer) final override;
+  void WriteModel(size_t rowId, const std::complex<float>* buffer,
+                  bool addToMS) final override;
 
   void ReadWeights(std::complex<float>* buffer) final override;
 

@@ -12,6 +12,7 @@
 #include <complex>
 #include <set>
 #include <vector>
+#include <type_traits>
 
 namespace casacore {
 class MeasurementSet;
@@ -60,7 +61,13 @@ class MSProvider {
 
   virtual void ReadModel(std::complex<float>* buffer) = 0;
 
-  virtual void WriteModel(size_t rowId, const std::complex<float>* buffer) = 0;
+  /**
+   * Write model visibilities to MS. If addToMS is true,
+   * add-assign to existing model visibilities, if false,
+   * overwrite existing model visibilities.
+   */
+  virtual void WriteModel(size_t rowId, const std::complex<float>* buffer,
+                          bool addToMS) = 0;
 
   virtual void WriteImagingWeights(size_t rowId, const float* buffer) = 0;
 
@@ -110,6 +117,7 @@ class MSProvider {
     return std::isfinite(c.real()) && std::isfinite(c.imag());
   }
 
+  template <bool add>
   static void reverseCopyData(
       casacore::Array<std::complex<float>>& dest, size_t startChannel,
       size_t endChannel,
@@ -175,6 +183,24 @@ class MSProvider {
  private:
   MSProvider(const MSProvider&) {}
   void operator=(const MSProvider&) {}
+
+  // C++ 11 compatible static if conditional: if
+  // template parameter is true, do an addition-assignment
+  // NOTE: from C++ 17 onwards, we could use if constexpr
+  template <bool add, typename std::enable_if<add, int>::type = 42>
+  static void AddOrAssign(std::complex<float>* dest,
+                          std::complex<float> source) {
+    *dest += source;
+  }
+
+  // C++ 11 compatible static if conditional: if
+  // template parameter is false, do an assignment
+  // NOTE: from C++ 17 onwards, we could use if constexpr
+  template <bool add, typename std::enable_if<!add, int>::type = 42>
+  static void AddOrAssign(std::complex<float>* dest,
+                          std::complex<float> source) {
+    *dest = source;
+  }
 };
 
 #endif

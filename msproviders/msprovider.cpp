@@ -373,6 +373,7 @@ template void MSProvider::copyWeights<std::complex<float>>(
     const casacore::Array<float>& weights, const casacore::Array<bool>& flags,
     aocommon::PolarizationEnum polOut);
 
+template <bool add>
 void MSProvider::reverseCopyData(
     casacore::Array<std::complex<float>>& dest, size_t startChannel,
     size_t endChannel, const std::vector<aocommon::PolarizationEnum>& polsDest,
@@ -386,7 +387,7 @@ void MSProvider::reverseCopyData(
   if (polSource == aocommon::Polarization::Instrumental) {
     for (size_t chp = 0; chp != selectedChannelCount * polsDest.size(); ++chp) {
       if (std::isfinite(source[chp].real())) {
-        *dataIter = source[chp];
+        AddOrAssign<add>(dataIter, source[chp]);
       }
       dataIter++;
     }
@@ -394,7 +395,7 @@ void MSProvider::reverseCopyData(
                                                  polIndex)) {
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
       if (std::isfinite(source[ch].real())) {
-        *(dataIter + polIndex) = source[ch];
+        AddOrAssign<add>(dataIter + polIndex, source[ch]);
       }
       dataIter += polCount;
     }
@@ -414,8 +415,10 @@ void MSProvider::reverseCopyData(
         }
         for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
           if (std::isfinite(source[ch].real())) {
-            *(dataIter + polIndexA) = source[ch];  // XX = I (or rr = I)
-            *(dataIter + polIndexB) = source[ch];  // YY = I (or ll = I)
+            AddOrAssign<add>(dataIter + polIndexA,
+                             source[ch]);  // XX = I (or rr = I)
+            AddOrAssign<add>(dataIter + polIndexB,
+                             source[ch]);  // YY = I (or ll = I)
           }
           dataIter += polCount;
         }
@@ -433,8 +436,10 @@ void MSProvider::reverseCopyData(
               casacore::Complex stokesI =
                   casacore::Complex::value_type(0.5) *
                   (*(dataIter + polIndexB) + *(dataIter + polIndexA));
-              *(dataIter + polIndexA) = stokesI + source[ch];  // XX = I + Q
-              *(dataIter + polIndexB) = stokesI - source[ch];  // YY = I - Q
+              AddOrAssign<add>(dataIter + polIndexA,
+                               stokesI + source[ch]);  // XX = I + Q
+              AddOrAssign<add>(dataIter + polIndexB,
+                               stokesI - source[ch]);  // YY = I - Q
             }
             dataIter += polCount;
           }
@@ -446,10 +451,10 @@ void MSProvider::reverseCopyData(
                                               polsDest, polIndexB);
           for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
             if (std::isfinite(source[ch].real())) {
-              *(dataIter + polIndexA) =
-                  source[ch];  // rl = Q + iU (with U still zero)
-              *(dataIter + polIndexB) =
-                  source[ch];  // lr = Q - iU (with U still zero)
+              AddOrAssign<add>(dataIter + polIndexA,
+                               source[ch]);  // rl = Q + iU (with U still zero)
+              AddOrAssign<add>(dataIter + polIndexB,
+                               source[ch]);  // lr = Q - iU (with U still zero)
             }
             dataIter += polCount;
           }
@@ -465,10 +470,10 @@ void MSProvider::reverseCopyData(
           // StokesU to linear
           for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
             if (std::isfinite(source[ch].real())) {
-              *(dataIter + polIndexA) =
-                  source[ch];  // XY = (U + iV), V still zero
-              *(dataIter + polIndexB) =
-                  source[ch];  // YX = (U - iV), V still zero
+              AddOrAssign<add>(dataIter + polIndexA,
+                               source[ch]);  // XY = (U + iV), V still zero
+              AddOrAssign<add>(dataIter + polIndexB,
+                               source[ch]);  // YX = (U - iV), V still zero
             }
             dataIter += polCount;
           }
@@ -486,8 +491,10 @@ void MSProvider::reverseCopyData(
                   (*(dataIter + polIndexA) + *(dataIter + polIndexB));
               casacore::Complex iTimesStokesU =
                   casacore::Complex(-source[ch].imag(), source[ch].real());
-              *(dataIter + polIndexA) = stokesQ + iTimesStokesU;  // rl = Q + iU
-              *(dataIter + polIndexB) = stokesQ - iTimesStokesU;  // lr = Q - iU
+              AddOrAssign<add>(dataIter + polIndexA,
+                               stokesQ + iTimesStokesU);  // rl = Q + iU
+              AddOrAssign<add>(dataIter + polIndexB,
+                               stokesQ - iTimesStokesU);  // lr = Q - iU
             }
             dataIter += polCount;
           }
@@ -509,10 +516,10 @@ void MSProvider::reverseCopyData(
                   (*(dataIter + polIndexB) + *(dataIter + polIndexA));
               casacore::Complex iTimesStokesV =
                   casacore::Complex(-source[ch].imag(), source[ch].real());
-              *(dataIter + polIndexA) =
-                  stokesU + iTimesStokesV;  // XY = (U + iV)
-              *(dataIter + polIndexB) =
-                  stokesU - iTimesStokesV;  // YX = (U - iV)
+              AddOrAssign<add>(dataIter + polIndexA,
+                               stokesU + iTimesStokesV);  // XY = (U + iV)
+              AddOrAssign<add>(dataIter + polIndexB,
+                               stokesU - iTimesStokesV);  // YX = (U - iV)
             }
             dataIter += polCount;
           }
@@ -528,8 +535,10 @@ void MSProvider::reverseCopyData(
               casacore::Complex stokesI =
                   casacore::Complex::value_type(0.5) *
                   (*(dataIter + polIndexA) + *(dataIter + polIndexB));
-              *(dataIter + polIndexA) = stokesI + source[ch];  // RR = I + V
-              *(dataIter + polIndexB) = stokesI - source[ch];  // LL = I - V
+              AddOrAssign<add>(dataIter + polIndexA,
+                               stokesI + source[ch]);  // RR = I + V
+              AddOrAssign<add>(dataIter + polIndexB,
+                               stokesI - source[ch]);  // LL = I - V
             }
             dataIter += polCount;
           }
@@ -542,6 +551,17 @@ void MSProvider::reverseCopyData(
     }
   }
 }
+
+// Explicit instantiation for true/false
+template void MSProvider::reverseCopyData<true>(
+    casacore::Array<std::complex<float>>& dest, size_t startChannel,
+    size_t endChannel, const std::vector<aocommon::PolarizationEnum>& polsDest,
+    const std::complex<float>* source, aocommon::PolarizationEnum polSource);
+
+template void MSProvider::reverseCopyData<false>(
+    casacore::Array<std::complex<float>>& dest, size_t startChannel,
+    size_t endChannel, const std::vector<aocommon::PolarizationEnum>& polsDest,
+    const std::complex<float>* source, aocommon::PolarizationEnum polSource);
 
 void MSProvider::reverseCopyWeights(
     casacore::Array<float>& dest, size_t startChannel, size_t endChannel,

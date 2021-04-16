@@ -64,7 +64,6 @@ class Settings {
   std::string dataColumnName;
   std::set<aocommon::PolarizationEnum> polarizations;
   std::string facetRegionFilename;
-  size_t saveFacetVisibilities;
   std::set<size_t> spectralWindows;
   WeightMode weightMode;
   std::string prefixName;
@@ -233,7 +232,6 @@ inline Settings::Settings()
       dataColumnName(),
       polarizations({aocommon::Polarization::StokesI}),
       facetRegionFilename(),
-      saveFacetVisibilities(std::numeric_limits<size_t>::max()),
       weightMode(WeightMode::UniformWeighted),
       prefixName("wsclean"),
       joinedPolarizationDeconvolution(false),

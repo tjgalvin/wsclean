@@ -65,7 +65,8 @@ class PartitionedMS final : public MSProvider {
 
   void ReadModel(std::complex<float>* buffer) override;
 
-  void WriteModel(size_t rowId, const std::complex<float>* buffer) override;
+  void WriteModel(size_t rowId, const std::complex<float>* buffer,
+                  bool addToMS) override;
 
   void WriteImagingWeights(size_t rowId, const float* buffer) override;
 

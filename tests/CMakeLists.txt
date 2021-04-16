@@ -83,7 +83,6 @@ add_custom_target(checkpredict
   ${CMAKE_BINARY_DIR}/test_data/point-source-model.fits
   COMMAND ${CMAKE_SOURCE_DIR}/tests/facets/tPredict.sh
 )
-add_dependencies(checkpredict wsclean)
 
 # Test the facet based imaging
 add_custom_target(checkfacetdegridding
