@@ -183,24 +183,6 @@ class MSProvider {
  private:
   MSProvider(const MSProvider&) {}
   void operator=(const MSProvider&) {}
-
-  // C++ 11 compatible static if conditional: if
-  // template parameter is true, do an addition-assignment
-  // NOTE: from C++ 17 onwards, we could use if constexpr
-  template <bool add, typename std::enable_if<add, int>::type = 42>
-  static void AddOrAssign(std::complex<float>* dest,
-                          std::complex<float> source) {
-    *dest += source;
-  }
-
-  // C++ 11 compatible static if conditional: if
-  // template parameter is false, do an assignment
-  // NOTE: from C++ 17 onwards, we could use if constexpr
-  template <bool add, typename std::enable_if<!add, int>::type = 42>
-  static void AddOrAssign(std::complex<float>* dest,
-                          std::complex<float> source) {
-    *dest = source;
-  }
 };
 
 #endif

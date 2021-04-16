@@ -8,6 +8,18 @@
 
 #include "../structures/msselection.h"
 
+namespace {
+template <bool add>
+void AddOrAssign(std::complex<float>* dest, std::complex<float> source) {
+  *dest += source;
+}
+
+template <>
+void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
+  *dest = source;
+}
+}  // namespace
+
 void MSProvider::copyData(std::complex<float>* dest, size_t startChannel,
                           size_t endChannel,
                           const std::vector<aocommon::PolarizationEnum>& polsIn,
