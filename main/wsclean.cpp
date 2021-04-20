@@ -789,7 +789,7 @@ void WSClean::RunPredict() {
       std::string prefix =
           ImageFilename::GetPrefix(_settings, _imagingTable[0].polarization,
                                    _imagingTable[0].outputChannelIndex,
-                                   _imagingTable[0].outputIntervalIndex, 1);
+                                   _imagingTable[0].outputIntervalIndex, false);
       FitsReader reader(prefix + "-model.fits");
       overrideImageSettings(reader);
 
