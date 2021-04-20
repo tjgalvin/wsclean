@@ -1375,14 +1375,20 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
     ImagingTable independentGroup = groupTable.GetIndependentGroup(groupIndex);
-    // For facet-based prediciton: independentGroup contains only a list facets
-    // beyond this point. The "full" model image can be inferred from the first
-    // entry in the independentGroup table
-    readExistingModelImages(independentGroup[0]);
-    partitionModelIntoFacets(independentGroup);
+    for (size_t facetGroupIndex = 0;
+         facetGroupIndex != independentGroup.FacetGroupCount();
+         ++facetGroupIndex) {
+      const ImagingTable facetGroup =
+          independentGroup.GetFacetGroup(facetGroupIndex);
+      // For facet-based prediction: facetGroup contains only a list of facets
+      // from the same (full) image. The meta data for the full model image can
+      // be inferred from the first entry in the facetGroup table
+      readExistingModelImages(facetGroup.Front());
+      partitionModelIntoFacets(facetGroup);
 
-    for (const auto& entry : independentGroup) {
-      predict(entry);
+      for (const auto& entry : facetGroup) {
+        predict(entry);
+      }
     }
   }  // end of polarization loop
 
