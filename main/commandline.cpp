@@ -914,19 +914,19 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       boost::to_lower(gridModeStr);
       if (gridModeStr == "kb" || gridModeStr == "kaiserbessel" ||
           gridModeStr == "kaiser-bessel")
-        settings.gridMode = KaiserBesselKernel;
+        settings.gridMode = GridMode::KaiserBesselKernel;
       else if (gridModeStr == "bn")
-        settings.gridMode = BlackmanNuttallKernel;
+        settings.gridMode = GridMode::BlackmanNuttallKernel;
       else if (gridModeStr == "bh")
-        settings.gridMode = BlackmanHarrisKernel;
+        settings.gridMode = GridMode::BlackmanHarrisKernel;
       else if (gridModeStr == "gaus")
-        settings.gridMode = GaussianKernel;
+        settings.gridMode = GridMode::GaussianKernel;
       else if (gridModeStr == "rect")
-        settings.gridMode = RectangularKernel;
+        settings.gridMode = GridMode::RectangularKernel;
       else if (gridModeStr == "kb-no-sinc")
-        settings.gridMode = KaiserBesselWithoutSinc;
+        settings.gridMode = GridMode::KaiserBesselWithoutSinc;
       else if (gridModeStr == "nn" || gridModeStr == "nearestneighbour")
-        settings.gridMode = NearestNeighbourGridding;
+        settings.gridMode = GridMode::NearestNeighbourGridding;
       else
         throw std::runtime_error(
             "Invalid gridding mode: should be either kb (Kaiser-Bessel), nn "
@@ -1288,13 +1288,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       boost::to_lower(modeStr);
       if (modeStr == "normal")
         settings.visibilityWeightingMode =
-            MeasurementSetGridder::NormalVisibilityWeighting;
+            VisibilityWeightingMode::NormalVisibilityWeighting;
       else if (modeStr == "squared")
         settings.visibilityWeightingMode =
-            MeasurementSetGridder::SquaredVisibilityWeighting;
+            VisibilityWeightingMode::SquaredVisibilityWeighting;
       else if (modeStr == "unit")
         settings.visibilityWeightingMode =
-            MeasurementSetGridder::UnitVisibilityWeighting;
+            VisibilityWeightingMode::UnitVisibilityWeighting;
       else
         throw std::runtime_error("Unknown weighting mode: " + modeStr);
     } else if (param == "direct-ft") {

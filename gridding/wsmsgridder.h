@@ -45,6 +45,23 @@ class WSMSGridder final : public MSGridderBase {
 
   virtual void FreeImagingData() override { _gridder.reset(); }
 
+  size_t AntialiasingKernelSize() const { return _antialiasingKernelSize; }
+  size_t OverSamplingFactor() const { return _overSamplingFactor; }
+
+  bool HasNWSize() const { return _nwWidth != 0 || _nwHeight != 0; }
+  size_t NWWidth() const { return _nwWidth; }
+  size_t NWHeight() const { return _nwHeight; }
+  double NWFactor() const { return _nwFactor; }
+  void SetNWSize(size_t nwWidth, size_t nwHeight) {
+    _nwWidth = nwWidth;
+    _nwHeight = nwHeight;
+  }
+  void SetNWFactor(double factor) { _nwFactor = factor; }
+  void SetAntialiasingKernelSize(size_t kernelSize) {
+    _antialiasingKernelSize = kernelSize;
+  }
+  void SetOverSamplingFactor(size_t factor) { _overSamplingFactor = factor; }
+
  private:
   struct InversionWorkSample {
     double uInLambda, vInLambda, wInLambda;
@@ -84,6 +101,9 @@ class WSMSGridder final : public MSGridderBase {
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;
   std::vector<std::thread> _threadGroup;
+  size_t _nwWidth, _nwHeight;
+  double _nwFactor;
+  size_t _antialiasingKernelSize, _overSamplingFactor;
   size_t _cpuCount, _laneBufferSize;
   int64_t _memSize;
   Image _realImage, _imaginaryImage;

@@ -3,7 +3,7 @@
 
 /** Gridding modes that are supported for interpolating samples on the uv-grid.
  */
-enum GridModeEnum {
+enum class GridMode {
 
   /** Simple method that places/samples a visibility on the nearest uv-cell. */
   NearestNeighbourGridding,

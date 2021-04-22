@@ -4,7 +4,9 @@
 #include "../system/system.h"
 
 #include "../gridding/wstackinggridder.h"
-#include "../gridding/measurementsetgridder.h"
+
+#include "../gridding/visibilityweightingmode.h"
+#include "../structures/weightmode.h"
 
 #include "../structures/msselection.h"
 
@@ -97,8 +99,8 @@ class Settings {
   double facetBeamUpdateTime;  // in seconds.
   bool saveATerms;
   enum IDGMode { IDG_DEFAULT, IDG_GPU, IDG_CPU, IDG_HYBRID } idgMode;
-  enum GridModeEnum gridMode;
-  enum MeasurementSetGridder::VisibilityWeightingMode visibilityWeightingMode;
+  enum GridMode gridMode;
+  enum VisibilityWeightingMode visibilityWeightingMode;
   double baselineDependentAveragingInWavelengths;
   bool simulateNoise;
   double simulatedNoiseStdDev;
@@ -282,8 +284,9 @@ inline Settings::Settings()
       facetBeamUpdateTime(120.0),
       saveATerms(false),
       idgMode(IDG_DEFAULT),
-      gridMode(KaiserBesselKernel),
-      visibilityWeightingMode(MeasurementSetGridder::NormalVisibilityWeighting),
+      gridMode(GridMode::KaiserBesselKernel),
+      visibilityWeightingMode(
+          VisibilityWeightingMode::NormalVisibilityWeighting),
       baselineDependentAveragingInWavelengths(0.0),
       simulateNoise(false),
       simulatedNoiseStdDev(0.0),

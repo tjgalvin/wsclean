@@ -158,17 +158,22 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
 std::unique_ptr<MSGridderBase> GriddingTaskManager::makeGridder() const {
   std::unique_ptr<MSGridderBase> gridder(constructGridder());
   gridder->SetGridMode(_settings.gridMode);
-  gridder->SetNWSize(_settings.widthForNWCalculation,
-                     _settings.heightForNWCalculation);
-  gridder->SetNWFactor(_settings.nWLayersFactor);
   gridder->SetPixelSizeX(_settings.pixelScaleX);
   gridder->SetPixelSizeY(_settings.pixelScaleY);
+
+  // WSMSGridder specific
+  if (auto wsmsgridder = dynamic_cast<WSMSGridder*>(gridder.get())) {
+    wsmsgridder->SetNWSize(_settings.widthForNWCalculation,
+                           _settings.heightForNWCalculation);
+    wsmsgridder->SetNWFactor(_settings.nWLayersFactor);
+    wsmsgridder->SetAntialiasingKernelSize(_settings.antialiasingKernelSize);
+    wsmsgridder->SetOverSamplingFactor(_settings.overSamplingFactor);
+  }
+
   if (_settings.nWLayers != 0)
     gridder->SetWGridSize(_settings.nWLayers);
   else
     gridder->SetNoWGridSize();
-  gridder->SetAntialiasingKernelSize(_settings.antialiasingKernelSize);
-  gridder->SetOverSamplingFactor(_settings.overSamplingFactor);
   gridder->SetDataColumnName(_settings.dataColumnName);
   gridder->SetWeighting(_settings.weightMode);
   gridder->SetWLimit(_settings.wLimit / 100.0);

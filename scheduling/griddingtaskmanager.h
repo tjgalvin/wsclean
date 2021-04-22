@@ -4,7 +4,6 @@
 #include "griddingtask.h"
 #include "griddingresult.h"
 
-#include "../gridding/measurementsetgridder.h"
 #include "../gridding/msgridderbase.h"
 
 #include "../structures/imageweights.h"

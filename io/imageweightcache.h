@@ -3,8 +3,6 @@
 
 #include "logger.h"
 
-#include "../gridding/measurementsetgridder.h"
-
 #include "../structures/imageweights.h"
 #include "../structures/weightmode.h"
 

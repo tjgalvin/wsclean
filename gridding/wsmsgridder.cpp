@@ -21,6 +21,11 @@
 
 WSMSGridder::WSMSGridder(const Settings& settings)
     : MSGridderBase(settings),
+      _nwWidth(0),
+      _nwHeight(0),
+      _nwFactor(1.0),
+      _antialiasingKernelSize(7),
+      _overSamplingFactor(63),
       _cpuCount(_settings.threadCount),
       _laneBufferSize(std::max<size_t>(_cpuCount * 2, 1024)) {
   _memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);

@@ -5,7 +5,6 @@
 #include "../structures/primarybeam.h"
 
 #include "../gridding/directmsgridder.h"
-#include "../gridding/measurementsetgridder.h"
 
 #include "../io/facetreader.h"
 #include "../io/imagefilename.h"

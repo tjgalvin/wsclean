@@ -10,7 +10,7 @@
 #include "../structures/multibanddata.h"
 #endif
 
-#include "gridmodeenum.h"
+#include "gridmode.h"
 
 #include "../structures/image.h"
 
@@ -459,16 +459,16 @@ class WStackingGridderBase {
    * Get the kernel function and its interpolation method used for gridding.
    * @returns The currently selected gridding mode.
    */
-  enum GridModeEnum GridMode() const { return _gridMode; }
+  enum GridMode GridMode() const { return _gridMode; }
 
   /**
    * Set the kernel function and its interpolation method used for gridding.
    * @param mode The new gridding mode.
    */
-  void SetGridMode(enum GridModeEnum mode) {
+  void SetGridMode(enum GridMode mode) {
     if (mode != _gridMode) {
       _gridMode = mode;
-      if (_gridMode != NearestNeighbourGridding) makeKernels();
+      if (_gridMode != GridMode::NearestNeighbourGridding) makeKernels();
     }
   }
 
@@ -525,7 +525,7 @@ class WStackingGridderBase {
    * @param n Oversampling factor of kernel
    * @param size UV-cell size of the kernel
    */
-  static void GetKernel(enum GridModeEnum gridMode, double *kernel,
+  static void GetKernel(enum GridMode gridMode, double *kernel,
                         size_t oversampling, size_t size);
 
   /**
@@ -617,7 +617,7 @@ class WStackingGridderBase {
   MultiBandData _bandData;
 #endif
 
-  enum GridModeEnum _gridMode;
+  enum GridMode _gridMode;
   size_t _overSamplingFactor, _kernelSize;
   std::vector<double> _1dKernel;
   std::vector<std::vector<num_t>> _griddingKernels;

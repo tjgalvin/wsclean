@@ -92,14 +92,42 @@ MSGridderBase::MSData::MSData()
 MSGridderBase::MSData::~MSData() {}
 
 MSGridderBase::MSGridderBase(const Settings& settings)
-    : MeasurementSetGridder(),
-      _theoreticalBeamSize(0.0),
-      _actualInversionWidth(0),
+    : _actualInversionWidth(0),
       _actualInversionHeight(0),
       _actualPixelSizeX(0),
       _actualPixelSizeY(0),
       _metaDataCache(nullptr),
       _settings(settings),
+      _phaseCentreRA(0.0),
+      _phaseCentreDec(0.0),
+      _phaseCentreDL(0.0),
+      _phaseCentreDM(0.0),
+      _facetIndex(0),
+      _imageWidth(0),
+      _imageHeight(0),
+      _trimWidth(0),
+      _trimHeight(0),
+      _pixelSizeX((1.0 / 60.0) * M_PI / 180.0),
+      _pixelSizeY((1.0 / 60.0) * M_PI / 180.0),
+      _wGridSize(0),
+      _actualWGridSize(0),
+      _measurementSets(),
+      _dataColumnName("DATA"),
+      _doImagePSF(false),
+      _doSubtractModel(false),
+      _addToModel(false),
+      _smallInversion(false),
+      _wLimit(0.0),
+      _precalculatedWeightInfo(nullptr),
+      _polarization(aocommon::Polarization::StokesI),
+      _isComplex(false),
+      _weighting(WeightMode::UniformWeighted),
+      _isFirstIteration(false),
+      _visibilityWeightingMode(
+          VisibilityWeightingMode::NormalVisibilityWeighting),
+      _gridMode(GridMode::KaiserBesselKernel),
+      _storeImagingWeights(false),
+      _theoreticalBeamSize(0.0),
       _hasFrequencies(false),
       _freqHigh(0.0),
       _freqLow(0.0),
@@ -109,9 +137,9 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _griddedVisibilityCount(0),
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
-      _visibilityWeightSum(0.0) {}
-
-MSGridderBase::~MSGridderBase() {}
+      _visibilityWeightSum(0.0) {
+  computeFacetCentre();
+}
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
                                           double absMemLimit) {
@@ -390,8 +418,8 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     Logger::Info << "Theoretic beam = "
                  << Angle::ToNiceString(_theoreticalBeamSize) << "\n";
   }
-  if (HasWLimit()) {
-    _maxW *= (1.0 - WLimit());
+  if (_wLimit != 0.0) {
+    _maxW *= (1.0 - _wLimit);
     if (_maxW < _minW) _maxW = _minW;
   }
 
@@ -434,14 +462,14 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     }
   }
 
-  if (IsFirstIteration() || !HasWGridSize()) {
+  if (IsFirstIteration() || !hasWGridSize()) {
     size_t suggestedGridSize = getSuggestedWGridSize();
-    if (!HasWGridSize())
-      SetActualWGridSize(suggestedGridSize);
+    if (!hasWGridSize())
+      _actualWGridSize = suggestedGridSize;
     else
-      SetActualWGridSize(WGridSize());
+      _actualWGridSize = _wGridSize;
   } else
-    SetActualWGridSize(WGridSize());
+    _actualWGridSize = _wGridSize;
 }
 
 void MSGridderBase::writeVisibilities(MSProvider& msProvider,
@@ -529,15 +557,15 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   }
 
   switch (VisibilityWeightingMode()) {
-    case NormalVisibilityWeighting:
+    case VisibilityWeightingMode::NormalVisibilityWeighting:
       // The weight buffer already contains the visibility weights: do nothing
       break;
-    case SquaredVisibilityWeighting:
+    case VisibilityWeightingMode::SquaredVisibilityWeighting:
       // Square the visibility weights
       for (size_t chp = 0; chp != dataSize; ++chp)
         weightBuffer[chp] *= weightBuffer[chp];
       break;
-    case UnitVisibilityWeighting:
+    case VisibilityWeightingMode::UnitVisibilityWeighting:
       // Set the visibility weights to one
       for (size_t chp = 0; chp != dataSize; ++chp) {
         if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
