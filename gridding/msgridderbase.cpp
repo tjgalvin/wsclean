@@ -34,6 +34,58 @@
 
 #include <atomic>
 
+#ifdef HAVE_EVERYBEAM
+namespace {
+template <size_t PolarizationCount>
+void ApplyConjugatedBeam(std::complex<float>* visibilities,
+                         const aocommon::MC2x2F& gain1,
+                         const aocommon::MC2x2F& gain2);
+template <>
+void ApplyConjugatedBeam<1>(std::complex<float>* visibilities,
+                            const aocommon::MC2x2F& gain1,
+                            const aocommon::MC2x2F& gain2) {
+  // Stokes-I
+  *visibilities = 0.25f * std::conj(aocommon::Trace(gain1)) * (*visibilities) *
+                  aocommon::Trace(gain2);
+}
+
+template <>
+void ApplyConjugatedBeam<4>(std::complex<float>* visibilities,
+                            const aocommon::MC2x2F& gain1,
+                            const aocommon::MC2x2F& gain2) {
+  // All polarizations
+  const aocommon::MC2x2F visibilities_mc2x2(visibilities);
+  const aocommon::MC2x2F result =
+      gain1.HermThenMultiply(visibilities_mc2x2).Multiply(gain2);
+  result.AssignTo(visibilities);
+}
+
+template <size_t PolarizationCount>
+void ApplyBeam(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+               const aocommon::MC2x2F& gain2);
+
+template <>
+void ApplyBeam<1>(std::complex<float>* visibilities,
+                  const aocommon::MC2x2F& gain1,
+                  const aocommon::MC2x2F& gain2) {
+  // Stokes-I
+  *visibilities = 0.25f * aocommon::Trace(gain1) * (*visibilities) *
+                  std::conj(aocommon::Trace(gain2));
+}
+
+template <>
+void ApplyBeam<4>(std::complex<float>* visibilities,
+                  const aocommon::MC2x2F& gain1,
+                  const aocommon::MC2x2F& gain2) {
+  // All polarizations
+  const aocommon::MC2x2F visibilities_mc2x2(visibilities);
+  const aocommon::MC2x2F result =
+      gain1.Multiply(visibilities_mc2x2).MultiplyHerm(gain2);
+  result.AssignTo(visibilities);
+}
+}  // namespace
+#endif  // HAVE_EVERYBEAM
+
 MSGridderBase::MSData::MSData()
     : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
 
@@ -461,18 +513,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
 
       const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
-
-      if (PolarizationCount == 1) {
-        // Stokes-I
-        *iter = 0.25f * std::conj(gain1[0] + gain1[3]) * (*iter) *
-                (gain2[0] + gain2[3]);
-      } else {
-        // All polarizations
-        const aocommon::MC2x2F visibilities(iter);
-        const aocommon::MC2x2F result =
-            gain1.HermThenMultiply(visibilities).Multiply(gain2);
-        result.AssignTo(iter);
-      }
+      ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
