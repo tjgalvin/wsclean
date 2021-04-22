@@ -31,8 +31,6 @@
 
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 
-// #define REDUNDANT_VALIDATION 1
-
 PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              aocommon::PolarizationEnum polarization,
                              size_t dataDescId)
@@ -41,7 +39,8 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
       _metaFile(getMetaFilename(handle._data->_msPath,
                                 handle._data->_temporaryDirectory, dataDescId)),
       _modelFileMap(0),
-      _currentRow(0),
+      _currentInputRow(0),
+      _currentOutputRow(0),
       _readPtrIsOk(true),
       _metaPtrIsOk(true),
       _weightPtrIsOk(true),
@@ -108,7 +107,8 @@ PartitionedMS::~PartitionedMS() {
 }
 
 void PartitionedMS::Reset() {
-  _currentRow = 0;
+  _currentInputRow = 0;
+  _currentOutputRow = 0;
   _metaFile.seekg(sizeof(MetaHeader) + _metaHeader.filenameLength,
                   std::ios::beg);
   _dataFile.seekg(sizeof(PartHeader), std::ios::beg);
@@ -119,12 +119,12 @@ void PartitionedMS::Reset() {
 }
 
 bool PartitionedMS::CurrentRowAvailable() {
-  return _currentRow < _metaHeader.selectedRowCount;
+  return _currentInputRow < _metaHeader.selectedRowCount;
 }
 
-void PartitionedMS::NextRow() {
-  ++_currentRow;
-  if (_currentRow < _metaHeader.selectedRowCount) {
+void PartitionedMS::NextInputRow() {
+  ++_currentInputRow;
+  if (_currentInputRow < _metaHeader.selectedRowCount) {
     if (_readPtrIsOk)
       _dataFile.seekg(_partHeader.channelCount * _polarizationCountInFile *
                           sizeof(std::complex<float>),
@@ -144,6 +144,8 @@ void PartitionedMS::NextRow() {
     _weightPtrIsOk = true;
   }
 }
+
+void PartitionedMS::NextOutputRow() { ++_currentOutputRow; }
 
 void PartitionedMS::ReadMeta(double& u, double& v, double& w,
                              size_t& dataDescId) {
@@ -180,18 +182,18 @@ void PartitionedMS::ReadData(std::complex<float>* buffer) {
                         sizeof(std::complex<float>),
                     std::ios::cur);
   }
-#ifdef REDUNDANT_VALIDATION
+#ifndef NDEBUG
   size_t pos = size_t(_dataFile.tellg()) - sizeof(PartHeader);
-  size_t fact = _partHeader.hasModel ? 2 : 1;
-  if (pos != fact * _currentRow * _partHeader.channelCount *
-                 sizeof(std::complex<float>)) {
+  if (pos != _currentInputRow * _partHeader.channelCount *
+                 _polarizationCountInFile * sizeof(std::complex<float>)) {
     std::ostringstream s;
     s << "Not on right pos: " << pos << " instead of "
-      << fact * _currentRow * _partHeader.channelCount *
-             sizeof(std::complex<float>)
+      << _currentInputRow * _partHeader.channelCount *
+             _polarizationCountInFile * sizeof(std::complex<float>)
       << " (row "
-      << (pos / (fact * _partHeader.channelCount * sizeof(std::complex<float>)))
-      << " instead of " << _currentRow << ")";
+      << (pos / (_partHeader.channelCount * _polarizationCountInFile *
+                 sizeof(std::complex<float>)))
+      << " instead of " << _currentInputRow << ")";
     throw std::runtime_error(s.str());
   }
 #endif
@@ -202,26 +204,26 @@ void PartitionedMS::ReadData(std::complex<float>* buffer) {
 }
 
 void PartitionedMS::ReadModel(std::complex<float>* buffer) {
-#ifdef REDUNDANT_VALIDATION
+#ifndef NDEBUG
   if (!_partHeader.hasModel)
     throw std::runtime_error("Partitioned MS initialized without model");
 #endif
   size_t rowLength = _partHeader.channelCount * _polarizationCountInFile *
                      sizeof(std::complex<float>);
   memcpy(reinterpret_cast<char*>(buffer),
-         _modelFileMap + rowLength * _currentRow, rowLength);
+         _modelFileMap + rowLength * _currentInputRow, rowLength);
 }
 
-void PartitionedMS::WriteModel(size_t rowId, const std::complex<float>* buffer,
+void PartitionedMS::WriteModel(const std::complex<float>* buffer,
                                bool addToMS) {
-#ifdef REDUNDANT_VALIDATION
+#ifndef NDEBUG
   if (!_partHeader.hasModel)
     throw std::runtime_error("Partitioned MS initialized without model");
 #endif
   size_t rowLength = _partHeader.channelCount * _polarizationCountInFile *
                      sizeof(std::complex<float>);
-  std::complex<float>* modelWritePtr =
-      reinterpret_cast<std::complex<float>*>(_modelFileMap + rowLength * rowId);
+  std::complex<float>* modelWritePtr = reinterpret_cast<std::complex<float>*>(
+      _modelFileMap + rowLength * _currentOutputRow);
 
   // In case the value was not sampled in this pass, it has been set to infinite
   // and should not overwrite the current value in the set.
@@ -238,7 +240,7 @@ void PartitionedMS::WriteModel(size_t rowId, const std::complex<float>* buffer,
   }
 }
 
-void PartitionedMS::WriteImagingWeights(size_t rowId, const float* buffer) {
+void PartitionedMS::WriteImagingWeights(const float* buffer) {
   if (_modelDataFile == nullptr) {
     std::string partPrefix = getPartPrefix(
         _handle._data->_msPath, _partIndex, _polarization,
@@ -249,7 +251,7 @@ void PartitionedMS::WriteImagingWeights(size_t rowId, const float* buffer) {
   }
   const size_t chunkSize =
       _partHeader.channelCount * _polarizationCountInFile * sizeof(float);
-  _imagingWeightsFile->seekg(chunkSize * rowId, std::ios::beg);
+  _imagingWeightsFile->seekg(chunkSize * _currentInputRow, std::ios::beg);
   _imagingWeightsFile->read(
       reinterpret_cast<char*>(_imagingWeightBuffer.data()),
       _partHeader.channelCount * _polarizationCountInFile * sizeof(float));
@@ -257,7 +259,7 @@ void PartitionedMS::WriteImagingWeights(size_t rowId, const float* buffer) {
        ++i) {
     if (std::isfinite(buffer[i])) _imagingWeightBuffer[i] = buffer[i];
   }
-  _imagingWeightsFile->seekp(chunkSize * rowId, std::ios::beg);
+  _imagingWeightsFile->seekp(chunkSize * _currentInputRow, std::ios::beg);
   _imagingWeightsFile->write(
       reinterpret_cast<const char*>(_imagingWeightBuffer.data()),
       _partHeader.channelCount * _polarizationCountInFile * sizeof(float));

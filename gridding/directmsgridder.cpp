@@ -163,7 +163,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
       _inversionLane.write(sample);
     }
 
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
     ++rowIndex;
   }
 }

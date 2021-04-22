@@ -10,10 +10,12 @@ include(CMakeVersionInfo.txt)
 
 # Using pybind11 requires using -fvisibility=hidden.
 # See https://pybind11.readthedocs.io/en/stable/faq.html
-add_compile_options(-O3 -Wall -DNDEBUG -fvisibility=hidden)
+add_compile_options(-O3 -Wall -fvisibility=hidden)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected: setting linking flag --no-undefined")
   string(APPEND CMAKE_SHARED_LINKER_FLAGS " -Wl,--no-undefined")
+else()
+  add_compile_options(-DNDEBUG)
 endif()
 
 include(CheckCXXCompilerFlag)

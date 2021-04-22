@@ -49,11 +49,13 @@ class PartitionedMS final : public MSProvider {
     return _handle._data->_dataColumnName;
   }
 
-  size_t RowId() const override { return _currentRow; }
+  size_t RowId() const override { return _currentInputRow; }
 
   bool CurrentRowAvailable() override;
 
-  void NextRow() override;
+  void NextInputRow() override;
+
+  void NextOutputRow() override;
 
   void Reset() override;
 
@@ -65,10 +67,9 @@ class PartitionedMS final : public MSProvider {
 
   void ReadModel(std::complex<float>* buffer) override;
 
-  void WriteModel(size_t rowId, const std::complex<float>* buffer,
-                  bool addToMS) override;
+  void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
 
-  void WriteImagingWeights(size_t rowId, const float* buffer) override;
+  void WriteImagingWeights(const float* buffer) override;
 
   void ReadWeights(float* buffer) override;
 
@@ -161,7 +162,8 @@ class PartitionedMS final : public MSProvider {
   size_t _partIndex;
   std::ifstream _metaFile, _weightFile, _dataFile;
   char* _modelFileMap;
-  size_t _currentRow;
+  size_t _currentInputRow;
+  size_t _currentOutputRow;
   bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
   aocommon::UVector<float> _weightBuffer, _imagingWeightBuffer;
   aocommon::UVector<std::complex<float>> _modelBuffer;

@@ -15,6 +15,8 @@
 
 #include <fftw3.h>
 
+#include <cassert>
+#include <queue>
 #include <stdexcept>
 
 WSMSGridder::WSMSGridder(const Settings& settings)
@@ -48,7 +50,7 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
       }
     }
     ++msData.matchingRows;
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
   }
   Logger::Debug << "Visibility count per layer: ";
   for (size_t& count : sampleCount) {
@@ -185,7 +187,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       ++rowsRead;
     }
 
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
   }
 
   for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
@@ -271,7 +273,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
       ++rowsProcessed;
     }
 
-    msData.msProvider->NextRow();
+    msData.msProvider->NextInputRow();
   }
 
   for (size_t i = 0; i != uvws.size(); ++i) {
@@ -325,10 +327,23 @@ void WSMSGridder::predictWriteThread(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
   PredictionWorkItem workItem;
+  auto comparison = [](const PredictionWorkItem& lhs,
+                       const PredictionWorkItem& rhs) -> bool {
+    return lhs.rowId > rhs.rowId;
+  };
+  std::priority_queue<PredictionWorkItem, std::vector<PredictionWorkItem>,
+                      decltype(comparison)>
+      queue(comparison);
+  size_t nextRowId = 0;
   while (buffer.read(workItem)) {
-    writeVisibilities(*(msData->msProvider), workItem.rowId,
-                      workItem.data.get());
+    queue.emplace(std::move(workItem));
+    while (queue.top().rowId == nextRowId) {
+      writeVisibilities(*(msData->msProvider), queue.top().data.get());
+      queue.pop();
+      ++nextRowId;
+    }
   }
+  assert(queue.empty());
 }
 
 void WSMSGridder::Invert() {

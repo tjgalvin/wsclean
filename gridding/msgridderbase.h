@@ -159,7 +159,7 @@ class MSGridderBase : public MeasurementSetGridder {
    * @brief Write (modelled) visibilities to MS, provides an interface to
    * MSProvider::WriteModel()
    */
-  void writeVisibilities(MSProvider& msProvider, size_t rowId,
+  void writeVisibilities(MSProvider& msProvider,
                          const std::complex<float>* buffer) const;
 
   double _maxW, _minW;

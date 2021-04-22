@@ -28,10 +28,12 @@ class TimestepBuffer final : public MSProvider {
     return !_buffer.empty() || _msProvider->CurrentRowAvailable();
   }
 
-  void NextRow() override {
+  void NextInputRow() override {
     ++_bufferPosition;
     if (_bufferPosition == _buffer.size()) readTimeblock();
   }
+
+  void NextOutputRow() override { _msProvider->NextOutputRow(); }
 
   void Reset() override {
     _msProvider->Reset();
@@ -62,13 +64,13 @@ class TimestepBuffer final : public MSProvider {
               _buffer[_bufferPosition].model.end(), buffer);
   }
 
-  virtual void WriteModel(size_t rowId, const std::complex<float>* buffer,
+  virtual void WriteModel(const std::complex<float>* buffer,
                           bool addToMS) override {
-    _msProvider->WriteModel(rowId, buffer, addToMS);
+    _msProvider->WriteModel(buffer, addToMS);
   }
 
-  virtual void WriteImagingWeights(size_t rowId, const float* buffer) override {
-    _msProvider->WriteImagingWeights(rowId, buffer);
+  virtual void WriteImagingWeights(const float* buffer) override {
+    _msProvider->WriteImagingWeights(buffer);
   }
 
   virtual void ReadWeights(float* buffer) override {
@@ -145,7 +147,7 @@ class TimestepBuffer final : public MSProvider {
         _msProvider->ReadWeights(row.weights.data());
         row.rowId = _msProvider->RowId();
 
-        _msProvider->NextRow();
+        _msProvider->NextInputRow();
         ++writePos;
         if (_msProvider->CurrentRowAvailable()) {
           _msProvider->ReadMeta(metaData);

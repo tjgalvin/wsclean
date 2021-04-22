@@ -104,7 +104,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
           ++nRows;
         }
-        msData.msProvider->NextRow();
+        msData.msProvider->NextInputRow();
       }
 
       Logger::Info << "Gridding " << nRows << " rows...\n";
@@ -149,7 +149,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
           uvwBuffer[nRows * 3 + 2] = wInMeters;
           ++nRows;
         }
-        msData.msProvider->NextRow();
+        msData.msProvider->NextInputRow();
       }
 
       Logger::Info << "Predicting " << nRows << " rows...\n";
@@ -161,7 +161,7 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
-        writeVisibilities(*(msData.msProvider), row + totalNRows,
+        writeVisibilities(*msData.msProvider,
                           &visBuffer[row * band.ChannelCount()]);
       }
       totalNRows += nRows;

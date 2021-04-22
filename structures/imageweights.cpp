@@ -114,7 +114,7 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
         }
       }
 
-      msProvider.NextRow();
+      msProvider.NextInputRow();
     }
   }
 }

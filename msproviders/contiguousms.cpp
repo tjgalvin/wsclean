@@ -7,8 +7,13 @@ ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
                            const MSSelection& selection,
                            aocommon::PolarizationEnum polOut, size_t dataDescId)
-    : _timestep(0),
-      _time(0.0),
+    : _currentInputRow(0),
+      _currentInputTimestep(0),
+      _currentInputTime(0.0),
+      _currentOutputRow(0),
+      _currentOutputTimestep(0),
+      _currentOutputTime(0.0),
+      _currentRowId(0),
       _dataDescId(dataDescId),
       _nAntenna(0),
       _isModelColumnPrepared(false),
@@ -73,41 +78,44 @@ void ContiguousMS::open() {
 }
 
 void ContiguousMS::Reset() {
-  _row = _startRow - 1;
-  _rowId = size_t(-1);
-  _time = 0.0;
+  _currentInputRow = _startRow - 1;
+  _currentInputTime = 0.0;
   if (_selection.HasInterval())
-    _timestep = _selection.IntervalStart() - 1;
+    _currentInputTimestep = _selection.IntervalStart() - 1;
   else
-    _timestep = -1;
-  NextRow();
+    _currentInputTimestep = -1;
+  _currentOutputRow = _currentInputRow;
+  _currentOutputTime = _currentInputTime;
+  _currentOutputTimestep = _currentInputTimestep;
+  _currentRowId = size_t(-1);
+  NextInputRow();
+  NextOutputRow();
 }
 
 bool ContiguousMS::CurrentRowAvailable() {
-  if (_row >= _endRow) return false;
+  if (_currentInputRow >= _endRow) return false;
 
-  int fieldId = _fieldIdColumn(_row);
-  int a1 = _antenna1Column(_row);
-  int a2 = _antenna2Column(_row);
-  int dataDescId = _dataDescIdColumn(_row);
-  casacore::Vector<double> uvw = _uvwColumn(_row);
+  int fieldId = _fieldIdColumn(_currentInputRow);
+  int a1 = _antenna1Column(_currentInputRow);
+  int a2 = _antenna2Column(_currentInputRow);
+  int dataDescId = _dataDescIdColumn(_currentInputRow);
+  casacore::Vector<double> uvw = _uvwColumn(_currentInputRow);
 
-  while (!_selection.IsSelected(fieldId, _timestep, a1, a2, uvw) ||
+  while (!_selection.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw) ||
          dataDescId != _dataDescId) {
-    ++_row;
-    if (_row >= _endRow) return false;
+    ++_currentInputRow;
+    if (_currentInputRow >= _endRow) return false;
 
-    fieldId = _fieldIdColumn(_row);
-    a1 = _antenna1Column(_row);
-    a2 = _antenna2Column(_row);
-    uvw = _uvwColumn(_row);
-    dataDescId = _dataDescIdColumn(_row);
-    if (_time != _timeColumn(_row)) {
-      ++_timestep;
-      _time = _timeColumn(_row);
+    fieldId = _fieldIdColumn(_currentInputRow);
+    a1 = _antenna1Column(_currentInputRow);
+    a2 = _antenna2Column(_currentInputRow);
+    uvw = _uvwColumn(_currentInputRow);
+    dataDescId = _dataDescIdColumn(_currentInputRow);
+    if (_currentInputTime != _timeColumn(_currentInputRow)) {
+      ++_currentInputTimestep;
+      _currentInputTime = _timeColumn(_currentInputRow);
     }
 
-    _isMetaRead = false;
     _isDataRead = false;
     _isWeightRead = false;
     _isModelRead = false;
@@ -116,30 +124,51 @@ bool ContiguousMS::CurrentRowAvailable() {
   return true;
 }
 
-void ContiguousMS::NextRow() {
-  _isMetaRead = false;
+void ContiguousMS::NextInputRow() {
   _isDataRead = false;
   _isWeightRead = false;
   _isModelRead = false;
 
-  ++_rowId;
+  ++_currentRowId;
   int fieldId, a1, a2, dataDescId;
   casacore::Vector<double> uvw;
   do {
-    ++_row;
-    if (_row >= _endRow) return;
+    ++_currentInputRow;
+    if (_currentInputRow >= _endRow) return;
 
-    fieldId = _fieldIdColumn(_row);
-    a1 = _antenna1Column(_row);
-    a2 = _antenna2Column(_row);
-    uvw = _uvwColumn(_row);
-    dataDescId = _dataDescIdColumn(_row);
-    if (_time != _timeColumn(_row)) {
-      ++_timestep;
-      _time = _timeColumn(_row);
+    fieldId = _fieldIdColumn(_currentInputRow);
+    a1 = _antenna1Column(_currentInputRow);
+    a2 = _antenna2Column(_currentInputRow);
+    uvw = _uvwColumn(_currentInputRow);
+    dataDescId = _dataDescIdColumn(_currentInputRow);
+    if (_currentInputTime != _timeColumn(_currentInputRow)) {
+      ++_currentInputTimestep;
+      _currentInputTime = _timeColumn(_currentInputRow);
     }
-  } while (!_selection.IsSelected(fieldId, _timestep, a1, a2, uvw) ||
-           (dataDescId != _dataDescId));
+  } while (
+      !_selection.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw) ||
+      (dataDescId != _dataDescId));
+}
+
+void ContiguousMS::NextOutputRow() {
+  int fieldId, a1, a2, dataDescId;
+  casacore::Vector<double> uvw;
+  do {
+    ++_currentOutputRow;
+    if (_currentOutputRow >= _endRow) return;
+
+    fieldId = _fieldIdColumn(_currentOutputRow);
+    a1 = _antenna1Column(_currentOutputRow);
+    a2 = _antenna2Column(_currentOutputRow);
+    uvw = _uvwColumn(_currentOutputRow);
+    dataDescId = _dataDescIdColumn(_currentOutputRow);
+    if (_currentOutputTime != _timeColumn(_currentOutputRow)) {
+      ++_currentOutputTimestep;
+      _currentOutputTime = _timeColumn(_currentOutputRow);
+    }
+  } while (
+      !_selection.IsSelected(fieldId, _currentOutputTimestep, a1, a2, uvw) ||
+      (dataDescId != _dataDescId));
 }
 
 double ContiguousMS::StartTime() {
@@ -151,9 +180,7 @@ double ContiguousMS::StartTime() {
 
 void ContiguousMS::ReadMeta(double& u, double& v, double& w,
                             size_t& dataDescId) {
-  readMeta();
-
-  casacore::Vector<double> uvwArray = _uvwColumn(_row);
+  casacore::Vector<double> uvwArray = _uvwColumn(_currentInputRow);
   u = uvwArray(0);
   v = uvwArray(1);
   w = uvwArray(2);
@@ -161,21 +188,18 @@ void ContiguousMS::ReadMeta(double& u, double& v, double& w,
 }
 
 void ContiguousMS::ReadMeta(MetaData& metaData) {
-  readMeta();
-
-  casacore::Vector<double> uvwArray = _uvwColumn(_row);
+  casacore::Vector<double> uvwArray = _uvwColumn(_currentInputRow);
   metaData.uInM = uvwArray(0);
   metaData.vInM = uvwArray(1);
   metaData.wInM = uvwArray(2);
   metaData.dataDescId = _dataDescId;
-  metaData.fieldId = _fieldIdColumn(_row);
-  metaData.antenna1 = _antenna1Column(_row);
-  metaData.antenna2 = _antenna2Column(_row);
-  metaData.time = _timeColumn(_row);
+  metaData.fieldId = _fieldIdColumn(_currentInputRow);
+  metaData.antenna1 = _antenna1Column(_currentInputRow);
+  metaData.antenna2 = _antenna2Column(_currentInputRow);
+  metaData.time = _timeColumn(_currentInputRow);
 }
 
 void ContiguousMS::ReadData(std::complex<float>* buffer) {
-  readMeta();
   readData();
   readWeights();
   size_t startChannel, endChannel;
@@ -212,7 +236,6 @@ void ContiguousMS::prepareModelColumn() {
 void ContiguousMS::ReadModel(std::complex<float>* buffer) {
   if (!_isModelColumnPrepared) prepareModelColumn();
 
-  readMeta();
   readModel();
   readWeights();
   size_t startChannel, endChannel;
@@ -227,22 +250,19 @@ void ContiguousMS::ReadModel(std::complex<float>* buffer) {
            _polOut);
 }
 
-void ContiguousMS::WriteModel(size_t rowId, const std::complex<float>* buffer,
-                              bool addToMS) {
+void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
   if (!_isModelColumnPrepared) prepareModelColumn();
 
-  size_t msRowId = _idToMSRow[rowId];
-  size_t dataDescId = _dataDescIdColumn(msRowId);
   size_t startChannel, endChannel;
   if (_selection.HasChannelRange()) {
     startChannel = _selection.ChannelRangeStart();
     endChannel = _selection.ChannelRangeEnd();
   } else {
     startChannel = 0;
-    endChannel = _bandData[dataDescId].ChannelCount();
+    endChannel = _bandData[_dataDescId].ChannelCount();
   }
 
-  _modelColumn->get(msRowId, _modelArray);
+  _modelColumn->get(_currentOutputRow, _modelArray);
   if (addToMS) {
     reverseCopyData<true>(_modelArray, startChannel, endChannel,
                           _inputPolarizations, buffer, _polOut);
@@ -250,11 +270,10 @@ void ContiguousMS::WriteModel(size_t rowId, const std::complex<float>* buffer,
     reverseCopyData<false>(_modelArray, startChannel, endChannel,
                            _inputPolarizations, buffer, _polOut);
   }
-  _modelColumn->put(msRowId, _modelArray);
+  _modelColumn->put(_currentOutputRow, _modelArray);
 }
 
 void ContiguousMS::ReadWeights(std::complex<float>* buffer) {
-  readMeta();
   readData();
   readWeights();
   size_t startChannel, endChannel;
@@ -270,7 +289,6 @@ void ContiguousMS::ReadWeights(std::complex<float>* buffer) {
 }
 
 void ContiguousMS::ReadWeights(float* buffer) {
-  readMeta();
   readData();
   readWeights();
   size_t startChannel, endChannel;
@@ -285,12 +303,12 @@ void ContiguousMS::ReadWeights(float* buffer) {
               _weightSpectrumArray, _flagArray, _polOut);
 }
 
-void ContiguousMS::WriteImagingWeights(size_t rowId, const float* buffer) {
+void ContiguousMS::WriteImagingWeights(const float* buffer) {
   if (_imagingWeightsColumn == nullptr) {
     _imagingWeightsColumn.reset(
         new casacore::ArrayColumn<float>(initializeImagingWeightColumn(*_ms)));
   }
-  size_t msRowId = _idToMSRow[rowId];
+  size_t msRowId = _idToMSRow[_currentInputRow];
   size_t dataDescId = _dataDescIdColumn(msRowId);
   size_t startChannel, endChannel;
   if (_selection.HasChannelRange()) {

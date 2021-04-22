@@ -201,7 +201,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   double currentTime = -1.0;
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
   for (TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
-       timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextRow()) {
+       timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextInputRow()) {
     MSProvider::MetaData metaData;
     timestepBuffer.ReadMeta(metaData);
 
@@ -355,7 +355,7 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   double currentTime = -1.0;
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
   for (TimestepBuffer timestepBuffer(msData.msProvider, false);
-       timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextRow()) {
+       timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextInputRow()) {
     MSProvider::MetaData metaData;
     timestepBuffer.ReadMeta(metaData);
 
@@ -408,7 +408,7 @@ void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   for (auto i : available_row_ids) {
-    writeVisibilities(*_outputProvider, i.first, i.second);
+    writeVisibilities(*_outputProvider, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();

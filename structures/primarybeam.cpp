@@ -432,7 +432,7 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
       double w = weightArr[ch * polarizationCount] * iw;
       baselineWeights.Value(metaData.antenna1, metaData.antenna2) += w;
     }
-    msProvider.NextRow();
+    msProvider.NextInputRow();
   }
 }
 
@@ -448,14 +448,14 @@ std::tuple<double, double, size_t> PrimaryBeam::GetTimeInfo(
     startTime = meta.time;
     endTime = meta.time;
     ++timestepCount;
-    msProvider.NextRow();
+    msProvider.NextInputRow();
     while (msProvider.CurrentRowAvailable()) {
       msProvider.ReadMeta(meta);
       if (endTime != meta.time) {
         ++timestepCount;
         endTime = meta.time;
       }
-      msProvider.NextRow();
+      msProvider.NextInputRow();
     }
   }
   if (startTime == endTime) {
