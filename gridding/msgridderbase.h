@@ -76,29 +76,18 @@ class MSGridderBase {
   void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
-  void SetPixelSizeX(double pixelSizeX) { _pixelSizeX = pixelSizeX; }
-  void SetPixelSizeY(double pixelSizeY) { _pixelSizeY = pixelSizeY; }
-  void SetWGridSize(size_t wGridSize) { _wGridSize = wGridSize; }
   void SetActualWGridSize(size_t actualWGridSize) {
     _actualWGridSize = actualWGridSize;
-  }
-  void SetNoWGridSize() { _wGridSize = 0; }
-  void SetDataColumnName(const std::string& dataColumnName) {
-    _dataColumnName = dataColumnName;
   }
   void SetDoImagePSF(bool doImagePSF) { _doImagePSF = doImagePSF; }
   void SetPolarization(aocommon::PolarizationEnum polarization) {
     _polarization = polarization;
   }
   void SetIsComplex(bool isComplex) { _isComplex = isComplex; }
-  void SetWeighting(WeightMode weighting) { _weighting = weighting; }
   void SetDoSubtractModel(bool doSubtractModel) {
     _doSubtractModel = doSubtractModel;
   }
   void SetAddToModel(bool addToModel) { _addToModel = addToModel; }
-  void SetSmallInversion(bool smallInversion) {
-    _smallInversion = smallInversion;
-  }
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
   }
@@ -111,10 +100,6 @@ class MSGridderBase {
     _isFirstIteration = isFirstIteration;
   }
 
-  void SetWLimit(double wLimit) { _wLimit = wLimit; }
-  void SetVisibilityWeightingMode(enum VisibilityWeightingMode mode) {
-    _visibilityWeightingMode = mode;
-  }
   void SetStoreImagingWeights(bool storeImagingWeights) {
     _storeImagingWeights = storeImagingWeights;
   }

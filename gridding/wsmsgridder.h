@@ -52,15 +52,6 @@ class WSMSGridder final : public MSGridderBase {
   size_t NWWidth() const { return _nwWidth; }
   size_t NWHeight() const { return _nwHeight; }
   double NWFactor() const { return _nwFactor; }
-  void SetNWSize(size_t nwWidth, size_t nwHeight) {
-    _nwWidth = nwWidth;
-    _nwHeight = nwHeight;
-  }
-  void SetNWFactor(double factor) { _nwFactor = factor; }
-  void SetAntialiasingKernelSize(size_t kernelSize) {
-    _antialiasingKernelSize = kernelSize;
-  }
-  void SetOverSamplingFactor(size_t factor) { _overSamplingFactor = factor; }
 
  private:
   struct InversionWorkSample {
