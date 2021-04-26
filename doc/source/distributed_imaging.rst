@@ -1,7 +1,7 @@
 Distributed imaging
 ===================
 
-Multiple nodes can be used to speed up the imaging by running wsclean in distributed mode, which makes use of openmp to parallelize the imaging over multiple nodes. To use this, you need a recent WSClean version that provides the executable ``wsclean-mp``.
+Multiple nodes can be used to speed up the imaging by running wsclean in distributed mode, which makes use of MPI to parallelize the imaging over multiple nodes. To use this, you need a recent WSClean version that provides the executable ``wsclean-mp``.
 
 A typical run:
 
