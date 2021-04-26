@@ -628,7 +628,7 @@ void PartitionedMS::unpartition(
   getDataDescIdMap(dataDescIds, handle._channels);
 
   std::vector<MetaHeader> metaHeaders(dataDescIds.size());
-  for (const std::pair<size_t, size_t>& dataDescId : dataDescIds) {
+  for (const std::pair<const size_t, size_t>& dataDescId : dataDescIds) {
     std::ifstream metaFile(getMetaFilename(
         handle._msPath, handle._temporaryDirectory, dataDescId.first));
     MetaHeader& metaHeader = metaHeaders[dataDescId.second];

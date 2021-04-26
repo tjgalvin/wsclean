@@ -31,7 +31,7 @@ void Model::operator+=(const Model& rhs) {
     (*this) = rhs;
   else {
     for (const ModelSource& s : rhs) add(s);
-    for (const std::pair<std::string, ModelCluster>& c : rhs._clusters)
+    for (const std::pair<const std::string, ModelCluster>& c : rhs._clusters)
       _clusters.emplace(c);
   }
 }
