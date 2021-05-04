@@ -90,7 +90,7 @@ The LOFAR beam and IDG libraries are optional, but need to be installed manually
 On Red Hat
 ----------
 
-The following document lists some instructions that can be helpful for instaling WSClean on Red Hat: [Installing WSClean on rhel 7.6](Installation instructions RHEL 7.6) (Thanks to Leonardo Saavedra from NRAO).
+The following document lists some instructions that can be helpful for instaling WSClean on Red Hat and CentOS: :doc:`Installing WSClean on Red Hat and CentOS <installation-rhel>`.
 
 Linking errors
 --------------
@@ -151,3 +151,8 @@ The MWA beam requires that a ``.h5`` file with beam coefficients is present in y
     for a in sys.path:
         print(a)
 
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+
+   installation-rhel

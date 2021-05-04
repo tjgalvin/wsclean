@@ -1,7 +1,7 @@
 FROM centos:8
 
 # Enable epel & power tools repositories
-RUN yum -y install  epel-release && sed -i s/enabled=0/enabled=1/ /etc/yum.repos.d/CentOS-PowerTools.repo
+RUN yum -y install  epel-release dnf-plugins-core && yum config-manager --set-enabled powertools
 
 RUN yum -y install \
     blas-devel \
