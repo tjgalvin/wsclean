@@ -1,4 +1,5 @@
 #include "msprovider.h"
+#include "msreaders/msreader.h"
 
 #include "../io/logger.h"
 
@@ -19,6 +20,9 @@ void AddOrAssign<false>(std::complex<float>* dest, std::complex<float> source) {
   *dest = source;
 }
 }  // namespace
+
+MSProvider::~MSProvider() {}
+MSProvider::MSProvider(const MSProvider&) {}
 
 void MSProvider::copyData(std::complex<float>* dest, size_t startChannel,
                           size_t endChannel,

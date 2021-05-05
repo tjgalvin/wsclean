@@ -17,7 +17,11 @@
 #include <string>
 #include <map>
 
+class PartitionedMSReader;
+
 class PartitionedMS final : public MSProvider {
+  friend class PartitionedMSReader;
+
  public:
   class Handle;
 
@@ -41,6 +45,8 @@ class PartitionedMS final : public MSProvider {
   PartitionedMS(const PartitionedMS&) = delete;
   PartitionedMS& operator=(const PartitionedMS&) = delete;
 
+  std::unique_ptr<MSReader> MakeReader() final override;
+
   SynchronizedMS MS() override {
     return SynchronizedMS(_handle._data->_msPath.data());
   }
@@ -49,31 +55,11 @@ class PartitionedMS final : public MSProvider {
     return _handle._data->_dataColumnName;
   }
 
-  size_t RowId() const override { return _currentInputRow; }
-
-  bool CurrentRowAvailable() override;
-
-  void NextInputRow() override;
-
   void NextOutputRow() override;
 
-  void Reset() override;
-
-  void ReadMeta(double& u, double& v, double& w, size_t& dataDescId) override;
-
-  void ReadMeta(MetaData& metaData) override;
-
-  void ReadData(std::complex<float>* buffer) override;
-
-  void ReadModel(std::complex<float>* buffer) override;
+  void ResetWritePosition() final override { _currentOutputRow = 0; };
 
   void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
-
-  void WriteImagingWeights(const float* buffer) override;
-
-  void ReadWeights(float* buffer) override;
-
-  void ReadWeights(std::complex<float>* buffer) override;
 
   void ReopenRW() override {}
 
@@ -95,6 +81,10 @@ class PartitionedMS final : public MSProvider {
                           const class Settings& settings);
 
   class Handle {
+    // PartitionedMSReader is a friend of Handle
+    // in order to access the _data member.
+    friend class PartitionedMSReader;
+
    public:
     Handle() = default;
 
@@ -158,20 +148,15 @@ class PartitionedMS final : public MSProvider {
       std::map<size_t, size_t>& dataDescIds,
       const std::vector<PartitionedMS::ChannelRange>& channels);
 
-  Handle _handle;
-  size_t _partIndex;
-  std::ifstream _metaFile, _weightFile, _dataFile;
+  const Handle _handle;
+  const size_t _partIndex;
   char* _modelFileMap;
-  size_t _currentInputRow;
   size_t _currentOutputRow;
-  bool _readPtrIsOk, _metaPtrIsOk, _weightPtrIsOk;
-  aocommon::UVector<float> _weightBuffer, _imagingWeightBuffer;
-  aocommon::UVector<std::complex<float>> _modelBuffer;
   std::unique_ptr<std::ofstream> _modelDataFile;
   std::unique_ptr<std::fstream> _imagingWeightsFile;
   int _fd;
-  aocommon::PolarizationEnum _polarization;
-  size_t _polarizationCountInFile;
+  const aocommon::PolarizationEnum _polarization;
+  const size_t _polarizationCountInFile;
 
   struct MetaHeader {
     uint64_t selectedRowCount;

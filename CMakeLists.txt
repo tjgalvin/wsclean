@@ -116,7 +116,7 @@ find_package(MPI)
 
 if(MPI_FOUND)
   # FindMPI in CMake >= 3.10 provides MPI_CXX_COMPILE_OPTIONS, a list that can
-  # be fed into add_compile_options(). In older versions of CMake, FindMPI 
+  # be fed into add_compile_options(). In older versions of CMake, FindMPI
   # provides MPI_CXX_COMPILE_FLAGS, a white-space separated string that can be
   # fed into add_definitions().
   if(DEFINED MPI_CXX_COMPILE_OPTIONS)
@@ -247,7 +247,12 @@ add_library(wsclean-object OBJECT
   msproviders/msprovider.cpp
   msproviders/msrowprovider.cpp
   msproviders/partitionedms.cpp
+  msproviders/timestepbuffer.cpp
   msproviders/synchronizedms.cpp
+  msproviders/msreaders/msreader.cpp
+  msproviders/msreaders/contiguousmsreader.cpp
+  msproviders/msreaders/partitionedmsreader.cpp
+  msproviders/msreaders/timestepbufferreader.cpp
   multiscale/multiscalealgorithm.cpp
   multiscale/multiscaletransforms.cpp
   multiscale/threadeddeconvolutiontools.cpp

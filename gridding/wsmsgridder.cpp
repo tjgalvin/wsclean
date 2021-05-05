@@ -10,6 +10,7 @@
 #include "../math/fftresampler.h"
 
 #include "../msproviders/msprovider.h"
+#include "../msproviders/msreaders/msreader.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -40,11 +41,11 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
   aocommon::UVector<size_t> sampleCount(ActualWGridSize(), 0);
   size_t total = 0;
   msData.matchingRows = 0;
-  msData.msProvider->Reset();
-  while (msData.msProvider->CurrentRowAvailable()) {
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  while (msReader->CurrentRowAvailable()) {
     double uInM, vInM, wInM;
     size_t dataDescId;
-    msData.msProvider->ReadMeta(uInM, vInM, wInM, dataDescId);
+    msReader->ReadMeta(uInM, vInM, wInM, dataDescId);
     const BandData& bandData(msData.bandData[dataDescId]);
     for (size_t ch = msData.startChannel; ch != msData.endChannel; ++ch) {
       double w = wInM / bandData.ChannelWavelength(ch);
@@ -55,7 +56,7 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
       }
     }
     ++msData.matchingRows;
-    msData.msProvider->NextInputRow();
+    msReader->NextInputRow();
   }
   Logger::Debug << "Visibility count per layer: ";
   for (size_t& count : sampleCount) {
@@ -146,11 +147,11 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
   newItem.data = newItemData.data();
 
   size_t rowsRead = 0;
-  msData.msProvider->Reset();
-  while (msData.msProvider->CurrentRowAvailable()) {
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  while (msReader->CurrentRowAvailable()) {
     size_t dataDescId;
     double uInMeters, vInMeters, wInMeters;
-    msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
+    msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
     const BandData& curBand(selectedBand[dataDescId]);
     const double w1 = wInMeters / curBand.LongestWavelength(),
                  w2 = wInMeters / curBand.SmallestWavelength();
@@ -167,7 +168,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
         isSelected[ch] = _gridder->IsInLayerRange(w);
       }
 
-      readAndWeightVisibilities<1>(*msData.msProvider, newItem, curBand,
+      readAndWeightVisibilities<1>(*msReader, newItem, curBand,
                                    weightBuffer.data(), modelBuffer.data(),
                                    isSelected.data());
 
@@ -192,7 +193,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       ++rowsRead;
     }
 
-    msData.msProvider->NextInputRow();
+    msReader->NextInputRow();
   }
 
   for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
@@ -238,6 +239,7 @@ void WSMSGridder::workThreadPerSample(
 
 void WSMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
+  msData.msProvider->ResetWritePosition();
   const MultiBandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 
@@ -263,22 +265,22 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
    * from this thread during further processing */
   std::vector<std::array<double, 3>> uvws;
   std::vector<size_t> rowIds, dataIds;
-  msData.msProvider->Reset();
-  while (msData.msProvider->CurrentRowAvailable()) {
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  while (msReader->CurrentRowAvailable()) {
     size_t dataDescId;
     double uInMeters, vInMeters, wInMeters;
-    msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
+    msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
     const BandData& curBand(selectedBandData[dataDescId]);
     const double w1 = wInMeters / curBand.LongestWavelength(),
                  w2 = wInMeters / curBand.SmallestWavelength();
     if (_gridder->IsInLayerRange(w1, w2)) {
       uvws.push_back({uInMeters, vInMeters, wInMeters});
       dataIds.push_back(dataDescId);
-      rowIds.push_back(msData.msProvider->RowId());
+      rowIds.push_back(msReader->RowId());
       ++rowsProcessed;
     }
 
-    msData.msProvider->NextInputRow();
+    msReader->NextInputRow();
   }
 
   for (size_t i = 0; i != uvws.size(); ++i) {

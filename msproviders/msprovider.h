@@ -18,25 +18,29 @@ namespace casacore {
 class MeasurementSet;
 }
 class MSSelection;
+class MSReader;
 
 /**
  * The abstract MSProvider class is the base class for classes that read and
- * write the visibilities. An MSProvider knows which rows are selected and
- * doesn't read or write to unselected rows. It provides the visibilities
- * weighted with the visibility weight and converts the visibilities to a
- * requested polarization. The @ref ContiguousMS and
+ * write the visibilities. Write functionality is directly provided by classes
+ * that derive from MSProvider, whereas reading functionality is provided a
+ * separate class (MSReader), which can be instantiated with @ref
+ * MSProvider::MakeReader. An MSProvider knows which rows are selected and
+ * doesn't write to unselected rows. This information on selected rows is also
+ * passed to the @ref MSReader. MSProvider provides the visibilities weighted
+ * with the visibility weight and converts the visibilities to a requested
+ * polarization. The @ref ContiguousMS and
  * @ref PartitionedMS classes implement the MSProvider interface.
  *
- * The class maintains two indices: one for reading and one for writing. Both
- * operations must go sequentially through the data, but reading may be at a
- * different position than writing. This for example allows reading some (meta)
- * data ahead, buffering those, calculate the corresponding visibilities and
- * write them back.
+ * The class maintains an index for the write position. The index for the
+ * reading position is maintained by the closely connected @ref MSReader class.
+ * Writing (and reading) goes sequentially through the data.
  */
 class MSProvider {
  public:
   friend class MSRowProvider;
   friend class DirectMSRowProvider;
+  friend class MSReader;
 
   struct MetaData {
     double uInM, vInM, wInM;
@@ -44,7 +48,7 @@ class MSProvider {
     double time;
   };
 
-  virtual ~MSProvider() {}
+  virtual ~MSProvider();
 
   virtual SynchronizedMS MS() = 0;
 
@@ -55,57 +59,14 @@ class MSProvider {
   virtual const std::string& DataColumnName() = 0;
 
   /**
-   * This provides a unique, consecutive number that corresponds to
-   * the current reading position. Note that this number does not have
-   * to map directly to measurement set row indices, because unselected
-   * data does not affect the RowId. @ref MakeIdToMSRowMapping()
-   * can be used to convert this Id to a measurement row number.
-   */
-  virtual size_t RowId() const = 0;
-
-  /**
-   * Returns true as long as there is more data available for reading.
-   */
-  virtual bool CurrentRowAvailable() = 0;
-
-  /**
-   * Move the reading position to the next row.
-   */
-  virtual void NextInputRow() = 0;
-
-  /**
    * Move the model writing position to the next row.
    */
   virtual void NextOutputRow() = 0;
 
   /**
-   * Reset both the reading and writing position to the first row.
+   * Reset the writing position to the first row.
    */
-  virtual void Reset() = 0;
-
-  /**
-   * @{
-   * Read meta data from the current reading position.
-   */
-  virtual void ReadMeta(double& u, double& v, double& w,
-                        size_t& dataDescId) = 0;
-
-  virtual void ReadMeta(MetaData& metaData) = 0;
-  /** @} */
-
-  /**
-   * Read visibility data from current reading position.
-   */
-  virtual void ReadData(std::complex<float>* buffer) = 0;
-
-  /**
-   * Read the model visibilities from the current reading position.
-   */
-  virtual void ReadModel(std::complex<float>* buffer) = 0;
-
-  virtual void ReadWeights(float* buffer) = 0;
-
-  virtual void ReadWeights(std::complex<float>* buffer) = 0;
+  virtual void ResetWritePosition() = 0;
 
   /**
    * Write model visibilities to the current writing position. If add is true,
@@ -113,15 +74,6 @@ class MSProvider {
    * false, the existing model visibilities are overwritten.
    */
   virtual void WriteModel(const std::complex<float>* buffer, bool add) = 0;
-
-  /**
-   * Write imaging weights to the current READING position.
-   * Note that despite this is a write operation, the reading position is
-   * used nevertheless. This is because it is written while reading the meta
-   * data inside WSClean, hence it would be inconvenient if the writing position
-   * would be used.
-   */
-  virtual void WriteImagingWeights(const float* buffer) = 0;
 
   /**
    * Prepare the msprovider for writing. This is explicitly required before
@@ -175,6 +127,8 @@ class MSProvider {
    */
   static std::vector<aocommon::PolarizationEnum> GetMSPolarizations(
       casacore::MeasurementSet& ms);
+
+  virtual std::unique_ptr<MSReader> MakeReader() = 0;
 
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,
@@ -260,7 +214,7 @@ class MSProvider {
   MSProvider() {}
 
  private:
-  MSProvider(const MSProvider&) {}
+  MSProvider(const MSProvider&);
   void operator=(const MSProvider&) {}
 };
 

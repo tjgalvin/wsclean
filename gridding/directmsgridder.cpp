@@ -3,6 +3,7 @@
 #include "../main/progressbar.h"
 
 #include "../msproviders/msprovider.h"
+#include "../msproviders/msreaders/msreader.h"
 
 #include <thread>
 #include <vector>
@@ -139,18 +140,18 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
 
   std::vector<size_t> idToMSRow;
   msData.msProvider->MakeIdToMSRowMapping(idToMSRow);
-  msData.msProvider->Reset();
   size_t rowIndex = 0;
-  while (msData.msProvider->CurrentRowAvailable()) {
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  while (msReader->CurrentRowAvailable()) {
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
                          MeasurementSetCount() * idToMSRow.size());
 
     size_t dataDescId;
-    msData.msProvider->ReadMeta(newItem.uvw[0], newItem.uvw[1], newItem.uvw[2],
-                                dataDescId);
+    msReader->ReadMeta(newItem.uvw[0], newItem.uvw[1], newItem.uvw[2],
+                       dataDescId);
     const BandData& curBand(selectedBand[dataDescId]);
 
-    readAndWeightVisibilities<1>(*msData.msProvider, newItem, curBand,
+    readAndWeightVisibilities<1>(*msReader, newItem, curBand,
                                  weightBuffer.data(), modelBuffer.data(),
                                  isSelected.data());
     InversionSample sample;
@@ -163,7 +164,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
       _inversionLane.write(sample);
     }
 
-    msData.msProvider->NextInputRow();
+    msReader->NextInputRow();
     ++rowIndex;
   }
 }

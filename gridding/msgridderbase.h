@@ -28,6 +28,8 @@
 #include <mutex>
 #include <memory>
 
+class MSReader;
+
 class MSGridderBase {
  public:
   MSGridderBase(const Settings& settings);
@@ -280,7 +282,7 @@ class MSGridderBase {
    * to the relevant sums (visibility count, weight sum, etc.).
    */
   template <size_t PolarizationCount>
-  void readAndWeightVisibilities(MSProvider& msProvider, InversionRow& rowData,
+  void readAndWeightVisibilities(MSReader& msReader, InversionRow& rowData,
                                  const BandData& curBand, float* weightBuffer,
                                  std::complex<float>* modelBuffer,
                                  const bool* isSelected);
@@ -354,6 +356,10 @@ class MSGridderBase {
   double _visibilityWeightSum;
 
   aocommon::UVector<float> _scratchWeights;
+
+  // TODO: will be activated when reading meta data from
+  // ms during degridding
+  // std::unique_ptr<MSReader> _degriddingReader;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

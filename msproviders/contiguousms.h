@@ -13,47 +13,33 @@
 
 #include <memory>
 
+class ContiguousMSReader;
+
 class ContiguousMS : public MSProvider {
+  friend class ContiguousMSReader;
+
  public:
   ContiguousMS(const string& msPath, const std::string& dataColumnName,
                const MSSelection& selection, aocommon::PolarizationEnum polOut,
                size_t dataDescIndex);
+  virtual ~ContiguousMS(){};
 
   ContiguousMS(const ContiguousMS&) = delete;
 
   ContiguousMS& operator=(const ContiguousMS&) = delete;
 
+  std::unique_ptr<MSReader> MakeReader() final override;
+
   SynchronizedMS MS() final override { return _ms; }
 
   const std::string& DataColumnName() final override { return _dataColumnName; }
 
-  size_t RowId() const final override { return _currentRowId; }
-
-  bool CurrentRowAvailable() final override;
-
-  void NextInputRow() final override;
-
   void NextOutputRow() final override;
 
-  void Reset() final override;
-
-  void ReadMeta(double& u, double& v, double& w,
-                size_t& dataDescId) final override;
-
-  void ReadMeta(MetaData& metaData) final override;
-
-  void ReadData(std::complex<float>* buffer) final override;
-
-  void ReadModel(std::complex<float>* buffer) final override;
+  void ResetWritePosition() final override;
 
   void WriteModel(const std::complex<float>* buffer,
                   bool addToMS) final override;
-
-  void ReadWeights(std::complex<float>* buffer) final override;
-
-  void ReadWeights(float* buffer) final override;
-
-  void WriteImagingWeights(const float* buffer) final override;
 
   void ReopenRW() final override { _ms->reopenRW(); }
 
@@ -72,13 +58,9 @@ class ContiguousMS : public MSProvider {
  private:
   void open();
 
-  size_t _currentInputRow;
-  size_t _currentInputTimestep;
-  double _currentInputTime;
   size_t _currentOutputRow;
   size_t _currentOutputTimestep;
   double _currentOutputTime;
-  size_t _currentRowId;
   const int _dataDescId;
   size_t _nAntenna;
   bool _isDataRead, _isModelRead, _isWeightRead;
@@ -111,30 +93,6 @@ class ContiguousMS : public MSProvider {
   casacore::Array<bool> _flagArray;
 
   void prepareModelColumn();
-  void readData() {
-    if (!_isDataRead) {
-      _dataColumn.get(_currentInputRow, _dataArray);
-      _isDataRead = true;
-    }
-  }
-  void readWeights() {
-    if (!_isWeightRead) {
-      _flagColumn.get(_currentInputRow, _flagArray);
-      if (_msHasWeightSpectrum)
-        _weightSpectrumColumn->get(_currentInputRow, _weightSpectrumArray);
-      else {
-        _weightScalarColumn->get(_currentInputRow, _weightScalarArray);
-        expandScalarWeights(_weightScalarArray, _weightSpectrumArray);
-      }
-      _isWeightRead = true;
-    }
-  }
-  void readModel() {
-    if (!_isModelRead) {
-      _modelColumn->get(_currentInputRow, _modelArray);
-      _isModelRead = true;
-    }
-  }
 };
 
 #endif

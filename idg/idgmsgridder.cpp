@@ -1,5 +1,7 @@
 #include "idgmsgridder.h"
 
+#include "../msproviders/msreaders/timestepbufferreader.h"
+
 #include <cmath>
 #include <thread>
 
@@ -200,17 +202,21 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   int timeIndex = -1;
   double currentTime = -1.0;
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
-  for (TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
-       timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextInputRow()) {
+
+  TimestepBuffer timestepBuffer(msData.msProvider, DoSubtractModel());
+  for (std::unique_ptr<MSReader> msReader = timestepBuffer.MakeReader();
+       msReader->CurrentRowAvailable(); msReader->NextInputRow()) {
+    TimestepBufferReader& timestepReader =
+        static_cast<TimestepBufferReader&>(*msReader);
     MSProvider::MetaData metaData;
-    timestepBuffer.ReadMeta(metaData);
+    timestepReader.ReadMeta(metaData);
 
     if (currentTime != metaData.time) {
       currentTime = metaData.time;
       timeIndex++;
 #ifdef HAVE_EVERYBEAM
       if (aTermMaker) {
-        timestepBuffer.GetUVWsForTimestep(uvws);
+        timestepReader.GetUVWsForTimestep(uvws);
         if (aTermMaker->Calculate(
                 aTermBuffer.data(), currentTime,
                 _selectedBands[metaData.dataDescId].CentreFrequency(),
@@ -235,7 +241,7 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
     rowData.dataDescId = metaData.dataDescId;
-    readAndWeightVisibilities<4>(timestepBuffer, rowData, curBand,
+    readAndWeightVisibilities<4>(*msReader, rowData, curBand,
                                  weightBuffer.data(), modelBuffer.data(),
                                  isSelected.data());
 
@@ -246,7 +252,6 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
         ->grid_visibilities(timeIndex, metaData.antenna1, metaData.antenna2,
                             rowData.uvw, rowData.data, weightBuffer.data());
   }
-
   _bufferset->finished();
 
   _griddingWatch.Pause();
@@ -354,19 +359,25 @@ void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
   int timeIndex = -1;
   double currentTime = -1.0;
   aocommon::UVector<double> uvws(msData.msProvider->NAntennas() * 3, 0.0);
-  for (TimestepBuffer timestepBuffer(msData.msProvider, false);
-       timestepBuffer.CurrentRowAvailable(); timestepBuffer.NextInputRow()) {
-    MSProvider::MetaData metaData;
-    timestepBuffer.ReadMeta(metaData);
 
-    size_t provRowId = timestepBuffer.RowId();
+  TimestepBuffer timestepBuffer(msData.msProvider, false);
+  timestepBuffer.ResetWritePosition();
+  for (std::unique_ptr<MSReader> msReader = timestepBuffer.MakeReader();
+       msReader->CurrentRowAvailable(); msReader->NextInputRow()) {
+    TimestepBufferReader& timestepReader =
+        static_cast<TimestepBufferReader&>(*msReader);
+
+    MSProvider::MetaData metaData;
+    timestepReader.ReadMeta(metaData);
+
+    const size_t provRowId = timestepReader.RowId();
     if (currentTime != metaData.time) {
       currentTime = metaData.time;
       timeIndex++;
 
 #ifdef HAVE_EVERYBEAM
       if (aTermMaker) {
-        timestepBuffer.GetUVWsForTimestep(uvws);
+        timestepReader.GetUVWsForTimestep(uvws);
         if (aTermMaker->Calculate(
                 aTermBuffer.data(), currentTime,
                 _selectedBands[metaData.dataDescId].CentreFrequency(),

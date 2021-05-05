@@ -3,6 +3,8 @@
 
 #include "wgriddinggridder_simple.h"
 
+#include "../msproviders/msreaders/msreader.h"
+
 #include "../io/logger.h"
 
 #include "../math/fftresampler.h"
@@ -71,30 +73,29 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
                                                      band.ChannelCount());
     aocommon::UVector<double> uvwBuffer(maxNRows * 3);
 
-    msData.msProvider->Reset();
+    std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
     aocommon::UVector<std::complex<float>> newItemData(band.ChannelCount());
     InversionRow newRowData;
     newRowData.data = newItemData.data();
 
     // Iterate over chunks until all data has been gridded
-    while (msData.msProvider->CurrentRowAvailable()) {
+    while (msReader->CurrentRowAvailable()) {
       Logger::Debug << "Max " << maxNRows << " rows fit in memory.\n";
       Logger::Info << "Loading data in memory...\n";
 
       size_t nRows = 0;
 
       // Read / fill the chunk
-      while (msData.msProvider->CurrentRowAvailable() && nRows < maxNRows) {
+      while (msReader->CurrentRowAvailable() && nRows < maxNRows) {
         size_t rowDataDescId;
         double uInMeters, vInMeters, wInMeters;
-        msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters,
-                                    rowDataDescId);
+        msReader->ReadMeta(uInMeters, vInMeters, wInMeters, rowDataDescId);
         if (rowDataDescId == dataDescId) {
           newRowData.uvw[0] = uInMeters;
           newRowData.uvw[1] = vInMeters;
           newRowData.uvw[2] = wInMeters;
           newRowData.dataDescId = dataDescId;
-          readAndWeightVisibilities<1>(*msData.msProvider, newRowData, band,
+          readAndWeightVisibilities<1>(*msReader, newRowData, band,
                                        weightBuffer.data(), modelBuffer.data(),
                                        isSelected.data());
 
@@ -104,7 +105,7 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
 
           ++nRows;
         }
-        msData.msProvider->NextInputRow();
+        msReader->NextInputRow();
       }
 
       Logger::Info << "Gridding " << nRows << " rows...\n";
@@ -134,22 +135,22 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
     aocommon::UVector<double> uvwBuffer(maxNRows * 3);
     // Iterate over chunks until all data has been gridded
-    msData.msProvider->Reset();
-    while (msData.msProvider->CurrentRowAvailable()) {
+    msData.msProvider->ResetWritePosition();
+    std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+    while (msReader->CurrentRowAvailable()) {
       size_t nRows = 0;
       // Read / fill the chunk
-      while (msData.msProvider->CurrentRowAvailable() && nRows < maxNRows) {
+      while (msReader->CurrentRowAvailable() && nRows < maxNRows) {
         size_t rowDataDescId;
         double uInMeters, vInMeters, wInMeters;
-        msData.msProvider->ReadMeta(uInMeters, vInMeters, wInMeters,
-                                    rowDataDescId);
+        msReader->ReadMeta(uInMeters, vInMeters, wInMeters, rowDataDescId);
         if (rowDataDescId == dataDescId) {
           uvwBuffer[nRows * 3] = uInMeters;
           uvwBuffer[nRows * 3 + 1] = vInMeters;
           uvwBuffer[nRows * 3 + 2] = wInMeters;
           ++nRows;
         }
-        msData.msProvider->NextInputRow();
+        msReader->NextInputRow();
       }
 
       Logger::Info << "Predicting " << nRows << " rows...\n";

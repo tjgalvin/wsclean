@@ -5,6 +5,7 @@
 #include "../math/calculatefftsize.h"
 
 #include "../msproviders/msprovider.h"
+#include "../msproviders/msreaders/msreader.h"
 
 #include "../structures/imageweights.h"
 
@@ -209,12 +210,12 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
   msData.maxBaselineInM = 0.0;
   MultiBandData selectedBand = msData.SelectedBand();
   std::vector<float> weightArray(selectedBand.MaxChannels() * NPolInMSProvider);
-  msData.msProvider->Reset();
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
-  while (msData.msProvider->CurrentRowAvailable()) {
+  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
-    msData.msProvider->ReadMeta(metaData);
+    msReader->ReadMeta(metaData);
 
     if (curTimestep != metaData.time) {
       curTimestep = metaData.time;
@@ -232,7 +233,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
     double halfWidth = 0.5 * ImageWidth(), halfHeight = 0.5 * ImageHeight();
     if (wHi > msData.maxW || wLo < msData.minW ||
         baselineInM / curBand.SmallestWavelength() > msData.maxBaselineUVW) {
-      msData.msProvider->ReadWeights(weightArray.data());
+      msReader->ReadWeights(weightArray.data());
       const float* weightPtr = weightArray.data();
       for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
         const double wavelength = curBand.ChannelWavelength(ch);
@@ -260,7 +261,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
       }
     }
 
-    msData.msProvider->NextInputRow();
+    msReader->NextInputRow();
   }
 
   if (msData.minW == 1e100) {
@@ -389,6 +390,10 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
         "use the Facet Beam functionality");
   }
 #endif
+  // alstie hangt --> probleem met synchronized ms
+  // if(isDegridding){
+  // _degriddingReader = msData.msProvider->MakeReader();
+  // }
 }
 
 void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
@@ -479,7 +484,7 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
 }
 
 template <size_t PolarizationCount>
-void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
+void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
                                               InversionRow& rowData,
                                               const BandData& curBand,
                                               float* weightBuffer,
@@ -498,12 +503,12 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
       rotateVisibilities<PolarizationCount>(curBand, shiftFactor, rowData.data);
     }
   } else {
-    msProvider.ReadData(rowData.data);
+    msReader.ReadData(rowData.data);
   }
-  rowData.rowId = msProvider.RowId();
+  rowData.rowId = msReader.RowId();
 
   if (DoSubtractModel()) {
-    msProvider.ReadModel(modelBuffer);
+    msReader.ReadModel(modelBuffer);
     std::complex<float>* modelIter = modelBuffer;
     for (std::complex<float>* iter = rowData.data;
          iter != rowData.data + dataSize; ++iter) {
@@ -515,7 +520,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
-    msProvider.ReadMeta(metaData);
+    msReader.ReadMeta(metaData);
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -546,7 +551,7 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
   }
 #endif
 
-  msProvider.ReadWeights(weightBuffer);
+  msReader.ReadWeights(weightBuffer);
 
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
@@ -599,16 +604,16 @@ void MSGridderBase::readAndWeightVisibilities(MSProvider& msProvider,
     }
   }
   if (StoreImagingWeights())
-    msProvider.WriteImagingWeights(_scratchWeights.data());
+    msReader.WriteImagingWeights(_scratchWeights.data());
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1>(
-    MSProvider& msProvider, InversionRow& newItem, const BandData& curBand,
+    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<4>(
-    MSProvider& msProvider, InversionRow& newItem, const BandData& curBand,
+    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
