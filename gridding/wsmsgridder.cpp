@@ -255,7 +255,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
                                                          _laneBufferSize);
   std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
-                          &msData);
+                          &msData, &selectedBandData);
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _cpuCount; ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
@@ -329,7 +329,7 @@ void WSMSGridder::predictCalcThread(
 
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData) {
+    const MSData* msData, const MultiBandData* bandData) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -345,7 +345,10 @@ void WSMSGridder::predictWriteThread(
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
     while (queue.top().rowId == nextRowId) {
-      writeVisibilities(*(msData->msProvider), queue.top().data.get());
+      writeVisibilities<1>(*msData->msProvider,
+                           (*bandData)[queue.top().dataDescId],
+                           queue.top().data.get());
+
       queue.pop();
       ++nextRowId;
     }
@@ -355,7 +358,7 @@ void WSMSGridder::predictWriteThread(
 
 void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, false);
 
   _gridder.reset(new GridderType(_actualInversionWidth, _actualInversionHeight,
                                  _actualPixelSizeX, _actualPixelSizeY,
@@ -489,7 +492,7 @@ void WSMSGridder::Predict(Image real, Image imaginary) {
     throw std::runtime_error("Imaginary specified in non-complex prediction");
 
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, true);
 
   _gridder = std::unique_ptr<GridderType>(
       new GridderType(_actualInversionWidth, _actualInversionHeight,

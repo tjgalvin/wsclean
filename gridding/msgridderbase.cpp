@@ -87,6 +87,8 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
 }  // namespace
 #endif  // HAVE_EVERYBEAM
 
+MSGridderBase::~MSGridderBase(){};
+
 MSGridderBase::MSData::MSData()
     : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
 
@@ -287,7 +289,7 @@ template void MSGridderBase::calculateWLimits<1>(MSGridderBase::MSData& msData);
 template void MSGridderBase::calculateWLimits<4>(MSGridderBase::MSData& msData);
 
 void MSGridderBase::initializeMSDataVector(
-    std::vector<MSGridderBase::MSData>& msDataVector) {
+    std::vector<MSGridderBase::MSData>& msDataVector, bool isPredict) {
   if (MeasurementSetCount() == 0)
     throw std::runtime_error(
         "Something is wrong during inversion: no measurement sets given to "
@@ -301,7 +303,7 @@ void MSGridderBase::initializeMSDataVector(
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
-                             hasCache);
+                             hasCache, isPredict);
   }
 
   calculateOverallMetaData(msDataVector.data());
@@ -309,7 +311,8 @@ void MSGridderBase::initializeMSDataVector(
 
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
                                              MetaDataCache::Entry& cacheEntry,
-                                             bool isCacheInitialized) {
+                                             bool isCacheInitialized,
+                                             bool isPredict) {
   MSProvider& msProvider = MeasurementSet(msData.msIndex);
   msData.msProvider = &msProvider;
   SynchronizedMS ms(msProvider.MS());
@@ -390,10 +393,12 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
         "use the Facet Beam functionality");
   }
 #endif
-  // alstie hangt --> probleem met synchronized ms
-  // if(isDegridding){
-  // _degriddingReader = msData.msProvider->MakeReader();
-  // }
+
+  if (isPredict) {
+    _degriddingReader = msData.msProvider->MakeReader();
+  } else {
+    _degriddingReader.reset();
+  }
 }
 
 void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
@@ -476,12 +481,56 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     _actualWGridSize = _wGridSize;
 }
 
+template <size_t PolarizationCount>
 void MSGridderBase::writeVisibilities(MSProvider& msProvider,
-                                      const std::complex<float>* buffer) const {
+                                      const BandData& curBand,
+                                      std::complex<float>* buffer) {
+#ifdef HAVE_EVERYBEAM
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    MSProvider::MetaData metaData;
+    _degriddingReader->ReadMeta(metaData);
+    _degriddingReader->NextInputRow();
+    _pointResponse->UpdateTime(metaData.time);
+    if (_pointResponse->HasTimeUpdate()) {
+      if (auto phasedArray =
+              dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
+                  _pointResponse.get())) {
+        phasedArray->UpdateITRFVectors(_facetCentreRA, _facetCentreDec);
+      }
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        _pointResponse->CalculateAllStations(
+            &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+            _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
+            metaData.fieldId);
+      }
+    }
+
+    std::complex<float>* iter = buffer;
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
+      const size_t offset1 = offset + metaData.antenna1 * 4u;
+      const size_t offset2 = offset + metaData.antenna2 * 4u;
+
+      const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
+      ApplyBeam<PolarizationCount>(iter, gain1, gain2);
+      iter += PolarizationCount;
+    }
+  }
+#endif
+
   const bool addToMS = (_facetIndex != 0);
   msProvider.WriteModel(buffer, addToMS);
   msProvider.NextOutputRow();
 }
+
+template void MSGridderBase::writeVisibilities<1>(MSProvider& msProvider,
+                                                  const BandData& curBand,
+                                                  std::complex<float>* buffer);
+
+template void MSGridderBase::writeVisibilities<4>(MSProvider& msProvider,
+                                                  const BandData& curBand,
+                                                  std::complex<float>* buffer);
 
 template <size_t PolarizationCount>
 void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,

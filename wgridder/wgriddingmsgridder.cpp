@@ -162,8 +162,8 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
       Logger::Info << "Writing...\n";
       for (size_t row = 0; row != nRows; ++row) {
-        writeVisibilities(*msData.msProvider,
-                          &visBuffer[row * band.ChannelCount()]);
+        writeVisibilities<1>(*msData.msProvider, band,
+                             &visBuffer[row * band.ChannelCount()]);
       }
       totalNRows += nRows;
     }  // end of chunk
@@ -183,7 +183,7 @@ void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
 
 void WGriddingMSGridder::Invert() {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, false);
 
   size_t trimmedWidth, trimmedHeight;
   getTrimmedSize(trimmedWidth, trimmedHeight);
@@ -241,7 +241,7 @@ void WGriddingMSGridder::Invert() {
 
 void WGriddingMSGridder::Predict(Image image) {
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, true);
 
   size_t trimmedWidth, trimmedHeight;
   getTrimmedSize(trimmedWidth, trimmedHeight);

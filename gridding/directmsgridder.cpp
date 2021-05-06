@@ -18,7 +18,7 @@ void DirectMSGridder<num_t>::Invert() {
   const size_t width = TrimWidth(), height = TrimHeight();
 
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector);
+  initializeMSDataVector(msDataVector, false);
   resetVisibilityCounters();
 
   ProgressBar progress("Performing direct Fourier transform");

@@ -79,7 +79,7 @@ void IdgMsGridder::Invert() {
     _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
 
     std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector);
+    initializeMSDataVector(msDataVector, false);
 
     double max_w = 0;
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
@@ -298,7 +298,7 @@ void IdgMsGridder::Predict(Image image) {
     }
 
     std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector);
+    initializeMSDataVector(msDataVector, true);
 
     double max_w = 0;
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
@@ -418,8 +418,9 @@ void IdgMsGridder::predictRow(IDGPredictionRow& row) {
 void IdgMsGridder::computePredictionBuffer(size_t dataDescId) {
   auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
+  const BandData& curBand(_selectedBands[dataDescId]);
   for (auto i : available_row_ids) {
-    writeVisibilities(*_outputProvider, i.second);
+    writeVisibilities<4>(*_outputProvider, curBand, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();
