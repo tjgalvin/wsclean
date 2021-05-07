@@ -608,7 +608,7 @@ void CommandLine::printHelp() {
          "   Allow the beam to be elliptical. Default.\n"
          "\n"
          "For detailed help, check the WSClean website: "
-         "http://wsclean.sourceforge.net/ .\n";
+         "https://wsclean.readthedocs.io/ .\n";
 }
 
 void CommandLine::printHeader() {

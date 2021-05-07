@@ -196,11 +196,7 @@ class MSGridderBase {
 
  protected:
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
-  void computeFacetCentre() {
-    aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
-                                          _phaseCentreRA, _phaseCentreDec,
-                                          _facetCentreRA, _facetCentreDec);
-  }
+
   struct MSData {
    public:
     MSData();
@@ -229,34 +225,6 @@ class MSGridderBase {
     size_t dataDescId, rowId;
     std::complex<float>* data;
   };
-
-  void resetMetaData() { _hasFrequencies = false; }
-
-  void calculateMSLimits(const MultiBandData& selectedBand, double startTime) {
-    if (_hasFrequencies) {
-      _freqLow = std::min(_freqLow, selectedBand.LowestFrequency());
-      _freqHigh = std::max(_freqHigh, selectedBand.HighestFrequency());
-      _bandStart = std::min(_bandStart, selectedBand.BandStart());
-      _bandEnd = std::max(_bandEnd, selectedBand.BandEnd());
-      _startTime = std::min(_startTime, startTime);
-    } else {
-      _freqLow = selectedBand.LowestFrequency();
-      _freqHigh = selectedBand.HighestFrequency();
-      _bandStart = selectedBand.BandStart();
-      _bandEnd = selectedBand.BandEnd();
-      _startTime = startTime;
-      _hasFrequencies = true;
-    }
-  }
-
-  template <size_t NPolInMSProvider>
-  void calculateWLimits(MSGridderBase::MSData& msData);
-
-  void initializeMeasurementSet(MSGridderBase::MSData& msData,
-                                MetaDataCache::Entry& cacheEntry,
-                                bool isCacheInitialized, bool isPredict);
-
-  void calculateOverallMetaData(const MSData* msDataVector);
 
   /**
    * Read the visibilities from the msprovider, and apply weights and flags.
@@ -322,6 +290,39 @@ class MSGridderBase {
   const Settings& _settings;
 
  private:
+  void computeFacetCentre() {
+    aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
+                                          _phaseCentreRA, _phaseCentreDec,
+                                          _facetCentreRA, _facetCentreDec);
+  }
+
+  void resetMetaData() { _hasFrequencies = false; }
+
+  void calculateMSLimits(const MultiBandData& selectedBand, double startTime) {
+    if (_hasFrequencies) {
+      _freqLow = std::min(_freqLow, selectedBand.LowestFrequency());
+      _freqHigh = std::max(_freqHigh, selectedBand.HighestFrequency());
+      _bandStart = std::min(_bandStart, selectedBand.BandStart());
+      _bandEnd = std::max(_bandEnd, selectedBand.BandEnd());
+      _startTime = std::min(_startTime, startTime);
+    } else {
+      _freqLow = selectedBand.LowestFrequency();
+      _freqHigh = selectedBand.HighestFrequency();
+      _bandStart = selectedBand.BandStart();
+      _bandEnd = selectedBand.BandEnd();
+      _startTime = startTime;
+      _hasFrequencies = true;
+    }
+  }
+
+  template <size_t NPolInMSProvider>
+  void calculateWLimits(MSGridderBase::MSData& msData);
+
+  void initializeMeasurementSet(MSGridderBase::MSData& msData,
+                                MetaDataCache::Entry& cacheEntry,
+                                bool isCacheInitialized, bool isPredict);
+
+  void calculateOverallMetaData(const MSData* msDataVector);
   bool hasWGridSize() const { return _wGridSize != 0; }
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
