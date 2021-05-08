@@ -270,15 +270,10 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
     size_t dataDescId;
     double uInMeters, vInMeters, wInMeters;
     msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
-    const BandData& curBand(selectedBandData[dataDescId]);
-    const double w1 = wInMeters / curBand.LongestWavelength(),
-                 w2 = wInMeters / curBand.SmallestWavelength();
-    if (_gridder->IsInLayerRange(w1, w2)) {
-      uvws.push_back({uInMeters, vInMeters, wInMeters});
-      dataIds.push_back(dataDescId);
-      rowIds.push_back(msReader->RowId());
-      ++rowsProcessed;
-    }
+    uvws.push_back({uInMeters, vInMeters, wInMeters});
+    dataIds.push_back(dataDescId);
+    rowIds.push_back(msReader->RowId());
+    ++rowsProcessed;
 
     msReader->NextInputRow();
   }

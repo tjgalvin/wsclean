@@ -728,10 +728,8 @@ void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms) {
     if (!isDefined || !isSameShape) {
       Logger::Warn << "WARNING: Your model column does not have the same shape "
                       "as your data column: resetting MODEL column.\n";
-      casacore::Array<casacore::Complex> zeroArray(dataShape);
-      for (casacore::Array<casacore::Complex>::contiter i = zeroArray.cbegin();
-           i != zeroArray.cend(); ++i)
-        *i = std::complex<float>(0.0, 0.0);
+      const casacore::Array<casacore::Complex> zeroArray(
+          dataShape, casacore::Complex(0.0, 0.0));
       for (size_t row = 0; row != ms.nrow(); ++row)
         modelColumn.put(row, zeroArray);
     }
@@ -748,11 +746,8 @@ void MSProvider::initializeModelColumn(casacore::MeasurementSet& ms) {
       ms.addColumn(modelColumnDesc, "StandardStMan", false, true);
     }
 
-    casacore::Array<casacore::Complex> zeroArray(shape);
-    for (casacore::Array<casacore::Complex>::contiter i = zeroArray.cbegin();
-         i != zeroArray.cend(); ++i)
-      *i = std::complex<float>(0.0, 0.0);
-
+    const casacore::Array<casacore::Complex> zeroArray(
+        shape, casacore::Complex(0.0, 0.0));
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
 
