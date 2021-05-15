@@ -151,9 +151,9 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
                        dataDescId);
     const BandData& curBand(selectedBand[dataDescId]);
 
-    readAndWeightVisibilities<1>(*msReader, newItem, curBand,
-                                 weightBuffer.data(), modelBuffer.data(),
-                                 isSelected.data());
+    readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
+                                 curBand, weightBuffer.data(),
+                                 modelBuffer.data(), isSelected.data());
     InversionSample sample;
     for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
       const double wl = curBand.ChannelWavelength(ch);

@@ -23,12 +23,20 @@
 #include <EveryBeam/pointresponse/pointresponse.h>
 #endif
 
+#include <schaapcommon/h5parm/jonesparameters.h>
+
 #include <aocommon/uvector.h>
 
 #include <mutex>
 #include <memory>
 
 class MSReader;
+namespace schaapcommon {
+namespace h5parm {
+class H5Parm;
+class SolTab;
+}  // namespace h5parm
+}  // namespace schaapcommon
 
 class MSGridderBase {
  public:
@@ -93,6 +101,7 @@ class MSGridderBase {
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
   }
+
   /**
    * If this is the first gridder iteration, the gridder may output more
    * information.
@@ -209,6 +218,7 @@ class MSGridderBase {
     double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM;
     size_t rowStart, rowEnd;
     double integrationTime;
+    std::vector<std::string> antennaNames;
 
     MultiBandData SelectedBand() const {
       return MultiBandData(bandData, startChannel, endChannel);
@@ -250,8 +260,10 @@ class MSGridderBase {
    * to the relevant sums (visibility count, weight sum, etc.).
    */
   template <size_t PolarizationCount>
-  void readAndWeightVisibilities(MSReader& msReader, InversionRow& rowData,
-                                 const BandData& curBand, float* weightBuffer,
+  void readAndWeightVisibilities(MSReader& msReader,
+                                 const std::vector<std::string>& antennaNames,
+                                 InversionRow& rowData, const BandData& curBand,
+                                 float* weightBuffer,
                                  std::complex<float>* modelBuffer,
                                  const bool* isSelected);
 
@@ -260,8 +272,9 @@ class MSGridderBase {
    * MSProvider::WriteModel()
    */
   template <size_t PolarizationCount>
-  void writeVisibilities(MSProvider& msProvider, const BandData& curBand,
-                         std::complex<float>* buffer);
+  void writeVisibilities(MSProvider& msProvider,
+                         const std::vector<std::string>& antennaNames,
+                         const BandData& curBand, std::complex<float>* buffer);
 
   double _maxW, _minW;
   size_t _actualInversionWidth, _actualInversionHeight;
@@ -290,6 +303,8 @@ class MSGridderBase {
   const Settings& _settings;
 
  private:
+  static std::vector<std::string> getAntennaNames(
+      const casacore::MeasurementSet& ms);
   void computeFacetCentre() {
     aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
                                           _phaseCentreRA, _phaseCentreDec,
@@ -366,8 +381,14 @@ class MSGridderBase {
   // _telescope attribute needed to keep the telecope in _point_response alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
-  aocommon::UVector<std::complex<float>> _cachedResponse;
+  aocommon::UVector<std::complex<float>> _cachedBeamResponse;
 #endif
+  aocommon::UVector<std::complex<float>> _cachedParmResponse;
+  std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
+  std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>
+      _h5SolTabs;
+  schaapcommon::h5parm::JonesParameters::CorrectType _correctType;
+  std::pair<size_t, size_t> _h5TimeIndex;
 };
 
 #endif

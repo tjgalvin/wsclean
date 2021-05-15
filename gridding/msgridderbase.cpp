@@ -15,12 +15,17 @@
 #include <EveryBeam/load.h>
 #include <EveryBeam/aterms/atermconfig.h>
 #include <EveryBeam/pointresponse/phasedarraypoint.h>
+#endif
 
-// Only needed for EB related options
+// Only needed for EB/H5Parm related options
 #include "../io/findmwacoefffile.h"
 #include <limits>
 #include <aocommon/matrix2x2.h>
-#endif
+
+#include <schaapcommon/h5parm/h5parm.h>
+#include <schaapcommon/h5parm/soltab.h>
+
+#include <casacore/casa/Arrays/Cube.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/measures/Measures/MDirection.h>
@@ -29,13 +34,15 @@
 #include <casacore/measures/Measures/MPosition.h>
 #include <casacore/measures/Measures/MCPosition.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+#include <casacore/ms/MeasurementSets/MSAntennaColumns.h>
 
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <atomic>
 
-#ifdef HAVE_EVERYBEAM
+using schaapcommon::h5parm::JonesParameters;
+
 namespace {
 template <size_t PolarizationCount>
 void ApplyConjugatedBeam(std::complex<float>* visibilities,
@@ -85,12 +92,11 @@ void ApplyBeam<4>(std::complex<float>* visibilities,
   result.AssignTo(visibilities);
 }
 }  // namespace
-#endif  // HAVE_EVERYBEAM
 
 MSGridderBase::~MSGridderBase(){};
 
 MSGridderBase::MSData::MSData()
-    : msIndex(0), matchingRows(0), totalRowsProcessed(0) {}
+    : msIndex(0), matchingRows(0), totalRowsProcessed(0), antennaNames() {}
 
 MSGridderBase::MSData::~MSData() {}
 
@@ -139,8 +145,25 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _griddedVisibilityCount(0),
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
-      _visibilityWeightSum(0.0) {
+      _visibilityWeightSum(0.0),
+      _cachedParmResponse(),
+      _h5parm(nullptr),
+      _h5SolTabs(std::make_pair(nullptr, nullptr)),
+      _h5TimeIndex(std::make_pair(std::numeric_limits<size_t>::max(),
+                                  std::numeric_limits<size_t>::max())) {
   computeFacetCentre();
+}
+
+std::vector<std::string> MSGridderBase::getAntennaNames(
+    const casacore::MeasurementSet& ms) {
+  std::vector<std::string> antennaNames;
+  casacore::ROMSAntennaColumns antenna(ms.antenna());
+  const casacore::ROScalarColumn<casacore::String> antannaNameColumn =
+      antenna.name();
+  for (size_t i = 0; i < antenna.nrow(); ++i) {
+    antennaNames.push_back(antannaNameColumn(i));
+  }
+  return antennaNames;
 }
 
 int64_t MSGridderBase::getAvailableMemory(double memFraction,
@@ -318,6 +341,8 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   SynchronizedMS ms(msProvider.MS());
   if (ms->nrow() == 0) throw std::runtime_error("Table has no rows (no data)");
 
+  msData.antennaNames = getAntennaNames(*ms);
+
   initializeBandData(*ms, msData);
 
   if (HasDenormalPhaseCentre())
@@ -374,8 +399,8 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     _telescope = everybeam::Load(*ms, options);
     _pointResponse = _telescope->GetPointResponse(msProvider.StartTime());
     _pointResponse->SetUpdateInterval(_settings.facetBeamUpdateTime);
-    _cachedResponse.resize(msData.bandData.MaxChannels() *
-                           _pointResponse->GetAllStationsBufferSize());
+    _cachedBeamResponse.resize(msData.bandData.MaxChannels() *
+                               _pointResponse->GetAllStationsBufferSize());
   } else {
     if (_settings.applyFacetBeam) {
       throw std::runtime_error(
@@ -383,7 +408,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
           "regions file was specified.");
     }
     _pointResponse = nullptr;
-    _cachedResponse.resize(0);
+    _cachedBeamResponse.resize(0);
   }
 #else
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
@@ -393,6 +418,37 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
         "use the Facet Beam functionality");
   }
 #endif
+
+  if (!_settings.facetSolutionFile.empty()) {
+    _h5parm.reset(
+        new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
+
+    if (_settings.facetSolutionTables.size() == 1) {
+      _h5SolTabs = std::make_pair(
+          &_h5parm->GetSolTab(_settings.facetSolutionTables[0]), nullptr);
+      _correctType =
+          JonesParameters::StringToCorrectType(_h5SolTabs.first->GetType());
+    } else if (_settings.facetSolutionTables.size() == 2) {
+      _h5SolTabs =
+          std::make_pair(&_h5parm->GetSolTab(_settings.facetSolutionTables[0]),
+                         &_h5parm->GetSolTab(_settings.facetSolutionTables[1]));
+      if (_h5SolTabs.first->GetType() != "amplitude") {
+        throw std::runtime_error("Type of solution table 0 is " +
+                                 _h5SolTabs.first->GetType() +
+                                 ", should be 'amplitude'");
+      }
+      if (_h5SolTabs.second->GetType() != "phase") {
+        throw std::runtime_error("Type of solution table 1 is " +
+                                 _h5SolTabs.second->GetType() +
+                                 ", should be 'phase'");
+      }
+      _correctType = JonesParameters::CorrectType::FULLJONES;
+    } else {
+      throw std::runtime_error(
+          "Specify the solution table name(s) with "
+          "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
+    }
+  }
 
   if (isPredict) {
     _degriddingReader = msData.msProvider->MakeReader();
@@ -482,9 +538,76 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 }
 
 template <size_t PolarizationCount>
-void MSGridderBase::writeVisibilities(MSProvider& msProvider,
-                                      const BandData& curBand,
-                                      std::complex<float>* buffer) {
+void MSGridderBase::writeVisibilities(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer) {
+  if (_h5parm) {
+    MSProvider::MetaData metaData;
+    _degriddingReader->ReadMeta(metaData);
+    // When the facet beam is applied, the row will be incremented later in this
+    // function
+    if (!_settings.applyFacetBeam) {
+      _degriddingReader->NextInputRow();
+    }
+
+    const size_t nparms =
+        (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
+
+    // Only update the cached solutions if one of the time indices in the
+    // soltabs changed
+    if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
+        (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
+                                  _h5TimeIndex.second)) {
+      const std::vector<double> freqs(curBand.begin(), curBand.end());
+      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
+
+      JonesParameters jonesParameters(
+          freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
+          JonesParameters::InterpolationType::NEAREST, _facetIndex,
+          _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
+          JonesParameters::MissingAntennaBehavior::kUnit);
+      const auto parms = jonesParameters.GetParms();
+      // Assumes that the data layout parms is contiguous in mem, ordered as
+      // [station1:pol1:chan1, ..., station1:poln:chan1, ...
+      // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
+      // stationn:polm:chank]
+      _cachedParmResponse.assign(&parms(0, 0, 0),
+                                 &parms(0, 0, 0) + _cachedParmResponse.size());
+
+      _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
+      if (_h5SolTabs.second) {
+        _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
+      }
+    }
+
+    std::complex<float>* iter = buffer;
+    if (nparms == 2) {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
+
+        ApplyBeam<PolarizationCount>(
+            iter,
+            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
+                             _cachedParmResponse[offset1 + 1]),
+            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
+                             _cachedParmResponse[offset2 + 1]));
+        iter += PolarizationCount;
+      }
+    } else {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
+        ApplyBeam<PolarizationCount>(
+            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
+            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        iter += PolarizationCount;
+      }
+    }
+  }
+
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
@@ -499,7 +622,8 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
       }
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _pointResponse->CalculateAllStations(
-            &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+            &_cachedBeamResponse[ch *
+                                 _pointResponse->GetAllStationsBufferSize()],
             _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
             metaData.fieldId);
       }
@@ -511,8 +635,8 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
       const size_t offset1 = offset + metaData.antenna1 * 4u;
       const size_t offset2 = offset + metaData.antenna2 * 4u;
 
-      const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
-      const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
+      const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
       ApplyBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
@@ -524,21 +648,19 @@ void MSGridderBase::writeVisibilities(MSProvider& msProvider,
   msProvider.NextOutputRow();
 }
 
-template void MSGridderBase::writeVisibilities<1>(MSProvider& msProvider,
-                                                  const BandData& curBand,
-                                                  std::complex<float>* buffer);
+template void MSGridderBase::writeVisibilities<1>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<4>(MSProvider& msProvider,
-                                                  const BandData& curBand,
-                                                  std::complex<float>* buffer);
+template void MSGridderBase::writeVisibilities<4>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
 
 template <size_t PolarizationCount>
-void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
-                                              InversionRow& rowData,
-                                              const BandData& curBand,
-                                              float* weightBuffer,
-                                              std::complex<float>* modelBuffer,
-                                              const bool* isSelected) {
+void MSGridderBase::readAndWeightVisibilities(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& rowData, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (DoImagePSF()) {
     std::fill_n(rowData.data, dataSize, 1.0);
@@ -579,7 +701,8 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       }
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _pointResponse->CalculateAllStations(
-            &_cachedResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+            &_cachedBeamResponse[ch *
+                                 _pointResponse->GetAllStationsBufferSize()],
             _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
             metaData.fieldId);
       }
@@ -592,13 +715,76 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
       const size_t offset1 = offset + metaData.antenna1 * 4u;
       const size_t offset2 = offset + metaData.antenna2 * 4u;
 
-      const aocommon::MC2x2F gain1(&_cachedResponse[offset1]);
-      const aocommon::MC2x2F gain2(&_cachedResponse[offset2]);
+      const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
       ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
 #endif
+
+  if (_h5parm) {
+    MSProvider::MetaData metaData;
+    msReader.ReadMeta(metaData);
+
+    const size_t nparms =
+        (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
+
+    // Only update the cached response if one of the time indices in the soltabs
+    // changed
+    if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
+        (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
+                                  _h5TimeIndex.second)) {
+      const std::vector<double> freqs(curBand.begin(), curBand.end());
+      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
+
+      JonesParameters jonesParameters(
+          freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
+          JonesParameters::InterpolationType::NEAREST, _facetIndex,
+          _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
+          JonesParameters::MissingAntennaBehavior::kUnit);
+      const auto parms = jonesParameters.GetParms();
+      // Assumes that the data layout parms is contiguous in mem, ordered as
+      // [station1:pol1:chan1, ..., station1:poln:chan1, ...
+      // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
+      // stationn:polm:chank]
+      _cachedParmResponse.assign(&parms(0, 0, 0),
+                                 &parms(0, 0, 0) + _cachedParmResponse.size());
+
+      _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
+      if (_h5SolTabs.second) {
+        _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
+      }
+    }
+
+    // Conditional could be templated once C++ supports partial function
+    // specialization
+    std::complex<float>* iter = rowData.data;
+    if (nparms == 2) {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
+        ApplyConjugatedBeam<PolarizationCount>(
+            iter,
+            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
+                             _cachedParmResponse[offset1 + 1]),
+            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
+                             _cachedParmResponse[offset2 + 1]));
+        iter += PolarizationCount;
+      }
+    } else {
+      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+        const size_t offset = ch * antennaNames.size() * nparms;
+        const size_t offset1 = offset + metaData.antenna1 * nparms;
+        const size_t offset2 = offset + metaData.antenna2 * nparms;
+        ApplyConjugatedBeam<PolarizationCount>(
+            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
+            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        iter += PolarizationCount;
+      }
+    }
+  }
 
   msReader.ReadWeights(weightBuffer);
 
@@ -657,14 +843,14 @@ void MSGridderBase::readAndWeightVisibilities(MSReader& msReader,
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1>(
-    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
-    float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<4>(
-    MSReader& msReader, InversionRow& newItem, const BandData& curBand,
-    float* weightBuffer, std::complex<float>* modelBuffer,
-    const bool* isSelected);
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
 
 template <size_t PolarizationCount>
 void MSGridderBase::rotateVisibilities(const BandData& bandData,

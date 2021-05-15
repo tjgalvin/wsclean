@@ -13,6 +13,8 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/radeccoord.h>
 
+#include <schaapcommon/h5parm/jonesparameters.h>
+
 #include <boost/algorithm/string.hpp>
 #include <boost/optional/optional.hpp>
 
@@ -326,9 +328,16 @@ void CommandLine::printHelp() {
          "   -apply-primary-beam when not gridding with the beam.\n"
          "-aterm-kernel-size\n"
          "   Kernel size reserved for aterms by IDG.\n"
+         "-apply-facet-solutions <path-to-file> <name1[,name2]>\n"
+         "   Apply solutions from the provided (h5) file per facet "
+         "when gridding facet based images.\n"
+         "   Provided file is assumed to be in H5Parm format.\n"
+         "   Filename is followed by a comma separated list of strings "
+         "specifying which "
+         "sol tabs from the provided H5Parm file are used.\n"
          "-apply-facet-beam\n"
-         "   Apply beam gains to facet center when gridding facet based "
-         "images\n"
+         "   Apply beam gains to facet center when gridding "
+         "facet based images\n"
          "-facet-beam-update <seconds>\n"
          "   Set the facet beam update time in seconds. The default is every "
          "120 seconds.\n"
@@ -1274,6 +1283,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "aterm-kernel-size") {
       ++argi;
       atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
+    } else if (param == "apply-facet-solutions") {
+      ++argi;
+      settings.facetSolutionFile = argv[argi];
+      ++argi;
+      settings.facetSolutionTables =
+          schaapcommon::h5parm::JonesParameters::ParseList(argv[argi]);
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
     } else if (param == "facet-beam-update") {
