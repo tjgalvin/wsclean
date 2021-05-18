@@ -18,7 +18,7 @@ void DirectMSGridder<num_t>::Invert() {
   const size_t width = TrimWidth(), height = TrimHeight();
 
   std::vector<MSData> msDataVector;
-  initializeMSDataVector(msDataVector, false);
+  initializeMSDataVector(msDataVector);
   resetVisibilityCounters();
 
   ProgressBar progress("Performing direct Fourier transform");
@@ -127,6 +127,7 @@ template <typename num_t>
 void DirectMSGridder<num_t>::invertMeasurementSet(
     const MSGridderBase::MSData& msData, ProgressBar& progress,
     size_t msIndex) {
+  StartMeasurementSet(msData, false);
   const MultiBandData selectedBand(msData.SelectedBand());
   aocommon::UVector<std::complex<float>> modelBuffer(
       selectedBand.MaxChannels());

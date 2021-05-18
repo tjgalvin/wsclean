@@ -237,6 +237,18 @@ class MSGridderBase {
   };
 
   /**
+   * Initializes MS related data members, i.e. the @param _telescope and the
+   * @param _pointResponse data in case a beam is applied on the facets and
+   * EveryBeam is available and the @param _predictReader data member in case
+   * @param isPredict is true.
+   */
+  void StartMeasurementSet(const MSGridderBase::MSData& msData,
+                           bool isPredict) {
+    initializePointResponse(msData);
+    if (isPredict) initializePredictReader(*msData.msProvider);
+  }
+
+  /**
    * Read the visibilities from the msprovider, and apply weights and flags.
    *
    * This function applies both the selected method of visibility weighting
@@ -291,8 +303,7 @@ class MSGridderBase {
 
   double totalWeight() const { return _totalWeight; }
 
-  void initializeMSDataVector(std::vector<MSData>& msDataVector,
-                              bool isDegridder);
+  void initializeMSDataVector(std::vector<MSData>& msDataVector);
 
   std::unique_ptr<struct MetaDataCache> _metaDataCache;
 
@@ -335,12 +346,15 @@ class MSGridderBase {
 
   void initializeMeasurementSet(MSGridderBase::MSData& msData,
                                 MetaDataCache::Entry& cacheEntry,
-                                bool isCacheInitialized, bool isPredict);
+                                bool isCacheInitialized);
 
   void calculateOverallMetaData(const MSData* msDataVector);
   bool hasWGridSize() const { return _wGridSize != 0; }
   void initializeBandData(casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
+  void initializePointResponse(const MSGridderBase::MSData& msData);
+  void initializePredictReader(MSProvider& msProvider);
+
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
@@ -375,7 +389,7 @@ class MSGridderBase {
 
   aocommon::UVector<float> _scratchWeights;
 
-  std::unique_ptr<MSReader> _degriddingReader;
+  std::unique_ptr<MSReader> _predictReader;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

@@ -146,6 +146,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _totalWeight(0.0),
       _maxGriddedWeight(0.0),
       _visibilityWeightSum(0.0),
+      _predictReader(nullptr),
       _cachedParmResponse(),
       _h5parm(nullptr),
       _h5SolTabs(std::make_pair(nullptr, nullptr)),
@@ -198,6 +199,63 @@ int64_t MSGridderBase::getAvailableMemory(double memFraction,
       memory = int64_t(double(absMemLimit) * double(1024.0 * 1024.0 * 1024.0));
   }
   return memory;
+}
+
+void MSGridderBase::initializePointResponse(
+    const MSGridderBase::MSData& msData) {
+  SynchronizedMS ms(msData.msProvider->MS());
+#ifdef HAVE_EVERYBEAM
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    // Hard-coded for now
+    const bool frequency_interpolation = true;
+    const bool use_channel_frequency = true;
+    const std::string element_response_string =
+        !_settings.beamModel.empty() ? _settings.beamModel : "DEFAULT";
+
+    // Get path to coefficient file for MWA telescope
+    everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
+    const std::string coeff_path =
+        (telescope_type == everybeam::TelescopeType::kMWATelescope)
+            ? wsclean::mwa::FindCoeffFile(_settings.mwaPath)
+            : "";
+
+    everybeam::ATermSettings aterm_settings;
+    aterm_settings.coeff_path = coeff_path;
+    aterm_settings.data_column_name = _settings.dataColumnName;
+
+    everybeam::Options options =
+        everybeam::aterms::ATermConfig::ConvertToEBOptions(
+            *ms, aterm_settings, frequency_interpolation,
+            _settings.useDifferentialLofarBeam, use_channel_frequency,
+            element_response_string);
+
+    _telescope = everybeam::Load(*ms, options);
+    _pointResponse =
+        _telescope->GetPointResponse(msData.msProvider->StartTime());
+    _pointResponse->SetUpdateInterval(_settings.facetBeamUpdateTime);
+    _cachedBeamResponse.resize(msData.bandData.MaxChannels() *
+                               _pointResponse->GetAllStationsBufferSize());
+  } else {
+    if (_settings.applyFacetBeam) {
+      throw std::runtime_error(
+          "-apply-facet-beam was set, but no corresponding facet "
+          "regions file was specified.");
+    }
+    _pointResponse = nullptr;
+    _cachedBeamResponse.resize(0);
+  }
+#else
+  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+    throw std::runtime_error(
+        "-apply-facet-beam was set, but wsclean was not compiled "
+        "with EveryBeam. Please compile wsclean with EveryBeam to "
+        "use the Facet Beam functionality");
+  }
+#endif
+}
+
+void MSGridderBase::initializePredictReader(MSProvider& msProvider) {
+  _predictReader = msProvider.MakeReader();
 }
 
 void MSGridderBase::initializeBandData(casacore::MeasurementSet& ms,
@@ -312,7 +370,7 @@ template void MSGridderBase::calculateWLimits<1>(MSGridderBase::MSData& msData);
 template void MSGridderBase::calculateWLimits<4>(MSGridderBase::MSData& msData);
 
 void MSGridderBase::initializeMSDataVector(
-    std::vector<MSGridderBase::MSData>& msDataVector, bool isPredict) {
+    std::vector<MSGridderBase::MSData>& msDataVector) {
   if (MeasurementSetCount() == 0)
     throw std::runtime_error(
         "Something is wrong during inversion: no measurement sets given to "
@@ -326,7 +384,7 @@ void MSGridderBase::initializeMSDataVector(
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
-                             hasCache, isPredict);
+                             hasCache);
   }
 
   calculateOverallMetaData(msDataVector.data());
@@ -334,8 +392,7 @@ void MSGridderBase::initializeMSDataVector(
 
 void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
                                              MetaDataCache::Entry& cacheEntry,
-                                             bool isCacheInitialized,
-                                             bool isPredict) {
+                                             bool isCacheInitialized) {
   MSProvider& msProvider = MeasurementSet(msData.msIndex);
   msData.msProvider = &msProvider;
   SynchronizedMS ms(msProvider.MS());
@@ -371,54 +428,6 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.integrationTime = msData.integrationTime;
   }
 
-#ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
-    // Hard-coded for now
-    const bool frequency_interpolation = true;
-    const bool use_channel_frequency = true;
-    const std::string element_response_string =
-        !_settings.beamModel.empty() ? _settings.beamModel : "DEFAULT";
-
-    // Get path to coefficient file in case MWA telescope
-    everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
-    const std::string coeff_path =
-        (telescope_type == everybeam::TelescopeType::kMWATelescope)
-            ? wsclean::mwa::FindCoeffFile(_settings.mwaPath)
-            : "";
-
-    everybeam::ATermSettings aterm_settings;
-    aterm_settings.coeff_path = coeff_path;
-    aterm_settings.data_column_name = _settings.dataColumnName;
-
-    everybeam::Options options =
-        everybeam::aterms::ATermConfig::ConvertToEBOptions(
-            *ms, aterm_settings, frequency_interpolation,
-            _settings.useDifferentialLofarBeam, use_channel_frequency,
-            element_response_string);
-
-    _telescope = everybeam::Load(*ms, options);
-    _pointResponse = _telescope->GetPointResponse(msProvider.StartTime());
-    _pointResponse->SetUpdateInterval(_settings.facetBeamUpdateTime);
-    _cachedBeamResponse.resize(msData.bandData.MaxChannels() *
-                               _pointResponse->GetAllStationsBufferSize());
-  } else {
-    if (_settings.applyFacetBeam) {
-      throw std::runtime_error(
-          "-apply-facet-beam was set, but no corresponding facet "
-          "regions file was specified.");
-    }
-    _pointResponse = nullptr;
-    _cachedBeamResponse.resize(0);
-  }
-#else
-  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
-    throw std::runtime_error(
-        "-apply-facet-beam was set, but wsclean was not compiled "
-        "with EveryBeam. Please compile wsclean with EveryBeam to "
-        "use the Facet Beam functionality");
-  }
-#endif
-
   if (!_settings.facetSolutionFile.empty()) {
     _h5parm.reset(
         new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
@@ -448,12 +457,6 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
           "Specify the solution table name(s) with "
           "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
     }
-  }
-
-  if (isPredict) {
-    _degriddingReader = msData.msProvider->MakeReader();
-  } else {
-    _degriddingReader.reset();
   }
 }
 
@@ -543,11 +546,11 @@ void MSGridderBase::writeVisibilities(
     const BandData& curBand, std::complex<float>* buffer) {
   if (_h5parm) {
     MSProvider::MetaData metaData;
-    _degriddingReader->ReadMeta(metaData);
+    _predictReader->ReadMeta(metaData);
     // When the facet beam is applied, the row will be incremented later in this
     // function
     if (!_settings.applyFacetBeam) {
-      _degriddingReader->NextInputRow();
+      _predictReader->NextInputRow();
     }
 
     const size_t nparms =
@@ -611,8 +614,8 @@ void MSGridderBase::writeVisibilities(
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
-    _degriddingReader->ReadMeta(metaData);
-    _degriddingReader->NextInputRow();
+    _predictReader->ReadMeta(metaData);
+    _predictReader->NextInputRow();
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
