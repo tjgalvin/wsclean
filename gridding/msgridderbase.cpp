@@ -45,20 +45,19 @@ using schaapcommon::h5parm::JonesParameters;
 
 namespace {
 template <size_t PolarizationCount>
-void ApplyConjugatedBeam(std::complex<float>* visibilities,
+void ApplyConjugatedGain(std::complex<float>* visibilities,
                          const aocommon::MC2x2F& gain1,
                          const aocommon::MC2x2F& gain2);
 template <>
-void ApplyConjugatedBeam<1>(std::complex<float>* visibilities,
+void ApplyConjugatedGain<1>(std::complex<float>* visibilities,
                             const aocommon::MC2x2F& gain1,
                             const aocommon::MC2x2F& gain2) {
   // Stokes-I
-  *visibilities = 0.25f * std::conj(aocommon::Trace(gain1)) * (*visibilities) *
-                  aocommon::Trace(gain2);
+  *visibilities = 0.25f * conj(Trace(gain1)) * (*visibilities) * Trace(gain2);
 }
 
 template <>
-void ApplyConjugatedBeam<4>(std::complex<float>* visibilities,
+void ApplyConjugatedGain<4>(std::complex<float>* visibilities,
                             const aocommon::MC2x2F& gain1,
                             const aocommon::MC2x2F& gain2) {
   // All polarizations
@@ -69,20 +68,19 @@ void ApplyConjugatedBeam<4>(std::complex<float>* visibilities,
 }
 
 template <size_t PolarizationCount>
-void ApplyBeam(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+void ApplyGain(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
                const aocommon::MC2x2F& gain2);
 
 template <>
-void ApplyBeam<1>(std::complex<float>* visibilities,
+void ApplyGain<1>(std::complex<float>* visibilities,
                   const aocommon::MC2x2F& gain1,
                   const aocommon::MC2x2F& gain2) {
   // Stokes-I
-  *visibilities = 0.25f * aocommon::Trace(gain1) * (*visibilities) *
-                  std::conj(aocommon::Trace(gain2));
+  *visibilities = 0.25f * Trace(gain1) * (*visibilities) * conj(Trace(gain2));
 }
 
 template <>
-void ApplyBeam<4>(std::complex<float>* visibilities,
+void ApplyGain<4>(std::complex<float>* visibilities,
                   const aocommon::MC2x2F& gain1,
                   const aocommon::MC2x2F& gain2) {
   // All polarizations
@@ -590,7 +588,7 @@ void MSGridderBase::writeVisibilities(
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
 
-        ApplyBeam<PolarizationCount>(
+        ApplyGain<PolarizationCount>(
             iter,
             aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
                              _cachedParmResponse[offset1 + 1]),
@@ -603,7 +601,7 @@ void MSGridderBase::writeVisibilities(
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyBeam<PolarizationCount>(
+        ApplyGain<PolarizationCount>(
             iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
             aocommon::MC2x2F(&_cachedParmResponse[offset2]));
         iter += PolarizationCount;
@@ -640,7 +638,7 @@ void MSGridderBase::writeVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyBeam<PolarizationCount>(iter, gain1, gain2);
+      ApplyGain<PolarizationCount>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
@@ -691,10 +689,47 @@ void MSGridderBase::readAndWeightVisibilities(
     }
   }
 
+  msReader.ReadWeights(weightBuffer);
+
+  // Any visibilities that are not gridded in this pass
+  // should not contribute to the weight sum, so set these
+  // to have zero weight.
+  for (size_t ch = 0; ch != dataSize; ++ch) {
+    if (!isSelected[ch]) weightBuffer[ch] = 0.0;
+  }
+
+  switch (VisibilityWeightingMode()) {
+    case VisibilityWeightingMode::NormalVisibilityWeighting:
+      // The weight buffer already contains the visibility weights: do nothing
+      break;
+    case VisibilityWeightingMode::SquaredVisibilityWeighting:
+      // Square the visibility weights
+      for (size_t chp = 0; chp != dataSize; ++chp)
+        weightBuffer[chp] *= weightBuffer[chp];
+      break;
+    case VisibilityWeightingMode::UnitVisibilityWeighting:
+      // Set the visibility weights to one
+      for (size_t chp = 0; chp != dataSize; ++chp) {
+        if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
+      }
+      break;
+  }
+
+  // Precompute imaging weights
+  _scratchWeights.resize(curBand.ChannelCount());
+  for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
+    const double u = rowData.uvw[0] / curBand.ChannelWavelength(ch);
+    const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
+    _scratchWeights[ch] = GetImageWeights()->GetWeight(u, v);
+  }
+  if (StoreImagingWeights())
+    msReader.WriteImagingWeights(_scratchWeights.data());
+
 #ifdef HAVE_EVERYBEAM
   if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
     MSProvider::MetaData metaData;
     msReader.ReadMeta(metaData);
+
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
       if (auto phasedArray =
@@ -713,6 +748,7 @@ void MSGridderBase::readAndWeightVisibilities(
 
     // rowData.data contains the visibilities
     std::complex<float>* iter = rowData.data;
+    float* weightIter = weightBuffer;
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
       const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
       const size_t offset1 = offset + metaData.antenna1 * 4u;
@@ -720,8 +756,15 @@ void MSGridderBase::readAndWeightVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyConjugatedBeam<PolarizationCount>(iter, gain1, gain2);
+      ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+
+      const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+      const float weight = *weightIter * _scratchWeights[ch];
+      _metaDataCache->beamSum += (conj(g) * weight * g).real();
+
+      // Only admissible PolarizationCount for applying the facet beam is 1.
       iter += PolarizationCount;
+      weightIter += PolarizationCount;
     }
   }
 #endif
@@ -763,70 +806,54 @@ void MSGridderBase::readAndWeightVisibilities(
     // Conditional could be templated once C++ supports partial function
     // specialization
     std::complex<float>* iter = rowData.data;
+    float* weightIter = weightBuffer;
     if (nparms == 2) {
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyConjugatedBeam<PolarizationCount>(
-            iter,
-            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
-                             _cachedParmResponse[offset1 + 1]),
-            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
-                             _cachedParmResponse[offset2 + 1]));
+        const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
+                                     _cachedParmResponse[offset1 + 1]);
+        const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
+                                     _cachedParmResponse[offset2 + 1]);
+        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+
+        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        const float weight = *weightIter * _scratchWeights[ch];
+        _metaDataCache->h5Sum += (conj(g) * weight * g).real();
+
+        // Only admissible PolarizationCount for applying gains from solution
+        // file is 1.
         iter += PolarizationCount;
+        weightIter += PolarizationCount;
       }
     } else {
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyConjugatedBeam<PolarizationCount>(
-            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
-            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
+        const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+
+        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
+        const float weight = *weightIter * _scratchWeights[ch];
+        _metaDataCache->h5Sum += (conj(g) * weight * g).real();
+
+        // Only admissible PolarizationCount for applying gains from solution
+        // file is 1.
         iter += PolarizationCount;
+        weightIter += PolarizationCount;
       }
     }
-  }
-
-  msReader.ReadWeights(weightBuffer);
-
-  // Any visibilities that are not gridded in this pass
-  // should not contribute to the weight sum, so set these
-  // to have zero weight.
-  for (size_t ch = 0; ch != dataSize; ++ch) {
-    if (!isSelected[ch]) weightBuffer[ch] = 0.0;
-  }
-
-  switch (VisibilityWeightingMode()) {
-    case VisibilityWeightingMode::NormalVisibilityWeighting:
-      // The weight buffer already contains the visibility weights: do nothing
-      break;
-    case VisibilityWeightingMode::SquaredVisibilityWeighting:
-      // Square the visibility weights
-      for (size_t chp = 0; chp != dataSize; ++chp)
-        weightBuffer[chp] *= weightBuffer[chp];
-      break;
-    case VisibilityWeightingMode::UnitVisibilityWeighting:
-      // Set the visibility weights to one
-      for (size_t chp = 0; chp != dataSize; ++chp) {
-        if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
-      }
-      break;
   }
 
   // Calculate imaging weights
   std::complex<float>* dataIter = rowData.data;
   float* weightIter = weightBuffer;
-  _scratchWeights.resize(curBand.ChannelCount());
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-    double u = rowData.uvw[0] / curBand.ChannelWavelength(ch),
-           v = rowData.uvw[1] / curBand.ChannelWavelength(ch),
-           imageWeight = GetImageWeights()->GetWeight(u, v);
-    _scratchWeights[ch] = imageWeight;
-
     for (size_t p = 0; p != PolarizationCount; ++p) {
-      double cumWeight = *weightIter * imageWeight;
+      const double cumWeight = *weightIter * _scratchWeights[ch];
       if (p == 0 && cumWeight != 0.0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
         _visibilityWeightSum += *weightIter;
@@ -841,8 +868,6 @@ void MSGridderBase::readAndWeightVisibilities(
       ++weightIter;
     }
   }
-  if (StoreImagingWeights())
-    msReader.WriteImagingWeights(_scratchWeights.data());
 }
 
 template void MSGridderBase::readAndWeightVisibilities<1>(

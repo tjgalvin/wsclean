@@ -157,14 +157,15 @@ class WSClean {
   /**
    * Partition model image into facets and save them into fits files
    */
-  void partitionModelIntoFacets(const ImagingTable& table);
+  void partitionModelIntoFacets(const ImagingTable& table, bool isPredictOnly);
 
   /**
    * Partition image into facets for a single (Facet)Group
    */
   void partitionSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                             CachedImageSet& imageCache, const Image& fullImage,
-                            schaapcommon::facets::FacetImage& facetImage);
+                            schaapcommon::facets::FacetImage& facetImage,
+                            bool isPredictOnly);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void writeModelImages(const ImagingTable& groupTable) const;

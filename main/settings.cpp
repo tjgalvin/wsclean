@@ -41,6 +41,19 @@ void Settings::Validate() const {
     throw std::runtime_error(s.str());
   }
 
+  if (facetRegionFilename.empty()) {
+    if (!facetSolutionFile.empty())
+      throw std::runtime_error(
+          "A facet solution file can only be specified in conjunction with a "
+          "facet regions file. Either remove -apply-facet-solutions from the "
+          "command line, or specify a facet regions file with -facet-regions.");
+    if (applyFacetBeam)
+      throw std::runtime_error(
+          "A facet beam can only applied if a facet regions file is specified. "
+          "Either remove -apply-facet-beam from the command line, or specify a "
+          "regions file with -facet-regions.");
+  }
+
   if (useIDG) {
     const bool stokesIOnly =
         polarizations.size() == 1 &&
@@ -65,6 +78,15 @@ void Settings::Validate() const {
     if (parallelGridding != 1)
       throw std::runtime_error(
           "Parallel gridding can not be combined with IDG");
+    if (applyFacetBeam)
+      throw std::runtime_error(
+          "IDG cannot apply facet based beam corrections. Remove facet related "
+          "command line arguments and use -grid-with-beam "
+          "instead.");
+    if (!facetSolutionFile.empty())
+      throw std::runtime_error(
+          "IDG cannot apply facet based direction dependent corrections. "
+          "Remove -apply-facet-solution from the command line instruction.");
   }
   if (gridWithBeam && !useIDG)
     throw std::runtime_error(

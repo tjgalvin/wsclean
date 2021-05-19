@@ -979,7 +979,7 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         }
 
         if (_settings.deconvolutionMGain != 1.0) {
-          partitionModelIntoFacets(groupTable);
+          partitionModelIntoFacets(groupTable, false);
           if (parallelizeChannels && parallelizePolarizations) {
             _predictingWatch.Start();
             // TODO: maybe consider swapping the order?
@@ -1209,7 +1209,8 @@ void WSClean::writeModelImages(const ImagingTable& groupTable) const {
   }
 }
 
-void WSClean::partitionModelIntoFacets(const ImagingTable& table) {
+void WSClean::partitionModelIntoFacets(const ImagingTable& table,
+                                       bool isPredictOnly) {
   if (!_facets.empty()) {
     Logger::Info << "Clipping model image into facets...\n";
     // Allocate full image
@@ -1226,20 +1227,35 @@ void WSClean::partitionModelIntoFacets(const ImagingTable& table) {
                         clipGroup.Front().outputChannelIndex, false);
       for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
         partitionSingleGroup(clipGroup, imageIndex, _modelImages, fullImage,
-                             facetImage);
+                             facetImage, isPredictOnly);
       }
     }
   }
 }
 
-void WSClean::partitionSingleGroup(
-    const ImagingTable& facetGroup, size_t imageIndex,
-    CachedImageSet& imageCache, const Image& fullImage,
-    schaapcommon::facets::FacetImage& facetImage) {
+void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
+                                   size_t imageIndex,
+                                   CachedImageSet& imageCache,
+                                   const Image& fullImage,
+                                   schaapcommon::facets::FacetImage& facetImage,
+                                   bool isPredictOnly) {
   const bool isImaginary = (imageIndex == 1);
   for (const ImagingTableEntry& facetEntry : facetGroup) {
     facetImage.SetFacet(*facetEntry.facet, true);
     facetImage.CopyToFacet({fullImage.data()});
+    if (!isPredictOnly) {
+      if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
+        // Apply average direction dependent correction before storing
+        float m = 1.0;
+        if (_settings.applyFacetBeam)
+          m *= _msGridderMetaCache[facetEntry.index]->beamSum /
+               facetEntry.imageWeight;
+        if (!_settings.facetSolutionFile.empty())
+          m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
+               facetEntry.imageWeight;
+        facetImage *= 1.0f / std::sqrt(m);
+      }
+    }
     imageCache.StoreFacet(facetImage.Data(0), facetEntry.polarization,
                           facetEntry.outputChannelIndex, facetEntry.facetIndex,
                           facetEntry.facet, isImaginary);
@@ -1383,7 +1399,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
       // from the same (full) image. The meta data for the full model image can
       // be inferred from the first entry in the facetGroup table
       readExistingModelImages(facetGroup.Front());
-      partitionModelIntoFacets(facetGroup);
+      partitionModelIntoFacets(facetGroup, true);
 
       for (const auto& entry : facetGroup) {
         predict(entry);
@@ -1569,6 +1585,18 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     imageCache.LoadFacet(facetImage.Data(0), facetEntry.polarization,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
                          facetEntry.facet, isImaginary);
+
+    if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
+      float m = 1.0;
+      if (_settings.applyFacetBeam)
+        m *= _msGridderMetaCache[facetEntry.index]->beamSum /
+             facetEntry.imageWeight;
+      if (!_settings.facetSolutionFile.empty())
+        m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
+             facetEntry.imageWeight;
+      facetImage *= 1.0f / std::sqrt(m);
+    }
+
     // TODO with our current stitching implementation, facets should always be
     // directly copied to the full image, not added. The facets should not
     // overlap though.
