@@ -671,7 +671,7 @@ void WSClean::RunClean() {
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "image.fits",
                                           intervalIndex, *pol, false);
-            if (_settings.applyPrimaryBeam ||
+            if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty()))
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -686,7 +686,7 @@ void WSClean::RunClean() {
                                           intervalIndex, *pol, false);
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                             intervalIndex, *pol, false, false);
-            if (_settings.applyPrimaryBeam ||
+            if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty())) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -708,7 +708,7 @@ void WSClean::RunClean() {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "image.fits",
                                             intervalIndex, *pol, true);
-              if (_settings.applyPrimaryBeam ||
+              if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty()))
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -723,7 +723,7 @@ void WSClean::RunClean() {
                                             intervalIndex, *pol, true);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                               intervalIndex, *pol, true, false);
-              if (_settings.applyPrimaryBeam ||
+              if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty())) {
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -1072,8 +1072,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
     if (_settings.saveSourceList) {
       _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
                                     _observationInfo.phaseCentreDec);
-      if (_settings.applyPrimaryBeam || _settings.gridWithBeam ||
-          !_settings.atermConfigFilename.empty()) {
+      if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+          _settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
         _deconvolution.SavePBSourceList(groupTable,
                                         _observationInfo.phaseCentreRA,
                                         _observationInfo.phaseCentreDec);
@@ -1160,7 +1160,7 @@ void WSClean::saveRestoredImagesForGroup(
           IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName,
                                               "model", _settings);
         }
-      } else if (_settings.applyPrimaryBeam) {
+      } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
         primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
         if (_settings.savePsfPb)
           primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
@@ -1455,7 +1455,7 @@ void WSClean::runFirstInversion(
   if (isLastPol) {
     ImageFilename imageName =
         ImageFilename(entry.outputChannelIndex, entry.outputIntervalIndex);
-    if (_settings.applyPrimaryBeam) {
+    if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
       std::vector<std::unique_ptr<MSDataDescription>> msList;
       initializeMSList(entry, msList);
       std::shared_ptr<ImageWeights> weights =
@@ -1466,7 +1466,10 @@ void WSClean::runFirstInversion(
       primaryBeam->SetPhaseCentre(
           _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
           _observationInfo.shiftL, _observationInfo.shiftM);
-      primaryBeam->MakeBeamImages(imageName, entry, std::move(weights));
+      // Only generate beam images for facetIndex == 0 in facet group
+      if (entry.facetIndex == 0) {
+        primaryBeam->MakeBeamImages(imageName, entry, std::move(weights));
+      }
     }
   }
 
