@@ -83,6 +83,10 @@ find_package(HDF5 COMPONENTS C CXX REQUIRED)
 SET(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
 find_package(Casacore REQUIRED COMPONENTS casa ms tables measures fits)
 find_package(CFITSIO REQUIRED)
+# Chgcentre uses a lapack function. EveryBeam provides lapack, but because
+# EveryBeam is not required, chgcentre will fail to link when EveryBeam is not
+# available, if LAPACK would not be explicitly required.
+find_package(LAPACK REQUIRED)
 
 find_library(FFTW3_LIB fftw3 REQUIRED)
 find_library(FFTW3_THREADS_LIB fftw3_threads REQUIRED)
@@ -317,7 +321,7 @@ if(MPI_FOUND)
 endif(MPI_FOUND)
 
 add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp structures/multibanddata.cpp)
-target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB} ${MPI_LIBRARIES})
+target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 
 add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp ${WSCLEANFILES})
 target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
