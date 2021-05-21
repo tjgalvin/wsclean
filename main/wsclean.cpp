@@ -672,6 +672,7 @@ void WSClean::RunClean() {
                                           _infoForMFS, "image.fits",
                                           intervalIndex, *pol, false);
             if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                !_settings.facetSolutionFile.empty() ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty()))
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -687,6 +688,7 @@ void WSClean::RunClean() {
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                             intervalIndex, *pol, false, false);
             if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                !_settings.facetSolutionFile.empty() ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty())) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -709,6 +711,7 @@ void WSClean::RunClean() {
                                             _infoForMFS, "image.fits",
                                             intervalIndex, *pol, true);
               if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                  !_settings.facetSolutionFile.empty() ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty()))
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -724,6 +727,7 @@ void WSClean::RunClean() {
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                               intervalIndex, *pol, true, false);
               if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+                  !_settings.facetSolutionFile.empty() ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty())) {
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -1073,7 +1077,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
       _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
                                     _observationInfo.phaseCentreDec);
       if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-          _settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+          !_settings.facetSolutionFile.empty() || _settings.gridWithBeam ||
+          !_settings.atermConfigFilename.empty()) {
         _deconvolution.SavePBSourceList(groupTable,
                                         _observationInfo.phaseCentreRA,
                                         _observationInfo.phaseCentreDec);
@@ -1148,6 +1153,7 @@ void WSClean::saveRestoredImagesForGroup(
     if (curPol == *_settings.polarizations.rbegin()) {
       ImageFilename imageName =
           ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
+      bool hasPBImages = false;
       if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
                                             _settings);
@@ -1161,12 +1167,27 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
+        hasPBImages = true;
         primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
         if (_settings.savePsfPb)
           primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
         if (_settings.deconvolutionIterationCount != 0) {
           primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
           primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
+        }
+      }
+
+      if (!_settings.facetSolutionFile.empty()) {
+        correctImagesH5(writer.Writer(), tableEntry, imageName, "image",
+                        hasPBImages);
+        if (_settings.savePsfPb)
+          correctImagesH5(writer.Writer(), tableEntry, imageName, "psf",
+                          hasPBImages);
+        if (_settings.deconvolutionIterationCount != 0) {
+          correctImagesH5(writer.Writer(), tableEntry, imageName, "residual",
+                          hasPBImages);
+          correctImagesH5(writer.Writer(), tableEntry, imageName, "model",
+                          hasPBImages);
         }
       }
     }
@@ -1908,4 +1929,41 @@ WSCFitsWriter WSClean::createWSCFitsWriter(
                        _deconvolution, observationInfo, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
                        isModel, _lastStartTime);
+}
+
+void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
+                              const ImagingTableEntry& entry,
+                              const ImageFilename& imageName,
+                              const std::string& filenameKind,
+                              bool hasPBImages) const {
+  const std::string postFix = (hasPBImages) ? "-pb" : "";
+  aocommon::PolarizationEnum pol = *_settings.polarizations.begin();
+
+  if (pol == aocommon::Polarization::StokesI) {
+    ImageFilename stokesIName(imageName);
+    stokesIName.SetPolarization(pol);
+    std::string prefix;
+    if (filenameKind == "psf")
+      prefix = stokesIName.GetPSFPrefix(_settings);
+    else
+      prefix = stokesIName.GetPrefix(_settings);
+
+    aocommon::FitsReader reader(prefix + "-" + filenameKind + postFix +
+                                ".fits");
+    Image image(reader.ImageWidth(), reader.ImageHeight());
+    reader.Read(image.data());
+
+    // Requires std::map::at in order to comply with constness of member
+    // function
+    const float m =
+        _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
+    image *= 1.0f / std::sqrt(m);
+
+    // Always write to -pb.fits
+    writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.data());
+  } else {
+    throw std::runtime_error(
+        "H5 correction is requested, but this is not supported "
+        "when imaging a single polarization that is not Stokes I.");
+  }
 }

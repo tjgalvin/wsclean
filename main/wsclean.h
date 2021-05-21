@@ -182,6 +182,15 @@ class WSClean {
                                     aocommon::PolarizationEnum polarization,
                                     bool isImaginary, bool isModel,
                                     bool isFullImage) const;
+  /**
+   * @brief Apply the H5 solution to the (restored) image and save as -pb.fits
+   * file if hasPBImages=false. If hasPBImage=true, existing pb images are
+   * overwritten.
+   */
+  void correctImagesH5(aocommon::FitsWriter& writer,
+                       const ImagingTableEntry& entry,
+                       const ImageFilename& imageName,
+                       const std::string& filenameKind, bool hasPBImages) const;
 
   MSSelection _globalSelection;
   std::string _commandLine;

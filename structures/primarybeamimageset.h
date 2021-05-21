@@ -168,9 +168,8 @@ class PrimaryBeamImageSet {
         val[2] = std::complex<float>(_beamImages[4][j], _beamImages[5][j]);
         val[3] = std::complex<float>(_beamImages[6][j], _beamImages[7][j]);
         aocommon::MC2x2F::ATimesHermB(squared, val, val);
-        if (squared.Invert())
-          stokesI[j] =
-              stokesI[j] * 0.5 * (squared[0].real() + squared[3].real());
+        if (Trace(squared).real() != 0.0)
+          stokesI[j] /= 2.0 * Trace(squared).real();
         else
           stokesI[j] = std::numeric_limits<float>::quiet_NaN();
       }
