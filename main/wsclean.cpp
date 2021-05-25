@@ -524,6 +524,11 @@ void WSClean::initializeMFSImageWeights() {
 
 void WSClean::performReordering(bool isPredictMode) {
   std::mutex mutex;
+
+  // If there are reordered measurement sets on disk, we have to clean them
+  // before writing new ones:
+  _partitionedMSHandles.clear();
+
   _partitionedMSHandles.resize(_settings.filenames.size());
   bool useModel = _settings.deconvolutionMGain != 1.0 || isPredictMode ||
                   _settings.subtractModel || _settings.continuedRun;
@@ -822,8 +827,6 @@ void WSClean::RunPredict() {
       predictGroup(_imagingTable.GetSquaredGroup(i));
     }
 
-    // Needs to be destructed before image allocator, or image allocator will
-    // report error caused by leaked memory
     _griddingTaskManager.reset();
   }
 }
