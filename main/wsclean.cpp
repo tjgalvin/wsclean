@@ -1070,10 +1070,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                    << " major iterations were performed.\n";
     }
 
-    for (const ImagingTableEntry& joinedEntry : groupTable) {
-      if (joinedEntry.facetIndex == 0) {
-        saveRestoredImagesForGroup(joinedEntry, primaryBeam);
-      }
+    for (size_t facetGroupIndex = 0;
+         facetGroupIndex != groupTable.FacetGroupCount(); ++facetGroupIndex) {
+      const ImagingTable facetGroup = groupTable.GetFacetGroup(facetGroupIndex);
+      saveRestoredImagesForGroup(facetGroup, primaryBeam);
     }
 
     if (_settings.saveSourceList) {
@@ -1099,8 +1099,11 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 }
 
 void WSClean::saveRestoredImagesForGroup(
-    const ImagingTableEntry& tableEntry,
+    const ImagingTable& table,
     std::unique_ptr<PrimaryBeam>& primaryBeam) const {
+  const ImagingTableEntry tableEntry = table.Front();
+  assert(tableEntry.facetIndex == 0);
+
   // Restore model to residual and save image
   size_t currentChannelIndex = tableEntry.outputChannelIndex;
 
@@ -1156,7 +1159,8 @@ void WSClean::saveRestoredImagesForGroup(
     if (curPol == *_settings.polarizations.rbegin()) {
       ImageFilename imageName =
           ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
-      bool hasPBImages = false;
+      bool applyH5OnBeamImages = false;
+
       if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
                                             _settings);
@@ -1170,27 +1174,35 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
-        hasPBImages = true;
-        primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
+        bool requiresH5Correction = false;
+        if (!_settings.facetSolutionFile.empty()) {
+          // H5 corrections will be applied on the beam images
+          applyH5OnBeamImages = true;
+          requiresH5Correction = true;
+        }
+        primaryBeam->CorrectImages(writer.Writer(), imageName, "image", table,
+                                   _msGridderMetaCache, requiresH5Correction);
         if (_settings.savePsfPb)
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", table,
+                                     _msGridderMetaCache, requiresH5Correction);
         if (_settings.deconvolutionIterationCount != 0) {
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
+                                     table, _msGridderMetaCache,
+                                     requiresH5Correction);
+          primaryBeam->CorrectImages(writer.Writer(), imageName, "model", table,
+                                     _msGridderMetaCache, requiresH5Correction);
         }
       }
 
-      if (!_settings.facetSolutionFile.empty()) {
-        correctImagesH5(writer.Writer(), tableEntry, imageName, "image",
-                        hasPBImages);
+      // Apply the H5 solutions to the facets. In case a H5 solution file is
+      // provided, but no primary beam correction was applied
+      if (!_settings.facetSolutionFile.empty() && !applyH5OnBeamImages) {
+        correctImagesH5(writer.Writer(), table, imageName, "image");
         if (_settings.savePsfPb)
-          correctImagesH5(writer.Writer(), tableEntry, imageName, "psf",
-                          hasPBImages);
+          correctImagesH5(writer.Writer(), table, imageName, "psf");
         if (_settings.deconvolutionIterationCount != 0) {
-          correctImagesH5(writer.Writer(), tableEntry, imageName, "residual",
-                          hasPBImages);
-          correctImagesH5(writer.Writer(), tableEntry, imageName, "model",
-                          hasPBImages);
+          correctImagesH5(writer.Writer(), table, imageName, "residual");
+          correctImagesH5(writer.Writer(), table, imageName, "model");
         }
       }
     }
@@ -1935,11 +1947,9 @@ WSCFitsWriter WSClean::createWSCFitsWriter(
 }
 
 void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
-                              const ImagingTableEntry& entry,
+                              const ImagingTable& table,
                               const ImageFilename& imageName,
-                              const std::string& filenameKind,
-                              bool hasPBImages) const {
-  const std::string postFix = (hasPBImages) ? "-pb" : "";
+                              const std::string& filenameKind) const {
   aocommon::PolarizationEnum pol = *_settings.polarizations.begin();
 
   if (pol == aocommon::Polarization::StokesI) {
@@ -1951,16 +1961,21 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
     else
       prefix = stokesIName.GetPrefix(_settings);
 
-    aocommon::FitsReader reader(prefix + "-" + filenameKind + postFix +
-                                ".fits");
+    aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
     Image image(reader.ImageWidth(), reader.ImageHeight());
     reader.Read(image.data());
 
-    // Requires std::map::at in order to comply with constness of member
-    // function
-    const float m =
-        _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
-    image *= 1.0f / std::sqrt(m);
+    schaapcommon::facets::FacetImage facetImage(
+        _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
+    std::vector<float*> imagePtr{image.data()};
+    for (const ImagingTableEntry& entry : table) {
+      facetImage.SetFacet(*entry.facet, true);
+      // Requires std::map::at in order to comply with constness of member
+      // function
+      const float m =
+          _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
+      facetImage.MultiplyImageInsideFacet(imagePtr, 1.0f / std::sqrt(m));
+    }
 
     // Always write to -pb.fits
     writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.data());

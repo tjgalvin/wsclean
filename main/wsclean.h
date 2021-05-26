@@ -57,7 +57,7 @@ class WSClean {
   void runIndependentGroup(ImagingTable& groupTable,
                            std::unique_ptr<class PrimaryBeam>& primaryBeam);
   void saveRestoredImagesForGroup(
-      const ImagingTableEntry& tableEntry,
+      const ImagingTable& table,
       std::unique_ptr<class PrimaryBeam>& primaryBeam) const;
   void predictGroup(const ImagingTable& groupTable);
 
@@ -184,13 +184,11 @@ class WSClean {
                                     bool isFullImage) const;
   /**
    * @brief Apply the H5 solution to the (restored) image and save as -pb.fits
-   * file if hasPBImages=false. If hasPBImage=true, existing pb images are
-   * overwritten.
+   * file. Method is only invoked in case no beam corrections are applied.
    */
-  void correctImagesH5(aocommon::FitsWriter& writer,
-                       const ImagingTableEntry& entry,
+  void correctImagesH5(aocommon::FitsWriter& writer, const ImagingTable& table,
                        const ImageFilename& imageName,
-                       const std::string& filenameKind, bool hasPBImages) const;
+                       const std::string& filenameKind) const;
 
   MSSelection _globalSelection;
   std::string _commandLine;

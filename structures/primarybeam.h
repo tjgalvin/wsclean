@@ -11,6 +11,8 @@
 
 #include "../msproviders/msprovider.h"
 
+#include "../scheduling/metadatacache.h"
+
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/polarization.h>
@@ -57,9 +59,28 @@ class PrimaryBeam {
                       const ImagingTableEntry& entry,
                       std::shared_ptr<class ImageWeights> imageWeights);
 
-  void CorrectImages(class aocommon::FitsWriter& writer,
-                     const ImageFilename& imageName,
-                     const std::string& filenameKind);
+  /**
+   * @brief Correct images for the primary beam by multiplying the input image
+   * by the (simplified) inverse of the beam. Before the beam is applied, the
+   * beam is corrected by solutions obtained from an H5 solution file if @param
+   * requiresH5Correction is true. In that case, the beam images are overwritten
+   * by their corrected counterparts.
+   *
+   * @param writer FitsWriter
+   * @param imageName Image name object from which prefixes or polarization can
+   * be derived.
+   * @param filenameKind string specifying which image will be corrected
+   * @param table Imaging table of a single FacetGroup
+   * @param metaCache MSGridder meta data cache, containing image weights an
+   * (summed) H5 facet solutions.
+   * @param requiresH5Correction Correct beam images for piecewise constant h5
+   * solution?
+   */
+  void CorrectImages(
+      class aocommon::FitsWriter& writer, const ImageFilename& imageName,
+      const std::string& filenameKind, const ImagingTable& table,
+      const std::map<size_t, std::unique_ptr<MetaDataCache>>& metaCache,
+      bool requiresH5Correction);
 
  private:
   const Settings& _settings;
