@@ -94,6 +94,10 @@ class DeconvolutionAlgorithm {
     _spectralFitter.SetMode(mode, nTerms);
   }
 
+  void SetSpectrallyForcedImages(std::vector<Image>&& images) {
+    _spectralFitter.SetForcedImages(std::move(images));
+  }
+
   void InitializeFrequencies(const aocommon::UVector<double>& frequencies,
                              const aocommon::UVector<float>& weights) {
     _spectralFitter.SetFrequencies(frequencies.data(), weights.data(),
@@ -111,13 +115,14 @@ class DeconvolutionAlgorithm {
   DeconvolutionAlgorithm(const DeconvolutionAlgorithm&) = default;
   DeconvolutionAlgorithm& operator=(const DeconvolutionAlgorithm&) = default;
 
-  void PerformSpectralFit(float* values);
+  void PerformSpectralFit(float* values, size_t x, size_t y) const;
 
   float _threshold, _majorIterThreshold, _gain, _mGain, _cleanBorderRatio;
   size_t _maxIter, _iterationNumber, _threadCount;
   bool _allowNegativeComponents, _stopOnNegativeComponent;
   const bool* _cleanMask;
   Image _rmsFactorImage;
+  mutable aocommon::UVector<float> _fittingScratch;
 
   class LogReceiver* _logReceiver;
 

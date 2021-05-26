@@ -75,8 +75,18 @@ void ParallelDeconvolution::SetAutoMaskMode(bool trackPerScaleMasks,
 }
 
 void ParallelDeconvolution::SetCleanMask(const bool* mask) {
-  _mask = mask;
-  if (_algorithms.size() == 1) _algorithms.front()->SetCleanMask(mask);
+  if (_algorithms.size() == 1)
+    _algorithms.front()->SetCleanMask(mask);
+  else
+    _mask = mask;
+}
+
+void ParallelDeconvolution::SetSpectrallyForcedImages(
+    std::vector<Image>&& images) {
+  if (_algorithms.size() == 1)
+    _algorithms.front()->SetSpectrallyForcedImages(std::move(images));
+  else
+    _spectrallyForcedImages = std::move(images);
 }
 
 void ParallelDeconvolution::runSubImage(
@@ -111,6 +121,17 @@ void ParallelDeconvolution::runSubImage(
     Image subRmsImage =
         _rmsImage.TrimBox(subImg.x, subImg.y, subImg.width, subImg.height);
     _algorithms[subImg.index]->SetRMSFactorImage(std::move(subRmsImage));
+  }
+
+  // If a forced spectral image is active, trim it to the subimage size
+  if (!_spectrallyForcedImages.empty()) {
+    std::vector<Image> subSpectralImages(_spectrallyForcedImages.size());
+    for (size_t i = 0; i != _spectrallyForcedImages.size(); ++i) {
+      subSpectralImages[i] = _spectrallyForcedImages[i].TrimBox(
+          subImg.x, subImg.y, subImg.width, subImg.height);
+    }
+    _algorithms[subImg.index]->SetSpectrallyForcedImages(
+        std::move(subSpectralImages));
   }
 
   size_t maxNIter = _algorithms[subImg.index]->MaxNIter();

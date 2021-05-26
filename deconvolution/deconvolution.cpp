@@ -14,7 +14,7 @@
 
 #include "../multiscale/multiscalealgorithm.h"
 
-#include "../system/dppp.h"
+#include "../system/dp3.h"
 
 #include "../structures/image.h"
 #include "../structures/imagingtable.h"
@@ -261,6 +261,17 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
       groupTable, _channelFrequencies, _channelWeights,
       _settings.deconvolutionChannelCount);
   algorithm->InitializeFrequencies(_channelFrequencies, _channelWeights);
+  if (!_settings.forcedSpectrumFilename.empty()) {
+    FitsReader reader(_settings.forcedSpectrumFilename);
+    if (reader.ImageWidth() != _imgWidth || reader.ImageHeight() != _imgHeight)
+      throw std::runtime_error(
+          "The image width of the forced spectrum fits file does not match the "
+          "imaging size");
+    std::vector<Image> terms(1);
+    terms[0] = Image(_imgWidth, _imgHeight);
+    reader.Read(terms[0].data());
+    _parallelDeconvolution.SetSpectrallyForcedImages(std::move(terms));
+  }
   _parallelDeconvolution.SetAlgorithm(std::move(algorithm));
 
   readMask(groupTable);

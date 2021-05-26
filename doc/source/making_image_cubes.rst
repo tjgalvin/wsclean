@@ -40,5 +40,5 @@ This will output images at 105 MHz, 150 MHz and 195 MHz.
 Some more notes:
 
 * The '``-channels-out``' parameter can be used in combination with '``-join-channels``' to improve the deconvolution of MFS imaging in wideband scenarios, or to get better SNR during the deconvolution of spectral imaging. This is explained on the :doc:`Wideband deconvolution page <wideband_deconvolution>`.
-* WSClean normally weights each output channel separately. This is equivalent to how other imagers do this. However, this is not always desired, especially not with the MWA with its many channels. Therefore, a special weighting mode called 'MFS weighting' has been implemented in WSClean to improve weighting of spectral cubes. This is further explained on the :doc:`MF weighting page <mf_weighting>`.
+* WSClean normally weights each output channel separately. This is equivalent to how other imagers do this. However, this is not always desired, especially not with modern correlators with large number of channels. Therefore, a special weighting mode called 'MF weighting' has been implemented in WSClean to improve weighting of spectral cubes. This is further explained on the :doc:`MF weighting page <mf_weighting>`.
 

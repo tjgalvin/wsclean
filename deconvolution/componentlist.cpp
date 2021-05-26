@@ -1,6 +1,6 @@
 #include "componentlist.h"
 
-#include "../system/dppp.h"
+#include "../system/dp3.h"
 
 #include "../io/imagefilename.h"
 
@@ -42,7 +42,7 @@ void ComponentList::write(const std::string& filename,
   if (_componentsAddedSinceLastMerge != 0) MergeDuplicates();
 
   const SpectralFitter& fitter = algorithm.Fitter();
-  if (fitter.Mode() == NoSpectralFitting && _nFrequencies > 1)
+  if (fitter.Mode() == SpectralFittingMode::NoFitting && _nFrequencies > 1)
     throw std::runtime_error(
         "Can't write component list, because you have not specified a spectral "
         "fitting method. You probably want to add '-fit-spectral-pol'.");
@@ -50,15 +50,15 @@ void ComponentList::write(const std::string& filename,
   std::ofstream file(filename);
   bool useLogSI = false;
   switch (fitter.Mode()) {
-    case NoSpectralFitting:
-    case PolynomialSpectralFitting:
+    case SpectralFittingMode::NoFitting:
+    case SpectralFittingMode::Polynomial:
       useLogSI = false;
       break;
-    case LogPolynomialSpectralFitting:
+    case SpectralFittingMode::LogPolynomial:
       useLogSI = true;
       break;
   }
-  NDPPP::WriteHeaderForSpectralTerms(file, fitter.ReferenceFrequency());
+  DP3::WriteHeaderForSpectralTerms(file, fitter.ReferenceFrequency());
   aocommon::UVector<float> terms;
   for (size_t scaleIndex = 0; scaleIndex != NScales(); ++scaleIndex) {
     ScaleList& list = _listPerScale[scaleIndex];
@@ -81,7 +81,7 @@ void ComponentList::write(const std::string& filename,
       if (_nFrequencies == 1)
         terms.assign(1, spectrum[0]);
       else
-        fitter.Fit(terms, spectrum.data());
+        fitter.Fit(terms, spectrum.data(), x, y);
       float stokesI = terms[0];
       terms.erase(terms.begin());
       long double l, m;
@@ -92,11 +92,11 @@ void ComponentList::write(const std::string& filename,
       std::ostringstream name;
       name << 's' << scaleIndex << 'c' << componentIndex;
       if (scale == 0.0)
-        NDPPP::WritePolynomialPointComponent(file, name.str(), ra, dec, stokesI,
-                                             useLogSI, terms,
-                                             fitter.ReferenceFrequency());
+        DP3::WritePolynomialPointComponent(file, name.str(), ra, dec, stokesI,
+                                           useLogSI, terms,
+                                           fitter.ReferenceFrequency());
       else {
-        NDPPP::WritePolynomialGaussianComponent(
+        DP3::WritePolynomialGaussianComponent(
             file, name.str(), ra, dec, stokesI, useLogSI, terms,
             fitter.ReferenceFrequency(), scaleFWHML, scaleFWHMM, 0.0);
       }

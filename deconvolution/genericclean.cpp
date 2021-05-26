@@ -122,7 +122,7 @@ float GenericClean::ExecuteMajorIteration(
       for (size_t i = 0; i != dirtySet.size(); ++i)
         peakValues[i] = dirtySet[i][peakIndex];
 
-      PerformSpectralFit(peakValues.data());
+      PerformSpectralFit(peakValues.data(), componentX, componentY);
 
       for (size_t i = 0; i != dirtySet.size(); ++i) {
         peakValues[i] *= this->_gain;

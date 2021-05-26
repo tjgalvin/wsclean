@@ -123,7 +123,7 @@ BOOST_FIXTURE_TEST_CASE(loadAndAverage, AdvImageSetFixture) {
 BOOST_FIXTURE_TEST_CASE(interpolateAndStore, AdvImageSetFixture) {
   settings.deconvolutionChannelCount = 2;
   ImageSet dset(&table, settings, 2, 2);
-  SpectralFitter fitter(NoSpectralFitting, 2);
+  SpectralFitter fitter(SpectralFittingMode::NoFitting, 2);
   dset.LoadAndAverage(cSet);
   dset.InterpolateAndStore(cSet, fitter);
   BOOST_CHECK_CLOSE_FRACTION(dset[0][0], 2.0, 1e-8);

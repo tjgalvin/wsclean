@@ -3,13 +3,6 @@ Wideband deconvolution
 
 Since :doc:`version 1.1 <changelogs/v1.1>`, WSClean has a 'wideband' multi-frequency deconvolution mode, which allows cleaning channels joinedly. This means that peak finding is performed in the sum of all channels, allowing deep cleaning, and the psf is subtracted from each channel & polarization individually, scaled to the value of the peak in that image, which takes care of spectral variation.
 
-Relation to CASA's multi-term deconvolution
--------------------------------------------
-
-To avoid confusion, WSClean's wide-band mode is not the same as the multi-frequency deconvolution algorithm in CASA, i.e., the algorithm described in `Sault & Wieringa (1994) <http://adsabs.harvard.edu/abs/1994A%26AS..108..585S>`_, further enhanced in `Rau and Cornwell (2011) <http://arxiv.org/abs/1106.2745>`_. The multi-frequency deconvolution algorithm in WSClean is called "joined-channel deconvolution" and is described in `Offringa and Smirnov (2017) <https://arxiv.org/abs/1706.06786>`_. As shown there, the multi-frequency implementation of WSClean is computationally *orders of magnitude* faster than MSMFS, which is the most important difference between the two algorithms. Accuracy wise, they produce similar results.
-
-Although WSClean's mode and CASA's mode both mitigate the problem of spectral variation over the imaged bandwidth, the underlying algorithms are different and have different settings. Both CASA and WSClean can fit smooth functions over frequency. WSClean has additionally functionality for imaging of cubes that can have unsmooth spectral functions, such as for spectral lines or off-axis imaging (where the beam causes large/steep fluctuations over frequency). Smooth function fitting is implemented in :doc:`WSClean version 1.10 <changelogs/v1.10>`.
-
 Usage
 -----
 
@@ -104,7 +97,7 @@ A simple -- but very slow -- example to perform cleaning with spectral fitting:
 .. code-block:: bash
 
     wsclean -multiscale -join-channels -channels-out 64 -niter 10000 \
-      -mgain 0.8 -threshold 0.01 -fit-spectral-pol 4 observations.ms
+      -mgain 0.8 -auto-threshold 3 -fit-spectral-pol 4 observations.ms
 
 This will fit a polynomial with 4 terms (i.e., a third-order polynomial). This would be similar to CASA multi-term deconvolution with ``nterms=4``. During each minor clean cycle, the 64 images at different frequencies will be added together, the pixel with the highest summed brightness is selected, the brightness for that pixel is found for each image, a 3rd order polynomial is fitted through those measurements and the smoothed "model" component is added to the model, as well as convolved with the PSF and subtracted from the residual dirty image. Spectral fitting works in all joined-channel modes (i.e., hogbom, multi-scale, iuwt, moresane).
 
@@ -113,11 +106,22 @@ As you might imagine, doing a clean with 64 images in memory is expensive, both 
 .. code-block:: bash
 
     wsclean -join-channels -channels-out 64 -niter 10000 \
-      -mgain 0.8 -threshold 0.01 -fit-spectral-pol 4 \
+      -mgain 0.8 -auto-threshold 3 -fit-spectral-pol 4 \
       -deconvolution-channels 8 observations.ms
 
 This will decrease the number of images from 64 to 8 before starting the deconvolution by averaging 8 groups together. Cleaning is then performed with just 8 images. After cleaning, the requested function (3rd order polynomial in this case) is fitted to the model, and the model is interpolated using that function.
 This is much faster than the previous command, and equally precise. Setting the deconvolution channels is supported in all modes since :doc:`WSClean 2.2 <changelogs/v2.2>`. The spectral-fitting features were added in :doc:`WSClean version 1.11 <changelogs/v1.11>`.
+
+Forced spectral indices
+-----------------------
+
+Spectral fitting is useful to reduce the degrees of freedom in deconvolution. It does not always produce accurate, physical spectral indices. This can either be because the bandwidth is too small, sources are very complex causing degeneracies, or both. WSClean version 2.12 has therefore a method called 'forced spectrum fitting'. In this mode, a pre-existing spectral index map is used during the deconvolution, and the resulting spectra of the model components are forced onto this spectral index map.
+
+The spectral index map may be the result of earlier runs or from fitting between data from other bandwidths / telescopes. An added advantage is that those maps can be smoothed to limit the effect of noise and imaging artefacts. The mode is enabled by combining ``-force-spectrum <fits filename>`` with ``-fit-log-pol 2``. The fits file should have the same dimensions and coordinate system as used for the imaging, and each pixel should hold a spectral index value. This mode should currently not be used together with the ``-deconvolution-channels`` option.
+
+Together with :doc:`multiscale cleaning <multiscale_cleaning>` and :doc:`source list output <component_list>`, this mode allows building (text) models of sources with accurate spectral index information. 
+
+This method is currently being written up into an article -- to be submitted somewhere in 2021.
 
 Fit normal or logarithmic polynomials?
 --------------------------------------
@@ -132,3 +136,10 @@ Avoiding "steps" in the model data visibilities
 When splitting up bandwidth with the ``-channels-out`` option, the output ``MODEL_DATA`` visibilities will have a step function. For example, when splitting up the bandwidth of a 256 channel set in 4 parts (``-channels-out 4``), there will be a step each 64 channels. When the ``MODEL_DATA`` is important, for example when removing the continuuum data from a HI set, these steps might be undesirable. Using ``-fit-spectral-pol`` does not remove these steps; that option only forces the individual images to obey a polynomial. To remove the steps, one would have to use ``-fit-spectral-pol`` and specify as many channels to ``-channels-out`` as that are present in the measurement set. This is of course very computationally and memory expensive, in particular during deconvolution. To make that possible in some cases, the above option ``-deconvolution-channels`` can be used in combination with the other options. 
 
 Another option to solve these step functions is to interpolate in the frequency during the prediction (i.e. when calculating the ``MODEL_DATA``). WSClean can currently not do this, but will hopefully soon be implemented. Because of the already-available features mentioned above it has not been of very high priority, since the quality improvement on continuum imaging is rather small and the computational savings might only exist in some more exotic cases.
+
+Relation to CASA's multi-term deconvolution
+-------------------------------------------
+
+To avoid confusion, WSClean's wide-band mode is not the same as the multi-frequency deconvolution algorithm in CASA, i.e., the algorithm described in `Sault & Wieringa (1994) <http://adsabs.harvard.edu/abs/1994A%26AS..108..585S>`_, further enhanced in `Rau and Cornwell (2011) <http://arxiv.org/abs/1106.2745>`_. The multi-frequency deconvolution algorithm in WSClean is called "joined-channel deconvolution" and is described in `Offringa and Smirnov (2017) <https://arxiv.org/abs/1706.06786>`_. As shown there, the multi-frequency implementation of WSClean is computationally *orders of magnitude* faster than MSMFS, which is the most important difference between the two algorithms. Accuracy wise, they produce similar results.
+
+Although WSClean's mode and CASA's mode both mitigate the problem of spectral variation over the imaged bandwidth, the underlying algorithms are different and have different settings. Both CASA and WSClean can fit smooth functions over frequency. WSClean has additional functionality for the imaging of cubes that can have unsmooth spectral functions, such as for spectral lines or off-axis imaging (where the beam causes large/steep fluctuations over frequency). Smooth function fitting is implemented in :doc:`WSClean version 1.10 <changelogs/v1.10>`.

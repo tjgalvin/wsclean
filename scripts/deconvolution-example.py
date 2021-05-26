@@ -32,9 +32,9 @@ def deconvolve(residual, model, psf, meta):
     # is called again.
     
     # values = numpy.zeros(nchan, dtype=numpy.float64)
-    # coefficients = meta.spectral_fitter.fit(values)
+    # coefficients = meta.spectral_fitter.fit(values, x, y)
     # or:
-    # values = meta.spectral_fitter.fit_and_evaluate(values)
+    # values = meta.spectral_fitter.fit_and_evaluate(values, x, y)
     
     mthreshold = 0.0
     

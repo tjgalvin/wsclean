@@ -292,7 +292,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
       }
 
     } else {  // don't use the Clark optimization
-      ScaleInfo& maxScaleInfo = _scaleInfos[scaleWithPeak];
+      const ScaleInfo& maxScaleInfo = _scaleInfos[scaleWithPeak];
       while (_iterationNumber < MaxNIter() &&
              std::fabs(maxScaleInfo.maxUnnormalizedImageValue *
                        maxScaleInfo.biasFactor) > firstSubIterationThreshold &&
@@ -301,7 +301,9 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
         aocommon::UVector<float> componentValues;
         measureComponentValues(componentValues, scaleWithPeak,
                                individualConvolvedImages);
-        PerformSpectralFit(componentValues.data());
+        const size_t x = maxScaleInfo.maxImageValueX;
+        const size_t y = maxScaleInfo.maxImageValueY;
+        PerformSpectralFit(componentValues.data(), x, y);
 
         for (size_t imgIndex = 0; imgIndex != dirtySet.size(); ++imgIndex) {
           // Subtract component from individual, non-deconvolved images
@@ -310,30 +312,24 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
 
           float* psf = getConvolvedPSF(dirtySet.PSFIndex(imgIndex),
                                        scaleWithPeak, convolvedPSFs);
-          tools->SubtractImage(dirtySet[imgIndex], psf, _width, _height,
-                               maxScaleInfo.maxImageValueX,
-                               maxScaleInfo.maxImageValueY,
+          tools->SubtractImage(dirtySet[imgIndex], psf, _width, _height, x, y,
                                componentValues[imgIndex]);
 
           // Subtract twice convolved PSFs from convolved images
           tools->SubtractImage(
               individualConvolvedImages[imgIndex],
               twiceConvolvedPSFs[dirtySet.PSFIndex(imgIndex)].data(), _width,
-              _height, maxScaleInfo.maxImageValueX, maxScaleInfo.maxImageValueY,
-              componentValues[imgIndex]);
+              _height, x, y, componentValues[imgIndex]);
           // TODO this is incorrect, but why is the residual without
           // Cotton-Schwab still OK ? Should test
           // tools->SubtractImage(individualConvolvedImages[imgIndex], psf,
-          // _width, _height, maxScaleInfo.maxImageValueX,
-          // maxScaleInfo.maxImageValueY, componentValues[imgIndex]);
+          // _width, _height, x, y, componentValues[imgIndex]);
 
           // Adjust model
           addComponentToModel(modelSet[imgIndex], scaleWithPeak,
                               componentValues[imgIndex]);
         }
         if (_trackComponents) {
-          const size_t x = _scaleInfos[scaleWithPeak].maxImageValueX,
-                       y = _scaleInfos[scaleWithPeak].maxImageValueY;
           _componentList->Add(x, y, scaleWithPeak, componentValues.data());
         }
 

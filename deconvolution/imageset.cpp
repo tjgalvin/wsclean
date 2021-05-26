@@ -158,24 +158,28 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
     size_t nTerms = fitter.NTerms();
     aocommon::UVector<float> termsImage(_width * _height * nTerms);
     aocommon::StaticFor<size_t> loop(_settings.threadCount);
-    loop.Run(0, _width * _height, [&](size_t pxStart, size_t pxEnd) {
+    loop.Run(0, _height, [&](size_t yStart, size_t yEnd) {
       aocommon::UVector<float> spectralPixel(_channelsInDeconvolution);
       aocommon::UVector<float> termsPixel(nTerms);
-      for (size_t px = pxStart; px != pxEnd; ++px) {
-        bool isZero = true;
-        for (size_t s = 0; s != _images.size(); ++s) {
-          float value = _images[s][px];
-          spectralPixel[s] = value;
-          isZero = isZero && (value == 0.0);
-        }
-        float* termsPtr = &termsImage[px * nTerms];
-        // Skip fitting if it is zero; most of model images will be zero, so
-        // this can save a lot of time.
-        if (isZero) {
-          for (float* p = termsPtr; p != termsPtr + nTerms; ++p) *p = 0.0;
-        } else {
-          fitter.Fit(termsPixel, spectralPixel.data());
-          for (size_t i = 0; i != nTerms; ++i) termsPtr[i] = termsPixel[i];
+      for (size_t y = yStart; y != yEnd; ++y) {
+        size_t px = y * _width;
+        for (size_t x = 0; x != _width; ++x) {
+          bool isZero = true;
+          for (size_t s = 0; s != _images.size(); ++s) {
+            float value = _images[s][px];
+            spectralPixel[s] = value;
+            isZero = isZero && (value == 0.0);
+          }
+          float* termsPtr = &termsImage[px * nTerms];
+          // Skip fitting if it is zero; most of model images will be zero, so
+          // this can save a lot of time.
+          if (isZero) {
+            for (float* p = termsPtr; p != termsPtr + nTerms; ++p) *p = 0.0;
+          } else {
+            fitter.Fit(termsPixel, spectralPixel.data(), x, y);
+            for (size_t i = 0; i != nTerms; ++i) termsPtr[i] = termsPixel[i];
+          }
+          ++px;
         }
       }
     });

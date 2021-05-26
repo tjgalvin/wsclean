@@ -15,7 +15,8 @@ class PySpectralFitter {
  public:
   PySpectralFitter(SpectralFitter& fitter) : _fitter(fitter) {}
 
-  pybind11::array_t<double> fit(pybind11::array_t<double> values) {
+  pybind11::array_t<double> fit(pybind11::array_t<double> values, size_t x,
+                                size_t y) {
     if (values.ndim() != 1)
       throw std::runtime_error(
           "spectral_fitter.fit(): Invalid dimensions of values array");
@@ -29,7 +30,7 @@ class PySpectralFitter {
       vec[i] = *reinterpret_cast<const double*>(buffer + info.strides[0] * i);
     }
     aocommon::UVector<float> result;
-    _fitter.Fit(result, vec.data());
+    _fitter.Fit(result, vec.data(), x, y);
 
     pybind11::buffer_info resultBuf(
         nullptr,  // ask NumPy to allocate
@@ -42,7 +43,8 @@ class PySpectralFitter {
     return pyResult;
   }
 
-  pybind11::array_t<double> fit_and_evaluate(pybind11::array_t<double> values) {
+  pybind11::array_t<double> fit_and_evaluate(pybind11::array_t<double> values,
+                                             size_t x, size_t y) {
     if (values.ndim() != 1)
       throw std::runtime_error(
           "spectral_fitter.fit_and_evaluate(): Invalid dimensions of values "
@@ -57,7 +59,8 @@ class PySpectralFitter {
       vec[i] = *reinterpret_cast<const double*>(buffer + info.strides[0] * i);
     }
 
-    _fitter.FitAndEvaluate(vec.data());
+    aocommon::UVector<float> fittingScratch;
+    _fitter.FitAndEvaluate(vec.data(), x, y, fittingScratch);
 
     pybind11::buffer_info resultBuf(
         nullptr,  // ask NumPy to allocate

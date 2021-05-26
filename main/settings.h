@@ -140,6 +140,7 @@ class Settings {
   aocommon::UVector<double> moreSaneSigmaLevels;
   enum SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
+  std::string forcedSpectrumFilename;
   /**
    * The number of channels used during deconvolution. This can be used to
    * image with more channels than deconvolution. Before deconvolution,
@@ -162,7 +163,7 @@ class Settings {
   }
 
   bool IsSpectralFittingEnabled() const {
-    return spectralFittingMode != NoSpectralFitting;
+    return spectralFittingMode != SpectralFittingMode::NoFitting;
   }
 
  private:
@@ -333,8 +334,9 @@ inline Settings::Settings()
       iuwtSNRTest(false),
       moreSaneLocation(),
       moreSaneArgs(),
-      spectralFittingMode(NoSpectralFitting),
+      spectralFittingMode(SpectralFittingMode::NoFitting),
       spectralFittingTerms(0),
+      forcedSpectrumFilename(),
       deconvolutionChannelCount(0) {}
 
 #endif

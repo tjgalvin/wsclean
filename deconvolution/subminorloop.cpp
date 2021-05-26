@@ -52,6 +52,7 @@ boost::optional<float> SubMinorLoop::Run(
   float maxValue;
   size_t maxComponent = _subMinorModel.GetMaxComponent(
       scratch, maxValue, _allowNegativeComponents);
+  aocommon::UVector<float> fittingScratch;
 
   while (std::fabs(maxValue) > _threshold &&
          _currentIteration < _maxIterations &&
@@ -63,15 +64,17 @@ boost::optional<float> SubMinorLoop::Run(
           _subMinorModel.Residual()[imgIndex][maxComponent] * _gain;
     _fluxCleaned += maxValue * _gain;
 
-    if (_fitter) _fitter->FitAndEvaluate(componentValues.data());
+    const size_t x = _subMinorModel.X(maxComponent),
+                 y = _subMinorModel.Y(maxComponent);
+
+    if (_fitter)
+      _fitter->FitAndEvaluate(componentValues.data(), x, y, fittingScratch);
 
     for (size_t imgIndex = 0; imgIndex != _subMinorModel.Model().size();
          ++imgIndex)
       _subMinorModel.Model()[imgIndex][maxComponent] +=
           componentValues[imgIndex];
 
-    size_t x = _subMinorModel.X(maxComponent),
-           y = _subMinorModel.Y(maxComponent);
     /*
       Commented out because even in verbose mode this is a bit too verbose, but
     useful in case divergence occurs: _logReceiver.Debug << x << ", " << y << "

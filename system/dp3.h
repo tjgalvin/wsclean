@@ -1,5 +1,5 @@
-#ifndef NDPPP_H
-#define NDPPP_H
+#ifndef SYSTEM_DP3_H
+#define SYSTEM_DP3_H
 
 #include <fstream>
 #include <boost/filesystem/operations.hpp>
@@ -9,7 +9,7 @@
 
 #include "application.h"
 
-class NDPPP {
+class DP3 {
  public:
   static void WriteStandardHeader(std::ostream& stream, double refFrequency) {
     stream.precision(15);

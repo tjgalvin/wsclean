@@ -43,6 +43,8 @@ class ParallelDeconvolution {
 
   void SetCleanMask(const bool* mask);
 
+  void SetSpectrallyForcedImages(std::vector<Image>&& images);
+
   void ExecuteMajorIteration(class ImageSet& dataImage,
                              class ImageSet& modelImage,
                              const aocommon::UVector<const float*>& psfImages,
@@ -101,6 +103,7 @@ class ParallelDeconvolution {
   const Settings& _settings;
   ImageBufferAllocator* _allocator;
   const bool* _mask;
+  std::vector<Image> _spectrallyForcedImages;
   bool _trackPerScaleMasks, _usePerScaleMasks;
   std::vector<aocommon::UVector<bool>> _scaleMasks;
   std::unique_ptr<class ComponentList> _componentList;

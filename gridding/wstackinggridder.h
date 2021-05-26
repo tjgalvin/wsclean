@@ -459,13 +459,13 @@ class WStackingGridderBase {
    * Get the kernel function and its interpolation method used for gridding.
    * @returns The currently selected gridding mode.
    */
-  enum GridMode GridMode() const { return _gridMode; }
+  GridMode GetGridMode() const { return _gridMode; }
 
   /**
    * Set the kernel function and its interpolation method used for gridding.
    * @param mode The new gridding mode.
    */
-  void SetGridMode(enum GridMode mode) {
+  void SetGridMode(GridMode mode) {
     if (mode != _gridMode) {
       _gridMode = mode;
       if (_gridMode != GridMode::NearestNeighbourGridding) makeKernels();
@@ -525,8 +525,8 @@ class WStackingGridderBase {
    * @param n Oversampling factor of kernel
    * @param size UV-cell size of the kernel
    */
-  static void GetKernel(enum GridMode gridMode, double *kernel,
-                        size_t oversampling, size_t size);
+  static void GetKernel(GridMode gridMode, double *kernel, size_t oversampling,
+                        size_t size);
 
   /**
    * Get width of image as specified during construction. This is the full
@@ -617,7 +617,7 @@ class WStackingGridderBase {
   MultiBandData _bandData;
 #endif
 
-  enum GridMode _gridMode;
+  GridMode _gridMode;
   size_t _overSamplingFactor, _kernelSize;
   std::vector<double> _1dKernel;
   std::vector<std::vector<num_t>> _griddingKernels;

@@ -553,6 +553,9 @@ void CommandLine::printHelp() {
          "-fit-spectral-log-pol <nterms>\n"
          "   Like fit-spectral-pol, but fits a logarithmic polynomial over "
          "frequency instead.\n"
+         "-force-spectrum <fitsfile>\n"
+         "   Uses the fits file to force spectral indices (or other/more terms)"
+         "   during the deconvolution.\n"
          "-deconvolution-channels <nchannels>\n"
          "   Decrease the number of channels as specified by -channels-out to "
          "the given number for\n"
@@ -1104,14 +1107,17 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           Angle::Parse(argv[argi], "horizon mask distance", Angle::Degrees);
     } else if (param == "fit-spectral-pol") {
       ++argi;
-      settings.spectralFittingMode = PolynomialSpectralFitting;
+      settings.spectralFittingMode = SpectralFittingMode::Polynomial;
       settings.spectralFittingTerms =
           parse_size_t(argv[argi], "fit-spectral-pol");
     } else if (param == "fit-spectral-log-pol") {
       ++argi;
-      settings.spectralFittingMode = LogPolynomialSpectralFitting;
+      settings.spectralFittingMode = SpectralFittingMode::LogPolynomial;
       settings.spectralFittingTerms =
           parse_size_t(argv[argi], "fit-spectral-log-pol");
+    } else if (param == "force-spectrum") {
+      ++argi;
+      settings.forcedSpectrumFilename = argv[argi];
     } else if (param == "deconvolution-channels") {
       ++argi;
       settings.deconvolutionChannelCount =

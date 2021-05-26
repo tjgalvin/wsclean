@@ -78,7 +78,7 @@ class MSGridderBase {
   }
   bool IsComplex() const { return _isComplex; }
 
-  enum VisibilityWeightingMode VisibilityWeightingMode() const {
+  VisibilityWeightingMode GetVisibilityWeightingMode() const {
     return _visibilityWeightingMode;
   }
   bool StoreImagingWeights() const { return _storeImagingWeights; }
@@ -153,8 +153,8 @@ class MSGridderBase {
   virtual size_t ActualInversionWidth() const { return _imageWidth; }
   virtual size_t ActualInversionHeight() const { return _imageHeight; }
 
-  enum GridMode GridMode() const { return _gridMode; }
-  void SetGridMode(enum GridMode gridMode) { _gridMode = gridMode; }
+  GridMode GetGridMode() const { return _gridMode; }
+  void SetGridMode(GridMode gridMode) { _gridMode = gridMode; }
 
   size_t TrimWidth() const { return _trimWidth; }
   size_t TrimHeight() const { return _trimHeight; }
@@ -372,8 +372,8 @@ class MSGridderBase {
   WeightMode _weighting;
   bool _isFirstIteration;
   std::vector<MSSelection> _selections;
-  enum VisibilityWeightingMode _visibilityWeightingMode;
-  enum GridMode _gridMode;
+  VisibilityWeightingMode _visibilityWeightingMode;
+  GridMode _gridMode;
   bool _storeImagingWeights;
   double _theoreticalBeamSize;
 

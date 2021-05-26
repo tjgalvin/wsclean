@@ -15,7 +15,7 @@ DeconvolutionAlgorithm::DeconvolutionAlgorithm()
       _stopOnNegativeComponent(false),
       _cleanMask(0),
       _logReceiver(nullptr),
-      _spectralFitter(NoSpectralFitting, 0) {}
+      _spectralFitter(SpectralFittingMode::NoFitting, 0) {}
 
 void DeconvolutionAlgorithm::ResizeImage(float* dest, size_t newWidth,
                                          size_t newHeight, const float* source,
@@ -38,6 +38,7 @@ void DeconvolutionAlgorithm::RemoveNaNsInPSF(float* psf, size_t width,
   }
 }
 
-void DeconvolutionAlgorithm::PerformSpectralFit(float* values) {
-  _spectralFitter.FitAndEvaluate(values);
+void DeconvolutionAlgorithm::PerformSpectralFit(float* values, size_t x,
+                                                size_t y) const {
+  _spectralFitter.FitAndEvaluate(values, x, y, _fittingScratch);
 }
