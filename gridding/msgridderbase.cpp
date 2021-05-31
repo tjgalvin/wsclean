@@ -376,6 +376,9 @@ void MSGridderBase::initializeMSDataVector(
   msDataVector = std::vector<MSGridderBase::MSData>(MeasurementSetCount());
 
   resetMetaData();
+  // FIXME: migrate data members to GriddingResult
+  _metaDataCache->beamSum = 0.0;
+  _metaDataCache->h5Sum = 0.0;
 
   bool hasCache = !_metaDataCache->msDataVector.empty();
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
