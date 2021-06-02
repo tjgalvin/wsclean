@@ -73,11 +73,11 @@ IDG can apply a spatially varying time-variable TEC term that can additionally b
 - Frequency
 - Time
 
-The number of antennas should either match with the imaged measurement set, or should have a dimension of one, in which case the same aterm is used for all antennas. The TIME dimension is optional: when not specified, the same corrections are applied to all times. The RA and DEC dimensions are interpolated on the IDG sub-grid by nearest neighbour interpolation. This is typically around 256 pixels, so providing image which are larger is not necessary.  The frequency and time axes are also interpolated. The RA and DEC dimensions should be in the standard radio imaging projection with appropriate CRPIX, CRVAL and CDELT settings. These parameters need also to be set appropriate for the TIME and FREQ axis, setting the time axis to have "aips time" values and the frequency axis to have values in Hz. The times in the FITS file have the same meaning as value in the TIME column in the measurement set; so they represent the time at the centre of the timestep. The screen is selected whose time is closest to that of the time in the TIME column.
+The number of antennas should either match with the imaged measurement set, or should have a dimension of one, in which case the same aterm is used for all antennas. The time dimension is optional: when not specified, the same corrections are applied to all times. The RA and DEC dimensions are interpolated on the IDG sub-grid via a combination of low-pass filtering and nearest neighbour interpolation. This is typically around 64-256 pixels, so providing images that are larger is not necessary. The frequency and time axes are also interpolated. The RA and DEC dimensions should be in the standard radio imaging projection with appropriate ``CRPIX``, ``CRVAL`` and ``CDELT`` settings. These parameters need also to be appropriately set for the FREQ and TIME axis. The frequency axis has values in Hz. The time axis should have AIPS/Casacore time values. These time are Modified Julian Dates (MJD), but *in seconds*, so they are MJD values multiplied by 86400. For example, the 8th of May in 1982 would be represented as 3.8965e+09. The times in the FITS file have the same meaning (and units) as values in the TIME column in the measurement set; so they represent the time at the centre of the timestep. The screen is selected whose time is nearest to that of the value in the TIME column.
 
-Since TEC values are interpolated over frequency with its 1/nu relation, it is normally not required to have more than one channel in the image, unless higher order terms need to be corrected. The correction is constant per output channel, so the output channels have to be chosen such that they are fine enough to achieve the desired accuracy. The values in a TEC file are applied as "delta TEC terms", meaning that a value of zero implies no change to the gain of the antenna. The phase of the gain (in radians) is evaluated as:  ``phase = image[pixel] * -8.44797245e9 / frequency``, with frequency in Hz.
+Since TEC values are interpolated over frequency with its 1/ν relation, it is normally not required to have more than one channel in the image, unless higher order terms need to be corrected. The correction is constant per output channel, so the output channels have to be chosen such that they are fine enough to achieve the desired accuracy. The values in a TEC file are applied as "delta TEC terms", meaning that a value of zero implies no change to the gain of the antenna. The phase of the gain (in radians) is evaluated as:  ``phase = image[pixel] * -8.44797245e9 / frequency``, with frequency in Hz.
 
-This is an example header of a aterm TEC fits file:
+This is an example header of an aterm TEC fits file:
 
 .. code-block:: text
 
@@ -109,9 +109,10 @@ This is an example header of a aterm TEC fits file:
     CRVAL4  =     138475036.621094
     CDELT4  =         183105.46875
     CUNIT4  = 'Hz      '
-    CTYPE5  = 'TIME    '
+    CTYPE5  = 'TIME    '          
     CRPIX5  =                   1.
-    CRVAL5  =                   0. / Should be an AIPS time
+    CRVAL5  =         5020582991.9 / MJD in seconds
+    CDELT5  =                 32.0 / 32 seconds per aterm
 
 dldm gain correction
 --------------------
