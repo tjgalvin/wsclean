@@ -48,7 +48,7 @@ if(DEFINED IDENTIFIED_TARGET_CPU)
 else()
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "everybeam (>=0.1), idg-api (>=0.8)")
 endif()
-set(CPACK_DEBIAN_PACKAGE_DESCRIPTION 
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
 "WSClean (w-stacking clean) is a fast generic widefield imager.
  It implements several gridding algorithms and offers fully-automated
  multi-scale multi-frequency deconvolution.
@@ -60,7 +60,9 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 # Determine list of conflicting package names
 if(DEFINED IDENTIFIED_TARGET_CPU)
   set(_conflicts wsclean)
-set(_conflicts)
+else()
+  set(_conflicts)
+endif()
 foreach(_cpu ${KNOWN_TARGET_CPUS})
   if(NOT "${_cpu}" STREQUAL "${IDENTIFIED_TARGET_CPU}")
     if("${_conflicts}" STREQUAL "")
@@ -76,4 +78,3 @@ include(CPack)
 
 message(STATUS "Package name: ${CPACK_PACKAGE_NAME}")
 message(STATUS "Package version: ${CPACK_PACKAGE_VERSION}")
-
