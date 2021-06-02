@@ -68,14 +68,13 @@ std::vector<float> WGriddingGridder_Simple::RealImage() {
   return image;
 }
 
-void WGriddingGridder_Simple::InitializePrediction(std::vector<float> &&image) {
+void WGriddingGridder_Simple::InitializePrediction(const float *image_data) {
   size_t dx = (width_ - width_t_) / 2;
   size_t dy = (height_ - height_t_) / 2;
   img.resize(width_t_ * height_t_);
-  MR_assert(image.size() == width_ * height_, "bad image dimensions");
   for (size_t i = 0; i < width_t_; ++i)
     for (size_t j = 0; j < height_t_; ++j)
-      img[i * height_t_ + j] = image[(i + dx) + (j + dy) * width_];
+      img[i * height_t_ + j] = image_data[(i + dx) + (j + dy) * width_];
 }
 
 void WGriddingGridder_Simple::PredictVisibilities(

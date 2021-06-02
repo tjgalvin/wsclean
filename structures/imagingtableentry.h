@@ -107,6 +107,11 @@ struct ImagingTableEntry {
    */
   double imageWeight;
   double normalizationFactor;
+
+  void AssignGridData(const ImagingTableEntry& source) {
+    imageWeight = source.imageWeight;
+    normalizationFactor = source.normalizationFactor;
+  }
 };
 
 #endif

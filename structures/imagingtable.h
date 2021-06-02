@@ -39,6 +39,8 @@ class ImagingTable {
 
     ImagingTableEntry& operator*() { return **_baseIterator; }
     const ImagingTableEntry& operator*() const { return **_baseIterator; }
+    ImagingTableEntry* operator->() { return _baseIterator->get(); }
+    const ImagingTableEntry* operator->() const { return _baseIterator->get(); }
     void operator++() { ++_baseIterator; }
     bool operator!=(const EntryIterator& other) const {
       return _baseIterator != other._baseIterator;
@@ -122,6 +124,12 @@ class ImagingTable {
 
   ImagingTableEntry& Front() { return *_entries.front(); }
   const ImagingTableEntry& Front() const { return *_entries.front(); }
+
+  /**
+   * Copies all fields that are set by the gridding results from one
+   * polarization to all other polarizations.
+   */
+  void AssignGridDataFromPolarization(aocommon::PolarizationEnum polarization);
 
  private:
   explicit ImagingTable(const Group& entries);

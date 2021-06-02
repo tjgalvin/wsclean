@@ -15,14 +15,10 @@ class DirectMSGridder final : public MSGridderBase {
 
   virtual void Invert() override;
 
-  virtual void Predict(Image image) override;
-  virtual void Predict(Image /*real*/, Image /*imaginary*/) override {
-    throw std::runtime_error("Direct FT imager can not predict complex images");
-  }
+  virtual void Predict(std::vector<Image>&& images) override;
 
-  virtual Image ImageRealResult() override { return std::move(_image); }
-  virtual Image ImageImaginaryResult() override {
-    throw std::runtime_error("Direct FT imager can not make complex images");
+  virtual std::vector<Image> ResultImages() override {
+    return {std::move(_image)};
   }
   virtual size_t getSuggestedWGridSize() const override { return 1; }
 

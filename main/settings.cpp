@@ -69,7 +69,8 @@ void Settings::Validate() const {
     if (polarizations.size() > 1 && !joinedPolarizationDeconvolution &&
         deconvolutionIterationCount != 0)
       throw std::runtime_error(
-          "Using IDG with multiple polarizations is only possible in joined "
+          "Deconvolving IDG images with multiple polarizations is only "
+          "possible in joined "
           "polarization mode: use -join-polarizations or -link-polarizations.");
     if (trimmedImageWidth != trimmedImageHeight)
       throw std::runtime_error(

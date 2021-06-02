@@ -17,7 +17,7 @@ ImageT<NumT>::ImageT(size_t width, size_t height, value_type initialValue)
 }
 
 template <typename NumT>
-ImageT<NumT>::~ImageT() {
+ImageT<NumT>::~ImageT() noexcept {
   delete[] _data;
 }
 
@@ -42,7 +42,7 @@ ImageT<NumT>& ImageT<NumT>::operator=(const ImageT& source) {
 }
 
 template <typename NumT>
-ImageT<NumT>::ImageT(ImageT&& source)
+ImageT<NumT>::ImageT(ImageT&& source) noexcept
     : _data(source._data), _width(source._width), _height(source._height) {
   source._width = 0;
   source._height = 0;
@@ -50,7 +50,7 @@ ImageT<NumT>::ImageT(ImageT&& source)
 }
 
 template <typename NumT>
-ImageT<NumT>& ImageT<NumT>::operator=(ImageT&& source) {
+ImageT<NumT>& ImageT<NumT>::operator=(ImageT&& source) noexcept {
   std::swap(_data, source._data);
   std::swap(_width, source._width);
   std::swap(_height, source._height);

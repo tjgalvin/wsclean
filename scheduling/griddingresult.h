@@ -21,8 +21,14 @@ struct GriddingResult {
         actualInversionWidth(0),
         actualInversionHeight(0) {}
 
-  Image imageRealResult;
-  Image imageImaginaryResult;
+  /**
+   * List of produced images. When performing complex images, images[0] will be
+   * the real part and images[1] will be the imaginary part. When performing
+   * full polarization imaging (indicated with Polarization::FullStokes) with
+   * IDG, the list will contain all four images ordered IQUV. In all other
+   * cases, this list will only hold one image.
+   */
+  std::vector<Image> images;
   double startTime;
   double beamSize;
   double imageWeight;

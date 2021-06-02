@@ -11,14 +11,10 @@ class WGriddingMSGridder final : public MSGridderBase {
 
   virtual void Invert() override;
 
-  virtual void Predict(Image image) override;
-  virtual void Predict(Image, Image) override {
-    throw std::runtime_error("Can not do imaginary imaging in this mode");
-  }
+  virtual void Predict(std::vector<Image>&& images) override;
 
-  virtual Image ImageRealResult() override { return std::move(_image); }
-  virtual Image ImageImaginaryResult() override {
-    throw std::runtime_error("Can not do imaginary imaging in this mode");
+  virtual std::vector<Image> ResultImages() override {
+    return {std::move(_image)};
   }
 
   virtual size_t ActualInversionWidth() const override {

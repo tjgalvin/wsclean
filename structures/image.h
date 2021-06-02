@@ -20,16 +20,16 @@ class ImageT {
 
   typedef std::unique_ptr<ImageT<NumT>> Ptr;
 
-  ImageT() : _data(nullptr), _width(0), _height(0) {}
+  ImageT() noexcept : _data(nullptr), _width(0), _height(0) {}
   ImageT(size_t width, size_t height);
   ImageT(size_t width, size_t height, value_type initialValue);
 
-  ~ImageT();
+  ~ImageT() noexcept;
 
   ImageT(const ImageT<NumT>&);
   ImageT<NumT>& operator=(const ImageT<NumT>&);
 
-  ImageT<NumT>& operator=(value_type value) {
+  ImageT<NumT>& operator=(value_type value) noexcept {
     std::fill_n(_data, _width * _height, value);
     return *this;
   }
@@ -41,8 +41,8 @@ class ImageT {
     return *this;
   }
 
-  ImageT(ImageT<NumT>&& source);
-  ImageT<NumT>& operator=(ImageT<NumT>&& source);
+  ImageT(ImageT<NumT>&& source) noexcept;
+  ImageT<NumT>& operator=(ImageT<NumT>&& source) noexcept;
 
   static Ptr Make(size_t width, size_t height) {
     return Ptr(new ImageT<NumT>(width, height));

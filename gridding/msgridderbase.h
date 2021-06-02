@@ -117,11 +117,10 @@ class MSGridderBase {
 
   virtual void Invert() = 0;
 
-  virtual void Predict(Image image) = 0;
-  virtual void Predict(Image real, Image imaginary) = 0;
+  virtual void Predict(std::vector<Image>&& images) = 0;
 
-  virtual Image ImageRealResult() = 0;
-  virtual Image ImageImaginaryResult() = 0;
+  virtual std::vector<Image> ResultImages() = 0;
+
   void SetPhaseCentreRA(const double phaseCentreRA) {
     _phaseCentreRA = phaseCentreRA;
     computeFacetCentre();

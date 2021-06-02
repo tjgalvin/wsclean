@@ -77,3 +77,18 @@ void ImagingTable::updateGroups(
     groups.emplace_back(std::move(item.second));
   }
 }
+
+void ImagingTable::AssignGridDataFromPolarization(
+    aocommon::PolarizationEnum polarization) {
+  for (Group& group : _squaredGroups) {
+    const EntryPtr& sourceEntry = *std::find_if(
+        group.begin(), group.end(), [polarization](const EntryPtr& e) {
+          return e->polarization == polarization;
+        });
+    for (EntryPtr& entryPtr : group) {
+      if (entryPtr != sourceEntry) {
+        entryPtr->AssignGridData(*sourceEntry);
+      }
+    }
+  }
+}

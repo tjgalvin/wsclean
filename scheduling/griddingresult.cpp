@@ -4,9 +4,8 @@
 #include <aocommon/io/serialistream.h>
 
 void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
-  imageRealResult.Serialize(stream);
-  imageImaginaryResult.Serialize(stream);
-  stream.Double(beamSize)
+  stream.ObjectVector(images)
+      .Double(beamSize)
       .Double(imageWeight)
       .Double(normalizationFactor)
       .UInt64(actualWGridSize)
@@ -19,9 +18,8 @@ void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
 }
 
 void GriddingResult::Unserialize(aocommon::SerialIStream& stream) {
-  imageRealResult.Unserialize(stream);
-  imageImaginaryResult.Unserialize(stream);
-  stream.Double(beamSize)
+  stream.ObjectVector(images)
+      .Double(beamSize)
       .Double(imageWeight)
       .Double(normalizationFactor)
       .UInt64(actualWGridSize)

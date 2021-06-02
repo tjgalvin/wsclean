@@ -33,8 +33,11 @@ class GriddingTask {
 
   // For prediction
   bool addToModel;
-  Image modelImageReal;
-  Image modelImageImaginary;
+  /**
+   * Images for prediction. See the documentation of
+   * @ref GriddingResult::images for an explanation of why this is a vector.
+   */
+  std::vector<Image> modelImages;
   ObservationInfo observationInfo;
 
   const schaapcommon::facets::Facet* facet = nullptr;

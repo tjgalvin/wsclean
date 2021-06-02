@@ -80,10 +80,13 @@ void PrimaryBeam::CorrectImages(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
     for (size_t i = 0; i != beamImages.NImages(); ++i) {
       std::vector<float*> imagePtr{beamImages[i].data()};
+      const ImagingTableEntry& firstPolEntry = *table.begin();
+      const double m =
+          metaCache.at(firstPolEntry.index)->h5Sum / firstPolEntry.imageWeight;
+      const float factor = 1.0 / std::sqrt(m);
       for (const ImagingTableEntry& entry : table) {
         facetImage.SetFacet(*entry.facet, true);
-        const float m = metaCache.at(entry.index)->h5Sum / entry.imageWeight;
-        facetImage.MultiplyImageInsideFacet(imagePtr, 1.0f / std::sqrt(m));
+        facetImage.MultiplyImageInsideFacet(imagePtr, factor);
       }
     }
     // Pass table.Front(), since central frequency and start/end frequency

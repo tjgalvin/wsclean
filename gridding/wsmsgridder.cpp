@@ -483,10 +483,10 @@ void WSMSGridder::Invert() {
   Logger::Debug << "Inversion finished.\n";
 }
 
-void WSMSGridder::Predict(Image real, Image imaginary) {
-  if (imaginary.empty() && IsComplex())
+void WSMSGridder::Predict(std::vector<Image>&& images) {
+  if (images.size() != 2 && IsComplex())
     throw std::runtime_error("Missing imaginary in complex prediction");
-  if (!imaginary.empty() && !IsComplex())
+  if (images.size() != 1 && !IsComplex())
     throw std::runtime_error("Imaginary specified in non-complex prediction");
 
   std::vector<MSData> msDataVector;
@@ -510,27 +510,17 @@ void WSMSGridder::Predict(Image real, Image imaginary) {
       countSamplesPerLayer(msDataVector[i]);
   }
 
-  Image untrimmedReal, untrimmedImag;
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight()
                   << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
     // Undo trimming (i.e., extend with zeros)
     // The input is of size TrimWidth() x TrimHeight()
     // This will make the model image of size ImageWidth() x ImageHeight()
-    untrimmedReal = Image(ImageWidth(), ImageHeight());
-    Image::Untrim(untrimmedReal.data(), ImageWidth(), ImageHeight(),
-                  real.data(), TrimWidth(), TrimHeight());
-    real = std::move(untrimmedReal);
-
-    if (IsComplex()) {
-      untrimmedImag = Image(ImageWidth(), ImageHeight());
-      Image::Untrim(untrimmedImag.data(), ImageWidth(), ImageHeight(),
-                    imaginary.data(), TrimWidth(), TrimHeight());
-      imaginary = std::move(untrimmedImag);
+    for (Image& image : images) {
+      image = image.Untrim(ImageWidth(), ImageHeight());
     }
   }
 
-  Image resampledReal, resampledImag;
   if (ImageWidth() != _actualInversionWidth ||
       ImageHeight() != _actualInversionHeight) {
     // Decimate the image
@@ -538,24 +528,28 @@ void WSMSGridder::Predict(Image real, Image imaginary) {
     FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth,
                            _actualInversionHeight, _cpuCount);
 
-    resampledReal = Image(ImageWidth(), ImageHeight());
-    if (imaginary.empty()) {
-      resampler.Resample(real.data(), resampledReal.data());
+    if (images.size() == 1) {
+      Image resampled(ImageWidth(), ImageHeight());
+      resampler.Resample(images[0].data(), resampled.data());
+      images[0] = std::move(resampled);
     } else {
-      resampledImag = Image(ImageWidth(), ImageHeight());
+      std::vector<Image> resampled;
+      resampled.reserve(images.size());
       resampler.Start();
-      resampler.AddTask(real.data(), resampledReal.data());
-      resampler.AddTask(imaginary.data(), resampledImag.data());
+      for (Image& image : images) {
+        resampled.emplace_back(ImageWidth(), ImageHeight());
+        resampler.AddTask(image.data(), resampled.back().data());
+      }
       resampler.Finish();
-      imaginary = std::move(resampledImag);
+      for (size_t i = 0; i != images.size(); ++i)
+        images[i] = std::move(resampled[i]);
     }
-    real = std::move(resampledReal);
   }
 
-  if (imaginary.empty())
-    _gridder->InitializePrediction(std::move(real));
+  if (images.size() == 1)
+    _gridder->InitializePrediction(images[0]);
   else
-    _gridder->InitializePrediction(std::move(real), std::move(imaginary));
+    _gridder->InitializePrediction(images[0], images[1]);
   for (size_t pass = 0; pass != _gridder->NPasses(); ++pass) {
     Logger::Info << "Fourier transforms for pass " << pass << "... ";
     if (IsFirstIteration())

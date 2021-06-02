@@ -67,113 +67,87 @@ void IdgMsGridder::Invert() {
 
   _options["padded_size"] = untrimmedWidth;
 
-  // Stokes I is always the first requested pol. So, only when Stokes I
-  // is requested, do the actual inversion. Since all pols are produced at once
-  // by IDG, when Stokes Q/U/V is requested, the result of earlier gridding is
-  // returned. For the first inversion, WSClean will ask for the PSF of Stokes
-  // I. The next run is the dirty of Stokes I, which should thus overwrite all
-  // images.
-  if (Polarization() == aocommon::Polarization::StokesI) {
-    if (!_metaDataCache->averageBeam)
-      _metaDataCache->averageBeam.reset(new AverageBeam());
-    _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
+  if (!_metaDataCache->averageBeam)
+    _metaDataCache->averageBeam.reset(new AverageBeam());
+  _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
 
-    std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector);
+  std::vector<MSData> msDataVector;
+  initializeMSDataVector(msDataVector);
 
-    double max_w = 0;
-    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-      max_w = std::max(max_w, msDataVector[i].maxWWithFlags);
+  double max_w = 0;
+  for (const MSData& msData : msDataVector) {
+    max_w = std::max(max_w, msData.maxWWithFlags);
+  }
+
+  const double shiftl = PhaseCentreDL();
+  const double shiftm = PhaseCentreDM();
+  const double shiftp =
+      std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
+  _bufferset->init(width, _actualPixelSizeX, max_w + 1.0, shiftl, shiftm,
+                   shiftp, _options);
+  Logger::Debug << "IDG subgrid size: " << _bufferset->get_subgridsize()
+                << '\n';
+
+  if (DoImagePSF()) {
+    // Computing the PSF
+    // For the PSF the aterm is computed but not applied
+    // The aterm is computed so that the average beam can be computed
+    _bufferset->set_apply_aterm(false);
+    _bufferset->unset_matrix_inverse_beam();
+    _bufferset->init_compute_avg_beam(
+        idg::api::compute_flags::compute_and_grid);
+    resetVisibilityCounters();
+    for (const MSData& msData : msDataVector) {
+      // Adds the gridding result to _image member
+      gridMeasurementSet(msData);
     }
+    _bufferset->finalize_compute_avg_beam();
+    _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
+    _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam());
+    _image.assign(4 * width * height, 0.0);
+    _bufferset->get_image(_image.data());
 
-    const double shiftl = PhaseCentreDL();
-    const double shiftm = PhaseCentreDM();
-    const double shiftp =
-        std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
-    _bufferset->init(width, _actualPixelSizeX, max_w + 1.0, shiftl, shiftm,
-                     shiftp, _options);
-    Logger::Debug << "IDG subgrid size: " << _bufferset->get_subgridsize()
-                  << '\n';
+    Logger::Debug << "Total weight: " << totalWeight() << '\n';
+  } else {
+    // Compute a dirty/residual image
+    // with application of the a term
+    _bufferset->set_apply_aterm(true);
 
-    if (DoImagePSF()) {
-      // Computing the PSF
-      // For the PSF the aterm is computed but not applied
-      // The aterm is computed so that the average beam can be computed
-      _bufferset->set_apply_aterm(false);
-      _bufferset->unset_matrix_inverse_beam();
-      _bufferset->init_compute_avg_beam(
-          idg::api::compute_flags::compute_and_grid);
-      resetVisibilityCounters();
-      for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-        // Adds the gridding result to _image member
-        gridMeasurementSet(msDataVector[i]);
+    // Because compensation for the average beam happens at subgrid level
+    // it needs to be known in advance.
+    // If it is not in the cache it needs to be computed first
+    if (!_averageBeam->Empty()) {
+      // Set avg beam from cache
+      Logger::Debug << "Using average beam from cache.\n";
+      _bufferset->set_scalar_beam(_averageBeam->ScalarBeam());
+      _bufferset->set_matrix_inverse_beam(_averageBeam->MatrixInverseBeam());
+    } else {
+      // Compute avg beam
+      Logger::Debug << "Computing average beam.\n";
+      _bufferset->init_compute_avg_beam(idg::api::compute_flags::compute_only);
+      for (const MSData& msData : msDataVector) {
+        gridMeasurementSet(msData);
       }
       _bufferset->finalize_compute_avg_beam();
+      Logger::Debug << "Finished computing average beam.\n";
       _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
       _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam());
-      _image.assign(4 * width * height, 0.0);
-      _bufferset->get_image(_image.data());
-
-      Logger::Debug << "Total weight: " << totalWeight() << '\n';
-
-      double center_pixel_value =
-          _image[height / 2 * width +
-                 width / 2];  // TODO check memory layout, is this correct? for
-                              // now it does not matter, because width == height
-
-      if (center_pixel_value) {
-        for (size_t ii = 0; ii != 4 * width * height; ++ii) {
-          _image[ii] /= center_pixel_value;
-        }
-      }
-
-    } else {
-      // Compute a dirty/residual image
-      // with application of the a term
-      _bufferset->set_apply_aterm(true);
-
-      // Because compensation for the average beam happens at subgrid level
-      // it needs to be known in advance.
-      // If it is not in the cache it needs to be computed first
-      if (!_averageBeam->Empty()) {
-        // Set avg beam from cache
-        Logger::Debug << "Using average beam from cache.\n";
-        _bufferset->set_scalar_beam(_averageBeam->ScalarBeam());
-        _bufferset->set_matrix_inverse_beam(_averageBeam->MatrixInverseBeam());
-      } else {
-        // Compute avg beam
-        Logger::Debug << "Computing average beam.\n";
-        _bufferset->init_compute_avg_beam(
-            idg::api::compute_flags::compute_only);
-        for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-          gridMeasurementSet(msDataVector[i]);
-        }
-        _bufferset->finalize_compute_avg_beam();
-        Logger::Debug << "Finished computing average beam.\n";
-        _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
-        _averageBeam->SetMatrixInverseBeam(
-            _bufferset->get_matrix_inverse_beam());
-      }
-
-      resetVisibilityCounters();
-      for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-        // Adds the gridding result to _image member
-        gridMeasurementSet(msDataVector[i]);
-      }
-      _image.assign(4 * width * height, 0.0);
-      _bufferset->get_image(_image.data());
     }
 
-    // result is now in _image member
-    // Can be accessed by subsequent calls to ImageRealResult()
-
-  } else if (_image.size() != 4 * width * height) {
-    throw std::runtime_error(
-        "IdgMsGridder::Invert() was called out of sequence");
+    resetVisibilityCounters();
+    for (const MSData& msData : msDataVector) {
+      // Adds the gridding result to _image member
+      gridMeasurementSet(msData);
+    }
+    _image.assign(4 * width * height, 0.0);
+    _bufferset->get_image(_image.data());
   }
+
+  // result is now in _image member
+  // Can be accessed by subsequent calls to ResultImages()
 }
 
-void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
+void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 
 #ifdef HAVE_EVERYBEAM
@@ -259,7 +233,9 @@ void IdgMsGridder::gridMeasurementSet(MSGridderBase::MSData& msData) {
   _griddingWatch.Pause();
 }
 
-void IdgMsGridder::Predict(Image image) {
+void IdgMsGridder::Predict(std::vector<Image>&& images) {
+  if (images.size() == 2)
+    throw std::runtime_error("IDG gridder cannot make complex images");
   const size_t untrimmedWidth = ImageWidth();
   const size_t width = TrimWidth(), height = TrimHeight();
 
@@ -268,56 +244,53 @@ void IdgMsGridder::Predict(Image image) {
 
   _options["padded_size"] = untrimmedWidth;
 
-  if (Polarization() == aocommon::Polarization::StokesI) {
-    _image.assign(4 * width * height, 0.0);
-    if (!_metaDataCache->averageBeam) {
-      Logger::Info << "no average_beam in cache, creating an empty one.\n";
-      _metaDataCache->averageBeam.reset(new AverageBeam());
+  _image.assign(4 * width * height, 0.0);
+  if (!_metaDataCache->averageBeam) {
+    Logger::Info << "no average_beam in cache, creating an empty one.\n";
+    _metaDataCache->averageBeam.reset(new AverageBeam());
+  }
+  _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
+
+  if (Polarization() == aocommon::Polarization::FullStokes) {
+    assert(images.size() == 4);
+    for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
+      std::copy_n(images[polIndex].data(), width * height,
+                  _image.data() + polIndex * width * height);
     }
-    _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
-  } else if (_image.size() != 4 * width * height) {
-    throw std::runtime_error(
-        "IdgMsGridder::Predict() was called out of sequence");
+  } else {
+    assert(images.size() == 1);
+    const size_t stokesIndex =
+        aocommon::Polarization::StokesToIndex(Polarization());
+    std::copy_n(images[0].data(), width * height,
+                _image.data() + stokesIndex * width * height);
   }
 
-  size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
-  std::copy_n(image.data(), width * height,
-              _image.data() + polIndex * width * height);
+  bool do_scale = false;
+  if (!_averageBeam->Empty()) {
+    // Set avg beam from cache
+    Logger::Debug << "Average beam is already in cache.\n";
+    _bufferset->set_scalar_beam(_averageBeam->ScalarBeam());
+    do_scale = true;
+  }
 
-  // Stokes V is the last requested pol, unless only Stokes I is imaged. Only
-  // when the last polarization is given, do the actual prediction.
-  if (Polarization() == aocommon::Polarization::StokesV ||
-      (Polarization() == aocommon::Polarization::StokesI &&
-       _settings.polarizations.size() == 1)) {
-    // Do actual predict
+  std::vector<MSData> msDataVector;
+  initializeMSDataVector(msDataVector);
 
-    bool do_scale = false;
-    if (!_averageBeam->Empty()) {
-      // Set avg beam from cache
-      Logger::Debug << "Average beam is already in cache.\n";
-      _bufferset->set_scalar_beam(_averageBeam->ScalarBeam());
-      do_scale = true;
-    }
+  double max_w = 0;
+  for (const MSData& msData : msDataVector) {
+    max_w = std::max(max_w, msData.maxWWithFlags);
+  }
 
-    std::vector<MSData> msDataVector;
-    initializeMSDataVector(msDataVector);
+  const double shiftl = PhaseCentreDL();
+  const double shiftm = PhaseCentreDM();
+  const double shiftp =
+      std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
+  _bufferset->init(width, _actualPixelSizeX, max_w + 1.0, shiftl, shiftm,
+                   shiftp, _options);
+  _bufferset->set_image(_image.data(), do_scale);
 
-    double max_w = 0;
-    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-      max_w = std::max(max_w, msDataVector[i].maxWWithFlags);
-    }
-
-    const double shiftl = PhaseCentreDL();
-    const double shiftm = PhaseCentreDM();
-    const double shiftp =
-        std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
-    _bufferset->init(width, _actualPixelSizeX, max_w + 1.0, shiftl, shiftm,
-                     shiftp, _options);
-    _bufferset->set_image(_image.data(), do_scale);
-
-    for (size_t i = 0; i != MeasurementSetCount(); ++i) {
-      predictMeasurementSet(msDataVector[i]);
-    }
+  for (const MSData& msData : msDataVector) {
+    predictMeasurementSet(msData);
   }
 }
 
@@ -337,7 +310,7 @@ void IdgMsGridder::setIdgType() {
   }
 }
 
-void IdgMsGridder::predictMeasurementSet(MSGridderBase::MSData& msData) {
+void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
   aocommon::UVector<std::complex<float>> aTermBuffer;
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<ATermBase> aTermMaker;
@@ -431,21 +404,24 @@ void IdgMsGridder::computePredictionBuffer(
   _degriddingWatch.Pause();
 }
 
-void IdgMsGridder::Predict(Image /*real*/, Image /*imaginary*/) {
-  throw std::runtime_error("IDG gridder cannot make complex images");
-}
-
-Image IdgMsGridder::ImageRealResult() {
-  const size_t width = TrimWidth(), height = TrimHeight();
-  size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
-  Image image(height, width);
-  std::copy_n(_image.data() + polIndex * width * height, width * height,
-              image.data());
-  return std::move(image);
-}
-
-Image IdgMsGridder::ImageImaginaryResult() {
-  throw std::runtime_error("IDG gridder cannot make complex images");
+std::vector<Image> IdgMsGridder::ResultImages() {
+  const size_t width = TrimWidth();
+  const size_t height = TrimHeight();
+  std::vector<Image> images;
+  if (Polarization() == aocommon::Polarization::FullStokes) {
+    images.reserve(4);
+    for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
+      images.emplace_back(width, height);
+      std::copy_n(_image.data() + polIndex * width * height, width * height,
+                  images[polIndex].data());
+    }
+  } else {
+    size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
+    images.emplace_back(width, height);
+    std::copy_n(_image.data() + polIndex * width * height, width * height,
+                images[0].data());
+  }
+  return images;
 }
 
 void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry,
@@ -509,7 +485,7 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
 
 #ifdef HAVE_EVERYBEAM
 bool IdgMsGridder::prepareForMeasurementSet(
-    MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker,
+    const MSGridderBase::MSData& msData, std::unique_ptr<ATermBase>& aTermMaker,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #else
@@ -590,7 +566,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 
 #ifdef HAVE_EVERYBEAM
 std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
-    MSGridderBase::MSData& msData) {
+    const MSGridderBase::MSData& msData) {
   SynchronizedMS ms = msData.msProvider->MS();
   size_t nr_stations = ms->antenna().nrow();
   aocommon::UVector<std::complex<float>> aTermBuffer;

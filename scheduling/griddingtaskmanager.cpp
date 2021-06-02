@@ -90,18 +90,11 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.Invert();
   } else {
     gridder.SetAddToModel(task.addToModel);
-    if (task.polarization == aocommon::Polarization::XY ||
-        task.polarization == aocommon::Polarization::YX)
-      gridder.Predict(std::move(task.modelImageReal),
-                      std::move(task.modelImageImaginary));
-    else
-      gridder.Predict(std::move(task.modelImageReal));
+    gridder.Predict(std::move(task.modelImages));
   }
 
   GriddingResult result;
-  result.imageRealResult = gridder.ImageRealResult();
-  if (gridder.IsComplex())
-    result.imageImaginaryResult = gridder.ImageImaginaryResult();
+  result.images = gridder.ResultImages();
   result.startTime = gridder.StartTime();
   result.beamSize = gridder.BeamSize();
   result.imageWeight = gridder.ImageWeight();

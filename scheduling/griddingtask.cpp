@@ -18,9 +18,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
   for (const std::unique_ptr<MSDataDescription>& dataDesc : msList)
     dataDesc->Serialize(stream);
 
-  stream.Bool(addToModel);
-  modelImageReal.Serialize(stream);
-  modelImageImaginary.Serialize(stream);
+  stream.Bool(addToModel).ObjectVector(modelImages);
   observationInfo.Serialize(stream);
 }
 
@@ -35,8 +33,6 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
   for (std::unique_ptr<MSDataDescription>& dataDesc : msList)
     dataDesc = MSDataDescription::Unserialize(stream);
 
-  addToModel = stream.Bool();
-  modelImageReal.Unserialize(stream);
-  modelImageImaginary.Unserialize(stream);
+  stream.Bool(addToModel).ObjectVector(modelImages);
   observationInfo.Unserialize(stream);
 }

@@ -103,7 +103,7 @@ class WGriddingGridder_Simple {
    * @param image The (untrimmed) model image that is to be predicted for. This
    * is an array of width * height size, index by (x + width*y).
    */
-  void InitializePrediction(std::vector<float> &&image);
+  void InitializePrediction(const float *image_data);
 
   /** Predicts visibilities from the current dirty image.
    * FIXME: how do we indicate flagged visibilities that do not

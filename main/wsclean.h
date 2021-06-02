@@ -82,8 +82,9 @@ class WSClean {
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<MSDataDescription>>& msList);
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
-                              const ImagingTableEntry& entry, bool isImaginary,
-                              const float* image);
+                              const ImagingTableEntry& entry,
+                              aocommon::PolarizationEnum polarization,
+                              bool isImaginary, const float* image);
   bool selectChannels(MSSelection& selection, size_t msIndex, size_t bandIndex,
                       const ImagingTableEntry& entry);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
@@ -107,8 +108,10 @@ class WSClean {
    * settings, this might load existing images from disk or initialize
    * them to zero.
    */
-  void initializeModelImages(const ImagingTableEntry& entry);
-  void readExistingModelImages(const ImagingTableEntry& entry);
+  void initializeModelImages(const ImagingTableEntry& entry,
+                             aocommon::PolarizationEnum polarization);
+  void readExistingModelImages(const ImagingTableEntry& entry,
+                               aocommon::PolarizationEnum polarization);
   /**
    * Override the image settings given a FitsReader object.
    * The boolean return value indicates whether the gridder needs

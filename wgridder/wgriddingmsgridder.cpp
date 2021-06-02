@@ -241,7 +241,7 @@ void WGriddingMSGridder::Invert() {
   }
 }
 
-void WGriddingMSGridder::Predict(Image image) {
+void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
@@ -258,8 +258,8 @@ void WGriddingMSGridder::Predict(Image image) {
     Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight()
                   << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
     Image::Untrim(untrimmedImage.data(), ImageWidth(), ImageHeight(),
-                  image.data(), TrimWidth(), TrimHeight());
-    image = std::move(untrimmedImage);
+                  images[0].data(), TrimWidth(), TrimHeight());
+    images[0] = std::move(untrimmedImage);
   }
 
   if (ImageWidth() != _actualInversionWidth ||
@@ -268,15 +268,12 @@ void WGriddingMSGridder::Predict(Image image) {
     FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth,
                            _actualInversionHeight, _cpuCount);
 
-    resampler.Resample(image.data(), resampledImage.data());
-    image = std::move(resampledImage);
+    resampler.Resample(images[0].data(), resampledImage.data());
+    images[0] = std::move(resampledImage);
   }
 
-  std::vector<float> imageFloat(_actualInversionWidth * _actualInversionHeight);
-  for (size_t i = 0; i < imageFloat.size(); ++i) imageFloat[i] = image[i];
-  image.reset();
-
-  _gridder->InitializePrediction(std::move(imageFloat));
+  _gridder->InitializePrediction(images[0].data());
+  images[0].reset();
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i)
     predictMeasurementSet(msDataVector[i]);
