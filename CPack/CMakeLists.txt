@@ -11,8 +11,7 @@ if(Git_FOUND)
     COMMAND bash -c "${GIT_EXECUTABLE} describe --tags --dirty"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE VERSION_STRING
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET)
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   # Strip leading non-numeric characters, like "v"
   string(REGEX REPLACE "^[^[0-9]]*" "" VERSION_STRING ${VERSION_STRING})
 endif()
@@ -44,12 +43,13 @@ set(CPACK_SOURCE_GENERATOR "TGZ")
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 if(DEFINED IDENTIFIED_TARGET_CPU)
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "everybeam (>=0.1), idg-${IDENTIFIED_TARGET_CPU}-api (>=0.8)")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS
+      "everybeam (>=0.1), idg-${IDENTIFIED_TARGET_CPU}-api (>=0.8)")
 else()
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "everybeam (>=0.1), idg-api (>=0.8)")
 endif()
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
-"WSClean (w-stacking clean) is a fast generic widefield imager.
+    "WSClean (w-stacking clean) is a fast generic widefield imager.
  It implements several gridding algorithms and offers fully-automated
  multi-scale multi-frequency deconvolution.
  Manual: https://wsclean.readthedocs.io/")

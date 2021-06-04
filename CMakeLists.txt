@@ -28,13 +28,17 @@ option(BUILD_PACKAGES "Build Debian packages" OFF)
 if(COMPILER_HAS_CXX17 AND NOT DISABLE_CXX17)
   add_compile_options(-std=c++17)
   add_definitions(-DHAVE_WGRIDDER)
-  set(WGRIDDER_FILES wgridder/wgriddingmsgridder.cpp
-    external/wgridder/ducc0/infra/threading.cc
-    wgridder/wgriddinggridder_simple.cpp)
+  set(WGRIDDER_FILES
+      wgridder/wgriddingmsgridder.cpp
+      external/wgridder/ducc0/infra/threading.cc
+      wgridder/wgriddinggridder_simple.cpp)
   include_directories(external/wgridder)
 else()
   add_compile_options(-std=c++11)
-  message(WARNING "Selected compiler does not support the C++17 standard. This will disable the 'wgridder' gridder, which requires C++17.")
+  message(
+    WARNING
+      "Selected compiler does not support the C++17 standard. This will disable the 'wgridder' gridder, which requires C++17."
+  )
   set(WGRIDDER_FILES)
 endif()
 
@@ -55,17 +59,21 @@ endif()
 # Find and include git submodules
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-# Update submodules as needed
-    option(GIT_SUBMODULE "Check submodules during build" ON)
-    if(GIT_SUBMODULE)
-        message(STATUS "Submodule update")
-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
-                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                        RESULT_VARIABLE GIT_SUBMOD_RESULT)
-        if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
-        endif()
+  # Update submodules as needed
+  option(GIT_SUBMODULE "Check submodules during build" ON)
+  if(GIT_SUBMODULE)
+    message(STATUS "Submodule update")
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
+      message(
+        FATAL_ERROR
+          "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules"
+      )
     endif()
+  endif()
 endif()
 
 # Include aocommon
@@ -78,9 +86,12 @@ include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
-find_package(HDF5 COMPONENTS C CXX REQUIRED)
+find_package(
+  HDF5
+  COMPONENTS C CXX
+  REQUIRED)
 
-SET(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
+set(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
 find_package(Casacore REQUIRED COMPONENTS casa ms tables measures fits)
 find_package(CFITSIO REQUIRED)
 # Chgcentre uses a lapack function. EveryBeam provides lapack, but because
@@ -104,7 +115,10 @@ include_directories(${pybind11_INCLUDE_DIR})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
-find_package(Boost COMPONENTS date_time filesystem system program_options REQUIRED)
+find_package(
+  Boost
+  COMPONENTS date_time filesystem system program_options
+  REQUIRED)
 find_library(PTHREAD_LIB pthread REQUIRED)
 find_library(DL_LIB dl REQUIRED)
 
@@ -112,7 +126,9 @@ find_library(DL_LIB dl REQUIRED)
 find_library(GSL_LIB NAMES gsl)
 find_path(GSL_INCLUDE_DIR NAMES gsl/gsl_version.h)
 find_library(GSL_CBLAS_LIB NAMES gslcblas)
-if(NOT GSL_LIB OR NOT GSL_INCLUDE_DIR OR NOT GSL_CBLAS_LIB)
+if(NOT GSL_LIB
+   OR NOT GSL_INCLUDE_DIR
+   OR NOT GSL_CBLAS_LIB)
   message(FATAL_ERROR "GSL not found, but required to build WSClean!")
 endif()
 
@@ -132,7 +148,10 @@ if(MPI_FOUND)
   include_directories(SYSTEM ${MPI_INCLUDE_PATH})
   set(MPI_CPP_FILES scheduling/mpischeduler.cpp distributed/mpibig.cpp)
 else(MPI_FOUND)
-  message(WARNING "MPI not found, multi-processing executable wsclean-mp will not be build.")
+  message(
+    WARNING
+      "MPI not found, multi-processing executable wsclean-mp will not be build."
+  )
   set(MPI_LIBRARIES "")
   set(MPI_CPP_FILES)
 endif(MPI_FOUND)
@@ -146,7 +165,9 @@ if(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
   message(STATUS "EveryBeam library found.")
 else()
   set(EVERYBEAM_LIB "")
-  message("EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available.")
+  message(
+    "EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available."
+  )
 endif(EVERYBEAM_INCLUDE_DIR AND EVERYBEAM_LIB)
 
 find_package(IDGAPI NO_MODULE QUIET)
@@ -159,7 +180,9 @@ if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   set(IDGAPI_LIBRARIES)
   set(IDG_FILES)
-  message("Image domain gridder libraries NOT found. Experimental gridder will not be available.")
+  message(
+    "Image domain gridder libraries NOT found. Experimental gridder will not be available."
+  )
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
 include_directories(${CASACORE_INCLUDE_DIRS})
@@ -179,21 +202,23 @@ add_definitions(-DHAVE_GSL)
 # LD_LIBRARY_PATH doesn't have to be set.
 
 # use, i.e. don't skip the full RPATH for the build tree
-SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
 # when building, don't use the install RPATH already
 # (but later on when installing)
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 # add the automatically determined parts of the RPATH
 # which point to directories outside the build tree to the install RPATH
-SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # the RPATH to be used when installing, but only if it's not a system directory
-LIST(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-IF("${isSystemDir}" STREQUAL "-1")
-   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-ENDIF("${isSystemDir}" STREQUAL "-1")
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
+     "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif("${isSystemDir}" STREQUAL "-1")
 
-configure_file("${PROJECT_SOURCE_DIR}/wscversion.h.in" "${PROJECT_BINARY_DIR}/wscversion.h")
+configure_file("${PROJECT_SOURCE_DIR}/wscversion.h.in"
+               "${PROJECT_BINARY_DIR}/wscversion.h")
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 # Add CPack directory if user wants to generate Debian packages
@@ -201,7 +226,8 @@ if(BUILD_PACKAGES)
   add_subdirectory(CPack)
 endif()
 
-add_library(wsclean-object OBJECT
+add_library(
+  wsclean-object OBJECT
   main/commandline.cpp
   main/progressbar.cpp
   main/stopwatch.cpp
@@ -275,31 +301,50 @@ add_library(wsclean-object OBJECT
   structures/primarybeam.cpp
   system/fftwmanager.cpp
   system/system.cpp
-  ${IDG_FILES} ${MPI_CPP_FILES} ${WGRIDDER_FILES})
-
+  ${IDG_FILES}
+  ${MPI_CPP_FILES}
+  ${WGRIDDER_FILES})
 
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is
 # allowed. Note that visibilities can be NaN hence this can not be turned
 # on for all files.
 set_source_files_properties(
-	deconvolution/subminorloop.cpp
-	deconvolution/genericclean.cpp
-	deconvolution/imageset.cpp
-	deconvolution/simpleclean.cpp
-	deconvolution/spectralfitter.cpp
-	multiscale/multiscalealgorithm.cpp
-	multiscale/multiscaletransforms.cpp
-	multiscale/threadeddeconvolutiontools.cpp
-	wsclean/wstackinggridder.cpp
-	wgridder/wgriddinggridder_simple.cpp
-	PROPERTIES COMPILE_FLAGS -ffast-math)
+  deconvolution/subminorloop.cpp
+  deconvolution/genericclean.cpp
+  deconvolution/imageset.cpp
+  deconvolution/simpleclean.cpp
+  deconvolution/spectralfitter.cpp
+  multiscale/multiscalealgorithm.cpp
+  multiscale/multiscaletransforms.cpp
+  multiscale/threadeddeconvolutiontools.cpp
+  wsclean/wstackinggridder.cpp
+  wgridder/wgriddinggridder_simple.cpp
+  PROPERTIES COMPILE_FLAGS -ffast-math)
 
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 set(WSCLEANFILES $<TARGET_OBJECTS:wsclean-object>)
 
-set(ALL_LIBRARIES ${CASACORE_LIBRARIES} ${FFTW3_LIB} ${FFTW3_THREADS_LIB} ${FFTW3F_LIB} ${FFTW3F_THREADS_LIB} ${Boost_DATE_TIME_LIBRARY} ${Boost_FILESYSTEM_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY} ${Boost_SYSTEM_LIBRARY} ${CFITSIO_LIBRARY} ${GSL_LIB} ${GSL_CBLAS_LIB} ${PTHREAD_LIB} ${IDGAPI_LIBRARIES} ${HDF5_LIBRARIES} ${MPI_LIBRARIES} ${EVERYBEAM_LIB} schaapcommon)
+set(ALL_LIBRARIES
+    ${CASACORE_LIBRARIES}
+    ${FFTW3_LIB}
+    ${FFTW3_THREADS_LIB}
+    ${FFTW3F_LIB}
+    ${FFTW3F_THREADS_LIB}
+    ${Boost_DATE_TIME_LIBRARY}
+    ${Boost_FILESYSTEM_LIBRARY}
+    ${Boost_PROGRAM_OPTIONS_LIBRARY}
+    ${Boost_SYSTEM_LIBRARY}
+    ${CFITSIO_LIBRARY}
+    ${GSL_LIB}
+    ${GSL_CBLAS_LIB}
+    ${PTHREAD_LIB}
+    ${IDGAPI_LIBRARIES}
+    ${HDF5_LIBRARIES}
+    ${MPI_LIBRARIES}
+    ${EVERYBEAM_LIB}
+    schaapcommon)
 
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
 target_link_libraries(wsclean-lib PRIVATE pybind11::embed ${ALL_LIBRARIES})
@@ -314,22 +359,30 @@ add_executable(wsclean main/main.cpp)
 target_link_libraries(wsclean wsclean-lib)
 
 if(MPI_FOUND)
-  add_executable(wsclean-mp
-    distributed/wsclean-mp.cpp
-    distributed/slave.cpp)
+  add_executable(wsclean-mp distributed/wsclean-mp.cpp distributed/slave.cpp)
   target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 
-add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp structures/multibanddata.cpp)
-target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB} ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
+add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp
+                         structures/multibanddata.cpp)
+target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB}
+                      ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 
-add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp ${WSCLEANFILES})
+add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp
+                                            ${WSCLEANFILES})
 target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
 
-add_executable(wspredictionexample EXCLUDE_FROM_ALL gridding/examples/wspredictionexample.cpp gridding/wstackinggridder.cpp system/fftwmanager.cpp)
+add_executable(
+  wspredictionexample EXCLUDE_FROM_ALL
+  gridding/examples/wspredictionexample.cpp gridding/wstackinggridder.cpp
+  system/fftwmanager.cpp)
 target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
 
-add_executable(mscaleexample EXCLUDE_FROM_ALL multiscale/mscaleexample.cpp math/fftconvolver.cpp multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
+add_executable(
+  mscaleexample EXCLUDE_FROM_ALL
+  multiscale/mscaleexample.cpp math/fftconvolver.cpp
+  multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp
+  deconvolution/simpleclean.cpp)
 target_link_libraries(mscaleexample ${ALL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)
@@ -341,20 +394,25 @@ if(MPI_FOUND)
   install(TARGETS wsclean-mp DESTINATION bin)
 endif(MPI_FOUND)
 
-add_custom_target(sphinxdoc
+add_custom_target(
+  sphinxdoc
   make html
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/doc
-  COMMENT "Generating documentation with Sphinx" VERBATIM)
+  COMMENT "Generating documentation with Sphinx"
+  VERBATIM)
 
 # add target to generate API documentation with Doxygen
 find_package(Doxygen)
 
 if(DOXYGEN_FOUND)
-  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-  add_custom_target(doxygendoc
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
+                 ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+  add_custom_target(
+    doxygendoc
     ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Generating API documentation with Doxygen" VERBATIM)
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM)
   add_custom_target(doc DEPENDS doxygendoc sphinxdoc)
 else(DOXYGEN_FOUND)
   message(STATUS "Doxygen not found: API documentation can not compiled.")
@@ -367,7 +425,9 @@ if(Boost_FOUND)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
   add_subdirectory(tests)
 else()
-  message("Boost testing framework not found (not required for wsclean: only required for running tests).")
+  message(
+    "Boost testing framework not found (not required for wsclean: only required for running tests)."
+  )
 endif()
 
 get_directory_property(MAIN_COMPILE_OPTIONS COMPILE_OPTIONS)
