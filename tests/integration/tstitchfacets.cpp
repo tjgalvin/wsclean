@@ -73,22 +73,9 @@ BOOST_AUTO_TEST_CASE(idg) {
   WSClean wsclean;
   CommandLine commandLine;
 #ifdef HAVE_EVERYBEAM
-  std::vector<const char*> args = {"wsclean",
-                                   "-quiet",
-                                   "-size",
-                                   "256",
-                                   "256",
-                                   "-scale",
-                                   "4amin",
-                                   "-use-idg",
-                                   "-apply-facet-beam",
-                                   "-facet-regions",
-                                   kFacets,
-                                   "-name",
-                                   prefix,
-                                   "-mwa-path",
-                                   "test_data",
-                                   kMWA_MS};
+  std::vector<const char*> args = {
+      "wsclean",  "-quiet",         "-size", "256",   "256",  "-scale", "4amin",
+      "-use-idg", "-facet-regions", kFacets, "-name", prefix, kMWA_MS};
 #else
   std::vector<const char*> args = {
       "wsclean",  "-size",          "256",   "256",   "-scale", "4amin",
