@@ -134,8 +134,10 @@ void ImageSet::LoadAndAveragePSFs(
   }
 
   for (size_t chIndex = 0; chIndex != ChannelsInDeconvolution(); ++chIndex) {
+    const double factor =
+        averagedWeights[chIndex] == 0.0 ? 0.0 : 1.0 / averagedWeights[chIndex];
     for (size_t i = 0; i != _width * _height; ++i) {
-      psfImages[chIndex][i] *= 1.0 / averagedWeights[chIndex];
+      psfImages[chIndex][i] *= factor;
     }
   }
 }
@@ -406,13 +408,28 @@ void ImageSet::CalculateDeconvolutionFrequencies(
 
 void ImageSet::GetIntegratedPSF(Image& dest,
                                 const aocommon::UVector<const float*>& psfs) {
-  // TODO should use weighting!
-  std::copy_n(psfs[0], _width * _height, dest.data());
-  for (size_t img = 1; img != PSFCount(); ++img) {
-    for (size_t i = 0; i != _width * _height; ++i) dest[i] += psfs[img][i];
-  }
-  if (PSFCount() != 1) {
-    for (size_t i = 0; i != _width * _height; ++i)
-      dest[i] *= 1.0 / float(PSFCount());
+  if (PSFCount() == 1)
+    std::copy_n(psfs[0], _width * _height, dest.data());
+  else {
+    bool isFirst = true;
+    double weightSum = 0.0;
+    for (size_t channel = 0; channel != _channelsInDeconvolution; ++channel) {
+      const double groupWeight = _weights[channel];
+      // if the groupWeight is zero, the image might contain NaNs, so we
+      // shouldn't add it to the total in that case.
+      if (groupWeight != 0.0) {
+        weightSum += groupWeight;
+        if (isFirst) {
+          for (size_t i = 0; i != _width * _height; ++i)
+            dest[i] = psfs[channel][i] * groupWeight;
+          isFirst = false;
+        } else {
+          for (size_t i = 0; i != _width * _height; ++i)
+            dest[i] += psfs[channel][i] * groupWeight;
+        }
+      }
+    }
+    const double factor = weightSum == 0.0 ? 0.0 : 1.0 / weightSum;
+    for (size_t i = 0; i != _width * _height; ++i) dest[i] *= factor;
   }
 }
