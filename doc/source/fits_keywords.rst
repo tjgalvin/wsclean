@@ -1,10 +1,32 @@
 FITS keywords
 =============
 
-WSClean adds the following non-standard keywords to its output FITS files:
+Meaning of frequency keywords
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-General
--------
+WSClean uses the standard ``CRVAL`` and ``CDELT`` keywords for the frequency axis. These specify the central frequency and frequency width of the output channel, respectively. Because the frequency axis is the third dimension (the default dimensions are ra, dec, frequency, polarization), this specifically means:
+
+.. code-block:: text
+
+    CRVAL3   -- centre frequency of the output channel
+    CDELT3   -- width of the output channel
+
+.. note::
+
+    CDELT3 is sometimes used differently: in image cubes with 
+    multiple spectral images, CDELT3 is not the channel width, but the channel
+    distance between adjacent images. The width of a channel might be different
+    from the frequency distance, for example because two observations with
+    partially overlapping channels are imaged together. If the first
+    observation has a channel at 1.0 GHz of width 0.2 GHz, and the second
+    observation has a channel at 1.1 GHz of width 0.2 GHz, and they fall into
+    the same output channel, the output image will show CDELT3 = 0.3 GHz,
+    because it covers 0.9 GHz up to 1.2 GHz.
+
+WSClean-specific keywords
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+WSClean adds the following non-standard keywords to its output FITS files:
 
 .. code-block:: text
 
