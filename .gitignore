@@ -4,3 +4,4 @@ build/
 wsclean.kdev4
 .vscode/
 *.fits
+__pycache__/

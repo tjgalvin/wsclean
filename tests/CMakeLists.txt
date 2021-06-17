@@ -64,8 +64,6 @@ add_custom_target(
   DEPENDS check
   COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*')
 
-# System tests below can be executed with "make checkwscleancommands"
-
 # Test the facet based and non-facet based predict
 add_custom_target(
   checkpredict
@@ -97,3 +95,23 @@ add_custom_target(
 # Collect all tests that should run on das5 in a single target
 add_custom_target(checkintegration-nightly
                   DEPENDS checkintegration;checkpredict;checkfacetdegridding)
+
+# The 'source' symbolic link simplifies running the tests manually inside
+# ${CMAKE_BINARY_DIR}: It allows using 'python3 -m pytest [OPTIONS] source/tests.py' instead of
+# 'python3 -m pytest [OPTIONS] ../wsclean/tests/systemtests/tests.py'. (Using 'RESULT', fatal
+# errors won't occur on systems without symlink support.)
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+          ${CMAKE_CURRENT_SOURCE_DIR}/systemtests ${CMAKE_BINARY_DIR}/source)
+
+# Test a number of wsclean commands, which can be considered system level tests3
+# FIXME: maybe other name for target, e.g. checkwscleancommands?
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/systemtests/testconfig.py.in
+               ${CMAKE_BINARY_DIR}/testconfig.py)
+add_custom_target(
+  checksystemtests
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND
+    python3 -m pytest --exitfirst -v
+    --junitxml=${CMAKE_BINARY_DIR}/system_tests.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/systemtests/tests.py)
