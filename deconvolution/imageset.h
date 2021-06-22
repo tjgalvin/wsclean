@@ -280,8 +280,6 @@ class ImageSet {
 
   std::vector<Image> _images;
   size_t _width, _height, _channelsInDeconvolution;
-  // Frequency per deconvolution channel
-  aocommon::UVector<double> _frequencies;
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;

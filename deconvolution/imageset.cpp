@@ -30,7 +30,8 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
 
   initializePolFactor();
   initializeIndices();
-  CalculateDeconvolutionFrequencies(*table, _frequencies, _weights,
+  aocommon::UVector<double> frequencies;
+  CalculateDeconvolutionFrequencies(*table, frequencies, _weights,
                                     _channelsInDeconvolution);
 }
 
