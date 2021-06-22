@@ -1,6 +1,7 @@
 #include "imagingtable.h"
 #include "../io/logger.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <map>
 
