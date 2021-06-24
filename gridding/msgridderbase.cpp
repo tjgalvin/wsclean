@@ -701,7 +701,7 @@ void MSGridderBase::readAndWeightVisibilities(
     if (!isSelected[ch]) weightBuffer[ch] = 0.0;
   }
 
-  switch (VisibilityWeightingMode()) {
+  switch (GetVisibilityWeightingMode()) {
     case VisibilityWeightingMode::NormalVisibilityWeighting:
       // The weight buffer already contains the visibility weights: do nothing
       break;

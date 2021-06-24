@@ -362,7 +362,7 @@ void WSMSGridder::Invert() {
                                  _actualPixelSizeX, _actualPixelSizeY,
                                  _cpuCount, AntialiasingKernelSize(),
                                  OverSamplingFactor()));
-  _gridder->SetGridMode(GridMode());
+  _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
     _gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
   _gridder->SetIsComplex(IsComplex());
@@ -496,7 +496,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
       new GridderType(_actualInversionWidth, _actualInversionHeight,
                       _actualPixelSizeX, _actualPixelSizeY, _cpuCount,
                       AntialiasingKernelSize(), OverSamplingFactor()));
-  _gridder->SetGridMode(GridMode());
+  _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
     _gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
   _gridder->SetIsComplex(IsComplex());
