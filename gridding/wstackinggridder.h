@@ -89,13 +89,16 @@
  radio astronomy](http://arxiv.org/abs/1407.1943)
  */
 template <typename T>
-class WStackingGridderBase {
+class WStackingGridder {
   /**
    * @example wspredictionexample.cpp
    * This example demonstrates how the WStackingGridder can be used in a
    * minimalistic way to predict visibilities.
    */
  public:
+  /**
+   * Numeric type used for the uv grid and images.
+   */
   typedef T num_t;
 
   /** Construct a new gridder with given settings.
@@ -105,8 +108,6 @@ class WStackingGridderBase {
    * @param pixelSizeY The angular height of a pixel in radians.
    * @param fftThreadCount The number of threads used for FFTs.
    *   See @ref NFFTThreads() for more info.
-   * @param allocator An ImageBufferAllocator that is used for allocating
-   * images. See @ref ImageBufferAllocator for the rational for using this.
    * @param kernelSize The full width and height in pixels of the kernel. Should
    * be odd. Large kernels cause smaller aliasing artefacts but are more
    * expensive. The default of 7 is a reasonable compromise between
@@ -116,16 +117,12 @@ class WStackingGridderBase {
    * more accurate but requires more memory and becomes slower, probably mainly
    * due to cache misses.
    */
-  WStackingGridderBase(size_t width, size_t height, double pixelSizeX,
-                       double pixelSizeY, size_t fftThreadCount,
-                       size_t kernelSize = 7, size_t overSamplingFactor = 63);
+  WStackingGridder(size_t width, size_t height, double pixelSizeX,
+                   double pixelSizeY, size_t fftThreadCount,
+                   size_t kernelSize = 7, size_t overSamplingFactor = 1023);
 
-  WStackingGridderBase(const WStackingGridderBase &) = delete;
-
-  WStackingGridderBase<T> &operator=(const WStackingGridderBase &) = delete;
-
-  /** De-allocate imagebuffers with the allocator and perform other clean-up. */
-  ~WStackingGridderBase();
+  /** De-allocate imagebuffers and perform other clean-up. */
+  ~WStackingGridder() noexcept;
 
   /** Initialize the inversion/prediction stage with the given number of
    * w-layers. The number of w-layers sets the accuracy of w-term correction and
@@ -337,19 +334,17 @@ class WStackingGridderBase {
    *
    * This method is used for prediction of non-complex (IsComplex()==false)
    * images. Use
-   * @ref InitializePrediction(ImageBufferAllocator::TPtr<num_t>,
-   * ImageBufferAllocator::TPtr<num_t>) for complex prediction -- see @ref
+   * @ref InitializePrediction(Image, Image) for complex prediction -- see @ref
    * SetIsComplex() for more info.
    *
-   * @param image The model image that is to be predicted for. This is an
-   * array of width * height size, index by (x + width*y).
+   * @param image The model image that is to be predicted for.
    */
   void InitializePrediction(Image image) {
     initializePrediction(std::move(image), _imageData);
   }
 
   /**
-   * Complex alternative for @ref InitializePrediction(const double*).
+   * Complex alternative for @ref InitializePrediction(Image).
    *
    * This method should be used for complex images -- see @ref SetIsComplex()
    * for more info.
@@ -405,8 +400,7 @@ class WStackingGridderBase {
    * @param vInLambda V value of UVW coordinate, in number of wavelengths.
    * @param wInLambda W value of UVW coordinate, in number of wavelengths.
    */
-  template <typename SampleT>
-  void SampleDataSample(std::complex<SampleT> &value, double uInLambda,
+  void SampleDataSample(std::complex<float> &value, double uInLambda,
                         double vInLambda, double wInLambda);
 
   /**
@@ -420,6 +414,11 @@ class WStackingGridderBase {
    */
   ImageT<num_t> RealImage() { return std::move(_imageData[0]); }
 
+  /**
+   * Returns the real image that is always converted to a 32-bit float. It is
+   * independent of the templated type of the class. It is otherwise equal to
+   * @ref RealImage().
+   */
   Image RealImageFloat();
 
   /**
@@ -429,6 +428,11 @@ class WStackingGridderBase {
    */
   ImageT<num_t> ImaginaryImage() { return std::move(_imageDataImaginary[0]); }
 
+  /**
+   * Returns the imaginary image that is always converted to a 32-bit float. It
+   * is independent of the templated type of the class. It is otherwise equal to
+   * @ref ImaginaryImage().
+   */
   Image ImaginaryImageFloat();
 
   /**
@@ -441,8 +445,7 @@ class WStackingGridderBase {
    * no effect.
    *
    * When @ref NWLayers() == 1 , it is still possible to perform multi-threading
-   * by setting up fftw to do so. The @ref FFTWMultiThreadEnabler class can be
-   * used to setup fftw properly to do so.
+   * by setting up fftw to do so.
    *
    * @returns The number of threads used for the FFTs.
    */
@@ -522,7 +525,7 @@ class WStackingGridderBase {
    * function.
    * @param gridMode Type of kernel
    * @param kernel Array of size @p oversampling * size
-   * @param n Oversampling factor of kernel
+   * @param oversampling Oversampling factor of kernel
    * @param size UV-cell size of the kernel
    */
   static void GetKernel(GridMode gridMode, double *kernel, size_t oversampling,
@@ -558,6 +561,9 @@ class WStackingGridderBase {
   double PixelSizeY() const { return _pixelSizeY; }
 
  private:
+  WStackingGridder(const WStackingGridder &) = delete;
+  WStackingGridder<T> &operator=(const WStackingGridder &) = delete;
+
   size_t layerRangeStart(size_t layerRangeIndex) const {
     return (_nWLayers * layerRangeIndex) / _nPasses;
   }
@@ -627,8 +633,5 @@ class WStackingGridderBase {
   std::vector<num_t> _sqrtLMLookupTable;
   size_t _nFFTThreads;
 };
-
-typedef WStackingGridderBase<double> WStackingGridder;
-typedef WStackingGridderBase<float> WStackingGridderF;
 
 #endif

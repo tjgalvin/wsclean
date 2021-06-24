@@ -1,5 +1,5 @@
-#ifndef AOFLAGGER
-#define AOFLAGGER
+#ifndef WSCLEAN_LOGGER_H
+#define WSCLEAN_LOGGER_H
 
 #include <sstream>
 #include <iostream>

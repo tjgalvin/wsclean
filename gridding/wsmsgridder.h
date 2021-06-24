@@ -18,7 +18,7 @@
 
 class WSMSGridder final : public MSGridderBase {
  public:
-  typedef WStackingGridderF GridderType;
+  typedef WStackingGridder<float> GridderType;
 
   WSMSGridder(const Settings& settings);
 

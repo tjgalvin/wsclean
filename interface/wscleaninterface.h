@@ -30,11 +30,6 @@
  * performing the imaging or prediction operation. This is unnecessary overhead.
  */
 
-/**
- * @example interfaceexample.c
- * This example demonstrates how to use this interface in a C program. This file
- * can be found in the directory wsclean/examples.
- */
 #ifdef __cplusplus
 #include <complex>
 #else

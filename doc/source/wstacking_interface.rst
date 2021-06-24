@@ -7,18 +7,21 @@ The gridder is only a small part of the WSClean imager, and handles the low-leve
 
 Since WSClean 1.9, the gridder is contained in the unit file ``wsclean/wstackinggridder.cpp`` and its header ``wsclean/wstackinggridder.h``. The header has extensive code documentation that should give enough information about how to call the gridder. You can create the Doxygen documentation for this class with a "make doc" within the build dir (which places the info in build/doc/html/index.html, etc). The code documentation can also be found here:
 
-* `WStackingGridder class API <http://wsclean.sourceforge.net/doc/api/classWStackingGridder.html>`_
+* `WStackingGridder class API <http://www.andreoffringa.org/wsclean/doxygen/classWStackingGridder.html>`_
 
-The gridder can be compiled with two external libraries: FFTW and Boost. To avoid Casacore, you need to define AVOID_CASACORE while compiling the gridder. There's a prediction example in wsclean/examples called "`wspredictionexample.cpp <https://gitlab.com/aroffringa/wsclean/-/blob/development/wsclean/examples/wspredictionexample.cpp>`_)", which can be compiled with:
+The gridder can be compiled with two external libraries: FFTW and Boost. To avoid a Casacore dependency, you need to define AVOID_CASACORE while compiling the gridder. There's a prediction example in wsclean/examples called "`wspredictionexample.cpp <https://gitlab.com/aroffringa/wsclean/-/blob/development/wsclean/examples/wspredictionexample.cpp>`_)", which can be compiled with:
 
 .. code-block:: bash
     
-    g++ -o wspredictionexample -std=c++11 -O3 -march=native -DAVOID_CASACORE \
+    g++ -o wspredictionexample -O3 -march=native -pthread \
+      -I ../../external/aocommon/include/ \
+      -DAVOID_CASACORE \
       wspredictionexample.cpp \
       ../wstackinggridder.cpp \
-      ../logger.cpp \
-      ../../fftwmultithreadenabler.cpp \
-      -lfftw3 -lfftw3_threads -lboost_date_time -lboost_system
+      ../../io/logger.cpp \
+      ../../structures/image.cpp \
+      -lfftw3f -lfftw3 -lfftw3f_threads -lfftw3_threads \
+      -lboost_date_time -lboost_system
 
 This assumes you are in the ``wsclean/examples`` subdirectory. There's a separate makefile for this: `wsclean/examples/Makefile`.
 
