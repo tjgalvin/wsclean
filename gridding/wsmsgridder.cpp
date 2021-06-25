@@ -37,6 +37,10 @@ WSMSGridder::WSMSGridder(const Settings& settings)
   fftw_make_planner_thread_safe();
 }
 
+WSMSGridder::~WSMSGridder() noexcept {
+  for (std::thread& t : _threadGroup) t.join();
+}
+
 void WSMSGridder::countSamplesPerLayer(MSData& msData) {
   aocommon::UVector<size_t> sampleCount(ActualWGridSize(), 0);
   size_t total = 0;
@@ -147,63 +151,69 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
       selectedBand.MaxChannels());
   newItem.data = newItemData.data();
 
-  size_t rowsRead = 0;
-  std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
-  while (msReader->CurrentRowAvailable()) {
-    size_t dataDescId;
-    double uInMeters, vInMeters, wInMeters;
-    msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
-    const BandData& curBand(selectedBand[dataDescId]);
-    const double w1 = wInMeters / curBand.LongestWavelength(),
-                 w2 = wInMeters / curBand.SmallestWavelength();
-    if (_gridder->IsInLayerRange(w1, w2)) {
-      newItem.uvw[0] = uInMeters;
-      newItem.uvw[1] = vInMeters;
-      newItem.uvw[2] = wInMeters;
-      newItem.dataDescId = dataDescId;
+  try {
+    size_t rowsRead = 0;
+    std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+    while (msReader->CurrentRowAvailable()) {
+      size_t dataDescId;
+      double uInMeters, vInMeters, wInMeters;
+      msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
+      const BandData& curBand(selectedBand[dataDescId]);
+      const double w1 = wInMeters / curBand.LongestWavelength(),
+                   w2 = wInMeters / curBand.SmallestWavelength();
+      if (_gridder->IsInLayerRange(w1, w2)) {
+        newItem.uvw[0] = uInMeters;
+        newItem.uvw[1] = vInMeters;
+        newItem.uvw[2] = wInMeters;
+        newItem.dataDescId = dataDescId;
 
-      // Any visibilities that are not gridded in this pass
-      // should not contribute to the weight sum
-      for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-        double w = newItem.uvw[2] / curBand.ChannelWavelength(ch);
-        isSelected[ch] = _gridder->IsInLayerRange(w);
+        // Any visibilities that are not gridded in this pass
+        // should not contribute to the weight sum
+        for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
+          double w = newItem.uvw[2] / curBand.ChannelWavelength(ch);
+          isSelected[ch] = _gridder->IsInLayerRange(w);
+        }
+
+        readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
+                                     curBand, weightBuffer.data(),
+                                     modelBuffer.data(), isSelected.data());
+
+        if (HasDenormalPhaseCentre()) {
+          const double shiftFactor = -2.0 * M_PI *
+                                     (newItem.uvw[0] * PhaseCentreDL() +
+                                      newItem.uvw[1] * PhaseCentreDM());
+          rotateVisibilities<1>(curBand, shiftFactor, newItem.data);
+        }
+
+        InversionWorkSample sampleData;
+        for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
+          double wavelength = curBand.ChannelWavelength(ch);
+          sampleData.sample = newItem.data[ch];
+          sampleData.uInLambda = newItem.uvw[0] / wavelength;
+          sampleData.vInLambda = newItem.uvw[1] / wavelength;
+          sampleData.wInLambda = newItem.uvw[2] / wavelength;
+          size_t cpu = _gridder->WToLayer(sampleData.wInLambda) % _cpuCount;
+          bufferedLanes[cpu].write(sampleData);
+        }
+
+        ++rowsRead;
       }
 
-      readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
-                                   curBand, weightBuffer.data(),
-                                   modelBuffer.data(), isSelected.data());
-
-      if (HasDenormalPhaseCentre()) {
-        const double shiftFactor = -2.0 * M_PI *
-                                   (newItem.uvw[0] * PhaseCentreDL() +
-                                    newItem.uvw[1] * PhaseCentreDM());
-        rotateVisibilities<1>(curBand, shiftFactor, newItem.data);
-      }
-
-      InversionWorkSample sampleData;
-      for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-        double wavelength = curBand.ChannelWavelength(ch);
-        sampleData.sample = newItem.data[ch];
-        sampleData.uInLambda = newItem.uvw[0] / wavelength;
-        sampleData.vInLambda = newItem.uvw[1] / wavelength;
-        sampleData.wInLambda = newItem.uvw[2] / wavelength;
-        size_t cpu = _gridder->WToLayer(sampleData.wInLambda) % _cpuCount;
-        bufferedLanes[cpu].write(sampleData);
-      }
-
-      ++rowsRead;
+      msReader->NextInputRow();
     }
 
-    msReader->NextInputRow();
+    for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
+      buflane.write_end();
+
+    if (IsFirstIteration())
+      Logger::Info << "Rows that were required: " << rowsRead << '/'
+                   << msData.matchingRows << '\n';
+    msData.totalRowsProcessed += rowsRead;
+  } catch (...) {
+    for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
+      buflane.write_end();
+    throw;
   }
-
-  for (lane_write_buffer<InversionWorkSample>& buflane : bufferedLanes)
-    buflane.write_end();
-
-  if (IsFirstIteration())
-    Logger::Info << "Rows that were required: " << rowsRead << '/'
-                 << msData.matchingRows << '\n';
-  msData.totalRowsProcessed += rowsRead;
 }
 
 void WSMSGridder::startInversionWorkThreads(size_t maxChannelCount) {

@@ -21,6 +21,7 @@ class WSMSGridder final : public MSGridderBase {
   typedef WStackingGridder<float> GridderType;
 
   WSMSGridder(const Settings& settings);
+  ~WSMSGridder() noexcept;
 
   virtual void Invert() override;
 
