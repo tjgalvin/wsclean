@@ -195,9 +195,10 @@ void PartitionedMSReader::WriteImagingWeights(const float* buffer) {
         new std::fstream(partPrefix + "-imgw.tmp",
                          std::ios::in | std::ios::out | std::ios::binary));
   }
-  const size_t chunkSize = partitionedms._partHeader.channelCount *
-                           partitionedms._polarizationCountInFile *
-                           sizeof(float);
+  const size_t nVis = partitionedms._partHeader.channelCount *
+                      partitionedms._polarizationCountInFile;
+  _imagingWeightBuffer.resize(nVis);
+  const size_t chunkSize = nVis * sizeof(float);
   _imagingWeightsFile->seekg(chunkSize * _currentInputRow, std::ios::beg);
   _imagingWeightsFile->read(
       reinterpret_cast<char*>(_imagingWeightBuffer.data()),

@@ -417,7 +417,7 @@ class MSGridderBase {
   WriterLockManager* _writerLockManager;
 
 #ifdef HAVE_EVERYBEAM
-  // _telescope attribute needed to keep the telecope in _point_response alive
+  // _telescope attribute needed to keep the telecope in _pointResponse alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedBeamResponse;

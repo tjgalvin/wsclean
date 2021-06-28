@@ -85,7 +85,6 @@ class ContiguousMS : public MSProvider {
   casacore::ArrayColumn<casacore::Complex> _dataColumn;
   casacore::ArrayColumn<bool> _flagColumn;
   std::unique_ptr<casacore::ArrayColumn<casacore::Complex>> _modelColumn;
-  std::unique_ptr<casacore::ArrayColumn<float>> _imagingWeightsColumn;
 
   casacore::Array<std::complex<float>> _dataArray, _modelArray;
   casacore::Array<float> _weightSpectrumArray, _weightScalarArray,

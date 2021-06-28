@@ -163,6 +163,9 @@ def test_stop_on_negative_components():
     s = f"./wsclean -name {name('stop-on-negatives')} -stop-negative -niter 100000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
+def test_save_imaging_weights():
+    s = f"./wsclean -name {name('store-imaging-weights')} -no-reorder -store-imaging-weights {tcf.RECTDIMS} {os.environ['MWA_MS']}"
+    check_call(s.split())
 
 @pytest.mark.parametrize(
     "gridder, test_name", (["", "shift-ws"], ["-use-wgridder", "shift-wg"])

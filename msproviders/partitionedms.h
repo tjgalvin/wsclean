@@ -153,7 +153,6 @@ class PartitionedMS final : public MSProvider {
   char* _modelFileMap;
   size_t _currentOutputRow;
   std::unique_ptr<std::ofstream> _modelDataFile;
-  std::unique_ptr<std::fstream> _imagingWeightsFile;
   int _fd;
   const aocommon::PolarizationEnum _polarization;
   const size_t _polarizationCountInFile;
