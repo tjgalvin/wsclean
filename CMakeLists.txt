@@ -276,6 +276,7 @@ add_library(
   msproviders/directmsrowprovider.cpp
   msproviders/msprovider.cpp
   msproviders/msrowprovider.cpp
+  msproviders/noisemsrowprovider.cpp
   msproviders/partitionedms.cpp
   msproviders/timestepbuffer.cpp
   msproviders/synchronizedms.cpp

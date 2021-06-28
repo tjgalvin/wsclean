@@ -106,6 +106,7 @@ class Settings {
   double baselineDependentAveragingInWavelengths;
   bool simulateNoise;
   double simulatedNoiseStdDev;
+  std::string simulatedBaselineNoiseFilename;
 
   /** @{
    * These settings all relate to the deconvolution.
@@ -295,6 +296,7 @@ inline Settings::Settings()
       baselineDependentAveragingInWavelengths(0.0),
       simulateNoise(false),
       simulatedNoiseStdDev(0.0),
+      simulatedBaselineNoiseFilename(),
       // Deconvolution default settings:
       deconvolutionThreshold(0.0),
       deconvolutionGain(0.1),

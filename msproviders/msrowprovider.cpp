@@ -10,29 +10,29 @@ MSRowProvider::MSRowProvider(
     const std::map<size_t, size_t>& selectedDataDescIds,
     const std::string& dataColumnName, bool requireModel)
     : _ms(casacore::MeasurementSet(msPath)),
-      _antenna1Column(casacore::ROScalarColumn<int>(
+      _antenna1Column(casacore::ScalarColumn<int>(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1))),
-      _antenna2Column(casacore::ROScalarColumn<int>(
+      _antenna2Column(casacore::ScalarColumn<int>(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2))),
-      _fieldIdColumn(casacore::ROScalarColumn<int>(
+      _fieldIdColumn(casacore::ScalarColumn<int>(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID))),
-      _timeColumn(casacore::ROScalarColumn<double>(
+      _timeColumn(casacore::ScalarColumn<double>(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::TIME))),
-      _timeEpochColumn(casacore::MEpoch::ROScalarColumn(
+      _timeEpochColumn(casacore::MEpoch::ScalarColumn(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::TIME))),
-      _uvwColumn(casacore::ROArrayColumn<double>(
+      _uvwColumn(casacore::ArrayColumn<double>(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::UVW))),
       _dataColumn(
-          casacore::ROArrayColumn<casacore::Complex>(_ms, dataColumnName)),
-      _flagColumn(casacore::ROArrayColumn<bool>(
+          casacore::ArrayColumn<casacore::Complex>(_ms, dataColumnName)),
+      _flagColumn(casacore::ArrayColumn<bool>(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG))),
-      _dataDescIdColumn(casacore::ROScalarColumn<int>(
+      _dataDescIdColumn(casacore::ScalarColumn<int>(
           _ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID))),
       _selectedDataDescIds(selectedDataDescIds),
       _selection(selection),
       _requireModel(requireModel) {
   if (requireModel)
-    _modelColumn.reset(new casacore::ROArrayColumn<casacore::Complex>(
+    _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
         _ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));
 
   const casacore::IPosition shape(DataShape());
@@ -41,7 +41,7 @@ MSRowProvider::MSRowProvider(
   if (!_msHasWeights) {
     casacore::IPosition scalarShape(1, shape[0]);
     _scratchWeightScalarArray = casacore::Array<float>(scalarShape);
-    _weightScalarColumn.reset(new casacore::ROArrayColumn<float>(
+    _weightScalarColumn.reset(new casacore::ArrayColumn<float>(
         _ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
   }
 

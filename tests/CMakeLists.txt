@@ -17,6 +17,7 @@ add_executable(
   math/tpolynomialfitter.cpp
   math/tnlplfitter.cpp
   math/tpolynomialchannelfitter.cpp
+  msproviders/tnoisemsrowprovider.cpp
   structures/testimage.cpp
   structures/testimagingtable.cpp
   ${WSCLEANFILES})

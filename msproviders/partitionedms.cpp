@@ -249,11 +249,17 @@ PartitionedMS::Handle PartitionedMS::Partition(
 
   std::unique_ptr<MSRowProvider> rowProvider;
   if (settings.baselineDependentAveragingInWavelengths == 0.0) {
-    if (settings.simulateNoise)
-      rowProvider.reset(new NoiseMSRowProvider(
-          settings.simulatedNoiseStdDev, msPath, selection, selectedDataDescIds,
-          dataColumnName, initialModelRequired));
-    else
+    if (settings.simulateNoise) {
+      std::unique_ptr<NoiseMSRowProvider> noiseRowProvider(
+          new NoiseMSRowProvider(msPath, selection, selectedDataDescIds,
+                                 dataColumnName, initialModelRequired));
+      if (settings.simulatedBaselineNoiseFilename.empty())
+        noiseRowProvider->SetNoiseLevel(settings.simulatedNoiseStdDev);
+      else
+        noiseRowProvider->SetNoiseBaselineFile(
+            settings.simulatedBaselineNoiseFilename);
+      rowProvider = std::move(noiseRowProvider);
+    } else
       rowProvider.reset(
           new DirectMSRowProvider(msPath, selection, selectedDataDescIds,
                                   dataColumnName, initialModelRequired));

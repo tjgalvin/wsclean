@@ -296,6 +296,11 @@ void CommandLine::printHelp() {
          "-simulate-noise <stddev-in-jy>\n"
          "   Will replace every visibility by a Gaussian distributed value "
          "with given standard deviation before imaging.\n"
+         "-simulate-baseline-noise <filename>\n"
+         "   Like -simulate-noise, but the stddevs are provided per baseline, "
+         "in a text file\n"
+         "   with antenna1 and antenna2 indices and the stddev per line, "
+         "separated by spaces, e.g. \"0 1 3.14\".\n"
          "-direct-ft\n"
          "   Do not grid the visibilities on the uv grid, but instead perform "
          "a fully accurate direct Fourier transform (slow!).\n"
@@ -1276,6 +1281,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.simulateNoise = true;
       settings.simulatedNoiseStdDev =
           parse_double(argv[argi], 0.0, "simulate-noise");
+    } else if (param == "simulate-baseline-noise") {
+      ++argi;
+      settings.simulateNoise = true;
+      settings.simulatedBaselineNoiseFilename = argv[argi];
     } else if (param == "aterm-config") {
       ++argi;
       settings.atermConfigFilename = argv[argi];
