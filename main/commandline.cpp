@@ -71,7 +71,7 @@ void CommandLine::printHelp() {
          "same directory as input measurement set.\n"
          "-update-model-required (default), and\n"
          "-no-update-model-required\n"
-         "   These two options specify wether the model data column is "
+         "   These two options specify whether the model data column is "
          "required to\n"
          "   contain valid model data after imaging. It can save time to not "
          "update\n"

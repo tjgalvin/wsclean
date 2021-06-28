@@ -5,6 +5,7 @@
 
 #include "../main/settings.h"
 
+#include "../gridding/msgridderbase.h"
 #include "../gridding/wsmsgridder.h"
 #include "../gridding/directmsgridder.h"
 
@@ -57,6 +58,9 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
   }
+
+  gridder.SetFacetGroupIndex(task.facetGroupIndex);
+  gridder.SetAdditivePredict(task.facet != nullptr);
   if (task.facet != nullptr) {
     gridder.SetFacetIndex(task.facetIndex);
     gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
@@ -89,6 +93,8 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
     gridder.Invert();
   } else {
+    gridder.SetWriterLockManager(this);
+    // FIXME: SetAddModel seems to be unused. Deprecate?
     gridder.SetAddToModel(task.addToModel);
     gridder.Predict(std::move(task.modelImages));
   }

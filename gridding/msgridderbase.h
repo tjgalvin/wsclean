@@ -16,6 +16,7 @@
 #include "../main/settings.h"
 
 #include "../scheduling/metadatacache.h"
+#include "../scheduling/griddingtaskmanager.h"
 
 #include "../structures/multibanddata.h"
 
@@ -84,6 +85,15 @@ class MSGridderBase {
   bool StoreImagingWeights() const { return _storeImagingWeights; }
 
   void SetFacetIndex(size_t facetIndex) { _facetIndex = facetIndex; }
+  void SetFacetGroupIndex(size_t index) { _facetGroupIndex = index; }
+  /**
+   * @brief In case of facet-based imaging, the model data in the @param
+   * MSProvider is reset to zeros in every major cycle, and predicted data
+   * should be add-assigned to the model data (_additivePredict = true) rather
+   * than overwriting it. For "standard" imaging, the model data should
+   * be overwritten (_additivePredict = false).
+   */
+  void SetAdditivePredict(bool hasFacets) { _additivePredict = hasFacets; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
   void SetActualWGridSize(size_t actualWGridSize) {
@@ -97,6 +107,12 @@ class MSGridderBase {
   void SetDoSubtractModel(bool doSubtractModel) {
     _doSubtractModel = doSubtractModel;
   }
+
+  void SetWriterLockManager(WriterLockManager* writerLockManager) {
+    _writerLockManager = writerLockManager;
+  }
+
+  // FIXME: to be deprecated?
   void SetAddToModel(bool addToModel) { _addToModel = addToModel; }
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
@@ -244,6 +260,7 @@ class MSGridderBase {
   void StartMeasurementSet(const MSGridderBase::MSData& msData,
                            bool isPredict) {
     initializePointResponse(msData);
+    _msIndex = msData.msIndex;
     if (isPredict) initializePredictReader(*msData.msProvider);
   }
 
@@ -357,6 +374,14 @@ class MSGridderBase {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;
+  /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
+  /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,
+  /// having size FacetGroupCount() * MeasurementSetCount(). These variable are
+  /// only relevant for prediction.
+  size_t _facetGroupIndex;
+  size_t _msIndex;
+  /// @see SetAdditivePredict()
+  bool _additivePredict;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;
@@ -389,6 +414,7 @@ class MSGridderBase {
   aocommon::UVector<float> _scratchWeights;
 
   std::unique_ptr<MSReader> _predictReader;
+  WriterLockManager* _writerLockManager;
 
 #ifdef HAVE_EVERYBEAM
   // _telescope attribute needed to keep the telecope in _point_response alive

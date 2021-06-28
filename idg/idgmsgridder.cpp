@@ -289,9 +289,7 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
                    shiftp, _options);
   _bufferset->set_image(_image.data(), do_scale);
 
-  for (const MSData& msData : msDataVector) {
-    predictMeasurementSet(msData);
-  }
+  for (const MSData& msData : msDataVector) predictMeasurementSet(msData);
 }
 
 void IdgMsGridder::setIdgType() {

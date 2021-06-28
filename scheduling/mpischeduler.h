@@ -20,7 +20,19 @@ class MPIScheduler final : public GriddingTaskManager {
 
   void Finish() override;
 
+  void Start(size_t nWriterGroups) override;
+
+  LockGuard GetLock(size_t writerGroupIndex) override;
+
  private:
+  class MPIWriterLock final : public WriterLock {
+   public:
+    // FIXME: locks not implemented yet, will be subject of
+    // folow-up MR
+    void lock() override{};
+    void unlock() override {}
+  };
+
   enum NodeState { AvailableNode, BusyNode };
 
   /**
@@ -85,6 +97,7 @@ class MPIScheduler final : public GriddingTaskManager {
       _readyList;
   std::vector<std::pair<NodeState, std::function<void(GriddingResult &)>>>
       _nodes;
+  std::vector<MPIWriterLock> _writerGroupLocks;
 };
 
 #endif  // HAVE_MPI

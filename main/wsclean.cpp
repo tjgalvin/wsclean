@@ -134,6 +134,7 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
+  task.facetGroupIndex = entry.facetGroupIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
@@ -250,6 +251,7 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
+  task.facetGroupIndex = entry.facetGroupIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
 
   _griddingTaskManager->Run(
@@ -330,7 +332,9 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 
     // If !_facets.empty(), these actions are performed in stitchFacets
     if (isInitialInversion && _facets.empty()) {
-      initializeModelImages(entry, polarization);
+      // nFacetGroups is always 1
+      const size_t nFacetGroups = 1;
+      initializeModelImages(entry, polarization, nFacetGroups);
 
       _residualImages.SetFitsWriter(
           createWSCFitsWriter(entry, polarization, false, false, false)
@@ -445,6 +449,7 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.observationInfo = _observationInfo;
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
+  task.facetGroupIndex = entry.facetGroupIndex;
   applyFacetPhaseShift(entry, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
@@ -811,7 +816,6 @@ void WSClean::RunPredict() {
     _globalSelection = selectInterval(fullSelection, intervalIndex);
 
     if (_settings.doReorder) performReordering(true);
-
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
 
     if (!_facets.empty()) {
@@ -1016,7 +1020,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
         if (_settings.deconvolutionMGain != 1.0) {
           partitionModelIntoFacets(groupTable, false);
           if (requestPolarizationsAtOnce) {
+            resetModelColumns(groupTable);
             _predictingWatch.Start();
+            _griddingTaskManager->Start(getMaxNrMSProviders() *
+                                        groupTable.FacetGroupCount());
             // Iterate over polarizations, channels & facets
             for (const ImagingTableEntry& entry : groupTable) {
               // Only request one polarization for each facet/channel. The
@@ -1036,7 +1043,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _griddingTaskManager->Finish();
             _inversionWatch.Pause();
           } else if (parallelizePolarizations) {
+            resetModelColumns(groupTable);
             _predictingWatch.Start();
+            _griddingTaskManager->Start(getMaxNrMSProviders() *
+                                        groupTable.FacetGroupCount());
             for (const ImagingTable::Group& sqGroup :
                  groupTable.SquaredGroups()) {
               for (const ImagingTable::EntryPtr& entry : sqGroup) {
@@ -1056,7 +1066,10 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
             _griddingTaskManager->Finish();
             _inversionWatch.Pause();
           } else {  // only parallize channels
+            resetModelColumns(groupTable);
             _predictingWatch.Start();
+            _griddingTaskManager->Start(getMaxNrMSProviders() *
+                                        groupTable.FacetGroupCount());
             bool hasMore;
             size_t sqIndex = 0;
             do {
@@ -1329,12 +1342,13 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
 }
 
 void WSClean::initializeModelImages(const ImagingTableEntry& entry,
-                                    PolarizationEnum polarization) {
+                                    PolarizationEnum polarization,
+                                    size_t nFacetGroups) {
   _modelImages.SetFitsWriter(
       createWSCFitsWriter(entry, polarization, false, true, false).Writer());
 
   if (_settings.continuedRun) {
-    readExistingModelImages(entry, polarization);
+    readExistingModelImages(entry, polarization, nFacetGroups);
   } else {
     // Set model to zero: already done if this is YX of XY/YX imaging combi
     if (!(polarization == Polarization::YX &&
@@ -1351,7 +1365,8 @@ void WSClean::initializeModelImages(const ImagingTableEntry& entry,
 }
 
 void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
-                                      PolarizationEnum polarization) {
+                                      PolarizationEnum polarization,
+                                      size_t nFacetGroups) {
   // load image(s) from disk and store them in the model-image cache.
   for (size_t i = 0; i != entry.imageCount; ++i) {
     std::string prefix = ImageFilename::GetPrefix(
@@ -1364,8 +1379,17 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
 
     // TODO check phase centre
 
-    if (resetGridder)
+    // FIXME: resetGridder in conjuncion with overrideImageSettings makes sure
+    // that the image dimensions are set and passed to the _griddingTaskManager
+    // only once. This probably can be simplified?
+    if (resetGridder) {
+      // Do not reset model column for a continuedRun
+      if (!_settings.continuedRun) {
+        resetModelColumns(entry);
+      }
       _griddingTaskManager = GriddingTaskManager::Make(_settings);
+      _griddingTaskManager->Start(getMaxNrMSProviders() * nFacetGroups);
+    }
 
     if (!_imageWeightCache) {
       // The construction of the weight cache is delayed in prediction mode,
@@ -1451,7 +1475,11 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   const bool gridPolarizationsAtOnce =
       _settings.useIDG && _settings.polarizations.size() != 1;
 
+  resetModelColumns(groupTable);
   _predictingWatch.Start();
+  _griddingTaskManager->Start(getMaxNrMSProviders() *
+                              groupTable.FacetGroupCount());
+
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
     const ImagingTable independentGroup =
@@ -1474,7 +1502,8 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
           _settings.prefixName + "-model");
 
       readExistingModelImages(facetGroup.Front(),
-                              facetGroup.Front().polarization);
+                              facetGroup.Front().polarization,
+                              groupTable.FacetGroupCount());
       partitionModelIntoFacets(facetGroup, true);
     }
 
@@ -1486,15 +1515,15 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 
       for (const auto& entry : facetGroup) {
         if (!gridPolarizationsAtOnce ||
-            entry.polarization == *_settings.polarizations.begin())
+            entry.polarization == *_settings.polarizations.begin()) {
           predict(entry);
+        }
       }  // facets
     }    // facet groups of different polarizations
   }      // independent groups (channels)
 
-  _predictingWatch.Pause();
-
   _griddingTaskManager->Finish();
+  _predictingWatch.Pause();
 
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
                << ", prediction: " << _predictingWatch.ToString()
@@ -1526,6 +1555,22 @@ void WSClean::initializeMSList(
         msList.emplace_back(std::move(dataDescription));
       }
     }
+  }
+}
+
+void WSClean::resetModelColumns(const ImagingTable& groupTable) {
+  if (groupTable.FacetCount() > 1) {
+    for (const ImagingTable::Group& facetGroup : groupTable.FacetGroups()) {
+      resetModelColumns(*facetGroup.front());
+    }
+  }
+}
+
+void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
+  std::vector<std::unique_ptr<MSDataDescription>> msList;
+  initializeMSList(entry, msList);
+  for (size_t i = 0; i != msList.size(); ++i) {
+    msList[i]->GetProvider()->ResetModelColumn();
   }
 }
 
@@ -1655,7 +1700,8 @@ void WSClean::stitchFacets(const ImagingTable& table,
         const size_t imageCount = stitchGroup.Front().imageCount;
         for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
           stitchSingleGroup(stitchGroup, imageIndex, imageCache, writeDirty,
-                            isPSF, fullImage, facetImage);
+                            isPSF, fullImage, facetImage,
+                            table.FacetGroupCount());
         }
       }
     }
@@ -1665,7 +1711,8 @@ void WSClean::stitchFacets(const ImagingTable& table,
 void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                                 size_t imageIndex, CachedImageSet& imageCache,
                                 bool writeDirty, bool isPSF, Image& fullImage,
-                                schaapcommon::facets::FacetImage& facetImage) {
+                                schaapcommon::facets::FacetImage& facetImage,
+                                size_t nFacetGroups) {
   const bool isImaginary = (imageIndex == 1);
   fullImage = 0.0f;
   for (const ImagingTableEntry& facetEntry : facetGroup) {
@@ -1691,7 +1738,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
     facetImage.AddToImage({fullImage.data()});
   }
   if (writeDirty) {
-    initializeModelImages(facetGroup.Front(), facetGroup.Front().polarization);
+    initializeModelImages(facetGroup.Front(), facetGroup.Front().polarization,
+                          nFacetGroups);
     _residualImages.SetFitsWriter(
         createWSCFitsWriter(facetGroup.Front(), false, false, true).Writer());
     WSCFitsWriter writer(

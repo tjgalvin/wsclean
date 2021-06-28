@@ -1,4 +1,5 @@
 #include "threadedscheduler.h"
+#include "../gridding/msgridderbase.h"
 
 #include "../main/settings.h"
 
@@ -40,6 +41,17 @@ void ThreadedScheduler::processQueue() {
     std::lock_guard<std::mutex> lock(_mutex);
     _readyList.emplace_back(std::move(result), taskPair.second);
   }
+}
+
+void ThreadedScheduler::Start(size_t nWriterGroups) {
+  GriddingTaskManager::Start(nWriterGroups);
+  if (_writerGroupLocks.size() < nWriterGroups)
+    _writerGroupLocks = std::vector<ThreadedWriterLock>(nWriterGroups);
+}
+
+WriterLockManager::LockGuard ThreadedScheduler::GetLock(
+    size_t writerGroupIndex) {
+  return LockGuard(_writerGroupLocks[writerGroupIndex]);
 }
 
 void ThreadedScheduler::Finish() {

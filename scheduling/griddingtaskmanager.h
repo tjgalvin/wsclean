@@ -3,8 +3,7 @@
 
 #include "griddingtask.h"
 #include "griddingresult.h"
-
-#include "../gridding/msgridderbase.h"
+#include "writerlockmanager.h"
 
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
@@ -20,9 +19,24 @@
 #include <functional>
 #include <vector>
 
-class GriddingTaskManager {
+class MSGridderBase;
+
+class GriddingTaskManager : protected WriterLockManager {
  public:
   virtual ~GriddingTaskManager();
+
+  /**
+   * Initialize writer groups. Call this function before scheduling Predict
+   * tasks in order to initialize the writer locks.
+   *
+   * @param nWriterGroups The number of writer groups.
+   */
+  virtual void Start(size_t nWriterGroups) {}
+
+  LockGuard GetLock(size_t writerGroupIndex) override {
+    static DummyWriterLock dummy;
+    return LockGuard(dummy);
+  }
 
   /**
    * Add the given task to the queue of tasks to be run. After finishing
@@ -66,6 +80,12 @@ class GriddingTaskManager {
   GriddingResult runDirect(GriddingTask&& task, MSGridderBase& gridder);
 
  private:
+  class DummyWriterLock final : public WriterLock {
+   public:
+    void lock() override {}
+    void unlock() override {}
+  };
+
   std::unique_ptr<MSGridderBase> constructGridder() const;
 };
 

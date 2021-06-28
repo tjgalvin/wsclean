@@ -49,6 +49,11 @@ int main(int argc, char* argv[]) {
       Settings& settings = wsclean.GetSettings();
       settings.useMPI = true;
 
+      if (!settings.facetRegionFilename.empty() && world_size > 1)
+        throw std::runtime_error(
+            "MPI implementation for facet-based imaging is not yet implemented "
+            "for nnodes > 1");
+
       shortException = false;
       if (master) {
         CommandLine::Run(wsclean);

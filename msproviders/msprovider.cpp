@@ -8,6 +8,7 @@
 #include <casacore/tables/Tables/ArrColDesc.h>
 
 #include "../structures/msselection.h"
+#include "../structures/multibanddata.h"
 
 namespace {
 template <bool add>
@@ -802,6 +803,21 @@ std::vector<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(
        p != corrTypeVec.cend(); ++p)
     pols.push_back(aocommon::Polarization::AipsIndexToEnum(*p));
   return pols;
+}
+
+void MSProvider::ResetModelColumn() {
+  std::unique_ptr<MSReader> msReader = MakeReader();
+  SynchronizedMS ms = MS();
+  ms->reopenRW();
+  const std::vector<std::complex<float>> buffer(NChannels() * NPolarizations(),
+                                                {0.0f, 0.0f});
+  while (msReader->CurrentRowAvailable()) {
+    // Always overwrite
+    const bool addToMS = false;
+    WriteModel(buffer.data(), addToMS);
+    NextOutputRow();
+    msReader->NextInputRow();
+  }
 }
 
 bool MSProvider::openWeightSpectrumColumn(

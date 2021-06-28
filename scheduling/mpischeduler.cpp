@@ -77,6 +77,16 @@ void MPIScheduler::Finish() {
   }
 }
 
+void MPIScheduler::Start(size_t nWriterGroups) {
+  GriddingTaskManager::Start(nWriterGroups);
+  if (_writerGroupLocks.size() < nWriterGroups)
+    _writerGroupLocks = std::vector<MPIWriterLock>(nWriterGroups);
+}
+
+WriterLockManager::LockGuard MPIScheduler::GetLock(size_t writerGroupIndex) {
+  return LockGuard(_writerGroupLocks[writerGroupIndex]);
+}
+
 void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
   GriddingResult result = RunDirect(std::move(task));
   Logger::Info << "Master node has finished a gridding task.\n";

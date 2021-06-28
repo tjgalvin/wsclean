@@ -275,6 +275,5 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   _gridder->InitializePrediction(images[0].data());
   images[0].reset();
 
-  for (size_t i = 0; i != MeasurementSetCount(); ++i)
-    predictMeasurementSet(msDataVector[i]);
+  for (MSData& msData : msDataVector) predictMeasurementSet(msData);
 }

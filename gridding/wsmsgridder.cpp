@@ -560,8 +560,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
     _gridder->StartPredictionPass(pass);
 
     Logger::Info << "Predicting...\n";
-    for (size_t i = 0; i != MeasurementSetCount(); ++i)
-      predictMeasurementSet(msDataVector[i]);
+    for (MSData& msData : msDataVector) predictMeasurementSet(msData);
   }
 
   size_t totalRowsWritten = 0, totalMatchingRows = 0;

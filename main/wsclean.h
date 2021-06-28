@@ -81,6 +81,8 @@ class WSClean {
   void initializeMSList(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<MSDataDescription>>& msList);
+  void resetModelColumns(const ImagingTable& groupTable);
+  void resetModelColumns(const ImagingTableEntry& entry);
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
                               aocommon::PolarizationEnum polarization,
@@ -109,9 +111,11 @@ class WSClean {
    * them to zero.
    */
   void initializeModelImages(const ImagingTableEntry& entry,
-                             aocommon::PolarizationEnum polarization);
+                             aocommon::PolarizationEnum polarization,
+                             size_t nFacetGroups);
   void readExistingModelImages(const ImagingTableEntry& entry,
-                               aocommon::PolarizationEnum polarization);
+                               aocommon::PolarizationEnum polarization,
+                               size_t nFacetGroups);
   /**
    * Override the image settings given a FitsReader object.
    * The boolean return value indicates whether the gridder needs
@@ -156,7 +160,8 @@ class WSClean {
   void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& imageCache, bool writeDirty,
                          bool isPSF, Image& fullImage,
-                         schaapcommon::facets::FacetImage& facetImage);
+                         schaapcommon::facets::FacetImage& facetImage,
+                         size_t nFacetGroups);
   /**
    * Partition model image into facets and save them into fits files
    */
@@ -192,6 +197,20 @@ class WSClean {
   void correctImagesH5(aocommon::FitsWriter& writer, const ImagingTable& table,
                        const ImageFilename& imageName,
                        const std::string& filenameKind) const;
+
+  /**
+   * @brief Compute the total amount of MSProviders that will be generated.
+   * This number is needed to initialize the writer locks in the prediction
+   * tasks, which are set via a call to _griddingTaskManager->Start(). The
+   * number of @p MSProviders is the acummulated number of bands per MS.
+   *
+   * @return size_t Number of MSProviders
+   */
+  size_t getMaxNrMSProviders() const {
+    size_t msCount = 0;
+    for (const auto& msBand : _msBands) msCount += msBand.DataDescCount();
+    return msCount;
+  }
 
   MSSelection _globalSelection;
   std::string _commandLine;

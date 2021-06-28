@@ -130,6 +130,11 @@ class MSProvider {
 
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
 
+  /**
+   * Reset model data in the MSProvider to zeros.
+   */
+  void ResetModelColumn();
+
  protected:
   static void copyData(std::complex<float>* dest, size_t startChannel,
                        size_t endChannel,
