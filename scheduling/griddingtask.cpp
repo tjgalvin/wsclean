@@ -4,6 +4,10 @@
 #include <aocommon/io/serialistream.h>
 
 void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
+  if (facet) {
+    throw std::runtime_error("Serializing facet tasks is not implemented");
+  }
+
   stream.UInt32(operation)
       .Bool(imagePSF)
       .Bool(subtractModel)
@@ -11,7 +15,10 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
       .Bool(verbose)
       .Ptr(cache)
       .Bool(storeImagingWeights)
-      .Ptr(imageWeights);
+      .Ptr(imageWeights)
+      // TODO: .Ptr(facet)
+      .UInt64(facetIndex)
+      .UInt64(facetGroupIndex);
 
   // msList
   stream.UInt64(msList.size());
@@ -23,10 +30,16 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
-  operation = (Operation)stream.UInt32();
+  operation = static_cast<Operation>(stream.UInt32());
   stream.Bool(imagePSF).Bool(subtractModel);
-  polarization = (aocommon::PolarizationEnum)stream.UInt32();
-  stream.Bool(verbose).Ptr(cache).Bool(storeImagingWeights).Ptr(imageWeights);
+  polarization = static_cast<aocommon::PolarizationEnum>(stream.UInt32());
+  stream.Bool(verbose)
+      .Ptr(cache)
+      .Bool(storeImagingWeights)
+      .Ptr(imageWeights)
+      .UInt64(facetIndex)
+      .UInt64(facetGroupIndex);
+  facet = nullptr;
 
   // msList
   msList.resize(stream.UInt64());
