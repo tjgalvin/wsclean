@@ -439,7 +439,6 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.operation = GriddingTask::Predict;
   task.polarization =
       isFullStokes ? Polarization::FullStokes : entry.polarization;
-  task.addToModel = false;
   task.cache = std::move(_msGridderMetaCache[entry.index]);
   task.verbose = false;
   task.storeImagingWeights = false;

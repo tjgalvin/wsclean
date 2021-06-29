@@ -31,8 +31,6 @@ class GriddingTask {
   std::shared_ptr<ImageWeights> imageWeights;
   std::vector<std::unique_ptr<MSDataDescription>> msList;
 
-  // For prediction
-  bool addToModel;
   /**
    * Images for prediction. See the documentation of
    * @ref GriddingResult::images for an explanation of why this is a vector.

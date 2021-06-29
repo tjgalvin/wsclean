@@ -94,8 +94,6 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.Invert();
   } else {
     gridder.SetWriterLockManager(this);
-    // FIXME: SetAddModel seems to be unused. Deprecate?
-    gridder.SetAddToModel(task.addToModel);
     gridder.Predict(std::move(task.modelImages));
   }
 

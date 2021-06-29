@@ -13,8 +13,8 @@ BOOST_AUTO_TEST_SUITE(serialization)
 
 BOOST_AUTO_TEST_CASE(empty_gridding_task) {
   GriddingTask a, b;
-  a.addToModel = true;
-  b.addToModel = false;
+  a.subtractModel = true;
+  b.subtractModel = false;
 
   SerialOStream ostr;
   a.Serialize(ostr);
@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(empty_gridding_task) {
 
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
-  BOOST_CHECK_EQUAL(a.addToModel, b.addToModel);
+  BOOST_CHECK_EQUAL(a.subtractModel, b.subtractModel);
 }
 
 BOOST_AUTO_TEST_CASE(image_weights) {

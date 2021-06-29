@@ -70,7 +70,6 @@ class MSGridderBase {
   const std::string& DataColumnName() const { return _dataColumnName; }
   bool DoImagePSF() const { return _doImagePSF; }
   bool DoSubtractModel() const { return _doSubtractModel; }
-  bool AddToModel() const { return _addToModel; }
   bool SmallInversion() const { return _smallInversion; }
   aocommon::PolarizationEnum Polarization() const { return _polarization; }
   WeightMode Weighting() const { return _weighting; }
@@ -112,8 +111,6 @@ class MSGridderBase {
     _writerLockManager = writerLockManager;
   }
 
-  // FIXME: to be deprecated?
-  void SetAddToModel(bool addToModel) { _addToModel = addToModel; }
   void SetImageWeights(const class ImageWeights* weights) {
     _precalculatedWeightInfo = weights;
   }
@@ -388,7 +385,7 @@ class MSGridderBase {
   size_t _wGridSize, _actualWGridSize;
   std::vector<MSProvider*> _measurementSets;
   std::string _dataColumnName;
-  bool _doImagePSF, _doSubtractModel, _addToModel, _smallInversion;
+  bool _doImagePSF, _doSubtractModel, _smallInversion;
   double _wLimit;
   const class ImageWeights* _precalculatedWeightInfo;
   aocommon::PolarizationEnum _polarization;

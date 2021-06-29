@@ -125,7 +125,6 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _dataColumnName(settings.dataColumnName),
       _doImagePSF(false),
       _doSubtractModel(false),
-      _addToModel(false),
       _smallInversion(settings.smallInversion),
       _wLimit(settings.wLimit / 100.0),
       _precalculatedWeightInfo(nullptr),
