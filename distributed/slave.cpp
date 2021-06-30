@@ -26,14 +26,14 @@ void Slave::Run() {
     message.Unserialize(stream);
 
     switch (message.type) {
-      case TaskMessage::GriddingRequest:
+      case TaskMessage::Type::kGriddingRequest:
         grid(message.bodySize);
         break;
       default:
         break;
     }
 
-  } while (message.type != TaskMessage::Finish);
+  } while (message.type != TaskMessage::Type::kFinish);
   Logger::Info << "Worker node received exit message.\n";
 }
 
@@ -57,7 +57,7 @@ void Slave::grid(size_t bodySize) {
   result.Serialize(resStream);
 
   TaskMessage message;
-  message.type = TaskMessage::GriddingResult;
+  message.type = TaskMessage::Type::kGriddingResult;
   message.bodySize = resStream.size();
 
   aocommon::SerialOStream msgStream;

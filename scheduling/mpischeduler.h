@@ -1,14 +1,16 @@
 #ifndef MPI_SCHEDULER_H
 #define MPI_SCHEDULER_H
 
-#include <mutex>
-#include <thread>
-#include <condition_variable>
-
 #ifdef HAVE_MPI
 
 #include "griddingtaskmanager.h"
 #include "threadedscheduler.h"
+
+#include <aocommon/queue.h>
+
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 class MPIScheduler final : public GriddingTaskManager {
  public:
@@ -33,7 +35,7 @@ class MPIScheduler final : public GriddingTaskManager {
     void unlock() override {}
   };
 
-  enum NodeState { AvailableNode, BusyNode };
+  enum class NodeState { kAvailable, kBusy };
 
   /**
    * Send a task to a worker node or run it on the master
@@ -88,16 +90,31 @@ class MPIScheduler final : public GriddingTaskManager {
    */
   bool receiveTasksAreRunning_UNSYNCHRONIZED();
 
+  void processGriddingResult(int node, size_t bodySize);
+  void processLockRequest(int node, size_t lockId);
+  void processLockRelease(int node, size_t lockId);
+  void grantLock(int node, size_t lockId);
+
   const bool _masterDoesWork;
-  bool _isRunning, _isFinishing;
+  bool _isRunning;
+  bool _isFinishing;
   std::condition_variable _notify;
   std::mutex _mutex;
-  std::thread _receiveThread, _workThread;
+  std::thread _receiveThread;
+  std::thread _workThread;
   std::vector<std::pair<GriddingResult, std::function<void(GriddingResult &)>>>
       _readyList;
   std::vector<std::pair<NodeState, std::function<void(GriddingResult &)>>>
       _nodes;
-  std::vector<MPIWriterLock> _writerGroupLocks;
+  MPIWriterLock _writerLock;
+
+  /**
+   * For each lock, a queue with the nodes that are waiting for the lock.
+   * The first node in a queue currently has the lock.
+   * Successive nodes are waiting for the lock.
+   * If a queue is empty, nobody has the lock.
+   */
+  std::vector<aocommon::Queue<int>> _writerLockQueues;
 };
 
 #endif  // HAVE_MPI

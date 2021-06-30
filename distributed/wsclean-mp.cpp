@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
       if (master) {
         CommandLine::Run(wsclean);
         TaskMessage message;
-        message.type = TaskMessage::Finish;
+        message.type = TaskMessage::Type::kFinish;
         message.bodySize = 0;
         aocommon::SerialOStream msgStream;
         message.Serialize(msgStream);
