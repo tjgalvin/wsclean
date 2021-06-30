@@ -65,54 +65,33 @@ add_custom_target(
   DEPENDS check
   COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*')
 
-# Test the facet based and non-facet based predict
-add_custom_target(
-  checkpredict
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  COMMAND
-    ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/tests/facets/resources/ds9_facet.reg
-    ${CMAKE_BINARY_DIR}/test_data/ds9_facet.reg
-  COMMAND
-    ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/tests/facets/resources/point-source-model.fits
-    ${CMAKE_BINARY_DIR}/test_data/point-source-model.fits
-  COMMAND ${CMAKE_SOURCE_DIR}/tests/facets/tPredict.sh)
-
-# Test the facet based imaging
-add_custom_target(
-  checkfacetdegridding
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  COMMAND
-    ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/tests/facets/resources/ds9_facet.reg
-    ${CMAKE_BINARY_DIR}/test_data/ds9_facet.reg
-  COMMAND
-    ${CMAKE_COMMAND} -E copy
-    ${CMAKE_SOURCE_DIR}/tests/facets/resources/point-source-model.fits
-    ${CMAKE_BINARY_DIR}/test_data/point-source-model.fits
-  COMMAND ${CMAKE_SOURCE_DIR}/tests/facets/tFacetDegridding.sh)
-
-# Collect all tests that should run on das5 in a single target
-add_custom_target(checkintegration-nightly
-                  DEPENDS checkintegration;checkpredict;checkfacetdegridding)
-
 # The 'source' symbolic link simplifies running the tests manually inside
 # ${CMAKE_BINARY_DIR}: It allows using 'python3 -m pytest [OPTIONS] source/tests.py' instead of
 # 'python3 -m pytest [OPTIONS] ../wsclean/tests/systemtests/tests.py'. (Using 'RESULT', fatal
 # errors won't occur on systems without symlink support.)
-execute_process(
-  COMMAND ${CMAKE_COMMAND} -E create_symlink
-          ${CMAKE_CURRENT_SOURCE_DIR}/systemtests ${CMAKE_BINARY_DIR}/source)
+execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
+                        ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR}/source)
 
-# Test a number of wsclean commands, which can be considered system level tests3
-# FIXME: maybe other name for target, e.g. checkwscleancommands?
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/systemtests/testconfig.py.in
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testconfig.py.in
                ${CMAKE_BINARY_DIR}/testconfig.py)
+
 add_custom_target(
-  checksystemtests
+  checkfacets
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND
     python3 -m pytest --exitfirst -v
-    --junitxml=${CMAKE_BINARY_DIR}/system_tests.xml
-    ${CMAKE_CURRENT_SOURCE_DIR}/systemtests/tests.py)
+    --junitxml=${CMAKE_BINARY_DIR}/test_facets.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_facets.py)
+
+# Test a number of wsclean commands, which can be considered system level tests3
+# FIXME: maybe other name for target, e.g. checkwscleancommands?
+add_custom_target(
+  checkcommandcatalogue
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+  COMMAND
+    python3 -m pytest --exitfirst -v
+    --junitxml=${CMAKE_BINARY_DIR}/test_command_catalogue.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_command_catalogue.py)
+
+# Collect all tests that should run on das5 in a single target
+add_custom_target(checkintegration-nightly DEPENDS checkintegration;checkfacets)
