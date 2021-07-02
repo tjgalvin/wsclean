@@ -3,6 +3,7 @@
 
 #include <aocommon/polarization.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -52,9 +53,9 @@ struct ImagingTableEntry {
   size_t facetIndex;
 
   /**
-   * Non-owning pointer to a Facet. If it is null, faceting is not used.
+   * Pointer to a Facet. If it is null, faceting is not used.
    */
-  const schaapcommon::facets::Facet* facet;
+  std::shared_ptr<schaapcommon::facets::Facet> facet;
 
   /**
    * Difference from the centre to the facet centre to the facet centre.

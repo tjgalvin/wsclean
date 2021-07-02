@@ -38,7 +38,7 @@ class GriddingTask {
   std::vector<Image> modelImages;
   ObservationInfo observationInfo;
 
-  const schaapcommon::facets::Facet* facet = nullptr;
+  std::shared_ptr<schaapcommon::facets::Facet> facet;
   size_t facetIndex;
   size_t facetGroupIndex;
 

@@ -232,7 +232,7 @@ class WSClean {
   Deconvolution _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
-  std::vector<schaapcommon::facets::Facet> _facets;
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;
   double _lastStartTime;
 };
 

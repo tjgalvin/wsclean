@@ -62,9 +62,10 @@ class CachedImageSet {
 
   template <typename NumT>
   void LoadFacet(NumT* image, aocommon::PolarizationEnum polarization,
-                 size_t freqIndex, size_t facetIndex, const Facet* facet,
+                 size_t freqIndex, size_t facetIndex,
+                 const std::shared_ptr<const Facet>& facet,
                  bool isImaginary) const {
-    if (facet == nullptr) {
+    if (!facet) {
       Load<NumT>(image, polarization, freqIndex, isImaginary);
     } else {
       // No need to check width and height here, because we do not cache
@@ -98,9 +99,9 @@ class CachedImageSet {
 
   template <typename NumT>
   void StoreFacet(const NumT* image, aocommon::PolarizationEnum polarization,
-                  size_t freqIndex, size_t facetIndex, const Facet* facet,
-                  bool isImaginary) {
-    if (facet == nullptr) {
+                  size_t freqIndex, size_t facetIndex,
+                  const std::shared_ptr<const Facet>& facet, bool isImaginary) {
+    if (!facet) {
       // If _facetCount 0, use the main "Store" as is
       Store<NumT>(image, polarization, freqIndex, isImaginary);
     } else {

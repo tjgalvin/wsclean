@@ -612,9 +612,9 @@ void WSClean::RunClean() {
   bool hasCenter = false;
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
-  for (schaapcommon::facets::Facet& facet : _facets) {
+  for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
     const size_t alignment = 4;
-    facet.CalculatePixels(
+    facet->CalculatePixels(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
@@ -622,11 +622,11 @@ void WSClean::RunClean() {
         _settings.imagePadding, alignment, _settings.useIDG);
 
     const schaapcommon::facets::BoundingBox bbox =
-        facet.GetTrimmedBoundingBox();
+        facet->GetTrimmedBoundingBox();
     if (!hasCenter && bbox.Contains(centerPixel)) {
       // Point-in-poly test only evaluated if bounding box does
       // contain the centerPixel
-      hasCenter = facet.Contains(centerPixel);
+      hasCenter = facet->Contains(centerPixel);
     }
   }
 
@@ -825,9 +825,9 @@ void WSClean::RunPredict() {
       FitsReader reader(prefix + "-model.fits");
       overrideImageSettings(reader);
 
-      for (schaapcommon::facets::Facet& facet : _facets) {
+      for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
         const size_t alignment = 4;
-        facet.CalculatePixels(
+        facet->CalculatePixels(
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
@@ -1969,19 +1969,19 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
     std::unique_ptr<ImagingTableEntry> entry(
         new ImagingTableEntry(templateEntry));
     entry->facetIndex = 0;
-    entry->facet = nullptr;
+    entry->facet.reset();
     _imagingTable.AddEntry(std::move(entry));
   } else {
     for (size_t f = 0; f != _facets.size(); ++f) {
       std::unique_ptr<ImagingTableEntry> entry(
           new ImagingTableEntry(templateEntry));
       entry->facetIndex = f;
-      entry->facet = &_facets[f];
+      entry->facet = _facets[f];
 
       // Calculate phase center delta for entry
-      entry->centreShiftX = _facets[f].GetUntrimmedBoundingBox().Centre().x -
+      entry->centreShiftX = _facets[f]->GetUntrimmedBoundingBox().Centre().x -
                             _settings.trimmedImageWidth / 2;
-      entry->centreShiftY = _facets[f].GetUntrimmedBoundingBox().Centre().y -
+      entry->centreShiftY = _facets[f]->GetUntrimmedBoundingBox().Centre().y -
                             _settings.trimmedImageHeight / 2;
       _imagingTable.AddEntry(std::move(entry));
     }

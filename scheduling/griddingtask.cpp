@@ -2,12 +2,9 @@
 
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
+#include <schaapcommon/facets/facet.h>
 
 void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
-  if (facet) {
-    throw std::runtime_error("Serializing facet tasks is not implemented");
-  }
-
   stream.UInt32(operation)
       .Bool(imagePSF)
       .Bool(subtractModel)
@@ -16,7 +13,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
       .Ptr(cache)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
-      // TODO: .Ptr(facet)
+      .Ptr(facet)
       .UInt64(facetIndex)
       .UInt64(facetGroupIndex);
 
@@ -25,8 +22,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
   for (const std::unique_ptr<MSDataDescription>& dataDesc : msList)
     dataDesc->Serialize(stream);
 
-  stream.ObjectVector(modelImages);
-  observationInfo.Serialize(stream);
+  stream.ObjectVector(modelImages).Object(observationInfo);
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
@@ -37,15 +33,14 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
       .Ptr(cache)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
+      .Ptr(facet)
       .UInt64(facetIndex)
       .UInt64(facetGroupIndex);
-  facet = nullptr;
 
   // msList
   msList.resize(stream.UInt64());
   for (std::unique_ptr<MSDataDescription>& dataDesc : msList)
     dataDesc = MSDataDescription::Unserialize(stream);
 
-  stream.ObjectVector(modelImages);
-  observationInfo.Unserialize(stream);
+  stream.ObjectVector(modelImages).Object(observationInfo);
 }
