@@ -52,6 +52,25 @@ void Settings::Validate() const {
           "A facet beam can only applied if a facet regions file is specified. "
           "Either remove -apply-facet-beam from the command line, or specify a "
           "regions file with -facet-regions.");
+  } else {
+    if (polarizations.size() > 1) {
+      // -join-polarizations required in order to write the pb.fits images
+      // in PrimaryBeam::CorrectImages
+      if (applyFacetBeam && !joinedPolarizationDeconvolution &&
+          deconvolutionIterationCount != 0) {
+        throw std::runtime_error(
+            "Can not apply the facet beam of multiple polarizations "
+            "independently. Add -join-polarizations to the command line to "
+            "apply the facet beam for multiple polarizations");
+      }
+      // This condition might become a bit more specific once xx,yy polarization
+      // correction for h5 AND beam are implemented
+      if (applyFacetBeam && !facetSolutionFile.empty()) {
+        throw std::runtime_error(
+            "Applying h5parm solutions AND beam correction on multiple "
+            "polarizations is not yet supported.");
+      }
+    }
   }
 
   if (useIDG) {

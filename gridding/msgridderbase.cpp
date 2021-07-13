@@ -44,22 +44,46 @@
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
-template <size_t PolarizationCount>
+/**
+ * @brief Apply conjugated gains to the visibilities.
+ *
+ * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * gridders.
+ * @tparam GainEntry Which entry or entries from the gain matrices should be
+ * taken into account when correcting the visibilities? See also the
+ * documentation of DDGainMatrix.
+ */
+template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void ApplyConjugatedGain(std::complex<float>* visibilities,
                          const aocommon::MC2x2F& gain1,
                          const aocommon::MC2x2F& gain2);
+
 template <>
-void ApplyConjugatedGain<1>(std::complex<float>* visibilities,
-                            const aocommon::MC2x2F& gain1,
-                            const aocommon::MC2x2F& gain2) {
+void ApplyConjugatedGain<1, DDGainMatrix::kXX>(
+    std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+    const aocommon::MC2x2F& gain2) {
+  *visibilities = conj(gain1[0]) * (*visibilities) * gain2[0];
+}
+
+template <>
+void ApplyConjugatedGain<1, DDGainMatrix::kYY>(
+    std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+    const aocommon::MC2x2F& gain2) {
+  *visibilities = conj(gain1[3]) * (*visibilities) * gain2[3];
+}
+
+template <>
+void ApplyConjugatedGain<1, DDGainMatrix::kTrace>(
+    std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+    const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * conj(Trace(gain1)) * (*visibilities) * Trace(gain2);
 }
 
 template <>
-void ApplyConjugatedGain<4>(std::complex<float>* visibilities,
-                            const aocommon::MC2x2F& gain1,
-                            const aocommon::MC2x2F& gain2) {
+void ApplyConjugatedGain<4, DDGainMatrix::kFull>(
+    std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
+    const aocommon::MC2x2F& gain2) {
   // All polarizations
   const aocommon::MC2x2F visibilities_mc2x2(visibilities);
   const aocommon::MC2x2F result =
@@ -67,27 +91,84 @@ void ApplyConjugatedGain<4>(std::complex<float>* visibilities,
   result.AssignTo(visibilities);
 }
 
-template <size_t PolarizationCount>
+/**
+ * @brief Apply gains to the visibilities.
+ *
+ * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * gridders.
+ * @tparam GainEntry Which entry or entries from the gain matrices should be
+ * taken into account when correcting the visibilities? See also the
+ * documentation of DDGainMatrix.
+ */
+template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void ApplyGain(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
                const aocommon::MC2x2F& gain2);
 
 template <>
-void ApplyGain<1>(std::complex<float>* visibilities,
-                  const aocommon::MC2x2F& gain1,
-                  const aocommon::MC2x2F& gain2) {
+void ApplyGain<1, DDGainMatrix::kXX>(std::complex<float>* visibilities,
+                                     const aocommon::MC2x2F& gain1,
+                                     const aocommon::MC2x2F& gain2) {
+  *visibilities = gain1[0] * (*visibilities) * conj(gain2[0]);
+}
+
+template <>
+void ApplyGain<1, DDGainMatrix::kYY>(std::complex<float>* visibilities,
+                                     const aocommon::MC2x2F& gain1,
+                                     const aocommon::MC2x2F& gain2) {
+  *visibilities = gain1[3] * (*visibilities) * conj(gain2[3]);
+}
+
+template <>
+void ApplyGain<1, DDGainMatrix::kTrace>(std::complex<float>* visibilities,
+                                        const aocommon::MC2x2F& gain1,
+                                        const aocommon::MC2x2F& gain2) {
   // Stokes-I
   *visibilities = 0.25f * Trace(gain1) * (*visibilities) * conj(Trace(gain2));
 }
 
 template <>
-void ApplyGain<4>(std::complex<float>* visibilities,
-                  const aocommon::MC2x2F& gain1,
-                  const aocommon::MC2x2F& gain2) {
+void ApplyGain<4, DDGainMatrix::kFull>(std::complex<float>* visibilities,
+                                       const aocommon::MC2x2F& gain1,
+                                       const aocommon::MC2x2F& gain2) {
   // All polarizations
   const aocommon::MC2x2F visibilities_mc2x2(visibilities);
   const aocommon::MC2x2F result =
       gain1.Multiply(visibilities_mc2x2).MultiplyHerm(gain2);
   result.AssignTo(visibilities);
+}
+
+/**
+ * @brief Compute the gain based from the given gain matrices.
+ *
+ * @tparam GainEntry Which entry or entries from the gain matrices should be
+ * taken into account? See DDGainMatrix for further documentation.
+ */
+template <DDGainMatrix GainEntry>
+std::complex<float> ComputeGain(const aocommon::MC2x2F& gain1,
+                                const aocommon::MC2x2F& gain2);
+
+template <>
+std::complex<float> ComputeGain<DDGainMatrix::kXX>(
+    const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
+  return gain2[0] * conj(gain1[0]);
+}
+
+template <>
+std::complex<float> ComputeGain<DDGainMatrix::kYY>(
+    const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
+  return gain2[3] * conj(gain1[3]);
+}
+
+template <>
+std::complex<float> ComputeGain<DDGainMatrix::kTrace>(
+    const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
+  return 0.25f * Trace(gain2) * conj(Trace(gain1));
+}
+
+template <>
+std::complex<float> ComputeGain<DDGainMatrix::kFull>(
+    const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
+  throw std::runtime_error("Not implemented!");
 }
 }  // namespace
 
@@ -443,20 +524,47 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
       _correctType =
           JonesParameters::StringToCorrectType(_h5SolTabs.first->GetType());
     } else if (_settings.facetSolutionTables.size() == 2) {
-      _h5SolTabs =
-          std::make_pair(&_h5parm->GetSolTab(_settings.facetSolutionTables[0]),
-                         &_h5parm->GetSolTab(_settings.facetSolutionTables[1]));
-      if (_h5SolTabs.first->GetType() != "amplitude") {
-        throw std::runtime_error("Type of solution table 0 is " +
-                                 _h5SolTabs.first->GetType() +
-                                 ", should be 'amplitude'");
+      const std::array<std::string, 2> solTabTypes{
+          _h5parm->GetSolTab(_settings.facetSolutionTables[0]).GetType(),
+          _h5parm->GetSolTab(_settings.facetSolutionTables[1]).GetType()};
+
+      auto itrA =
+          std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
+      auto itrP = std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
+
+      if (itrA == solTabTypes.end() || itrP == solTabTypes.end()) {
+        throw std::runtime_error(
+            "WSClean expected solution tables with name 'amplitude' and "
+            "'phase', but received " +
+            solTabTypes[0] + " and " + solTabTypes[1]);
+      } else {
+        const size_t idxA = std::distance(solTabTypes.begin(), itrA);
+        const size_t idxP = std::distance(solTabTypes.begin(), itrP);
+        _h5SolTabs = std::make_pair(
+            &_h5parm->GetSolTab(_settings.facetSolutionTables[idxA]),
+            &_h5parm->GetSolTab(_settings.facetSolutionTables[idxP]));
       }
-      if (_h5SolTabs.second->GetType() != "phase") {
-        throw std::runtime_error("Type of solution table 1 is " +
-                                 _h5SolTabs.second->GetType() +
-                                 ", should be 'phase'");
+
+      if (!_h5SolTabs.first->HasAxis("pol") ||
+          !_h5SolTabs.second->HasAxis("pol")) {
+        throw std::runtime_error(
+            "One of the solution tables does not contain a 'pol' "
+            "(polarization) axis");
+      } else {
+        const size_t npol1 = _h5SolTabs.first->GetAxis("pol").size;
+        const size_t npol2 = _h5SolTabs.second->GetAxis("pol").size;
+        if (npol1 == 2 && npol2 == 2) {
+          _correctType = JonesParameters::CorrectType::GAIN;
+        } else if (npol1 == 4 && npol2 == 4) {
+          _correctType = JonesParameters::CorrectType::FULLJONES;
+        } else {
+          throw std::runtime_error(
+              "Incorrect or mismatching number of polarizations in the "
+              "provided soltabs. Number of polarizations should be either all "
+              "2 or all 4, but received " +
+              std::to_string(npol1) + " and " + std::to_string(npol2));
+        }
       }
-      _correctType = JonesParameters::CorrectType::FULLJONES;
     } else {
       throw std::runtime_error(
           "Specify the solution table name(s) with "
@@ -545,7 +653,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
     _actualWGridSize = _wGridSize;
 }
 
-template <size_t PolarizationCount>
+template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer) {
@@ -594,13 +702,11 @@ void MSGridderBase::writeVisibilities(
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-
-        ApplyGain<PolarizationCount>(
-            iter,
-            aocommon::MC2x2F(_cachedParmResponse[offset1], 0, 0,
-                             _cachedParmResponse[offset1 + 1]),
-            aocommon::MC2x2F(_cachedParmResponse[offset2], 0, 0,
-                             _cachedParmResponse[offset2 + 1]));
+        const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
+                                     _cachedParmResponse[offset1 + 1]);
+        const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
+                                     _cachedParmResponse[offset2 + 1]);
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
         iter += PolarizationCount;
       }
     } else {
@@ -608,9 +714,9 @@ void MSGridderBase::writeVisibilities(
         const size_t offset = ch * antennaNames.size() * nparms;
         const size_t offset1 = offset + metaData.antenna1 * nparms;
         const size_t offset2 = offset + metaData.antenna2 * nparms;
-        ApplyGain<PolarizationCount>(
-            iter, aocommon::MC2x2F(&_cachedParmResponse[offset1]),
-            aocommon::MC2x2F(&_cachedParmResponse[offset2]));
+        const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
+        const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+        ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
         iter += PolarizationCount;
       }
     }
@@ -645,7 +751,7 @@ void MSGridderBase::writeVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyGain<PolarizationCount>(iter, gain1, gain2);
+      ApplyGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       iter += PolarizationCount;
     }
   }
@@ -659,15 +765,23 @@ void MSGridderBase::writeVisibilities(
   msProvider.NextOutputRow();
 }
 
-template void MSGridderBase::writeVisibilities<1>(
+template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kXX>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<4>(
+template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kYY>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer);
 
-template <size_t PolarizationCount>
+template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kTrace>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
+
+template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const BandData& curBand, std::complex<float>* buffer);
+
+template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::readAndWeightVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const BandData& curBand, float* weightBuffer,
@@ -766,9 +880,9 @@ void MSGridderBase::readAndWeightVisibilities(
 
       const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
       const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+      ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+      const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-      const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
       const float weight = *weightIter * _scratchWeights[ch];
       _metaDataCache->beamSum += (conj(g) * weight * g).real();
 
@@ -795,7 +909,7 @@ void MSGridderBase::readAndWeightVisibilities(
       _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
 
       JonesParameters jonesParameters(
-          freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
+          freqs, {metaData.time}, antennaNames, _correctType,
           JonesParameters::InterpolationType::NEAREST, _facetIndex,
           _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
@@ -826,9 +940,9 @@ void MSGridderBase::readAndWeightVisibilities(
                                      _cachedParmResponse[offset1 + 1]);
         const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
                                      _cachedParmResponse[offset2 + 1]);
-        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+        ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+        const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();
 
@@ -844,9 +958,9 @@ void MSGridderBase::readAndWeightVisibilities(
         const size_t offset2 = offset + metaData.antenna2 * nparms;
         const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
         const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
-        ApplyConjugatedGain<PolarizationCount>(iter, gain1, gain2);
+        ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+        const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-        const std::complex<float> g = 0.25f * Trace(gain2) * conj(Trace(gain1));
         const float weight = *weightIter * _scratchWeights[ch];
         _metaDataCache->h5Sum += (conj(g) * weight * g).real();
 
@@ -880,12 +994,22 @@ void MSGridderBase::readAndWeightVisibilities(
   }
 }
 
-template void MSGridderBase::readAndWeightVisibilities<1>(
+template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kXX>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const BandData& curBand, float* weightBuffer,
     std::complex<float>* modelBuffer, const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<4>(
+template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kYY>(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
+
+template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kTrace>(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
+    std::complex<float>* modelBuffer, const bool* isSelected);
+
+template void MSGridderBase::readAndWeightVisibilities<4, DDGainMatrix::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const BandData& curBand, float* weightBuffer,
     std::complex<float>* modelBuffer, const bool* isSelected);

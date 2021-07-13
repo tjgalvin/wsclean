@@ -31,8 +31,10 @@ class WGriddingMSGridder final : public MSGridderBase {
  private:
   Image _image;
 
+  template <DDGainMatrix GainEntry>
   void gridMeasurementSet(MSData& msData);
 
+  template <DDGainMatrix GainEntry>
   void predictMeasurementSet(MSData& msData);
 
   size_t calculateMaxNRowsInMemory(size_t channelCount) const;

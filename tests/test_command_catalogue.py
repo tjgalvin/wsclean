@@ -1,5 +1,5 @@
 import pytest
-import os
+import os, glob
 import warnings
 from subprocess import check_call
 import shutil
@@ -71,11 +71,24 @@ def cleanup(request):
 
     # Remove measurement set
     def remove_mwa_ms():
-        if "CLEANUP" in os.environ:
-            shutil.rmtree(os.environ["MWA_MS"])
-            os.remove(os.path.join(os.environ["MWA_COEFFS_PATH"], f"{MWA_COEFFS}.h5"))
+        shutil.rmtree(os.environ["MWA_MS"])
+        os.remove(os.path.join(os.environ["MWA_COEFFS_PATH"], f"{MWA_COEFFS}.h5"))
 
-    request.addfinalizer(remove_mwa_ms)
+    def remove_fits_images():
+        for f in glob.glob("*.fits"):
+            os.remove(f)
+
+    def remove_h5_files():
+        for f in glob.glob("*.h5"):
+            os.remove(f)
+
+    def collect_cleanup():
+        if "CLEANUP" in os.environ:
+            remove_mwa_ms()
+            remove_fits_images()
+            remove_h5_files()
+
+    request.addfinalizer(collect_cleanup)
 
 
 def test_dirty_image():
@@ -163,9 +176,11 @@ def test_stop_on_negative_components():
     s = f"./wsclean -name {name('stop-on-negatives')} -stop-negative -niter 100000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
+
 def test_save_imaging_weights():
     s = f"./wsclean -name {name('store-imaging-weights')} -no-reorder -store-imaging-weights {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
+
 
 @pytest.mark.parametrize(
     "gridder, test_name", (["", "shift-ws"], ["-use-wgridder", "shift-wg"])
@@ -188,6 +203,36 @@ def test_nfacets_pol_xx_yy():
     s = f"./wsclean -name {name('nfacets-XX_YY')} -pol XX,YY \
         -facet-regions {tcf.FACETFILE_NFACETS} {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
+
+
+@pytest.mark.parametrize("npol", (2, 4))
+def test_facet_h5solution(npol):
+    # Test facet-based imaging and applying h5 solutions
+    # where the polarization axis in the h5 file has size npol
+    h5download = (
+        f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_{npol}pol.h5"
+    )
+    check_call(h5download.split())
+
+    name = f"facet-h5-{npol}pol"
+    s = f"./wsclean -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {os.environ['MWA_MS']}"
+    check_call(s.split())
+
+    # Check for output images
+    assert os.path.isfile(f"{name}-psf.fits")
+    for pol in ["XX", "YY"]:
+        trunk = name + "-" + pol
+        for image_type in [
+            "image",
+            "image-pb",
+            "dirty",
+            "model",
+            "model-pb",
+            "residual",
+            "residual-pb",
+        ]:
+            image_name = trunk + "-" + image_type + ".fits"
+            assert os.path.isfile(image_name)
 
 
 def test_facet_beam():

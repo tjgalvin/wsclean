@@ -39,6 +39,13 @@ class SolTab;
 }  // namespace h5parm
 }  // namespace schaapcommon
 
+/**
+ * Enum for selecting the entry or entries from the direction dependent gain
+ * matrix that are to be used to correct the visibilities during the reading
+ * and/or writing operations.
+ */
+enum class DDGainMatrix { kXX, kYY, kTrace, kFull };
+
 class MSGridderBase {
  public:
   MSGridderBase(const Settings& settings);
@@ -273,6 +280,11 @@ class MSGridderBase {
    * avoid having to allocate memory within this method.
    * @tparam PolarizationCount Normally set to one when imaging a single
    * polarization, but set to 4 for IDG as it images all polarizations at once.
+   * @tparam DDGainMatrix Selects which entry or entries in the gain matrix
+   * (provided by EveryBeam and/or an h5 solution) file to use for correcting
+   * the visibilities. Can be kXX for the XX-entry, kYY for the YY-entry, kTrace
+   * for the trace of the gain matrix and kFull to take all entries into
+   * account.
    * @param msProvider The measurement set provider
    * @param rowData The resulting weighted data
    * @param curBand The spectral band currently being imaged
@@ -284,7 +296,7 @@ class MSGridderBase {
    * this pass. When the visibility is not gridded, its weight will not be added
    * to the relevant sums (visibility count, weight sum, etc.).
    */
-  template <size_t PolarizationCount>
+  template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void readAndWeightVisibilities(MSReader& msReader,
                                  const std::vector<std::string>& antennaNames,
                                  InversionRow& rowData, const BandData& curBand,
@@ -294,9 +306,12 @@ class MSGridderBase {
 
   /**
    * @brief Write (modelled) visibilities to MS, provides an interface to
-   * MSProvider::WriteModel()
+   * MSProvider::WriteModel(). Method can be templated on the number of
+   * polarizations (1 or 4), and the DDGainMatrix which can be used to
+   * select an entry or entries from the gain matrix that should be used for the
+   * correction (XX-pol: kXX, YY-pol: kYY, Trace: kTrace, Full Jones: kFull)
    */
-  template <size_t PolarizationCount>
+  template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void writeVisibilities(MSProvider& msProvider,
                          const std::vector<std::string>& antennaNames,
                          const BandData& curBand, std::complex<float>* buffer);

@@ -78,17 +78,31 @@ void PrimaryBeam::CorrectImages(
   if (requiresH5Correction) {
     schaapcommon::facets::FacetImage facetImage(
         _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
-    for (size_t i = 0; i != beamImages.NImages(); ++i) {
-      std::vector<float*> imagePtr{beamImages[i].data()};
-      const ImagingTableEntry& firstPolEntry = *table.begin();
-      const double m =
-          metaCache.at(firstPolEntry.index)->h5Sum / firstPolEntry.imageWeight;
-      const float factor = 1.0 / std::sqrt(m);
-      for (const ImagingTableEntry& entry : table) {
-        facetImage.SetFacet(*entry.facet, true);
-        facetImage.MultiplyImageInsideFacet(imagePtr, factor);
+
+    if (_settings.polarizations ==
+        std::set<aocommon::PolarizationEnum>{aocommon::Polarization::XX,
+                                             aocommon::Polarization::YY}) {
+      // FIXME: to be implemented
+      // This should multiply the 16 images (representing a Hermitian 4x4
+      // matrix) with the diagonal 4x4 matrix with diagonal entries [1/sqrt(mx*
+      // mx) ; 0 ; 0 ; 1/sqrt(my* my)] where mx the weighted h5 sum for the
+      // XX-polarization and my the weighted h5sum for the YY-polarization the
+      // result is, however, not Hermitian anymore.
+      throw std::runtime_error(
+          "Correcting the restored image both for H5Parm solutions and beam "
+          "effects is not yet implemented.");
+    } else {
+      for (size_t i = 0; i != beamImages.NImages(); ++i) {
+        std::vector<float*> imagePtr{beamImages[i].data()};
+        for (const ImagingTableEntry& entry : table) {
+          const float m = metaCache.at(entry.index)->h5Sum / entry.imageWeight;
+          const float factor = 1.0 / std::sqrt(m);
+          facetImage.SetFacet(*entry.facet, true);
+          facetImage.MultiplyImageInsideFacet(imagePtr, factor);
+        }
       }
     }
+
     // Pass table.Front(), since central frequency and start/end frequency
     // are equal inside a FacetGroup
     writeBeamImages(imageName, beamImages, _settings, table.Front(),
@@ -119,6 +133,36 @@ void PrimaryBeam::CorrectImages(
           "when imaging a single polarization that is not Stokes I. Either "
           "image all four polarizations or turn off beam correction.");
     }
+  } else if (_settings.polarizations ==
+             std::set<aocommon::PolarizationEnum>{aocommon::Polarization::XX,
+                                                  aocommon::Polarization::YY}) {
+    Image images[2];
+    std::unique_ptr<aocommon::FitsReader> reader;
+    for (size_t polIndex = 0; polIndex != 2; ++polIndex) {
+      const aocommon::PolarizationEnum pol = (polIndex == 0)
+                                                 ? aocommon::Polarization::XX
+                                                 : aocommon::Polarization::YY;
+      ImageFilename name(imageName);
+      name.SetPolarization(pol);
+      reader.reset(new aocommon::FitsReader(name.GetPrefix(_settings) + "-" +
+                                            filenameKind + ".fits"));
+      images[polIndex] = Image(reader->ImageWidth(), reader->ImageHeight());
+      reader->Read(images[polIndex].data());
+    }
+
+    float* imagePtrs[2] = {images[0].data(), images[1].data()};
+    beamImages.ApplyDiagonal(imagePtrs, _settings.primaryBeamLimit);
+
+    for (size_t polIndex = 0; polIndex != 2; ++polIndex) {
+      const aocommon::PolarizationEnum pol = (polIndex == 0)
+                                                 ? aocommon::Polarization::XX
+                                                 : aocommon::Polarization::YY;
+      ImageFilename name(imageName);
+      name.SetPolarization(pol);
+      writer.SetPolarization(pol);
+      writer.Write(name.GetPrefix(_settings) + "-" + filenameKind + "-pb.fits",
+                   images[polIndex].data());
+    }
   } else if (aocommon::Polarization::HasFullStokesPolarization(
                  _settings.polarizations)) {
     Image images[4];
@@ -148,7 +192,8 @@ void PrimaryBeam::CorrectImages(
     }
   } else {
     throw std::runtime_error(
-        "Primary beam correction can only be performed on Stokes I or when "
+        "Primary beam correction can only be performed on Stokes I, "
+        "polarizations (XX,YY) or when "
         "imaging all four polarizations.");
   }
 }

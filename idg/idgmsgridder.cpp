@@ -217,9 +217,9 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
     rowData.dataDescId = metaData.dataDescId;
-    readAndWeightVisibilities<4>(*msReader, msData.antennaNames, rowData,
-                                 curBand, weightBuffer.data(),
-                                 modelBuffer.data(), isSelected.data());
+    readAndWeightVisibilities<4, DDGainMatrix::kFull>(
+        *msReader, msData.antennaNames, rowData, curBand, weightBuffer.data(),
+        modelBuffer.data(), isSelected.data());
 
     rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
     rowData.uvw[2] = -metaData.wInM;  //
@@ -396,7 +396,8 @@ void IdgMsGridder::computePredictionBuffer(
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
   const BandData& curBand(_selectedBands[dataDescId]);
   for (auto i : available_row_ids) {
-    writeVisibilities<4>(*_outputProvider, antennaNames, curBand, i.second);
+    writeVisibilities<4, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
+                                              curBand, i.second);
   }
   _bufferset->get_degridder(dataDescId)->finished_reading();
   _degriddingWatch.Pause();

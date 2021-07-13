@@ -146,10 +146,10 @@ class PrimaryBeamImageSet {
     return *this;
   }
 
-  void ApplyStokesI(float* stokesI, double beam_limit) const {
+  void ApplyStokesI(float* stokesI, double beamLimit) const {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
-    beam_limit = beam_limit * beam_limit;
+    beamLimit = beamLimit * beamLimit;
     if (_beamImages.size() == 8) {
       // If Iu is uncorrected and Ic is corrected:
       // Iu = B Ic B^*
@@ -183,7 +183,7 @@ class PrimaryBeamImageSet {
              _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
              _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
              _beamImages[15][j]});
-        if (beam.Norm() > beam_limit) {
+        if (beam.Norm() > beamLimit) {
           if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
           const float factor = stokesI[j] * 0.5;
           aocommon::Vector4 v{factor, 0.0, 0.0, factor};
@@ -199,10 +199,46 @@ class PrimaryBeamImageSet {
     }
   }
 
-  void ApplyFullStokes(float* images[4], double beam_limit) const {
+  void ApplyDiagonal(float* images[2], double beamLimit) {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
-    beam_limit = beam_limit * beam_limit;
+    beamLimit = beamLimit * beamLimit;
+    size_t size = _width * _height;
+    // Case of 8 images not implemented anymore, as it will be deprecated soon
+    // anyway
+    if (_beamImages.size() == 16) {
+      for (size_t j = 0; j != size; ++j) {
+        aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
+            {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
+             _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
+             _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
+             _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
+             _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
+             _beamImages[15][j]});
+        if (beam.Norm() > beamLimit) {
+          if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
+          aocommon::Vector4 v{images[0][j], 0., 0., images[1][j]};
+          // Implementation could be made more efficient - at the expense of
+          // explicitness - since only a few entries in the beam matrix are
+          // relevant
+          v = beam * v;
+          images[0][j] = v[0].real();
+          images[1][j] = v[3].real();
+        } else {
+          for (size_t p = 0; p != 2; ++p)
+            images[p][j] = std::numeric_limits<float>::quiet_NaN();
+        }
+      }
+    } else {
+      throw std::runtime_error("Apply Diagonal not implemented for " +
+                               std::to_string(_beamImages.size()) + " images");
+    }
+  };
+
+  void ApplyFullStokes(float* images[4], double beamLimit) const {
+    // The beam will be compared to a squared quantity (matrix norm), so square
+    // it:
+    beamLimit = beamLimit * beamLimit;
     size_t size = _width * _height;
     if (_beamImages.size() == 8) {
       for (size_t j = 0; j != size; ++j) {
@@ -234,7 +270,7 @@ class PrimaryBeamImageSet {
              _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
              _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
              _beamImages[15][j]});
-        if (beam.Norm() > beam_limit) {
+        if (beam.Norm() > beamLimit) {
           if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
           double stokesVal[4] = {images[0][j], images[1][j], images[2][j],
                                  images[3][j]};

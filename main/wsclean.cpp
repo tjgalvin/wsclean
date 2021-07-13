@@ -1198,11 +1198,15 @@ void WSClean::saveRestoredImagesForGroup(
     Logger::Info << "DONE\n";
     restoredImage.reset();
 
-    if (curPol == *_settings.polarizations.rbegin()) {
-      ImageFilename imageName =
-          ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
-      bool applyH5OnBeamImages = false;
+    // H5 corrections will be applied on the beam images
+    const bool applyH5OnBeamImages =
+        (_settings.applyFacetBeam && !_settings.facetSolutionFile.empty());
+    ImageFilename imageName =
+        ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
 
+    // This conditional ensures that the images are available before applying
+    // the primarybeam
+    if (curPol == *_settings.polarizations.rbegin()) {
       if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
                                             _settings);
@@ -1216,36 +1220,32 @@ void WSClean::saveRestoredImagesForGroup(
                                               "model", _settings);
         }
       } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam) {
-        bool requiresH5Correction = false;
-        if (!_settings.facetSolutionFile.empty()) {
-          // H5 corrections will be applied on the beam images
-          applyH5OnBeamImages = true;
-          requiresH5Correction = true;
-        }
         primaryBeam->CorrectImages(writer.Writer(), imageName, "image", table,
-                                   _msGridderMetaCache, requiresH5Correction);
+                                   _msGridderMetaCache, applyH5OnBeamImages);
         if (_settings.savePsfPb)
           primaryBeam->CorrectImages(writer.Writer(), imageName, "psf", table,
-                                     _msGridderMetaCache, requiresH5Correction);
+                                     _msGridderMetaCache, applyH5OnBeamImages);
         if (_settings.deconvolutionIterationCount != 0) {
           primaryBeam->CorrectImages(writer.Writer(), imageName, "residual",
                                      table, _msGridderMetaCache,
-                                     requiresH5Correction);
+                                     applyH5OnBeamImages);
           primaryBeam->CorrectImages(writer.Writer(), imageName, "model", table,
-                                     _msGridderMetaCache, requiresH5Correction);
+                                     _msGridderMetaCache, applyH5OnBeamImages);
         }
       }
+    }
 
-      // Apply the H5 solutions to the facets. In case a H5 solution file is
-      // provided, but no primary beam correction was applied
-      if (!_settings.facetSolutionFile.empty() && !applyH5OnBeamImages) {
-        correctImagesH5(writer.Writer(), table, imageName, "image");
-        if (_settings.savePsfPb)
-          correctImagesH5(writer.Writer(), table, imageName, "psf");
-        if (_settings.deconvolutionIterationCount != 0) {
-          correctImagesH5(writer.Writer(), table, imageName, "residual");
-          correctImagesH5(writer.Writer(), table, imageName, "model");
-        }
+    // Apply the H5 solutions to the facets. In case a H5 solution file is
+    // provided, but no primary beam correction was applied.
+    // This can be done on a per-polarization basis (as long as we do not
+    // fully support a Full Jones correction).
+    if (!_settings.facetSolutionFile.empty() && !applyH5OnBeamImages) {
+      correctImagesH5(writer.Writer(), table, imageName, "image");
+      if (_settings.savePsfPb)
+        correctImagesH5(writer.Writer(), table, imageName, "psf");
+      if (_settings.deconvolutionIterationCount != 0) {
+        correctImagesH5(writer.Writer(), table, imageName, "residual");
+        correctImagesH5(writer.Writer(), table, imageName, "model");
       }
     }
   }
@@ -2046,16 +2046,17 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
                               const ImagingTable& table,
                               const ImageFilename& imageName,
                               const std::string& filenameKind) const {
-  PolarizationEnum pol = *_settings.polarizations.begin();
+  const PolarizationEnum pol = table.Front().polarization;
 
-  if (pol == Polarization::StokesI) {
-    ImageFilename stokesIName(imageName);
-    stokesIName.SetPolarization(pol);
+  if (pol == Polarization::StokesI || pol == Polarization::XX ||
+      pol == Polarization::YY) {
+    ImageFilename iName(imageName);
+    iName.SetPolarization(pol);
     std::string prefix;
     if (filenameKind == "psf")
-      prefix = stokesIName.GetPSFPrefix(_settings);
+      prefix = iName.GetPSFPrefix(_settings);
     else
-      prefix = stokesIName.GetPrefix(_settings);
+      prefix = iName.GetPrefix(_settings);
 
     aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
     Image image(reader.ImageWidth(), reader.ImageHeight());
@@ -2078,6 +2079,6 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
   } else {
     throw std::runtime_error(
         "H5 correction is requested, but this is not supported "
-        "when imaging a single polarization that is not Stokes I.");
+        "when imaging a single polarization that is not Stokes I, XX, or YY.");
   }
 }
