@@ -12,8 +12,10 @@ class SynchronizedMS {
  public:
   SynchronizedMS() {}
 
-  SynchronizedMS(const std::string& filename)
-      : _lock(std::make_shared<MSLock>(filename)) {}
+  SynchronizedMS(const std::string& filename,
+                 const casacore::TableLock::LockOption lock_option =
+                     casacore::TableLock::DefaultLocking)
+      : _lock(std::make_shared<MSLock>(filename, lock_option)) {}
 
   void Reset() { _lock.reset(); }
 
@@ -28,13 +30,16 @@ class SynchronizedMS {
  private:
   class MSLock {
    public:
-    MSLock(const std::string& filename) : _filename(filename) {
+    MSLock(const std::string& filename,
+           const casacore::TableLock::LockOption lock_option)
+        : _filename(filename) {
       std::unique_lock<std::mutex> lock(_mutex);
       while (_openFiles.count(filename)) _condition.wait(lock);
       _openFiles.insert(filename);
       lock.unlock();
 
-      _ms.reset(new casacore::MeasurementSet(_filename));
+      _ms.reset(new casacore::MeasurementSet(_filename,
+                                             casacore::TableLock(lock_option)));
     }
 
     MSLock(const MSLock&) = delete;

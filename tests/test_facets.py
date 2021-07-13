@@ -77,17 +77,23 @@ def predict_facet_image(ms, gridder):
     check_call(s.split())
 
 
-def deconvolve_facets(
-    ms,
-    gridder,
-    reorder,
-    nthreads=4,
-    image="-size 256 256 -scale 4amin",
-    major_cycle="-niter 1000000 -auto-threshold 5 -mgain 0.8",
-):
+def deconvolve_facets(ms, gridder, reorder, mpi):
+    nthreads = 4
+    mpi_cmd = f"mpirun -tag-output -np {nthreads} wsclean-mp"
+    thread_cmd = f"wsclean -parallel-gridding {nthreads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
-    s = f"wsclean -parallel-gridding {nthreads} {gridder} {reorder_ms} {major_cycle} -facet-regions {tcf.FACETFILE_4FACETS} -name facet-imaging{reorder_ms} {image} {ms}"
-    check_call(s.split())
+    s = [
+        mpi_cmd if mpi else thread_cmd,
+        gridder,
+        reorder_ms,
+        "-niter 1000000 -auto-threshold 5 -mgain 0.8",
+        f"-facet-regions {tcf.FACETFILE_4FACETS}",
+        f"-name facet-imaging{reorder_ms}",
+        "-size 256 256 -scale 4amin -v",
+        ms
+    ]
+    print("WSClean cmd: " + ' '.join(s))
+    check_call(' '.join(s).split())
 
 
 # FIXME: we should test wstacking and wgridder here too
@@ -111,7 +117,8 @@ def test_predict(gridder):
 
 @pytest.mark.parametrize("gridder", ["-use-wgridder"])
 @pytest.mark.parametrize("reorder", [False, True])
-def test_facetdeconvolution(gridder, reorder):
+@pytest.mark.parametrize("mpi", [False,True])
+def test_facetdeconvolution(gridder, reorder, mpi):
     """
     Test facet-based deconvolution
 
@@ -121,6 +128,9 @@ def test_facetdeconvolution(gridder, reorder):
         wsclean compatible description of gridder to be used.
     reorder : bool
         Reorder MS?
+    mpi : bool
+        True: Use MPI for parallel gridding.
+        False: Use multi-threading for parallel gridding.
     """
     # Parametrization causes some overhead in that predict of full image is run for
     # every parametrization
@@ -140,7 +150,7 @@ def test_facetdeconvolution(gridder, reorder):
     taql_command = f"select from {MWA_MOCK_FULL} t1, {MWA_MOCK_FACET} t2 where not all(near(t1.MODEL_DATA,t2.DATA, 4e-3))"
     assert_taql(taql_command)
 
-    deconvolve_facets(MWA_MOCK_FACET, gridder, reorder)
+    deconvolve_facets(MWA_MOCK_FACET, gridder, reorder, mpi)
 
-    taql_command = f"select from {MWA_MOCK_FACET} t1, {MWA_MOCK_FACET} t2 where not all(near(t1.DATA,t2.MODEL_DATA, 4e-3))"
+    taql_command = f"select from {MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
     assert_taql(taql_command)

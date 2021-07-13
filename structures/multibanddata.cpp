@@ -1,7 +1,7 @@
 #include "multibanddata.h"
 
-MultiBandData::MultiBandData(casacore::MSSpectralWindow& spwTable,
-                             casacore::MSDataDescription& dataDescTable)
+MultiBandData::MultiBandData(const casacore::MSSpectralWindow& spwTable,
+                             const casacore::MSDataDescription& dataDescTable)
     : _dataDescToBand(dataDescTable.nrow()), _bandData(spwTable.nrow()) {
   for (size_t spw = 0; spw != _bandData.size(); ++spw) {
     _bandData[spw] = BandData(spwTable, spw);

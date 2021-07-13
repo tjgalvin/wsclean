@@ -792,16 +792,18 @@ casacore::ArrayColumn<float> MSProvider::initializeImagingWeightColumn(
 }
 
 std::vector<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(
-    casacore::MeasurementSet& ms) {
+    const casacore::MSPolarization& polTable) {
   std::vector<aocommon::PolarizationEnum> pols;
-  casacore::MSPolarization polTable(ms.polarization());
-  casacore::ROArrayColumn<int> corrTypeColumn(
+  casacore::ArrayColumn<int> corrTypeColumn(
       polTable, casacore::MSPolarization::columnName(
                     casacore::MSPolarizationEnums::CORR_TYPE));
+
   casacore::Array<int> corrTypeVec(corrTypeColumn(0));
   for (casacore::Array<int>::const_contiter p = corrTypeVec.cbegin();
-       p != corrTypeVec.cend(); ++p)
+       p != corrTypeVec.cend(); ++p) {
     pols.push_back(aocommon::Polarization::AipsIndexToEnum(*p));
+  }
+
   return pols;
 }
 

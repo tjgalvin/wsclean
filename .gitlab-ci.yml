@@ -112,8 +112,6 @@ test-system-das5:
   tags:
     - das5
   before_script:
-    # Extend MODULEPATH, so that openmpi modulefiles can be found
-    - export MODULEPATH=$MODULEPATH:/cm/local/modulefiles:/cm/shared/modulefiles
     - source scripts/das5_modules.sh
     - export OPENBLAS_NUM_THREADS=1
   script:

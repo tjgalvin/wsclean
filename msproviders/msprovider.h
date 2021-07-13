@@ -11,12 +11,12 @@
 
 #include <complex>
 #include <set>
-#include <vector>
 #include <type_traits>
+#include <vector>
 
 namespace casacore {
 class MeasurementSet;
-}
+}  // namespace casacore
 class MSSelection;
 class MSReader;
 
@@ -126,7 +126,7 @@ class MSProvider {
    * one of the special polarization values (like FullJones or Instrumental).
    */
   static std::vector<aocommon::PolarizationEnum> GetMSPolarizations(
-      casacore::MeasurementSet& ms);
+      const casacore::MSPolarization& polTable);
 
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
 

@@ -7,7 +7,7 @@ class ContiguousMS;
 
 class ContiguousMSReader final : public MSReader {
  public:
-  ContiguousMSReader(ContiguousMS* contiguousMS);
+  explicit ContiguousMSReader(ContiguousMS* contiguousMS);
 
   virtual ~ContiguousMSReader(){};
 

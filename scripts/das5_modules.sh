@@ -1,4 +1,7 @@
-
+# Extend MODULEPATH, so that openmpi modulefiles can be found
+if [[ ${MODULEPATH} != *"/cm/shared/modulefiles"* ]]; then
+  export MODULEPATH=$MODULEPATH:/cm/shared/modulefiles
+fi
 
 module load gcc/8.3.0
 module load fftw/3.3.8-gcc-8.3.0

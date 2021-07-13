@@ -533,7 +533,7 @@ void WSClean::initializeMFSImageWeights() {
                                    : *_settings.polarizations.begin();
         ContiguousMS msProvider(_settings.filenames[i],
                                 _settings.dataColumnName, _globalSelection, pol,
-                                d);
+                                d, _settings.useMPI);
         weights->Grid(msProvider, _globalSelection);
         Logger::Info << '.';
         Logger::Info.Flush();
@@ -1546,11 +1546,11 @@ void WSClean::initializeMSList(
         if (_settings.doReorder)
           dataDescription = MSDataDescription::ForPartitioned(
               _partitionedMSHandles[i], selection,
-              entry.msData[i].bands[d].partIndex, pol, d);
+              entry.msData[i].bands[d].partIndex, pol, d, _settings.useMPI);
         else
           dataDescription = MSDataDescription::ForContiguous(
               _settings.filenames[i], _settings.dataColumnName, selection, pol,
-              d);
+              d, _settings.useMPI);
         msList.emplace_back(std::move(dataDescription));
       }
     }
@@ -1762,7 +1762,7 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   _msBands.assign(_settings.filenames.size(), MultiBandData());
   for (size_t i = 0; i != _settings.filenames.size(); ++i) {
     casacore::MeasurementSet ms(_settings.filenames[i]);
-    _msBands[i] = MultiBandData(ms.spectralWindow(), ms.dataDescription());
+    _msBands[i] = MultiBandData(ms);
     std::set<size_t> dataDescIds = _msBands[i].GetUsedDataDescIds(ms);
     if (dataDescIds.size() != _msBands[i].DataDescCount()) {
       Logger::Debug << dataDescIds.size() << "/" << _msBands[i].DataDescCount()

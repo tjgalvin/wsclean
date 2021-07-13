@@ -65,7 +65,7 @@ class GriddingTaskManager : protected WriterLockManager {
    * Make the gridding task manager according to the settings.
    */
   static std::unique_ptr<GriddingTaskManager> Make(
-      const class Settings& settings, bool useDirectScheduler = false);
+      const class Settings& settings);
 
  protected:
   GriddingTaskManager(const class Settings& settings);

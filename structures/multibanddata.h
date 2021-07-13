@@ -28,12 +28,20 @@ class MultiBandData {
   MultiBandData() {}
 
   /**
+   * Construct a MultiBandData from a Measurement Set.
+   * @param ms A measurement set. MultiBandData reads the spectral window table
+   * and the data description table of this measurement set.
+   */
+  explicit MultiBandData(const casacore::MeasurementSet& ms)
+      : MultiBandData(ms.spectralWindow(), ms.dataDescription()) {}
+
+  /**
    * Construct a MultiBandData from the Measurement Set tables.
    * @param spwTable The spectral window table of a measurement set.
    * @param dataDescTable The data description table of a measurement set.
    */
-  MultiBandData(casacore::MSSpectralWindow& spwTable,
-                casacore::MSDataDescription& dataDescTable);
+  MultiBandData(const casacore::MSSpectralWindow& spwTable,
+                const casacore::MSDataDescription& dataDescTable);
 
   /**
    * Construct a MultiBandData from another instance but only select a part of

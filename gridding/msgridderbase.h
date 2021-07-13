@@ -328,7 +328,7 @@ class MSGridderBase {
 
  private:
   static std::vector<std::string> getAntennaNames(
-      const casacore::MeasurementSet& ms);
+      const casacore::MSAntenna& msAntenna);
   void computeFacetCentre() {
     aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
                                           _phaseCentreRA, _phaseCentreDec,
@@ -363,7 +363,7 @@ class MSGridderBase {
 
   void calculateOverallMetaData(const MSData* msDataVector);
   bool hasWGridSize() const { return _wGridSize != 0; }
-  void initializeBandData(casacore::MeasurementSet& ms,
+  void initializeBandData(const casacore::MeasurementSet& ms,
                           MSGridderBase::MSData& msData);
   void initializePointResponse(const MSGridderBase::MSData& msData);
   void initializePredictReader(MSProvider& msProvider);

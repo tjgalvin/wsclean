@@ -22,9 +22,10 @@ class MSDataDescription {
   static std::unique_ptr<MSDataDescription> ForContiguous(
       const std::string& filename, const std::string& dataColumnName,
       const MSSelection& selection, aocommon::PolarizationEnum polarization,
-      size_t dataDescId) {
+      size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isPartitioned = false;
+    mdd->_useMPI = useMPI;
     mdd->_polarization = polarization;
     mdd->_dataDescId = dataDescId;
     mdd->_selection = selection;
@@ -36,9 +37,10 @@ class MSDataDescription {
   static std::unique_ptr<MSDataDescription> ForPartitioned(
       PartitionedMS::Handle partitionHandle, const MSSelection& selection,
       size_t partIndex, aocommon::PolarizationEnum polarization,
-      size_t dataDescId) {
+      size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isPartitioned = true;
+    mdd->_useMPI = useMPI;
     mdd->_polarization = polarization;
     mdd->_dataDescId = dataDescId;
     mdd->_selection = selection;
@@ -60,6 +62,7 @@ class MSDataDescription {
 
   // Common
   bool _isPartitioned;
+  bool _useMPI;
   aocommon::PolarizationEnum _polarization;
   size_t _dataDescId;
   MSSelection _selection;

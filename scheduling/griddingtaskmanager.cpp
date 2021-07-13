@@ -23,14 +23,14 @@ GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
 GriddingTaskManager::~GriddingTaskManager() {}
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const class Settings& settings, bool useDirectScheduler) {
-  if (settings.useMPI && !useDirectScheduler) {
+    const class Settings& settings) {
+  if (settings.useMPI) {
 #ifdef HAVE_MPI
     return std::unique_ptr<GriddingTaskManager>(new MPIScheduler(settings));
 #else
     throw std::runtime_error("MPI not available");
 #endif
-  } else if (settings.parallelGridding == 1 || useDirectScheduler) {
+  } else if (settings.parallelGridding == 1) {
     return std::unique_ptr<GriddingTaskManager>(
         new GriddingTaskManager(settings));
   } else {

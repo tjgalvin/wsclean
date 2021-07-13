@@ -47,7 +47,7 @@ void Slave::grid(size_t bodySize) {
   GriddingTask task;
   task.Unserialize(stream);
   std::unique_ptr<GriddingTaskManager> scheduler =
-      GriddingTaskManager::Make(_settings, true);
+      GriddingTaskManager::Make(_settings);
   Logger::Info << "Worker node is starting gridding.\n";
   GriddingResult result = scheduler->RunDirect(std::move(task));
   Logger::Info << "Worker node is done gridding.\n";

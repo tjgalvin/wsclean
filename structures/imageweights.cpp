@@ -77,15 +77,12 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
       (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4
                                                                           : 1;
   if (_weightMode.RequiresGridding()) {
-    SynchronizedMS ms(msProvider.MS());
-    const MultiBandData bandData(ms->spectralWindow(), ms->dataDescription());
-    MultiBandData selectedBand;
-    if (selection.HasChannelRange())
-      selectedBand = MultiBandData(bandData, selection.ChannelRangeStart(),
-                                   selection.ChannelRangeEnd());
-    else
-      selectedBand = bandData;
-    aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels() *
+    MultiBandData bandData(*msProvider.MS());
+    if (selection.HasChannelRange()) {
+      bandData = MultiBandData(bandData, selection.ChannelRangeStart(),
+                               selection.ChannelRangeEnd());
+    }
+    aocommon::UVector<float> weightBuffer(bandData.MaxChannels() *
                                           polarizationCount);
 
     std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
@@ -99,7 +96,7 @@ void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
           if (w != 0.0) w = 1.0;
         }
       }
-      const BandData& curBand = selectedBand[dataDescId];
+      const BandData& curBand = bandData[dataDescId];
       if (vInM < 0.0) {
         uInM = -uInM;
         vInM = -vInM;

@@ -156,13 +156,15 @@ MSGridderBase::MSGridderBase(const Settings& settings)
 }
 
 std::vector<std::string> MSGridderBase::getAntennaNames(
-    const casacore::MeasurementSet& ms) {
-  std::vector<std::string> antennaNames;
-  casacore::ROMSAntennaColumns antenna(ms.antenna());
-  const casacore::ROScalarColumn<casacore::String> antannaNameColumn =
+    const casacore::MSAntenna& msAntenna) {
+  casacore::MSAntennaColumns antenna(msAntenna);
+  const casacore::ScalarColumn<casacore::String> antennaNameColumn =
       antenna.name();
+
+  std::vector<std::string> antennaNames;
+  antennaNames.reserve(antenna.nrow());
   for (size_t i = 0; i < antenna.nrow(); ++i) {
-    antennaNames.push_back(antannaNameColumn(i));
+    antennaNames.push_back(antennaNameColumn(i));
   }
   return antennaNames;
 }
@@ -258,9 +260,9 @@ void MSGridderBase::initializePredictReader(MSProvider& msProvider) {
   _predictReader = msProvider.MakeReader();
 }
 
-void MSGridderBase::initializeBandData(casacore::MeasurementSet& ms,
+void MSGridderBase::initializeBandData(const casacore::MeasurementSet& ms,
                                        MSGridderBase::MSData& msData) {
-  msData.bandData = MultiBandData(ms.spectralWindow(), ms.dataDescription());
+  msData.bandData = MultiBandData(ms);
   if (Selection(msData.msIndex).HasChannelRange()) {
     msData.startChannel = Selection(msData.msIndex).ChannelRangeStart();
     msData.endChannel = Selection(msData.msIndex).ChannelRangeEnd();
@@ -401,7 +403,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   SynchronizedMS ms(msProvider.MS());
   if (ms->nrow() == 0) throw std::runtime_error("Table has no rows (no data)");
 
-  msData.antennaNames = getAntennaNames(*ms);
+  msData.antennaNames = getAntennaNames(ms->antenna());
 
   initializeBandData(*ms, msData);
 

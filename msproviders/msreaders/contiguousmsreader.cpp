@@ -1,20 +1,18 @@
 #include "contiguousmsreader.h"
 #include "../contiguousms.h"
 
-ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousMS)
-    : MSReader(contiguousMS),
+ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
+    : MSReader(contiguousms),
+      _currentInputRow(contiguousms->_startRow - 1),
+      _currentInputTimestep(size_t(-1)),
       _currentInputTime(0.0),
+      _currentRowId(size_t(-1)),
       _isDataRead(false),
       _isModelRead(false),
-      _isWeightRead(false) {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
-  _currentInputRow = contiguousms._startRow - 1;
-  if (contiguousms._selection.HasInterval())
-    _currentInputTimestep = contiguousms._selection.IntervalStart() - 1;
-  else
-    _currentInputTimestep = -1;
-  _currentRowId = size_t(-1);
+      _isWeightRead(false),
+      _imagingWeightsColumn() {
+  if (contiguousms->_selection.HasInterval())
+    _currentInputTimestep = contiguousms->_selection.IntervalStart() - 1;
   NextInputRow();
 };
 
@@ -65,6 +63,7 @@ void ContiguousMSReader::NextInputRow() {
   ++_currentRowId;
   int fieldId, a1, a2, dataDescId;
   casacore::Vector<double> uvw;
+
   do {
     ++_currentInputRow;
     if (_currentInputRow >= contiguousms._endRow) return;
@@ -245,7 +244,7 @@ void ContiguousMSReader::readWeights() {
 void ContiguousMSReader::readModel() {
   ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
   if (!_isModelRead) {
-    contiguousms._modelColumn->get(_currentInputRow, contiguousms._modelArray);
+    contiguousms._modelColumn.get(_currentInputRow, contiguousms._modelArray);
     _isModelRead = true;
   }
 }

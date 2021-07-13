@@ -276,7 +276,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
   }
 
   std::vector<aocommon::PolarizationEnum> msPolarizations =
-      GetMSPolarizations(rowProvider->MS());
+      GetMSPolarizations(rowProvider->MS().polarization());
   size_t nAntennas = rowProvider->MS().antenna().nrow();
 
   const casacore::IPosition shape(rowProvider->DataShape());
@@ -522,7 +522,7 @@ void PartitionedMS::unpartition(
 
     casacore::MeasurementSet ms(handle._msPath, casacore::Table::Update);
     const std::vector<aocommon::PolarizationEnum> msPolarizations =
-        GetMSPolarizations(ms);
+        GetMSPolarizations(ms.polarization());
     initializeModelColumn(ms);
     casacore::ScalarColumn<int> antenna1Column(
         ms, ms.columnName(casacore::MSMainEnums::ANTENNA1));
