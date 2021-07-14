@@ -24,6 +24,7 @@
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/imagecoordinates.h>
 
+using aocommon::FitsReader;
 using aocommon::ImageCoordinates;
 
 Deconvolution::Deconvolution(const class Settings& settings)

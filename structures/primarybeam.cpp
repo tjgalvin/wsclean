@@ -34,7 +34,7 @@ void writeBeamImages(const ImageFilename& imageName,
                      const Settings& settings, const ImagingTableEntry& entry,
                      double phaseCentreRA, double phaseCentreDec,
                      double phaseCentreDL, double phaseCentreDM) {
-  // Save the (16) beam images as fits files
+  // Save the 16 beam images as fits files
   aocommon::FitsWriter writer;
   writer.SetImageDimensions(
       settings.trimmedImageWidth, settings.trimmedImageHeight, phaseCentreRA,
@@ -202,11 +202,12 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
                                       const Settings& settings) {
   if (settings.useIDG) {
     PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
-                                   settings.trimmedImageHeight, 8);
+                                   settings.trimmedImageHeight);
+    beamImages.SetToZero();
     // IDG produces only a Stokes I beam, and has already corrected for the
-    // rest. Currently we just load that beam into real component of XX and YY,
-    // and set the other 6 images to zero. This is a bit wasteful so might
-    // require a better strategy for big images.
+    // rest. Currently we just load that beam into the diagonal entries of the
+    // real component of XX and YY, and set the other 12 images to zero. This is
+    // a bit wasteful so might require a better strategy for big images.
     ImageFilename polName(imageName);
     polName.SetPolarization(aocommon::Polarization::StokesI);
     aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
@@ -214,42 +215,25 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
     for (size_t i = 0;
          i != settings.trimmedImageWidth * settings.trimmedImageHeight; ++i)
       beamImages[0][i] = std::sqrt(beamImages[0][i]);
-    std::copy_n(beamImages[0].data(),
-                settings.trimmedImageWidth * settings.trimmedImageHeight,
-                beamImages[6].data());
-    for (size_t i = 1; i != 8; ++i) {
-      if (i != 6)
-        std::fill_n(beamImages[i].data(),
-                    settings.trimmedImageWidth * settings.trimmedImageHeight,
-                    0.0);
+
+    // Copy zero entry to images of the diagonal
+    std::array<size_t, 3> diagonal_entries = {3, 8, 15};
+    for (size_t entry : diagonal_entries) {
+      std::copy_n(beamImages[0].data(),
+                  settings.trimmedImageWidth * settings.trimmedImageHeight,
+                  beamImages[entry].data());
     }
     return beamImages;
   } else {
-    try {
-      PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
-                                     settings.trimmedImageHeight, 8);
-      aocommon::PolarizationEnum linPols[4] = {
-          aocommon::Polarization::XX, aocommon::Polarization::XY,
-          aocommon::Polarization::YX, aocommon::Polarization::YY};
-      for (size_t i = 0; i != 8; ++i) {
-        aocommon::PolarizationEnum p = linPols[i / 2];
-        ImageFilename polName(imageName);
-        polName.SetPolarization(p);
-        polName.SetIsImaginary(i % 2 != 0);
-        aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
-        reader.Read(beamImages[i].data());
-      }
-      return beamImages;
-    } catch (std::exception&) {
-      PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
-                                     settings.trimmedImageHeight, 16);
-      for (size_t i = 0; i != 16; ++i) {
-        aocommon::FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
-                                    std::to_string(i) + ".fits");
-        reader.Read(beamImages[i].data());
-      }
-      return beamImages;
+    PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
+                                   settings.trimmedImageHeight);
+    for (size_t i = 0; i != beamImages.NImages(); ++i) {
+      aocommon::FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
+                                  std::to_string(i) + ".fits");
+      reader.Read(beamImages[i].data());
     }
+    return beamImages;
+    // }
   }
 }
 
@@ -303,6 +287,11 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
 PrimaryBeamImageSet PrimaryBeam::MakeImage(
     const ImagingTableEntry& entry,
     std::shared_ptr<ImageWeights> imageWeights) {
+  const size_t width(_settings.trimmedImageWidth);
+  const size_t height(_settings.trimmedImageHeight);
+  PrimaryBeamImageSet beamImages(width, height);
+  beamImages.SetToZero();
+
   std::vector<std::unique_ptr<MSProvider>> providers;
   for (size_t i = 0; i != _msList.size(); ++i) {
     providers.emplace_back(_msList[i]->GetProvider());
@@ -310,8 +299,6 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
         MSProviderInfo(providers.back().get(), &_msList[i]->Selection(), i));
   }
 
-  size_t width(_settings.trimmedImageWidth),
-      height(_settings.trimmedImageHeight);
   everybeam::coords::CoordinateSystem coordinateSystem{width,
                                                        height,
                                                        _phaseCentreRA,
@@ -321,7 +308,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
                                                        _phaseCentreDL,
                                                        _phaseCentreDM};
 
-  aocommon::UVector<double> buffer_total(width * height * 16, 0);
+  aocommon::UVector<double> buffer_total(width * height * beamImages.NImages(),
+                                         0);
   double ms_weight_sum = 0;
   for (const MSProviderInfo& msProviderInfo : _msProviders) {
     // TODO: channelFrequency calculation might be telescope specific?
@@ -341,8 +329,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
     }
     centralFrequency /= msInfo.bands.size();
 
-    aocommon::UVector<double> buffer(width * height * 16, 0);
-    double ms_weight =
+    aocommon::UVector<double> buffer(width * height * beamImages.NImages(), 0);
+    const double ms_weight =
         MakeBeamForMS(buffer, *msProviderInfo.provider, selection,
                       *imageWeights, coordinateSystem, centralFrequency);
     for (size_t i = 0; i != buffer_total.size(); ++i) {
@@ -356,11 +344,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
     buffer_total[i] /= ms_weight_sum;
   }
 
-  PrimaryBeamImageSet beamImages(width, height, 16);
-  beamImages.SetToZero();
-
   // Copy buffer_total data into beam_images
-  for (size_t p = 0; p != 16; ++p) {
+  for (size_t p = 0; p != beamImages.NImages(); ++p) {
     std::copy_n(buffer_total.data() + p * width * height, width * height,
                 &beamImages[p][0]);
   }

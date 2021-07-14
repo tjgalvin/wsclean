@@ -191,6 +191,35 @@ def test_shift_image(gridder, test_name):
     check_call(s.split())
 
 
+def test_grid_with_beam():
+    """Requires that WSClean is compiled with IDG and EveryBeam
+    """
+    name = "idg-beam"
+    if os.environ["MWA_COEFFS_PATH"]:
+        s = f"./wsclean -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
+        check_call(s.split())
+        for image_type in [
+            "psf",
+            "beam",
+            "dirty",
+            "image",
+            "image-pb",
+            "model",
+            "model-pb",
+            "residual",
+            "residual-pb",
+        ]:
+            image_name = name + "-" + image_type + ".fits"
+            assert os.path.isfile(image_name)
+        # Check whether source files are correctly generated
+        for source_file in ["sources", "sources-pb"]:
+            assert os.path.isfile(name + "-" + source_file + ".txt")
+    else:
+        warnings.warn(
+            "MWA_PATH environment variable not set, test_grid_with_beam test will be skipped."
+        )
+
+
 def test_two_facets():
     # Apply the facet to the image
     s = f"./wsclean -name {name('two-facets')} -facet-regions {tcf.FACETFILE_2FACETS} \
