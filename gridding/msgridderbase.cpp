@@ -238,13 +238,12 @@ MSGridderBase::MSGridderBase(const Settings& settings)
 
 std::vector<std::string> MSGridderBase::getAntennaNames(
     const casacore::MSAntenna& msAntenna) {
-  casacore::MSAntennaColumns antenna(msAntenna);
-  const casacore::ScalarColumn<casacore::String> antennaNameColumn =
-      antenna.name();
+  const casacore::ScalarColumn<casacore::String> antennaNameColumn(
+      msAntenna, msAntenna.columnName(casacore::MSAntenna::NAME));
 
   std::vector<std::string> antennaNames;
-  antennaNames.reserve(antenna.nrow());
-  for (size_t i = 0; i < antenna.nrow(); ++i) {
+  antennaNames.reserve(antennaNameColumn.nrow());
+  for (size_t i = 0; i < antennaNameColumn.nrow(); ++i) {
     antennaNames.push_back(antennaNameColumn(i));
   }
   return antennaNames;
