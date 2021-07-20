@@ -45,6 +45,7 @@ BOOST_AUTO_TEST_CASE(wstacking) {
   CheckAndRemoveFileNames(std::string(prefix));
 }
 
+#ifdef HAVE_WGRIDDER
 BOOST_AUTO_TEST_CASE(wgridder) {
   BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
   BOOST_REQUIRE(boost::filesystem::is_regular_file(kFacets));
@@ -61,6 +62,7 @@ BOOST_AUTO_TEST_CASE(wgridder) {
 
   CheckAndRemoveFileNames(std::string(prefix));
 }
+#endif
 
 // Since CI does not compile IDG, this test won't be run as part
 // of the CI/CD pipeline

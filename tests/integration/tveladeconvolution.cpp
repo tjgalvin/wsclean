@@ -79,6 +79,7 @@ BOOST_AUTO_TEST_CASE(wstacking) {
     BOOST_CHECK(boost::filesystem::remove(str));
 }
 
+#ifdef HAVE_WGRIDDER
 BOOST_AUTO_TEST_CASE(wgridder) {
   BOOST_REQUIRE(boost::filesystem::is_directory(kMWA_MS));
 
@@ -149,5 +150,6 @@ BOOST_AUTO_TEST_CASE(wgridder) {
   for (const std::string& str : filesExpected)
     BOOST_CHECK(boost::filesystem::remove(str));
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

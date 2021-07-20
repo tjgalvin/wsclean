@@ -18,7 +18,13 @@ class WriterLockManager {
  public:
   virtual ~WriterLockManager(){};
 
+#if __cplusplus >= 201703L
   using LockGuard = std::lock_guard<WriterLock>;
+#else
+  // In GetLock(), 'return LockGuard(...);' is only possible if LockGuard is
+  // movable.
+  using LockGuard = std::unique_lock<WriterLock>;
+#endif
 
   /**
    * @brief Return a writer lock guard for the given @p writerGroupIndex
