@@ -489,7 +489,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
     idg::api::BufferSetType bufferSetType) {
 #else
 bool IdgMsGridder::prepareForMeasurementSet(
-    MSGridderBase::MSData& msData,
+    const MSGridderBase::MSData& msData,
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #endif  // HAVE_EVERYBEAM
