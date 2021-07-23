@@ -14,6 +14,7 @@
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/banddata.h>
+#include <aocommon/staticfor.h>
 
 #include <cmath>
 #include <iostream>
@@ -32,7 +33,7 @@ ImageWeights::ImageWeights()
 ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth,
                            size_t imageHeight, double pixelScaleX,
                            double pixelScaleY, bool weightsAsTaper,
-                           double superWeight)
+                           double superWeight, size_t threadCount)
     : _weightMode(weightMode),
       _imageWidth(round(double(imageWidth) / superWeight)),
       _imageHeight(round(double(imageHeight) / superWeight)),
@@ -40,7 +41,8 @@ ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth,
       _pixelScaleY(pixelScaleY),
       _totalSum(0.0),
       _isGriddingFinished(false),
-      _weightsAsTaper(weightsAsTaper) {
+      _weightsAsTaper(weightsAsTaper),
+      _threadCount(threadCount) {
   if (_imageWidth % 2 != 0) ++_imageWidth;
   if (_imageHeight % 2 != 0) ++_imageHeight;
   _grid.assign(_imageWidth * _imageHeight / 2, 0.0);
@@ -151,135 +153,156 @@ void ImageWeights::FinishGridding() {
 }
 
 void ImageWeights::SetMinUVRange(double minUVInLambda) {
-  auto iter = _grid.begin();
   const double minSq = minUVInLambda * minUVInLambda;
   int halfWidth = _imageWidth / 2;
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      int xi = int(x) - halfWidth;
-      double u = double(xi) / (_imageWidth * _pixelScaleX);
-      double v = double(y) / (_imageHeight * _pixelScaleY);
-      if (u * u + v * v < minSq) *iter = 0.0;
-      ++iter;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        int xi = int(x) - halfWidth;
+        double u = double(xi) / (_imageWidth * _pixelScaleX);
+        double v = double(y) / (_imageHeight * _pixelScaleY);
+        if (u * u + v * v < minSq) *iter = 0.0;
+        ++iter;
+      }
     }
-  }
+  });
 }
 
 void ImageWeights::SetMaxUVRange(double maxUVInLambda) {
-  auto iter = _grid.begin();
   const double maxSq = maxUVInLambda * maxUVInLambda;
   int halfWidth = _imageWidth / 2;
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      int xi = int(x) - halfWidth;
-      double u = double(xi) / (_imageWidth * _pixelScaleX);
-      double v = double(y) / (_imageHeight * _pixelScaleY);
-      if (u * u + v * v > maxSq) *iter = 0.0;
-      ++iter;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        int xi = int(x) - halfWidth;
+        double u = double(xi) / (_imageWidth * _pixelScaleX);
+        double v = double(y) / (_imageHeight * _pixelScaleY);
+        if (u * u + v * v > maxSq) *iter = 0.0;
+        ++iter;
+      }
     }
-  }
+  });
 }
 
 void ImageWeights::SetTukeyTaper(double transitionSizeInLambda,
                                  double maxUVInLambda) {
-  auto iter = _grid.begin();
   const double maxUVSq = maxUVInLambda * maxUVInLambda;
   const double transitionDistSq = (maxUVInLambda - transitionSizeInLambda) *
                                   (maxUVInLambda - transitionSizeInLambda);
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double u, v;
-      xyToUV(x, y, u, v);
-      double distSq = u * u + v * v;
-      if (distSq > maxUVSq)
-        *iter = 0.0;
-      else if (distSq > transitionDistSq) {
-        *iter *=
-            tukeyFrom0ToN(maxUVInLambda - sqrt(distSq), transitionSizeInLambda);
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double u, v;
+        xyToUV(x, y, u, v);
+        double distSq = u * u + v * v;
+        if (distSq > maxUVSq)
+          *iter = 0.0;
+        else if (distSq > transitionDistSq) {
+          *iter *= tukeyFrom0ToN(maxUVInLambda - sqrt(distSq),
+                                 transitionSizeInLambda);
+        }
+        ++iter;
       }
-      ++iter;
     }
-  }
+  });
 }
 
 void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda,
                                       double minUVInLambda) {
-  auto iter = _grid.begin();
   const double minUVSq = minUVInLambda * minUVInLambda;
   const double totalSizeSq = (minUVInLambda + transitionSizeInLambda) *
                              (minUVInLambda + transitionSizeInLambda);
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double u, v;
-      xyToUV(x, y, u, v);
-      double distSq = u * u + v * v;
-      if (distSq < minUVSq)
-        *iter = 0.0;
-      else if (distSq < totalSizeSq) {
-        *iter *=
-            tukeyFrom0ToN(sqrt(distSq) - minUVInLambda, transitionSizeInLambda);
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double u, v;
+        xyToUV(x, y, u, v);
+        double distSq = u * u + v * v;
+        if (distSq < minUVSq)
+          *iter = 0.0;
+        else if (distSq < totalSizeSq) {
+          *iter *= tukeyFrom0ToN(sqrt(distSq) - minUVInLambda,
+                                 transitionSizeInLambda);
+        }
+        ++iter;
       }
-      ++iter;
     }
-  }
+  });
 }
 
 void ImageWeights::SetEdgeTaper(double sizeInLambda) {
-  auto iter = _grid.begin();
   double maxU, maxV;
   xyToUV(_imageWidth, _imageHeight / 2, maxU, maxV);
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double u, v;
-      xyToUV(x, y, u, v);
-      if (maxU - std::fabs(u) < sizeInLambda ||
-          maxV - std::fabs(v) < sizeInLambda)
-        *iter = 0.0;
-      ++iter;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double u, v;
+        xyToUV(x, y, u, v);
+        if (maxU - std::fabs(u) < sizeInLambda ||
+            maxV - std::fabs(v) < sizeInLambda)
+          *iter = 0.0;
+        ++iter;
+      }
     }
-  }
+  });
 }
 
 void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda,
                                      double edgeSizeInLambda) {
-  auto iter = _grid.begin();
   double maxU, maxV;
   xyToUV(_imageWidth, _imageHeight / 2, maxU, maxV);
   double totalSize = transitionSizeInLambda + edgeSizeInLambda;
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double u, v;
-      xyToUV(x, y, u, v);
-      double uDist = maxU - std::fabs(u);
-      double vDist = maxV - std::fabs(v);
-      if (uDist < edgeSizeInLambda || vDist < edgeSizeInLambda)
-        *iter = 0.0;
-      else if (uDist < totalSize || vDist < totalSize) {
-        double ru = uDist - edgeSizeInLambda;
-        double rv = vDist - edgeSizeInLambda;
-        if (ru > transitionSizeInLambda) ru = transitionSizeInLambda;
-        if (rv > transitionSizeInLambda) rv = transitionSizeInLambda;
-        *iter *= tukeyFrom0ToN(ru, transitionSizeInLambda) *
-                 tukeyFrom0ToN(rv, transitionSizeInLambda);
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    auto iter = _grid.begin() + yStart * _imageWidth;
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double u, v;
+        xyToUV(x, y, u, v);
+        double uDist = maxU - std::fabs(u);
+        double vDist = maxV - std::fabs(v);
+        if (uDist < edgeSizeInLambda || vDist < edgeSizeInLambda)
+          *iter = 0.0;
+        else if (uDist < totalSize || vDist < totalSize) {
+          double ru = uDist - edgeSizeInLambda;
+          double rv = vDist - edgeSizeInLambda;
+          if (ru > transitionSizeInLambda) ru = transitionSizeInLambda;
+          if (rv > transitionSizeInLambda) rv = transitionSizeInLambda;
+          *iter *= tukeyFrom0ToN(ru, transitionSizeInLambda) *
+                   tukeyFrom0ToN(rv, transitionSizeInLambda);
+        }
+        ++iter;
       }
-      ++iter;
     }
-  }
+  });
 }
 
 void ImageWeights::GetGrid(double* image) const {
-  const double* srcPtr = _grid.data();
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    size_t yUpper = _imageHeight / 2 - 1 - y;
-    size_t yLower = _imageHeight / 2 + y;
-    double* upperRow = &image[yUpper * _imageWidth];
-    double* lowerRow = &image[yLower * _imageWidth];
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      upperRow[_imageWidth - x - 1] = *srcPtr;
-      lowerRow[x] = *srcPtr;
-      ++srcPtr;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    const double* srcPtr = _grid.data() + (yStart * _imageWidth);
+    for (size_t y = yStart; y != yEnd; ++y) {
+      size_t yUpper = _imageHeight / 2 - 1 - y;
+      size_t yLower = _imageHeight / 2 + y;
+      double* upperRow = &image[yUpper * _imageWidth];
+      double* lowerRow = &image[yLower * _imageWidth];
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        upperRow[_imageWidth - x - 1] = *srcPtr;
+        lowerRow[x] = *srcPtr;
+        ++srcPtr;
+      }
     }
-  }
+  });
 }
 
 void ImageWeights::Save(const string& filename) const {
@@ -292,16 +315,19 @@ void ImageWeights::Save(const string& filename) const {
 
 void ImageWeights::RankFilter(double rankLimit, size_t windowSize) {
   std::vector<double> newGrid(_grid);
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double w = _grid[y * _imageWidth + x];
-      if (w != 0.0) {
-        double mean = windowMean(x, y, windowSize);
-        if (w > mean * rankLimit)
-          newGrid[y * _imageWidth + x] = mean * rankLimit;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double w = _grid[y * _imageWidth + x];
+        if (w != 0.0) {
+          double mean = windowMean(x, y, windowSize);
+          if (w > mean * rankLimit)
+            newGrid[y * _imageWidth + x] = mean * rankLimit;
+        }
       }
     }
-  }
+  });
   _grid = newGrid;
 }
 
@@ -313,17 +339,20 @@ void ImageWeights::SetGaussianTaper(double beamSize) {
   double minusTwoSigmaSq = halfPowerUV * sigmaToHP;
   Logger::Debug << "UV taper: " << minusTwoSigmaSq << '\n';
   minusTwoSigmaSq *= -2.0 * minusTwoSigmaSq;
-  for (size_t y = 0; y != _imageHeight / 2; ++y) {
-    for (size_t x = 0; x != _imageWidth; ++x) {
-      double val = _grid[y * _imageWidth + x];
-      if (val != 0.0) {
-        double u, v;
-        xyToUV(x, y, u, v);
-        double gaus = exp((u * u + v * v) / minusTwoSigmaSq);
-        _grid[y * _imageWidth + x] = val * gaus;
+  aocommon::StaticFor<size_t> loop(_threadCount);
+  loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
+    for (size_t y = yStart; y != yEnd; ++y) {
+      for (size_t x = 0; x != _imageWidth; ++x) {
+        double val = _grid[y * _imageWidth + x];
+        if (val != 0.0) {
+          double u, v;
+          xyToUV(x, y, u, v);
+          double gaus = exp((u * u + v * v) / minusTwoSigmaSq);
+          _grid[y * _imageWidth + x] = val * gaus;
+        }
       }
     }
-  }
+  });
 }
 
 double ImageWeights::windowMean(size_t x, size_t y, size_t windowSize) {

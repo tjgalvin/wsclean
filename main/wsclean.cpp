@@ -786,7 +786,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
       _settings.paddedImageHeight, _settings.pixelScaleX, _settings.pixelScaleY,
       _settings.minUVInLambda, _settings.maxUVInLambda,
       _settings.rankFilterLevel, _settings.rankFilterSize,
-      _settings.useWeightsAsTaper));
+      _settings.useWeightsAsTaper, _settings.threadCount));
   cache->SetTaperInfo(
       _settings.gaussianTaperBeamSize, _settings.tukeyTaperInLambda,
       _settings.tukeyInnerTaperInLambda, _settings.edgeTaperInLambda,
