@@ -703,20 +703,21 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   int argi = 1;
   bool mfWeighting = false, noMFWeighting = false, dryRun = false;
   auto atermKernelSize = boost::make_optional<double>(false, 0.0);
+  Logger::SetVerbosity(Logger::NormalVerbosity);
   while (argi < argc && argv[argi][0] == '-') {
     const std::string param =
         argv[argi][1] == '-' ? (&argv[argi][2]) : (&argv[argi][1]);
     if (param == "version") {
       if (!isSlave) {
         printHeader();
-#ifdef HAVE_LOFAR_BEAM
-        Logger::Info << "LOFAR beam is available.\n";
-#endif
 #ifdef HAVE_EVERYBEAM
         Logger::Info << "EveryBeam is available.\n";
 #endif
 #ifdef HAVE_IDG
         Logger::Info << "IDG is available.\n";
+#endif
+#ifdef HAVE_WGRIDDER
+        Logger::Info << "WGridder is available.\n";
 #endif
       }
       return false;

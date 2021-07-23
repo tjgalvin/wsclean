@@ -56,7 +56,7 @@ add_custom_target(
   COMMAND
     ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_2facets.reg
     ${CMAKE_BINARY_DIR}/test_data/ds9_2facets.reg
-  COMMAND integrationtest)
+  COMMAND integrationtest -l unit_scope)
 
 add_custom_target(check DEPENDS checkunit;checkintegration)
 

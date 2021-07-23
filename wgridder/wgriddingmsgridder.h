@@ -1,5 +1,5 @@
-#ifndef BUFFERED_MS_GRIDDER_H
-#define BUFFERED_MS_GRIDDER_H
+#ifndef WGRIDDING_MS_GRIDDER_H
+#define WGRIDDING_MS_GRIDDER_H
 
 #include "../gridding/msgridderbase.h"
 
