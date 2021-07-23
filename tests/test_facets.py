@@ -59,6 +59,10 @@ def cleanup(request):
     request.addfinalizer(remove_mwa)
 
 
+def gridders():
+    return {"wstacking": "", "wgridder": "-use-wgridder", "idg": "-use-idg"}
+
+
 def assert_taql(command, expected_rows=0):
     assert shutil.which("taql") is not None, "taql executable not found!"
     result = check_output(["taql", "-noph", command]).decode().strip()
@@ -90,14 +94,54 @@ def deconvolve_facets(ms, gridder, reorder, mpi):
         f"-facet-regions {tcf.FACETFILE_4FACETS}",
         f"-name facet-imaging{reorder_ms}",
         "-size 256 256 -scale 4amin -v",
-        ms
+        ms,
     ]
-    print("WSClean cmd: " + ' '.join(s))
-    check_call(' '.join(s).split())
+    print("WSClean cmd: " + " ".join(s))
+    check_call(" ".join(s).split())
+
+
+def check_and_remove_files(fpaths, remove=False):
+    """
+    Check whether the entries in the provided list of paths
+    are files, and - optionally - remove these files.
+
+    Parameters
+    ----------
+    fpaths : list
+        List of file paths to check
+    remove : bool, optional
+        Remove files, by default False
+    """
+    for fpath in fpaths:
+        assert os.path.isfile(fpath)
+
+    if remove:
+        [os.remove(fpath) for fpath in fpaths]
+
+
+# Test assumes that IDG and EveryBeam are installed
+@pytest.mark.parametrize("gridder", gridders().items())
+def test_stitching(gridder):
+    """Test stitching of the facets"""
+    prefix = f"facet-stitch-{gridder[0]}"
+    pol = "" if (gridder[0] == "idg") else "-pol XX,YY"
+    s = f"wsclean -quiet {gridder[1]} -size 256 256 -scale 4amin {pol} -facet-regions {tcf.FACETFILE_2FACETS} -name {prefix} {MWA_MOCK_MS}"
+    check_call(s.split())
+    fpaths = (
+        [prefix + "-dirty.fits", prefix + "-image.fits"]
+        if (gridder[0] == "idg")
+        else [
+            prefix + "-XX-dirty.fits",
+            prefix + "-YY-dirty.fits",
+            prefix + "-XX-image.fits",
+            prefix + "-YY-image.fits",
+        ]
+    )
+    check_and_remove_files(fpaths, remove=True)
 
 
 # FIXME: we should test wstacking and wgridder here too
-# but the fail on the taql assertion
+# but they fail on the taql assertion
 @pytest.mark.parametrize("gridder", ["-use-wgridder"])
 def test_predict(gridder):
     """
@@ -117,7 +161,7 @@ def test_predict(gridder):
 
 @pytest.mark.parametrize("gridder", ["-use-wgridder"])
 @pytest.mark.parametrize("reorder", [False, True])
-@pytest.mark.parametrize("mpi", [False,True])
+@pytest.mark.parametrize("mpi", [False, True])
 def test_facetdeconvolution(gridder, reorder, mpi):
     """
     Test facet-based deconvolution
@@ -152,5 +196,7 @@ def test_facetdeconvolution(gridder, reorder, mpi):
 
     deconvolve_facets(MWA_MOCK_FACET, gridder, reorder, mpi)
 
-    taql_command = f"select from {MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
+    taql_command = (
+        f"select from {MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
+    )
     assert_taql(taql_command)

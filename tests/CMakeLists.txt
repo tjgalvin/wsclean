@@ -22,16 +22,10 @@ add_executable(
   structures/testimagingtable.cpp
   ${WSCLEANFILES})
 
-add_executable(
-  integrationtest EXCLUDE_FROM_ALL
-  test.cpp integration/tbasics.cpp integration/tstitchfacets.cpp
-  integration/tveladeconvolution.cpp ${WSCLEANFILES})
-
 set(TEST_LIBRARIES pybind11::embed ${ALL_LIBRARIES}
                    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
 target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
-target_link_libraries(integrationtest PRIVATE ${TEST_LIBRARIES})
 
 add_custom_target(
   checkunit
@@ -49,14 +43,12 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test_data/)
 
 add_custom_target(
   checkintegration
-  DEPENDS integrationtest
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
-  COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_coeff.sh ${DOWNLOAD_COEFF}
   COMMAND
-    ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/data/ds9_2facets.reg
-    ${CMAKE_BINARY_DIR}/test_data/ds9_2facets.reg
-  COMMAND integrationtest -l unit_scope)
+    python3 -m pytest --exitfirst -v
+    --junitxml=${CMAKE_BINARY_DIR}/test_integration.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_basics.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_veladeconvolution.py)
 
 add_custom_target(check DEPENDS checkunit;checkintegration)
 

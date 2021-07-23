@@ -53,7 +53,7 @@ build-without-everybeam-without-cxx17:
   stage: build
   extends: .dependencies
   script:
-    - pip3 install gcovr
+    - pip3 install pytest astropy gcovr
     - mkdir build
     - cd build
     - cmake -DCMAKE_CXX_FLAGS="-coverage" -DCMAKE_EXE_LINKER_FLAGS="-coverage" -DDISABLE_CXX17=YES ../
@@ -75,6 +75,7 @@ build-with-everybeam:
   stage: build
   extends: .dependencies
   script:
+    - pip3 install pytest astropy
     - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
     - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/ && make install -j4
     - cd $CI_PROJECT_DIR && mkdir build && cd build
