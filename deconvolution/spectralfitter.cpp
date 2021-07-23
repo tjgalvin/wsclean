@@ -22,12 +22,27 @@ void SpectralFitter::Fit(aocommon::UVector<num_t>& terms, const num_t* values,
     }
     float aNumerator = 0.0;
     float aDivisor = 0.0;
+    /*
     for (size_t i = 0; i != _frequencies.size(); ++i) {
       const float w = _weights[i];
       const float f = NonLinearPowerLawFitter::Evaluate(_frequencies[i], terms,
                                                         ReferenceFrequency());
       aNumerator += w * f * values[i];
       aDivisor += w * f * f;
+    }
+    */
+    // It turns out that finding the true least-squares solution for a leads
+    // to unstable cleaning. This is because a LS constrained flux might
+    // integrate to zero. If it does, the peak finding that uses integrated
+    // values will again find the same peak (over and over...). Therefore,
+    // we now use the linear average to estimate the flux:
+    // a = sum (y[i] w[i]) / sum (w[i] f[i])
+    for (size_t i = 0; i != _frequencies.size(); ++i) {
+      const float w = _weights[i];
+      const float f = NonLinearPowerLawFitter::Evaluate(_frequencies[i], terms,
+                                                        ReferenceFrequency());
+      aNumerator += w * values[i];
+      aDivisor += w * f;
     }
     terms[0] = aNumerator / aDivisor;
   } else {
