@@ -3,6 +3,8 @@ if [[ ${MODULEPATH} != *"/cm/shared/modulefiles"* ]]; then
   export MODULEPATH=$MODULEPATH:/cm/shared/modulefiles
 fi
 
+module load git/2.30.0
+module load cmake/3.16.2
 module load gcc/8.3.0
 module load fftw/3.3.8-gcc-8.3.0
 module load casacore/3.3.0-gcc-8.3.0

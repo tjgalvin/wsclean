@@ -331,7 +331,7 @@ void CommandLine::printHelp() {
          "   It also sets the interval over which to calculate the primary "
          "beam when using\n"
          "   -apply-primary-beam when not gridding with the beam.\n"
-         "-aterm-kernel-size\n"
+         "-aterm-kernel-size <double>\n"
          "   Kernel size reserved for aterms by IDG.\n"
          "-apply-facet-solutions <path-to-file> <name1[,name2]>\n"
          "   Apply solutions from the provided (h5) file per facet "
