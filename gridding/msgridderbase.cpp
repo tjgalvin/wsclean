@@ -674,7 +674,7 @@ void MSGridderBase::writeVisibilities(
         (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
                                   _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
-      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
+      const size_t responseSize = freqs.size() * antennaNames.size() * nparms;
 
       JonesParameters jonesParameters(
           freqs, std::vector<double>{metaData.time}, antennaNames, _correctType,
@@ -687,7 +687,7 @@ void MSGridderBase::writeVisibilities(
       // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
       // stationn:polm:chank]
       _cachedParmResponse.assign(&parms(0, 0, 0),
-                                 &parms(0, 0, 0) + _cachedParmResponse.size());
+                                 &parms(0, 0, 0) + responseSize);
 
       _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
       if (_h5SolTabs.second) {
@@ -905,7 +905,7 @@ void MSGridderBase::readAndWeightVisibilities(
         (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
                                   _h5TimeIndex.second)) {
       const std::vector<double> freqs(curBand.begin(), curBand.end());
-      _cachedParmResponse.resize(freqs.size() * antennaNames.size() * nparms);
+      const size_t responseSize = freqs.size() * antennaNames.size() * nparms;
 
       JonesParameters jonesParameters(
           freqs, {metaData.time}, antennaNames, _correctType,
@@ -918,7 +918,7 @@ void MSGridderBase::readAndWeightVisibilities(
       // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
       // stationn:polm:chank]
       _cachedParmResponse.assign(&parms(0, 0, 0),
-                                 &parms(0, 0, 0) + _cachedParmResponse.size());
+                                 &parms(0, 0, 0) + responseSize);
 
       _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
       if (_h5SolTabs.second) {
