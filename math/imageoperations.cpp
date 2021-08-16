@@ -204,10 +204,10 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
       v = 0.0;
     }
   }
-  ModelRenderer::Restore(image.data(), modelImage.data(),
-                         settings.trimmedImageWidth,
-                         settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
-                         settings.pixelScaleX, settings.pixelScaleY);
+  ModelRenderer::Restore(
+      image.data(), modelImage.data(), settings.trimmedImageWidth,
+      settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
+      settings.pixelScaleX, settings.pixelScaleY, settings.threadCount);
   Logger::Info << "DONE\n";
 
   Logger::Info << "Writing " << mfsPrefix << "-image" << postfix << "...\n";

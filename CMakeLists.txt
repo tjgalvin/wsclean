@@ -261,6 +261,7 @@ add_library(
   iuwt/iuwtdecomposition.cpp
   iuwt/iuwtdeconvolutionalgorithm.cpp
   iuwt/iuwtmask.cpp
+  math/fftkernels.cpp
   math/fftconvolver.cpp
   math/fftresampler.cpp
   math/gaussianfitter.cpp

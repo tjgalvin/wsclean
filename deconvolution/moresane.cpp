@@ -18,9 +18,10 @@ void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
   if (_iterationNumber != 0) {
     Logger::Info << "Convolving model with psf...\n";
     Image preparedPsf(width, height);
-    FFTConvolver::PrepareKernel(preparedPsf.data(), psfImage, width, height);
+    FFTConvolver::PrepareKernel(preparedPsf.data(), psfImage, width, height,
+                                _threadCount);
     FFTConvolver::ConvolveSameSize(_fftwManager, modelImage, preparedPsf.data(),
-                                   width, height);
+                                   width, height, _threadCount);
     Logger::Info << "Adding model back to residual...\n";
     for (size_t i = 0; i != width * height; ++i) dataImage[i] += modelImage[i];
   }

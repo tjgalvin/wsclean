@@ -130,6 +130,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
   }
 
   MultiScaleTransforms msTransforms(_fftwManager, _width, _height, _scaleShape);
+  msTransforms.SetThreadCount(_threadCount);
 
   size_t scaleWithPeak;
   findActiveScaleConvolvedMaxima(dirtySet, integratedScratch, scratch.data(),
@@ -193,8 +194,8 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
       transformList.emplace_back(individualConvolvedImages.Release(i));
     }
     if (_scaleInfos[scaleWithPeak].scale != 0.0) {
-      tools->MultiScaleTransform(&msTransforms, transformList, scratch,
-                                 _scaleInfos[scaleWithPeak].scale);
+      msTransforms.Transform(transformList, scratch,
+                             _scaleInfos[scaleWithPeak].scale);
     }
     for (size_t i = 0; i != dirtySet.PSFCount(); ++i)
       twiceConvolvedPSFs[i] = std::move(transformList[i]);
@@ -224,7 +225,6 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
     // iterations in a scale, because the fast loop takes more constant time and
     // is only efficient when doing many iterations.
     if (_fastSubMinorLoop) {
-      FFTWManager::ThreadingScope fftwMT(_fftwManager);
       size_t subMinorStartIteration = _iterationNumber;
       size_t convolutionWidth, convolutionHeight;
       getConvolutionDimensions(scaleWithPeak, convolutionWidth,
@@ -238,6 +238,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
       subLoop.SetGain(_scaleInfos[scaleWithPeak].gain);
       subLoop.SetAllowNegativeComponents(AllowNegativeComponents());
       subLoop.SetStopOnNegativeComponent(StopOnNegativeComponents());
+      subLoop.SetThreadCount(_threadCount);
       const size_t scaleBorder =
                        size_t(ceil(_scaleInfos[scaleWithPeak].scale * 0.5)),
                    horBorderSize = std::max<size_t>(
@@ -281,9 +282,8 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
         }
         if (_scaleInfos[scaleWithPeak].scale != 0.0) {
           std::vector<Image> transformList{std::move(scratch)};
-          tools->MultiScaleTransform(&msTransforms, transformList,
-                                     integratedScratch,
-                                     _scaleInfos[scaleWithPeak].scale);
+          msTransforms.Transform(transformList, integratedScratch,
+                                 _scaleInfos[scaleWithPeak].scale);
           scratch = std::move(transformList[0]);
         }
         float* model = modelSet[imageIndex];
@@ -441,6 +441,7 @@ void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<Image[]>& convolvedPSFs,
                                        const float* psf, Image& scratch,
                                        bool isIntegrated) {
   MultiScaleTransforms msTransforms(_fftwManager, _width, _height, _scaleShape);
+  msTransforms.SetThreadCount(_threadCount);
   convolvedPSFs.reset(new Image[_scaleInfos.size()]);
   if (isIntegrated) _logReceiver->Info << "Scale info:\n";
   const double firstAutoScaleSize = _beamSizeInPixels * 2.0;

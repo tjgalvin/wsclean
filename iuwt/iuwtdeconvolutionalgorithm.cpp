@@ -368,7 +368,8 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
     // scratch = gradient (x) psf
     scratch = gradient;
     FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                   psfKernel.data(), width, height);
+                                   psfKernel.data(), width, height,
+                                   _threadPool->size());
 
     // calc: IUWT gradient (x) psf
     iuwt.Decompose(*_threadPool, scratch.data(), scratch.data(), false);
@@ -412,7 +413,8 @@ bool IUWTDeconvolutionAlgorithm::runConjugateGradient(
     // scratch = mask IUWT PSF (x) model
     scratch = structureModel;
     FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                   psfKernel.data(), width, height);
+                                   psfKernel.data(), width, height,
+                                   _threadPool->size());
     iuwt.Decompose(*_threadPool, scratch.data(), scratch.data(), false);
     iuwt.ApplyMask(mask);
 
@@ -459,9 +461,10 @@ void IUWTDeconvolutionAlgorithm::constrainedPSFConvolve(float* image,
       smallerPsf[y * width + x] = psf[y * width + x];
     }
   }
-  FFTConvolver::PrepareKernel(kernel.data(), smallerPsf.data(), width, height);
+  FFTConvolver::PrepareKernel(kernel.data(), smallerPsf.data(), width, height,
+                              _threadPool->size());
   FFTConvolver::ConvolveSameSize(_fftwManager, image, kernel.data(), width,
-                                 height);
+                                 height, _threadPool->size());
 }
 
 bool IUWTDeconvolutionAlgorithm::findAndDeconvolveStructure(
@@ -585,7 +588,7 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
 
     Image smallPSFKernel(smallPSF.Width(), smallPSF.Height());
     FFTConvolver::PrepareKernel(smallPSFKernel.data(), smallPSF.data(),
-                                newWidth, newHeight);
+                                newWidth, newHeight, _threadPool->size());
 
     scratch = Image(dirty.Width(), dirty.Height());
 
@@ -659,7 +662,8 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
     float rmsBefore = rms(dirty);
     scratch = structureModel;
     FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                   psfKernel.data(), width, height);
+                                   psfKernel.data(), width, height,
+                                   _threadPool->size());
     maskedDirty = dirty;  // we use maskedDirty as temporary
     factorAdd(maskedDirty.data(), scratch.data(), -_gain, width, height);
     float rmsAfter = rms(maskedDirty);
@@ -728,7 +732,8 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
   size_t width = iuwt.Width(), height = iuwt.Height();
 
   Image psfKernel(width, height);
-  FFTConvolver::PrepareKernel(psfKernel.data(), psf, width, height);
+  FFTConvolver::PrepareKernel(psfKernel.data(), psf, width, height,
+                              _threadPool->size());
 
   Image& maskedDirty = scratchB;
 
@@ -807,7 +812,7 @@ float IUWTDeconvolutionAlgorithm::performSubImageComponentFitBoxed(
     trimPsf(smallPsf, psf, width, height, newWidth, newHeight);
     Image smallPsfKernel(smallPsf.Width(), smallPsf.Height());
     FFTConvolver::PrepareKernel(smallPsfKernel.data(), smallPsf.data(),
-                                newWidth, newHeight);
+                                newWidth, newHeight, _threadPool->size());
 
     Image smallMaskedDirty;
     trim(smallMaskedDirty, maskedDirty, width, height, x1, y1, x2, y2);
@@ -830,7 +835,7 @@ float IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
   const size_t width = iuwt.Width(), height = iuwt.Height();
   // Calculate IUWT^-1 mask IUWT model (x) PSF
   FFTConvolver::ConvolveSameSize(_fftwManager, model.data(), psfKernel.data(),
-                                 width, height);
+                                 width, height, _threadPool->size());
   iuwt.Decompose(*_threadPool, model.data(), model.data(), false);
   iuwt.ApplyMask(mask);
   iuwt.Recompose(model, false);
@@ -853,7 +858,6 @@ float IUWTDeconvolutionAlgorithm::performSubImageComponentFit(
 float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
     size_t& iterCounter, size_t nIter, ImageSet& modelSet, ImageSet& dirtySet,
     const aocommon::UVector<const float*>& psfs, bool& reachedMajorThreshold) {
-  FFTWManager::ThreadingScope fftwThreadsEnabled(_fftwManager);
   std::unique_ptr<ThreadPool> threadPool(new ThreadPool());
   _threadPool = &*threadPool;
 
@@ -879,7 +883,8 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
 
   // Prepare the PSF for convolutions later on
   Image psfKernel(_width, _height);
-  FFTConvolver::PrepareKernel(psfKernel.data(), psf.data(), _width, _height);
+  FFTConvolver::PrepareKernel(psfKernel.data(), psf.data(), _width, _height,
+                              _threadPool->size());
 
   std::cout << "Measuring PSF...\n";
   {
@@ -887,7 +892,8 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
     Image scratch(_width, _height);
 
     FFTConvolver::ConvolveSameSize(_fftwManager, convolvedPSF.data(),
-                                   psfKernel.data(), _width, _height);
+                                   psfKernel.data(), _width, _height,
+                                   _threadPool->size());
     measureRMSPerScale(psf.data(), convolvedPSF.data(), scratch.data(),
                        maxScale, _psfResponse);
   }
@@ -908,7 +914,8 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
   do {
     std::cout << "*** Deconvolution iteration " << iterCounter << " ***\n";
     dirtyBeforeIteration = dirty;
-    FFTConvolver::PrepareKernel(psfKernel.data(), psf.data(), _width, _height);
+    FFTConvolver::PrepareKernel(psfKernel.data(), psf.data(), _width, _height,
+                                _threadPool->size());
     std::vector<ValComponent> maxComponents;
     Image scratch(_width, _height);
     bool succeeded = findAndDeconvolveStructure(
@@ -924,9 +931,10 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
         scratch.Assign(structureModel[i], structureModel[i] + _width * _height);
         size_t psfIndex = dirtySet.PSFIndex(i);
         FFTConvolver::PrepareKernel(psfKernel.data(), psfs[psfIndex], _width,
-                                    _height);
+                                    _height, _threadPool->size());
         FFTConvolver::ConvolveSameSize(_fftwManager, scratch.data(),
-                                       psfKernel.data(), _width, _height);
+                                       psfKernel.data(), _width, _height,
+                                       _threadPool->size());
         Subtract(dirtySet[i], scratch);
       }
       dirtySet.GetLinearIntegrated(dirty);

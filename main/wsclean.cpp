@@ -1188,7 +1188,7 @@ void WSClean::saveRestoredImagesForGroup(
     ModelRenderer::Restore(
         restoredImage.data(), modelImage.data(), _settings.trimmedImageWidth,
         _settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
-        _settings.pixelScaleX, _settings.pixelScaleY);
+        _settings.pixelScaleX, _settings.pixelScaleY, _settings.threadCount);
     Logger::Info << "DONE\n";
     modelImage.reset();
 

@@ -7,7 +7,7 @@
 void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
                     double windowSize, long double beamMaj, long double beamMin,
                     long double beamPA, long double pixelScaleL,
-                    long double pixelScaleM) {
+                    long double pixelScaleM, size_t threadCount) {
   Image image(inputImage);
   rmsOutput = Image(image.Width(), image.Height(), 0.0);
 
@@ -15,8 +15,8 @@ void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
 
   ModelRenderer::Restore(rmsOutput.data(), image.data(), image.Width(),
                          image.Height(), beamMaj * windowSize,
-                         beamMin * windowSize, beamPA, pixelScaleL,
-                         pixelScaleM);
+                         beamMin * windowSize, beamPA, pixelScaleL, pixelScaleM,
+                         threadCount);
 
   double s = std::sqrt(2.0 * M_PI);
   const long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
@@ -67,7 +67,7 @@ void RMSImage::MakeWithNegativityLimit(
     long double beamMaj, long double beamMin, long double beamPA,
     long double pixelScaleL, long double pixelScaleM, size_t threadCount) {
   Make(rmsOutput, inputImage, windowSize, beamMaj, beamMin, beamPA, pixelScaleL,
-       pixelScaleM);
+       pixelScaleM, threadCount);
   Image slidingMinimum(inputImage.Width(), inputImage.Height());
   double beamInPixels = std::max(beamMaj / pixelScaleL, 1.0L);
   SlidingMinimum(slidingMinimum, inputImage, windowSize * beamInPixels,

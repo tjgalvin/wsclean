@@ -78,6 +78,7 @@ float GenericClean::ExecuteMajorIteration(
     const size_t horBorderSize = std::round(_width * CleanBorderRatio()),
                  vertBorderSize = std::round(_height * CleanBorderRatio());
     subMinorLoop.SetCleanBorders(horBorderSize, vertBorderSize);
+    subMinorLoop.SetThreadCount(_threadCount);
 
     maxValue = subMinorLoop.Run(dirtySet, psfs);
 

@@ -33,16 +33,16 @@ class ModelRenderer {
                const class Model& model, long double beamMaj,
                long double beamMin, long double beamPA,
                long double startFrequency, long double endFrequency,
-               aocommon::PolarizationEnum polarization);
+               aocommon::PolarizationEnum polarization, size_t threadCount = 1);
 
   /**
    * Restore elliptical beam using a FFT deconvolution
    */
   void Restore(float* imageData, const float* modelData, size_t imageWidth,
                size_t imageHeight, long double beamMaj, long double beamMin,
-               long double beamPA) {
+               long double beamPA, size_t threadCount = 1) {
     Restore(imageData, modelData, imageWidth, imageHeight, beamMaj, beamMin,
-            beamPA, _pixelScaleL, _pixelScaleM);
+            beamPA, _pixelScaleL, _pixelScaleM, threadCount);
   }
 
   /**
@@ -52,7 +52,7 @@ class ModelRenderer {
                       size_t imageWidth, size_t imageHeight,
                       long double beamMaj, long double beamMin,
                       long double beamPA, long double pixelScaleL,
-                      long double pixelScaleM);
+                      long double pixelScaleM, size_t threadCount = 1);
 
   /**
    * Render without beam convolution, such that each point-source is one pixel.

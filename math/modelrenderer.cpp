@@ -174,12 +174,13 @@ void ModelRenderer::Restore(float* imageData, size_t imageWidth,
                             long double beamMaj, long double beamMin,
                             long double beamPA, long double startFrequency,
                             long double endFrequency,
-                            aocommon::PolarizationEnum polarization) {
+                            aocommon::PolarizationEnum polarization,
+                            size_t threadCount) {
   aocommon::UVector<float> renderedWithoutBeam(imageWidth * imageHeight, 0.0);
   renderModel(renderedWithoutBeam.data(), imageWidth, imageHeight, model,
               startFrequency, endFrequency, polarization);
   Restore(imageData, renderedWithoutBeam.data(), imageWidth, imageHeight,
-          beamMaj, beamMin, beamPA, _pixelScaleL, _pixelScaleM);
+          beamMaj, beamMin, beamPA, _pixelScaleL, _pixelScaleM, threadCount);
 }
 
 /**
@@ -189,7 +190,7 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
                             size_t imageWidth, size_t imageHeight,
                             long double beamMaj, long double beamMin,
                             long double beamPA, long double pixelScaleL,
-                            long double pixelScaleM) {
+                            long double pixelScaleM, size_t threadCount) {
   if (beamMaj == 0.0 && beamMin == 0.0) {
     for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
       imageData[j] += modelData[j];
@@ -245,7 +246,7 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
 
     FFTWManager fftw;
     FFTConvolver::Convolve(fftw, convolvedModel.data(), imageWidth, imageHeight,
-                           kernel.data(), boundingBoxSize);
+                           kernel.data(), boundingBoxSize, threadCount);
     for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
       imageData[j] += convolvedModel[j];
     }

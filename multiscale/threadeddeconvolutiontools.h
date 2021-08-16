@@ -26,16 +26,6 @@ class ThreadedDeconvolutionTools {
   void SubtractImage(float* image, const float* psf, size_t width,
                      size_t height, size_t x, size_t y, float factor);
 
-  // This one is for many transforms of the same scale
-  void MultiScaleTransform(class MultiScaleTransforms* msTransforms,
-                           std::vector<Image>& images, Image& scratch,
-                           float scale);
-
-  // This one is for transform of different scales
-  void MultiScaleTransform(class MultiScaleTransforms* msTransforms,
-                           std::vector<Image>& images,
-                           aocommon::UVector<float> scales);
-
   void FindMultiScalePeak(
       class MultiScaleTransforms* msTransforms, const Image& image,
       const aocommon::UVector<float>& scales, std::vector<PeakData>& results,
@@ -70,21 +60,7 @@ class ThreadedDeconvolutionTools {
     float factor;
     size_t startY, endY;
   };
-  struct FinishMultiScaleTransformTask : public ThreadTask {
-    virtual ThreadResult* operator()();
 
-    class MultiScaleTransforms* msTransforms;
-    Image* image;
-    Image* kernel;
-  };
-  struct MultiScaleTransformTask : public ThreadTask {
-    virtual ThreadResult* operator()();
-
-    class MultiScaleTransforms* msTransforms;
-    Image* image;
-    Image* scratch;
-    float scale;
-  };
   struct FindMultiScalePeakTask : public ThreadTask {
     virtual ThreadResult* operator()();
 

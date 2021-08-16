@@ -210,7 +210,8 @@ void WSCFitsWriter::Restore(const Settings& settings) {
 
   ModelRenderer::Restore(image.data(), model.data(), imgReader.ImageWidth(),
                          imgReader.ImageHeight(), beamMaj, beamMin, beamPA,
-                         imgReader.PixelSizeX(), imgReader.PixelSizeY());
+                         imgReader.PixelSizeX(), imgReader.PixelSizeY(),
+                         settings.threadCount);
 
   FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
@@ -245,7 +246,7 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
   renderer.Restore(image.data(), imgReader.ImageWidth(),
                    imgReader.ImageHeight(), model, beamMaj, beamMin, beamPA,
                    frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
-                   aocommon::Polarization::StokesI);
+                   aocommon::Polarization::StokesI, settings.threadCount);
 
   FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);

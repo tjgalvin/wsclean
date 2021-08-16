@@ -108,7 +108,8 @@ class SubMinorLoop {
         _fitter(0),
         _subMinorModel(width, height),
         _fluxCleaned(0.0),
-        _logReceiver(logReceiver) {}
+        _logReceiver(logReceiver),
+        _threadCount(1) {}
 
   /**
    * @param threshold The threshold to which this subminor run should clean
@@ -149,6 +150,8 @@ class SubMinorLoop {
   void SetMask(const bool* mask) { _mask = mask; }
 
   void SetRMSFactorImage(const Image& image) { _rmsFactorImage = image; }
+
+  void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 
   size_t CurrentIteration() const { return _currentIteration; }
 
@@ -192,6 +195,7 @@ class SubMinorLoop {
   float _fluxCleaned;
   Image _rmsFactorImage;
   LogReceiver& _logReceiver;
+  size_t _threadCount;
 };
 
 #endif

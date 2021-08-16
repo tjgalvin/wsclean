@@ -19,7 +19,8 @@ class MultiScaleTransforms {
       : _fftwManager(fftwManager),
         _width(width),
         _height(height),
-        _shape(shape) {}
+        _shape(shape),
+        _threadCount(1) {}
 
   void PrepareTransform(float* kernel, float scale);
   void FinishTransform(float* image, const float* kernel);
@@ -101,10 +102,13 @@ class MultiScaleTransforms {
     return scaleSizeInPixels * (3.0 / 16.0);
   }
 
+  void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
+
  private:
   class FFTWManager& _fftwManager;
   size_t _width, _height;
   enum Shape _shape;
+  size_t _threadCount;
 
   static size_t taperedQuadraticKernelSize(double scaleInPixels) {
     return size_t(ceil(scaleInPixels * 0.5) * 2.0) + 1;
