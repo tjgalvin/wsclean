@@ -4,6 +4,7 @@ stages:
  - format
  - build
  - test
+ - package
 
 workflow:
   rules:
@@ -180,3 +181,19 @@ test-system-das5:
     - if: $CI_PIPELINE_SOURCE == "push"
       when: manual
       allow_failure: true
+
+package:
+  stage: package
+  variables:
+    PACKAGE_FILE: "wsclean-${CI_COMMIT_TAG}.tar.bz2"
+    PACKAGE_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sources/${CI_COMMIT_TAG}/wsclean-${CI_COMMIT_TAG}.tar.bz2"
+  before_script:
+    - apt-get update -qq
+    - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq curl git python3-pip
+    - pip3 install git-archive-all
+  script:
+    - |
+      git-archive-all --force-submodules ${PACKAGE_FILE}
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file ${PACKAGE_FILE} ${PACKAGE_URL}
+  rules:
+    - if: $CI_COMMIT_TAG
