@@ -19,9 +19,17 @@
 /* Copyright (C) 2019-2021 Max-Planck-Society
    Author: Martin Reinecke */
 
-#ifndef GRIDDER_CXX_H
-#define GRIDDER_CXX_H
+#ifndef DUCC0_WGRIDDER_H
+#define DUCC0_WGRIDDER_H
 
+#include <cstring>
+#include <complex>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <type_traits>
+#include <utility>
+#include <mutex>
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
@@ -29,10 +37,13 @@
 #include <vector>
 #include <array>
 #include <memory>
+#if ((!defined(DUCC0_NO_SIMD)) && (defined(__AVX__)||defined(__SSE3__)))
+#include <x86intrin.h>
+#endif
 
 #include "ducc0/infra/error_handling.h"
 #include "ducc0/math/constants.h"
-#include "ducc0/math/fft.h"
+#include "ducc0/fft/fft.h"
 #include "ducc0/infra/threading.h"
 #include "ducc0/infra/misc_utils.h"
 #include "ducc0/infra/useful_macros.h"
@@ -46,11 +57,13 @@ namespace ducc0 {
 namespace detail_gridder {
 
 using namespace std;
+// the next line is necessary to address some sloppy name choices in hipSYCL
+using std::min, std::max;
 
-template<typename T> constexpr size_t simdlen()
-  { return min<size_t>(8, native_simd<T>::size()); }
+template<typename T> constexpr inline int mysimdlen
+  = min<int>(8, native_simd<T>::size());
 
-template<typename T> using mysimd = simd<T,simdlen<T>()>;
+template<typename T> using mysimd = typename simd_select<T,mysimdlen<T>>::type;
 
 template<typename T> T sqr(T val) { return val*val; }
 
@@ -90,9 +103,9 @@ template<typename T, typename F> [[gnu::hot]] void expi(vector<complex<T>> &res,
   size_t i=0;
   for (; i+vlen-1<n; i+=vlen)
     {
-    auto vang = Tsimd::loadu(&buf[i]);
-    auto vcos = vang.apply([](T arg) { return cos(arg); });
-    auto vsin = vang.apply([](T arg) { return sin(arg); });
+    auto vang = Tsimd(&buf[i],element_aligned_tag());
+    auto vcos = cos(vang);
+    auto vsin = sin(vang);
     for (size_t ii=0; ii<vlen; ++ii)
       res[i+ii] = complex<T>(vcos[ii], vsin[ii]);
     }
@@ -100,21 +113,22 @@ template<typename T, typename F> [[gnu::hot]] void expi(vector<complex<T>> &res,
     res[i] = complex<T>(cos(buf[i]), sin(buf[i]));
   }
 
-template<typename T, size_t len> complex<T> hsum_cmplx(simd<T, len> vr, simd<T, len> vi)
+template<typename T> complex<T> hsum_cmplx(mysimd<T> vr, mysimd<T> vi)
   { return complex<T>(reduce(vr, plus<>()), reduce(vi, plus<>())); }
 
+#if (!defined(DUCC0_NO_SIMD))
 #if (defined(__AVX__))
 #if 1
-inline complex<float> hsum_cmplx(simd<float,8> vr, simd<float,8> vi)
+template<> inline complex<float> hsum_cmplx<float>(mysimd<float> vr, mysimd<float> vi)
   {
-  auto t1 = _mm256_hadd_ps(vr, vi);
+  auto t1 = _mm256_hadd_ps(__m256(vr), __m256(vi));
   auto t2 = _mm_hadd_ps(_mm256_extractf128_ps(t1, 0), _mm256_extractf128_ps(t1, 1));
   t2 += _mm_shuffle_ps(t2, t2, _MM_SHUFFLE(1,0,3,2));
   return complex<float>(t2[0], t2[1]);
   }
 #else
 // this version may be slightly faster, but this needs more benchmarking
-inline complex<float> hsum_cmplx(native_simd<float> vr, native_simd<float> vi)
+template<> inline complex<float> hsum_cmplx<float>(mysimd<float> vr, mysimd<float> vi)
   {
   auto t1 = _mm256_shuffle_ps(vr, vi, _MM_SHUFFLE(0,2,0,2));
   auto t2 = _mm256_shuffle_ps(vr, vi, _MM_SHUFFLE(1,3,1,3));
@@ -125,14 +139,14 @@ inline complex<float> hsum_cmplx(native_simd<float> vr, native_simd<float> vi)
   return complex<float>(t5[0], t5[1]);
   }
 #endif
-#endif
-#if defined(__SSE3__)
-inline complex<float> hsum_cmplx(simd<float,4> vr, simd<float,4> vi)
+#elif defined(__SSE3__)
+template<> inline complex<float> hsum_cmplx<float>(mysimd<float> vr, mysimd<float> vi)
   {
-  auto t1 = _mm_hadd_ps(vr, vi);
+  auto t1 = _mm_hadd_ps(__m128(vr), __m128(vi));
   t1 += _mm_shuffle_ps(t1, t1, _MM_SHUFFLE(2,3,0,1));
   return complex<float>(t1[0], t1[2]);
   }
+#endif
 #endif
 
 template<size_t ndim> void checkShape
@@ -921,8 +935,14 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       }
 
     template<size_t SUPP, bool wgrid> [[gnu::hot]] void x2grid_c_helper
-      (mav<complex<Tcalc>,2> &grid, size_t p0, double w0)
+      (size_t supp, mav<complex<Tcalc>,2> &grid, size_t p0, double w0)
       {
+      if constexpr (SUPP>=8)
+        if (supp<=SUPP/2) return x2grid_c_helper<SUPP/2, wgrid>(supp, grid, p0, w0);
+      if constexpr (SUPP>4)
+        if (supp<SUPP) return x2grid_c_helper<SUPP-1, wgrid>(supp, grid, p0, w0);
+      MR_assert(supp==SUPP, "requested support ou of range");
+
       vector<mutex> locks(nu);
 
       execDynamic(ranges.size(), nthreads, wgrid ? SUPP : 1, [&](Scheduler &sched)
@@ -967,12 +987,12 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
                     {
                     auto * DUCC0_RESTRICT pxr = hlp.p0r+cu*jump;
                     auto * DUCC0_RESTRICT pxi = hlp.p0i+cu*jump;
-                    auto tr = mysimd<Tacc>::loadu(pxr);
-                    auto ti = mysimd<Tacc>::loadu(pxi);
+                    auto tr = mysimd<Tacc>(pxr,element_aligned_tag());
+                    auto ti = mysimd<Tacc>(pxi,element_aligned_tag());
                     tr += vr*ku[cu];
                     ti += vi*ku[cu];
-                    tr.storeu(pxr);
-                    ti.storeu(pxi);
+                    tr.copy_to(pxr,element_aligned_tag());
+                    ti.copy_to(pxi,element_aligned_tag());
                     }
                   }
                 else
@@ -985,12 +1005,12 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
                       {
                       auto * DUCC0_RESTRICT pxr = hlp.p0r+cu*jump+cv*hlp.vlen;
                       auto * DUCC0_RESTRICT pxi = hlp.p0i+cu*jump+cv*hlp.vlen;
-                      auto tr = mysimd<Tacc>::loadu(pxr);
+                      auto tr = mysimd<Tacc>(pxr,element_aligned_tag());
                       tr += tmpr*kv[cv];
-                      tr.storeu(pxr);
-                      auto ti = mysimd<Tacc>::loadu(pxi);
+                      tr.copy_to(pxr,element_aligned_tag());
+                      auto ti = mysimd<Tacc>(pxi, element_aligned_tag());
                       ti += tmpi*kv[cv];
-                      ti.storeu(pxi);
+                      ti.copy_to(pxi,element_aligned_tag());
                       }
                     }
                   }
@@ -1005,33 +1025,19 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       size_t p0, double w0=-1)
       {
       checkShape(grid.shape(), {nu, nv});
-
-      if constexpr (is_same<Tacc, double>::value)
-        switch(supp)
-          {
-          case  9: x2grid_c_helper< 9, wgrid>(grid, p0, w0); return;
-          case 10: x2grid_c_helper<10, wgrid>(grid, p0, w0); return;
-          case 11: x2grid_c_helper<11, wgrid>(grid, p0, w0); return;
-          case 12: x2grid_c_helper<12, wgrid>(grid, p0, w0); return;
-          case 13: x2grid_c_helper<13, wgrid>(grid, p0, w0); return;
-          case 14: x2grid_c_helper<14, wgrid>(grid, p0, w0); return;
-          case 15: x2grid_c_helper<15, wgrid>(grid, p0, w0); return;
-          case 16: x2grid_c_helper<16, wgrid>(grid, p0, w0); return;
-          }
-      switch(supp)
-        {
-        case  4: x2grid_c_helper< 4, wgrid>(grid, p0, w0); return;
-        case  5: x2grid_c_helper< 5, wgrid>(grid, p0, w0); return;
-        case  6: x2grid_c_helper< 6, wgrid>(grid, p0, w0); return;
-        case  7: x2grid_c_helper< 7, wgrid>(grid, p0, w0); return;
-        case  8: x2grid_c_helper< 8, wgrid>(grid, p0, w0); return;
-        default: MR_fail("must not happen");
-        }
+      constexpr size_t maxsupp = is_same<Tacc, double>::value ? 16 : 8;
+      x2grid_c_helper<maxsupp, wgrid>(supp, grid, p0, w0);
       }
 
     template<size_t SUPP, bool wgrid> [[gnu::hot]] void grid2x_c_helper
-      (const mav<complex<Tcalc>,2> &grid, size_t p0, double w0)
+      (size_t supp, const mav<complex<Tcalc>,2> &grid, size_t p0, double w0)
       {
+      if constexpr (SUPP>=8)
+        if (supp<=SUPP/2) return grid2x_c_helper<SUPP/2, wgrid>(supp, grid, p0, w0);
+      if constexpr (SUPP>4)
+        if (supp<SUPP) return grid2x_c_helper<SUPP-1, wgrid>(supp, grid, p0, w0);
+      MR_assert(supp==SUPP, "requested support ou of range");
+
       // Loop over sampling points
       execDynamic(ranges.size(), nthreads, wgrid ? SUPP : 1, [&](Scheduler &sched)
         {
@@ -1070,8 +1076,8 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
                     {
                     const auto * DUCC0_RESTRICT pxr = hlp.p0r + cu*jump;
                     const auto * DUCC0_RESTRICT pxi = hlp.p0i + cu*jump;
-                    rr += mysimd<Tcalc>::loadu(pxr)*ku[cu];
-                    ri += mysimd<Tcalc>::loadu(pxi)*ku[cu];
+                    rr += mysimd<Tcalc>(pxr,element_aligned_tag())*ku[cu];
+                    ri += mysimd<Tcalc>(pxi,element_aligned_tag())*ku[cu];
                     }
                   rr *= kv[0];
                   ri *= kv[0];
@@ -1085,15 +1091,15 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
                       {
                       const auto * DUCC0_RESTRICT pxr = hlp.p0r + cu*jump + hlp.vlen*cv;
                       const auto * DUCC0_RESTRICT pxi = hlp.p0i + cu*jump + hlp.vlen*cv;
-                      tmpr += kv[cv]*mysimd<Tcalc>::loadu(pxr);
-                      tmpi += kv[cv]*mysimd<Tcalc>::loadu(pxi);
+                      tmpr += kv[cv]*mysimd<Tcalc>(pxr,element_aligned_tag());
+                      tmpi += kv[cv]*mysimd<Tcalc>(pxi,element_aligned_tag());
                       }
                     rr += ku[cu]*tmpr;
                     ri += ku[cu]*tmpi;
                     }
                   }
                 ri *= imflip;
-                auto r = hsum_cmplx(rr,ri);
+                auto r = hsum_cmplx<Tcalc>(rr,ri);
                 ms_out.v(row, ch) += r;
                 if (lastplane)
                   ms_out.v(row, ch) *= shifting ?
@@ -1110,28 +1116,8 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
       size_t p0, double w0=-1)
       {
       checkShape(grid.shape(), {nu, nv});
-
-      if constexpr (is_same<Tcalc, double>::value)
-        switch(supp)
-          {
-          case  9: grid2x_c_helper< 9, wgrid>(grid, p0, w0); return;
-          case 10: grid2x_c_helper<10, wgrid>(grid, p0, w0); return;
-          case 11: grid2x_c_helper<11, wgrid>(grid, p0, w0); return;
-          case 12: grid2x_c_helper<12, wgrid>(grid, p0, w0); return;
-          case 13: grid2x_c_helper<13, wgrid>(grid, p0, w0); return;
-          case 14: grid2x_c_helper<14, wgrid>(grid, p0, w0); return;
-          case 15: grid2x_c_helper<15, wgrid>(grid, p0, w0); return;
-          case 16: grid2x_c_helper<16, wgrid>(grid, p0, w0); return;
-          }
-      switch(supp)
-        {
-        case  4: grid2x_c_helper< 4, wgrid>(grid, p0, w0); return;
-        case  5: grid2x_c_helper< 5, wgrid>(grid, p0, w0); return;
-        case  6: grid2x_c_helper< 6, wgrid>(grid, p0, w0); return;
-        case  7: grid2x_c_helper< 7, wgrid>(grid, p0, w0); return;
-        case  8: grid2x_c_helper< 8, wgrid>(grid, p0, w0); return;
-        default: MR_fail("must not happen");
-        }
+      constexpr size_t maxsupp = is_same<Tcalc, double>::value ? 16 : 8;
+      grid2x_c_helper<maxsupp, wgrid>(supp, grid, p0, w0);
       }
 
     void apply_global_corrections(mav<Timg,2> &dirty)
@@ -1346,6 +1332,17 @@ auto ix = ix_+ranges.size()/2; if (ix>=ranges.size()) ix -=ranges.size();
           fftcost *= nplanes;
           gridcost *= supp;
           }
+        // FIXME: heuristics could be improved
+        gridcost /= nthreads;  // assume perfect scaling for now
+        constexpr double max_fft_scaling = 6;
+        constexpr double scaling_power=2;
+        auto sigmoid = [](double x, double m, double s)
+          {
+          auto x2 = x-1;
+          auto m2 = m-1;
+          return 1.+x2/pow((1.+pow(x2/m2,s)),1./s);
+          };
+        fftcost /= sigmoid(nthreads, max_fft_scaling, scaling_power);
         double cost = fftcost+gridcost;
         if (cost<mincost)
           {

@@ -1,5 +1,5 @@
 #include "wgriddinggridder_simple.h"
-#include "gridder_cxx.h"
+#include "ducc0/wgridder/wgridder.h"
 
 using namespace ducc0;
 

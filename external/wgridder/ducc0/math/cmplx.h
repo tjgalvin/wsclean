@@ -16,18 +16,24 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* Copyright (C) 2019-2021 Max-Planck-Society
-   Author: Martin Reinecke */
+/** \file ducc0/math/cmplx.h
+ *  Minimalistic complex number class
+ *
+ *  \copyright Copyright (C) 2019-2021 Max-Planck-Society
+ *  \author Martin Reinecke
+ */
 
 #ifndef DUCC0_CMPLX_H
 #define DUCC0_CMPLX_H
 
 namespace ducc0 {
 
+/// Very basic class representing complex numbers
+/** Meant exclusively for internal low-level use, e.g. in FFT routines. */
 template<typename T> struct Cmplx {
   T r, i;
   Cmplx() {}
-  Cmplx(T r_, T i_) : r(r_), i(i_) {}
+  constexpr Cmplx(T r_, T i_) : r(r_), i(i_) {}
   void Set(T r_, T i_) { r=r_; i=i_; }
   void Set(T r_) { r=r_; i=T(0); }
   void Split(T &r_, T &i_) const { r_=r; i_=i; }

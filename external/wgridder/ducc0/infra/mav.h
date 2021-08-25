@@ -16,19 +16,26 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/* Copyright (C) 2019-2020 Max-Planck-Society
-   Author: Martin Reinecke */
+/*! \file ducc0/infra/mav.h
+ *  Classes for dealing with multidimensional arrays
+ *
+ *  \copyright Copyright (C) 2019-2021 Max-Planck-Society
+ *  \author Martin Reinecke
+ *  */
 
 #ifndef DUCC0_MAV_H
 #define DUCC0_MAV_H
 
-#include <cstdlib>
 #include <array>
 #include <vector>
 #include <memory>
 #include <numeric>
+#include <cstddef>
+#include <functional>
+#include <tuple>
 #include "ducc0/infra/error_handling.h"
 #include "ducc0/infra/aligned_array.h"
+#include "ducc0/infra/misc_utils.h"
 
 namespace ducc0 {
 
@@ -118,10 +125,13 @@ template<typename T> class membuf
 
 constexpr size_t MAXIDX=~(size_t(0));
 
+/// Helper class containing shape and stride information of an `fmav` object
 class fmav_info
   {
   public:
+    /// vector of nonnegative integers for storing the array shape
     using shape_t = vector<size_t>;
+    /// vector of integers for storing the array strides
     using stride_t = vector<ptrdiff_t>;
 
   protected:
@@ -144,13 +154,17 @@ class fmav_info
       { return str[dim]*ptrdiff_t(n); }
 
   public:
+    /// Constructs a 1D object with all extents and strides set to zero.
     fmav_info() : shp(1,0), str(1,0), sz(0) {}
+    /// Constructs an object with the given shape and stride.
     fmav_info(const shape_t &shape_, const stride_t &stride_)
       : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>()))
       {
       MR_assert(shp.size()>0, "at least 1D required");
       MR_assert(shp.size()==str.size(), "dimensions mismatch");
       }
+    /// Constructs an object with the given shape and computes the strides
+    /// automatically, assuming a C-contiguous memory layout.
     fmav_info(const shape_t &shape_)
       : fmav_info(shape_, shape2stride(shape_)) {}
     void assign(const fmav_info &other)
@@ -159,14 +173,25 @@ class fmav_info
       str = other.str;
       sz = other.sz;
       }
+    /// Returns the dimensionality of the object.
     size_t ndim() const { return shp.size(); }
+    /// Returns the total number of entries in the object.
     size_t size() const { return sz; }
+    /// Returns the shape of the object.
     const shape_t &shape() const { return shp; }
+    /// Returns the length along dimension \a i.
     size_t shape(size_t i) const { return shp[i]; }
+    /// Returns the strides of the object.
     const stride_t &stride() const { return str; }
+    /// Returns the stride along dimension \a i.
     const ptrdiff_t &stride(size_t i) const { return str[i]; }
+    /// Returns true iff the last dimension has stride 1.
+    /**  Typically used for optimization purposes. */
     bool last_contiguous() const
       { return (str.back()==1); }
+    /** Returns true iff the object is C-contiguous, i.e. if the stride of the
+     *  last dimension is 1, the stride for the next-to-last dimension is the
+     *  shape of the last dimension etc. */
     bool contiguous() const
       {
       auto ndim = shp.size();
@@ -178,8 +203,11 @@ class fmav_info
         }
       return true;
       }
+    /// Returns true iff this->shape and \a other.shape match.
     bool conformable(const fmav_info &other) const
       { return shp==other.shp; }
+    /// Returns the one-dimensional index of an entry from the given
+    /// multi-dimensional index tuple, taking strides into account.
     template<typename... Ns> ptrdiff_t idx(Ns... ns) const
       {
       MR_assert(ndim()==sizeof...(ns), "incorrect number of indices");
@@ -187,13 +215,16 @@ class fmav_info
       }
   };
 
+/// Helper class containing shape and stride information of a `mav` object
 template<size_t ndim> class mav_info
   {
   protected:
     static_assert(ndim>0, "at least 1D required");
 
   public:
+    /// Fixed-size array of nonnegative integers for storing the array shape
     using shape_t = array<size_t, ndim>;
+    /// Fixed-size array of integers for storing the array strides
     using stride_t = array<ptrdiff_t, ndim>;
 
   protected:
@@ -215,13 +246,17 @@ template<size_t ndim> class mav_info
       { return str[dim]*n; }
 
   public:
+    /// Constructs an object with all extents and strides set to zero.
     mav_info() : sz(0)
       {
       for (size_t i=0; i<ndim; ++i)
         { shp[i]=0; str[i]=0; }
       }
+    /// Constructs an object with the given shape and stride.
     mav_info(const shape_t &shape_, const stride_t &stride_)
       : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>())) {}
+    /// Constructs an object with the given shape and computes the strides
+    /// automatically, assuming a C-contiguous memory layout.
     mav_info(const shape_t &shape_)
       : mav_info(shape_, shape2stride(shape_)) {}
     void assign(const mav_info &other)
@@ -230,13 +265,23 @@ template<size_t ndim> class mav_info
       str = other.str;
       sz = other.sz;
       }
+    /// Returns the total number of entries in the object.
     size_t size() const { return sz; }
+    /// Returns the shape of the object.
     const shape_t &shape() const { return shp; }
+    /// Returns the length along dimension \a i.
     size_t shape(size_t i) const { return shp[i]; }
+    /// Returns the strides of the object.
     const stride_t &stride() const { return str; }
+    /// Returns the stride along dimension \a i.
     const ptrdiff_t &stride(size_t i) const { return str[i]; }
+    /// Returns true iff the last dimension has stride 1.
+    /**  Typically used for optimization purposes. */
     bool last_contiguous() const
       { return (str.back()==1); }
+    /** Returns true iff the object is C-contiguous, i.e. if the stride of the
+     *  last dimension is 1, the stride for the next-to-last dimension is the
+     *  shape of the last dimension etc. */
     bool contiguous() const
       {
       ptrdiff_t stride=1;
@@ -247,10 +292,14 @@ template<size_t ndim> class mav_info
         }
       return true;
       }
+    /// Returns true iff this->shape and \a other.shape match.
     bool conformable(const mav_info &other) const
       { return shp==other.shp; }
+    /// Returns true iff this->shape and \a other match.
     bool conformable(const shape_t &other) const
       { return shp==other; }
+    /// Returns the one-dimensional index of an entry from the given
+    /// multi-dimensional index tuple, taking strides into account.
     template<typename... Ns> ptrdiff_t idx(Ns... ns) const
       {
       static_assert(ndim==sizeof...(ns), "incorrect number of indices");
@@ -288,7 +337,18 @@ class FmavIter
   };
 
 
-// "mav" stands for "multidimensional array view"
+/// Class for storing (or referring to) multi-dimensional arrays with a
+/// dimensionality that is not known at compile time.
+/** "fmav" stands for "flexible multidimensional array view".
+ *  The shape must consist of non-negative integers (zeros are allowed).
+ *  Strides may be positive or negative; stride values of zero are accepted and
+ *  may be useful in specific circumstances (e.g. read-only arrays with the same
+ *  value everywhere.
+ *
+ *  An fmav may "own" or "not own" the memory holding its array data. If it does
+ *  not own the memory, it will not be deallocated when the mav is destroyed.
+ *  If it owns the memory, this "ownership" may be shared with other fmav objects.
+ *  Memory is only deallocated if the last fmav object owning it is destroyed. */
 template<typename T> class fmav: public fmav_info, public membuf<T>
   {
   protected:
@@ -300,6 +360,36 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
     using typename tinfo::stride_t;
 
   protected:
+    template<typename Func, typename T2> void applyHelper(size_t idim,
+      ptrdiff_t idx, ptrdiff_t idx2, const fmav<T2> &other, Func func)
+      {
+      auto ndim = tinfo::ndim();
+      if (idim+1<ndim)
+        for (size_t i=0; i<shp[idim]; ++i)
+          applyHelper<Func>(idim+1, idx+i*str[idim], idx2+i*other.stride(idim), other, func);
+      else
+        {
+        T *d1 = vdata();
+        const T2 *d2 = other.cdata();
+        for (size_t i=0; i<shp[idim]; ++i)
+          func(d1[idx+i*str[idim]], d2[idx2+i*other.stride(idim)]);
+        }
+      }
+    template<typename Func, typename T2> void applyHelper(size_t idim,
+      ptrdiff_t idx, ptrdiff_t idx2, const fmav<T2> &other, Func func) const
+      {
+      auto ndim = tinfo::ndim();
+      if (idim+1<ndim)
+        for (size_t i=0; i<shp[idim]; ++i)
+          applyHelper<Func>(idim+1, idx+i*str[idim], idx2+i*other.stride(idim), other, func);
+      else
+        {
+        const T *d1 = cdata();
+        const T2 *d2 = other.cdata();
+        for (size_t i=0; i<shp[idim]; ++i)
+          func(d1[idx+i*str[idim]], d2[idx2+i*other.stride(idim)]);
+        }
+      }
     template<typename Func> void applyHelper(size_t idim, ptrdiff_t idx, Func func)
       {
       auto ndim = tinfo::ndim();
@@ -359,17 +449,36 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
 
   public:
     using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
+    /// Constructs a 1D fmav with size and stride zero and no data content.
     fmav() {}
+    /** Constructs a read-only fmav with its first data entry at \a d
+     *  and the given shape and strides. The fmav does not own the memory. */
     fmav(const T *d_, const shape_t &shp_, const stride_t &str_)
       : tinfo(shp_, str_), tbuf(d_) {}
+    /** Constructs a read-only fmav with its first data entry at \a d
+     *  and the given shape. The array is assumed to be C-contiguous.
+     *  The fmav does not own the memory. */
     fmav(const T *d_, const shape_t &shp_)
       : tinfo(shp_), tbuf(d_) {}
+    /** Constructs an fmav with its first data entry at \a d
+     *  and the given shape and strides. The fmav does not own the memory.
+     *  Iff \a rw_ is true, write accesses to the array are allowed. */
     fmav(T *d_, const shape_t &shp_, const stride_t &str_, bool rw_)
       : tinfo(shp_, str_), tbuf(d_,rw_) {}
+    /** Constructs an fmav with its first data entry at \a d and the given shape.
+     *  The array is assumed to be C-contiguous.
+     *  The fmav does not own the memory.
+     *  Iff \a rw_ is true, write accesses to the array are allowed. */
     fmav(T *d_, const shape_t &shp_, bool rw_)
       : tinfo(shp_), tbuf(d_,rw_) {}
+    /** Constructs a C-contiguous read/write fmav with the given shape.
+     *  The array contents are default-initialized.
+     *  The fmav owns the array memory. */
     fmav(const shape_t &shp_)
       : tinfo(shp_), tbuf(size()) {}
+    /** Constructs a C-contiguous read/write fmav with the given shape.
+     *  The array contents are not initialized.
+     *  The fmav owns the array memory. */
     fmav(const shape_t &shp_, uninitialized_dummy)
       : tinfo(shp_), tbuf(size(), UNINITIALIZED) {}
     fmav(const shape_t &shp_, const stride_t &str_, uninitialized_dummy)
@@ -398,7 +507,11 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
     fmav(fmav &other) : tinfo(other), tbuf(other) {}
     fmav(fmav &&other) : tinfo(other), tbuf(other) {}
 #else
+    /** Constructs a read-only fmav with the same shape and strides as \a other,
+     *  pointing to the same memory. Ownership is shared. */
     fmav(const fmav &other) = default;
+    /** Constructs an fmav with the same read-write status, shape and strides
+     *  as \a other, pointing to the same memory. Ownership is shared. */
     fmav(fmav &other) = default;
     fmav(fmav &&other) = default;
 #endif
@@ -422,23 +535,40 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
       membuf<T>::assign(other);
       }
 
+    /// Returns the data entry at the given set of indices.
     template<typename... Ns> const T &operator()(Ns... ns) const
       { return craw(idx(ns...)); }
+    /// Returns the data entry at the given set of indices.
     template<typename... Ns> const T &c(Ns... ns) const
       { return craw(idx(ns...)); }
+    /** Returns a writable reference to the data entry at the given set of
+     *  indices. This call will throw an exception if the fmav is read-only. */
     template<typename... Ns> T &v(Ns... ns)
       { return vraw(idx(ns...)); }
 
+    /** Returns an fmav (of the same or smaller dimensionality) representing a
+     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
+     *  the number of entries along this dimension. If any extent is 0, this
+     *  dimension will be omitted in the output array.
+     *  Specifying an extent of MAXIDX will make the extent as large as possible.
+     *  if *this is writable, the returned fmav will also be writable. */
     fmav subarray(const shape_t &i0, const shape_t &extent)
       {
       auto [nshp, nstr, nofs] = subdata(i0, extent);
       return fmav(nshp, nstr, tbuf::d+nofs, *this);
       }
+    /** Returns an fmav (of the same or smaller dimensionality) representing a
+     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
+     *  the number of entries along this dimension. If any extent is 0, this
+     *  dimension will be omitted in the output array.
+     *  Specifying an extent of MAXIDX will make the extent as large as possible.
+     *  The returned fmav is read-only. */
     fmav subarray(const shape_t &i0, const shape_t &extent) const
       {
       auto [nshp, nstr, nofs] = subdata(i0, extent);
       return fmav(nshp, nstr, tbuf::d+nofs, *this);
       }
+    /** Calls \a func for every entry in the array, passing a reference to it. */
     template<typename Func> void apply(Func func)
       {
       if (contiguous())
@@ -450,6 +580,8 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
         }
       applyHelper<Func>(0, 0,func);
       }
+    /** Calls \a func for every entry in the array, passing a constant
+     *  reference to it. */
     template<typename Func> void apply(Func func) const
       {
       if (contiguous())
@@ -460,6 +592,21 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
         return;
         }
       applyHelper<Func>(0, 0, func);
+      }
+    /** Calls \a func for every entry in the array and the corresponding entry
+     *  in \a other, passing constant references. */
+    template<typename Func, typename T2> void apply(const fmav<T2> &other, Func func)
+      {
+      MR_assert(conformable(other), "fmavs are not conformable");
+      applyHelper<Func>(0, 0, 0, other, func);
+      }
+    /** Calls \a func for every entry in the array and the corresponding entry
+     *  in \a other, passing a nonconstant reference to the entry in this array
+     *  and a constant one for the entry in \a other. */
+    template<typename Func, typename T2> void apply(const fmav<T2> &other, Func func) const
+      {
+      MR_assert(conformable(other), "fmavs are not conformable");
+      applyHelper<Func>(0, 0, 0, other, func);
       }
     vector<T> dump() const
       {
@@ -498,6 +645,18 @@ template<typename T> fmav<T> subarray
 //     else
 //   }
 
+/// Class for storing (or referring to) multi-dimensional arrays with a
+/// dimensionality known at compile time.
+/** "mav" stands for "multidimensional array view".
+ *  The shape must consist of non-negative integers (zeros are allowed).
+ *  Strides may be positive or negative; stride values of zero are accepted and
+ *  may be useful in specific circumstances (e.g. read-only arrays with the same
+ *  value everywhere.
+ *
+ *  A mav may "own" or "not own" the memory holding its array data. If it does
+ *  not own the memory, it will not be deallocated when the mav is destroyed.
+ *  If it owns the memory, this "ownership" may be shared with other mav objects.
+ *  Memory is only deallocated if the last mav object owning it is destroyed. */
 template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membuf<T>
   {
   protected:
@@ -543,13 +702,13 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       if constexpr (idim+1<ndim)
         for (size_t i=0; i<shp[idim]; ++i)
           applyHelper<idim+1, T2, Func>(idx+i*str[idim],
-                                        idx2+i*other.str[idim], other, func);
+                                        idx2+i*other.stride(idim), other, func);
       else
         {
         T *d2 = vdata();
         const T2 *d3 = other.cdata();
         for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]],d3[idx2+i*other.str[idim]]);
+          func(d2[idx+i*str[idim]],d3[idx2+i*other.stride(idim)]);
         }
       }
 
@@ -557,11 +716,10 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       {
       array<size_t, nd2> nshp;
       array<ptrdiff_t, nd2> nstr;
-      ptrdiff_t nofs;
       size_t n0=0;
       for (auto x:extent) if (x==0) ++n0;
       MR_assert(n0+nd2==ndim, "bad extent");
-      nofs=0;
+      ptrdiff_t nofs=0;
       for (size_t i=0, i2=0; i<ndim; ++i)
         {
         MR_assert(i0[i]<shp[i], "bad subset");
@@ -583,17 +741,37 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
     using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
     using tinfo::contiguous, tinfo::size, tinfo::idx, tinfo::conformable;
 
+    /// Constructs a mav with size and stride zero in all dimensions and no
+    /// data content.
     mav() {}
+    /** Constructs a read-only mav with its first data entry at \a d
+     *  and the given shape and strides. The mav does not own the memory. */
     mav(const T *d_, const shape_t &shp_, const stride_t &str_)
       : tinfo(shp_, str_), tbuf(d_) {}
+    /** Constructs a mav with its first data entry at \a d
+     *  and the given shape and strides. The mav does not own the memory.
+     *  Iff \a rw_ is true, write accesses to the array are allowed. */
     mav(T *d_, const shape_t &shp_, const stride_t &str_, bool rw_=false)
       : tinfo(shp_, str_), tbuf(d_, rw_) {}
+    /** Constructs a read-only mav with its first data entry at \a d
+     *  and the given shape. The array is assumed to be C-contiguous.
+     *  The mav does not own the memory. */
     mav(const T *d_, const shape_t &shp_)
       : tinfo(shp_), tbuf(d_) {}
+    /** Constructs a mav with its first data entry at \a d and the given shape.
+     *  The array is assumed to be C-contiguous.
+     *  The mav does not own the memory.
+     *  Iff \a rw_ is true, write accesses to the array are allowed. */
     mav(T *d_, const shape_t &shp_, bool rw_=false)
       : tinfo(shp_), tbuf(d_, rw_) {}
+    /** Constructs a C-contiguous read/write mav with the given shape.
+     *  The array contents are default-initialized.
+     *  The mav owns the array memory. */
     mav(const shape_t &shp_)
       : tinfo(shp_), tbuf(size()) {}
+    /** Constructs a C-contiguous read/write mav with the given shape.
+     *  The array contents are not initialized.
+     *  The mav owns the array memory. */
     mav(const shape_t &shp_, uninitialized_dummy)
       : tinfo(shp_), tbuf(size(), UNINITIALIZED) {}
 #if defined(_MSC_VER)
@@ -602,7 +780,11 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
     mav(mav &other): tinfo(other), tbuf(other) {}
     mav(mav &&other): tinfo(other), tbuf(other) {}
 #else
+    /** Constructs a read-only mav with the same shape and strides as \a other,
+     *  pointing to the same memory. Ownership is shared. */
     mav(const mav &other) = default;
+    /** Constructs a mav with the same read-write status, shape and strides
+     *  as \a other, pointing to the same memory. Ownership is shared. */
     mav(mav &other) = default;
     mav(mav &&other) = default;
 #endif
@@ -628,12 +810,17 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       {
       return fmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
       }
+    /// Returns the data entry at the given set of indices.
     template<typename... Ns> const T &operator()(Ns... ns) const
       { return craw(idx(ns...)); }
+    /// Returns the data entry at the given set of indices.
     template<typename... Ns> const T &c(Ns... ns) const
       { return craw(idx(ns...)); }
+    /** Returns a writable reference to the data entry at the given set of
+     *  indices. This call will throw an exception if the mav is read-only. */
     template<typename... Ns> T &v(Ns... ns)
       { return vraw(idx(ns...)); }
+    /** Calls \a func for every entry in the array, passing a reference to it. */
     template<typename Func> void apply(Func func)
       {
       if (contiguous())
@@ -645,22 +832,52 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
         }
       applyHelper<0,Func>(0,func);
       }
+    /** Calls \a func for every entry in the array, passing a constant
+     *  reference to it. */
+    template<typename Func> void apply(Func func) const
+      {
+      if (contiguous())
+        {
+        const T *d2 = cdata();
+        for (auto v=d2; v!=d2+size(); ++v)
+          func(*v);
+        return;
+        }
+      applyHelper<0,Func>(0,func);
+      }
+    /** Calls \a func for every entry in the array and the corresponding entry
+     *  in \a other, passing a nonconstant reference to the entry in this array
+     *  and a constant one for the entry in \a other. */
     template<typename T2, typename Func> void apply
       (const mav<T2, ndim> &other,Func func)
       { applyHelper<0,T2,Func>(0,0,other,func); }
+    /// Sets every entry of the array to \a val.
     void fill(const T &val)
       { apply([val](T &v){v=val;}); }
+    /** Returns a mav (of the same or smaller dimensionality) representing a
+     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
+     *  the number of entries along this dimension. If any extent is 0, this
+     *  dimension will be omitted in the output array.
+     *  Specifying an extent of MAXIDX will make the extent as large as possible.
+     *  if *this is writable, the returned mav will also be writable. */
     template<size_t nd2> mav<T,nd2> subarray(const shape_t &i0, const shape_t &extent)
       {
       auto [nshp, nstr, nofs] = subdata<nd2> (i0, extent);
       return mav<T,nd2> (nshp, nstr, tbuf::d+nofs, *this);
       }
+    /** Returns a mav (of the same or smaller dimensionality) representing a
+     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
+     *  the number of entries along this dimension. If any extent is 0, this
+     *  dimension will be omitted in the output array.
+     *  Specifying an extent of MAXIDX will make the extent as large as possible.
+     *  The returned mav is read-only. */
     template<size_t nd2> mav<T,nd2> subarray(const shape_t &i0, const shape_t &extent) const
       {
       auto [nshp, nstr, nofs] = subdata<nd2> (i0, extent);
       return mav<T,nd2> (nshp, nstr, tbuf::d+nofs, *this);
       }
 
+    /// Returns a zero-extent mav with no associatd data.
     static mav build_empty()
       {
       shape_t nshp;
@@ -668,6 +885,9 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       return mav(static_cast<const T *>(nullptr), nshp);
       }
 
+    /** Returns a read-only mav with the specified shape, filled with \a value.
+     *  This is stored as a single value (by using strides of 0) and is
+     *  therefore very memory efficient. */
     static mav build_uniform(const shape_t &shape, const T &value)
       {
       membuf<T> buf(1);
@@ -677,42 +897,47 @@ template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membu
       return mav(shape, nstr, buf.cdata(), buf);
       }
 
+    /** Returns a writable mav with the specified shape.
+     *  The strides are chosen in such a way that critical strides (multiples
+     *  of 4096 bytes) along any dimension are avoided, by enlarging the
+     *  allocated memory slightly if necessary.
+     *  The array data is default-initialized. */
     static mav build_noncritical(const shape_t &shape)
       {
-      if (ndim==1) return mav(shape);
-      shape_t shape2(shape);
-      size_t stride = sizeof(T);
-      for (size_t i=0, xi=ndim-1; i+1<ndim; ++i, --xi)
-        {
-        size_t tstride = stride*shape[xi];
-        if ((tstride&4095)==0)
-          shape2[xi] += 3;
-        stride *= shape2[xi];
-        }
+      auto shape2 = noncritical_shape(shape, sizeof(T));
       mav tmp(shape2);
       return tmp.subarray<ndim>(shape_t(), shape);
       }
+    /** Returns a writable mav with the specified shape.
+     *  The strides are chosen in such a way that critical strides (multiples
+     *  of 4096 bytes) along any dimension are avoided, by enlarging the
+     *  allocated memory slightly if necessary.
+     *  The array data is not initialized. */
     static mav build_noncritical(const shape_t &shape, uninitialized_dummy)
       {
       if (ndim==1) return mav(shape, UNINITIALIZED);
-      shape_t shape2(shape);
-      size_t stride = sizeof(T);
-      for (size_t i=0, xi=ndim-1; i+1<ndim; ++i, --xi)
-        {
-        size_t tstride = stride*shape[xi];
-        if ((tstride&4095)==0)
-          shape2[xi] += 3;
-        stride *= shape2[xi];
-        }
+      auto shape2 = noncritical_shape(shape, sizeof(T));
       mav tmp(shape2, UNINITIALIZED);
       return tmp.subarray<ndim>(shape_t(), shape);
       }
   };
 
+/** Returns a mav (of the same or smaller dimensionality) representing a
+ *  sub-array of \a arr. \a i0 indicates the starting indices, and \a extent
+ *  the number of entries along this dimension. If any extent is 0, this
+ *  dimension will be omitted in the output array.
+ *  Specifying an extent of MAXIDX will make the extent as large as possible.
+ *  if *thi is writable, the returned mav will also be writable. */
 template<size_t nd2, typename T, size_t ndim> mav<T,nd2> subarray
   (mav<T, ndim> &arr, const typename mav<T, ndim>::shape_t &i0, const typename mav<T, ndim>::shape_t &extent)  
   { return arr.template subarray<nd2>(i0, extent); }
 
+/** Returns a mav (of the same or smaller dimensionality) representing a
+ *  sub-array of \a arr. \a i0 indicates the starting indices, and \a extent
+ *  the number of entries along this dimension. If any extent is 0, this
+ *  dimension will be omitted in the output array.
+ *  Specifying an extent of MAXIDX will make the extent as large as possible.
+ *  The returned mav is read-only. */
 template<size_t nd2, typename T, size_t ndim> mav<T,nd2> subarray
   (const mav<T, ndim> &arr, const typename mav<T, ndim>::shape_t &i0, const typename mav<T, ndim>::shape_t &extent)  
   { return arr.template subarray<nd2>(i0, extent); }

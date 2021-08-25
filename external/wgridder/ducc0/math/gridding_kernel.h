@@ -22,11 +22,17 @@
 #ifndef DUCC0_GRIDDING_KERNEL_H
 #define DUCC0_GRIDDING_KERNEL_H
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <functional>
 #include <vector>
 #include <memory>
 #include <cmath>
 #include <type_traits>
-#include "ducc0/infra/simd.h"
+#include "ducc0/infra/useful_macros.h"
+#include "ducc0/infra/error_handling.h"
+#include "ducc0/infra/threading.h"
 #include "ducc0/math/gl_integrator.h"
 #include "ducc0/math/constants.h"
 
@@ -183,7 +189,7 @@ template<size_t W, typename Tsimd> class TemplateKernel
   {
   private:
     static constexpr auto D=W+3;
-    using T = typename Tsimd::Ts;
+    using T = typename Tsimd::value_type;
     static constexpr auto vlen = Tsimd::size();
     static constexpr auto nvec = (W+vlen-1)/vlen;
 
