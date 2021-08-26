@@ -190,6 +190,11 @@ def test_shift_image(gridder, test_name):
     s = f"./wsclean {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.RECTDIMS} -shift 08h09m20s -39d06m54s -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
 
+def test_missing_channels_in_deconvolution():
+    # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
+    # by imaging with -channels-out 24, it is tested what happens when an output channel has no data.
+    s = f"./wsclean -name {name('missing-channels-in-deconvolution')} -use-wgridder -size 1024 1024 -scale 1amin -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {os.environ['MWA_MS']}"
+    check_call(s.split())
 
 def test_grid_with_beam():
     """Requires that WSClean is compiled with IDG and EveryBeam

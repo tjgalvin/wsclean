@@ -32,131 +32,47 @@ class AveragingMSRowProvider : public MSRowProvider {
   class AveragingBuffer {
    public:
     AveragingBuffer()
-        : _data(nullptr),
-          _modelData(nullptr),
+        : _data(),
+          _modelData(),
+          _weights(),
           _uvw{0.0, 0.0, 0.0},
           _time(0.0),
           _unweightedTime(0.0),
-          _weights(nullptr),
           _averagedDataCount(0),
           _summedWeight(0) {}
-    ~AveragingBuffer() {
-      delete[] _data;
-      delete[] _modelData;
-      delete[] _weights;
-    }
-    bool IsInitialized() const { return _data != 0; }
-    void Initialize(size_t bufferSize, bool includeModel) {
-      _data = new std::complex<float>[bufferSize];
-      _modelData = includeModel ? new std::complex<float>[bufferSize] : 0;
-      _weights = new float[bufferSize];
-      Reset(bufferSize);
-    }
+
+    bool IsInitialized() const { return !_data.empty(); }
+
+    void Initialize(size_t bufferSize, bool includeModel);
+
     void AddData(size_t n, const std::complex<float>* data, const bool* flags,
-                 const float* weights, const double* uvw, double time) {
-      double weightSum = 0.0;
-      for (size_t i = 0; i != n; ++i) {
-        if (!flags[i] && std::isfinite(data[i].real()) &&
-            std::isfinite(data[i].imag())) {
-          _data[i] += data[i] * weights[i];
-          _weights[i] += weights[i];
-          weightSum += weights[i];
-        }
-      }
-      weightSum /= double(n);
-      _uvw[0] += uvw[0] * weightSum;
-      _uvw[1] += uvw[1] * weightSum;
-      _uvw[2] += uvw[2] * weightSum;
-      _time += time * weightSum;
-      _unweightedTime = time;
-      _summedWeight += weightSum;
-      ++_averagedDataCount;
-    }
+                 const float* weights, const double* uvw, double time);
+
     void AddDataAndModel(size_t n, const std::complex<float>* data,
                          const std::complex<float>* modelData,
                          const bool* flags, const float* weights,
-                         const double* uvw, double time) {
-      double weightSum = 0.0;
-      for (size_t i = 0; i != n; ++i) {
-        if (!flags[i] && std::isfinite(data[i].real()) &&
-            std::isfinite(data[i].imag()) &&
-            std::isfinite(modelData[i].real()) &&
-            std::isfinite(modelData[i].imag())) {
-          _data[i] += data[i] * weights[i];
-          _modelData[i] += modelData[i] * weights[i];
-          _weights[i] += weights[i];
-          weightSum += weights[i];
-        }
-      }
-      weightSum /= double(n);
-      _uvw[0] += uvw[0] * weightSum;
-      _uvw[1] += uvw[1] * weightSum;
-      _uvw[2] += uvw[2] * weightSum;
-      _time += time * weightSum;
-      _unweightedTime = time;
-      _summedWeight += weightSum;
-      ++_averagedDataCount;
-    }
+                         const double* uvw, double time);
+
     size_t AveragedDataCount() const { return _averagedDataCount; }
 
     void Get(size_t n, std::complex<float>* data, bool* flags, float* weights,
-             double* uvw, double& time) {
-      for (size_t i = 0; i != n; ++i) {
-        data[i] = _data[i] / _weights[i];
-        flags[i] = (weights[i] == 0.0);
-        weights[i] = _weights[i];
-      }
-      if (_summedWeight == 0.0) {
-        for (size_t i = 0; i != 3; ++i) uvw[i] = 0.0;
-        time = _unweightedTime;
-      } else {
-        for (size_t i = 0; i != 3; ++i) uvw[i] = _uvw[i] / _summedWeight;
-        time = _time / _summedWeight;
-      }
-    }
+             double* uvw, double& time);
 
     void Get(size_t n, std::complex<float>* data,
              std::complex<float>* modelData, bool* flags, float* weights,
-             double* uvw, double& time) {
-      for (size_t i = 0; i != n; ++i) {
-        data[i] = _data[i] / _weights[i];
-        modelData[i] = _modelData[i] / weights[i];
-        flags[i] = (weights[i] == 0.0);
-        weights[i] = _weights[i];
-      }
-      if (_summedWeight == 0.0) {
-        for (size_t i = 0; i != 3; ++i) uvw[i] = 0.0;
-        time = _unweightedTime;
-      } else {
-        for (size_t i = 0; i != 3; ++i) uvw[i] = _uvw[i] / _summedWeight;
-        time = _time / _summedWeight;
-      }
-    }
+             double* uvw, double& time);
 
-    void Reset(size_t n) {
-      for (size_t i = 0; i != n; ++i) {
-        _data[i] = 0.0;
-        _weights[i] = 0.0;
-        if (_modelData != 0) _modelData[i] = 0.0;
-      }
-      _uvw[0] = 0.0;
-      _uvw[1] = 0.0;
-      _uvw[2] = 0.0;
-      _time = 0.0;
-      _unweightedTime = 0.0;
-      _averagedDataCount = 0;
-      _summedWeight = 0.0;
-    }
+    void Reset(size_t n);
 
    private:
-    std::complex<float>* _data;
-    std::complex<float>* _modelData;
+    aocommon::UVector<std::complex<float>> _data;
+    aocommon::UVector<std::complex<float>> _modelData;
+    aocommon::UVector<float> _weights;
     double _uvw[3];
     double _time;
     // In case all visibilities in an averaging buffer are flagged, it is still
     // desirable to at least return a time that is part of the observation:
     double _unweightedTime;
-    float* _weights;
     size_t _averagedDataCount;
     double _summedWeight;
   };

@@ -75,20 +75,7 @@ class SpectralFitter {
   }
 
   void SetFrequencies(const double* frequencies, const num_t* weights,
-                      size_t n) {
-    _frequencies.assign(frequencies, frequencies + n);
-    _weights.assign(weights, weights + n);
-    num_t weightSum = 0.0;
-    _referenceFrequency = 0.0;
-    for (size_t i = 0; i != n; ++i) {
-      _referenceFrequency += _frequencies[i] * _weights[i];
-      weightSum += _weights[i];
-    }
-    if (weightSum != 0.0)
-      _referenceFrequency /= weightSum;
-    else
-      _referenceFrequency = 150e6;
-  }
+                      size_t n);
 
   double Frequency(size_t index) const { return _frequencies[index]; }
 
@@ -107,6 +94,9 @@ class SpectralFitter {
   bool IsForced() const { return !_forcedTerms.empty(); }
 
  private:
+  void forcedFit(aocommon::UVector<num_t>& terms, const num_t* values, size_t x,
+                 size_t y) const;
+
   enum SpectralFittingMode _mode;
   size_t _nTerms;
   aocommon::UVector<double> _frequencies;

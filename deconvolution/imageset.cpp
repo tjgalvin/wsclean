@@ -391,20 +391,34 @@ void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
 void ImageSet::CalculateDeconvolutionFrequencies(
     const ImagingTable& groupTable, aocommon::UVector<double>& frequencies,
     aocommon::UVector<float>& weights, size_t nDeconvolutionChannels) {
-  size_t nInputChannels = groupTable.SquaredGroups().size();
+  const size_t nInputChannels = groupTable.SquaredGroups().size();
   if (nDeconvolutionChannels == 0) nDeconvolutionChannels = nInputChannels;
   frequencies.assign(nDeconvolutionChannels, 0.0);
   weights.assign(nDeconvolutionChannels, 0.0);
-  aocommon::UVector<double> weightSums(nDeconvolutionChannels, 0);
+  std::vector<double> unweightedFrequencies(nDeconvolutionChannels, 0.0);
+  std::vector<size_t> counts(nDeconvolutionChannels, 0);
   for (size_t i = 0; i != nInputChannels; ++i) {
     const ImagingTableEntry& entry = *groupTable.SquaredGroups()[i].front();
-    double freq = entry.CentralFrequency(), weight = entry.imageWeight;
-    size_t deconvolutionChannel = i * nDeconvolutionChannels / nInputChannels;
+    const double freq = entry.CentralFrequency();
+    const double weight = entry.imageWeight;
+    const size_t deconvolutionChannel =
+        i * nDeconvolutionChannels / nInputChannels;
+
     frequencies[deconvolutionChannel] += freq * weight;
     weights[deconvolutionChannel] += weight;
+
+    unweightedFrequencies[deconvolutionChannel] += freq;
+    ++counts[deconvolutionChannel];
   }
-  for (size_t i = 0; i != nDeconvolutionChannels; ++i)
-    frequencies[i] /= weights[i];
+  for (size_t i = 0; i != nDeconvolutionChannels; ++i) {
+    // Even when there is no data for a given frequency and the weight
+    // is zero, it is still desirable to have a proper value for the frequency
+    // (e.g. for extrapolating flux).
+    if (weights[i] > 0.0)
+      frequencies[i] /= weights[i];
+    else
+      frequencies[i] = unweightedFrequencies[i] / counts[i];
+  }
 }
 
 void ImageSet::GetIntegratedPSF(Image& dest,

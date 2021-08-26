@@ -199,10 +199,9 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
                                       uint32_t& antenna2, uint32_t& fieldId,
                                       double& time) {
   size_t bufferSize = DataShape()[0] * DataShape()[1];
-  memcpy(data.data(), _currentData.data(),
-         bufferSize * sizeof(std::complex<float>));
-  memcpy(flags.data(), _currentFlags.data(), bufferSize * sizeof(bool));
-  memcpy(weights.data(), _currentWeights.data(), bufferSize * sizeof(float));
+  std::copy_n(_currentData.data(), bufferSize, data.data());
+  std::copy_n(_currentFlags.data(), bufferSize, flags.data());
+  std::copy_n(_currentWeights.data(), bufferSize, weights.data());
   u = _currentUVWArray.data()[0];
   v = _currentUVWArray.data()[1];
   w = _currentUVWArray.data()[2];
@@ -215,8 +214,7 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
 
 void AveragingMSRowProvider::ReadModel(MSRowProvider::DataArray& model) {
   size_t bufferSize = DataShape()[0] * DataShape()[1];
-  memcpy(model.data(), _currentModel.data(),
-         bufferSize * sizeof(std::complex<float>));
+  std::copy_n(_currentModel.data(), bufferSize, model.data());
 }
 
 void AveragingMSRowProvider::OutputStatistics() const {
@@ -224,4 +222,110 @@ void AveragingMSRowProvider::OutputStatistics() const {
   // row selection: " << double(_averageFactorSum)/_rowCount << '\n';
   Logger::Info << "Baseline averaging reduced the number of rows to "
                << 0.1 * round(_averagedRowCount * 1000.0 / _rowCount) << "%.\n";
+}
+
+void AveragingMSRowProvider::AveragingBuffer::Initialize(size_t bufferSize,
+                                                         bool includeModel) {
+  _modelData.resize(includeModel ? bufferSize : 0);
+  Reset(bufferSize);
+}
+
+void AveragingMSRowProvider::AveragingBuffer::AddData(
+    size_t n, const std::complex<float>* data, const bool* flags,
+    const float* weights, const double* uvw, double time) {
+  double weightSum = 0.0;
+  for (size_t i = 0; i != n; ++i) {
+    if (!flags[i] && std::isfinite(data[i].real()) &&
+        std::isfinite(data[i].imag())) {
+      _data[i] += data[i] * weights[i];
+      _weights[i] += weights[i];
+      weightSum += weights[i];
+    }
+  }
+  // This division (and in the next function) seems not strictly required and
+  // could be removed, because all rows will have the same n, and it just scales
+  // both weightSum and _summedWeight down by n, and they're divided by each
+  // other later on, so it cancels out. TODO verify, fix and test this.
+  weightSum /= n;
+  _uvw[0] += uvw[0] * weightSum;
+  _uvw[1] += uvw[1] * weightSum;
+  _uvw[2] += uvw[2] * weightSum;
+  _time += time * weightSum;
+  _unweightedTime = time;
+  _summedWeight += weightSum;
+  ++_averagedDataCount;
+}
+
+void AveragingMSRowProvider::AveragingBuffer::AddDataAndModel(
+    size_t n, const std::complex<float>* data,
+    const std::complex<float>* modelData, const bool* flags,
+    const float* weights, const double* uvw, double time) {
+  double weightSum = 0.0;
+  for (size_t i = 0; i != n; ++i) {
+    if (!flags[i] && std::isfinite(data[i].real()) &&
+        std::isfinite(data[i].imag()) && std::isfinite(modelData[i].real()) &&
+        std::isfinite(modelData[i].imag())) {
+      _data[i] += data[i] * weights[i];
+      _modelData[i] += modelData[i] * weights[i];
+      _weights[i] += weights[i];
+      weightSum += weights[i];
+    }
+  }
+  weightSum /= n;
+  _uvw[0] += uvw[0] * weightSum;
+  _uvw[1] += uvw[1] * weightSum;
+  _uvw[2] += uvw[2] * weightSum;
+  _time += time * weightSum;
+  _unweightedTime = time;
+  _summedWeight += weightSum;
+  ++_averagedDataCount;
+}
+
+void AveragingMSRowProvider::AveragingBuffer::Get(size_t n,
+                                                  std::complex<float>* data,
+                                                  bool* flags, float* weights,
+                                                  double* uvw, double& time) {
+  for (size_t i = 0; i != n; ++i) {
+    flags[i] = (weights[i] == 0.0);
+    data[i] = flags[i] ? 0.0 : _data[i] / _weights[i];
+    weights[i] = _weights[i];
+  }
+  if (_summedWeight == 0.0) {
+    for (size_t i = 0; i != 3; ++i) uvw[i] = 0.0;
+    time = _unweightedTime;
+  } else {
+    for (size_t i = 0; i != 3; ++i) uvw[i] = _uvw[i] / _summedWeight;
+    time = _time / _summedWeight;
+  }
+}
+
+void AveragingMSRowProvider::AveragingBuffer::Get(
+    size_t n, std::complex<float>* data, std::complex<float>* modelData,
+    bool* flags, float* weights, double* uvw, double& time) {
+  for (size_t i = 0; i != n; ++i) {
+    flags[i] = (weights[i] == 0.0);
+    data[i] = flags[i] ? 0.0 : _data[i] / _weights[i];
+    modelData[i] = flags[i] ? 0.0 : _modelData[i] / weights[i];
+    weights[i] = _weights[i];
+  }
+  if (_summedWeight == 0.0) {
+    for (size_t i = 0; i != 3; ++i) uvw[i] = 0.0;
+    time = _unweightedTime;
+  } else {
+    for (size_t i = 0; i != 3; ++i) uvw[i] = _uvw[i] / _summedWeight;
+    time = _time / _summedWeight;
+  }
+}
+
+void AveragingMSRowProvider::AveragingBuffer::Reset(size_t n) {
+  _data.assign(n, 0.0);
+  _weights.assign(n, 0.0);
+  if (!_modelData.empty()) _modelData.assign(n, 0.0);
+  _uvw[0] = 0.0;
+  _uvw[1] = 0.0;
+  _uvw[2] = 0.0;
+  _time = 0.0;
+  _unweightedTime = 0.0;
+  _averagedDataCount = 0;
+  _summedWeight = 0.0;
 }
