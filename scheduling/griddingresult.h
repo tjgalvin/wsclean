@@ -19,7 +19,8 @@ struct GriddingResult {
         effectiveGriddedVisibilityCount(0),
         visibilityWeightSum(0),
         actualInversionWidth(0),
-        actualInversionHeight(0) {}
+        actualInversionHeight(0),
+        cache() {}
 
   /**
    * List of produced images. When performing complex images, images[0] will be
