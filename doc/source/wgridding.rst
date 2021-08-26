@@ -32,4 +32,4 @@ parallelization that can be controlled using the ``-j`` parameter.
 
 The w-gridder is available since :doc:`WSClean version 2.9 <changelogs/v2.9>`,
 and was further improved in speed in versions
-:doc:`2.10 <changelogs/v2.10>` and :doc:`2.11 <changelogs/v2.11>`.
+:doc:`2.10 <changelogs/v2.10>` and :doc:`3.0 <changelogs/v3.0>`.

@@ -1,0 +1,70 @@
+WSClean version 3.0
+===================
+
+Released 2021-08-26
+
+WSClean 3.0 depends on `IDG version 0.8 <https://git.astron.nl/RD/idg/-/releases/0.8>`_ or newer.
+
+Summary: This is a major release containing many new features and bug fixes. The biggest new feature in this release is facetting, which runs the gridder for smaller parts of the image, stitches those parts and runs deconvolution on the resulting image. Not all facetting functionality is finished as of yet (see the :doc:`facetting documentation <../facet_based_imaging>`). Upcoming releases will add more functionality to facetted imaging. Two other significant features are deconvolution with forced spectra and the ability to write deconvolution scripts in Python.
+
+Major & visible changes
+-----------------------
+
+* :doc:`Facetted imaging <../facet_based_imaging>`.
+* Use `EveryBeam <https://git.astron.nl/RD/EveryBeam>`_ for calculation of *all* instrumental primary beams. **This implies that EveryBeam is now required to apply beams from instruments like LOFAR, MWA, JVLA, ATCA, etc.**
+* Make it possible to call Python deconvolution implementations (parameter ``-python-deconvolution``).
+* New feature to force spectra from an external image (parameter ``-force-spectrum``).
+* New option ``-deconvolution-threads`` to limit the number of threads (and associated memory) used in deconvolution.
+* New option ``-wgridding-accuracy`` to tweak the accuracy of the wgridder.
+* New option ``-primary-beam-limit`` to set the level at which to trim the beam.
+* New option ``-simulate-baseline-noise`` to perform simulations with baseline-specific noise values.
+* Support for SKA beams (through EveryBeam).
+* Phase *shifting* (not rotating) is now done inside ``wsclean`` and does not require (or allow!) shifting with ``chgcentre`` (see :doc:`chgcentre documentation<../chgcentre>` for the changes).
+* Allow distributed multi-polarization imaging with IDG (also fixes #56).
+* Major speed improvements in deconvolution and various other places.
+* ``chgcentre`` is now part of the wsclean package.
+
+Bug fixes
+---------
+
+* Various fixes to deconvolution channel weighting; improves stability of deconvolution when channels are missing (includes fixing #71).
+* Fix openmpi distributed imaging of very large images (>2^31 bytes per image) (#13).
+* Fix PSF problem when using tapers, as noted by P. Serra (#134).
+* Fix horizon treatment in the W-gridder.
+* Avoid an extra major iteration when using auto-masking and ``niter`` is reached.
+* Make it possible to read measurement sets with a varying number of channels (#18).
+* Fix writing of imaging weight spectrum column, reported by L. Bester.
+* Improve allocation of IDG buffers, improves performance and memory usage on very large memory machines (#2).
+* Make sure ``wsclean-mp`` is installed during ``make install``.
+* Avoid use of python2's ``print a`` for MWA beam finding (#23).
+* Allow combining the w-gridder with ``-parallel-gridding``.
+* Fix hang during beam generation (#32).
+* Improve console output in various ways (includes #60).
+* Fix bug that causes aterms not to be correctly applied in ``wsclean-mp``.
+* Fix hanging ``wsclean-mp`` when only one node is available.
+* Solve crash when using large RMS windows.
+* Fix setting of MPI compile flags/options.
+* When given an odd image size, increase it to an even size.
+* Avoid uninitialized value when first channel has zero weight, fixing a possible image corruption.
+* Erase reordered MS data BEFORE reordering next timestep. Not after. Reported by O. Smirnov (#55).
+* Fix predict timer (#9).
+* Solve crash in empty predict when using the wgridder (#66).
+* Fix ``-reuse-primary-beam``.
+
+Other significant code changes
+------------------------------
+
+* Use of git submodules for common code (aocommon, pybind11, schaapcommon).
+* Add Gitlab continuous integration script & large increase of automated tests.
+* Format and check code with clang-format.
+* Lots of restructuring and code cleaning.
+* Update of wgridder to the most recent version.
+* Remove use of boost thread.
+* Let deconvolution use single precision (#29).
+* Improve dijkstra's algorithm to improve deconvolution performance.
+* Make channel interpolation use multiple threads to improve deconvolution performance.
+* Add several dockerfiles to the repository to build containers.
+* Use ``-fvisibility=hidden`` to disable pybind11 compilation warnings.
+* Parellellize ``RMSImage::SlidingMinimum`` and calculating the image weights to improve start-up and deconvolution performance.
+* Reimplement and parallelize FFTConvolver, improving speed of various tasks.
+* As always, various documentation improvements.

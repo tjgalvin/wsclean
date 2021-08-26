@@ -1,10 +1,22 @@
 Change logs
 ===========
 
+Version 3 releases
+^^^^^^^^^^^^^^^^^^
+
+WSClean version 3 is the current major release number. It is in development since 2021. Stable releases:
+
+.. toctree::
+   :hidden:
+ 
+   v3.0
+
+* :doc:`Changelog for WSClean 3.0 <v3.0>` (2021-08-26)
+
 Version 2 releases
 ^^^^^^^^^^^^^^^^^^
 
-WSClean version 2 is the current major release number. It is in development since 2016. Stable releases:
+WSClean version 2 was in development between 2016 and 2021. Stable releases:
 
 .. toctree::
    :hidden:

@@ -17,6 +17,6 @@ This will calculate the optimal projection direction and perform the required ph
 
 The ``chgcentre`` command *rotates* the coordinate system whereas WSClean's ``-shift`` parameter *shifts* the coordinate system along the tangent plane. The result is that imaging is done in a different projection that is still centered on the target location, but that has smaller *w*-terms. The :doc:`chgcentre page <chgcentre>` provides further information about the ``chgcentre`` tool. 
 
-The ``-shift`` parameter is new in  :doc:`WSClean 2.11 <changelogs/v2.11>`. Before 2.11, this could be achieved by using the ``-shiftback`` option of ``chgcentre``. That approach is no longer supported in WSClean.
+The ``-shift`` parameter is new in  :doc:`WSClean 3.0 <changelogs/v3.0>`. Before 3.0, this could be achieved by using the ``-shiftback`` option of ``chgcentre``. That approach is no longer supported in WSClean.
 
-The :doc:`idg <image_domain_gridding>`, :doc:`w-gridding <wgridding>` gridder and *w*-stacking gridders all support this approach. Support for the :doc:`w-gridding <wgridding>` gridder was added in WSClean 2.11.
+The :doc:`idg <image_domain_gridding>`, :doc:`w-gridding <wgridding>` gridder and *w*-stacking gridders all support this approach. Support for the :doc:`w-gridding <wgridding>` gridder was added in WSClean 3.0.
