@@ -181,7 +181,7 @@ else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   set(IDGAPI_LIBRARIES)
   set(IDG_FILES)
   message(
-    "Image domain gridder libraries NOT found. Experimental gridder will not be available."
+    "Image domain gridder libraries NOT found. This gridder will not be available."
   )
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
