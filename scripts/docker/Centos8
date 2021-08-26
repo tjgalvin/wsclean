@@ -17,9 +17,12 @@ RUN yum -y install \
     lua-devel \
     make \
     python3 \
-    python3-devel
+    python3-devel \
+    libarchive
+# Libarchive is not required by wsclean, but because of a RHEL8 issue needs to be manually installed to use cmake
+# (See e.g. https://github.com/ComplianceAsCode/content/issues/7016 )
 
-# casacore dependencies
+# casacore dependencies & compilation
 RUN \
   yum -y install \
      bison \
@@ -32,25 +35,24 @@ RUN \
      wcslib-devel \
      wget \
   && \
-  mkdir /external
-
-RUN \
+  mkdir /external && \
   cd /external && \
-  git clone https://github.com/casacore/casacore.git
-RUN \
+  git clone https://github.com/casacore/casacore.git && \
   cd /external/casacore && \
   git checkout v3.3.0 && \
   mkdir build && \
   cd build && \
   cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF && \
-  make -j 24 && \
-  make install -j`nproc --all`
+  make -j`nproc` && \
+  make install -j`nproc`
 
 ADD . /src
 WORKDIR /src
 
-RUN mkdir /build && cd /build && cmake ../src
-
-RUN cd /build && make -j`nproc --all` && make install
-
-RUN wsclean --version
+RUN \
+  mkdir /build && \
+  cd /build && \
+  cmake ../src && \
+  make -j`nproc` && \
+  make install && \
+  wsclean --version

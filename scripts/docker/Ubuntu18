@@ -23,13 +23,17 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     python3-dev python3-numpy \
     python3-sphinx \
     python3-pip \
-    wget
+    wget && \
+  pip3 install pytest
 
 ADD . /src
 WORKDIR /src
 
-RUN mkdir /build && cd /build && cmake ../src
-
-RUN cd /build && make -j`nproc --all` && make install
-
-RUN wsclean --version
+# make check is not run for Ubuntu 18, because boost testing has bugs causing it to fail
+RUN \
+  mkdir /build && \
+  cd /build && \
+  cmake ../src && \
+  make -j`nproc` && \
+  make install && \
+  wsclean --version

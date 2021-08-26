@@ -27,23 +27,26 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     wget
 
 # Install EveryBeam
-RUN mkdir /external && cd /external && git clone https://git.astron.nl/RD/EveryBeam.git
-RUN mkdir /external/EveryBeam/build && cd /external/EveryBeam/build && cmake ../ && make install -j`nproc --all`
+RUN mkdir /external && cd /external && git clone https://git.astron.nl/RD/EveryBeam.git && \
+  mkdir /external/EveryBeam/build && cd /external/EveryBeam/build && cmake ../ && make install -j`nproc`
 
 # Install Dysco
-RUN cd /external && git clone https://github.com/aroffringa/dysco.git
-RUN mkdir /external/dysco/build && cd /external/dysco/build && cmake ../ && make install -j`nproc --all`
+RUN cd /external && git clone https://github.com/aroffringa/dysco.git && \
+  mkdir /external/dysco/build && cd /external/dysco/build && cmake ../ && make install -j`nproc`
 
 # Install IDG
-RUN cd /external && git clone https://git.astron.nl/RD/idg.git
-RUN mkdir /external/idg/build && cd /external/idg/build && cmake ../ && make install -j`nproc --all`
+RUN cd /external && git clone https://git.astron.nl/RD/idg.git && \
+  mkdir /external/idg/build && cd /external/idg/build && cmake ../ && make install -j`nproc`
 
 # WSClean
 ADD . /src
 WORKDIR /src
 
-RUN mkdir /build && cd /build && cmake ../src
-
-RUN cd /build && make -j`nproc --all` && make install
-
-RUN wsclean --version
+RUN \
+  mkdir /build && \
+  cd /build && \
+  cmake ../src && \
+  make -j`nproc` && \
+  make install && \
+  wsclean --version
+  
