@@ -383,6 +383,16 @@ class MSGridderBase {
   void initializePointResponse(const MSGridderBase::MSData& msData);
   void initializePredictReader(MSProvider& msProvider);
 
+  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
+                                const BandData& curBand, float* weightBuffer);
+
+  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  void ApplyConjugatedH5Parm(MSReader& msReader,
+                             const std::vector<std::string>& antennaNames,
+                             InversionRow& rowData, const BandData& curBand,
+                             float* weightBuffer);
+
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   double _facetCentreRA, _facetCentreDec;
   size_t _facetIndex;

@@ -266,6 +266,40 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
                                 bool isInitialInversion) {
   size_t joinedChannelIndex = entry.outputChannelIndex;
 
+  _msGridderMetaCache[entry.index] = std::move(result.cache);
+  entry.imageWeight = result.imageWeight;
+  entry.normalizationFactor = result.normalizationFactor;
+  _infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
+  _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
+      result.normalizationFactor;
+
+  _lastStartTime = result.startTime;
+
+  // If no PSF is made, also set the beam size. If the PSF was made, these
+  // would already be set after imaging the PSF.
+  if (updateBeamInfo) {
+    if (_settings.theoreticBeam) {
+      _infoPerChannel[entry.outputChannelIndex].beamMaj =
+          std::max(result.beamSize, _settings.gaussianTaperBeamSize);
+      _infoPerChannel[entry.outputChannelIndex].beamMin =
+          std::max(result.beamSize, _settings.gaussianTaperBeamSize);
+      _infoPerChannel[entry.outputChannelIndex].beamPA = 0.0;
+    } else if (_settings.manualBeamMajorSize != 0.0) {
+      _infoPerChannel[entry.outputChannelIndex].beamMaj =
+          _settings.manualBeamMajorSize;
+      _infoPerChannel[entry.outputChannelIndex].beamMin =
+          _settings.manualBeamMinorSize;
+      _infoPerChannel[entry.outputChannelIndex].beamPA = _settings.manualBeamPA;
+    } else {
+      _infoPerChannel[entry.outputChannelIndex].beamMaj =
+          std::numeric_limits<double>::quiet_NaN();
+      _infoPerChannel[entry.outputChannelIndex].beamMin =
+          std::numeric_limits<double>::quiet_NaN();
+      _infoPerChannel[entry.outputChannelIndex].beamPA =
+          std::numeric_limits<double>::quiet_NaN();
+    }
+  }
+
   using PolImagesPair = std::pair<const PolarizationEnum, std::vector<Image>>;
   std::vector<PolImagesPair> imageList;
   if (_settings.useIDG && _settings.polarizations.size() != 1) {
@@ -294,40 +328,6 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       const bool isImaginary = i == 1;
       storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry,
                              polarization, isImaginary, images[i].data());
-    }
-    _msGridderMetaCache[entry.index] = std::move(result.cache);
-    entry.imageWeight = result.imageWeight;
-    entry.normalizationFactor = result.normalizationFactor;
-    _infoPerChannel[entry.outputChannelIndex].weight = result.imageWeight;
-    _infoPerChannel[entry.outputChannelIndex].normalizationFactor =
-        result.normalizationFactor;
-
-    _lastStartTime = result.startTime;
-
-    // If no PSF is made, also set the beam size. If the PSF was made, these
-    // would already be set after imaging the PSF.
-    if (updateBeamInfo) {
-      if (_settings.theoreticBeam) {
-        _infoPerChannel[entry.outputChannelIndex].beamMaj =
-            std::max(result.beamSize, _settings.gaussianTaperBeamSize);
-        _infoPerChannel[entry.outputChannelIndex].beamMin =
-            std::max(result.beamSize, _settings.gaussianTaperBeamSize);
-        _infoPerChannel[entry.outputChannelIndex].beamPA = 0.0;
-      } else if (_settings.manualBeamMajorSize != 0.0) {
-        _infoPerChannel[entry.outputChannelIndex].beamMaj =
-            _settings.manualBeamMajorSize;
-        _infoPerChannel[entry.outputChannelIndex].beamMin =
-            _settings.manualBeamMinorSize;
-        _infoPerChannel[entry.outputChannelIndex].beamPA =
-            _settings.manualBeamPA;
-      } else {
-        _infoPerChannel[entry.outputChannelIndex].beamMaj =
-            std::numeric_limits<double>::quiet_NaN();
-        _infoPerChannel[entry.outputChannelIndex].beamMin =
-            std::numeric_limits<double>::quiet_NaN();
-        _infoPerChannel[entry.outputChannelIndex].beamPA =
-            std::numeric_limits<double>::quiet_NaN();
-      }
     }
 
     // If !_facets.empty(), these actions are performed in stitchFacets
@@ -1720,7 +1720,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                          facetEntry.outputChannelIndex, facetEntry.facetIndex,
                          facetEntry.facet, isImaginary);
 
-    if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
+    if (!isPSF &&
+        (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty())) {
       float m = 1.0;
       if (_settings.applyFacetBeam)
         m *= _msGridderMetaCache[facetEntry.index]->beamSum /

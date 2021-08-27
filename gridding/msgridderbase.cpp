@@ -653,6 +653,8 @@ template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer) {
+  assert(!DoImagePSF());  // The PSF is never predicted.
+
   if (_h5parm) {
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
@@ -777,6 +779,134 @@ template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const BandData& curBand, std::complex<float>* buffer);
 
+#ifdef HAVE_EVERYBEAM
+template <size_t PolarizationCount, DDGainMatrix GainEntry>
+void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
+                                             InversionRow& rowData,
+                                             const BandData& curBand,
+                                             float* weightBuffer) {
+  MSProvider::MetaData metaData;
+  msReader.ReadMeta(metaData);
+
+  _pointResponse->UpdateTime(metaData.time);
+  if (_pointResponse->HasTimeUpdate()) {
+    if (auto phasedArray =
+            dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
+                _pointResponse.get())) {
+      phasedArray->UpdateITRFVectors(_facetCentreRA, _facetCentreDec);
+    }
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      _pointResponse->CalculateAllStations(
+          &_cachedBeamResponse[ch * _pointResponse->GetAllStationsBufferSize()],
+          _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
+          metaData.fieldId);
+    }
+  }
+
+  // rowData.data contains the visibilities
+  std::complex<float>* iter = rowData.data;
+  float* weightIter = weightBuffer;
+  for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+    const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
+    const size_t offset1 = offset + metaData.antenna1 * 4u;
+    const size_t offset2 = offset + metaData.antenna2 * 4u;
+
+    const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
+    const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
+    ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+    const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
+
+    const float weight = *weightIter * _scratchWeights[ch];
+    _metaDataCache->beamSum += (conj(g) * weight * g).real();
+
+    // Only admissible PolarizationCount for applying the facet beam is 1.
+    iter += PolarizationCount;
+    weightIter += PolarizationCount;
+  }
+}
+#endif
+
+template <size_t PolarizationCount, DDGainMatrix GainEntry>
+void MSGridderBase::ApplyConjugatedH5Parm(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& rowData, const BandData& curBand, float* weightBuffer) {
+  MSProvider::MetaData metaData;
+  msReader.ReadMeta(metaData);
+
+  const size_t nparms =
+      (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
+
+  // Only update the cached response if one of the time indices in the
+  // soltabs changed
+  if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
+      (_h5SolTabs.second &&
+       _h5SolTabs.second->GetTimeIndex(metaData.time) != _h5TimeIndex.second)) {
+    const std::vector<double> freqs(curBand.begin(), curBand.end());
+    const size_t responseSize = freqs.size() * antennaNames.size() * nparms;
+
+    JonesParameters jonesParameters(
+        freqs, {metaData.time}, antennaNames, _correctType,
+        JonesParameters::InterpolationType::NEAREST, _facetIndex,
+        _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
+        JonesParameters::MissingAntennaBehavior::kUnit);
+    const auto parms = jonesParameters.GetParms();
+    // Assumes that the data layout parms is contiguous in mem, ordered as
+    // [station1:pol1:chan1, ..., station1:poln:chan1, ...
+    // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
+    // stationn:polm:chank]
+    _cachedParmResponse.assign(&parms(0, 0, 0), &parms(0, 0, 0) + responseSize);
+
+    _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
+    if (_h5SolTabs.second) {
+      _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
+    }
+  }
+
+  // Conditional could be templated once C++ supports partial function
+  // specialization
+  std::complex<float>* iter = rowData.data;
+  float* weightIter = weightBuffer;
+  if (nparms == 2) {
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      const size_t offset = ch * antennaNames.size() * nparms;
+      const size_t offset1 = offset + metaData.antenna1 * nparms;
+      const size_t offset2 = offset + metaData.antenna2 * nparms;
+      const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
+                                   _cachedParmResponse[offset1 + 1]);
+      const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
+                                   _cachedParmResponse[offset2 + 1]);
+      ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+      const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
+
+      const float weight = *weightIter * _scratchWeights[ch];
+      _metaDataCache->h5Sum += (conj(g) * weight * g).real();
+
+      // Only admissible PolarizationCount for applying gains from solution
+      // file is 1.
+      iter += PolarizationCount;
+      weightIter += PolarizationCount;
+    }
+  } else {
+    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
+      const size_t offset = ch * antennaNames.size() * nparms;
+      const size_t offset1 = offset + metaData.antenna1 * nparms;
+      const size_t offset2 = offset + metaData.antenna2 * nparms;
+      const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
+      const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
+      ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
+      const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
+
+      const float weight = *weightIter * _scratchWeights[ch];
+      _metaDataCache->h5Sum += (conj(g) * weight * g).real();
+
+      // Only admissible PolarizationCount for applying gains from solution
+      // file is 1.
+      iter += PolarizationCount;
+      weightIter += PolarizationCount;
+    }
+  }
+}
+
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::readAndWeightVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
@@ -845,126 +975,17 @@ void MSGridderBase::readAndWeightVisibilities(
   if (StoreImagingWeights())
     msReader.WriteImagingWeights(_scratchWeights.data());
 
+  if (!DoImagePSF()) {
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
-    MSProvider::MetaData metaData;
-    msReader.ReadMeta(metaData);
-
-    _pointResponse->UpdateTime(metaData.time);
-    if (_pointResponse->HasTimeUpdate()) {
-      if (auto phasedArray =
-              dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
-                  _pointResponse.get())) {
-        phasedArray->UpdateITRFVectors(_facetCentreRA, _facetCentreDec);
-      }
-      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-        _pointResponse->CalculateAllStations(
-            &_cachedBeamResponse[ch *
-                                 _pointResponse->GetAllStationsBufferSize()],
-            _facetCentreRA, _facetCentreDec, curBand.ChannelFrequency(ch),
-            metaData.fieldId);
-      }
+    if (_settings.applyFacetBeam && !_settings.facetRegionFilename.empty()) {
+      ApplyConjugatedFacetBeam<PolarizationCount, GainEntry>(
+          msReader, rowData, curBand, weightBuffer);
     }
-
-    // rowData.data contains the visibilities
-    std::complex<float>* iter = rowData.data;
-    float* weightIter = weightBuffer;
-    for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-      const size_t offset = ch * _pointResponse->GetAllStationsBufferSize();
-      const size_t offset1 = offset + metaData.antenna1 * 4u;
-      const size_t offset2 = offset + metaData.antenna2 * 4u;
-
-      const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
-      const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
-      ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
-      const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
-
-      const float weight = *weightIter * _scratchWeights[ch];
-      _metaDataCache->beamSum += (conj(g) * weight * g).real();
-
-      // Only admissible PolarizationCount for applying the facet beam is 1.
-      iter += PolarizationCount;
-      weightIter += PolarizationCount;
-    }
-  }
 #endif
 
-  if (_h5parm) {
-    MSProvider::MetaData metaData;
-    msReader.ReadMeta(metaData);
-
-    const size_t nparms =
-        (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
-
-    // Only update the cached response if one of the time indices in the soltabs
-    // changed
-    if (_h5SolTabs.first->GetTimeIndex(metaData.time) != _h5TimeIndex.first ||
-        (_h5SolTabs.second && _h5SolTabs.second->GetTimeIndex(metaData.time) !=
-                                  _h5TimeIndex.second)) {
-      const std::vector<double> freqs(curBand.begin(), curBand.end());
-      const size_t responseSize = freqs.size() * antennaNames.size() * nparms;
-
-      JonesParameters jonesParameters(
-          freqs, {metaData.time}, antennaNames, _correctType,
-          JonesParameters::InterpolationType::NEAREST, _facetIndex,
-          _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
-          JonesParameters::MissingAntennaBehavior::kUnit);
-      const auto parms = jonesParameters.GetParms();
-      // Assumes that the data layout parms is contiguous in mem, ordered as
-      // [station1:pol1:chan1, ..., station1:poln:chan1, ...
-      // station2:poln:chan1, stationm:poln:chan1, station2:pol1:chan2, ...,
-      // stationn:polm:chank]
-      _cachedParmResponse.assign(&parms(0, 0, 0),
-                                 &parms(0, 0, 0) + responseSize);
-
-      _h5TimeIndex.first = _h5SolTabs.first->GetTimeIndex(metaData.time);
-      if (_h5SolTabs.second) {
-        _h5TimeIndex.second = _h5SolTabs.second->GetTimeIndex(metaData.time);
-      }
-    }
-
-    // Conditional could be templated once C++ supports partial function
-    // specialization
-    std::complex<float>* iter = rowData.data;
-    float* weightIter = weightBuffer;
-    if (nparms == 2) {
-      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-        const size_t offset = ch * antennaNames.size() * nparms;
-        const size_t offset1 = offset + metaData.antenna1 * nparms;
-        const size_t offset2 = offset + metaData.antenna2 * nparms;
-        const aocommon::MC2x2F gain1(_cachedParmResponse[offset1], 0, 0,
-                                     _cachedParmResponse[offset1 + 1]);
-        const aocommon::MC2x2F gain2(_cachedParmResponse[offset2], 0, 0,
-                                     _cachedParmResponse[offset2 + 1]);
-        ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
-        const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
-
-        const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->h5Sum += (conj(g) * weight * g).real();
-
-        // Only admissible PolarizationCount for applying gains from solution
-        // file is 1.
-        iter += PolarizationCount;
-        weightIter += PolarizationCount;
-      }
-    } else {
-      for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
-        const size_t offset = ch * antennaNames.size() * nparms;
-        const size_t offset1 = offset + metaData.antenna1 * nparms;
-        const size_t offset2 = offset + metaData.antenna2 * nparms;
-        const aocommon::MC2x2F gain1(&_cachedParmResponse[offset1]);
-        const aocommon::MC2x2F gain2(&_cachedParmResponse[offset2]);
-        ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
-        const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
-
-        const float weight = *weightIter * _scratchWeights[ch];
-        _metaDataCache->h5Sum += (conj(g) * weight * g).real();
-
-        // Only admissible PolarizationCount for applying gains from solution
-        // file is 1.
-        iter += PolarizationCount;
-        weightIter += PolarizationCount;
-      }
+    if (_h5parm) {
+      ApplyConjugatedH5Parm<PolarizationCount, GainEntry>(
+          msReader, antennaNames, rowData, curBand, weightBuffer);
     }
   }
 
