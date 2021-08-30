@@ -2,11 +2,10 @@ from subprocess import check_call, check_output
 import pytest
 import os
 import itertools
+import sys
 import warnings
 
 # Append current directory to system path in order to import testconfig
-import sys
-
 sys.path.append(".")
 
 import testconfig as tcf
@@ -57,13 +56,13 @@ def check_and_remove_files(fpaths, remove=False):
 
 @pytest.mark.parametrize("gridder", gridders().items())
 def test_veladeconvolution(gridder):
-    if "WGridder" not in check_output("wsclean --version".split()).decode():
+    if "WGridder" not in check_output([tcf.WSCLEAN, "--version"]).decode():
         pytest.skip("WSClean was not compiled with WGridder.")
 
     nchannels = 8
     npixels = 1024
     name = "mwa_veladeconvolution_" + gridder[0]
-    s = f"wsclean -quiet {gridder[1]} -size {npixels} {npixels} -scale 1amin -parallel-gridding 2 -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 3 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {MWA_MOCK_MS}"
+    s = f"{tcf.WSCLEAN} -quiet {gridder[1]} -size {npixels} {npixels} -scale 1amin -parallel-gridding 2 -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 3 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {MWA_MOCK_MS}"
     check_call(s.split())
     imagenames = ["dirty", "image", "model", "psf", "residual"]
     fpaths = [

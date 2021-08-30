@@ -1,25 +1,23 @@
+import numpy as np
 import os
 import pytest
 from subprocess import check_call, check_output
 import shutil
+import sys
+import warnings
 
 # Append current directory to system path in order to import testconfig
-import sys
-
 sys.path.append(".")
 
 import testconfig as tcf
 
-# Prepend path with current working directory to make sure
-# wsclean executable from the build directory
-os.environ["PATH"] = f"{os.getcwd()}:{os.environ['PATH']}"
-
+MODEL_IMAGE = "point-source-model.fits"
 MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
 MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
 MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
-MODEL_IMAGE = "point-source-model.fits"
-
+MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
+EVERYBEAM_BASE_URL = "http://www.astron.nl/citt/EveryBeam/"
 
 @pytest.fixture(autouse=True)
 def prepare():
@@ -32,8 +30,12 @@ def prepare():
         check_call(wget.split())
 
     if not os.path.isfile(MWA_MOCK_ARCHIVE):
-        wget = f"wget -q www.astron.nl/citt/EveryBeam/MWA-single-timeslot.tar.bz2 -O {MWA_MOCK_ARCHIVE}"
+        wget = f"wget -q {EVERYBEAM_BASE_URL}MWA-single-timeslot.tar.bz2 -O {MWA_MOCK_ARCHIVE}"
         check_call(wget.split())
+
+    if not os.path.isfile(MWA_COEFF_ARCHIVE):
+        check_call(["wget", "-q", EVERYBEAM_BASE_URL + MWA_COEFF_ARCHIVE])
+        check_call(["tar", "xf", MWA_COEFF_ARCHIVE])
 
     os.makedirs(MWA_MOCK_MS, exist_ok=True)
     check_call(
@@ -71,20 +73,20 @@ def assert_taql(command, expected_rows=0):
 
 def predict_full_image(ms, gridder):
     # Predict full image
-    s = f"wsclean -predict {gridder} -name point-source {ms}"
+    s = f"{tcf.WSCLEAN} -predict {gridder} -name point-source {ms}"
     check_call(s.split())
 
 
 def predict_facet_image(ms, gridder):
     # Predict facet based image
-    s = f"wsclean -predict {gridder} -facet-regions {tcf.FACETFILE_4FACETS} -name point-source {ms}"
+    s = f"{tcf.WSCLEAN} -predict {gridder} -facet-regions {tcf.FACETFILE_4FACETS} -name point-source {ms}"
     check_call(s.split())
 
 
-def deconvolve_facets(ms, gridder, reorder, mpi):
+def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     nthreads = 4
-    mpi_cmd = f"mpirun -tag-output -np {nthreads} wsclean-mp"
-    thread_cmd = f"wsclean -parallel-gridding {nthreads}"
+    mpi_cmd = f"mpirun -tag-output -np {nthreads} {tcf.WSCLEAN_MP}"
+    thread_cmd = f"{tcf.WSCLEAN} -parallel-gridding {nthreads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
     s = [
         mpi_cmd if mpi else thread_cmd,
@@ -94,6 +96,7 @@ def deconvolve_facets(ms, gridder, reorder, mpi):
         f"-facet-regions {tcf.FACETFILE_4FACETS}",
         f"-name facet-imaging{reorder_ms}",
         "-size 256 256 -scale 4amin -v",
+        "-mwa-path . -apply-facet-beam" if apply_beam else "",
         ms,
     ]
     print("WSClean cmd: " + " ".join(s))
@@ -118,15 +121,50 @@ def check_and_remove_files(fpaths, remove=False):
     if remove:
         [os.remove(fpath) for fpath in fpaths]
 
+def basic_image_check(fits_filename):
+    """
+    Checks that the fits file has no NaN or Inf values and that the number
+    of zeroes is below a limit.
+    """
+    try:
+        from astropy.io import fits
+    except:
+        warnings.warn(
+            UserWarning(
+                "Could not import astropy, so fits image checks are skipped."
+            )
+        )
+        return
+
+    image = fits.open(fits_filename)
+    assert len(image) == 1
+    data = image[0].data
+    assert data.shape == (1, 1, 256, 256)
+    for x in np.nditer(data):
+        assert np.isfinite(x)
+
+    # Test runs showed that 3.1 % of the values are zero. This regression test
+    # has a higher limit, since results may vary due to floating point rounding.
+    zeroes = data.size - np.count_nonzero(data)
+    ZERO_LIMIT = 0.035
+    assert (zeroes / data.size) <= ZERO_LIMIT
 
 # Test assumes that IDG and EveryBeam are installed
 @pytest.mark.parametrize("gridder", gridders().items())
 def test_stitching(gridder):
     """Test stitching of the facets"""
     prefix = f"facet-stitch-{gridder[0]}"
-    pol = "" if (gridder[0] == "idg") else "-pol XX,YY"
-    s = f"wsclean -quiet {gridder[1]} -size 256 256 -scale 4amin {pol} -facet-regions {tcf.FACETFILE_2FACETS} -name {prefix} {MWA_MOCK_MS}"
-    check_call(s.split())
+    s = [
+       tcf.WSCLEAN,
+       "-quiet",
+       gridder[1],
+       "-size 256 256 -scale 4amin",
+       "" if (gridder[0] == "idg") else "-pol XX,YY",
+       f"-facet-regions {tcf.FACETFILE_2FACETS}",
+       f"-name {prefix}",
+       MWA_MOCK_MS
+    ]
+    check_call(" ".join(s).split())
     fpaths = (
         [prefix + "-dirty.fits", prefix + "-image.fits"]
         if (gridder[0] == "idg")
@@ -200,3 +238,16 @@ def test_facetdeconvolution(gridder, reorder, mpi):
         f"select from {MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
     )
     assert_taql(taql_command)
+
+@pytest.mark.parametrize("mpi", [True])
+def test_facetbeamimages(mpi):
+    """
+    Basic checks of the generated images when using facet beams. For each image,
+    test that the pixel values are valid (not NaN/Inf) and check the percentage
+    of zero pixels.
+    """
+
+    deconvolve_facets(MWA_MOCK_FACET, "-use-wgridder", True, mpi, True)
+
+    basic_image_check("facet-imaging-reorder-psf.fits")
+    basic_image_check("facet-imaging-reorder-dirty.fits")

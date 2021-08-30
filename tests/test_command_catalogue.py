@@ -3,10 +3,9 @@ import os, glob
 import warnings
 from subprocess import check_call
 import shutil
-
-# Append current directory to system path in order to import testconfig
 import sys
 
+# Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
 import testconfig as tcf

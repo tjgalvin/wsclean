@@ -43,7 +43,6 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test_data/)
 
 add_custom_target(
   checkintegration
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND
     python3 -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_integration.xml
@@ -58,18 +57,18 @@ add_custom_target(
   COMMAND gcovr -r .. -e '.*/tests/.*' -e '.*/CompilerIdCXX/.*')
 
 # The 'source' symbolic link simplifies running the tests manually inside
-# ${CMAKE_BINARY_DIR}: It allows using 'python3 -m pytest [OPTIONS] source/tests.py' instead of
-# 'python3 -m pytest [OPTIONS] ../wsclean/tests/systemtests/tests.py'. (Using 'RESULT', fatal
-# errors won't occur on systems without symlink support.)
-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
-                        ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_BINARY_DIR}/source)
+# ${CMAKE_CURRENT_BINARY_DIR}:
+# It allows using 'python3 -m pytest [OPTIONS] source/tests.py' instead of
+# 'python3 -m pytest [OPTIONS] ../wsclean/tests/systemtests/tests.py'.
+execute_process(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}
+          ${CMAKE_CURRENT_BINARY_DIR}/source)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testconfig.py.in
-               ${CMAKE_BINARY_DIR}/testconfig.py)
+               ${CMAKE_CURRENT_BINARY_DIR}/testconfig.py)
 
 add_custom_target(
   checkfacets
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND
     python3 -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_facets.xml
@@ -79,7 +78,6 @@ add_custom_target(
 # FIXME: maybe other name for target, e.g. checkwscleancommands?
 add_custom_target(
   checkcommandcatalogue
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND
     python3 -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_command_catalogue.xml

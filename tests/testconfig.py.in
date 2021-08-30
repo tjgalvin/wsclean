@@ -1,4 +1,6 @@
 WORKDIR = "@CMAKE_BINARY_DIR@/test_data"
+WSCLEAN = "@CMAKE_BINARY_DIR@/wsclean"
+WSCLEAN_MP = "@CMAKE_BINARY_DIR@/wsclean-mp"
 # LOCAL TESTING ONLY
 # WORKDIR = "/var/scratch/maljaars/data/test"
 DIMS = "-size 1024 1024 -scale 1amin"
