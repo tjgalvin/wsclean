@@ -444,12 +444,13 @@ class MSGridderBase {
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedBeamResponse;
 #endif
-  aocommon::UVector<std::complex<float>> _cachedParmResponse;
+  std::vector<aocommon::UVector<std::complex<float>>> _cachedParmResponse;
   std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
   std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>
       _h5SolTabs;
   schaapcommon::h5parm::JonesParameters::CorrectType _correctType;
-  std::pair<size_t, size_t> _h5TimeIndex;
+  std::vector<std::vector<double>> _cachedMSTimes;
+  std::vector<size_t> _timeOffset;
 };
 
 #endif
