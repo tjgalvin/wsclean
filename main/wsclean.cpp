@@ -930,11 +930,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   // In case XY/YX polarizations are requested, we should not parallelize over
   // those since they need to be combined after imaging, and this currently
   // requires XY before YX.
-  bool parallelizePolarizations =
+  const bool parallelizePolarizations =
       _settings.polarizations.count(Polarization::XY) == 0 &&
       _settings.polarizations.count(Polarization::YX) == 0;
-
-  const std::string rootPrefix = _settings.prefixName;
 
   _inversionWatch.Start();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
@@ -952,192 +950,21 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _griddingTaskManager->Finish();
   if (doMakePSF) stitchFacets(groupTable, _psfImages, false, true);
 
-  const size_t facetCount = groupTable.FacetCount();
-  for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
-    ImagingTable facetTable = groupTable.GetFacet(facetIndex);
+  if (!_settings.makePSFOnly) {
+    runFirstInversions(groupTable, primaryBeam, requestPolarizationsAtOnce,
+                       parallelizePolarizations);
+  }
 
-    if (requestPolarizationsAtOnce) {
-      for (ImagingTableEntry& entry : facetTable) {
-        if (entry.polarization == *_settings.polarizations.begin())
-          runFirstInversion(entry, primaryBeam);
-      }
-    } else if (parallelizePolarizations) {
-      for (ImagingTableEntry& entry : facetTable) {
-        runFirstInversion(entry, primaryBeam);
-      }
-    } else {
-      bool hasMore;
-      size_t sqIndex = 0;
-      do {
-        hasMore = false;
-        // Run the inversion for one entry out of each squared group
-        for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
-          if (sqIndex < sqGroup.size()) {
-            hasMore = true;
-            runFirstInversion(*sqGroup[sqIndex], primaryBeam);
-          }
-        }
-        ++sqIndex;
-        _griddingTaskManager->Finish();
-      } while (hasMore);
-    }
-  }
-  if (requestPolarizationsAtOnce) {
-    _griddingTaskManager->Finish();
-    groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
-  } else if (parallelizePolarizations) {
-    _griddingTaskManager->Finish();
-  }
-  stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
   _inversionWatch.Pause();
 
-  _deconvolution.InitializeDeconvolutionAlgorithm(
-      groupTable.GetFacet(0), *_settings.polarizations.begin(),
-      minTheoreticalBeamSize(groupTable), _settings.threadCount);
-
   if (!_settings.makePSFOnly) {
-    if (_settings.deconvolutionIterationCount > 0) {
-      // Start major cleaning loop
-      _majorIterationNr = 1;
-      bool reachedMajorThreshold = false;
-      do {
-        _deconvolution.InitializeImages(_residualImages, _modelImages,
-                                        _psfImages);
-        _deconvolutionWatch.Start();
-        _deconvolution.Perform(groupTable.GetFacet(0), reachedMajorThreshold,
-                               _majorIterationNr);
-        _deconvolutionWatch.Pause();
-
-        if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
-            _settings.isFirstResidualSaved)
-          writeFirstResidualImages(groupTable);
-        const bool isFinished = !reachedMajorThreshold;
-        if (isFinished) {
-          writeModelImages(groupTable);
-        }
-
-        if (_settings.deconvolutionMGain != 1.0) {
-          partitionModelIntoFacets(groupTable, false);
-          if (requestPolarizationsAtOnce) {
-            resetModelColumns(groupTable);
-            _predictingWatch.Start();
-            _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                        groupTable.FacetGroupCount());
-            // Iterate over polarizations, channels & facets
-            for (const ImagingTableEntry& entry : groupTable) {
-              // Only request one polarization for each facet/channel. The
-              // gridder will grid all polarizations
-              if (entry.polarization == *_settings.polarizations.begin())
-                predict(entry);
-            }
-            _griddingTaskManager->Finish();
-
-            _predictingWatch.Pause();
-            _inversionWatch.Start();
-
-            for (ImagingTableEntry& entry : groupTable) {
-              if (entry.polarization == *_settings.polarizations.begin())
-                imageMain(entry, false, false);
-            }
-            _griddingTaskManager->Finish();
-            _inversionWatch.Pause();
-          } else if (parallelizePolarizations) {
-            resetModelColumns(groupTable);
-            _predictingWatch.Start();
-            _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                        groupTable.FacetGroupCount());
-            for (const ImagingTable::Group& sqGroup :
-                 groupTable.SquaredGroups()) {
-              for (const ImagingTable::EntryPtr& entry : sqGroup) {
-                predict(*entry);
-              }
-            }
-            _griddingTaskManager->Finish();
-            _predictingWatch.Pause();
-
-            _inversionWatch.Start();
-            for (const ImagingTable::Group& sqGroup :
-                 groupTable.SquaredGroups()) {
-              for (const ImagingTable::EntryPtr& entry : sqGroup) {
-                imageMain(*entry, false, false);
-              }  // end of polarization & facets loop
-            }    // end of joined channels loop
-            _griddingTaskManager->Finish();
-            _inversionWatch.Pause();
-          } else {  // only parallize channels
-            resetModelColumns(groupTable);
-            _predictingWatch.Start();
-            _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                        groupTable.FacetGroupCount());
-            bool hasMore;
-            size_t sqIndex = 0;
-            do {
-              hasMore = false;
-              for (const ImagingTable::Group& sqGroup :
-                   groupTable.SquaredGroups()) {
-                if (sqIndex < sqGroup.size()) {
-                  hasMore = true;
-                  predict(*sqGroup[sqIndex]);
-                }
-              }
-              ++sqIndex;
-              _griddingTaskManager->Finish();
-            } while (hasMore);
-            _predictingWatch.Pause();
-
-            _inversionWatch.Start();
-            sqIndex = 0;
-            do {
-              hasMore = false;
-              for (const ImagingTable::Group& sqGroup :
-                   groupTable.SquaredGroups()) {
-                if (sqIndex < sqGroup.size()) {
-                  hasMore = true;
-                  imageMain(*sqGroup[sqIndex], false, false);
-                }
-              }
-              ++sqIndex;
-              _griddingTaskManager->Finish();
-            } while (hasMore);
-            _inversionWatch.Pause();
-          }
-          stitchFacets(groupTable, _residualImages, false, false);
-        }
-
-        ++_majorIterationNr;
-      } while (reachedMajorThreshold);
-
-      --_majorIterationNr;
-      Logger::Info << _majorIterationNr
-                   << " major iterations were performed.\n";
-    }
-
-    for (size_t facetGroupIndex = 0;
-         facetGroupIndex != groupTable.FacetGroupCount(); ++facetGroupIndex) {
-      const ImagingTable facetGroup = groupTable.GetFacetGroup(facetGroupIndex);
-      saveRestoredImagesForGroup(facetGroup, primaryBeam);
-    }
-
-    if (_settings.saveSourceList) {
-      _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
-                                    _observationInfo.phaseCentreDec);
-      if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-          !_settings.facetSolutionFile.empty() || _settings.gridWithBeam ||
-          !_settings.atermConfigFilename.empty()) {
-        _deconvolution.SavePBSourceList(groupTable,
-                                        _observationInfo.phaseCentreRA,
-                                        _observationInfo.phaseCentreDec);
-      }
-    }
+    runMajorIterations(groupTable, primaryBeam, requestPolarizationsAtOnce,
+                       parallelizePolarizations);
   }
-
-  _deconvolution.FreeDeconvolutionAlgorithms();
 
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
                << ", prediction: " << _predictingWatch.ToString()
                << ", deconvolution: " << _deconvolutionWatch.ToString() << '\n';
-
-  _settings.prefixName = rootPrefix;
 }
 
 void WSClean::saveRestoredImagesForGroup(
@@ -1470,7 +1297,6 @@ bool WSClean::overrideImageSettings(const FitsReader& reader) {
 }
 
 void WSClean::predictGroup(const ImagingTable& groupTable) {
-  const std::string rootPrefix = _settings.prefixName;
   const bool gridPolarizationsAtOnce =
       _settings.useIDG && _settings.polarizations.size() != 1;
 
@@ -1527,8 +1353,6 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
                << ", prediction: " << _predictingWatch.ToString()
                << ", cleaning: " << _deconvolutionWatch.ToString() << '\n';
-
-  _settings.prefixName = rootPrefix;
 }
 
 void WSClean::initializeMSList(
@@ -1573,8 +1397,51 @@ void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
   }
 }
 
-void WSClean::runFirstInversion(
-    ImagingTableEntry& entry, std::unique_ptr<class PrimaryBeam>& primaryBeam) {
+void WSClean::runFirstInversions(ImagingTable& groupTable,
+                                 std::unique_ptr<PrimaryBeam>& primaryBeam,
+                                 bool requestPolarizationsAtOnce,
+                                 bool parallelizePolarizations) {
+  const size_t facetCount = groupTable.FacetCount();
+  for (size_t facetIndex = 0; facetIndex < facetCount; ++facetIndex) {
+    ImagingTable facetTable = groupTable.GetFacet(facetIndex);
+
+    if (requestPolarizationsAtOnce) {
+      for (ImagingTableEntry& entry : facetTable) {
+        if (entry.polarization == *_settings.polarizations.begin())
+          runSingleFirstInversion(entry, primaryBeam);
+      }
+    } else if (parallelizePolarizations) {
+      for (ImagingTableEntry& entry : facetTable) {
+        runSingleFirstInversion(entry, primaryBeam);
+      }
+    } else {
+      bool hasMore;
+      size_t sqIndex = 0;
+      do {
+        hasMore = false;
+        // Run the inversion for one entry out of each squared group
+        for (const ImagingTable::Group& sqGroup : facetTable.SquaredGroups()) {
+          if (sqIndex < sqGroup.size()) {
+            hasMore = true;
+            runSingleFirstInversion(*sqGroup[sqIndex], primaryBeam);
+          }
+        }
+        ++sqIndex;
+        _griddingTaskManager->Finish();
+      } while (hasMore);
+    }
+  }
+  if (requestPolarizationsAtOnce) {
+    _griddingTaskManager->Finish();
+    groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
+  } else if (parallelizePolarizations) {
+    _griddingTaskManager->Finish();
+  }
+  stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false);
+}
+
+void WSClean::runSingleFirstInversion(
+    ImagingTableEntry& entry, std::unique_ptr<PrimaryBeam>& primaryBeam) {
   const bool isLastPol =
       entry.polarization == *_settings.polarizations.rbegin();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
@@ -1601,14 +1468,156 @@ void WSClean::runFirstInversion(
     }
   }
 
-  if (!_settings.makePSFOnly) {
-    if (_settings.reuseDirty)
-      loadExistingDirty(entry, !doMakePSF);
-    else
-      imageMain(entry, true, !doMakePSF);
+  if (_settings.reuseDirty)
+    loadExistingDirty(entry, !doMakePSF);
+  else
+    imageMain(entry, true, !doMakePSF);
 
-    _isFirstInversion = false;
+  _isFirstInversion = false;
+}
+
+void WSClean::runMajorIterations(ImagingTable& groupTable,
+                                 std::unique_ptr<PrimaryBeam>& primaryBeam,
+                                 bool requestPolarizationsAtOnce,
+                                 bool parallelizePolarizations) {
+  _deconvolution.InitializeDeconvolutionAlgorithm(
+      groupTable.GetFacet(0), *_settings.polarizations.begin(),
+      minTheoreticalBeamSize(groupTable), _settings.threadCount);
+
+  if (_settings.deconvolutionIterationCount > 0) {
+    // Start major cleaning loop
+    _majorIterationNr = 1;
+    bool reachedMajorThreshold = false;
+    do {
+      _deconvolution.InitializeImages(_residualImages, _modelImages,
+                                      _psfImages);
+      _deconvolutionWatch.Start();
+      _deconvolution.Perform(groupTable.GetFacet(0), reachedMajorThreshold,
+                             _majorIterationNr);
+      _deconvolutionWatch.Pause();
+
+      if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
+          _settings.isFirstResidualSaved)
+        writeFirstResidualImages(groupTable);
+      const bool isFinished = !reachedMajorThreshold;
+      if (isFinished) {
+        writeModelImages(groupTable);
+      }
+
+      if (_settings.deconvolutionMGain != 1.0) {
+        partitionModelIntoFacets(groupTable, false);
+        if (requestPolarizationsAtOnce) {
+          resetModelColumns(groupTable);
+          _predictingWatch.Start();
+          _griddingTaskManager->Start(getMaxNrMSProviders() *
+                                      groupTable.FacetGroupCount());
+          // Iterate over polarizations, channels & facets
+          for (const ImagingTableEntry& entry : groupTable) {
+            // Only request one polarization for each facet/channel. The
+            // gridder will grid all polarizations
+            if (entry.polarization == *_settings.polarizations.begin())
+              predict(entry);
+          }
+          _griddingTaskManager->Finish();
+
+          _predictingWatch.Pause();
+          _inversionWatch.Start();
+
+          for (ImagingTableEntry& entry : groupTable) {
+            if (entry.polarization == *_settings.polarizations.begin())
+              imageMain(entry, false, false);
+          }
+          _griddingTaskManager->Finish();
+          _inversionWatch.Pause();
+        } else if (parallelizePolarizations) {
+          resetModelColumns(groupTable);
+          _predictingWatch.Start();
+          _griddingTaskManager->Start(getMaxNrMSProviders() *
+                                      groupTable.FacetGroupCount());
+          for (const ImagingTable::Group& sqGroup :
+               groupTable.SquaredGroups()) {
+            for (const ImagingTable::EntryPtr& entry : sqGroup) {
+              predict(*entry);
+            }
+          }
+          _griddingTaskManager->Finish();
+          _predictingWatch.Pause();
+
+          _inversionWatch.Start();
+          for (const ImagingTable::Group& sqGroup :
+               groupTable.SquaredGroups()) {
+            for (const ImagingTable::EntryPtr& entry : sqGroup) {
+              imageMain(*entry, false, false);
+            }  // end of polarization & facets loop
+          }    // end of joined channels loop
+          _griddingTaskManager->Finish();
+          _inversionWatch.Pause();
+        } else {  // only parallize channels
+          resetModelColumns(groupTable);
+          _predictingWatch.Start();
+          _griddingTaskManager->Start(getMaxNrMSProviders() *
+                                      groupTable.FacetGroupCount());
+          bool hasMore;
+          size_t sqIndex = 0;
+          do {
+            hasMore = false;
+            for (const ImagingTable::Group& sqGroup :
+                 groupTable.SquaredGroups()) {
+              if (sqIndex < sqGroup.size()) {
+                hasMore = true;
+                predict(*sqGroup[sqIndex]);
+              }
+            }
+            ++sqIndex;
+            _griddingTaskManager->Finish();
+          } while (hasMore);
+          _predictingWatch.Pause();
+
+          _inversionWatch.Start();
+          sqIndex = 0;
+          do {
+            hasMore = false;
+            for (const ImagingTable::Group& sqGroup :
+                 groupTable.SquaredGroups()) {
+              if (sqIndex < sqGroup.size()) {
+                hasMore = true;
+                imageMain(*sqGroup[sqIndex], false, false);
+              }
+            }
+            ++sqIndex;
+            _griddingTaskManager->Finish();
+          } while (hasMore);
+          _inversionWatch.Pause();
+        }
+        stitchFacets(groupTable, _residualImages, false, false);
+      }
+
+      ++_majorIterationNr;
+    } while (reachedMajorThreshold);
+
+    --_majorIterationNr;
+    Logger::Info << _majorIterationNr << " major iterations were performed.\n";
   }
+
+  for (size_t facetGroupIndex = 0;
+       facetGroupIndex != groupTable.FacetGroupCount(); ++facetGroupIndex) {
+    const ImagingTable facetGroup = groupTable.GetFacetGroup(facetGroupIndex);
+    saveRestoredImagesForGroup(facetGroup, primaryBeam);
+  }
+
+  if (_settings.saveSourceList) {
+    _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
+                                  _observationInfo.phaseCentreDec);
+    if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+        !_settings.facetSolutionFile.empty() || _settings.gridWithBeam ||
+        !_settings.atermConfigFilename.empty()) {
+      _deconvolution.SavePBSourceList(groupTable,
+                                      _observationInfo.phaseCentreRA,
+                                      _observationInfo.phaseCentreDec);
+    }
+  }
+
+  _deconvolution.FreeDeconvolutionAlgorithms();
 }
 
 MSSelection WSClean::selectInterval(MSSelection& fullSelection,

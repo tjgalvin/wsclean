@@ -18,6 +18,7 @@ MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
 MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
 MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
 EVERYBEAM_BASE_URL = "http://www.astron.nl/citt/EveryBeam/"
+SIZE_SCALE = "-size 256 256 -scale 4amin"
 
 @pytest.fixture(autouse=True)
 def prepare():
@@ -91,12 +92,13 @@ def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     s = [
         mpi_cmd if mpi else thread_cmd,
         gridder,
+        SIZE_SCALE,
         reorder_ms,
         "-niter 1000000 -auto-threshold 5 -mgain 0.8",
         f"-facet-regions {tcf.FACETFILE_4FACETS}",
         f"-name facet-imaging{reorder_ms}",
-        "-size 256 256 -scale 4amin -v",
         "-mwa-path . -apply-facet-beam" if apply_beam else "",
+        "-v",
         ms,
     ]
     print("WSClean cmd: " + " ".join(s))
@@ -149,6 +151,21 @@ def basic_image_check(fits_filename):
     ZERO_LIMIT = 0.035
     assert (zeroes / data.size) <= ZERO_LIMIT
 
+def test_makepsfonly():
+    """
+    Test that wsclean with the -make-psf-only flag exits gracefully and
+    that the psf passes basic checks.
+    """
+    s = [
+        tcf.WSCLEAN,
+        "-make-psf-only -name facet-psf-only",
+        SIZE_SCALE,
+        f"-facet-regions {tcf.FACETFILE_4FACETS} {MWA_MOCK_MS}"
+    ]
+    check_call(" ".join(s).split())
+
+    basic_image_check("facet-psf-only-psf.fits")
+
 # Test assumes that IDG and EveryBeam are installed
 @pytest.mark.parametrize("gridder", gridders().items())
 def test_stitching(gridder):
@@ -158,7 +175,7 @@ def test_stitching(gridder):
        tcf.WSCLEAN,
        "-quiet",
        gridder[1],
-       "-size 256 256 -scale 4amin",
+       SIZE_SCALE,
        "" if (gridder[0] == "idg") else "-pol XX,YY",
        f"-facet-regions {tcf.FACETFILE_2FACETS}",
        f"-name {prefix}",

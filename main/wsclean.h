@@ -32,6 +32,7 @@ class FacetImage;
 }
 }  // namespace schaapcommon
 
+class PrimaryBeam;
 class WSClean {
  public:
   WSClean();
@@ -55,14 +56,22 @@ class WSClean {
 
  private:
   void runIndependentGroup(ImagingTable& groupTable,
-                           std::unique_ptr<class PrimaryBeam>& primaryBeam);
+                           std::unique_ptr<PrimaryBeam>& primaryBeam);
   void saveRestoredImagesForGroup(
       const ImagingTable& table,
-      std::unique_ptr<class PrimaryBeam>& primaryBeam) const;
+      std::unique_ptr<PrimaryBeam>& primaryBeam) const;
   void predictGroup(const ImagingTable& groupTable);
 
-  void runFirstInversion(ImagingTableEntry& entry,
-                         std::unique_ptr<class PrimaryBeam>& primaryBeam);
+  void runFirstInversions(ImagingTable& groupTable,
+                          std::unique_ptr<PrimaryBeam>& primaryBeam,
+                          bool requestPolarizationsAtOnce,
+                          bool parallelizePolarizations);
+  void runSingleFirstInversion(ImagingTableEntry& entry,
+                               std::unique_ptr<PrimaryBeam>& primaryBeam);
+  void runMajorIterations(ImagingTable& groupTable,
+                          std::unique_ptr<PrimaryBeam>& primaryBeam,
+                          bool requestPolarizationsAtOnce,
+                          bool parallelizePolarizations);
 
   void performReordering(bool isPredictMode);
 
