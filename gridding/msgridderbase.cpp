@@ -701,9 +701,12 @@ void MSGridderBase::writeVisibilities(
       const std::vector<double> freqs(curBand.begin(), curBand.end());
       const size_t responseSize = _cachedMSTimes[_msIndex].size() *
                                   freqs.size() * antennaNames.size() * nparms;
+      const std::string dirName =
+          _h5parm->GetNearestSource(_facetCentreRA, _facetCentreDec);
+      const size_t dirIndex = _h5SolTabs.first->GetDirIndex(dirName);
       JonesParameters jonesParameters(
           freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType,
-          JonesParameters::InterpolationType::NEAREST, _facetIndex,
+          JonesParameters::InterpolationType::NEAREST, dirIndex,
           _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
           JonesParameters::MissingAntennaBehavior::kUnit);
       const auto parms = jonesParameters.GetParms();
@@ -876,10 +879,13 @@ void MSGridderBase::ApplyConjugatedH5Parm(
     const std::vector<double> freqs(curBand.begin(), curBand.end());
     const size_t responseSize = _cachedMSTimes[_msIndex].size() * freqs.size() *
                                 antennaNames.size() * nparms;
+    const std::string dirName =
+        _h5parm->GetNearestSource(_facetCentreRA, _facetCentreDec);
+    const size_t dirIndex = _h5SolTabs.first->GetDirIndex(dirName);
     JonesParameters jonesParameters(
         freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType,
-        JonesParameters::InterpolationType::NEAREST, _facetIndex,
-        _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
+        JonesParameters::InterpolationType::NEAREST, dirIndex, _h5SolTabs.first,
+        _h5SolTabs.second, false, 0.0f, 0u,
         JonesParameters::MissingAntennaBehavior::kUnit);
     const auto parms = jonesParameters.GetParms();
     _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
