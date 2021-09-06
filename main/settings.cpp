@@ -2,6 +2,8 @@
 
 #include "../io/logger.h"
 
+#include <schaapcommon/h5parm/h5parm.h>
+
 #include <sstream>
 
 void Settings::Validate() const {
@@ -198,6 +200,13 @@ void Settings::Validate() const {
         "When using forced spectrum mode, currently it is required to fit "
         "logarithmic polynomials (i.e. spectral index + further terms). This "
         "implies you have to specify -fit-spectral-log-pol 2.");
+
+  if (parallelGridding != 1 && (applyFacetBeam || !facetSolutionFile.empty()) &&
+      !schaapcommon::h5parm::H5Parm::IsThreadSafe()) {
+    throw std::runtime_error(
+        "Parallel gridding in combination with a facet beam or facet solutions,"
+        " requires an HDF5 library that supports multi-threading.");
+  }
 
   checkPolarizations();
 }

@@ -256,7 +256,7 @@ def test_facetdeconvolution(gridder, reorder, mpi):
     )
     assert_taql(taql_command)
 
-@pytest.mark.parametrize("mpi", [True])
+@pytest.mark.parametrize("mpi", [False, True])
 def test_facetbeamimages(mpi):
     """
     Basic checks of the generated images when using facet beams. For each image,
