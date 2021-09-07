@@ -38,8 +38,8 @@ BOOST_AUTO_TEST_CASE(irregular_bands) {
       channels2{ChannelInfo(140e6, 5e6), ChannelInfo(145e6, 5e6),
                 ChannelInfo(150e6, 5e6)};
   MultiBandData multiBand;
-  const size_t dataDescId1 = multiBand.AddBand(BandData(channels1));
-  const size_t dataDescId2 = multiBand.AddBand(BandData(channels2));
+  const size_t dataDescId1 = multiBand.AddBand(BandData(channels1, 185e6));
+  const size_t dataDescId2 = multiBand.AddBand(BandData(channels2, 145e6));
 
   BOOST_CHECK_EQUAL(multiBand.BandCount(), 2u);
   BOOST_CHECK_CLOSE_FRACTION(multiBand.BandStart(), 137.5e6, 1e-6);

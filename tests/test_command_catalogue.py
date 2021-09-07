@@ -92,47 +92,47 @@ def cleanup(request):
 
 def test_dirty_image():
     # Make dirty image
-    s = f"./wsclean -name {name('test-dirty')} {tcf.DIMS} {os.environ['MWA_MS']}"
+    s = f"{tcf.WSCLEAN} -name {name('test-dirty')} {tcf.DIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_clean_rectangular_unpadded_image():
     # Clean a rectangular unpadded image
-    s = f"./wsclean -name {name('clean-rectangular')} -padding 1 \
+    s = f"{tcf.WSCLEAN} -name {name('clean-rectangular')} -padding 1 \
           -auto-threshold 5 -mgain 0.8 -niter 100000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_automask_multiscale_clean():
     # Auto-masked multi-scale clean
-    s = f"./wsclean -name {name('multiscale-automasked')} -auto-threshold 0.5 -auto-mask 3 \
+    s = f"{tcf.WSCLEAN} -name {name('multiscale-automasked')} -auto-threshold 0.5 -auto-mask 3 \
           -mgain 0.8 -multiscale -niter 100000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_multiple_intervals():
     # Multiple intervals
-    s = f"./wsclean -name {name('intervals')} -intervals-out 3 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
+    s = f"{tcf.WSCLEAN} -name {name('intervals')} -intervals-out 3 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_multiple_intervals_and_channels():
     # Multiple intervals + multiple channels with some cleaning
-    s = f"./wsclean -name {name('intervals-and-channels')} -intervals-out 3 \
+    s = f"{tcf.WSCLEAN} -name {name('intervals-and-channels')} -intervals-out 3 \
         -channels-out 2 -niter 1000 -mgain 0.8 {tcf.DIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_multifrequency_hogbom():
     # Multi-frequency Högbom clean, no parallel gridding
-    s = f"./wsclean -name {name('mfhogbom')} -channels-out 4 -join-channels -auto-threshold 3 \
+    s = f"{tcf.WSCLEAN} -name {name('mfhogbom')} -channels-out 4 -join-channels -auto-threshold 3 \
         -mgain 0.8 -niter 1000000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_multifrequency_hogbom_spectral_fit():
     # Multi-frequency Högbom clean with spectral fitting
-    s = f"./wsclean -name {name('mfhogbom-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \
+    s = f"{tcf.WSCLEAN} -name {name('mfhogbom-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \
        -fit-spectral-pol 2 -auto-threshold 3 -mgain 0.8 \
            -niter 1000000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
@@ -140,7 +140,7 @@ def test_multifrequency_hogbom_spectral_fit():
 
 def test_mutifrequency_multiscale_parallel():
     # Multi-frequency multi-scale clean with spectral fitting, pallel gridding & cleaning
-    s = f"./wsclean -name {name('mfms-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \
+    s = f"{tcf.WSCLEAN} -name {name('mfms-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \
          -parallel-deconvolution 1000 -fit-spectral-pol 2 -multiscale -auto-threshold 0.5 \
               -auto-mask 3 -mgain 0.8 -niter 1000000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
@@ -148,7 +148,7 @@ def test_mutifrequency_multiscale_parallel():
 
 def test_save_components():
     # Save the list of components
-    s = f"./wsclean -name {name('mfms-components')} -save-source-list -channels-out 4 \
+    s = f"{tcf.WSCLEAN} -name {name('mfms-components')} -save-source-list -channels-out 4 \
         -join-channels -parallel-gridding 4 -fit-spectral-pol 2 \
             -auto-threshold 0.5 -auto-mask 3 -mgain 0.8 -niter 1000000 \
                 -multiscale -parallel-deconvolution 1000 {tcf.DIMS} {os.environ['MWA_MS']}"
@@ -157,7 +157,7 @@ def test_save_components():
 
 def test_linear_joined_polarizations():
     # Linear joined polarizations with 4 joined channels
-    s = f"./wsclean -name {name('linearpol')} -niter 1000000 -auto-threshold 3.0 \
+    s = f"{tcf.WSCLEAN} -name {name('linearpol')} -niter 1000000 -auto-threshold 3.0 \
          -pol XX,YY,XY,YX -join-polarizations -join-channels -mgain 0.85 \
              -channels-out 4 -parallel-gridding 16 {tcf.DIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
@@ -165,19 +165,19 @@ def test_linear_joined_polarizations():
 
 def test_two_timesteps():
     # Image two timesteps
-    s = f"./wsclean -name {name('two-timesteps')} -niter 1000000 -auto-threshold 3.0 \
+    s = f"{tcf.WSCLEAN} -name {name('two-timesteps')} -niter 1000000 -auto-threshold 3.0 \
         -intervals-out 2 -interval 20 22 -mgain 0.85 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_stop_on_negative_components():
     # Stop on negative components
-    s = f"./wsclean -name {name('stop-on-negatives')} -stop-negative -niter 100000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
+    s = f"{tcf.WSCLEAN} -name {name('stop-on-negatives')} -stop-negative -niter 100000 {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_save_imaging_weights():
-    s = f"./wsclean -name {name('store-imaging-weights')} -no-reorder -store-imaging-weights {tcf.RECTDIMS} {os.environ['MWA_MS']}"
+    s = f"{tcf.WSCLEAN} -name {name('store-imaging-weights')} -no-reorder -store-imaging-weights {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
@@ -186,21 +186,23 @@ def test_save_imaging_weights():
 )
 def test_shift_image(gridder, test_name):
     # Shift the image with w-stacking and w-gridder gridder
-    s = f"./wsclean {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.RECTDIMS} -shift 08h09m20s -39d06m54s -no-update-model-required {os.environ['MWA_MS']}"
+    s = f"{tcf.WSCLEAN} {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.RECTDIMS} -shift 08h09m20s -39d06m54s -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
+
 
 def test_missing_channels_in_deconvolution():
     # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
     # by imaging with -channels-out 24, it is tested what happens when an output channel has no data.
-    s = f"./wsclean -name {name('missing-channels-in-deconvolution')} -use-wgridder -size 1024 1024 -scale 1amin -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {os.environ['MWA_MS']}"
+    s = f"{tcf.WSCLEAN} -name {name('missing-channels-in-deconvolution')} -use-wgridder -size 1024 1024 -scale 1amin -baseline-averaging 2.0 -no-update-model-required -niter 150000 -auto-threshold 2.0 -auto-mask 5.0 -mgain 0.9 -channels-out 24 -join-channels -fit-spectral-pol 4 {os.environ['MWA_MS']}"
     check_call(s.split())
+
 
 def test_grid_with_beam():
     """Requires that WSClean is compiled with IDG and EveryBeam
     """
     name = "idg-beam"
     if os.environ["MWA_COEFFS_PATH"]:
-        s = f"./wsclean -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
+        s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
         check_call(s.split())
         for image_type in [
             "psf",
@@ -226,14 +228,14 @@ def test_grid_with_beam():
 
 def test_two_facets():
     # Apply the facet to the image
-    s = f"./wsclean -name {name('two-facets')} -facet-regions {tcf.FACETFILE_2FACETS} \
+    s = f"{tcf.WSCLEAN} -name {name('two-facets')} -facet-regions {tcf.FACETFILE_2FACETS} \
         {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
 
 def test_nfacets_pol_xx_yy():
     # Request two polarizations on approximately 25 facets
-    s = f"./wsclean -name {name('nfacets-XX_YY')} -pol XX,YY \
+    s = f"{tcf.WSCLEAN} -name {name('nfacets-XX_YY')} -pol XX,YY \
         -facet-regions {tcf.FACETFILE_NFACETS} {tcf.RECTDIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
 
@@ -248,7 +250,7 @@ def test_facet_h5solution(npol):
     check_call(h5download.split())
 
     name = f"facet-h5-{npol}pol"
-    s = f"./wsclean -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {os.environ['MWA_MS']}"
+    s = f"{tcf.WSCLEAN} -use-wgridder -name {name} -apply-facet-solutions mock_soltab_{npol}pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {os.environ['MWA_MS']}"
     check_call(s.split())
 
     # Check for output images
@@ -271,7 +273,7 @@ def test_facet_h5solution(npol):
 def test_facet_beam():
     # Test facet beam, using 4 polarizations
     if os.environ["MWA_COEFFS_PATH"]:
-        s = f"./wsclean -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv \
+        s = f"{tcf.WSCLEAN} -name {name('nfacets-iquv-facet-beam')} -interval 10 14 -apply-facet-beam -pol iquv \
             -facet-regions {tcf.FACETFILE_NFACETS} {tcf.RECTDIMS} \
                 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
         check_call(s.split())
@@ -283,5 +285,5 @@ def test_facet_beam():
 
 def test_mpi():
     # Test wsclean-mp command
-    s = f"mpirun ./wsclean-mp -name {name('mpi')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
+    s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
