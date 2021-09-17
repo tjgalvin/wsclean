@@ -6,7 +6,7 @@
 #include "../main/wsclean.h"
 
 #include "../io/logger.h"
-#include "../system/check_openblas_multithreading.h"
+#include <aocommon/checkblas.h>
 
 #include <exception>
 #include <iostream>
