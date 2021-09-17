@@ -42,7 +42,10 @@ format:
   script:
     # Update external/aocommon, which contains format.sh.
     - git submodule update --init external/aocommon
-    - pip3 install clang-format==9.0.0 cmake-format
+    - apt-get install -y -qq clang-format-12
+    # The formatter needs a binary named 'clang-format', not 'clang-format-12'.
+    - ln -sf clang-format-12 /usr/bin/clang-format
+    - pip3 install cmake-format
     # Check formatting of header (*.h), source (*.cpp) and CMake files
     - ./scripts/run-format.sh
   rules:
