@@ -105,11 +105,14 @@ find_package(CFITSIO REQUIRED)
 # available, if LAPACK would not be explicitly required.
 find_package(LAPACK REQUIRED)
 
-find_library(FFTW3_LIB fftw3 REQUIRED)
-find_library(FFTW3_THREADS_LIB fftw3_threads REQUIRED)
-find_library(FFTW3F_LIB fftw3f REQUIRED)
-find_library(FFTW3F_THREADS_LIB fftw3f_threads REQUIRED)
-find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h)
+find_library(FFTW3_LIB fftw3 REQUIRED HINTS ENV FFTW3_LIB)
+find_library(FFTW3_THREADS_LIB fftw3_threads REQUIRED HINTS ENV FFTW3_LIB)
+find_library(FFTW3F_LIB fftw3f REQUIRED HINTS ENV FFTW3_LIB)
+find_library(FFTW3F_THREADS_LIB fftw3f_threads REQUIRED HINTS ENV FFTW3_LIB)
+find_path(
+  FFTW3_INCLUDE_DIR
+  NAMES fftw3.h
+  HINTS ENV FFTW3_INCLUDE)
 
 find_package(PythonLibs 3 REQUIRED)
 find_package(PythonInterp REQUIRED)
