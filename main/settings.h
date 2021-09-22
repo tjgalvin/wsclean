@@ -86,7 +86,7 @@ class Settings {
   bool applyPrimaryBeam, reusePrimaryBeam, useDifferentialLofarBeam, savePsfPb;
   double primaryBeamLimit;
   std::string mwaPath;
-  size_t primaryBeamUndersampling, primaryBeamUpdateTime;
+  size_t primaryBeamGridSize, primaryBeamUpdateTime;
   bool directFT;
   DirectFTPrecision directFTPrecision;
   bool useIDG, useWGridder;
@@ -273,7 +273,7 @@ inline Settings::Settings()
       useDifferentialLofarBeam(false),
       savePsfPb(false),
       primaryBeamLimit(0.005),
-      primaryBeamUndersampling(8),
+      primaryBeamGridSize(32),
       primaryBeamUpdateTime(1800),
       directFT(false),
       directFTPrecision(DirectFTPrecision::Double),

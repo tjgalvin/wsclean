@@ -82,10 +82,20 @@ class PrimaryBeam {
       const std::map<size_t, std::unique_ptr<MetaDataCache>>& metaCache,
       bool requiresH5Correction);
 
+  size_t GetUndersamplingFactor() const { return _undersample; };
+  size_t GetBeamUpdateTime() const { return _secondsBeforeBeamUpdate; };
+
  private:
+  // Compute undersampling factor from the primaryBeamGridSize.
+  // In case of rectangular images, the undersampling factor is derived
+  // from the shortest dimension.
+  static size_t computeUndersamplingFactor(const Settings& settings);
+
   const Settings& _settings;
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
-  size_t _undersample, _secondsBeforeBeamUpdate;
+  const size_t _undersample;
+  const size_t _secondsBeforeBeamUpdate;
+
   std::vector<std::unique_ptr<class MSDataDescription>> _msList;
   struct MSProviderInfo {
     MSProviderInfo(MSProvider* _provider, const MSSelection* _selection,

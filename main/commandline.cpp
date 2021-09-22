@@ -116,12 +116,21 @@ void CommandLine::printHelp() {
          "-save-psf-pb\n"
          "   When applying beam correction, also save the primary-beam "
          "corrected PSF image.\n"
-         "-pb-undersampling <factor>\n"
-         "   Normally, the primary beam is calculated at a lower resolution "
-         "and interpolated, because calculating the beam is\n"
-         "   computationally expensive. The amount of undersampling can be "
-         "controlled by this parameter, or set to '1' for no\n"
-         "   undersampling. Default: 8.\n"
+         "-pb-grid-size <npixel>\n"
+         "   Specify the grid size in number of pixels at which to evaluate "
+         "   the primary beam.\n"
+         "   Typically, the primary beam is calculated at a coarse resolution "
+         "grid \n"
+         "   and interpolated, to reduce the time spent in evaluating the "
+         "beam. \n"
+         "   This parameter controls the resolution of the grid at which to "
+         "evaluate \n"
+         "   the primary beam. For rectangular images, pb-grid-size \n"
+         "   indicates the number of pixels along the shortest dimension. \n"
+         "   The total number of pixels in the primary beam grid thus amounts "
+         "to: \n\n"
+         "   max(width, height) / min(width, height) * pb-grid-size**2. \n\n"
+         "   Default: 32.\n"
          "-primary-beam-model\n"
          "   Specify the beam model, only relevant for SKA and LOFAR. "
          "Available "
@@ -882,10 +891,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       dryRun = true;
     } else if (param == "save-psf-pb") {
       settings.savePsfPb = true;
-    } else if (param == "pb-undersampling") {
+    } else if (param == "pb-grid-size") {
       ++argi;
-      settings.primaryBeamUndersampling =
-          parse_size_t(argv[argi], "pb-undersampling");
+      settings.primaryBeamGridSize = parse_size_t(argv[argi], "pb-grid-size");
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
     } else if (param == "no-negative" || param == "nonegative") {

@@ -4,6 +4,7 @@ add_executable(
   testbaselinedependentaveraging.cpp
   testclean.cpp
   testcomponentlist.cpp
+  testcommandline.cpp
   testfitsdateobstime.cpp
   testfluxdensity.cpp
   testimageset.cpp
@@ -22,6 +23,11 @@ add_executable(
   structures/testimagingtable.cpp
   ${WSCLEANFILES})
 
+add_custom_target(
+  download_mocks
+  COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+
 set(TEST_LIBRARIES pybind11::embed ${ALL_LIBRARIES}
                    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
@@ -29,7 +35,7 @@ target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 
 add_custom_target(
   checkunit
-  DEPENDS unittest
+  DEPENDS unittest download_mocks
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND unittest)
 
