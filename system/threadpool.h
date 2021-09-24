@@ -70,7 +70,7 @@ class ThreadPool {
 
   std::vector<std::thread> _threads;
   std::size_t _activeThreads;
-  std::queue<std::function<void()> > _queuedTasks;
+  std::queue<std::function<void()>> _queuedTasks;
   bool _finish;
 
   std::mutex _mutex;

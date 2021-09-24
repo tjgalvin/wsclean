@@ -243,7 +243,7 @@ void processField(casacore::MeasurementSet& set, const std::string& dataColumn,
                            set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
              hasModelData = dataColumn.empty() &&
                             set.isColumn(casacore::MSMainEnums::MODEL_DATA);
-  std::unique_ptr<ArrayColumn<casacore::Complex> > dataCol, correctedDataCol,
+  std::unique_ptr<ArrayColumn<casacore::Complex>> dataCol, correctedDataCol,
       modelDataCol;
   if (!onlyUVW) {
     if (dataColumn.empty()) {
@@ -299,7 +299,7 @@ void processField(casacore::MeasurementSet& set, const std::string& dataColumn,
         MDirection::Convert(newDirection, MDirection::Ref(MDirection::J2000))();
     casacore::IPosition dataShape;
     unsigned polarizationCount = 0;
-    std::unique_ptr<casacore::Array<casacore::Complex> > dataArray;
+    std::unique_ptr<casacore::Array<casacore::Complex>> dataArray;
     if (!onlyUVW) {
       dataShape = dataCol->shape(0);
       polarizationCount = dataShape[0];
@@ -474,7 +474,7 @@ void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
 
   const bool hasCorrData = set.isColumn(casacore::MSMainEnums::CORRECTED_DATA),
              hasModelData = set.isColumn(casacore::MSMainEnums::MODEL_DATA);
-  std::unique_ptr<ArrayColumn<casacore::Complex> > dataCol, correctedDataCol,
+  std::unique_ptr<ArrayColumn<casacore::Complex>> dataCol, correctedDataCol,
       modelDataCol;
   if (!onlyUVW) {
     dataCol.reset(new ArrayColumn<casacore::Complex>(
@@ -497,7 +497,7 @@ void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
 
   casacore::IPosition dataShape;
   unsigned polarizationCount = 0;
-  std::unique_ptr<casacore::Array<casacore::Complex> > dataArray;
+  std::unique_ptr<casacore::Array<casacore::Complex>> dataArray;
   if (!onlyUVW) {
     dataShape = dataCol->shape(0);
     polarizationCount = dataShape[0];
