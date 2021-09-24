@@ -310,7 +310,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
   }
 
   // Write actual data
-  size_t polarizationsPerFile = settings.useIDG ? 4 : 1;
+  const size_t polarizationsPerFile = settings.useIDG ? 4 : 1;
   std::vector<std::complex<float>> dataBuffer(polarizationsPerFile *
                                               maxChannels);
   std::vector<float> weightBuffer(polarizationsPerFile * maxChannels);
@@ -357,8 +357,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
     fileIndex = 0;
     for (size_t part = 0; part != channelParts; ++part) {
       if (channels[part].dataDescId == int(meta.dataDescId)) {
-        size_t partStartCh = channels[part].start,
-               partEndCh = channels[part].end;
+        const size_t partStartCh = channels[part].start;
+        const size_t partEndCh = channels[part].end;
 
         for (aocommon::PolarizationEnum p : polsOut) {
           PartitionFiles& f = files[fileIndex];

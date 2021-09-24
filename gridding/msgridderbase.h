@@ -444,7 +444,7 @@ class MSGridderBase {
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedBeamResponse;
 #endif
-  std::vector<aocommon::UVector<std::complex<float>>> _cachedParmResponse;
+  std::vector<std::vector<std::complex<float>>> _cachedParmResponse;
   std::unique_ptr<schaapcommon::h5parm::H5Parm> _h5parm;
   std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>
       _h5SolTabs;

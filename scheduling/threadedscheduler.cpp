@@ -32,10 +32,9 @@ void ThreadedScheduler::Run(
 }
 
 void ThreadedScheduler::processQueue() {
-  std::unique_ptr<MSGridderBase> gridder(makeGridder());
-
   std::pair<GriddingTask, std::function<void(GriddingResult&)>> taskPair;
   while (_taskList.read(taskPair)) {
+    std::unique_ptr<MSGridderBase> gridder(makeGridder());
     GriddingResult result = runDirect(std::move(taskPair.first), *gridder);
 
     std::lock_guard<std::mutex> lock(_mutex);
@@ -45,6 +44,7 @@ void ThreadedScheduler::processQueue() {
 
 void ThreadedScheduler::Start(size_t nWriterGroups) {
   GriddingTaskManager::Start(nWriterGroups);
+
   if (_writerGroupLocks.size() < nWriterGroups)
     _writerGroupLocks = std::vector<ThreadedWriterLock>(nWriterGroups);
 }

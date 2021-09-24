@@ -20,6 +20,7 @@ MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
 EVERYBEAM_BASE_URL = "http://www.astron.nl/citt/EveryBeam/"
 SIZE_SCALE = "-size 256 256 -scale 4amin"
 
+
 @pytest.fixture(autouse=True)
 def prepare():
     # Change to directory containing the data
@@ -123,6 +124,7 @@ def check_and_remove_files(fpaths, remove=False):
     if remove:
         [os.remove(fpath) for fpath in fpaths]
 
+
 def basic_image_check(fits_filename):
     """
     Checks that the fits file has no NaN or Inf values and that the number
@@ -132,9 +134,7 @@ def basic_image_check(fits_filename):
         from astropy.io import fits
     except:
         warnings.warn(
-            UserWarning(
-                "Could not import astropy, so fits image checks are skipped."
-            )
+            UserWarning("Could not import astropy, so fits image checks are skipped.")
         )
         return
 
@@ -151,6 +151,28 @@ def basic_image_check(fits_filename):
     ZERO_LIMIT = 0.035
     assert (zeroes / data.size) <= ZERO_LIMIT
 
+
+def compare_rms_fits(fits1, fits2, threshold):
+    """
+    Checks the root-mean square of the difference between
+    two input fits files against a user-defined threshold.
+    """
+
+    try:
+        from astropy.io import fits
+    except:
+        warnings.warn(
+            UserWarning("Could not import astropy, so fits image checks are skipped.")
+        )
+        return
+
+    image1 = fits.open(fits1)[0].data
+    image2 = fits.open(fits2)[0].data
+    dimage = image1.flatten() - image2.flatten()
+    rms = np.sqrt(dimage.dot(dimage) / dimage.size)
+    assert rms <= threshold
+
+
 def test_makepsfonly():
     """
     Test that wsclean with the -make-psf-only flag exits gracefully and
@@ -160,11 +182,12 @@ def test_makepsfonly():
         tcf.WSCLEAN,
         "-make-psf-only -name facet-psf-only",
         SIZE_SCALE,
-        f"-facet-regions {tcf.FACETFILE_4FACETS} {MWA_MOCK_MS}"
+        f"-facet-regions {tcf.FACETFILE_4FACETS} {MWA_MOCK_MS}",
     ]
     check_call(" ".join(s).split())
 
     basic_image_check("facet-psf-only-psf.fits")
+
 
 # Test assumes that IDG and EveryBeam are installed
 @pytest.mark.parametrize("gridder", gridders().items())
@@ -172,14 +195,14 @@ def test_stitching(gridder):
     """Test stitching of the facets"""
     prefix = f"facet-stitch-{gridder[0]}"
     s = [
-       tcf.WSCLEAN,
-       "-quiet",
-       gridder[1],
-       SIZE_SCALE,
-       "" if (gridder[0] == "idg") else "-pol XX,YY",
-       f"-facet-regions {tcf.FACETFILE_2FACETS}",
-       f"-name {prefix}",
-       MWA_MOCK_MS
+        tcf.WSCLEAN,
+        "-quiet",
+        gridder[1],
+        SIZE_SCALE,
+        "" if (gridder[0] == "idg") else "-pol XX,YY",
+        f"-facet-regions {tcf.FACETFILE_2FACETS}",
+        f"-name {prefix}",
+        MWA_MOCK_MS,
     ]
     check_call(" ".join(s).split())
     fpaths = (
@@ -256,6 +279,7 @@ def test_facetdeconvolution(gridder, reorder, mpi):
     )
     assert_taql(taql_command)
 
+
 @pytest.mark.parametrize("mpi", [False, True])
 def test_facetbeamimages(mpi):
     """
@@ -268,3 +292,31 @@ def test_facetbeamimages(mpi):
 
     basic_image_check("facet-imaging-reorder-psf.fits")
     basic_image_check("facet-imaging-reorder-dirty.fits")
+
+
+def test_parallel_gridding():
+    # Compare serial, threaded and mpi run for facet based imaging
+    # with h5 corrections. Number of used threads/processes is
+    # deliberately chosen smaller than the number of facets.
+    h5download = f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
+    check_call(h5download.split())
+
+    names = ["facets-h5-serial", "facets-h5-threaded", "facets-h5-mpi"]
+    wsclean_commands = [
+        tcf.WSCLEAN,
+        f"{tcf.WSCLEAN} -parallel-gridding 3",
+        f"mpirun -np 3 {tcf.WSCLEAN_MP}",
+    ]
+    for name, command in zip(names, wsclean_commands):
+        s = f"{command} -quiet -use-wgridder -name {name} -apply-facet-solutions  mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
+        check_call(s.split())
+
+    # Compare images, the threshold is chosen relatively large since the difference
+    # seems to fluctuate somewhat between runs.
+    threshold = 6e-3
+    compare_rms_fits(
+        f"{names[0]}-YY-image.fits", f"{names[1]}-YY-image.fits", threshold
+    )
+    compare_rms_fits(
+        f"{names[0]}-YY-image.fits", f"{names[2]}-YY-image.fits", threshold
+    )

@@ -1392,8 +1392,8 @@ void WSClean::resetModelColumns(const ImagingTable& groupTable) {
 void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
   std::vector<std::unique_ptr<MSDataDescription>> msList;
   initializeMSList(entry, msList);
-  for (size_t i = 0; i != msList.size(); ++i) {
-    msList[i]->GetProvider()->ResetModelColumn();
+  for (auto& ms : msList) {
+    ms->GetProvider()->ResetModelColumn();
   }
 }
 
@@ -1552,7 +1552,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           }    // end of joined channels loop
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
-        } else {  // only parallize channels
+        } else {  // only parallelize channels
           resetModelColumns(groupTable);
           _predictingWatch.Start();
           _griddingTaskManager->Start(getMaxNrMSProviders() *
