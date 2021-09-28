@@ -95,7 +95,7 @@ class Settings {
   double atermKernelSize;
   bool gridWithBeam;
   double beamAtermUpdateTime;  // in seconds.
-  std::string facetSolutionFile;
+  std::vector<std::string> facetSolutionFiles;
   std::vector<std::string> facetSolutionTables;
   bool applyFacetBeam;
   double facetBeamUpdateTime;  // in seconds.
@@ -284,7 +284,7 @@ inline Settings::Settings()
       atermKernelSize(5.0),
       gridWithBeam(false),
       beamAtermUpdateTime(300.0),
-      facetSolutionFile(),
+      facetSolutionFiles(),
       facetSolutionTables(),
       applyFacetBeam(false),
       facetBeamUpdateTime(120.0),

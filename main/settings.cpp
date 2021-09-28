@@ -44,7 +44,7 @@ void Settings::Validate() const {
   }
 
   if (facetRegionFilename.empty()) {
-    if (!facetSolutionFile.empty())
+    if (!facetSolutionFiles.empty())
       throw std::runtime_error(
           "A facet solution file can only be specified in conjunction with a "
           "facet regions file. Either remove -apply-facet-solutions from the "
@@ -67,11 +67,19 @@ void Settings::Validate() const {
       }
       // This condition might become a bit more specific once xx,yy polarization
       // correction for h5 AND beam are implemented
-      if (applyFacetBeam && !facetSolutionFile.empty()) {
+      if (applyFacetBeam && !facetSolutionFiles.empty()) {
         throw std::runtime_error(
             "Applying h5parm solutions AND beam correction on multiple "
             "polarizations is not yet supported.");
       }
+    }
+
+    if (!facetSolutionFiles.empty() && facetSolutionFiles.size() != 1 &&
+        facetSolutionFiles.size() != filenames.size()) {
+      throw std::runtime_error(
+          "Incorrect number of facet solution files provided. The number of "
+          "facet solution files should be either 1 or match the number of "
+          "input Measurement Sets.");
     }
   }
 
@@ -109,7 +117,7 @@ void Settings::Validate() const {
           "IDG cannot apply facet based beam corrections. Remove facet related "
           "command line arguments and use -grid-with-beam "
           "instead.");
-    if (!facetSolutionFile.empty())
+    if (!facetSolutionFiles.empty())
       throw std::runtime_error(
           "IDG cannot apply facet based direction dependent corrections. "
           "Remove -apply-facet-solution from the command line instruction.");
@@ -203,7 +211,8 @@ void Settings::Validate() const {
         "logarithmic polynomials (i.e. spectral index + further terms). This "
         "implies you have to specify -fit-spectral-log-pol 2.");
 
-  if (parallelGridding != 1 && (applyFacetBeam || !facetSolutionFile.empty()) &&
+  if (parallelGridding != 1 &&
+      (applyFacetBeam || !facetSolutionFiles.empty()) &&
       !schaapcommon::h5parm::H5Parm::IsThreadSafe()) {
     throw std::runtime_error(
         "Parallel gridding in combination with a facet beam or facet solutions,"

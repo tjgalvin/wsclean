@@ -702,7 +702,7 @@ void WSClean::RunClean() {
                                           _infoForMFS, "image.fits",
                                           intervalIndex, *pol, false);
             if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                !_settings.facetSolutionFile.empty() ||
+                !_settings.facetSolutionFiles.empty() ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty()))
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -718,7 +718,7 @@ void WSClean::RunClean() {
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                             intervalIndex, *pol, false, false);
             if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                !_settings.facetSolutionFile.empty() ||
+                !_settings.facetSolutionFiles.empty() ||
                 (_settings.gridWithBeam ||
                  !_settings.atermConfigFilename.empty())) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -741,7 +741,7 @@ void WSClean::RunClean() {
                                             _infoForMFS, "image.fits",
                                             intervalIndex, *pol, true);
               if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                  !_settings.facetSolutionFile.empty() ||
+                  !_settings.facetSolutionFiles.empty() ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty()))
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -757,7 +757,7 @@ void WSClean::RunClean() {
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                               intervalIndex, *pol, true, false);
               if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                  !_settings.facetSolutionFile.empty() ||
+                  !_settings.facetSolutionFiles.empty() ||
                   (_settings.gridWithBeam ||
                    !_settings.atermConfigFilename.empty())) {
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
@@ -1027,7 +1027,7 @@ void WSClean::saveRestoredImagesForGroup(
 
     // H5 corrections will be applied on the beam images
     const bool applyH5OnBeamImages =
-        (_settings.applyFacetBeam && !_settings.facetSolutionFile.empty());
+        (_settings.applyFacetBeam && !_settings.facetSolutionFiles.empty());
     ImageFilename imageName =
         ImageFilename(currentChannelIndex, tableEntry.outputIntervalIndex);
 
@@ -1066,7 +1066,7 @@ void WSClean::saveRestoredImagesForGroup(
     // provided, but no primary beam correction was applied.
     // This can be done on a per-polarization basis (as long as we do not
     // fully support a Full Jones correction).
-    if (!_settings.facetSolutionFile.empty() && !applyH5OnBeamImages) {
+    if (!_settings.facetSolutionFiles.empty() && !applyH5OnBeamImages) {
       correctImagesH5(writer.Writer(), table, imageName, "image");
       if (_settings.savePsfPb)
         correctImagesH5(writer.Writer(), table, imageName, "psf");
@@ -1149,13 +1149,13 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     facetImage.SetFacet(*facetEntry.facet, true);
     facetImage.CopyToFacet({fullImage.data()});
     if (!isPredictOnly) {
-      if (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty()) {
+      if (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty()) {
         // Apply average direction dependent correction before storing
         float m = 1.0;
         if (_settings.applyFacetBeam)
           m *= _msGridderMetaCache[facetEntry.index]->beamSum /
                facetEntry.imageWeight;
-        if (!_settings.facetSolutionFile.empty())
+        if (!_settings.facetSolutionFiles.empty())
           m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
                facetEntry.imageWeight;
         facetImage *= 1.0f / std::sqrt(m);
@@ -1609,7 +1609,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
                                   _observationInfo.phaseCentreDec);
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-        !_settings.facetSolutionFile.empty() || _settings.gridWithBeam ||
+        !_settings.facetSolutionFiles.empty() || _settings.gridWithBeam ||
         !_settings.atermConfigFilename.empty()) {
       _deconvolution.SavePBSourceList(groupTable,
                                       _observationInfo.phaseCentreRA,
@@ -1730,12 +1730,12 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                          facetEntry.facet, isImaginary);
 
     if (!isPSF &&
-        (_settings.applyFacetBeam || !_settings.facetSolutionFile.empty())) {
+        (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
       float m = 1.0;
       if (_settings.applyFacetBeam)
         m *= _msGridderMetaCache[facetEntry.index]->beamSum /
              facetEntry.imageWeight;
-      if (!_settings.facetSolutionFile.empty())
+      if (!_settings.facetSolutionFiles.empty())
         m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
              facetEntry.imageWeight;
       facetImage *= 1.0f / std::sqrt(m);

@@ -170,6 +170,7 @@ def compare_rms_fits(fits1, fits2, threshold):
     image2 = fits.open(fits2)[0].data
     dimage = image1.flatten() - image2.flatten()
     rms = np.sqrt(dimage.dot(dimage) / dimage.size)
+    print(rms)
     assert rms <= threshold
 
 
@@ -320,3 +321,28 @@ def test_parallel_gridding():
     compare_rms_fits(
         f"{names[0]}-YY-image.fits", f"{names[2]}-YY-image.fits", threshold
     )
+
+
+def test_multi_ms():
+    # Check that identical images are obtained in case multiple (identical) MSets and H5Parm
+    # files are provided compared to imaging one MSet
+
+    h5download = f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
+    check_call(h5download.split())
+
+    # Make a new copy of MWA_MOCK_MS into MWA_MOCK_FULL
+    check_call(f"cp -r {MWA_MOCK_MS} {MWA_MOCK_FULL}".split())
+
+    names = ["facets-single-ms", "facets-multiple-ms"]
+    commands = [
+        f"-apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS}",
+        f"-apply-facet-solutions mock_soltab_2pol.h5,mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS} {MWA_MOCK_FULL}",
+    ]
+    for name, command in zip(names, commands):
+        s = f"{tcf.WSCLEAN} -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
+        check_call(s.split())
+
+    # Compare images, the threshold is chosen relatively large since the difference
+    # fluctuates between runs.
+    threshold = 7e-3
+    compare_rms_fits(f"{names[0]}-image.fits", f"{names[1]}-image.fits", threshold)

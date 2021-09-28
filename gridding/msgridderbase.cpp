@@ -249,8 +249,9 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _visibilityWeightSum(0.0),
       _predictReader(nullptr),
       _cachedParmResponse(),
-      _h5parm(nullptr),
-      _h5SolTabs(std::make_pair(nullptr, nullptr)),
+      _h5parms(),
+      _h5SolTabs(),
+      _correctType(),
       _cachedMSTimes(),
       _timeOffset() {
   computeFacetCentre();
@@ -487,7 +488,7 @@ void MSGridderBase::initializeMSDataVector(
   bool hasCache = !_metaDataCache->msDataVector.empty();
   if (!hasCache) _metaDataCache->msDataVector.resize(MeasurementSetCount());
 
-  if (!DoImagePSF() && !_settings.facetSolutionFile.empty()) {
+  if (!DoImagePSF() && !_settings.facetSolutionFiles.empty()) {
     // Assign, rather than a resize here to make sure that
     // caches are re-initialized - even in the case an MSGridderBase
     // object would be re-used for a multiple gridding tasks.
@@ -500,7 +501,7 @@ void MSGridderBase::initializeMSDataVector(
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
                              hasCache);
-    if (!DoImagePSF() && !_settings.facetSolutionFile.empty()) {
+    if (!DoImagePSF() && !_settings.facetSolutionFiles.empty()) {
       _cachedMSTimes[i] = SelectUniqueTimes(*msDataVector[i].msProvider);
     }
   }
@@ -545,60 +546,71 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.integrationTime = msData.integrationTime;
   }
 
-  if (!_settings.facetSolutionFile.empty()) {
-    _h5parm.reset(
-        new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFile));
+  if (!_settings.facetSolutionFiles.empty()) {
+    _h5parms.resize(MeasurementSetCount());
+    _h5SolTabs.resize(MeasurementSetCount());
+    _correctType.resize(MeasurementSetCount());
 
-    if (_settings.facetSolutionTables.size() == 1) {
-      _h5SolTabs = std::make_pair(
-          &_h5parm->GetSolTab(_settings.facetSolutionTables[0]), nullptr);
-      _correctType =
-          JonesParameters::StringToCorrectType(_h5SolTabs.first->GetType());
-    } else if (_settings.facetSolutionTables.size() == 2) {
-      const std::array<std::string, 2> solTabTypes{
-          _h5parm->GetSolTab(_settings.facetSolutionTables[0]).GetType(),
-          _h5parm->GetSolTab(_settings.facetSolutionTables[1]).GetType()};
-
-      auto itrA =
-          std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
-      auto itrP = std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
-
-      if (itrA == solTabTypes.end() || itrP == solTabTypes.end()) {
-        throw std::runtime_error(
-            "WSClean expected solution tables with name 'amplitude' and "
-            "'phase', but received " +
-            solTabTypes[0] + " and " + solTabTypes[1]);
+    for (size_t i = 0; i < _h5parms.size(); ++i) {
+      if (_settings.facetSolutionFiles.size() > 1) {
+        _h5parms[i].reset(
+            new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFiles[i]));
       } else {
-        const size_t idxA = std::distance(solTabTypes.begin(), itrA);
-        const size_t idxP = std::distance(solTabTypes.begin(), itrP);
-        _h5SolTabs = std::make_pair(
-            &_h5parm->GetSolTab(_settings.facetSolutionTables[idxA]),
-            &_h5parm->GetSolTab(_settings.facetSolutionTables[idxP]));
+        _h5parms[i].reset(
+            new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFiles[0]));
       }
 
-      const size_t npol1 = _h5SolTabs.first->HasAxis("pol")
-                               ? _h5SolTabs.first->GetAxis("pol").size
-                               : 1;
-      const size_t npol2 = _h5SolTabs.second->HasAxis("pol")
-                               ? _h5SolTabs.second->GetAxis("pol").size
-                               : 1;
-      if (npol1 == 1 && npol2 == 1) {
-        _correctType = JonesParameters::CorrectType::SCALARGAIN;
-      } else if (npol1 == 2 && npol2 == 2) {
-        _correctType = JonesParameters::CorrectType::GAIN;
-      } else if (npol1 == 4 && npol2 == 4) {
-        _correctType = JonesParameters::CorrectType::FULLJONES;
+      if (_settings.facetSolutionTables.size() == 1) {
+        _h5SolTabs[i] = std::make_pair(
+            &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[0]), nullptr);
+        _correctType[i] = JonesParameters::StringToCorrectType(
+            _h5SolTabs[i].first->GetType());
+      } else if (_settings.facetSolutionTables.size() == 2) {
+        const std::array<std::string, 2> solTabTypes{
+            _h5parms[i]->GetSolTab(_settings.facetSolutionTables[0]).GetType(),
+            _h5parms[i]->GetSolTab(_settings.facetSolutionTables[1]).GetType()};
+
+        auto itrA =
+            std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
+        auto itrP = std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
+
+        if (itrA == solTabTypes.end() || itrP == solTabTypes.end()) {
+          throw std::runtime_error(
+              "WSClean expected solution tables with name 'amplitude' and "
+              "'phase', but received " +
+              solTabTypes[0] + " and " + solTabTypes[1]);
+        } else {
+          const size_t idxA = std::distance(solTabTypes.begin(), itrA);
+          const size_t idxP = std::distance(solTabTypes.begin(), itrP);
+          _h5SolTabs[i] = std::make_pair(
+              &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxA]),
+              &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxP]));
+        }
+
+        const size_t npol1 = _h5SolTabs[i].first->HasAxis("pol")
+                                 ? _h5SolTabs[i].first->GetAxis("pol").size
+                                 : 1;
+        const size_t npol2 = _h5SolTabs[i].second->HasAxis("pol")
+                                 ? _h5SolTabs[i].second->GetAxis("pol").size
+                                 : 1;
+        if (npol1 == 1 && npol2 == 1) {
+          _correctType[i] = JonesParameters::CorrectType::SCALARGAIN;
+        } else if (npol1 == 2 && npol2 == 2) {
+          _correctType[i] = JonesParameters::CorrectType::GAIN;
+        } else if (npol1 == 4 && npol2 == 4) {
+          _correctType[i] = JonesParameters::CorrectType::FULLJONES;
+        } else {
+          throw std::runtime_error(
+              "Incorrect or mismatching number of polarizations in the "
+              "provided soltabs. Number of polarizations should be either "
+              "all 1, 2 or 4, but received " +
+              std::to_string(npol1) + " and " + std::to_string(npol2));
+        }
       } else {
         throw std::runtime_error(
-            "Incorrect or mismatching number of polarizations in the "
-            "provided soltabs. Number of polarizations should be either "
-            "all 1, 2 or 4, but received " +
-            std::to_string(npol1) + " and " + std::to_string(npol2));
+            "Specify the solution table name(s) with "
+            "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
       }
-    } else {
-      throw std::runtime_error(
-          "Specify the solution table name(s) with "
-          "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
     }
   }
 }
@@ -686,7 +698,7 @@ void MSGridderBase::writeVisibilities(
     const BandData& curBand, std::complex<float>* buffer) {
   assert(!DoImagePSF());  // The PSF is never predicted.
 
-  if (_h5parm) {
+  if (!_h5parms.empty()) {
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);
     // When the facet beam is applied, the row will be incremented later in this
@@ -696,7 +708,8 @@ void MSGridderBase::writeVisibilities(
     }
 
     const size_t nparms =
-        (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
+        (_correctType[_msIndex] == JonesParameters::CorrectType::FULLJONES) ? 4
+                                                                            : 2;
 
     // Only extract DD solutions if the corresponding cache entry is empty.
     if (_cachedParmResponse[_msIndex].empty()) {
@@ -704,13 +717,13 @@ void MSGridderBase::writeVisibilities(
       const size_t responseSize = _cachedMSTimes[_msIndex].size() *
                                   freqs.size() * antennaNames.size() * nparms;
       const std::string dirName =
-          _h5parm->GetNearestSource(_facetCentreRA, _facetCentreDec);
-      const size_t dirIndex = _h5SolTabs.first->GetDirIndex(dirName);
+          _h5parms[_msIndex]->GetNearestSource(_facetCentreRA, _facetCentreDec);
+      const size_t dirIndex = _h5SolTabs[_msIndex].first->GetDirIndex(dirName);
       JonesParameters jonesParameters(
-          freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType,
+          freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType[_msIndex],
           JonesParameters::InterpolationType::NEAREST, dirIndex,
-          _h5SolTabs.first, _h5SolTabs.second, false, 0.0f, 0u,
-          JonesParameters::MissingAntennaBehavior::kUnit);
+          _h5SolTabs[_msIndex].first, _h5SolTabs[_msIndex].second, false, 0.0f,
+          0u, JonesParameters::MissingAntennaBehavior::kUnit);
       // parms (Casacore::Cube) is column major
       const auto parms = jonesParameters.GetParms();
       _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
@@ -877,7 +890,8 @@ void MSGridderBase::ApplyConjugatedH5Parm(
   msReader.ReadMeta(metaData);
 
   const size_t nparms =
-      (_correctType == JonesParameters::CorrectType::FULLJONES) ? 4 : 2;
+      (_correctType[_msIndex] == JonesParameters::CorrectType::FULLJONES) ? 4
+                                                                          : 2;
 
   // Only extract DD solutions if the corresponding cache entry is empty.
   if (_cachedParmResponse[_msIndex].empty()) {
@@ -885,13 +899,13 @@ void MSGridderBase::ApplyConjugatedH5Parm(
     const size_t responseSize = _cachedMSTimes[_msIndex].size() * freqs.size() *
                                 antennaNames.size() * nparms;
     const std::string dirName =
-        _h5parm->GetNearestSource(_facetCentreRA, _facetCentreDec);
-    const size_t dirIndex = _h5SolTabs.first->GetDirIndex(dirName);
+        _h5parms[_msIndex]->GetNearestSource(_facetCentreRA, _facetCentreDec);
+    const size_t dirIndex = _h5SolTabs[_msIndex].first->GetDirIndex(dirName);
     JonesParameters jonesParameters(
-        freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType,
-        JonesParameters::InterpolationType::NEAREST, dirIndex, _h5SolTabs.first,
-        _h5SolTabs.second, false, 0.0f, 0u,
-        JonesParameters::MissingAntennaBehavior::kUnit);
+        freqs, _cachedMSTimes[_msIndex], antennaNames, _correctType[_msIndex],
+        JonesParameters::InterpolationType::NEAREST, dirIndex,
+        _h5SolTabs[_msIndex].first, _h5SolTabs[_msIndex].second, false, 0.0f,
+        0u, JonesParameters::MissingAntennaBehavior::kUnit);
     // parms (Casacore::Cube) is column major
     const auto parms = jonesParameters.GetParms();
     _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
@@ -1035,7 +1049,7 @@ void MSGridderBase::readAndWeightVisibilities(
     }
 #endif
 
-    if (_h5parm) {
+    if (!_h5parms.empty()) {
       ApplyConjugatedH5Parm<PolarizationCount, GainEntry>(
           msReader, antennaNames, rowData, curBand, weightBuffer);
     }

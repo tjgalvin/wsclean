@@ -1309,7 +1309,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
     } else if (param == "apply-facet-solutions") {
       ++argi;
-      settings.facetSolutionFile = argv[argi];
+      settings.facetSolutionFiles =
+          schaapcommon::h5parm::JonesParameters::ParseList(argv[argi]);
       ++argi;
       settings.facetSolutionTables =
           schaapcommon::h5parm::JonesParameters::ParseList(argv[argi]);

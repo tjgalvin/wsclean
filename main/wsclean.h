@@ -40,7 +40,7 @@ class WSClean {
 
   Settings& GetSettings() { return _settings; }
   const Settings& GetSettings() const { return _settings; }
-
+  void ResetSettings() { _settings = Settings(); }
   void SetCommandLine(const std::string& cmdLine) { _commandLine = cmdLine; }
 
   void RunClean();
