@@ -22,7 +22,7 @@ A few generic tips to speed up processing:
 * Or even better, irregardless of the gridder, parallellize over multiple nodes using :doc:`wsclean-mp <distributed_imaging>`.
 * When using *a*-terms, make sure to keep your *a*-term kernel as small as possible (see :doc:`a-term correction <a_term_correction>`).
 * Do not include baselines that provide a resolution higher than the imaging resolution. Despite that these baselines fall outside of the *uv*-plane, and therefore are discarded and don't affect performance, at lower elevations these baselines might still fall inside the *uv* plane and might have very large *w*-terms. Yet they don't contribute to imaging quality or the resolution. The best way to filter these baselines is using a ``-maxuvw-m`` limit. One use-case where this is important is when the international LOFAR baselines are present in the observation, but imaging is done at lower resolution (e.g. up to 2'').
-* Don't split your data in too many measurement sets. For example, keeping each LOFAR subband in a separate measurement set and imaging the full bandwidth is not efficient. Better is to use DPPP to concatenate the frequencies into only a few measurement sets and image those.
+* Don't split your data in too many measurement sets. For example, keeping each LOFAR subband in a separate measurement set and imaging the full bandwidth is not efficient. Better is to use DP3 to concatenate the frequencies into only a few measurement sets and image those.
 
 *w*-stacking
 ------------

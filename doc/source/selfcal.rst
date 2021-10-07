@@ -12,7 +12,7 @@ Image-based self-calibration
 
 One scenario where image-based self-cal can be useful is when combined with the ability to do (almost-)full-sky imaging, since in some situations MWA's field of view (for example) might require including highly off-axis sources in the calibration model.
 
-To perform self-cal, you need to use major iterations, as these will fill/update the ``MODEL_DATA`` column. When using Casa's tasks for calibration, the calibration tasks will use the ``MODEL_DATA`` and calibrate the ``CORRECTED_DATA`` using this column. Other calibration utilities, like MWA's ``mitchcal`` or LOFAR's ``DPPP`` can similarly be instructed to calibrate using the ``MODEL_DATA`` column.
+To perform self-cal, you need to use major iterations, as these will fill/update the ``MODEL_DATA`` column. When using Casa's tasks for calibration, the calibration tasks will use the ``MODEL_DATA`` and calibrate the ``CORRECTED_DATA`` using this column. Other calibration utilities, like MWA's ``mitchcal`` or LOFAR's ``DP3`` can similarly be instructed to calibrate using the ``MODEL_DATA`` column.
 
 Filling the ``MODEL_DATA`` requires a setting of mgain < 1, e.g. an mgain of 0.9. As long as mgain is not 1, WSClean will end with a major iteration, and the ``MODEL_DATA`` column will be set to the "best" model from the cleaning model.
 

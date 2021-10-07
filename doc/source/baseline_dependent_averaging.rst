@@ -54,4 +54,4 @@ Some LOFAR specifics
 
 If a measurement set includes the international baselines, it can be helpful to remove these by a row-selection maximum uvw-m value. If one doesn't do this, the reordered file can still be very large because the international baselines won't be averaged at all. The ``-maxuvw-m`` option works before reordering (whereas ``-maxuv-l`` does not), and can thus remove those. Hence, adding a maxuvw-m that is just smaller than the first international (or unused) baseline can improve the speed. This even holds when those baselines are flagged.
 
-Of course, even better is to explicitly remove the international stations from the measurement set when they are not used, e.g. using `DPPP <https://www.astron.nl/citt/DP3>`_.
+Of course, even better is to explicitly remove the international stations from the measurement set when they are not used, e.g. using `DP3 <https://www.astron.nl/citt/DP3>`_.

@@ -535,7 +535,7 @@ void CommandLine::printHelp() {
          "Useful to start at high\n"
          "   levels and go down with subsequent loops, e.g. 20,10,5\n"
          "-save-source-list\n"
-         "   Saves the found clean components as a BBS/NDPPP text sky model. "
+         "   Saves the found clean components as a BBS/DP3 text sky model. "
          "This parameter \n"
          "   enables Gaussian shapes during multi-scale cleaning "
          "(-multiscale-shape gaussian).\n"

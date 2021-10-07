@@ -8,7 +8,7 @@ The option is enabled by adding ``-save-source-list`` on the command line
 File format
 -----------
 
-The component list file format is compatible with the Blackboard Self-cal DPPP sky model formats, but be aware that versions after April 2017 of DPPP support the polynomial spectral function that is used.
+The component list file format is compatible with the Blackboard Self-cal DP3 sky model formats, but be aware that versions after April 2017 of DP3 support the polynomial spectral function that is used.
 
 When ``-save-source-list`` is added on the command line, a text file named ``<prefix>-sources.txt`` is saved. The file contains comma-separated values and looks as follows:
 
@@ -24,7 +24,7 @@ When ``-save-source-list`` is added on the command line, a text file named ``<pr
     s1c1,GAUSSIAN,07:51:09.24,42.32.46.177,0.000660490865128381,[0.00404869217508666,-0.011844732049232],false,125584411.621094,83.6144111272856,83.6144111272856,0
     [..]
     
-Each source (i.e., clean component) is one line in the file. The first line is a header starting with "``Format = ...``" that describes the columns. The header is allowed to specify a default value for this column, as is done above for the reference frequency. When a field is left empty, it should take the default value. See the BBS / DPPP documentation for more info on default values.
+Each source (i.e., clean component) is one line in the file. The first line is a header starting with "``Format = ...``" that describes the columns. The header is allowed to specify a default value for this column, as is done above for the reference frequency. When a field is left empty, it should take the default value. See the BBS / DP3 documentation for more info on default values.
 
 The columns
 -----------

@@ -98,7 +98,7 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tesselation=True
     """
 
     # Get x, y coords for directions in pixels. We use the input calibration sky
-    # model for this, as the patch positions written to the h5parm file by DPPP may
+    # model for this, as the patch positions written to the h5parm file by DP3 may
     # be different
     xy = []
     for RAvert, Decvert in zip(x_pix, y_pix):
