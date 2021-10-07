@@ -783,11 +783,6 @@ void MSGridderBase::writeVisibilities(
     _predictReader->NextInputRow();
     _pointResponse->UpdateTime(metaData.time);
     if (_pointResponse->HasTimeUpdate()) {
-      if (auto phasedArray =
-              dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
-                  _pointResponse.get())) {
-        phasedArray->UpdateITRFVectors(_facetCentreRA, _facetCentreDec);
-      }
       for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
         _pointResponse->CalculateAllStations(
             &_cachedBeamResponse[ch *
@@ -846,11 +841,6 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
 
   _pointResponse->UpdateTime(metaData.time);
   if (_pointResponse->HasTimeUpdate()) {
-    if (auto phasedArray =
-            dynamic_cast<everybeam::pointresponse::PhasedArrayPoint*>(
-                _pointResponse.get())) {
-      phasedArray->UpdateITRFVectors(_facetCentreRA, _facetCentreDec);
-    }
     for (size_t ch = 0; ch < curBand.ChannelCount(); ++ch) {
       _pointResponse->CalculateAllStations(
           &_cachedBeamResponse[ch * _pointResponse->GetAllStationsBufferSize()],
