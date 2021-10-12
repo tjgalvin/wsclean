@@ -37,7 +37,7 @@ MSRowProvider::MSRowProvider(
 
   const casacore::IPosition shape(DataShape());
   _msHasWeights =
-      MSProvider::openWeightSpectrumColumn(_ms, _weightSpectrumColumn, shape);
+      MSProvider::OpenWeightSpectrumColumn(_ms, _weightSpectrumColumn, shape);
   if (!_msHasWeights) {
     casacore::IPosition scalarShape(1, shape[0]);
     _scratchWeightScalarArray = casacore::Array<float>(scalarShape);
@@ -45,7 +45,7 @@ MSRowProvider::MSRowProvider(
         _ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
   }
 
-  MSProvider::getRowRange(_ms, selection, _startRow, _endRow);
+  MSProvider::GetRowRange(_ms, selection, _startRow, _endRow);
 
   // Determine last timestep
   _startTimestep = selection.HasInterval() ? selection.IntervalStart() : 0;
@@ -109,6 +109,6 @@ void MSRowProvider::getCurrentWeights(WeightArray& weights) {
     _weightSpectrumColumn->get(_currentRow, weights, true);
   else {
     _weightScalarColumn->get(_currentRow, _scratchWeightScalarArray);
-    MSProvider::expandScalarWeights(_scratchWeightScalarArray, weights);
+    MSProvider::ExpandScalarWeights(_scratchWeightScalarArray, weights);
   }
 }

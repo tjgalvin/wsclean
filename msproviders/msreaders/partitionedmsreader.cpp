@@ -31,7 +31,7 @@ PartitionedMSReader::PartitionedMSReader(PartitionedMS* partitionedMS)
   if (!_weightFile.good())
     throw std::runtime_error("Error opening temporary data weight file '" +
                              partPrefix + "-w.tmp'");
-};
+}
 
 bool PartitionedMSReader::CurrentRowAvailable() {
   const PartitionedMS& partitionedms =
@@ -162,7 +162,7 @@ void PartitionedMSReader::ReadWeights(std::complex<float>* buffer) {
                    partitionedms._partHeader.channelCount *
                        partitionedms._polarizationCountInFile * sizeof(float));
   _weightPtrIsOk = false;
-  MSProvider::copyRealToComplex(buffer, displacedBuffer,
+  MSProvider::CopyRealToComplex(buffer, displacedBuffer,
                                 partitionedms._partHeader.channelCount *
                                     partitionedms._polarizationCountInFile);
 }

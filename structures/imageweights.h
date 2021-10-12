@@ -21,6 +21,9 @@ class ImageWeights {
                size_t imageHeight, double pixelScaleX, double pixelScaleY,
                bool weightsAsTaper, double superWeight, size_t threadCount = 1);
 
+  ImageWeights(const ImageWeights&) = delete;
+  ImageWeights& operator=(const ImageWeights&) = delete;
+
   double GetWeight(double u, double v) const { return sampleGridValue(u, v); }
 
   void Grid(class MSProvider& ms, const MSSelection& selection);
@@ -61,9 +64,6 @@ class ImageWeights {
   void Unserialize(aocommon::SerialIStream& stream);
 
  private:
-  ImageWeights(const ImageWeights&) = delete;
-  void operator=(const ImageWeights&) = delete;
-
   void uvToXY(double u, double v, int& x, int& y) const {
     if (v < 0.0) {
       u = -u;

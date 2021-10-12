@@ -227,20 +227,15 @@ void wsclean_operator_A(void* userData, DCOMPLEX* dataOut,
   // Remove non-finite values
   // TODO skipped now -- can't change input array without making a copy
   size_t nonFiniteValues = 0;
-  double imageSum = 0.0;
   for (size_t i = 0; i != wscUserData->width * wscUserData->height; ++i) {
     if (!std::isfinite(dataIn[i])) {
       // dataIn[i] = 0.0;
       ++nonFiniteValues;
-    } else {
-      imageSum += dataIn[i];
     }
   }
   if (nonFiniteValues != 0)
     std::cout << "Warning: input image contains " << nonFiniteValues
               << " non-finite values!\n";
-  // std::cout << "Mean value in image: " <<
-  // imageSum/(wscUserData->width*wscUserData->height-nonFiniteValues) << '\n';
 
   std::ostringstream filenameStr;
   filenameStr << "tmp-operator-A-" << wscUserData->nACalls;

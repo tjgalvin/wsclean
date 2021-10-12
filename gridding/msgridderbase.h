@@ -228,7 +228,10 @@ class MSGridderBase {
   struct MSData {
    public:
     MSData();
-    ~MSData();
+    MSData(const MSData& source) = delete;
+    ~MSData() = default;
+    MSData& operator=(const MSData& source) = delete;
+
     class MSProvider* msProvider;
     size_t msIndex;
     MultiBandData bandData;
@@ -242,11 +245,6 @@ class MSGridderBase {
     MultiBandData SelectedBand() const {
       return MultiBandData(bandData, startChannel, endChannel);
     }
-
-   private:
-    MSData(const MSData& source);
-
-    void operator=(const MSData& source);
   };
 
   struct InversionRow {

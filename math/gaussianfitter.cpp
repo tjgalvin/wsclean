@@ -340,19 +340,15 @@ int GaussianFitter::fitting_func_centered(const gsl_vector* xvec, void* data,
   double scale = 1.0 / fitter._scaleFactor;
 
   size_t dataIndex = 0;
-  double errSum = 0.0;
   for (size_t yi = 0; yi != height; ++yi) {
     double y = (yi - yMid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
       double x = (xi - xMid) * scale;
       double e = err_centered(fitter._image[dataIndex], x, y, sx, sy, beta);
-      errSum += e * e;
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
   }
-  // std::cout << "sx=" << sx << ", sy=" << sy << ", beta=" << beta << ", err="
-  // << errSum << '\n';
   return GSL_SUCCESS;
 }
 
@@ -365,13 +361,11 @@ int GaussianFitter::fitting_func_circular_centered(const gsl_vector* xvec,
   double scale = 1.0 / fitter._scaleFactor;
 
   size_t dataIndex = 0;
-  double errSum = 0.0;
   for (size_t yi = 0; yi != height; ++yi) {
     double y = (yi - yMid) * scale;
     for (size_t xi = 0; xi != width; ++xi) {
       double x = (xi - xMid) * scale;
       double e = err_circular_centered(fitter._image[dataIndex], x, y, s);
-      errSum += e * e;
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
@@ -602,19 +596,15 @@ int GaussianFitter::fitting_func_with_amplitude(const gsl_vector* xvec,
   double scale = 1.0 / fitter._scaleFactor;
 
   size_t dataIndex = 0;
-  double errSum = 0.0;
   for (int yi = 0; yi != int(height); ++yi) {
     double yS = yc + (yi - yMid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
       double xS = xc + (xi - xMid) * scale;
       double e = err_full(fitter._image[dataIndex], v, xS, yS, sx, sy, beta);
-      errSum += e * e;
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
   }
-  // std::cout << "v=" << v << ", x=" << xc << ", y=" << yc << ", sx=" << sx <<
-  // ", sy=" << sy << ", beta=" << beta << ", err=" << errSum << '\n';
   return GSL_SUCCESS;
 }
 
@@ -681,20 +671,16 @@ int GaussianFitter::fitting_func_with_amplitude_and_floor(
   int xMid = width / 2, yMid = height / 2;
 
   size_t dataIndex = 0;
-  double errSum = 0.0;
   for (int yi = 0; yi != int(height); ++yi) {
     double yS = yc + (yi - yMid) * scale;
     for (int xi = 0; xi != int(width); ++xi) {
       double xS = xc + (xi - xMid) * scale;
       double e =
           err_full(fitter._image[dataIndex], v, xS, yS, sx, sy, beta) + fl;
-      errSum += e * e;
       gsl_vector_set(f, dataIndex, e);
       ++dataIndex;
     }
   }
-  // std::cout << "v=" << v << ", x=" << xc << ", y=" << yc << ", sx=" << sx <<
-  // ", sy=" << sy << ", beta=" << beta << ", err=" << errSum << '\n';
   return GSL_SUCCESS;
 }
 

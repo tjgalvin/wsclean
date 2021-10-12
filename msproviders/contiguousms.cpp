@@ -67,7 +67,7 @@ void ContiguousMS::open() {
   _nAntenna = _ms->antenna().nrow();
 
   _msHasWeightSpectrum =
-      openWeightSpectrumColumn(*_ms, _weightSpectrumColumn, shape);
+      OpenWeightSpectrumColumn(*_ms, _weightSpectrumColumn, shape);
   if (!_msHasWeightSpectrum) {
     casacore::IPosition scalarShape(1, shape[0]);
     _weightScalarArray = casacore::Array<float>(scalarShape);
@@ -75,7 +75,7 @@ void ContiguousMS::open() {
         *_ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
   }
 
-  getRowRangeAndIDMap(*_ms, _selection, _startRow, _endRow,
+  GetRowRangeAndIDMap(*_ms, _selection, _startRow, _endRow,
                       std::set<size_t>{size_t(_dataDescId)}, _idToMSRow);
   ResetWritePosition();
 }
@@ -134,7 +134,7 @@ size_t ContiguousMS::NChannels() {
 size_t ContiguousMS::NPolarizations() { return _inputPolarizations.size(); }
 
 void ContiguousMS::prepareModelColumn() {
-  initializeModelColumn(*_ms);
+  InitializeModelColumn(*_ms);
   _modelColumn = casacore::ArrayColumn<casacore::Complex>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
   const casacore::IPosition shape(_modelColumn.shape(0));
@@ -168,10 +168,10 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
 
   _modelColumn.get(_currentOutputRow, _modelArray);
   if (addToMS) {
-    reverseCopyData<true>(_modelArray, startChannel, endChannel,
+    ReverseCopyData<true>(_modelArray, startChannel, endChannel,
                           _inputPolarizations, buffer, _polOut);
   } else {
-    reverseCopyData<false>(_modelArray, startChannel, endChannel,
+    ReverseCopyData<false>(_modelArray, startChannel, endChannel,
                            _inputPolarizations, buffer, _polOut);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);

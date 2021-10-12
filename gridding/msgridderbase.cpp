@@ -192,12 +192,11 @@ std::vector<double> SelectUniqueTimes(MSProvider& msProvider) {
 }
 }  // namespace
 
-MSGridderBase::~MSGridderBase(){};
+// Defined out of class to allow the class the be used in a std::unique_ptr.
+MSGridderBase::~MSGridderBase() = default;
 
 MSGridderBase::MSData::MSData()
     : msIndex(0), matchingRows(0), totalRowsProcessed(0), antennaNames() {}
-
-MSGridderBase::MSData::~MSData() {}
 
 MSGridderBase::MSGridderBase(const Settings& settings)
     : _actualInversionWidth(0),

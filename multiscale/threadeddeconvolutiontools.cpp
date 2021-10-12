@@ -4,6 +4,8 @@
 #include "../deconvolution/peakfinder.h"
 #include "../deconvolution/simpleclean.h"
 
+#include <boost/make_unique.hpp>
+
 ThreadedDeconvolutionTools::ThreadedDeconvolutionTools(size_t threadCount)
     : _taskLanes(threadCount),
       _resultLanes(threadCount),
@@ -29,7 +31,7 @@ void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
                                                size_t x, size_t y,
                                                float factor) {
   for (size_t thr = 0; thr != _threadCount; ++thr) {
-    std::unique_ptr<SubtractionTask> task(new SubtractionTask());
+    auto task = boost::make_unique<SubtractionTask>();
     task->image = image;
     task->psf = psf;
     task->width = width;

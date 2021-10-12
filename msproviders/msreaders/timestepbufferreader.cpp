@@ -5,7 +5,7 @@ TimestepBufferReader::TimestepBufferReader(TimestepBuffer* timestepBuffer)
       _msReader(timestepBuffer->_msProvider->MakeReader()),
       _bufferPosition(0) {
   readTimeblock();
-};
+}
 
 bool TimestepBufferReader::CurrentRowAvailable() {
   return !_buffer.empty() || _msReader->CurrentRowAvailable();

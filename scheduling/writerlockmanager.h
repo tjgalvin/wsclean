@@ -11,6 +11,7 @@ class WriterLockManager {
  protected:
   class WriterLock {
    public:
+    virtual ~WriterLock() = default;
     virtual void lock() = 0;
     virtual void unlock() = 0;
   };

@@ -19,7 +19,7 @@
 
 #include "../main/stopwatch.h"
 
-class IdgMsGridder : public MSGridderBase {
+class IdgMsGridder final : public MSGridderBase {
  public:
   IdgMsGridder(const class Settings& settings);
 

@@ -39,8 +39,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
                 << " seconds.\n";
 
   size_t element = 0;
-  size_t averagingSum = 0, minAvgFactor = std::numeric_limits<size_t>::max(),
-         maxAvgFactor = 0;
+  size_t minAvgFactor = std::numeric_limits<size_t>::max(), maxAvgFactor = 0;
   for (size_t a1 = 0; a1 != _nAntennae; ++a1) {
     Pos pos1 = positions[a1];
     for (size_t a2 = 0; a2 != _nAntennae; ++a2) {
@@ -58,7 +57,6 @@ AveragingMSRowProvider::AveragingMSRowProvider(
         _averagingFactors[element] = std::max<size_t>(
             size_t(floor(nWavelengthsAveraging / nWavelengthsPerIntegration)),
             1);
-        averagingSum += _averagingFactors[element];
         if (a1 != a2) {
           minAvgFactor =
               std::min<size_t>(minAvgFactor, _averagingFactors[element]);

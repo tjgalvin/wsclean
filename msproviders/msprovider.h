@@ -38,17 +38,18 @@ class MSReader;
  */
 class MSProvider {
  public:
-  friend class MSRowProvider;
-  friend class DirectMSRowProvider;
-  friend class MSReader;
-
   struct MetaData {
     double uInM, vInM, wInM;
     size_t dataDescId, fieldId, antenna1, antenna2;
     double time;
   };
 
+  MSProvider() = default;
+
   virtual ~MSProvider();
+
+  MSProvider(const MSProvider&) = delete;
+  MSProvider& operator=(const MSProvider&) = delete;
 
   virtual SynchronizedMS MS() = 0;
 
@@ -135,15 +136,14 @@ class MSProvider {
    */
   void ResetModelColumn();
 
- protected:
-  static void copyData(std::complex<float>* dest, size_t startChannel,
+  static void CopyData(std::complex<float>* dest, size_t startChannel,
                        size_t endChannel,
                        const std::vector<aocommon::PolarizationEnum>& polsIn,
                        const casacore::Array<std::complex<float>>& data,
                        aocommon::PolarizationEnum polOut);
 
   template <typename NumType>
-  static void copyWeights(NumType* dest, size_t startChannel, size_t endChannel,
+  static void CopyWeights(NumType* dest, size_t startChannel, size_t endChannel,
                           const std::vector<aocommon::PolarizationEnum>& polsIn,
                           const casacore::Array<std::complex<float>>& data,
                           const casacore::Array<float>& weights,
@@ -151,33 +151,33 @@ class MSProvider {
                           aocommon::PolarizationEnum polOut);
 
   template <typename NumType>
-  static bool isCFinite(const std::complex<NumType>& c) {
+  static bool IsCFinite(const std::complex<NumType>& c) {
     return std::isfinite(c.real()) && std::isfinite(c.imag());
   }
 
   template <bool add>
-  static void reverseCopyData(
+  static void ReverseCopyData(
       casacore::Array<std::complex<float>>& dest, size_t startChannel,
       size_t endChannel,
       const std::vector<aocommon::PolarizationEnum>& polsDest,
       const std::complex<float>* source, aocommon::PolarizationEnum polSource);
 
-  static void reverseCopyWeights(
+  static void ReverseCopyWeights(
       casacore::Array<float>& dest, size_t startChannel, size_t endChannel,
       const std::vector<aocommon::PolarizationEnum>& polsDest,
       const float* source, aocommon::PolarizationEnum polSource);
 
-  static void getRowRange(casacore::MeasurementSet& ms,
+  static void GetRowRange(casacore::MeasurementSet& ms,
                           const MSSelection& selection, size_t& startRow,
                           size_t& endRow);
 
-  static void getRowRangeAndIDMap(casacore::MeasurementSet& ms,
+  static void GetRowRangeAndIDMap(casacore::MeasurementSet& ms,
                                   const MSSelection& selection,
                                   size_t& startRow, size_t& endRow,
                                   const std::set<size_t>& dataDescIdMap,
                                   std::vector<size_t>& idToMSRow);
 
-  static void copyRealToComplex(std::complex<float>* dest, const float* source,
+  static void CopyRealToComplex(std::complex<float>* dest, const float* source,
                                 size_t n) {
     const float* end = source + n;
     while (source != end) {
@@ -187,9 +187,9 @@ class MSProvider {
     }
   }
 
-  static void initializeModelColumn(casacore::MeasurementSet& ms);
+  static void InitializeModelColumn(casacore::MeasurementSet& ms);
 
-  static casacore::ArrayColumn<float> initializeImagingWeightColumn(
+  static casacore::ArrayColumn<float> InitializeImagingWeightColumn(
       casacore::MeasurementSet& ms);
 
   /**
@@ -199,12 +199,12 @@ class MSProvider {
    * have an empty or invalid sized weight spectrum column; this method only
    * returns true if the column can be used.
    */
-  static bool openWeightSpectrumColumn(
+  static bool OpenWeightSpectrumColumn(
       casacore::MeasurementSet& ms,
       std::unique_ptr<casacore::ROArrayColumn<float>>& weightColumn,
       const casacore::IPosition& dataColumnShape);
 
-  static void expandScalarWeights(
+  static void ExpandScalarWeights(
       const casacore::Array<float>& weightScalarArray,
       casacore::Array<float>& weightSpectrumArray) {
     casacore::Array<float>::const_contiter src = weightScalarArray.cbegin();
@@ -215,12 +215,6 @@ class MSProvider {
       if (src == weightScalarArray.cend()) src = weightScalarArray.cbegin();
     }
   }
-
-  MSProvider() {}
-
- private:
-  MSProvider(const MSProvider&);
-  void operator=(const MSProvider&) {}
 };
 
 #endif

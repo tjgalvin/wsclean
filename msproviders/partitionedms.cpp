@@ -370,7 +370,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
 
         for (aocommon::PolarizationEnum p : polsOut) {
           PartitionFiles& f = files[fileIndex];
-          copyData(dataBuffer.data(), partStartCh, partEndCh, msPolarizations,
+          CopyData(dataBuffer.data(), partStartCh, partEndCh, msPolarizations,
                    dataArray, p);
           f.data->write(reinterpret_cast<char*>(dataBuffer.data()),
                         (partEndCh - partStartCh) *
@@ -379,7 +379,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
             throw std::runtime_error("Error writing to temporary data file");
 
           if (initialModelRequired) {
-            copyData(dataBuffer.data(), partStartCh, partEndCh, msPolarizations,
+            CopyData(dataBuffer.data(), partStartCh, partEndCh, msPolarizations,
                      modelArray, p);
             f.model->write(reinterpret_cast<char*>(dataBuffer.data()),
                            (partEndCh - partStartCh) *
@@ -390,7 +390,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
                   "Error writing to temporary model data file");
           }
 
-          copyWeights(weightBuffer.data(), partStartCh, partEndCh,
+          CopyWeights(weightBuffer.data(), partStartCh, partEndCh,
                       msPolarizations, dataArray, weightSpectrumArray,
                       flagArray, p);
           f.weight->write(
@@ -531,7 +531,7 @@ void PartitionedMS::unpartition(
     casacore::MeasurementSet ms(handle._msPath, casacore::Table::Update);
     const std::vector<aocommon::PolarizationEnum> msPolarizations =
         GetMSPolarizations(ms.polarization());
-    initializeModelColumn(ms);
+    InitializeModelColumn(ms);
     casacore::ScalarColumn<int> antenna1Column(
         ms, ms.columnName(casacore::MSMainEnums::ANTENNA1));
     casacore::ScalarColumn<int> antenna2Column(
@@ -562,7 +562,7 @@ void PartitionedMS::unpartition(
     ProgressBar progress(std::string("Writing changed model back to ") +
                          handle._msPath);
     size_t startRow, endRow;
-    getRowRange(ms, handle._selection, startRow, endRow);
+    GetRowRange(ms, handle._selection, startRow, endRow);
     size_t timestep =
         handle._selection.HasInterval() ? handle._selection.IntervalStart() : 0;
     double time = timeColumn(startRow);
@@ -599,7 +599,7 @@ void PartitionedMS::unpartition(
                 if (!modelFiles[fileIndex]->good())
                   throw std::runtime_error(
                       "Error reading from temporary model data file");
-                reverseCopyData<false>(modelDataArray, partStartCh, partEndCh,
+                ReverseCopyData<false>(modelDataArray, partStartCh, partEndCh,
                                        msPolarizations, modelDataBuffer.data(),
                                        *p);
 
@@ -657,7 +657,7 @@ void PartitionedMS::MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) {
     dataDescIdSet.insert(i->first);
   size_t startRow, endRow;
   SynchronizedMS ms = MS();
-  getRowRangeAndIDMap(*ms, selection, startRow, endRow, dataDescIdSet,
+  GetRowRangeAndIDMap(*ms, selection, startRow, endRow, dataDescIdSet,
                       idToMSRow);
 }
 

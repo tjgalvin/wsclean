@@ -18,6 +18,9 @@ class ModelRenderer {
         _phaseCentreDL(phaseCentreDL),
         _phaseCentreDM(phaseCentreDM) {}
 
+  ModelRenderer(const ModelRenderer&) = delete;
+  ModelRenderer& operator=(const ModelRenderer&) = delete;
+
   /**
    * Restore with circular beam
    */
@@ -87,9 +90,6 @@ class ModelRenderer {
   long double _phaseCentreDL, _phaseCentreDM;
   template <typename T>
   static T gaus(T x, T sigma);
-
-  ModelRenderer(const ModelRenderer&) {}
-  void operator=(const ModelRenderer&){};
 };
 
 #endif

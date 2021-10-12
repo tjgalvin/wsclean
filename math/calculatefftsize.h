@@ -1,8 +1,8 @@
 #ifndef CALCULATE_FFT_SIZE_H
 #define CALCULATE_FFT_SIZE_H
 
-namespace {
-static bool hasLowPrimeFactors(size_t number) {
+namespace detail {
+inline bool hasLowPrimeFactors(size_t number) {
   while (number > 7) {
     if (number % 2 == 0)
       number /= 2;
@@ -17,7 +17,7 @@ static bool hasLowPrimeFactors(size_t number) {
   }
   return true;
 }
-}  // namespace
+}  // namespace detail
 
 inline void CalculateFFTSize(size_t size, double pixelScale, double beamSize,
                              size_t& minimalSize, size_t& optimalSize) {
@@ -26,7 +26,7 @@ inline void CalculateFFTSize(size_t size, double pixelScale, double beamSize,
   minimalSize = size_t(ceil(totalSize * 2 / beamSize));
   optimalSize = minimalSize;
   if (optimalSize % 4 != 0) optimalSize += 4 - (optimalSize % 4);
-  while (!hasLowPrimeFactors(optimalSize) && optimalSize < size)
+  while (!detail::hasLowPrimeFactors(optimalSize) && optimalSize < size)
     optimalSize += 4;
   if (optimalSize > size) optimalSize = size;
 }

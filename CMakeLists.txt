@@ -120,7 +120,7 @@ message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
 
 # Include pybind11
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
-include_directories(${pybind11_INCLUDE_DIR})
+include_directories(SYSTEM ${pybind11_INCLUDE_DIR})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
@@ -194,13 +194,13 @@ else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
   )
 endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
 
-include_directories(${CASACORE_INCLUDE_DIRS})
-include_directories(${Boost_INCLUDE_DIR})
-include_directories(${CFITSIO_INCLUDE_DIR})
-include_directories(${FFTW3_INCLUDE_DIR})
-include_directories(${GSL_INCLUDE_DIR})
-include_directories(${HDF5_INCLUDE_DIRS})
-include_directories(${PYTHON_INCLUDE_DIRS})
+include_directories(SYSTEM ${CASACORE_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIR})
+include_directories(SYSTEM ${CFITSIO_INCLUDE_DIR})
+include_directories(SYSTEM ${FFTW3_INCLUDE_DIR})
+include_directories(SYSTEM ${GSL_INCLUDE_DIR})
+include_directories(SYSTEM ${HDF5_INCLUDE_DIRS})
+include_directories(SYSTEM ${PYTHON_INCLUDE_DIRS})
 
 include(CheckCXXSourceCompiles)
 

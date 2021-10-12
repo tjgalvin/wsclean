@@ -14,7 +14,7 @@ ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
   if (contiguousms->_selection.HasInterval())
     _currentInputTimestep = contiguousms->_selection.IntervalStart() - 1;
   NextInputRow();
-};
+}
 
 bool ContiguousMSReader::CurrentRowAvailable() {
   const ContiguousMS& contiguousms =
@@ -162,7 +162,7 @@ void ContiguousMSReader::ReadWeights(std::complex<float>* buffer) {
     endChannel =
         contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
   }
-  MSProvider::copyWeights(
+  MSProvider::CopyWeights(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
       contiguousms._dataArray, contiguousms._weightSpectrumArray,
       contiguousms._flagArray, contiguousms._polOut);
@@ -183,7 +183,7 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
     endChannel =
         contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
   }
-  MSProvider::copyWeights(
+  MSProvider::CopyWeights(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
       contiguousms._dataArray, contiguousms._weightSpectrumArray,
       contiguousms._flagArray, contiguousms._polOut);
@@ -194,7 +194,7 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
 
   if (_imagingWeightsColumn == nullptr) {
     _imagingWeightsColumn.reset(new casacore::ArrayColumn<float>(
-        MSProvider::initializeImagingWeightColumn(*(contiguousms._ms))));
+        MSProvider::InitializeImagingWeightColumn(*(contiguousms._ms))));
   }
   size_t dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
   size_t startChannel, endChannel;
@@ -208,7 +208,7 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
 
   _imagingWeightsColumn->get(_currentInputRow,
                              contiguousms._imagingWeightSpectrumArray);
-  MSProvider::reverseCopyWeights(
+  MSProvider::ReverseCopyWeights(
       contiguousms._imagingWeightSpectrumArray, startChannel, endChannel,
       contiguousms._inputPolarizations, buffer, contiguousms._polOut);
   _imagingWeightsColumn->put(_currentInputRow,
@@ -234,7 +234,7 @@ void ContiguousMSReader::readWeights() {
     else {
       contiguousms._weightScalarColumn->get(_currentInputRow,
                                             contiguousms._weightScalarArray);
-      contiguousms.expandScalarWeights(contiguousms._weightScalarArray,
+      contiguousms.ExpandScalarWeights(contiguousms._weightScalarArray,
                                        contiguousms._weightSpectrumArray);
     }
     _isWeightRead = true;
