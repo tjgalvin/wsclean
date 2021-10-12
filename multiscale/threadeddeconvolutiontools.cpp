@@ -9,24 +9,19 @@ ThreadedDeconvolutionTools::ThreadedDeconvolutionTools(size_t threadCount)
       _resultLanes(threadCount),
       _threadCount(threadCount) {
   for (size_t i = 0; i != _threadCount; ++i) {
-    _taskLanes[i] = new aocommon::Lane<ThreadTask*>(1);
-    _resultLanes[i] = new aocommon::Lane<ThreadResult*>(1);
+    _taskLanes[i].resize(1);
+    _resultLanes[i].resize(1);
     _threadGroup.emplace_back(&ThreadedDeconvolutionTools::threadFunc, this,
-                              _taskLanes[i], _resultLanes[i]);
+                              &_taskLanes[i], &_resultLanes[i]);
   }
 }
 
 ThreadedDeconvolutionTools::~ThreadedDeconvolutionTools() {
   for (size_t i = 0; i != _threadCount; ++i) {
-    _taskLanes[i]->write_end();
+    _taskLanes[i].write_end();
   }
 
   for (std::thread& t : _threadGroup) t.join();
-
-  for (size_t i = 0; i != _threadCount; ++i) {
-    delete _taskLanes[i];
-    delete _resultLanes[i];
-  }
 }
 
 void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
@@ -34,7 +29,7 @@ void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
                                                size_t x, size_t y,
                                                float factor) {
   for (size_t thr = 0; thr != _threadCount; ++thr) {
-    SubtractionTask* task = new SubtractionTask();
+    std::unique_ptr<SubtractionTask> task(new SubtractionTask());
     task->image = image;
     task->psf = psf;
     task->width = width;
@@ -45,24 +40,22 @@ void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
     task->startY = height * thr / _threadCount;
     task->endY = height * (thr + 1) / _threadCount;
     if (thr == _threadCount - 1) {
-      ThreadResult* result = (*task)();
-      delete result;
+      (*task)();
     } else {
-      _taskLanes[thr]->write(task);
+      _taskLanes[thr].write(std::move(task));
     }
   }
   for (size_t thr = 0; thr != _threadCount - 1; ++thr) {
-    ThreadResult* result = 0;
-    _resultLanes[thr]->read(result);
-    delete result;
+    std::unique_ptr<ThreadResult> result;
+    _resultLanes[thr].read(result);
   }
 }
 
-ThreadedDeconvolutionTools::ThreadResult*
+std::unique_ptr<ThreadedDeconvolutionTools::ThreadResult>
 ThreadedDeconvolutionTools::SubtractionTask::operator()() {
   SimpleClean::PartialSubtractImage(image, psf, width, height, x, y, factor,
                                     startY, endY);
-  return 0;
+  return std::unique_ptr<ThreadedDeconvolutionTools::ThreadResult>();
 }
 
 void ThreadedDeconvolutionTools::FindMultiScalePeak(
@@ -87,7 +80,7 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(
   }
 
   while (imageIndex < scales.size()) {
-    FindMultiScalePeakTask* task = new FindMultiScalePeakTask();
+    std::unique_ptr<FindMultiScalePeakTask> task(new FindMultiScalePeakTask());
     task->msTransforms = msTransforms;
     (*imageData[nextThread]) = image;
     task->image = imageData[nextThread].get();
@@ -101,24 +94,23 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(
     task->borderRatio = borderRatio;
     task->calculateRMS = calculateRMS;
     task->rmsFactorImage = &rmsFactorImage;
-    _taskLanes[nextThread]->write(task);
+    _taskLanes[nextThread].write(std::move(task));
 
     ++nextThread;
     if (nextThread == _threadCount) {
       for (size_t thr = 0; thr != nextThread; ++thr) {
-        ThreadResult* result = nullptr;
-        _resultLanes[thr]->read(result);
+        std::unique_ptr<ThreadResult> result;
+        _resultLanes[thr].read(result);
         results[resultIndex].normalizedValue =
-            static_cast<FindMultiScalePeakResult*>(result)->normalizedValue;
+            static_cast<FindMultiScalePeakResult&>(*result).normalizedValue;
         results[resultIndex].unnormalizedValue =
-            static_cast<FindMultiScalePeakResult*>(result)->unnormalizedValue;
+            static_cast<FindMultiScalePeakResult&>(*result).unnormalizedValue;
         results[resultIndex].x =
-            static_cast<FindMultiScalePeakResult*>(result)->x;
+            static_cast<FindMultiScalePeakResult&>(*result).x;
         results[resultIndex].y =
-            static_cast<FindMultiScalePeakResult*>(result)->y;
+            static_cast<FindMultiScalePeakResult&>(*result).y;
         results[resultIndex].rms =
-            static_cast<FindMultiScalePeakResult*>(result)->rms;
-        delete result;
+            static_cast<FindMultiScalePeakResult&>(*result).rms;
         ++resultIndex;
       }
       nextThread = 0;
@@ -126,31 +118,32 @@ void ThreadedDeconvolutionTools::FindMultiScalePeak(
     ++imageIndex;
   }
   for (size_t thr = 0; thr != nextThread; ++thr) {
-    ThreadResult* result = nullptr;
-    _resultLanes[thr]->read(result);
+    std::unique_ptr<ThreadResult> result;
+    _resultLanes[thr].read(result);
     results[resultIndex].unnormalizedValue =
-        static_cast<FindMultiScalePeakResult*>(result)->unnormalizedValue;
+        static_cast<FindMultiScalePeakResult&>(*result).unnormalizedValue;
     results[resultIndex].normalizedValue =
-        static_cast<FindMultiScalePeakResult*>(result)->normalizedValue;
-    results[resultIndex].x = static_cast<FindMultiScalePeakResult*>(result)->x;
-    results[resultIndex].y = static_cast<FindMultiScalePeakResult*>(result)->y;
+        static_cast<FindMultiScalePeakResult&>(*result).normalizedValue;
+    results[resultIndex].x = static_cast<FindMultiScalePeakResult&>(*result).x;
+    results[resultIndex].y = static_cast<FindMultiScalePeakResult&>(*result).y;
     results[resultIndex].rms =
-        static_cast<FindMultiScalePeakResult*>(result)->rms;
-    delete result;
+        static_cast<FindMultiScalePeakResult&>(*result).rms;
     ++resultIndex;
   }
 }
 
-ThreadedDeconvolutionTools::ThreadResult*
+std::unique_ptr<ThreadedDeconvolutionTools::ThreadResult>
 ThreadedDeconvolutionTools::FindMultiScalePeakTask::operator()() {
   msTransforms->Transform(*image, *scratch, scale);
-  const size_t width = msTransforms->Width(), height = msTransforms->Height(),
-               scaleBorder = size_t(ceil(scale * 0.5)),
-               horBorderSize =
-                   std::max<size_t>(round(width * borderRatio), scaleBorder),
-               vertBorderSize =
-                   std::max<size_t>(round(height * borderRatio), scaleBorder);
-  FindMultiScalePeakResult* result = new FindMultiScalePeakResult();
+  const size_t width = msTransforms->Width();
+  const size_t height = msTransforms->Height();
+  const size_t scaleBorder = size_t(std::ceil(scale * 0.5));
+  const size_t horBorderSize =
+      std::max<size_t>(std::round(width * borderRatio), scaleBorder);
+  const size_t vertBorderSize =
+      std::max<size_t>(std::round(height * borderRatio), scaleBorder);
+  std::unique_ptr<FindMultiScalePeakResult> result(
+      new FindMultiScalePeakResult());
   if (calculateRMS)
     result->rms = RMS(*image, width * height);
   else

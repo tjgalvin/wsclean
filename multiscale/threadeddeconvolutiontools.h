@@ -48,11 +48,11 @@ class ThreadedDeconvolutionTools {
   };
 
   struct ThreadTask {
-    virtual ThreadResult* operator()() = 0;
+    virtual std::unique_ptr<ThreadResult> operator()() = 0;
     virtual ~ThreadTask() {}
   };
   struct SubtractionTask : public ThreadTask {
-    virtual ThreadResult* operator()();
+    virtual std::unique_ptr<ThreadResult> operator()();
 
     float* image;
     const float* psf;
@@ -62,7 +62,7 @@ class ThreadedDeconvolutionTools {
   };
 
   struct FindMultiScalePeakTask : public ThreadTask {
-    virtual ThreadResult* operator()();
+    virtual std::unique_ptr<ThreadResult> operator()();
 
     class MultiScaleTransforms* msTransforms;
     Image* image;
@@ -75,18 +75,17 @@ class ThreadedDeconvolutionTools {
     const Image* rmsFactorImage;
   };
 
-  std::vector<aocommon::Lane<ThreadTask*>*> _taskLanes;
-  std::vector<aocommon::Lane<ThreadResult*>*> _resultLanes;
+  std::vector<aocommon::Lane<std::unique_ptr<ThreadTask>>> _taskLanes;
+  std::vector<aocommon::Lane<std::unique_ptr<ThreadResult>>> _resultLanes;
   size_t _threadCount;
   std::vector<std::thread> _threadGroup;
 
-  void threadFunc(aocommon::Lane<ThreadTask*>* taskLane,
-                  aocommon::Lane<ThreadResult*>* resultLane) {
-    ThreadTask* task;
+  void threadFunc(aocommon::Lane<std::unique_ptr<ThreadTask>>* taskLane,
+                  aocommon::Lane<std::unique_ptr<ThreadResult>>* resultLane) {
+    std::unique_ptr<ThreadTask> task;
     while (taskLane->read(task)) {
-      ThreadResult* result = (*task)();
-      resultLane->write(result);
-      delete task;
+      std::unique_ptr<ThreadResult> result = (*task)();
+      resultLane->write(std::move(result));
     }
   }
 };
