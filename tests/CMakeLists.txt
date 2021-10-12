@@ -19,8 +19,10 @@ add_executable(
   math/tnlplfitter.cpp
   math/tpolynomialchannelfitter.cpp
   msproviders/tnoisemsrowprovider.cpp
+  msproviders/tmsrowproviderbase.cpp
   structures/testimage.cpp
   structures/testimagingtable.cpp
+  system/tthrowruntimeerror.cpp
   ${WSCLEANFILES})
 
 add_custom_target(

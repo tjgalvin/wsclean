@@ -255,7 +255,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     }
   }
 
-  std::unique_ptr<MSRowProvider> rowProvider;
+  std::unique_ptr<MsRowProviderBase> rowProvider;
   if (settings.baselineDependentAveragingInWavelengths == 0.0) {
     if (settings.simulateNoise) {
       std::unique_ptr<NoiseMSRowProvider> noiseRowProvider(
@@ -268,9 +268,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
             settings.simulatedBaselineNoiseFilename);
       rowProvider = std::move(noiseRowProvider);
     } else
-      rowProvider.reset(
-          new DirectMSRowProvider(msPath, selection, selectedDataDescIds,
-                                  dataColumnName, initialModelRequired));
+      rowProvider = MakeMsRowProvider(msPath, selection, selectedDataDescIds,
+                                      dataColumnName, initialModelRequired);
   } else {
     if (initialModelRequired)
       throw std::runtime_error(
@@ -284,8 +283,8 @@ PartitionedMS::Handle PartitionedMS::Partition(
   }
 
   std::vector<aocommon::PolarizationEnum> msPolarizations =
-      GetMSPolarizations(rowProvider->MS().polarization());
-  size_t nAntennas = rowProvider->MS().antenna().nrow();
+      GetMSPolarizations(rowProvider->Ms().polarization());
+  size_t nAntennas = rowProvider->Ms().antenna().nrow();
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << msPath << " into " << channelParts << " x "

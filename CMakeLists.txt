@@ -282,11 +282,13 @@ add_library(
   math/rmsimage.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp
+  msproviders/mscolumns.cpp
   msproviders/contiguousms.cpp
   msproviders/msdatadescription.cpp
   msproviders/directmsrowprovider.cpp
   msproviders/msprovider.cpp
   msproviders/msrowprovider.cpp
+  msproviders/msrowproviderbase.cpp
   msproviders/noisemsrowprovider.cpp
   msproviders/partitionedms.cpp
   msproviders/timestepbuffer.cpp

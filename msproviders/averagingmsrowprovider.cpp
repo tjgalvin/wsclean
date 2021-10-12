@@ -24,7 +24,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
     : MSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName,
                     requireModel),
       _fieldId(fieldId) {
-  casacore::MSAntenna antennaTable(_ms.antenna());
+  casacore::MSAntenna antennaTable(Ms().antenna());
   _nAntennae = antennaTable.nrow();
 
   casacore::ArrayColumn<double> positionColumn(
@@ -42,7 +42,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
   _nElements = selectedDataDescIds.size() * _nAntennae * _nAntennae;
   _averagingFactors.assign(_nElements, 0.0);
   _buffers.resize(_nElements);
-  MultiBandData bands(_ms.spectralWindow(), _ms.dataDescription());
+  MultiBandData bands(Ms().spectralWindow(), Ms().dataDescription());
 
   double dt = (EndTime() - StartTime()) / (EndTimestep() - StartTimestep());
   Logger::Debug << "Assuming integration time of " << dt * (24.0 * 60.0 * 60.0)
@@ -101,28 +101,30 @@ AveragingMSRowProvider::AveragingMSRowProvider(
 }
 
 bool AveragingMSRowProvider::processCurrentTimestep() {
-  size_t a1 = _antenna1Column(_currentRow);
-  size_t a2 = _antenna2Column(_currentRow);
+  MsColumns& columns = Columns();
+  const size_t a1 = columns.antenna_1(_currentRow);
+  const size_t a2 = columns.antenna_2(_currentRow);
   _averagedDataDescId = _currentDataDescId;
   _averagedAntenna1Index = a1;
   _averagedAntenna2Index = a2;
 
-  size_t spwCount = selectedDataDescIds().size();
-  size_t elementIndex = spwCount * (a2 + a1 * _nAntennae) +
-                        selectedDataDescIds().find(_averagedDataDescId)->second;
-  size_t avgFactor = _averagingFactors[elementIndex];
+  const size_t spwCount = selectedDataDescIds().size();
+  const size_t elementIndex =
+      spwCount * (a2 + a1 * _nAntennae) +
+      selectedDataDescIds().find(_averagedDataDescId)->second;
+  const size_t avgFactor = _averagingFactors[elementIndex];
   _averageFactorSum += avgFactor;
   ++_rowCount;
 
-  _dataColumn.get(_currentRow, _currentData, true);
-  _flagColumn.get(_currentRow, _currentFlags, true);
+  columns.data.get(_currentRow, _currentData, true);
+  columns.flag.get(_currentRow, _currentFlags, true);
   getCurrentWeights(_currentWeights, _currentData.shape());
   if (requireModel()) _modelColumn->get(_currentRow, _currentModel, true);
 
   if (avgFactor == 1)
     return true;
   else {
-    size_t bufferSize = _currentData.shape()[0] * _currentData.shape()[1];
+    const size_t bufferSize = _currentData.shape()[0] * _currentData.shape()[1];
     AveragingBuffer& buffer = _buffers[elementIndex];
     if (!buffer.IsInitialized()) buffer.Initialize(bufferSize, requireModel());
 
@@ -136,7 +138,7 @@ bool AveragingMSRowProvider::processCurrentTimestep() {
                      _currentWeights.data(), _currentUVWArray.data(),
                      _currentTime);
 
-    bool foundFullBuffer = (buffer.AveragedDataCount() == avgFactor);
+    const bool foundFullBuffer = (buffer.AveragedDataCount() == avgFactor);
     if (foundFullBuffer) {
       if (requireModel())
         buffer.Get(bufferSize, _currentData.data(), _currentModel.data(),

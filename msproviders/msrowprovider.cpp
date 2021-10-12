@@ -9,67 +9,62 @@ MSRowProvider::MSRowProvider(
     const string& msPath, const MSSelection& selection,
     const std::map<size_t, size_t>& selectedDataDescIds,
     const std::string& dataColumnName, bool requireModel)
-    : _ms(casacore::MeasurementSet(msPath)),
-      _antenna1Column(casacore::ScalarColumn<int>(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1))),
-      _antenna2Column(casacore::ScalarColumn<int>(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2))),
-      _fieldIdColumn(casacore::ScalarColumn<int>(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID))),
-      _timeColumn(casacore::ScalarColumn<double>(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::TIME))),
-      _timeEpochColumn(casacore::MEpoch::ScalarColumn(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::TIME))),
-      _uvwColumn(casacore::ArrayColumn<double>(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::UVW))),
-      _dataColumn(
-          casacore::ArrayColumn<casacore::Complex>(_ms, dataColumnName)),
-      _flagColumn(casacore::ArrayColumn<bool>(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG))),
-      _dataDescIdColumn(casacore::ScalarColumn<int>(
-          _ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID))),
+    : MsRowProviderBase(casacore::MeasurementSet(msPath), selection,
+                        dataColumnName),
       _selectedDataDescIds(selectedDataDescIds),
-      _selection(selection),
       _requireModel(requireModel) {
-  if (requireModel)
-    _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
-        _ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));
+  Initialize();
+}
 
+MSRowProvider::MSRowProvider(
+    const casacore::MeasurementSet& ms, const MSSelection& selection,
+    const std::map<size_t, size_t>& selected_data_description_ids,
+    const std::string& data_column_name, bool require_model)
+    : MsRowProviderBase(ms, selection, data_column_name),
+      _selectedDataDescIds(selected_data_description_ids),
+      _requireModel(require_model) {
+  Initialize();
+}
+
+void MSRowProvider::Initialize() {
+  if (_requireModel)
+    _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
+        Ms(), casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));
+
+  MsColumns& columns = Columns();
   _msHasWeights =
-      MSProvider::OpenWeightSpectrumColumn(_ms, _weightSpectrumColumn);
+      MSProvider::OpenWeightSpectrumColumn(Ms(), _weightSpectrumColumn);
   if (!_msHasWeights) {
-    const size_t nCorrelations = _dataColumn.shape(0)[0];
+    const size_t nCorrelations = columns.data.shape(0)[0];
     const casacore::IPosition scalarShape(1, nCorrelations);
     _scratchWeightScalarArray = casacore::Array<float>(scalarShape);
     _weightScalarColumn.reset(new casacore::ArrayColumn<float>(
-        _ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
+        Ms(), casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
   }
 
-  MSProvider::GetRowRange(_ms, selection, _startRow, _endRow);
-
   // Determine last timestep
-  _startTimestep = selection.HasInterval() ? selection.IntervalStart() : 0;
+  _startTimestep = Selection().HasInterval() ? Selection().IntervalStart() : 0;
   size_t timestep = _startTimestep;
-  double time = _timeColumn(_startRow);
-  for (size_t row = _startRow; row != _endRow; ++row) {
-    if (time != _timeColumn(row)) {
+  double time = columns.time(BeginRow());
+  for (size_t row = BeginRow(); row != EndRow(); ++row) {
+    if (time != columns.time(row)) {
       ++timestep;
-      time = _timeColumn(row);
+      time = columns.time(row);
     }
   }
   _endTimestep = timestep;
 
-  _currentRow = _startRow;
+  _currentRow = BeginRow();
   _currentTimestep = _startTimestep;
-  _currentTime = _timeColumn(_startRow);
-  _currentUVWArray = _uvwColumn(_startRow);
-  _currentDataDescId = _dataDescIdColumn(_startRow);
+  _currentTime = columns.time(BeginRow());
+  _currentUVWArray = columns.uvw(BeginRow());
+  _currentDataDescId = columns.data_description_id(BeginRow());
 
   // If this row is not selected, it is necessary to continue to the first
   // selected row.
-  const int a1 = _antenna1Column(_currentRow),
-            a2 = _antenna2Column(_currentRow),
-            fieldId = _fieldIdColumn(_currentRow);
+  const int a1 = columns.antenna_1(_currentRow);
+  const int a2 = columns.antenna_2(_currentRow);
+  const int fieldId = columns.field_id(_currentRow);
   if (!isCurrentRowSelected(fieldId, a1, a2)) MSRowProvider::NextRow();
 }
 
@@ -77,19 +72,20 @@ void MSRowProvider::NextRow() {
   bool isRowSelected;
   do {
     ++_currentRow;
-    if (_currentRow == _endRow) {
+    if (_currentRow == EndRow()) {
       break;
     } else {
-      const int a1 = _antenna1Column(_currentRow),
-                a2 = _antenna2Column(_currentRow),
-                fieldId = _fieldIdColumn(_currentRow);
-      _currentDataDescId = _dataDescIdColumn(_currentRow);
+      MsColumns& columns = Columns();
+      const int a1 = columns.antenna_1(_currentRow);
+      const int a2 = columns.antenna_2(_currentRow);
+      const int fieldId = columns.field_id(_currentRow);
+      _currentDataDescId = columns.data_description_id(_currentRow);
 
-      if (_currentTime != _timeColumn(_currentRow)) {
+      if (_currentTime != columns.time(_currentRow)) {
         ++_currentTimestep;
-        _currentTime = _timeColumn(_currentRow);
+        _currentTime = columns.time(_currentRow);
       }
-      _currentUVWArray = _uvwColumn(_currentRow);
+      _currentUVWArray = columns.uvw(_currentRow);
       isRowSelected = isCurrentRowSelected(fieldId, a1, a2);
     }
   } while (!isRowSelected);
