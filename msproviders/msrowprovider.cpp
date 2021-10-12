@@ -2,6 +2,7 @@
 #include "msprovider.h"
 
 #include "../io/logger.h"
+#include "../system/throwruntimeerror.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -27,6 +28,11 @@ MSRowProvider::MSRowProvider(
 }
 
 void MSRowProvider::Initialize() {
+  if (MsHasBdaData(Ms()))
+    ThrowRuntimeError(
+        "Measurement set contains BDA data, but isn't opened for BDA "
+        "processing.");
+
   if (_requireModel)
     _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
         Ms(), casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));

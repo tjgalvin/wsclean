@@ -1,8 +1,11 @@
 #include "msrowproviderbase.h"
 
+#include "bdamsrowprovider.h"
 #include "directmsrowprovider.h"
 #include "msprovider.h"
 #include "../system/throwruntimeerror.h"
+
+#include <casacore/tables/Tables/TableRecord.h>
 
 #include <boost/make_unique.hpp>
 
@@ -23,10 +26,18 @@ std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
   }
 
   casacore::MeasurementSet ms(ms_name);
-
-  // TODO AST-630 Return BdaMsRowProvider when BDA tables are present.
+  if (MsHasBdaData(ms))
+    return boost::make_unique<BdaMsRowProvider>(
+        ms, selection, selected_data_description_ids, data_column_name,
+        require_model);
 
   return boost::make_unique<DirectMSRowProvider>(
       ms, selection, selected_data_description_ids, data_column_name,
       require_model);
+}
+
+bool MsHasBdaData(const casacore::MeasurementSet& ms) {
+  return ms.keywordSet().isDefined(BdaMsRowProvider::kBDAFactorsTable) &&
+         ms.keywordSet().asTable(BdaMsRowProvider::kBDAFactorsTable).nrow() !=
+             0;
 }

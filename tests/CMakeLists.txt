@@ -19,6 +19,8 @@ add_executable(
   math/tnlplfitter.cpp
   math/tpolynomialchannelfitter.cpp
   msproviders/tnoisemsrowprovider.cpp
+  msproviders/tbdamsrowproviderdata.cpp
+  msproviders/tbdamsrowprovider.cpp
   msproviders/tmsrowproviderbase.cpp
   structures/testimage.cpp
   structures/testimagingtable.cpp
@@ -30,6 +32,21 @@ add_custom_target(
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_mwa_ms.sh
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+# A dataset generated using the following command:
+# DP3 msin=MWA-1052736496-averaged.ms msin.ntimes=4 msin.nchan=1 \
+#   msin.baseline="1,2,126,217" msout=MWA_BDA_MOCK.ms msout.overwrite=True \
+#   steps=[filter,bdaaverager] filter.blrange=[1000,10000] \
+#   bdaaverager.timebase=5000
+ExternalProject_Add(
+  mwa_bda_mock_ms
+  URL http://astron.nl/citt/ci_data/wsclean/MWA_BDA_MOCK.ms.tar.bz2
+  URL_HASH
+    SHA256=cc249aa62771d14d163e2a5d90fbb6110c57c13bba07b762acad875a64a15f41
+  SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/MWA_BDA_MOCK.ms
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "")
+
 set(TEST_LIBRARIES pybind11::embed ${ALL_LIBRARIES}
                    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
@@ -37,7 +54,7 @@ target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 
 add_custom_target(
   checkunit
-  DEPENDS unittest download_mocks
+  DEPENDS unittest download_mocks mwa_bda_mock_ms
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND unittest)
 

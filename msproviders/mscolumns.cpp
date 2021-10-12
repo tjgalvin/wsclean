@@ -2,7 +2,7 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
-MsColumns::MsColumns(casacore::MeasurementSet& ms,
+MsColumns::MsColumns(const casacore::MeasurementSet& ms,
                      const std::string& data_column_name)
     : antenna_1(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1)),
       antenna_2(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2)),

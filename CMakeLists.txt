@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.3)
 
 project(wsclean)
 
+include(ExternalProject)
 include(CMakeVersionInfo.txt)
 
 #if(NOT CMAKE_BUILD_TYPE)
@@ -291,6 +292,7 @@ add_library(
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp
   msproviders/mscolumns.cpp
+  msproviders/bdamsrowprovider.cpp
   msproviders/contiguousms.cpp
   msproviders/msdatadescription.cpp
   msproviders/directmsrowprovider.cpp
@@ -305,6 +307,7 @@ add_library(
   msproviders/msreaders/contiguousmsreader.cpp
   msproviders/msreaders/partitionedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
+  msproviders/msweightcolumn.cpp
   multiscale/multiscalealgorithm.cpp
   multiscale/multiscaletransforms.cpp
   multiscale/threadeddeconvolutiontools.cpp
