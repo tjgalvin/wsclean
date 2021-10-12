@@ -32,6 +32,14 @@
 
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 
+/**
+ * MAP_NORESERVE is unsuported AND not defined on hurd-i386, so
+ * assign it to zero in this case.
+ */
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0
+#endif
+
 PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              aocommon::PolarizationEnum polarization,
                              size_t dataDescId)
