@@ -358,6 +358,10 @@ set(ALL_LIBRARIES
     ${EVERYBEAM_LIB}
     schaapcommon)
 
+# Perform the BLAS check from aocommon
+include("${CMAKE_CURRENT_LIST_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
+check_blas(LIBRARIES ${ALL_LIBRARIES})
+
 add_library(wsclean-lib STATIC ${WSCLEANFILES})
 target_link_libraries(wsclean-lib PRIVATE pybind11::embed ${ALL_LIBRARIES})
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
