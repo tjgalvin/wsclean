@@ -12,6 +12,7 @@ class Application {
  public:
   static void Run(const std::string& commandLine) {
     Logger::Info << "Running: " << commandLine << '\n';
+    const char* commandLineCStr = commandLine.c_str();
     int pid = vfork();
     switch (pid) {
       case -1:  // Error
@@ -19,7 +20,7 @@ class Application {
             "Could not vfork() new process for executing command line "
             "application");
       case 0:  // Child
-        execl("/bin/sh", "sh", "-c", commandLine.c_str(), NULL);
+        execl("/bin/sh", "sh", "-c", commandLineCStr, NULL);
         _exit(127);
     }
     // Wait for process to terminate
