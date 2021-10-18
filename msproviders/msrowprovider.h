@@ -33,11 +33,17 @@ class MSRowProvider {
 
   virtual void NextRow();
 
+  /**
+   * Read one row of data. The data, flags and weights arrays are resized.
+   */
   virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights,
                         double& u, double& v, double& w, uint32_t& dataDescId,
                         uint32_t& antenna1, uint32_t& antenna2,
                         uint32_t& fieldId, double& time) = 0;
 
+  /**
+   * Read one model row of data. The model array is resized.
+   */
   virtual void ReadModel(DataArray& model) = 0;
 
   virtual void OutputStatistics() const {}

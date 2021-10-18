@@ -6,6 +6,16 @@
 
 #include <casacore/tables/Tables/ArrayColumn.h>
 
+namespace {
+template <typename ArrayT>
+void copyAndResize(const ArrayT& source, ArrayT& destination) {
+  destination.resize(source.shape());
+  const size_t bufferSize = source.shape()[0] * source.shape()[1];
+  std::copy_n(source.data(), bufferSize, destination.data());
+}
+
+}  // namespace
+
 AveragingMSRowProvider::AveragingMSRowProvider(
     double nWavelengthsAveraging, const string& msPath,
     const MSSelection& selection,
@@ -192,10 +202,9 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
                                       uint32_t& dataDescId, uint32_t& antenna1,
                                       uint32_t& antenna2, uint32_t& fieldId,
                                       double& time) {
-  const size_t bufferSize = data.shape()[0] * data.shape()[1];
-  std::copy_n(_currentData.data(), bufferSize, data.data());
-  std::copy_n(_currentFlags.data(), bufferSize, flags.data());
-  std::copy_n(_currentWeights.data(), bufferSize, weights.data());
+  copyAndResize(_currentData, data);
+  copyAndResize(_currentFlags, flags);
+  copyAndResize(_currentWeights, weights);
   u = _currentUVWArray.data()[0];
   v = _currentUVWArray.data()[1];
   w = _currentUVWArray.data()[2];
@@ -207,8 +216,7 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
 }
 
 void AveragingMSRowProvider::ReadModel(MSRowProvider::DataArray& model) {
-  size_t bufferSize = _currentModel.shape()[0] * _currentModel.shape()[1];
-  std::copy_n(_currentModel.data(), bufferSize, model.data());
+  copyAndResize(_currentModel, model);
 }
 
 void AveragingMSRowProvider::OutputStatistics() const {
