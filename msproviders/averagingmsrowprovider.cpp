@@ -81,10 +81,6 @@ AveragingMSRowProvider::AveragingMSRowProvider(
   _rowCount = 0;
   _averagedRowCount = 0;
 
-  _currentData = DataArray(DataShape());
-  _currentModel = DataArray(DataShape());
-  _currentFlags = FlagArray(DataShape());
-  _currentWeights = WeightArray(DataShape());
   _averagedDataDescId = _currentDataDescId;
   _flushPosition = 0;
 
@@ -108,15 +104,15 @@ bool AveragingMSRowProvider::processCurrentTimestep() {
   _averageFactorSum += avgFactor;
   ++_rowCount;
 
-  _dataColumn.get(_currentRow, _currentData);
-  _flagColumn.get(_currentRow, _currentFlags);
-  getCurrentWeights(_currentWeights);
-  if (requireModel()) _modelColumn->get(_currentRow, _currentModel);
+  _dataColumn.get(_currentRow, _currentData, true);
+  _flagColumn.get(_currentRow, _currentFlags, true);
+  getCurrentWeights(_currentWeights, _currentData.shape());
+  if (requireModel()) _modelColumn->get(_currentRow, _currentModel, true);
 
   if (avgFactor == 1)
     return true;
   else {
-    size_t bufferSize = DataShape()[0] * DataShape()[1];
+    size_t bufferSize = _currentData.shape()[0] * _currentData.shape()[1];
     AveragingBuffer& buffer = _buffers[elementIndex];
     if (!buffer.IsInitialized()) buffer.Initialize(bufferSize, requireModel());
 
@@ -168,7 +164,7 @@ void AveragingMSRowProvider::NextRow() {
     } while (buffer->AveragedDataCount() == 0 && _flushPosition < _nElements);
 
     if (buffer != 0 && buffer->AveragedDataCount() != 0) {
-      size_t bufferSize = DataShape()[0] * DataShape()[1];
+      size_t bufferSize = _currentData.shape()[0] * _currentData.shape()[1];
       if (requireModel())
         buffer->Get(bufferSize, _currentData.data(), _currentModel.data(),
                     _currentFlags.data(), _currentWeights.data(),
@@ -196,7 +192,7 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
                                       uint32_t& dataDescId, uint32_t& antenna1,
                                       uint32_t& antenna2, uint32_t& fieldId,
                                       double& time) {
-  size_t bufferSize = DataShape()[0] * DataShape()[1];
+  const size_t bufferSize = data.shape()[0] * data.shape()[1];
   std::copy_n(_currentData.data(), bufferSize, data.data());
   std::copy_n(_currentFlags.data(), bufferSize, flags.data());
   std::copy_n(_currentWeights.data(), bufferSize, weights.data());
@@ -211,7 +207,7 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
 }
 
 void AveragingMSRowProvider::ReadModel(MSRowProvider::DataArray& model) {
-  size_t bufferSize = DataShape()[0] * DataShape()[1];
+  size_t bufferSize = _currentModel.shape()[0] * _currentModel.shape()[1];
   std::copy_n(_currentModel.data(), bufferSize, model.data());
 }
 

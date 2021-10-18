@@ -43,7 +43,6 @@ class MSRowProvider {
   virtual void OutputStatistics() const {}
 
   casacore::MeasurementSet& MS() { return _ms; }
-  casacore::IPosition DataShape() const { return _dataColumn.shape(0); }
   double StartTime() const {
     return _timeEpochColumn(_startRow).getValue().get();
   }
@@ -71,7 +70,8 @@ class MSRowProvider {
   casacore::ScalarColumn<int> _dataDescIdColumn;
   std::unique_ptr<casacore::ArrayColumn<casacore::Complex>> _modelColumn;
 
-  void getCurrentWeights(WeightArray& weights);
+  void getCurrentWeights(WeightArray& weights,
+                         const casacore::IPosition& shape);
   const std::map<size_t, size_t>& selectedDataDescIds() const {
     return _selectedDataDescIds;
   }

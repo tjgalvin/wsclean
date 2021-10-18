@@ -196,13 +196,12 @@ class MSProvider {
    * Make an arraycolumn object for the weight spectrum column if it exists and
    * is valid. The weight spectrum column is an optional column, the weight
    * column should be used if it doesn't exist. Moreover, some measurement sets
-   * have an empty or invalid sized weight spectrum column; this method only
+   * have an empty weight spectrum column; this method only
    * returns true if the column can be used.
    */
   static bool OpenWeightSpectrumColumn(
       casacore::MeasurementSet& ms,
-      std::unique_ptr<casacore::ROArrayColumn<float>>& weightColumn,
-      const casacore::IPosition& dataColumnShape);
+      std::unique_ptr<casacore::ArrayColumn<float>>& weightColumn);
 
   static void ExpandScalarWeights(
       const casacore::Array<float>& weightScalarArray,

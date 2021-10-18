@@ -287,8 +287,6 @@ PartitionedMS::Handle PartitionedMS::Partition(
       GetMSPolarizations(rowProvider->MS().polarization());
   size_t nAntennas = rowProvider->MS().antenna().nrow();
 
-  const casacore::IPosition shape(rowProvider->DataShape());
-
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << msPath << " into " << channelParts << " x "
                  << polsOut.size() << " parts.\n";
@@ -323,9 +321,10 @@ PartitionedMS::Handle PartitionedMS::Partition(
                                               maxChannels);
   std::vector<float> weightBuffer(polarizationsPerFile * maxChannels);
 
-  casacore::Array<std::complex<float>> dataArray(shape), modelArray(shape);
-  casacore::Array<float> weightSpectrumArray(shape);
-  casacore::Array<bool> flagArray(shape);
+  casacore::Array<std::complex<float>> dataArray;
+  casacore::Array<std::complex<float>> modelArray;
+  casacore::Array<float> weightSpectrumArray;
+  casacore::Array<bool> flagArray;
 
   std::unique_ptr<ProgressBar> progress1;
   if (settings.parallelReordering == 1)

@@ -823,20 +823,14 @@ void MSProvider::ResetModelColumn() {
 
 bool MSProvider::OpenWeightSpectrumColumn(
     casacore::MeasurementSet& ms,
-    std::unique_ptr<casacore::ROArrayColumn<float>>& weightColumn,
-    const casacore::IPosition& dataColumnShape) {
+    std::unique_ptr<casacore::ArrayColumn<float>>& weightColumn) {
   bool isWeightDefined;
   if (ms.isColumn(casacore::MSMainEnums::WEIGHT_SPECTRUM)) {
-    weightColumn.reset(new casacore::ROArrayColumn<float>(
+    weightColumn.reset(new casacore::ArrayColumn<float>(
         ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT_SPECTRUM)));
     isWeightDefined = weightColumn->isDefined(0);
   } else {
     isWeightDefined = false;
-  }
-  casacore::Array<float> weightArray(dataColumnShape);
-  if (isWeightDefined) {
-    casacore::IPosition weightShape = weightColumn->shape(0);
-    isWeightDefined = (weightShape == dataColumnShape);
   }
   if (!isWeightDefined) {
     Logger::Warn

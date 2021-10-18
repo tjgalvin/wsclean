@@ -35,11 +35,11 @@ MSRowProvider::MSRowProvider(
     _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
         _ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));
 
-  const casacore::IPosition shape(DataShape());
   _msHasWeights =
-      MSProvider::OpenWeightSpectrumColumn(_ms, _weightSpectrumColumn, shape);
+      MSProvider::OpenWeightSpectrumColumn(_ms, _weightSpectrumColumn);
   if (!_msHasWeights) {
-    casacore::IPosition scalarShape(1, shape[0]);
+    const size_t nCorrelations = _dataColumn.shape(0)[0];
+    const casacore::IPosition scalarShape(1, nCorrelations);
     _scratchWeightScalarArray = casacore::Array<float>(scalarShape);
     _weightScalarColumn.reset(new casacore::ArrayColumn<float>(
         _ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
@@ -70,7 +70,7 @@ MSRowProvider::MSRowProvider(
   const int a1 = _antenna1Column(_currentRow),
             a2 = _antenna2Column(_currentRow),
             fieldId = _fieldIdColumn(_currentRow);
-  if (!isCurrentRowSelected(fieldId, a1, a2)) NextRow();
+  if (!isCurrentRowSelected(fieldId, a1, a2)) MSRowProvider::NextRow();
 }
 
 void MSRowProvider::NextRow() {
@@ -104,11 +104,13 @@ bool MSRowProvider::isCurrentRowSelected(int fieldId, int a1, int a2) const {
          isDataDescIdSelected;
 }
 
-void MSRowProvider::getCurrentWeights(WeightArray& weights) {
+void MSRowProvider::getCurrentWeights(WeightArray& weights,
+                                      const casacore::IPosition& shape) {
   if (_msHasWeights)
     _weightSpectrumColumn->get(_currentRow, weights, true);
   else {
     _weightScalarColumn->get(_currentRow, _scratchWeightScalarArray);
+    weights.resize(shape);
     MSProvider::ExpandScalarWeights(_scratchWeightScalarArray, weights);
   }
 }

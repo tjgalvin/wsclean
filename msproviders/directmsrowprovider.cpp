@@ -19,9 +19,9 @@ void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data,
   fieldId = _fieldIdColumn(_currentRow);
   time = _timeColumn(_currentRow);
 
-  getCurrentWeights(weights);
+  getCurrentWeights(weights, data.shape());
 }
 
 void DirectMSRowProvider::ReadModel(MSRowProvider::DataArray& model) {
-  _modelColumn->get(_currentRow, model);
+  _modelColumn->get(_currentRow, model, true);
 }
