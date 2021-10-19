@@ -143,22 +143,28 @@ class MSGridderBase {
 
   void SetPhaseCentreRA(const double phaseCentreRA) {
     _phaseCentreRA = phaseCentreRA;
-    computeFacetCentre();
   }
   void SetPhaseCentreDec(const double phaseCentreDec) {
     _phaseCentreDec = phaseCentreDec;
-    computeFacetCentre();
   }
   double PhaseCentreRA() const { return _phaseCentreRA; }
   double PhaseCentreDec() const { return _phaseCentreDec; }
   void SetPhaseCentreDL(const double phaseCentreDL) {
     _phaseCentreDL = phaseCentreDL;
-    computeFacetCentre();
   }
   void SetPhaseCentreDM(const double phaseCentreDM) {
     _phaseCentreDM = phaseCentreDM;
-    computeFacetCentre();
   }
+
+  void SetFacetDirectionRA(double facetDirectionRA) {
+    _facetDirectionRA = facetDirectionRA;
+  }
+  void SetFacetDirectionDec(double facetDirectionDec) {
+    _facetDirectionDec = facetDirectionDec;
+  }
+
+  double FacetDirectionRA() const { return _facetDirectionRA; }
+  double FacetDirectionDec() const { return _facetDirectionDec; }
   double PhaseCentreDL() const { return _phaseCentreDL; }
   double PhaseCentreDM() const { return _phaseCentreDM; }
 
@@ -342,11 +348,6 @@ class MSGridderBase {
  private:
   static std::vector<std::string> getAntennaNames(
       const casacore::MSAntenna& msAntenna);
-  void computeFacetCentre() {
-    aocommon::ImageCoordinates::LMToRaDec(_phaseCentreDL, _phaseCentreDM,
-                                          _phaseCentreRA, _phaseCentreDec,
-                                          _facetCentreRA, _facetCentreDec);
-  }
 
   void resetMetaData() { _hasFrequencies = false; }
 
@@ -392,7 +393,7 @@ class MSGridderBase {
                              float* weightBuffer);
 
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
-  double _facetCentreRA, _facetCentreDec;
+  double _facetDirectionRA, _facetDirectionDec;
   size_t _facetIndex;
   /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
   /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,

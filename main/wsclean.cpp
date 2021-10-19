@@ -1993,6 +1993,7 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry) {
                             _settings.trimmedImageWidth / 2;
       entry->centreShiftY = _facets[f]->GetUntrimmedBoundingBox().Centre().y -
                             _settings.trimmedImageHeight / 2;
+
       _imagingTable.AddEntry(std::move(entry));
     }
   }

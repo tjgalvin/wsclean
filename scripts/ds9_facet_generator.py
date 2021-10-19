@@ -71,7 +71,32 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=0.066667):
     return w
 
 
-def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tesselation=True):
+def generate_centroids_from_source_catalog(catalog_file, npoints, w):
+    """
+    Generate centroids from a source cataloge, such as gleam-osm.
+
+    Parameters
+    ----------
+    catalog_file : str
+        Source catalogue file
+    npoints : int
+        Number of (brightest) sources to select
+    w : astropy.wcs.WCS object
+        [description]
+
+    Returns
+    -------
+    np.2darray
+        Numpy (npoints, 2) array with pixel coordinates of . Dimension:
+    """
+
+    catalog = np.genfromtxt(catalog_file, delimiter=",")
+    source_idx = np.argsort(catalog[:, 2])[: -npoints - 1 : -1]
+    x, y = w.wcs_world2pix(catalog[source_idx, 0], catalog[source_idx, 1], 1)
+    return np.vstack((x.flatten(), y.flatten())).T
+
+
+def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tessellation=True):
     """
     Returns Voronoi tessellation vertices
 
@@ -87,14 +112,14 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tesselation=True
         Distance in pixels from center to outer boundary of facets
     nouter : int
         Number of points to generate on the outer boundary for constraining
-        the Voronoi tesselation. Defaults to 64
-    plot_tesselation : bool
-        Plot tesselation
+        the Voronoi tessellation. Defaults to 64
+    plot_tessellation : bool
+        Plot tessellation
 
     Returns
     -------
-    list
-        List of shapely Polygons
+    list, np.2darray
+        List of shapely Polygons, and np.2darray of corresponding (Voronoi) points (ra,dec in degrees)
     """
 
     # Get x, y coords for directions in pixels. We use the input calibration sky
@@ -117,19 +142,23 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tesselation=True
     points_all = np.vstack([xy, outer_box])
     vor = Voronoi(points_all)
 
-    lines = [
-        shapely.geometry.LineString(vor.vertices[line])
-        for line in vor.ridge_vertices
-        if -1 not in line
+    # Filter out the infinite regions
+    region_indices = [
+        region_idx
+        for region_idx in vor.point_region
+        if -1 not in vor.regions[region_idx]
     ]
-    polygons = [poly for poly in shapely.ops.polygonize(lines)]
+    polygons = []
+    for idx in region_indices:
+        vertex_coords = vor.vertices[vor.regions[idx]]
+        polygons.append(Polygon(vertex_coords))
 
     clipped_polygons = []
     for polygon in polygons:
         # facet_poly = Polygon(facet)
         clipped_polygons.append(polygon_intersect(bbox, polygon))
 
-    if plot_tesselation:
+    if plot_tessellation:
         import matplotlib.pyplot as plt
 
         [plt.plot(*poly.exterior.xy) for poly in clipped_polygons]
@@ -157,7 +186,9 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tesselation=True
                 ind.append(j)
                 break
     verts = [verts[i] for i in ind]
-    return [Polygon(vert) for vert in verts]
+
+    ra_point, dec_point = w.wcs_pix2world(x_pix, y_pix, 1)
+    return [Polygon(vert) for vert in verts], np.vstack((ra_point, dec_point)).T
 
 
 def generate_centroids(
@@ -220,10 +251,26 @@ def polygon_intersect(poly1, poly2):
     return clip
 
 
-def write_ds9(fname, polygons):
+def write_ds9(fname, polygons, points=None):
     """
     Write ds9 regions file, given a list of polygons
+    and (optionally) a set of points attached to
+
+    Parameters
+    ----------
+    fname : str
+        Filename for output file
+    polygons : list
+        List of shapely.Polygons
+    points : np.2darray, optional
+        Array of point coordinates (ra, dec in degrees) that should be
+        attached to a facet, by default None
     """
+
+    if points is not None:
+        assert (
+            len(polygons) == points.shape[0]
+        ), "Number of polygons and number of points should match"
 
     # Write header
     header = [
@@ -235,13 +282,15 @@ def write_ds9(fname, polygons):
     with open(fname, "w") as f:
         f.writelines("\n".join(header))
         polygon_strings = []
-        for polygon in polygons:
+        for i, polygon in enumerate(polygons):
             poly_string = "polygon("
             xv, yv = polygon.exterior.xy
             for (x, y) in zip(xv[:-1], yv[:-1]):
                 poly_string = f"{poly_string}{x:.5f},{y:.5f},"
             # Strip trailing comma
             poly_string = poly_string[:-1] + ")"
+            if points is not None:
+                poly_string += f"\npoint({points[i, 0]:.5f}, {points[i, 1]:.5f})"
             polygon_strings.append(poly_string)
         f.write("\n".join(polygon_strings))
 
@@ -267,40 +316,69 @@ def main(args):
     centreX = (xmax - xmin) // 2 + 1
     centreY = (ymax - ymin) // 2 + 1
 
-    # To cut the Voronoi tesselation on the bounding box, we need
+    # To cut the Voronoi tessellation on the bounding box, we need
     # a "circumscribing circle"
     dist_pix = np.sqrt((xmax - xmin) ** 2 + (ymax - ymin) ** 2)
-
-    # load in the directions from the H5
-    sourcedir = read_dir_fromh5(args.h5)
-
-    # make ra and dec arrays and coordinates c
-    ralist = sourcedir[:, 0]
-    declist = sourcedir[:, 1]
-    c = SkyCoord(ra=ralist * u.rad, dec=declist * u.rad)
 
     # Make World Coord Stystem transform object
     w = makeWCS(centreX, centreY, phaseCentreRa, phaseCentreDec, dl_dm)
 
-    # convert fromo ra,dec to x,y pixel
-    x, y = w.wcs_world2pix(c.ra.degree, c.dec.degree, 1)
+    if args.h5:
+        # load in the directions from the H5
+        sourcedir = read_dir_fromh5(args.h5)
+
+        # make ra and dec arrays and coordinates c
+        ralist = sourcedir[:, 0]
+        declist = sourcedir[:, 1]
+        c = SkyCoord(ra=ralist * u.rad, dec=declist * u.rad)
+
+        # convert from ra,dec to x,y pixel
+        x, y = w.wcs_world2pix(c.ra.degree, c.dec.degree, 1)
+    elif args.sourcecatalog:
+        # Add two points to account for outer points that will be stripped away
+        x_background, y_background = generate_centroids(
+            xmin, ymin, xmax, ymax, args.backgroundfacets + 2, args.backgroundfacets + 2
+        )
+        xy = generate_centroids_from_source_catalog(
+            args.sourcecatalog[0], int(args.sourcecatalog[1]), w
+        )
+        x = np.hstack((x_background, xy[:, 0]))
+        y = np.hstack((y_background, xy[:, 1]))
+    else:
+        raise Exception(
+            "Use either --h5 or --sourcecatalog, to generate facets from an h5 file or a source catalogue, respectively."
+        )
 
     bbox = Polygon([(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)])
-    facets = tessellate(x, y, w, dist_pix, bbox, plot_tesselation=args.plottesselation)
+    facets, points = tessellate(
+        x, y, w, dist_pix, bbox, plot_tessellation=args.plottessellation
+    )
 
-    write_ds9("facets.reg", facets)
+    write_ds9(
+        args.outputfile, facets, points=points if args.writevoronoipoints else None
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Make DS9 Voroni region tesselation region file for WSClean"
+        description="Make DS9 Voronoi tessellation region file for WSClean"
     )
     parser.add_argument("--ms", help="boxfile", type=str, required=True)
     parser.add_argument(
         "--h5",
-        help="image size, required if boxfile is not used",
+        help="H5Parm file to be used for generating the facets. Excludes the use of --source-catalog",
         type=str,
-        required=True,
+    )
+    parser.add_argument(
+        "--sourcecatalog",
+        help="Path to source catalogue, followed by the number of brightest points that should be used.",
+        nargs=2,
+    )
+    parser.add_argument(
+        "--backgroundfacets",
+        help="Set the resolution for the number of background facets, in case facets are generated from a source catalog.",
+        type=int,
+        default=4,
     )
     parser.add_argument(
         "--imsize",
@@ -315,7 +393,18 @@ if __name__ == "__main__":
         default=1.5,
     )
     parser.add_argument(
-        "--plottesselation", help="Plot tesselation", action="store_true"
+        "--plottessellation", help="Plot tessellation", action="store_true"
+    )
+    parser.add_argument(
+        "--writevoronoipoints",
+        help="Write the Voronoi input points to the output regions file",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--outputfile",
+        help="Name of output file, defaults to facets.reg",
+        type=str,
+        default="facets.reg",
     )
     args = parser.parse_args()
     main(args)

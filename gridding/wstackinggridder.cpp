@@ -693,20 +693,14 @@ void WStackingGridder<T>::finalizeImage(double multiplicationFactor,
                                         std::vector<ImageT<num_t>> &dataArray) {
   for (size_t i = 1; i != _nFFTThreads; ++i) {
     num_t *primaryData = dataArray[0].data();
-    num_t *endPtr = dataArray[i].data() + (_width * _height);
-    for (num_t *dataPtr = dataArray[i].data(); dataPtr != endPtr; ++dataPtr) {
-      *primaryData += *dataPtr;
+    for (num_t value : dataArray[i]) {
+      *primaryData += value;
       ++primaryData;
     }
   }
-  num_t *dataPtr = dataArray[0].data();
-  for (size_t y = 0; y != _height; ++y) {
-    // double m = ((double) y-(_height/2)) * _pixelSizeY + _phaseCentreDM;
-    for (size_t x = 0; x != _width; ++x) {
-      // double l = ((_width/2)-(double) x) * _pixelSizeX + _phaseCentreDL;
-      *dataPtr *= multiplicationFactor;
-      ++dataPtr;
-    }
+
+  for (num_t &value : dataArray[0]) {
+    value *= multiplicationFactor;
   }
 
   if (_gridMode != GridMode::NearestNeighbourGridding)
