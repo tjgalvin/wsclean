@@ -117,7 +117,6 @@ class MSSelection {
     _evenOddSelection = evenOrOdd;
   }
   EvenOddSelection EvenOrOddTimesteps() const { return _evenOddSelection; }
-  static MSSelection Everything() { return MSSelection(); }
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);

@@ -200,7 +200,7 @@ class MSProvider {
    * returns true if the column can be used.
    */
   static bool OpenWeightSpectrumColumn(
-      casacore::MeasurementSet& ms,
+      const casacore::MeasurementSet& ms,
       std::unique_ptr<casacore::ArrayColumn<float>>& weightColumn);
 
   static void ExpandScalarWeights(
