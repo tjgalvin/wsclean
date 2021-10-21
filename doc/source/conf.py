@@ -14,15 +14,16 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+from datetime import date
 
 # -- Project information -----------------------------------------------------
 
 project = 'WSClean'
-copyright = '2020, André Offringa'
+copyright = '%d, André Offringa' % date.today().year
 author = 'André Offringa'
 
 # The full version, including alpha/beta/rc tags
-release = '2.11'
+release = 'git'
 
 
 # -- General configuration ---------------------------------------------------

@@ -1,0 +1,20 @@
+WSClean version 3.1
+===================
+
+Released 202x-xx-xx
+
+
+Major & visible changes
+-----------------------
+
+* :ref:`Timebase BDA-ed data from DP3 <BDA_DP3>` can be used.
+
+Bug fixes
+---------
+
+* …
+
+Other significant code changes
+------------------------------
+
+* …
