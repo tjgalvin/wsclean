@@ -131,12 +131,17 @@ void CommandLine::printHelp() {
          "to: \n\n"
          "   max(width, height) / min(width, height) * pb-grid-size**2. \n\n"
          "   Default: 32.\n"
-         "-primary-beam-model\n"
+         "-beam-model\n"
          "   Specify the beam model, only relevant for SKA and LOFAR. "
          "Available "
          "models are Hamaker, Lobes, OskarDipole, OskarSphericalWave.\n"
          "   Input is case insensitive. Default is Hamaker for LOFAR and\n"
          "   OskarSphericalWave for SKA.\n"
+         "-beam-mode\n"
+         "   [DEBUGGING ONLY] Manually specify the beam mode. Only relevant "
+         "for simulated SKA measurement sets. \n"
+         "   Available modes are array_factor, element and full.\n"
+         "   Input is case insensitive. Default is full.\n"
          "-dry-run\n"
          "   Parses the command line and quits afterwards. No imaging is "
          "done.\n"
@@ -873,6 +878,18 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         throw std::runtime_error(
             "Invalid beam-model: should be either Hamaker, Lobes, OskarDipole "
             "or OskarSphericalWave (case insensitive)");
+      }
+    } else if (param == "beam-mode") {
+      ++argi;
+      std::string beamMode = argv[argi];
+      boost::to_upper(beamMode);
+      if (beamMode == "ARRAY_FACTOR" || beamMode == "ELEMENT" ||
+          beamMode == "FULL") {
+        settings.beamMode = beamMode;
+      } else {
+        throw std::runtime_error(
+            "Invalid beam-mode: should be either array_factor, element or full "
+            "(case insensitive)");
       }
     } else if (param == "apply-primary-beam") {
       settings.applyPrimaryBeam = true;

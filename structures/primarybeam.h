@@ -18,6 +18,10 @@
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
+#ifdef HAVE_EVERYBEAM
+#include <EveryBeam/beammode.h>
+#endif
+
 namespace everybeam {
 namespace coords {
 struct CoordinateSystem;
@@ -95,7 +99,9 @@ class PrimaryBeam {
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
   const size_t _undersample;
   const size_t _secondsBeforeBeamUpdate;
-
+#ifdef HAVE_EVERYBEAM
+  const everybeam::BeamMode _beamMode;
+#endif
   std::vector<std::unique_ptr<class MSDataDescription>> _msList;
   struct MSProviderInfo {
     MSProviderInfo(MSProvider* _provider, const MSSelection* _selection,

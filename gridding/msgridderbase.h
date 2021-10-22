@@ -21,6 +21,7 @@
 #include "../structures/multibanddata.h"
 
 #ifdef HAVE_EVERYBEAM
+#include <EveryBeam/beammode.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
 #endif
 
@@ -442,6 +443,7 @@ class MSGridderBase {
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedBeamResponse;
+  const everybeam::BeamMode _beamMode;
 #endif
   std::vector<std::vector<std::complex<float>>> _cachedParmResponse;
   std::vector<std::unique_ptr<schaapcommon::h5parm::H5Parm>> _h5parms;

@@ -57,7 +57,13 @@ PrimaryBeam::PrimaryBeam(const Settings& settings)
       _phaseCentreDL(0.0),
       _phaseCentreDM(0.0),
       _undersample(computeUndersamplingFactor(settings)),
-      _secondsBeforeBeamUpdate(settings.primaryBeamUpdateTime) {}
+      _secondsBeforeBeamUpdate(settings.primaryBeamUpdateTime)
+#ifdef HAVE_EVERYBEAM
+      ,
+      _beamMode(everybeam::ParseBeamMode(settings.beamMode))
+#endif
+{
+}
 
 PrimaryBeam::~PrimaryBeam() {}
 
@@ -455,9 +461,9 @@ double PrimaryBeam::MakeBeamForMS(
       telescope->GetGriddedResponse(coordinateSystem);
 
   // Note: field id is hard coded to 0
-  grid_response->CalculateIntegratedResponse(buffer.data(), time_array,
-                                             centralFrequency, 0, _undersample,
-                                             baseline_weights);
+  grid_response->IntegratedResponse(_beamMode, buffer.data(), time_array,
+                                    centralFrequency, 0, _undersample,
+                                    baseline_weights);
   return ms_weight;
 }
 
