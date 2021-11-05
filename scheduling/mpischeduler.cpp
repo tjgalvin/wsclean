@@ -66,8 +66,8 @@ void MPIScheduler::Run(GriddingTask &&task,
 }
 
 void MPIScheduler::Finish() {
-  Logger::Info << "Finishing scheduler.\n";
   if (_isRunning) {
+    Logger::Info << "Finishing scheduler.\n";
     std::unique_lock<std::mutex> lock(_mutex);
     _isFinishing = true;
     _notify.notify_all();
