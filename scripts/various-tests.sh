@@ -23,4 +23,4 @@ workdir="../../build"
 cd $workdir
 
 # Execute tests
-python3 -m pytest -v source/tests.py
+python3 -B -m pytest -v source/tests.py

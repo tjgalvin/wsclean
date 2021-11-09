@@ -69,7 +69,7 @@ file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test_data/)
 add_custom_target(
   checkintegration
   COMMAND
-    python3 -m pytest --exitfirst -v
+    python3 -B -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_integration.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/test_basics.py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_veladeconvolution.py)
@@ -95,7 +95,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testconfig.py.in
 add_custom_target(
   checkfacets
   COMMAND
-    python3 -m pytest --exitfirst -v
+    python3 -B -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_facets.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/test_facets.py)
 
@@ -104,7 +104,7 @@ add_custom_target(
 add_custom_target(
   checkcommandcatalogue
   COMMAND
-    python3 -m pytest --exitfirst -v
+    python3 -B -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_command_catalogue.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/test_command_catalogue.py)
 
