@@ -20,6 +20,7 @@
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/beammode.h>
+#include <EveryBeam/beamnormalisationmode.h>
 #endif
 
 namespace everybeam {
@@ -101,6 +102,7 @@ class PrimaryBeam {
   const size_t _secondsBeforeBeamUpdate;
 #ifdef HAVE_EVERYBEAM
   const everybeam::BeamMode _beamMode;
+  const everybeam::BeamNormalisationMode _beamNormalisationMode;
 #endif
   std::vector<std::unique_ptr<class MSDataDescription>> _msList;
   struct MSProviderInfo {

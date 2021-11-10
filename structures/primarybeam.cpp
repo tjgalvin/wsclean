@@ -60,7 +60,9 @@ PrimaryBeam::PrimaryBeam(const Settings& settings)
       _secondsBeforeBeamUpdate(settings.primaryBeamUpdateTime)
 #ifdef HAVE_EVERYBEAM
       ,
-      _beamMode(everybeam::ParseBeamMode(settings.beamMode))
+      _beamMode(everybeam::ParseBeamMode(settings.beamMode)),
+      _beamNormalisationMode(
+          everybeam::ParseBeamNormalisationMode(settings.beamNormalisationMode))
 #endif
 {
 }
@@ -386,8 +388,8 @@ double PrimaryBeam::MakeBeamForMS(
   aterm_settings.data_column_name = _settings.dataColumnName;
   everybeam::Options options = ATermConfig::ConvertToEBOptions(
       *ms, aterm_settings, frequencyInterpolation,
-      _settings.useDifferentialLofarBeam, useChannelFrequency,
-      elementResponseModel);
+      _settings.beamNormalisationMode, useChannelFrequency,
+      elementResponseModel, _settings.beamMode);
 
   // Make telescope
   std::unique_ptr<everybeam::telescope::Telescope> telescope =

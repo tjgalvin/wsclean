@@ -22,6 +22,7 @@
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/beammode.h>
+#include <EveryBeam/beamnormalisationmode.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
 #endif
 
@@ -444,6 +445,7 @@ class MSGridderBase {
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
   aocommon::UVector<std::complex<float>> _cachedBeamResponse;
   const everybeam::BeamMode _beamMode;
+  const everybeam::BeamNormalisationMode _beamNormalisationMode;
 #endif
   std::vector<std::vector<std::complex<float>>> _cachedParmResponse;
   std::vector<std::unique_ptr<schaapcommon::h5parm::H5Parm>> _h5parms;

@@ -77,7 +77,11 @@ void ApplyConjugatedGain<1, DDGainMatrix::kTrace>(
     std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
     const aocommon::MC2x2F& gain2) {
   // Stokes-I
-  *visibilities = 0.25f * conj(Trace(gain1)) * (*visibilities) * Trace(gain2);
+  // TODO: replace by 0.5 * DoubleDot(gain1.Conjugate(), gain2) once implemented
+  // in aocommon.
+  *visibilities *=
+      0.5f * (conj(gain1[0]) * gain2[0] + conj(gain1[1]) * gain2[1] +
+              conj(gain1[2]) * gain2[2] + conj(gain1[3]) * gain2[3]);
 }
 
 template <>
@@ -122,8 +126,12 @@ template <>
 void ApplyGain<1, DDGainMatrix::kTrace>(std::complex<float>* visibilities,
                                         const aocommon::MC2x2F& gain1,
                                         const aocommon::MC2x2F& gain2) {
-  // Stokes-I
-  *visibilities = 0.25f * Trace(gain1) * (*visibilities) * conj(Trace(gain2));
+  // Stokes-I.
+  // TODO: replace by 0.5 * DoubleDot(gain1, gain2.Conjugate()) once implemented
+  // in aocommon.
+  *visibilities *=
+      0.5f * (gain1[0] * conj(gain2[0]) + gain1[1] * conj(gain2[1]) +
+              gain1[2] * conj(gain2[2]) + gain1[3] * conj(gain2[3]));
 }
 
 template <>
@@ -162,7 +170,10 @@ std::complex<float> ComputeGain<DDGainMatrix::kYY>(
 template <>
 std::complex<float> ComputeGain<DDGainMatrix::kTrace>(
     const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
-  return 0.25f * Trace(gain2) * conj(Trace(gain1));
+  // TODO: replace with 0.5 * DoubleDot(gain1.Conjugate(), gain2)
+  // once implemented in aocommon.
+  return 0.5f * (conj(gain1[0]) * gain2[0] + conj(gain1[1]) * gain2[1] +
+                 conj(gain1[2]) * gain2[2] + conj(gain1[3]) * gain2[3]);
 }
 
 template <>
@@ -251,6 +262,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _predictReader(nullptr),
 #ifdef HAVE_EVERYBEAM
       _beamMode(everybeam::ParseBeamMode(settings.beamMode)),
+      _beamNormalisationMode(everybeam::ParseBeamNormalisationMode(
+          settings.beamNormalisationMode)),
 #endif
       _cachedParmResponse(),
       _h5parms(),
@@ -332,8 +345,8 @@ void MSGridderBase::initializePointResponse(
     everybeam::Options options =
         everybeam::aterms::ATermConfig::ConvertToEBOptions(
             *ms, aterm_settings, frequency_interpolation,
-            _settings.useDifferentialLofarBeam, use_channel_frequency,
-            element_response_string);
+            _settings.beamNormalisationMode, use_channel_frequency,
+            element_response_string, _settings.beamMode);
 
     _telescope = everybeam::Load(*ms, options);
     _pointResponse =

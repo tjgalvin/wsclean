@@ -84,7 +84,8 @@ class Settings {
   size_t fullResOffset, fullResWidth, fullResPad;
   std::string beamModel;
   std::string beamMode;
-  bool applyPrimaryBeam, reusePrimaryBeam, useDifferentialLofarBeam, savePsfPb;
+  std::string beamNormalisationMode;
+  bool applyPrimaryBeam, reusePrimaryBeam, savePsfPb;
   double primaryBeamLimit;
   std::string mwaPath;
   size_t primaryBeamGridSize, primaryBeamUpdateTime;
@@ -270,9 +271,9 @@ inline Settings::Settings()
       fullResPad(0),
       beamModel(),
       beamMode("default"),
+      beamNormalisationMode("preapplied"),
       applyPrimaryBeam(false),
       reusePrimaryBeam(false),
-      useDifferentialLofarBeam(false),
       savePsfPb(false),
       primaryBeamLimit(0.005),
       primaryBeamGridSize(32),

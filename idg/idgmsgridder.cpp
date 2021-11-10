@@ -621,7 +621,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
 
       std::unique_ptr<ATermBeam> beam = ATermConfig::GetATermBeam(
           *ms, system, aterm_settings, frequencyInterpolation,
-          _settings.useDifferentialLofarBeam, useChannelFrequency,
+          _settings.beamNormalisationMode, useChannelFrequency,
           elementResponseModel, _settings.beamMode);
       beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
       beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
