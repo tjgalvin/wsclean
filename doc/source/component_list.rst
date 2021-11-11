@@ -51,7 +51,7 @@ An ordinary polynomial function is evaluated as
 
     S(\nu) = S_0 + p_0 (\frac{\nu}{\nu_0} - 1) + p_1 (\frac{\nu}{\nu_0} - 1)^2 + ...
 
-Note that -1 is subtracted in the base to let :math:`S_0` (the "Stokes I" value) specifies the value at the reference frequency.
+Note that -1 is subtracted in the base. This makes sure that :math:`S_0` (the "Stokes I" value) represents the flux density at the reference frequency.
 
 **LogarithmicSI** is *true* or *false*, denoting that the spectral index column uses logarithmic or ordinary polynomials, respectively. Note that in absense of this column, logarithmic polynomials are used.
 
