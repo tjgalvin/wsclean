@@ -35,5 +35,4 @@ RUN \
   cmake ../src && \
   make -j`nproc` && \
   make install && \
-  make check -j`nproc` && \
   wsclean --version
