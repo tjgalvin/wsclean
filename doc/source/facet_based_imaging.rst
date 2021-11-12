@@ -19,7 +19,8 @@ To enable facet-based imaging in WSClean, a file containing the facet definition
 
     -facet-regions <MY_REGIONS_FILE>
 
-in which :code:`[MY_REGIONS_FILE]` is a file the contains the facet definitions using the DS9 region file format.
+in which :code:`[MY_REGIONS_FILE]` is a file containing the facet definitions in the DS9 region file format.
+For a detailed explanation on the expected file format, see the explanation on :doc:`ds9-facet-file`.
 
 Enabling the facet beam correction can be done with the option
 
@@ -42,11 +43,26 @@ This is done via the command-line option:
 
     -apply-facet-solutions <path-to-h5parm> <name1[,name2]>
 
-where :code:`<path-to-h5parm>` is the path to the H5Parm file and :code:`<name1[,name2]>`
-is a comma-separated list of strings specifying which "soltabs" from the provided H5Parm file are used.
+where :code:`<path-to-h5parm>` is the path to the H5Parm solution file and :code:`<name1[,name2]>`
+is a comma-separated list of strings specifying which "soltabs" from the provided H5Parm solution file are used.
 Acceptable names are :code:`ampl000` and/or :code:`phase000`.
 
-**NOTE:** the ordering of the directions in the H5Parm file is currently **assumed** equal to the ordering of the facets in the DS9 region file.
+In case WSClean uses multiple measurement sets as input, either one H5Parm solution file or a distinct H5Parm solution file per seasurement set can be specified.
+The correction that should be applied (:code:`ampl000`, :code:`phase000`, or both) is assumed to be identical for all H5Parm solution files.
+As an illustration, assume that :code:`N` measurement sets are passed to WSClean, with corresponding solution files :code:`h5parm1.h5, h5parm2.h5, ..., h5parmN.h5` containing a
+scalar amplitude correction.
+The syntax for applying the facet solution files on its corresponding measurement set thus becomes:
+
+.. code-block:: text
+
+    -apply-facet-solutions h5parm1.h5,h5parm2.h5,...,h5parmN.h5 ampl000
+
+.. note::
+    To find the matching direction in the solution file for the specified facets,
+    the (RA, Dec) pointing of each facet is matched against the direction with
+    the smallest (Euclidean) distance in the solution file.
+    For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9-facet-file`.
+
 
 Example command
 ---------------
@@ -73,4 +89,3 @@ A (probably non-exhaustive) list of caveats is presented below:
 - Parallel processing can be enabled with the :code:`-parallel-gridding` option (multi-threaded) or the :code:`wsclean-mp` (using MPI). Parallelization over facets is however barely tested, and may return unexpected errors or results, in particular when applying DDEs.
 - Facet-based imaging in conjunction with the Image Domain Gridder (IDG) is only possible without applying DDEs.
 - When applying solutions in WSClean for facetted imaging, only scalar solutions are currently applicable.
-- Be aware of the (direction) ordering restriction when applying DD gains from an H5Parm file as mentioned above.
