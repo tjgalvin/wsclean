@@ -77,11 +77,7 @@ void ApplyConjugatedGain<1, DDGainMatrix::kTrace>(
     std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
     const aocommon::MC2x2F& gain2) {
   // Stokes-I
-  // TODO: replace by 0.5 * DoubleDot(gain1.Conjugate(), gain2) once implemented
-  // in aocommon.
-  *visibilities *=
-      0.5f * (conj(gain1[0]) * gain2[0] + conj(gain1[1]) * gain2[1] +
-              conj(gain1[2]) * gain2[2] + conj(gain1[3]) * gain2[3]);
+  *visibilities *= 0.5f * gain2.DoubleDot(gain1.Conjugate());
 }
 
 template <>
@@ -127,11 +123,7 @@ void ApplyGain<1, DDGainMatrix::kTrace>(std::complex<float>* visibilities,
                                         const aocommon::MC2x2F& gain1,
                                         const aocommon::MC2x2F& gain2) {
   // Stokes-I.
-  // TODO: replace by 0.5 * DoubleDot(gain1, gain2.Conjugate()) once implemented
-  // in aocommon.
-  *visibilities *=
-      0.5f * (gain1[0] * conj(gain2[0]) + gain1[1] * conj(gain2[1]) +
-              gain1[2] * conj(gain2[2]) + gain1[3] * conj(gain2[3]));
+  *visibilities *= 0.5f * gain1.DoubleDot(gain2.Conjugate());
 }
 
 template <>
@@ -170,10 +162,7 @@ std::complex<float> ComputeGain<DDGainMatrix::kYY>(
 template <>
 std::complex<float> ComputeGain<DDGainMatrix::kTrace>(
     const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
-  // TODO: replace with 0.5 * DoubleDot(gain1.Conjugate(), gain2)
-  // once implemented in aocommon.
-  return 0.5f * (conj(gain1[0]) * gain2[0] + conj(gain1[1]) * gain2[1] +
-                 conj(gain1[2]) * gain2[2] + conj(gain1[3]) * gain2[3]);
+  return 0.5f * gain2.DoubleDot(gain1.Conjugate());
 }
 
 template <>
