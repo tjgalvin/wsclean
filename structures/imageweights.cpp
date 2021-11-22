@@ -72,42 +72,35 @@ void ImageWeights::Unserialize(aocommon::SerialIStream& stream) {
       .Bool(_weightsAsTaper);
 }
 
-void ImageWeights::Grid(MSProvider& msProvider, const MSSelection& selection) {
-  if (_isGriddingFinished)
-    throw std::runtime_error("Grid() called after a call to FinishGridding()");
+void ImageWeights::Grid(MSProvider& msProvider,
+                        const aocommon::BandData& selectedBand) {
+  assert(!_isGriddingFinished);
   size_t polarizationCount =
       (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4
                                                                           : 1;
   if (_weightMode.RequiresGridding()) {
-    MultiBandData bandData(*msProvider.MS());
-    if (selection.HasChannelRange()) {
-      bandData = MultiBandData(bandData, selection.ChannelRangeStart(),
-                               selection.ChannelRangeEnd());
-    }
-    aocommon::UVector<float> weightBuffer(bandData.MaxChannels() *
+    aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
                                           polarizationCount);
 
     std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
     while (msReader->CurrentRowAvailable()) {
       double uInM, vInM, wInM;
-      size_t dataDescId;
-      msReader->ReadMeta(uInM, vInM, wInM, dataDescId);
+      msReader->ReadMeta(uInM, vInM, wInM);
       msReader->ReadWeights(weightBuffer.data());
       if (_weightsAsTaper) {
         for (float& w : weightBuffer) {
           if (w != 0.0) w = 1.0;
         }
       }
-      const BandData& curBand = bandData[dataDescId];
       if (vInM < 0.0) {
         uInM = -uInM;
         vInM = -vInM;
       }
 
       const float* weightIter = weightBuffer.data();
-      for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-        double u = uInM / curBand.ChannelWavelength(ch),
-               v = vInM / curBand.ChannelWavelength(ch);
+      for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
+        const double u = uInM / selectedBand.ChannelWavelength(ch);
+        const double v = vInM / selectedBand.ChannelWavelength(ch);
         for (size_t p = 0; p != polarizationCount; ++p) {
           Grid(u, v, *weightIter);
           ++weightIter;

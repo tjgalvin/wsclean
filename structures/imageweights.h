@@ -10,6 +10,12 @@
 #include "msselection.h"
 #include "weightmode.h"
 
+class MSProvider;
+
+namespace aocommon {
+class BandData;
+}
+
 class ImageWeights {
  public:
   /**
@@ -26,7 +32,7 @@ class ImageWeights {
 
   double GetWeight(double u, double v) const { return sampleGridValue(u, v); }
 
-  void Grid(class MSProvider& ms, const MSSelection& selection);
+  void Grid(MSProvider& ms, const aocommon::BandData& selectedBand);
   void Grid(double u, double v, double weight) {
     int x, y;
     uvToXY(u, v, x, y);

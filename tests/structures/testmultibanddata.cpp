@@ -1,6 +1,6 @@
 #include <boost/test/unit_test.hpp>
 
-#include "../structures/multibanddata.h"
+#include "../../structures/multibanddata.h"
 
 #include <vector>
 
@@ -18,7 +18,6 @@ BOOST_AUTO_TEST_CASE(empty) {
   BOOST_CHECK_EQUAL(multiBand.DataDescCount(), 0u);
   BOOST_CHECK_CLOSE_FRACTION(multiBand.HighestFrequency(), 0.0, 1e-6);
   BOOST_CHECK_CLOSE_FRACTION(multiBand.LowestFrequency(), 0.0, 1e-6);
-  BOOST_CHECK_EQUAL(multiBand.MaxChannels(), 0u);
 
   MultiBandData moved(std::move(multiBand));
   BOOST_CHECK_EQUAL(moved.BandCount(), 0u);
@@ -52,7 +51,6 @@ BOOST_AUTO_TEST_CASE(irregular_bands) {
   BOOST_CHECK_EQUAL(multiBand.GetBandIndex(dataDescId2), 1u);
   BOOST_CHECK_CLOSE_FRACTION(multiBand.HighestFrequency(), 190e6, 1e-6);
   BOOST_CHECK_CLOSE_FRACTION(multiBand.LowestFrequency(), 140e6, 1e-6);
-  BOOST_CHECK_EQUAL(multiBand.MaxChannels(), 3u);
   BOOST_CHECK_EQUAL(multiBand[dataDescId1].ChannelCount(), 2u);
   BOOST_CHECK_EQUAL(multiBand[dataDescId2].ChannelCount(), 3u);
 
@@ -68,7 +66,6 @@ BOOST_AUTO_TEST_CASE(irregular_bands) {
   BOOST_CHECK_EQUAL(partialBandA.GetBandIndex(dataDescId2), 1u);
   BOOST_CHECK_CLOSE_FRACTION(partialBandA.HighestFrequency(), 190e6, 1e-6);
   BOOST_CHECK_CLOSE_FRACTION(partialBandA.LowestFrequency(), 145e6, 1e-6);
-  BOOST_CHECK_EQUAL(partialBandA.MaxChannels(), 1u);
   BOOST_CHECK_EQUAL(partialBandA[dataDescId1].ChannelCount(), 1u);
   BOOST_CHECK_CLOSE_FRACTION(partialBandA[dataDescId1].ChannelFrequency(0),
                              190e6, 1e-6);
@@ -88,7 +85,6 @@ BOOST_AUTO_TEST_CASE(irregular_bands) {
   BOOST_CHECK_EQUAL(partialBandB.GetBandIndex(dataDescId2), 1u);
   BOOST_CHECK_CLOSE_FRACTION(partialBandB.HighestFrequency(), 190e6, 1e-6);
   BOOST_CHECK_CLOSE_FRACTION(partialBandB.LowestFrequency(), 145e6, 1e-6);
-  BOOST_CHECK_EQUAL(partialBandB.MaxChannels(), 2u);
   BOOST_CHECK_EQUAL(partialBandB[dataDescId1].ChannelCount(), 1u);
   BOOST_CHECK_CLOSE_FRACTION(partialBandB[dataDescId1].ChannelFrequency(0),
                              190e6, 1e-6);
@@ -100,11 +96,9 @@ BOOST_AUTO_TEST_CASE(irregular_bands) {
 
   MultiBandData copy(multiBand);
   BOOST_CHECK_EQUAL(copy.BandCount(), 2u);
-  BOOST_CHECK_EQUAL(copy.MaxChannels(), 3u);
 
   MultiBandData moved(std::move(multiBand));
   BOOST_CHECK_EQUAL(moved.BandCount(), 2u);
-  BOOST_CHECK_EQUAL(moved.MaxChannels(), 3u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

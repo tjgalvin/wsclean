@@ -142,18 +142,6 @@ class MultiBandData {
   }
 
   /**
-   * Get the maximum number of channels in a band.
-   * @returns Maximum number of channels.
-   */
-  size_t MaxChannels() const {
-    size_t maxChannels = 0;
-    for (const BandData& band : _bandData) {
-      if (band.ChannelCount() > maxChannels) maxChannels = band.ChannelCount();
-    }
-    return maxChannels;
-  }
-
-  /**
    * Map a dataDescId to the corresponding band index.
    * @param dataDescId A dataDescId as e.g. used in a main table.
    * @returns The band index, which is equal to the row index in the spw

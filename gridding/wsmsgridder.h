@@ -58,7 +58,7 @@ class WSMSGridder final : public MSGridderBase {
   struct PredictionWorkItem {
     std::array<double, 3> uvw;
     std::unique_ptr<std::complex<float>[]> data;
-    size_t rowId, dataDescId;
+    size_t rowId;
   };
 
   template <DDGainMatrix GainEntry>
@@ -70,14 +70,14 @@ class WSMSGridder final : public MSGridderBase {
   template <DDGainMatrix GainEntry>
   void predictMeasurementSet(MSData& msData);
 
-  void workThread(aocommon::Lane<InversionRow>* workLane) {
+  /*void workThread(aocommon::Lane<InversionRow>* workLane) {
     InversionRow workItem;
     while (workLane->read(workItem)) {
-      _gridder->AddData(workItem.data, workItem.dataDescId, workItem.uvw[0],
+      _gridder->AddData(workItem.data, DataDescId(), workItem.uvw[0],
                         workItem.uvw[1], workItem.uvw[2]);
       delete[] workItem.data;
     }
-  }
+  }*/
 
   void startInversionWorkThreads(size_t maxChannelCount);
   void finishInversionWorkThreads();
@@ -85,16 +85,17 @@ class WSMSGridder final : public MSGridderBase {
 
   void predictCalcThread(aocommon::Lane<PredictionWorkItem>* inputLane,
                          aocommon::Lane<PredictionWorkItem>* outputLane,
-                         const MultiBandData* bandData);
+                         const BandData* bandData);
 
   template <DDGainMatrix GainEntry>
   void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
-                          const MSData* msData, const MultiBandData* bandData);
+                          const MSData* msData, const BandData* bandData);
 
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;
   std::vector<std::thread> _threadGroup;
   size_t _nwWidth, _nwHeight;
+  size_t _currentDataDescId;
   double _nwFactor;
   size_t _antialiasingKernelSize, _overSamplingFactor;
   size_t _cpuCount, _laneBufferSize;

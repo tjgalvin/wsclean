@@ -37,8 +37,6 @@ void DirectMSGridder<num_t>::Invert() {
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     MSData& msData = msDataVector[i];
 
-    const MultiBandData selectedBand(msData.SelectedBand());
-
     if (Polarization() == aocommon::Polarization::XX) {
       invertMeasurementSet<DDGainMatrix::kXX>(msData, progress, i);
     } else if (Polarization() == aocommon::Polarization::YY) {
@@ -135,15 +133,15 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
     const MSGridderBase::MSData& msData, ProgressBar& progress,
     size_t msIndex) {
   StartMeasurementSet(msData, false);
-  const MultiBandData selectedBand(msData.SelectedBand());
+  const aocommon::BandData selectedBand(msData.SelectedBand());
   aocommon::UVector<std::complex<float>> modelBuffer(
-      selectedBand.MaxChannels());
-  aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels());
-  aocommon::UVector<bool> isSelected(selectedBand.MaxChannels(), true);
+      selectedBand.ChannelCount());
+  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount());
+  aocommon::UVector<bool> isSelected(selectedBand.ChannelCount(), true);
 
   InversionRow newItem;
   aocommon::UVector<std::complex<float>> newItemData(
-      selectedBand.MaxChannels());
+      selectedBand.ChannelCount());
   newItem.data = newItemData.data();
 
   std::vector<size_t> idToMSRow;
@@ -154,17 +152,14 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
     progress.SetProgress(msIndex * idToMSRow.size() + rowIndex,
                          MeasurementSetCount() * idToMSRow.size());
 
-    size_t dataDescId;
-    msReader->ReadMeta(newItem.uvw[0], newItem.uvw[1], newItem.uvw[2],
-                       dataDescId);
-    const BandData& curBand(selectedBand[dataDescId]);
+    msReader->ReadMeta(newItem.uvw[0], newItem.uvw[1], newItem.uvw[2]);
 
     readAndWeightVisibilities<1, GainEntry>(
-        *msReader, msData.antennaNames, newItem, curBand, weightBuffer.data(),
-        modelBuffer.data(), isSelected.data());
+        *msReader, msData.antennaNames, newItem, selectedBand,
+        weightBuffer.data(), modelBuffer.data(), isSelected.data());
     InversionSample sample;
-    for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-      const double wl = curBand.ChannelWavelength(ch);
+    for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
+      const double wl = selectedBand.ChannelWavelength(ch);
       sample.uInLambda = newItem.uvw[0] / wl;
       sample.vInLambda = newItem.uvw[1] / wl;
       sample.wInLambda = newItem.uvw[2] / wl;

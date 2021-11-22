@@ -8,6 +8,7 @@
 #include "../msproviders/msreaders/msreader.h"
 
 #include "../structures/imageweights.h"
+#include "../structures/multibanddata.h"
 
 #include "../units/angle.h"
 
@@ -196,7 +197,11 @@ std::vector<double> SelectUniqueTimes(MSProvider& msProvider) {
 MSGridderBase::~MSGridderBase() = default;
 
 MSGridderBase::MSData::MSData()
-    : msIndex(0), matchingRows(0), totalRowsProcessed(0), antennaNames() {}
+    : msIndex(0),
+      dataDescId(0),
+      matchingRows(0),
+      totalRowsProcessed(0),
+      antennaNames() {}
 
 MSGridderBase::MSGridderBase(const Settings& settings)
     : _actualInversionWidth(0),
@@ -341,7 +346,7 @@ void MSGridderBase::initializePointResponse(
     _pointResponse =
         _telescope->GetPointResponse(msData.msProvider->StartTime());
     _pointResponse->SetUpdateInterval(_settings.facetBeamUpdateTime);
-    _cachedBeamResponse.resize(msData.bandData.MaxChannels() *
+    _cachedBeamResponse.resize(msData.bandData.ChannelCount() *
                                _pointResponse->GetAllStationsBufferSize());
   } else {
     if (_settings.applyFacetBeam) {
@@ -368,25 +373,25 @@ void MSGridderBase::initializePredictReader(MSProvider& msProvider) {
 
 void MSGridderBase::initializeBandData(const casacore::MeasurementSet& ms,
                                        MSGridderBase::MSData& msData) {
-  msData.bandData = MultiBandData(ms);
+  msData.bandData = MultiBandData(ms)[msData.dataDescId];
   if (Selection(msData.msIndex).HasChannelRange()) {
     msData.startChannel = Selection(msData.msIndex).ChannelRangeStart();
     msData.endChannel = Selection(msData.msIndex).ChannelRangeEnd();
     Logger::Debug << "Selected channels: " << msData.startChannel << '-'
                   << msData.endChannel << '\n';
-    if (msData.startChannel >= msData.bandData.MaxChannels() ||
-        msData.endChannel > msData.bandData.MaxChannels() ||
+    if (msData.startChannel >= msData.bandData.ChannelCount() ||
+        msData.endChannel > msData.bandData.ChannelCount() ||
         msData.startChannel == msData.endChannel) {
       std::ostringstream str;
       str << "An invalid channel range was specified! Measurement set only has "
-          << msData.bandData.MaxChannels()
+          << msData.bandData.ChannelCount()
           << " channels, requested imaging range is " << msData.startChannel
           << " -- " << msData.endChannel << '.';
       throw std::runtime_error(str.str());
     }
   } else {
     msData.startChannel = 0;
-    msData.endChannel = msData.bandData.MaxChannels();
+    msData.endChannel = msData.bandData.ChannelCount();
   }
 }
 
@@ -399,11 +404,14 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
   msData.minW = 1e100;
   msData.maxBaselineUVW = 0.0;
   msData.maxBaselineInM = 0.0;
-  MultiBandData selectedBand = msData.SelectedBand();
-  std::vector<float> weightArray(selectedBand.MaxChannels() * NPolInMSProvider);
+  const BandData selectedBand = msData.SelectedBand();
+  std::vector<float> weightArray(selectedBand.ChannelCount() *
+                                 NPolInMSProvider);
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  const double smallestWavelength = selectedBand.SmallestWavelength();
+  const double longestWavelength = selectedBand.LongestWavelength();
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);
@@ -415,19 +423,20 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
       lastTime = curTimestep;
     }
 
-    const BandData& curBand = selectedBand[metaData.dataDescId];
-    double wHi = fabs(metaData.wInM / curBand.SmallestWavelength());
-    double wLo = fabs(metaData.wInM / curBand.LongestWavelength());
-    double baselineInM =
-        sqrt(metaData.uInM * metaData.uInM + metaData.vInM * metaData.vInM +
-             metaData.wInM * metaData.wInM);
-    double halfWidth = 0.5 * ImageWidth(), halfHeight = 0.5 * ImageHeight();
+    const double wHi = std::fabs(metaData.wInM / smallestWavelength);
+    const double wLo = std::fabs(metaData.wInM / longestWavelength);
+    const double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
+                                         metaData.vInM * metaData.vInM +
+                                         metaData.wInM * metaData.wInM);
+    const double halfWidth = 0.5 * ImageWidth();
+    const double halfHeight = 0.5 * ImageHeight();
     if (wHi > msData.maxW || wLo < msData.minW ||
-        baselineInM / curBand.SmallestWavelength() > msData.maxBaselineUVW) {
+        baselineInM / selectedBand.SmallestWavelength() >
+            msData.maxBaselineUVW) {
       msReader->ReadWeights(weightArray.data());
       const float* weightPtr = weightArray.data();
-      for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
-        const double wavelength = curBand.ChannelWavelength(ch);
+      for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
+        const double wavelength = selectedBand.ChannelWavelength(ch);
         double wInL = metaData.wInM / wavelength;
         msData.maxWWithFlags = std::max(msData.maxWWithFlags, fabs(wInL));
         if (*weightPtr != 0.0) {
@@ -522,6 +531,7 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   if (ms->nrow() == 0) throw std::runtime_error("Table has no rows (no data)");
 
   msData.antennaNames = getAntennaNames(ms->antenna());
+  msData.dataDescId = msProvider.DataDescId();
 
   initializeBandData(*ms, msData);
 
@@ -666,9 +676,9 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
                      _theoreticalBeamSize, minHeight, optHeight);
     if (optWidth < _actualInversionWidth ||
         optHeight < _actualInversionHeight) {
-      size_t newWidth =
+      const size_t newWidth =
           std::max(std::min(optWidth, _actualInversionWidth), size_t(32));
-      size_t newHeight =
+      const size_t newHeight =
           std::max(std::min(optHeight, _actualInversionHeight), size_t(32));
       if (IsFirstIteration()) {
         Logger::Info << "Minimal inversion size: " << minWidth << " x "

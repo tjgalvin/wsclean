@@ -23,7 +23,7 @@ class MSReader;
 /**
  * The abstract MSProvider class is the base class for classes that read and
  * write the visibilities. Write functionality is directly provided by classes
- * that derive from MSProvider, whereas reading functionality is provided a
+ * that derive from MSProvider, whereas reading functionality is provided in a
  * separate class (MSReader), which can be instantiated with @ref
  * MSProvider::MakeReader. An MSProvider knows which rows are selected and
  * doesn't write to unselected rows. This information on selected rows is also
@@ -35,12 +35,17 @@ class MSReader;
  * The class maintains an index for the write position. The index for the
  * reading position is maintained by the closely connected @ref MSReader class.
  * Writing (and reading) goes sequentially through the data.
+ *
+ * An MS provider provides data for a single dataDescID, and therefore for
+ * a single spectral window. Measurement sets with multiple data desc IDs
+ * require creating multiple MS providers. Because of this, all rows of a
+ * single MS provider have the same number of channels.
  */
 class MSProvider {
  public:
   struct MetaData {
     double uInM, vInM, wInM;
-    size_t dataDescId, fieldId, antenna1, antenna2;
+    size_t fieldId, antenna1, antenna2;
     double time;
   };
 
@@ -100,6 +105,13 @@ class MSProvider {
    * data.
    */
   virtual aocommon::PolarizationEnum Polarization() = 0;
+
+  /**
+   * The dataDescID to which this MS provider is associated. An MSProvider
+   * is associated with only one dataDescId. When an MS has multiple
+   * dataDescIds, it will have multiple MSProviders.
+   */
+  virtual size_t DataDescId() = 0;
 
   /**
    * Number of channels provided by this provider. May be different from the

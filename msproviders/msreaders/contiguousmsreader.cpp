@@ -82,8 +82,7 @@ void ContiguousMSReader::NextInputRow() {
            (dataDescId != contiguousms._dataDescId));
 }
 
-void ContiguousMSReader::ReadMeta(double& u, double& v, double& w,
-                                  size_t& dataDescId) {
+void ContiguousMSReader::ReadMeta(double& u, double& v, double& w) {
   const ContiguousMS& contiguousms =
       static_cast<const ContiguousMS&>(*_msProvider);
 
@@ -91,7 +90,6 @@ void ContiguousMSReader::ReadMeta(double& u, double& v, double& w,
   u = uvwArray(0);
   v = uvwArray(1);
   w = uvwArray(2);
-  dataDescId = contiguousms._dataDescId;
 }
 
 void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metaData) {
@@ -102,7 +100,6 @@ void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metaData) {
   metaData.uInM = uvwArray(0);
   metaData.vInM = uvwArray(1);
   metaData.wInM = uvwArray(2);
-  metaData.dataDescId = contiguousms._dataDescId;
   metaData.fieldId = contiguousms._fieldIdColumn(_currentInputRow);
   metaData.antenna1 = contiguousms._antenna1Column(_currentInputRow);
   metaData.antenna2 = contiguousms._antenna2Column(_currentInputRow);

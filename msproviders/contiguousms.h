@@ -15,7 +15,7 @@
 
 class ContiguousMSReader;
 
-class ContiguousMS : public MSProvider {
+class ContiguousMS final : public MSProvider {
   friend class ContiguousMSReader;
 
  public:
@@ -28,26 +28,27 @@ class ContiguousMS : public MSProvider {
 
   ContiguousMS& operator=(const ContiguousMS&) = delete;
 
-  std::unique_ptr<MSReader> MakeReader() final override;
+  std::unique_ptr<MSReader> MakeReader() override;
 
-  SynchronizedMS MS() final override { return _ms; }
+  SynchronizedMS MS() override { return _ms; }
 
-  const std::string& DataColumnName() final override { return _dataColumnName; }
+  const std::string& DataColumnName() override { return _dataColumnName; }
 
-  void NextOutputRow() final override;
+  void NextOutputRow() override;
 
-  void ResetWritePosition() final override;
+  void ResetWritePosition() override;
 
-  void WriteModel(const std::complex<float>* buffer,
-                  bool addToMS) final override;
+  void WriteModel(const std::complex<float>* buffer, bool addToMS) override;
 
-  void ReopenRW() final override { _ms->reopenRW(); }
+  void ReopenRW() override { _ms->reopenRW(); }
 
-  double StartTime() final override;
+  double StartTime() override;
 
-  void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) final override;
+  void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override;
 
-  aocommon::PolarizationEnum Polarization() final override { return _polOut; }
+  aocommon::PolarizationEnum Polarization() override { return _polOut; }
+
+  size_t DataDescId() override { return _dataDescId; }
 
   size_t NChannels() override;
 

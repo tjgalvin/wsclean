@@ -9,7 +9,6 @@ add_executable(
   testfluxdensity.cpp
   testimageset.cpp
   testcachedimageset.cpp
-  testmultibanddata.cpp
   testparsetreader.cpp
   testpeakfinder.cpp
   testserialization.cpp
@@ -24,6 +23,7 @@ add_executable(
   msproviders/tmsrowproviderbase.cpp
   structures/testimage.cpp
   structures/testimagingtable.cpp
+  structures/testmultibanddata.cpp
   system/tthrowruntimeerror.cpp
   ${WSCLEANFILES})
 

@@ -16,8 +16,7 @@ class TimestepBufferReader final : public MSReader {
 
   void NextInputRow() final override;
 
-  void ReadMeta(double& u, double& v, double& w,
-                size_t& dataDescId) final override;
+  void ReadMeta(double& u, double& v, double& w) final override;
 
   void ReadMeta(MSProvider::MetaData& metaData) final override;
 

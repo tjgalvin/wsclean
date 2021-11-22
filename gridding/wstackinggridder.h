@@ -7,7 +7,7 @@
 #define WSTACKING_GRIDDER_H
 
 #ifndef AVOID_CASACORE
-#include "../structures/multibanddata.h"
+#include <aocommon/banddata.h>
 #endif
 
 #include "gridmode.h"
@@ -158,6 +158,7 @@ class WStackingGridder {
   void PrepareWLayers(size_t nWLayers, double maxMem, double minW, double maxW);
 
 #ifndef AVOID_CASACORE
+  using BandData = aocommon::BandData;
   /**
    * Initialize the inversion/prediction stage with a given band. This is
    * required for calling methods that take a dataDescId, specifically @ref
@@ -169,7 +170,7 @@ class WStackingGridder {
    * dataDescId to a set of contiguous frequencies. This corresponds with the
    * DATA_DESC_ID field in meaurement sets.
    */
-  void PrepareBand(const MultiBandData &bandData) { _bandData = bandData; }
+  void PrepareBand(const BandData &bandData) { _bandData = bandData; }
 #endif  // AVOID_CASACORE
 
   /**
@@ -281,13 +282,12 @@ class WStackingGridder {
    *
    * @param data Array of samples for different channels. The size of this array
    * is given by the band referred to by dataDescId.
-   * @param dataDescId ID that specifies which band this data is for.
    * @param uInM U value of UVW coordinate, in meters.
    * @param vInM V value of UVW coordinate, in meters.
    * @param wInM W value of UVW coordinate, in meters.
    */
-  void AddData(const std::complex<float> *data, size_t dataDescId, double uInM,
-               double vInM, double wInM);
+  void AddData(const std::complex<float> *data, double uInM, double vInM,
+               double wInM);
 #endif
 
   /**
@@ -370,8 +370,7 @@ class WStackingGridder {
   /**
    * Predict the values for all channels in a band. This is a convenience
    * function that will call @ref SampleDataSample() for all data values in the
-   * band specified by
-   * @p dataDescId.
+   * band.
    *
    * If a particular value can not be predicted during this pass (because its
    * w-value belongs to a w-layer of a different pass), its value will be set to
@@ -379,14 +378,13 @@ class WStackingGridder {
    * calling this method.
    *
    * @param data Array of samples for different channels. The size of this array
-   * is given by the band referred to by dataDescId.
-   * @param dataDescId ID that specifies which band this data is for.
+   * is given by the band.
    * @param uInM U value of UVW coordinate, in meters.
    * @param vInM V value of UVW coordinate, in meters.
    * @param wInM W value of UVW coordinate, in meters.
    */
-  void SampleData(std::complex<float> *data, size_t dataDescId, double uInM,
-                  double vInM, double wInM);
+  void SampleData(std::complex<float> *data, double uInM, double vInM,
+                  double wInM);
 #endif
 
   /**
@@ -620,7 +618,7 @@ class WStackingGridder {
   double _minW, _maxW, _phaseCentreDL, _phaseCentreDM;
   bool _isComplex, _imageConjugatePart;
 #ifndef AVOID_CASACORE
-  MultiBandData _bandData;
+  BandData _bandData;
 #endif
 
   GridMode _gridMode;

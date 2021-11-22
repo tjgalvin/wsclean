@@ -6,6 +6,7 @@
 #include "../io/logger.h"
 
 #include "../structures/imageweights.h"
+#include "../structures/multibanddata.h"
 
 #include "../msproviders/msdatadescription.h"
 
@@ -486,11 +487,11 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
                                                                           : 1;
   aocommon::UVector<float> weightArr(channelCount * polarizationCount);
   std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
+  const BandData band = multiband[msProvider.DataDescId()];
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);
     if (metaData.time >= endTime) break;
-    const BandData& band(multiband[metaData.dataDescId]);
     msReader->ReadWeights(weightArr.data());
 
     for (size_t ch = 0; ch != channelCount; ++ch) {

@@ -46,6 +46,8 @@ class TimestepBuffer final : public MSProvider {
 
   double StartTime() override { return _msProvider->StartTime(); }
 
+  size_t DataDescId() override { return _msProvider->DataDescId(); }
+
   void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override {
     _msProvider->MakeIdToMSRowMapping(idToMSRow);
   }

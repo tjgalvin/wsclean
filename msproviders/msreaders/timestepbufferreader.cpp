@@ -18,13 +18,11 @@ void TimestepBufferReader::NextInputRow() {
   }
 }
 
-void TimestepBufferReader::ReadMeta(double& u, double& v, double& w,
-                                    size_t& dataDescId) {
+void TimestepBufferReader::ReadMeta(double& u, double& v, double& w) {
   MSProvider::MetaData& m = _buffer[_bufferPosition].metaData;
   u = m.uInM;
   v = m.vInM;
   w = m.wInM;
-  dataDescId = m.dataDescId;
 }
 
 void TimestepBufferReader::ReadMeta(MSProvider::MetaData& metaData) {

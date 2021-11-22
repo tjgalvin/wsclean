@@ -3,6 +3,7 @@
 
 #include "gridmode.h"
 
+#include <aocommon/banddata.h>
 #include <aocommon/polarization.h>
 #include <aocommon/imagecoordinates.h>
 
@@ -17,8 +18,6 @@
 
 #include "../scheduling/metadatacache.h"
 #include "../scheduling/griddingtaskmanager.h"
-
-#include "../structures/multibanddata.h"
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/beammode.h>
@@ -242,7 +241,8 @@ class MSGridderBase {
 
     class MSProvider* msProvider;
     size_t msIndex;
-    MultiBandData bandData;
+    size_t dataDescId;
+    aocommon::BandData bandData;
     size_t startChannel, endChannel;
     size_t matchingRows, totalRowsProcessed;
     double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM;
@@ -250,14 +250,14 @@ class MSGridderBase {
     double integrationTime;
     std::vector<std::string> antennaNames;
 
-    MultiBandData SelectedBand() const {
-      return MultiBandData(bandData, startChannel, endChannel);
+    aocommon::BandData SelectedBand() const {
+      return aocommon::BandData(bandData, startChannel, endChannel);
     }
   };
 
   struct InversionRow {
     double uvw[3];
-    size_t dataDescId, rowId;
+    size_t rowId;
     std::complex<float>* data;
   };
 
@@ -305,7 +305,8 @@ class MSGridderBase {
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void readAndWeightVisibilities(MSReader& msReader,
                                  const std::vector<std::string>& antennaNames,
-                                 InversionRow& rowData, const BandData& curBand,
+                                 InversionRow& rowData,
+                                 const aocommon::BandData& curBand,
                                  float* weightBuffer,
                                  std::complex<float>* modelBuffer,
                                  const bool* isSelected);
@@ -320,7 +321,8 @@ class MSGridderBase {
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void writeVisibilities(MSProvider& msProvider,
                          const std::vector<std::string>& antennaNames,
-                         const BandData& curBand, std::complex<float>* buffer);
+                         const aocommon::BandData& curBand,
+                         std::complex<float>* buffer);
 
   double _maxW, _minW;
   size_t _actualInversionWidth, _actualInversionHeight;
@@ -342,7 +344,8 @@ class MSGridderBase {
   std::unique_ptr<struct MetaDataCache> _metaDataCache;
 
   template <size_t PolarizationCount>
-  static void rotateVisibilities(const BandData& bandData, double shiftFactor,
+  static void rotateVisibilities(const aocommon::BandData& bandData,
+                                 double shiftFactor,
                                  std::complex<float>* dataIter);
 
   const Settings& _settings;
@@ -353,7 +356,8 @@ class MSGridderBase {
 
   void resetMetaData() { _hasFrequencies = false; }
 
-  void calculateMSLimits(const MultiBandData& selectedBand, double startTime) {
+  void calculateMSLimits(const aocommon::BandData& selectedBand,
+                         double startTime) {
     if (_hasFrequencies) {
       _freqLow = std::min(_freqLow, selectedBand.LowestFrequency());
       _freqHigh = std::max(_freqHigh, selectedBand.HighestFrequency());
@@ -386,12 +390,14 @@ class MSGridderBase {
 
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
-                                const BandData& curBand, float* weightBuffer);
+                                const aocommon::BandData& curBand,
+                                float* weightBuffer);
 
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedH5Parm(MSReader& msReader,
                              const std::vector<std::string>& antennaNames,
-                             InversionRow& rowData, const BandData& curBand,
+                             InversionRow& rowData,
+                             const aocommon::BandData& curBand,
                              float* weightBuffer);
 
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;

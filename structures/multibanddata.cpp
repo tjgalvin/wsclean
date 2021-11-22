@@ -23,7 +23,13 @@ MultiBandData::MultiBandData(const MultiBandData& source, size_t startChannel,
     const size_t bandEndChannel =
         std::min(source._bandData[spw].ChannelCount(), endChannel);
     if (startChannel > bandEndChannel)
-      throw std::runtime_error("Invalid band selection");
+      throw std::runtime_error(
+          "Invalid band selection: MultiBandData constructed with "
+          "startChannel=" +
+          std::to_string(startChannel) + ", nr of channels is " +
+          std::to_string(bandEndChannel) + ", source bandwidth = " +
+          std::to_string(source.LowestFrequency() / 1e6) + " - " +
+          std::to_string(source.HighestFrequency() / 1e6) + " MHz.");
     _bandData[spw] =
         BandData(source._bandData[spw], startChannel, bandEndChannel);
   }

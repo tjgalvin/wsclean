@@ -46,11 +46,10 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
   size_t total = 0;
   msData.matchingRows = 0;
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
+  const BandData& bandData = msData.bandData;
   while (msReader->CurrentRowAvailable()) {
     double uInM, vInM, wInM;
-    size_t dataDescId;
-    msReader->ReadMeta(uInM, vInM, wInM, dataDescId);
-    const BandData& bandData(msData.bandData[dataDescId]);
+    msReader->ReadMeta(uInM, vInM, wInM);
     for (size_t ch = msData.startChannel; ch != msData.endChannel; ++ch) {
       double w = wInM / bandData.ChannelWavelength(ch);
       size_t wLayerIndex = _gridder->WToLayer(w);
@@ -125,13 +124,13 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
 
 template <DDGainMatrix GainEntry>
 void WSMSGridder::gridMeasurementSet(MSData& msData) {
-  const MultiBandData selectedBand(msData.SelectedBand());
+  const BandData selectedBand = msData.SelectedBand();
   StartMeasurementSet(msData, false);
   _gridder->PrepareBand(selectedBand);
   aocommon::UVector<std::complex<float>> modelBuffer(
-      selectedBand.MaxChannels());
-  aocommon::UVector<float> weightBuffer(selectedBand.MaxChannels());
-  aocommon::UVector<bool> isSelected(selectedBand.MaxChannels());
+      selectedBand.ChannelCount());
+  aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount());
+  aocommon::UVector<bool> isSelected(selectedBand.ChannelCount());
 
   // Samples of the same w-layer are collected in a buffer
   // before they are written into the lane. This is done because writing
@@ -149,24 +148,22 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
 
   InversionRow newItem;
   aocommon::UVector<std::complex<float>> newItemData(
-      selectedBand.MaxChannels());
+      selectedBand.ChannelCount());
   newItem.data = newItemData.data();
 
   try {
     size_t rowsRead = 0;
     std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
     while (msReader->CurrentRowAvailable()) {
-      size_t dataDescId;
       double uInMeters, vInMeters, wInMeters;
-      msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
-      const BandData& curBand(selectedBand[dataDescId]);
+      msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
+      const BandData& curBand(selectedBand);
       const double w1 = wInMeters / curBand.LongestWavelength(),
                    w2 = wInMeters / curBand.SmallestWavelength();
       if (_gridder->IsInLayerRange(w1, w2)) {
         newItem.uvw[0] = uInMeters;
         newItem.uvw[1] = vInMeters;
         newItem.uvw[2] = wInMeters;
-        newItem.dataDescId = dataDescId;
 
         // Any visibilities that are not gridded in this pass
         // should not contribute to the weight sum
@@ -260,7 +257,7 @@ template <DDGainMatrix GainEntry>
 void WSMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   msData.msProvider->ResetWritePosition();
-  const MultiBandData selectedBandData(msData.SelectedBand());
+  const BandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 
   StartMeasurementSet(msData, true);
@@ -286,14 +283,12 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   /* Start by reading the u,v,ws in, so we don't need IO access
    * from this thread during further processing */
   std::vector<std::array<double, 3>> uvws;
-  std::vector<size_t> rowIds, dataIds;
+  std::vector<size_t> rowIds;
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
   while (msReader->CurrentRowAvailable()) {
-    size_t dataDescId;
     double uInMeters, vInMeters, wInMeters;
-    msReader->ReadMeta(uInMeters, vInMeters, wInMeters, dataDescId);
+    msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
     uvws.push_back({uInMeters, vInMeters, wInMeters});
-    dataIds.push_back(dataDescId);
     rowIds.push_back(msReader->RowId());
     ++rowsProcessed;
 
@@ -303,9 +298,8 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   for (size_t i = 0; i != uvws.size(); ++i) {
     PredictionWorkItem newItem;
     newItem.uvw = uvws[i];
-    newItem.dataDescId = dataIds[i];
     newItem.data.reset(
-        new std::complex<float>[selectedBandData[dataIds[i]].ChannelCount()]);
+        new std::complex<float>[selectedBandData.ChannelCount()]);
     newItem.rowId = rowIds[i];
 
     bufferedCalcLane.write(std::move(newItem));
@@ -330,21 +324,19 @@ template void WSMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
 
 void WSMSGridder::predictCalcThread(
     aocommon::Lane<PredictionWorkItem>* inputLane,
-    aocommon::Lane<PredictionWorkItem>* outputLane,
-    const MultiBandData* bandData) {
+    aocommon::Lane<PredictionWorkItem>* outputLane, const BandData* bandData) {
   lane_write_buffer<PredictionWorkItem> writeBuffer(outputLane,
                                                     _laneBufferSize);
 
   PredictionWorkItem item;
   while (inputLane->read(item)) {
-    _gridder->SampleData(item.data.get(), item.dataDescId, item.uvw[0],
-                         item.uvw[1], item.uvw[2]);
+    _gridder->SampleData(item.data.get(), item.uvw[0], item.uvw[1],
+                         item.uvw[2]);
     if (HasDenormalPhaseCentre()) {
       const double shiftFactor =
           2.0 * M_PI *
           (item.uvw[0] * PhaseCentreDL() + item.uvw[1] * PhaseCentreDM());
-      rotateVisibilities<1>((*bandData)[item.dataDescId], shiftFactor,
-                            item.data.get());
+      rotateVisibilities<1>(*bandData, shiftFactor, item.data.get());
     }
 
     writeBuffer.write(std::move(item));
@@ -354,7 +346,7 @@ void WSMSGridder::predictCalcThread(
 template <DDGainMatrix GainEntry>
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const MultiBandData* bandData) {
+    const MSData* msData, const BandData* bandData) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -371,8 +363,7 @@ void WSMSGridder::predictWriteThread(
     queue.emplace(std::move(workItem));
     while (queue.top().rowId == nextRowId) {
       writeVisibilities<1, GainEntry>(*msData->msProvider, msData->antennaNames,
-                                      (*bandData)[queue.top().dataDescId],
-                                      queue.top().data.get());
+                                      *bandData, queue.top().data.get());
 
       queue.pop();
       ++nextRowId;
@@ -383,15 +374,15 @@ void WSMSGridder::predictWriteThread(
 
 template void WSMSGridder::predictWriteThread<DDGainMatrix::kXX>(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const MultiBandData* bandData);
+    const MSData* msData, const BandData* bandData);
 
 template void WSMSGridder::predictWriteThread<DDGainMatrix::kYY>(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const MultiBandData* bandData);
+    const MSData* msData, const BandData* bandData);
 
 template void WSMSGridder::predictWriteThread<DDGainMatrix::kTrace>(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const MultiBandData* bandData);
+    const MSData* msData, const BandData* bandData);
 
 void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
@@ -433,9 +424,9 @@ void WSMSGridder::Invert() {
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
       MSData& msData = msDataVector[i];
 
-      const MultiBandData selectedBand(msData.SelectedBand());
+      const BandData selectedBand(msData.SelectedBand());
 
-      startInversionWorkThreads(selectedBand.MaxChannels());
+      startInversionWorkThreads(selectedBand.ChannelCount());
 
       if (Polarization() == aocommon::Polarization::XX) {
         gridMeasurementSet<DDGainMatrix::kXX>(msData);

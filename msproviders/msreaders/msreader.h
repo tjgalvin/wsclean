@@ -42,8 +42,7 @@ class MSReader {
    * @{
    * Read meta data from the current reading position.
    */
-  virtual void ReadMeta(double& u, double& v, double& w,
-                        size_t& dataDescId) = 0;
+  virtual void ReadMeta(double& u, double& v, double& w) = 0;
 
   virtual void ReadMeta(MSProvider::MetaData& metaData) = 0;
   /** @} */

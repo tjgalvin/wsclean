@@ -11,26 +11,25 @@ class ContiguousMSReader final : public MSReader {
 
   virtual ~ContiguousMSReader(){};
 
-  size_t RowId() const final override { return _currentRowId; }
+  size_t RowId() const override { return _currentRowId; }
 
-  bool CurrentRowAvailable() final override;
+  bool CurrentRowAvailable() override;
 
-  void NextInputRow() final override;
+  void NextInputRow() override;
 
-  void ReadMeta(double& u, double& v, double& w,
-                size_t& dataDescId) final override;
+  void ReadMeta(double& u, double& v, double& w) override;
 
-  void ReadMeta(MSProvider::MetaData& metaData) final override;
+  void ReadMeta(MSProvider::MetaData& metaData) override;
 
-  void ReadData(std::complex<float>* buffer) final override;
+  void ReadData(std::complex<float>* buffer) override;
 
-  void ReadModel(std::complex<float>* buffer) final override;
+  void ReadModel(std::complex<float>* buffer) override;
 
-  void ReadWeights(std::complex<float>* buffer) final override;
+  void ReadWeights(std::complex<float>* buffer) override;
 
-  void ReadWeights(float* buffer) final override;
+  void ReadWeights(float* buffer) override;
 
-  void WriteImagingWeights(const float* buffer) final override;
+  void WriteImagingWeights(const float* buffer) override;
 
  private:
   size_t _currentInputRow;

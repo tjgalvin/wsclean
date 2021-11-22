@@ -36,6 +36,10 @@ using everybeam::aterms::ATermConfig;
 using everybeam::coords::CoordinateSystem;
 #endif  // HAVE_EVERYBEAM
 
+namespace {
+constexpr const size_t kGridderIndex = 0;
+}
+
 IdgMsGridder::IdgMsGridder(const Settings& settings)
     : MSGridderBase(settings),
       _averageBeam(nullptr),
@@ -163,12 +167,12 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
 
   StartMeasurementSet(msData, false);
 
-  aocommon::UVector<float> weightBuffer(_selectedBands.MaxChannels() * 4);
+  aocommon::UVector<float> weightBuffer(_selectedBand.ChannelCount() * 4);
   aocommon::UVector<std::complex<float>> modelBuffer(
-      _selectedBands.MaxChannels() * 4);
-  aocommon::UVector<bool> isSelected(_selectedBands.MaxChannels() * 4, true);
+      _selectedBand.ChannelCount() * 4);
+  aocommon::UVector<bool> isSelected(_selectedBand.ChannelCount() * 4, true);
   aocommon::UVector<std::complex<float>> dataBuffer(
-      _selectedBands.MaxChannels() * 4);
+      _selectedBand.ChannelCount() * 4);
 
   _griddingWatch.Start();
 
@@ -193,11 +197,10 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
 #ifdef HAVE_EVERYBEAM
       if (aTermMaker) {
         timestepReader.GetUVWsForTimestep(uvws);
-        if (aTermMaker->Calculate(
-                aTermBuffer.data(), currentTime,
-                _selectedBands[metaData.dataDescId].CentreFrequency(),
-                metaData.fieldId, uvws.data())) {
-          _bufferset->get_gridder(metaData.dataDescId)
+        if (aTermMaker->Calculate(aTermBuffer.data(), currentTime,
+                                  _selectedBand.CentreFrequency(),
+                                  metaData.fieldId, uvws.data())) {
+          _bufferset->get_gridder(kGridderIndex)
               ->set_aterm(timeIndex, aTermBuffer.data());
           Logger::Debug << "Calculated a-terms for timestep " << timeIndex
                         << "\n";
@@ -205,7 +208,6 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
       }
 #endif
     }
-    const BandData& curBand(_selectedBands[metaData.dataDescId]);
     IDGInversionRow rowData;
 
     rowData.data = dataBuffer.data();
@@ -216,15 +218,14 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     rowData.antenna1 = metaData.antenna1;
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
-    rowData.dataDescId = metaData.dataDescId;
     readAndWeightVisibilities<4, DDGainMatrix::kFull>(
-        *msReader, msData.antennaNames, rowData, curBand, weightBuffer.data(),
-        modelBuffer.data(), isSelected.data());
+        *msReader, msData.antennaNames, rowData, _selectedBand,
+        weightBuffer.data(), modelBuffer.data(), isSelected.data());
 
     rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
     rowData.uvw[2] = -metaData.wInM;  //
 
-    _bufferset->get_gridder(rowData.dataDescId)
+    _bufferset->get_gridder(kGridderIndex)
         ->grid_visibilities(timeIndex, metaData.antenna1, metaData.antenna2,
                             rowData.uvw, rowData.data, weightBuffer.data());
   }
@@ -326,7 +327,7 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
   _outputProvider = msData.msProvider;
   StartMeasurementSet(msData, true);
 
-  aocommon::UVector<std::complex<float>> buffer(_selectedBands.MaxChannels() *
+  aocommon::UVector<std::complex<float>> buffer(_selectedBand.ChannelCount() *
                                                 4);
   _degriddingWatch.Start();
 
@@ -352,11 +353,10 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
 #ifdef HAVE_EVERYBEAM
       if (aTermMaker) {
         timestepReader.GetUVWsForTimestep(uvws);
-        if (aTermMaker->Calculate(
-                aTermBuffer.data(), currentTime,
-                _selectedBands[metaData.dataDescId].CentreFrequency(),
-                metaData.fieldId, uvws.data())) {
-          _bufferset->get_degridder(metaData.dataDescId)
+        if (aTermMaker->Calculate(aTermBuffer.data(), currentTime,
+                                  _selectedBand.CentreFrequency(),
+                                  metaData.fieldId, uvws.data())) {
+          _bufferset->get_degridder(kGridderIndex)
               ->set_aterm(timeIndex, aTermBuffer.data());
           Logger::Debug << "Calculated new a-terms for timestep " << timeIndex
                         << "\n";
@@ -372,34 +372,31 @@ void IdgMsGridder::predictMeasurementSet(const MSGridderBase::MSData& msData) {
     row.antenna1 = metaData.antenna1;
     row.antenna2 = metaData.antenna2;
     row.timeIndex = timeIndex;
-    row.dataDescId = metaData.dataDescId;
     row.rowId = provRowId;
     predictRow(row, msData.antennaNames);
   }
 
-  for (size_t d = 0; d != _selectedBands.DataDescCount(); ++d)
-    computePredictionBuffer(d, msData.antennaNames);
+  computePredictionBuffer(msData.antennaNames);
 }
 
 void IdgMsGridder::predictRow(IDGPredictionRow& row,
                               const std::vector<std::string>& antennaNames) {
-  while (_bufferset->get_degridder(row.dataDescId)
+  while (_bufferset->get_degridder(kGridderIndex)
              ->request_visibilities(row.rowId, row.timeIndex, row.antenna1,
                                     row.antenna2, row.uvw)) {
-    computePredictionBuffer(row.dataDescId, antennaNames);
+    computePredictionBuffer(antennaNames);
   }
 }
 
 void IdgMsGridder::computePredictionBuffer(
-    size_t dataDescId, const std::vector<std::string>& antennaNames) {
-  auto available_row_ids = _bufferset->get_degridder(dataDescId)->compute();
+    const std::vector<std::string>& antennaNames) {
+  auto available_row_ids = _bufferset->get_degridder(kGridderIndex)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
-  const BandData& curBand(_selectedBands[dataDescId]);
   for (auto i : available_row_ids) {
     writeVisibilities<4, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
-                                              curBand, i.second);
+                                              _selectedBand, i.second);
   }
-  _bufferset->get_degridder(dataDescId)->finished_reading();
+  _bufferset->get_degridder(kGridderIndex)->finished_reading();
   _degriddingWatch.Pause();
 }
 
@@ -497,18 +494,15 @@ bool IdgMsGridder::prepareForMeasurementSet(
   // Skip this ms if there is no data in it
   if (!max_baseline) return false;
 
-  _selectedBands = msData.SelectedBand();
+  _selectedBand = msData.SelectedBand();
 
   // TODO for now we map the ms antennas directly to the gridder's antenna,
   // including non-selected antennas. Later this can be made more efficient.
-  size_t nStations = msData.msProvider->MS()->antenna().nrow();
+  const size_t nStations = msData.msProvider->MS()->antenna().nrow();
 
   std::vector<std::vector<double>> bands;
-  for (size_t i = 0; i != _selectedBands.BandCount(); ++i) {
-    bands.push_back(std::vector<double>(_selectedBands[i].begin(),
-                                        _selectedBands[i].end()));
-  }
-  size_t nChannels = _selectedBands.MaxChannels();
+  bands.emplace_back(_selectedBand.begin(), _selectedBand.end());
+  const size_t nChannels = _selectedBand.ChannelCount();
 
   uint64_t memSize =
       getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
@@ -522,7 +516,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 #ifdef HAVE_EVERYBEAM
   aTermMaker = getATermMaker(msData);
   if (aTermMaker) {
-    size_t subgridsize = _bufferset->get_subgridsize();
+    const size_t subgridsize = _bufferset->get_subgridsize();
     aTermBuffer.resize(subgridsize * subgridsize * 4 * nStations);
     // When a-terms are used, they will also take memory. Here we calculate
     // their approx contribution.
@@ -530,7 +524,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
     Logger::Debug << "A-terms change on average every " << avgUpdate
                   << " s, once every " << (avgUpdate / msData.integrationTime)
                   << " timesteps.\n";
-    uint64_t atermMemPerTimestep =
+    const uint64_t atermMemPerTimestep =
         subgridsize * subgridsize * nStations *  // size of grid x nr of grids
         (4 * 8) *  // 4 pol, 8 bytes per complex value
         (msData.integrationTime /

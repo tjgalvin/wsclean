@@ -67,8 +67,7 @@ void PartitionedMSReader::NextInputRow() {
   }
 }
 
-void PartitionedMSReader::ReadMeta(double& u, double& v, double& w,
-                                   size_t& dataDescId) {
+void PartitionedMSReader::ReadMeta(double& u, double& v, double& w) {
   if (!_metaPtrIsOk)
     _metaFile.seekg(-PartitionedMS::MetaRecord::BINARY_SIZE, std::ios::cur);
   _metaPtrIsOk = false;
@@ -78,7 +77,6 @@ void PartitionedMSReader::ReadMeta(double& u, double& v, double& w,
   u = record.u;
   v = record.v;
   w = record.w;
-  dataDescId = record.dataDescId;
 }
 
 void PartitionedMSReader::ReadMeta(MSProvider::MetaData& metaData) {
@@ -91,7 +89,6 @@ void PartitionedMSReader::ReadMeta(MSProvider::MetaData& metaData) {
   metaData.uInM = record.u;
   metaData.vInM = record.v;
   metaData.wInM = record.w;
-  metaData.dataDescId = record.dataDescId;
   metaData.fieldId = record.fieldId;
   metaData.antenna1 = record.antenna1;
   metaData.antenna2 = record.antenna2;
