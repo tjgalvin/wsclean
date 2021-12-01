@@ -314,8 +314,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
                                                        _phaseCentreDL,
                                                        _phaseCentreDM};
 
-  aocommon::UVector<double> buffer_total(width * height * beamImages.NImages(),
-                                         0);
+  aocommon::UVector<float> buffer_total(width * height * beamImages.NImages(),
+                                        0);
   double ms_weight_sum = 0;
   for (const MSProviderInfo& msProviderInfo : _msProviders) {
     // TODO: channelFrequency calculation might be telescope specific?
@@ -335,7 +335,7 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
     }
     centralFrequency /= msInfo.bands.size();
 
-    aocommon::UVector<double> buffer(width * height * beamImages.NImages(), 0);
+    aocommon::UVector<float> buffer(width * height * beamImages.NImages(), 0);
     const double ms_weight =
         MakeBeamForMS(buffer, *msProviderInfo.provider, selection,
                       *imageWeights, coordinateSystem, centralFrequency);
@@ -359,7 +359,7 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
 }
 
 double PrimaryBeam::MakeBeamForMS(
-    aocommon::UVector<double>& buffer, MSProvider& msProvider,
+    aocommon::UVector<float>& buffer, MSProvider& msProvider,
     const MSSelection& selection, const ImageWeights& imageWeights,
     const everybeam::coords::CoordinateSystem& coordinateSystem,
     double centralFrequency) {

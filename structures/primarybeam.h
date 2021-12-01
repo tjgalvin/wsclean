@@ -167,7 +167,7 @@ class PrimaryBeam {
                                 std::shared_ptr<ImageWeights> imageWeights);
 
   double MakeBeamForMS(
-      aocommon::UVector<double>& buffer, MSProvider& msProvider,
+      aocommon::UVector<float>& buffer, MSProvider& msProvider,
       const MSSelection& selection, const ImageWeights& imageWeights,
       const everybeam::coords::CoordinateSystem& coordinateSystem,
       double centralFrequency);
