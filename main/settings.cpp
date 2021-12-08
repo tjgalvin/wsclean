@@ -4,6 +4,9 @@
 
 #include <schaapcommon/h5parm/h5parm.h>
 
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/Tables/TableRecord.h>
+
 #include <sstream>
 
 void Settings::Validate() const {
@@ -79,7 +82,7 @@ void Settings::Validate() const {
       throw std::runtime_error(
           "Incorrect number of facet solution files provided. The number of "
           "facet solution files should be either 1 or match the number of "
-          "input Measurement Sets.");
+          "input measurement sets.");
     }
   }
 
@@ -121,6 +124,26 @@ void Settings::Validate() const {
       throw std::runtime_error(
           "IDG cannot apply facet based direction dependent corrections. "
           "Remove -apply-facet-solution from the command line instruction.");
+
+    if (baselineDependentAveragingInWavelengths != 0.0) {
+      throw std::runtime_error(
+          "IDG cannot be combined with (internally computed) "
+          "baseline-dependent averaging. Please remove baseline-averaging "
+          "option from your command.");
+    }
+
+    for (const auto& filename : filenames) {
+      casacore::MeasurementSet ms(filename);
+      const std::string& bda_factors = "BDA_FACTORS";
+      const bool has_bda = ms.keywordSet().isDefined(bda_factors) &&
+                           (ms.keywordSet().asTable(bda_factors).nrow() > 0);
+      if (has_bda) {
+        throw std::runtime_error(
+            "IDG cannot be combined with the baseline-dependently averaged "
+            "measurement set " +
+            filename);
+      }
+    }
   }
 
   if (gridWithBeam && !useIDG)
