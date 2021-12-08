@@ -137,8 +137,8 @@ class WSClean {
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
 
   void imagePSF(ImagingTableEntry& entry);
-  void imagePSFCallback(ImagingTableEntry& entry,
-                        struct GriddingResult& result);
+  void imagePSFCallback(ImagingTableEntry& entry, struct GriddingResult& result,
+                        bool writeBeamImage);
 
   void imageMain(ImagingTableEntry& entry, bool isFirstInversion,
                  bool updateBeamInfo);

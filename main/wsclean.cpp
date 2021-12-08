@@ -110,7 +110,23 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
 void WSClean::loadExistingPSF(ImagingTableEntry& entry) {
   Logger::Info << "Loading existing PSF from disk...\n";
   GriddingResult result = loadExistingImage(entry, true);
-  imagePSFCallback(entry, result);
+
+  if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+    ImageFilename imageName(entry.outputChannelIndex,
+                            entry.outputIntervalIndex);
+
+    const std::string beamImageName =
+        imageName.GetBeamPrefix(_settings) + ".fits";
+    if (!boost::filesystem::exists(beamImageName)) {
+      throw std::runtime_error(
+          "When reuse-psf is used in combination with the IDG gridder, please "
+          "make sure that a corresponding beam image can be found. Expected "
+          "file name: " +
+          beamImageName);
+    }
+  }
+  const bool writeBeamImage = false;
+  imagePSFCallback(entry, result, writeBeamImage);
 }
 
 void WSClean::loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo) {
@@ -139,14 +155,15 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
 
+  const bool writeBeamImage = true;
   _griddingTaskManager->Run(std::move(task),
                             [this, &entry](GriddingResult& result) {
-                              imagePSFCallback(entry, result);
+                              imagePSFCallback(entry, result, writeBeamImage);
                             });
 }
 
-void WSClean::imagePSFCallback(ImagingTableEntry& entry,
-                               GriddingResult& result) {
+void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
+                               bool writeBeamImage) {
   const size_t channelIndex = entry.outputChannelIndex;
   entry.imageWeight = result.imageWeight;
   entry.normalizationFactor = result.normalizationFactor;
@@ -171,7 +188,8 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry,
                         *_settings.polarizations.begin(), channelIndex,
                         entry.facetIndex, entry.facet, false);
 
-  if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+  if (writeBeamImage &&
+      (_settings.gridWithBeam || !_settings.atermConfigFilename.empty())) {
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
