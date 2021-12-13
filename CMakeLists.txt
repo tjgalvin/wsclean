@@ -170,7 +170,7 @@ endif(MPI_FOUND)
 find_package(EveryBeam NO_MODULE QUIET)
 if(${EVERYBEAM_FOUND})
   if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.3" OR ${EVERYBEAM_VERSION}
-                                                  VERSION_GREATER_EQUAL "0.3.0")
+                                                  VERSION_GREATER "0.3.0")
     message(STATUS "EveryBeam version is incompatible")
     message(
       FATAL_ERROR
