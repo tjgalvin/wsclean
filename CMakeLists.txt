@@ -169,12 +169,12 @@ endif(MPI_FOUND)
 
 find_package(EveryBeam NO_MODULE QUIET)
 if(${EVERYBEAM_FOUND})
-  if(${EVERYBEAM_VERSION} VERSION_LESS "0.2.3" OR ${EVERYBEAM_VERSION}
-                                                  VERSION_GREATER "0.3.0")
+  if(${EVERYBEAM_VERSION} VERSION_LESS "0.3.0" OR ${EVERYBEAM_VERSION}
+                                                  VERSION_GREATER_EQUAL "0.4.0")
     message(STATUS "EveryBeam version is incompatible")
     message(
       FATAL_ERROR
-        "WSClean needs EveryBeam version 0.2.x - with x >= 3 - but found version ${EVERYBEAM_VERSION}"
+        "WSClean needs EveryBeam version 0.3.x - with x >= 0 - but found version ${EVERYBEAM_VERSION}"
     )
   else()
     include_directories(${EVERYBEAM_INCLUDE_DIRS})
