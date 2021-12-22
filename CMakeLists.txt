@@ -191,18 +191,27 @@ endif(${EVERYBEAM_FOUND})
 
 find_package(IDGAPI NO_MODULE QUIET)
 
-if(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
-  set(IDG_FILES idg/idgmsgridder.cpp)
-  include_directories(${IDGAPI_INCLUDE_DIRS})
-  add_definitions(-DHAVE_IDG)
-  message("Image domain gridder libraries found.")
-else(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+if(IDGAPI_FOUND)
+  if(${IDGAPI_VERSION} VERSION_LESS "0.8.1" OR ${EVERYBEAM_VERSION}
+                                               VERSION_GREATER_EQUAL "0.9")
+    message(STATUS "IDG version is incompatible")
+    message(
+      FATAL_ERROR
+        "WSClean needs IDG version 0.8.x - with x >= 1 - but found version ${IDGAPI_VERSION}"
+    )
+  else()
+    set(IDG_FILES idg/idgmsgridder.cpp)
+    include_directories(${IDGAPI_INCLUDE_DIRS})
+    add_definitions(-DHAVE_IDG)
+    message("Image domain gridder libraries found.")
+  endif()
+else()
   set(IDGAPI_LIBRARIES)
   set(IDG_FILES)
   message(
     "Image domain gridder libraries NOT found. This gridder will not be available."
   )
-endif(IDGAPI_LIBRARIES AND IDGAPI_INCLUDE_DIRS)
+endif()
 
 include_directories(SYSTEM ${CASACORE_INCLUDE_DIRS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})

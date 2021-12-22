@@ -71,6 +71,10 @@ void IdgMsGridder::Invert() {
 
   _options["padded_size"] = untrimmedWidth;
 
+  bool stokes_I_only = (Polarization() == aocommon::Polarization::StokesI);
+  _options["stokes_I_only"] = stokes_I_only;
+  const size_t nr_polarizations = stokes_I_only ? 1 : 4;
+
   if (!_metaDataCache->averageBeam)
     _metaDataCache->averageBeam.reset(new AverageBeam());
   _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
@@ -108,7 +112,7 @@ void IdgMsGridder::Invert() {
     _bufferset->finalize_compute_avg_beam();
     _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
     _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam());
-    _image.assign(4 * width * height, 0.0);
+    _image.assign(nr_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
 
     Logger::Debug << "Total weight: " << totalWeight() << '\n';
@@ -143,7 +147,7 @@ void IdgMsGridder::Invert() {
       // Adds the gridding result to _image member
       gridMeasurementSet(msData);
     }
-    _image.assign(4 * width * height, 0.0);
+    _image.assign(nr_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
   }
 
@@ -245,7 +249,11 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
 
   _options["padded_size"] = untrimmedWidth;
 
-  _image.assign(4 * width * height, 0.0);
+  bool stokes_I_only = (Polarization() == aocommon::Polarization::StokesI);
+  _options["stokes_I_only"] = stokes_I_only;
+  const size_t nr_polarizations = stokes_I_only ? 1 : 4;
+
+  _image.assign(nr_polarizations * width * height, 0.0);
   if (!_metaDataCache->averageBeam) {
     Logger::Info << "no average_beam in cache, creating an empty one.\n";
     _metaDataCache->averageBeam.reset(new AverageBeam());
