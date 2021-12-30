@@ -24,7 +24,6 @@ add_executable(
   structures/testimage.cpp
   structures/testimagingtable.cpp
   structures/testmultibanddata.cpp
-  system/tthrowruntimeerror.cpp
   ${WSCLEANFILES})
 
 add_custom_target(

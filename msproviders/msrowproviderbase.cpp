@@ -3,7 +3,8 @@
 #include "bdamsrowprovider.h"
 #include "directmsrowprovider.h"
 #include "msprovider.h"
-#include "../system/throwruntimeerror.h"
+
+#include <aocommon/throwruntimeerror.h>
 
 #include <casacore/tables/Tables/TableRecord.h>
 
@@ -21,8 +22,8 @@ std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
     const std::map<size_t, size_t>& selected_data_description_ids,
     const std::string& data_column_name, bool require_model) {
   if (!casacore::Table::isReadable(ms_name)) {
-    ThrowRuntimeError("The measurement set ", ms_name,
-                      " can't be opened for reading.");
+    aocommon::ThrowRuntimeError("The measurement set ", ms_name,
+                                " can't be opened for reading.");
   }
 
   casacore::MeasurementSet ms(ms_name);

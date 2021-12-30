@@ -1,7 +1,8 @@
 #include "bdamsrowprovider.h"
 
-#include "../system/throwruntimeerror.h"
 #include "msprovider.h"
+
+#include <aocommon/throwruntimeerror.h>
 
 #include <casacore/tables/Tables/TableRecord.h>
 
@@ -29,12 +30,12 @@ BdaMsRowProvider::BdaMsRowProvider(
       current_row_(BeginRow()),
       data_(Columns().time(BeginRow())) {
   if (!MsHasBdaData(Ms()))
-    ThrowRuntimeError("A BDA measurement set requires a ", kBDAFactorsTable,
-                      " table.");
+    aocommon::ThrowRuntimeError("A BDA measurement set requires a ",
+                                kBDAFactorsTable, " table.");
 
   if (Selection().HasInterval() ||
       Selection().EvenOrOddTimesteps() != MSSelection::AllTimesteps)
-    ThrowRuntimeError(
+    aocommon::ThrowRuntimeError(
         "An interval selection isn't supported for a BDA measurement set.");
 
   // Initializes the uninitalized field of data_.
@@ -43,7 +44,7 @@ BdaMsRowProvider::BdaMsRowProvider(
   }
 
   if (current_row_ == EndRow())
-    ThrowRuntimeError(
+    aocommon::ThrowRuntimeError(
         "The measurement set contains no data for the current selection.");
 }
 

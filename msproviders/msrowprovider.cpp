@@ -2,7 +2,8 @@
 #include "msprovider.h"
 
 #include "../io/logger.h"
-#include "../system/throwruntimeerror.h"
+
+#include <aocommon/throwruntimeerror.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -29,7 +30,7 @@ MSRowProvider::MSRowProvider(
 
 void MSRowProvider::Initialize() {
   if (MsHasBdaData(Ms()))
-    ThrowRuntimeError(
+    aocommon::ThrowRuntimeError(
         "Measurement set contains BDA data, but isn't opened for BDA "
         "processing.");
 
