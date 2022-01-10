@@ -682,6 +682,12 @@ size_t CommandLine::parse_size_t(const char* param, const char* name) {
   return v;
 }
 
+std::vector<std::string> CommandLine::parseStringList(const char* param) {
+  std::vector<std::string> list;
+  boost::split(list, param, [](char c) { return c == ','; });
+  return list;
+}
+
 double CommandLine::parse_double(const char* param, const char* name) {
   char* endptr;
   double v = std::strtod(param, &endptr);
@@ -1350,11 +1356,14 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       atermKernelSize = parse_double(argv[argi], 0.0, "aterm-kernel-size");
     } else if (param == "apply-facet-solutions") {
       ++argi;
-      settings.facetSolutionFiles =
-          schaapcommon::h5parm::JonesParameters::ParseList(argv[argi]);
+      settings.facetSolutionFiles = parseStringList(argv[argi]);
       ++argi;
-      settings.facetSolutionTables =
-          schaapcommon::h5parm::JonesParameters::ParseList(argv[argi]);
+      settings.facetSolutionTables = parseStringList(argv[argi]);
+      if (settings.facetSolutionTables.size() > 2) {
+        throw std::runtime_error(
+            "List of solution tables (soltabs) should contain at most two "
+            "entries.");
+      }
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
     } else if (param == "facet-beam-update") {

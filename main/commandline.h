@@ -41,6 +41,7 @@ class CommandLine {
                          const std::string& replacement);
   static void printHeader();
   static void printHelp();
+  static std::vector<std::string> parseStringList(const char* param);
   static size_t parse_size_t(const char* param, const char* name);
   static double parse_double(const char* param, double lowerLimit,
                              const char* name, bool inclusive = true);
