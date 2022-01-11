@@ -61,7 +61,8 @@ void WGriddingGridder_Simple::FinalizeImage(double multiplicationFactor) {
 std::vector<float> WGriddingGridder_Simple::RealImage() {
   size_t dx = (width_ - width_t_) / 2;
   size_t dy = (height_ - height_t_) / 2;
-  std::vector<float> image(width_ * height_, 0);
+  std::vector<float> image(width_ * height_,
+                           std::numeric_limits<float>::quiet_NaN());
   for (size_t i = 0; i < width_t_; ++i)
     for (size_t j = 0; j < height_t_; ++j)
       image[(i + dx) + (j + dy) * width_] = img[i * height_t_ + j];
