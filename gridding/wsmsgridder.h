@@ -33,13 +33,6 @@ class WSMSGridder final : public MSGridderBase {
     else
       return {std::move(_realImage)};
   }
-  virtual size_t ActualInversionWidth() const override {
-    return _actualInversionWidth;
-  }
-  virtual size_t ActualInversionHeight() const override {
-    return _actualInversionHeight;
-  }
-
   virtual void FreeImagingData() override { _gridder.reset(); }
 
   size_t AntialiasingKernelSize() const { return _antialiasingKernelSize; }

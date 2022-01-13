@@ -12,8 +12,6 @@ void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
       .UInt64(griddedVisibilityCount)
       .Double(effectiveGriddedVisibilityCount)
       .Double(visibilityWeightSum)
-      .UInt64(actualInversionWidth)
-      .UInt64(actualInversionHeight)
       .Ptr(cache);
 }
 
@@ -26,7 +24,5 @@ void GriddingResult::Unserialize(aocommon::SerialIStream& stream) {
       .UInt64(griddedVisibilityCount)
       .Double(effectiveGriddedVisibilityCount)
       .Double(visibilityWeightSum)
-      .UInt64(actualInversionWidth)
-      .UInt64(actualInversionHeight)
       .Ptr(cache);
 }

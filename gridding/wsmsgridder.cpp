@@ -95,7 +95,7 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
     // slow down the process
     double memoryRequired =
         double(_cpuCount) * double(sizeof(GridderType::num_t)) *
-        double(_actualInversionWidth * _actualInversionHeight);
+        double(ActualInversionWidth() * ActualInversionHeight());
     if (4.0 * memoryRequired < double(_memSize)) {
       Logger::Info << "The theoretically suggested number of w-layers ("
                    << suggestedGridSize
@@ -388,10 +388,10 @@ void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
-  _gridder.reset(new GridderType(_actualInversionWidth, _actualInversionHeight,
-                                 _actualPixelSizeX, _actualPixelSizeY,
-                                 _cpuCount, AntialiasingKernelSize(),
-                                 OverSamplingFactor()));
+  _gridder.reset(
+      new GridderType(ActualInversionWidth(), ActualInversionHeight(),
+                      ActualPixelSizeX(), ActualPixelSizeY(), _cpuCount,
+                      AntialiasingKernelSize(), OverSamplingFactor()));
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
     _gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
@@ -475,11 +475,11 @@ void WSMSGridder::Invert() {
   else
     _imaginaryImage = Image();
 
-  if (ImageWidth() != _actualInversionWidth ||
-      ImageHeight() != _actualInversionHeight) {
+  if (ImageWidth() != ActualInversionWidth() ||
+      ImageHeight() != ActualInversionHeight()) {
     // Interpolate the image
-    // The input is of size _actualInversionWidth x _actualInversionHeight
-    FFTResampler resampler(_actualInversionWidth, _actualInversionHeight,
+    // The input is of size ActualInversionWidth() x ActualInversionHeight()
+    FFTResampler resampler(ActualInversionWidth(), ActualInversionHeight(),
                            ImageWidth(), ImageHeight(), _cpuCount);
 
     if (IsComplex()) {
@@ -528,8 +528,8 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
   initializeMSDataVector(msDataVector);
 
   _gridder = std::unique_ptr<GridderType>(
-      new GridderType(_actualInversionWidth, _actualInversionHeight,
-                      _actualPixelSizeX, _actualPixelSizeY, _cpuCount,
+      new GridderType(ActualInversionWidth(), ActualInversionHeight(),
+                      ActualPixelSizeX(), ActualPixelSizeY(), _cpuCount,
                       AntialiasingKernelSize(), OverSamplingFactor()));
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
@@ -556,12 +556,12 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
     }
   }
 
-  if (ImageWidth() != _actualInversionWidth ||
-      ImageHeight() != _actualInversionHeight) {
+  if (ImageWidth() != ActualInversionWidth() ||
+      ImageHeight() != ActualInversionHeight()) {
     // Decimate the image
     // Input is ImageWidth() x ImageHeight()
-    FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth,
-                           _actualInversionHeight, _cpuCount);
+    FFTResampler resampler(ImageWidth(), ImageHeight(), ActualInversionWidth(),
+                           ActualInversionHeight(), _cpuCount);
 
     if (images.size() == 1) {
       Image resampled(ImageWidth(), ImageHeight());

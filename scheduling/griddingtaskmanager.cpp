@@ -110,8 +110,6 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   result.effectiveGriddedVisibilityCount =
       gridder.EffectiveGriddedVisibilityCount();
   result.visibilityWeightSum = gridder.VisibilityWeightSum();
-  result.actualInversionWidth = gridder.ActualInversionWidth();
-  result.actualInversionHeight = gridder.ActualInversionHeight();
   result.cache = gridder.AcquireMetaDataCache();
   return result;
 }

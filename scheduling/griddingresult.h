@@ -18,8 +18,6 @@ struct GriddingResult {
         griddedVisibilityCount(0),
         effectiveGriddedVisibilityCount(0),
         visibilityWeightSum(0),
-        actualInversionWidth(0),
-        actualInversionHeight(0),
         cache() {}
 
   /**
@@ -38,7 +36,6 @@ struct GriddingResult {
   size_t griddedVisibilityCount;
   double effectiveGriddedVisibilityCount;
   double visibilityWeightSum;
-  size_t actualInversionWidth, actualInversionHeight;
   std::unique_ptr<MetaDataCache> cache;
 
   void Serialize(aocommon::SerialOStream& stream) const;

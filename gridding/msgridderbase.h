@@ -176,9 +176,6 @@ class MSGridderBase {
    */
   virtual void FreeImagingData() {}
 
-  virtual size_t ActualInversionWidth() const { return _imageWidth; }
-  virtual size_t ActualInversionHeight() const { return _imageHeight; }
-
   GridMode GetGridMode() const { return _gridMode; }
   void SetGridMode(GridMode gridMode) { _gridMode = gridMode; }
 
@@ -230,6 +227,11 @@ class MSGridderBase {
   }
 
  protected:
+  size_t ActualInversionWidth() const { return _actualInversionWidth; }
+  size_t ActualInversionHeight() const { return _actualInversionHeight; }
+  double ActualPixelSizeX() const { return _actualPixelSizeX; }
+  double ActualPixelSizeY() const { return _actualPixelSizeY; }
+
   int64_t getAvailableMemory(double memFraction, double absMemLimit);
 
   struct MSData {
@@ -325,8 +327,6 @@ class MSGridderBase {
                          std::complex<float>* buffer);
 
   double _maxW, _minW;
-  size_t _actualInversionWidth, _actualInversionHeight;
-  double _actualPixelSizeX, _actualPixelSizeY;
 
   virtual size_t getSuggestedWGridSize() const = 0;
 
@@ -351,6 +351,11 @@ class MSGridderBase {
   const Settings& _settings;
 
  private:
+  size_t _actualInversionWidth;
+  size_t _actualInversionHeight;
+  double _actualPixelSizeX;
+  double _actualPixelSizeY;
+
   static std::vector<std::string> getAntennaNames(
       const casacore::MSAntenna& msAntenna);
 

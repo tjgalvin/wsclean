@@ -17,13 +17,6 @@ class WGriddingMSGridder final : public MSGridderBase {
     return {std::move(_image)};
   }
 
-  virtual size_t ActualInversionWidth() const override {
-    return _actualInversionWidth;
-  }
-  virtual size_t ActualInversionHeight() const override {
-    return _actualInversionHeight;
-  }
-
   virtual void FreeImagingData() override {}
 
   virtual size_t getSuggestedWGridSize() const override { return 1; }

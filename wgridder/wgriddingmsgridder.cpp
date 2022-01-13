@@ -182,8 +182,8 @@ template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
 void WGriddingMSGridder::getTrimmedSize(size_t& trimmedWidth,
                                         size_t& trimmedHeight) const {
   double padding = double(ImageWidth()) / TrimWidth();
-  trimmedWidth = std::floor(_actualInversionWidth / padding);
-  trimmedHeight = std::floor(_actualInversionHeight / padding);
+  trimmedWidth = std::floor(ActualInversionWidth() / padding);
+  trimmedHeight = std::floor(ActualInversionHeight() / padding);
   if (trimmedWidth & 1) --trimmedWidth;
   if (trimmedHeight & 1) --trimmedHeight;
 }
@@ -196,8 +196,8 @@ void WGriddingMSGridder::Invert() {
   getTrimmedSize(trimmedWidth, trimmedHeight);
 
   _gridder.reset(new WGriddingGridder_Simple(
-      _actualInversionWidth, _actualInversionHeight, trimmedWidth,
-      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, PhaseCentreDL(),
+      ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
+      trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), PhaseCentreDL(),
       PhaseCentreDM(), _cpuCount, _accuracy));
   _gridder->InitializeInversion();
 
@@ -229,11 +229,11 @@ void WGriddingMSGridder::Invert() {
     for (size_t i = 0; i < imageFloat.size(); ++i) _image[i] = imageFloat[i];
   }
 
-  if (ImageWidth() != _actualInversionWidth ||
-      ImageHeight() != _actualInversionHeight) {
+  if (ImageWidth() != ActualInversionWidth() ||
+      ImageHeight() != ActualInversionHeight()) {
     // Interpolate the image
-    // The input is of size _actualInversionWidth x _actualInversionHeight
-    FFTResampler resampler(_actualInversionWidth, _actualInversionHeight,
+    // The input is of size ActualInversionWidth() x ActualInversionHeight()
+    FFTResampler resampler(ActualInversionWidth(), ActualInversionHeight(),
                            ImageWidth(), ImageHeight(), _cpuCount);
 
     Image resized(ImageWidth(), ImageHeight());
@@ -260,8 +260,8 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   getTrimmedSize(trimmedWidth, trimmedHeight);
 
   _gridder.reset(new WGriddingGridder_Simple(
-      _actualInversionWidth, _actualInversionHeight, trimmedWidth,
-      trimmedHeight, _actualPixelSizeX, _actualPixelSizeY, PhaseCentreDL(),
+      ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
+      trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), PhaseCentreDL(),
       PhaseCentreDM(), _cpuCount, _accuracy));
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
@@ -273,11 +273,11 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
     images[0] = std::move(untrimmedImage);
   }
 
-  if (ImageWidth() != _actualInversionWidth ||
-      ImageHeight() != _actualInversionHeight) {
+  if (ImageWidth() != ActualInversionWidth() ||
+      ImageHeight() != ActualInversionHeight()) {
     Image resampledImage(ImageWidth(), ImageHeight());
-    FFTResampler resampler(ImageWidth(), ImageHeight(), _actualInversionWidth,
-                           _actualInversionHeight, _cpuCount);
+    FFTResampler resampler(ImageWidth(), ImageHeight(), ActualInversionWidth(),
+                           ActualInversionHeight(), _cpuCount);
 
     resampler.Resample(images[0].data(), resampledImage.data());
     images[0] = std::move(resampledImage);
