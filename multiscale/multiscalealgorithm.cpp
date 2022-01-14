@@ -658,7 +658,7 @@ void MultiScaleAlgorithm::findPeakDirect(const float* image, float* scratch,
         actualImage, _width, _height, scaleInfo.maxImageValueX,
         scaleInfo.maxImageValueY, _allowNegativeComponents, 0, _height,
         _scaleMasks[scaleIndex].data(), horBorderSize, vertBorderSize);
-  else if (_cleanMask == 0)
+  else if (_cleanMask == nullptr)
     maxValue =
         PeakFinder::Find(actualImage, _width, _height, scaleInfo.maxImageValueX,
                          scaleInfo.maxImageValueY, _allowNegativeComponents, 0,

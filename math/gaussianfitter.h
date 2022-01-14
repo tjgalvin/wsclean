@@ -44,7 +44,7 @@ class GaussianFitter {
   void Fit2DGaussianFull(const float* image, size_t width, size_t height,
                          double& val, double& posX, double& posY,
                          double& beamMaj, double& beamMin, double& beamPA,
-                         double* floorLevel = 0);
+                         double* floorLevel = nullptr);
 
  private:
   const float* _image;

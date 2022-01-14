@@ -169,13 +169,13 @@ void AveragingMSRowProvider::NextRow() {
 
   if (MSRowProvider::AtEnd()) {
     // There might be residual data in the buffers which have to be read out
-    AveragingBuffer* buffer = 0;
+    AveragingBuffer* buffer = nullptr;
     do {
       buffer = &_buffers[_flushPosition];
       ++_flushPosition;
     } while (buffer->AveragedDataCount() == 0 && _flushPosition < _nElements);
 
-    if (buffer != 0 && buffer->AveragedDataCount() != 0) {
+    if (buffer != nullptr && buffer->AveragedDataCount() != 0) {
       size_t bufferSize = _currentData.shape()[0] * _currentData.shape()[1];
       if (requireModel())
         buffer->Get(bufferSize, _currentData.data(), _currentModel.data(),

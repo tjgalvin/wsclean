@@ -609,8 +609,8 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
 
     aocommon::UVector<bool> trimmedPriorMask;
     bool* trimmedPriorMaskPtr;
-    if (priorMask == 0)
-      trimmedPriorMaskPtr = 0;
+    if (priorMask == nullptr)
+      trimmedPriorMaskPtr = nullptr;
     else {
       trimmedPriorMask.resize(newWidth * newHeight);
       trimmedPriorMaskPtr = trimmedPriorMask.data();
@@ -696,7 +696,7 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitAll(
     aocommon::UVector<float> correctionFactors;
     scratchA = dirty;
     performSubImageFitSingle(iuwt, mask, structureModel, scratchB, maxComp, psf,
-                             scratchA, 0, correctionFactors);
+                             scratchA, nullptr, correctionFactors);
 
     fittedModel = 0.0;
 
@@ -774,7 +774,7 @@ void IUWTDeconvolutionAlgorithm::performSubImageFitSingle(
         // if no fittedSubModel was given, we just need to store the factors.
         // Otherwise, scale the deconvolved model and add it to the contaminated
         // model.
-        if (fittedSubModel != 0) {
+        if (fittedSubModel != nullptr) {
           const float integratedFactor = correctionFactors[componentIndex];
           if (std::isfinite(factor) && std::isfinite(integratedFactor) &&
               integratedFactor != 0.0) {

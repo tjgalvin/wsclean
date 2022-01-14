@@ -38,7 +38,7 @@ class System {
     // in either case of int or char*.
     char buffer[1024];
     char* ret = handle_strreturn(strerror_r(errnum, buffer, 1024));
-    if (ret == 0)
+    if (ret == nullptr)
       return std::string(buffer);
     else
       return std::string(ret);
@@ -49,7 +49,7 @@ class System {
  private:
   static char* handle_strreturn(int value) {
     if (value != 0) throw std::runtime_error("strerror_r() reported an error");
-    return 0;
+    return nullptr;
   }
   static char* handle_strreturn(char* value) { return value; }
 };

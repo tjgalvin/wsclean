@@ -504,7 +504,7 @@ void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
     dataArray.reset(new casacore::Array<casacore::Complex>(dataShape));
   }
 
-  ProgressBar* progressBar = 0;
+  std::unique_ptr<ProgressBar> progressBar;
 
   std::vector<Muvw> uvws(antennas.size());
   MEpoch time(MVEpoch(-1.0));
@@ -548,8 +548,8 @@ void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
         std::cout << "Old " << oldUVW << " (" << length(oldUVW) << ")\n";
         std::cout << "New " << newUVW << " (" << length(newUVW) << ")\n\n";
       } else {
-        if (progressBar == 0)
-          progressBar = new ProgressBar("Changing phase centre");
+        if (!progressBar)
+          progressBar.reset(new ProgressBar("Changing phase centre"));
         progressBar->SetProgress(row, set.nrow());
       }
 
@@ -584,7 +584,6 @@ void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
       uvwOutCol.put(row, newUVW.getVector());
     }
   }
-  delete progressBar;
 
   phaseDirVector[0] = ZenithDirection(set);
   phaseDirCol.put(fieldIndex, phaseDirVector);

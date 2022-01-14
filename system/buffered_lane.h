@@ -11,7 +11,7 @@ class lane_write_buffer {
   typedef typename aocommon::Lane<Tp>::size_type size_type;
   typedef typename aocommon::Lane<Tp>::value_type value_type;
 
-  lane_write_buffer() : _buffer_size(0), _lane(0) {}
+  lane_write_buffer() : _buffer_size(0), _lane(nullptr) {}
 
   lane_write_buffer(aocommon::Lane<Tp>* lane, size_type buffer_size)
       : _buffer_size(buffer_size), _lane(lane) {

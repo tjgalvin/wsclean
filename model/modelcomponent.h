@@ -24,13 +24,13 @@ class ModelComponent {
         _positionAngle(0.0),
         _majorAxis(0.0),
         _minorAxis(0.0),
-        _userdata(0) {}
+        _userdata(nullptr) {}
 
   ModelComponent(const ModelComponent& source)
       : _type(source._type),
         _posRA(source._posRA),
         _posDec(source._posDec),
-        _sed((source._sed == 0) ? 0 : source._sed->Clone()),
+        _sed((source._sed == nullptr) ? nullptr : source._sed->Clone()),
         _l(source._l),
         _m(source._m),
         _positionAngle(source._positionAngle),
@@ -42,7 +42,7 @@ class ModelComponent {
     _type = source._type;
     _posRA = source._posRA;
     _posDec = source._posDec;
-    if (source._sed == 0)
+    if (source._sed == nullptr)
       _sed.reset();
     else
       _sed.reset(source._sed->Clone());

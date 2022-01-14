@@ -469,7 +469,7 @@ void GaussianFitter::fit2DGaussianWithAmplitude(const float* image,
   _image = image;
   _scaleFactor = (width + height) / 2;
 
-  if (floorLevel == 0)
+  if (floorLevel == nullptr)
     fit2DGaussianWithAmplitude(val, posX, posY, beamMaj, beamMin, beamPA);
   else
     fit2DGaussianWithAmplitudeWithFloor(val, posX, posY, beamMaj, beamMin,

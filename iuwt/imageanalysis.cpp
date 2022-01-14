@@ -218,12 +218,12 @@ void ImageAnalysis::SelectStructures(const IUWTDecomposition& iuwt,
     for (size_t y = minY; y != maxY; ++y) {
       for (size_t x = minX; x != maxX; ++x) {
         size_t index = x + y * width;
-        bool isInPriorMask = (priorMask == 0) || priorMask[index];
+        bool isInPriorMask = (priorMask == nullptr) || priorMask[index];
         if (exceedsThreshold(iuwt[scale][index], thresholds[scale]) &&
             !mask[scale][index] && isInPriorMask) {
           Component component(x, y, scale);
           size_t subAreaSize = 0;
-          if (priorMask == 0)
+          if (priorMask == nullptr)
             Floodfill(iuwt, mask, thresholds, minScale, endScale, component,
                       cleanBorder, subAreaSize);
           else

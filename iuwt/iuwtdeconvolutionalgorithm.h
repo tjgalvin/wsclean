@@ -56,7 +56,7 @@ class IUWTDeconvolutionAlgorithm {
   float getMaxAbsWithMask(const Image& data, size_t& x, size_t& y,
                           size_t width);
   float getMaxAbs(const Image& data, size_t& x, size_t& y, size_t width) {
-    if (_mask == 0)
+    if (_mask == nullptr)
       return getMaxAbsWithoutMask(data, x, y, width);
     else
       return getMaxAbsWithMask(data, x, y, width);

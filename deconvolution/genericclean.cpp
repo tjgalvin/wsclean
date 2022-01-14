@@ -188,7 +188,7 @@ boost::optional<float> GenericClean::findPeak(const float* image,
                                               float* scratch, size_t& x,
                                               size_t& y) {
   if (_rmsFactorImage.empty()) {
-    if (_cleanMask == 0)
+    if (_cleanMask == nullptr)
       return PeakFinder::Find(image, _width, _height, x, y,
                               _allowNegativeComponents, 0, _height,
                               _cleanBorderRatio);
@@ -200,7 +200,7 @@ boost::optional<float> GenericClean::findPeak(const float* image,
     for (size_t i = 0; i != _width * _height; ++i) {
       scratch[i] = image[i] * _rmsFactorImage[i];
     }
-    if (_cleanMask == 0)
+    if (_cleanMask == nullptr)
       return PeakFinder::Find(scratch, _width, _height, x, y,
                               _allowNegativeComponents, 0, _height,
                               _cleanBorderRatio);

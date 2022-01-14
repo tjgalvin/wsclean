@@ -13,7 +13,7 @@ DeconvolutionAlgorithm::DeconvolutionAlgorithm()
       _threadCount(System::ProcessorCount()),
       _allowNegativeComponents(true),
       _stopOnNegativeComponent(false),
-      _cleanMask(0),
+      _cleanMask(nullptr),
       _logReceiver(nullptr),
       _spectralFitter(SpectralFittingMode::NoFitting, 0) {}
 

@@ -45,7 +45,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              size_t dataDescId)
     : _handle(handle),
       _partIndex(partIndex),
-      _modelFileMap(0),
+      _modelFileMap(nullptr),
       _currentOutputRow(0),
       _polarization(polarization),
       _polarizationCountInFile(
@@ -86,7 +86,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                                        MAP_SHARED | MAP_NORESERVE, _fd, 0));
       if (_modelFileMap == MAP_FAILED) {
         std::string msg = System::StrError(errno);
-        _modelFileMap = 0;
+        _modelFileMap = nullptr;
         throw std::runtime_error(
             std::string("Error creating memory map to temporary model file: "
                         "mmap() returned MAP_FAILED with error message: ") +
@@ -99,7 +99,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
 }
 
 PartitionedMS::~PartitionedMS() {
-  if (_modelFileMap != 0) {
+  if (_modelFileMap != nullptr) {
     size_t length = _partHeader.channelCount * _metaHeader.selectedRowCount *
                     _polarizationCountInFile * sizeof(std::complex<float>);
     if (length != 0) munmap(_modelFileMap, length);

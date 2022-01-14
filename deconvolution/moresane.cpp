@@ -30,14 +30,14 @@ void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
       outputName(outputStr.str());
   aocommon::FitsWriter writer;
   writer.SetImageDimensions(width, height);
-  if (this->_cleanMask != 0) writer.WriteMask(maskName, _cleanMask);
+  if (_cleanMask != nullptr) writer.WriteMask(maskName, _cleanMask);
   writer.Write(dirtyName, dataImage);
   writer.Write(psfName, psfImage);
 
   std::ostringstream commandLine;
   commandLine << "time python \"" << _moresaneLocation << "\" ";
   if (!_allowNegativeComponents) commandLine << "-ep ";
-  if (this->_cleanMask != 0) commandLine << "-m \"" << maskName + "\" ";
+  if (_cleanMask != nullptr) commandLine << "-m \"" << maskName + "\" ";
   if (!_moresaneArguments.empty()) commandLine << _moresaneArguments << ' ';
   commandLine << "\"" << dirtyName << "\" \"" << psfName << "\" \""
               << outputName << '\"';

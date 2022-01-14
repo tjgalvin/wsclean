@@ -151,7 +151,7 @@ ThreadedDeconvolutionTools::FindMultiScalePeakTask::operator()() {
   else
     result->rms = -1.0;
   if (rmsFactorImage->empty()) {
-    if (mask == 0)
+    if (mask == nullptr)
       result->unnormalizedValue = PeakFinder::Find(
           image->data(), width, height, result->x, result->y,
           allowNegativeComponents, 0, height, horBorderSize, vertBorderSize);
@@ -166,7 +166,7 @@ ThreadedDeconvolutionTools::FindMultiScalePeakTask::operator()() {
     for (size_t i = 0; i != rmsFactorImage->size(); ++i)
       (*scratch)[i] = (*image)[i] * (*rmsFactorImage)[i];
 
-    if (mask == 0)
+    if (mask == nullptr)
       result->unnormalizedValue = PeakFinder::Find(
           scratch->data(), width, height, result->x, result->y,
           allowNegativeComponents, 0, height, horBorderSize, vertBorderSize);

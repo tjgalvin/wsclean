@@ -12,7 +12,7 @@ class ModelSource {
   typedef std::vector<ModelComponent>::iterator iterator;
   typedef std::vector<ModelComponent>::const_iterator const_iterator;
 
-  ModelSource() : _name(), _components(), _userdata(0) {}
+  ModelSource() : _name(), _components(), _userdata(nullptr) {}
 
   ModelSource(const ModelSource& source)
       : _name(source._name),
