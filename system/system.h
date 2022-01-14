@@ -11,26 +11,12 @@
 #include <stdexcept>
 #include <string>
 
+#include <aocommon/threadpool.h>
 class System {
  public:
   static long TotalMemory() { return casacore::HostInfo::memoryTotal() * 1024; }
 
-  static unsigned ProcessorCount() {
-#ifdef __APPLE__
-    return sysconf(_SC_NPROCESSORS_ONLN);
-#else
-    cpu_set_t cs;
-    CPU_ZERO(&cs);
-    sched_getaffinity(0, sizeof cs, &cs);
-
-    int count = 0;
-    for (int i = 0; i < CPU_SETSIZE; i++) {
-      if (CPU_ISSET(i, &cs)) count++;
-    }
-
-    return count;
-#endif
-  }
+  static unsigned ProcessorCount() { return aocommon::ThreadPool::NCPUs(); }
 
   static std::string StrError(int errnum) {
     // Because strerror_r() has different return values on different platforms,

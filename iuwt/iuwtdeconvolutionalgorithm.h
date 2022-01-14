@@ -2,6 +2,7 @@
 #define IUWT_DECONVOLUTION_ALGORITHM_H
 
 #include <aocommon/uvector.h>
+#include <aocommon/fits/fitswriter.h>
 
 #include "iuwtdecomposition.h"
 #include "imageanalysis.h"
@@ -171,7 +172,7 @@ class IUWTDeconvolutionAlgorithm {
   float _absoluteThreshold, _thresholdSigmaLevel, _tolerance;
   double _psfMaj, _psfMin, _psfPA, _psfVolume;
   aocommon::UVector<float> _rmses;
-  FitsWriter _writer;
+  aocommon::FitsWriter _writer;
   std::vector<ScaleResponse> _psfResponse;
   bool _allowNegativeComponents, _useSNRTest;
   class ImageSet* _modelSet;

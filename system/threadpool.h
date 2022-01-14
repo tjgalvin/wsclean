@@ -1,5 +1,5 @@
-#ifndef THREAD_POOL_H
-#define THREAD_POOL_H
+#ifndef WSCLEAN_THREAD_POOL_H
+#define WSCLEAN_THREAD_POOL_H
 
 #include "system.h"
 

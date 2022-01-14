@@ -34,14 +34,15 @@ void ModelRenderer::Restore(double* imageData, size_t imageWidth,
 
   int boundingBoxSize =
       ceil(sigma * 20.0 / std::min(_pixelScaleL, _pixelScaleM));
-  for (Model::const_iterator src = model.begin(); src != model.end(); ++src) {
-    for (ModelSource::const_iterator comp = src->begin(); comp != src->end();
-         ++comp) {
-      long double posRA = comp->PosRA(), posDec = comp->PosDec(), sourceL,
-                  sourceM;
+  for (const ModelSource& src : model) {
+    for (const ModelComponent& comp : src) {
+      const long double posRA = comp.PosRA();
+      const long double posDec = comp.PosDec();
+      long double sourceL;
+      long double sourceM;
       ImageCoordinates::RaDecToLM(posRA, posDec, _phaseCentreRA,
                                   _phaseCentreDec, sourceL, sourceM);
-      const SpectralEnergyDistribution& sed = comp->SED();
+      const SpectralEnergyDistribution& sed = comp.SED();
       const long double intFlux =
           sed.IntegratedFlux(startFrequency, endFrequency, polarization);
 

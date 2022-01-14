@@ -7,7 +7,6 @@
 
 #include "../math/fftconvolver.h"
 #include "../math/gaussianfitter.h"
-#include "../math/modelrenderer.h"
 
 #include "../deconvolution/imageset.h"
 

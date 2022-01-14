@@ -1,10 +1,10 @@
 #include "fftwmanager.h"
 
-#include "system.h"
-
 #include <iostream>
 
 #include <fftw3.h>
+
+#include "system.h"
 
 FFTWManager::FFTWManager(bool verbose)
     : _multiThreadEnabledDepth(0),

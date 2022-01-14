@@ -2,7 +2,7 @@
 
 #include "../wstackinggridder.h"
 
-#include "../../system/system.h"
+#include "../system/system.h"
 
 int main(int argc, char* argv[]) {
   const size_t width = 4000, height = 4000;

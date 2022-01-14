@@ -13,8 +13,6 @@
 #include <string>
 #include <sstream>
 
-using aocommon::FitsWriter;
-
 class IUWTDecompositionScale {
  public:
   Image& Coefficients() { return _coefficients; }
@@ -156,7 +154,7 @@ class IUWTDecomposition {
 
   void Save(const std::string& prefix) {
     std::cout << "Saving scales...\n";
-    FitsWriter writer;
+    aocommon::FitsWriter writer;
     writer.SetImageDimensions(_width, _height);
     for (size_t scale = 0; scale != _scales.size(); ++scale) {
       std::ostringstream str;
