@@ -6,11 +6,12 @@
 #include "../io/logger.h"
 
 #include "../structures/imageweights.h"
-#include "../structures/multibanddata.h"
 
 #include "../msproviders/msdatadescription.h"
 
 #include "../io/findmwacoefffile.h"
+
+#include <aocommon/multibanddata.h>
 
 #include <schaapcommon/facets/facetimage.h>
 
@@ -333,13 +334,14 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
     const MSSelection& selection = *msProviderInfo.selection;
 
     SynchronizedMS ms = msProviderInfo.provider->MS();
-    MultiBandData band(ms->spectralWindow(), ms->dataDescription());
+    aocommon::MultiBandData band(ms->spectralWindow(), ms->dataDescription());
     ms.Reset();
     double centralFrequency = 0.0;
     for (size_t dataDescId = 0; dataDescId != band.DataDescCount();
          ++dataDescId) {
-      BandData subBand(band[dataDescId], selection.ChannelRangeStart(),
-                       selection.ChannelRangeEnd());
+      aocommon::BandData subBand(band[dataDescId],
+                                 selection.ChannelRangeStart(),
+                                 selection.ChannelRangeEnd());
       centralFrequency += subBand.CentreFrequency();
     }
     centralFrequency /= msInfo.bands.size();
@@ -491,7 +493,8 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
   casacore::MSAntenna antTable(ms->antenna());
   aocommon::UVector<double> perAntennaWeights(antTable.nrow(), 0.0);
 
-  MultiBandData multiband(ms->spectralWindow(), ms->dataDescription());
+  aocommon::MultiBandData multiband(ms->spectralWindow(),
+                                    ms->dataDescription());
   size_t channelCount =
       selection.ChannelRangeEnd() - selection.ChannelRangeStart();
   size_t polarizationCount =
@@ -499,7 +502,7 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
                                                                           : 1;
   aocommon::UVector<float> weightArr(channelCount * polarizationCount);
   std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
-  const BandData band = multiband[msProvider.DataDescId()];
+  const aocommon::BandData band = multiband[msProvider.DataDescId()];
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metaData;
     msReader->ReadMeta(metaData);

@@ -4,13 +4,13 @@
 #include "msgridderbase.h"
 #include "wstackinggridder.h"
 
-#include "../structures/multibanddata.h"
 #include "../structures/image.h"
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
 #include <aocommon/lane.h>
+#include <aocommon/multibanddata.h>
 
 #include <complex>
 #include <memory>
@@ -78,11 +78,12 @@ class WSMSGridder final : public MSGridderBase {
 
   void predictCalcThread(aocommon::Lane<PredictionWorkItem>* inputLane,
                          aocommon::Lane<PredictionWorkItem>* outputLane,
-                         const BandData* bandData);
+                         const aocommon::BandData* bandData);
 
   template <DDGainMatrix GainEntry>
   void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
-                          const MSData* msData, const BandData* bandData);
+                          const MSData* msData,
+                          const aocommon::BandData* bandData);
 
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;

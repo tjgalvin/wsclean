@@ -3,12 +3,13 @@
 
 #include "../io/logger.h"
 
+#include <aocommon/multibanddata.h>
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 
 #include "../structures/msselection.h"
-#include "../structures/multibanddata.h"
 
 namespace {
 template <bool add>

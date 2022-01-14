@@ -8,7 +8,6 @@
 #include "../msproviders/msreaders/msreader.h"
 
 #include "../structures/imageweights.h"
-#include "../structures/multibanddata.h"
 
 #include <aocommon/units/angle.h>
 
@@ -22,6 +21,7 @@
 #include "../io/findmwacoefffile.h"
 #include <limits>
 #include <aocommon/matrix2x2.h>
+#include <aocommon/multibanddata.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/soltab.h>
@@ -374,7 +374,7 @@ void MSGridderBase::initializePredictReader(MSProvider& msProvider) {
 
 void MSGridderBase::initializeBandData(const casacore::MeasurementSet& ms,
                                        MSGridderBase::MSData& msData) {
-  msData.bandData = MultiBandData(ms)[msData.dataDescId];
+  msData.bandData = aocommon::MultiBandData(ms)[msData.dataDescId];
   if (Selection(msData.msIndex).HasChannelRange()) {
     msData.startChannel = Selection(msData.msIndex).ChannelRangeStart();
     msData.endChannel = Selection(msData.msIndex).ChannelRangeEnd();
@@ -405,7 +405,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
   msData.minW = 1e100;
   msData.maxBaselineUVW = 0.0;
   msData.maxBaselineInM = 0.0;
-  const BandData selectedBand = msData.SelectedBand();
+  const aocommon::BandData selectedBand = msData.SelectedBand();
   std::vector<float> weightArray(selectedBand.ChannelCount() *
                                  NPolInMSProvider);
   double curTimestep = -1, firstTime = -1, lastTime = -1;
@@ -712,7 +712,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer) {
+    const aocommon::BandData& curBand, std::complex<float>* buffer) {
   assert(!DoImagePSF());  // The PSF is never predicted.
 
   if (!_h5parms.empty()) {
@@ -834,25 +834,25 @@ void MSGridderBase::writeVisibilities(
 
 template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kXX>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer);
 
 template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kYY>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer);
 
 template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kTrace>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer);
 
 template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
-    const BandData& curBand, std::complex<float>* buffer);
+    const aocommon::BandData& curBand, std::complex<float>* buffer);
 
 #ifdef HAVE_EVERYBEAM
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
                                              InversionRow& rowData,
-                                             const BandData& curBand,
+                                             const aocommon::BandData& curBand,
                                              float* weightBuffer) {
   MSProvider::MetaData metaData;
   msReader.ReadMeta(metaData);
@@ -894,7 +894,8 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::ApplyConjugatedH5Parm(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
-    InversionRow& rowData, const BandData& curBand, float* weightBuffer) {
+    InversionRow& rowData, const aocommon::BandData& curBand,
+    float* weightBuffer) {
   MSProvider::MetaData metaData;
   msReader.ReadMeta(metaData);
 
@@ -985,8 +986,9 @@ void MSGridderBase::ApplyConjugatedH5Parm(
 template <size_t PolarizationCount, DDGainMatrix GainEntry>
 void MSGridderBase::readAndWeightVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
-    InversionRow& rowData, const BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected) {
+    InversionRow& rowData, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected) {
   const std::size_t dataSize = curBand.ChannelCount() * PolarizationCount;
   if (DoImagePSF()) {
     std::fill_n(rowData.data, dataSize, 1.0);
@@ -1088,26 +1090,30 @@ void MSGridderBase::readAndWeightVisibilities(
 
 template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kXX>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
-    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected);
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kYY>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
-    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected);
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kTrace>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
-    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected);
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<4, DDGainMatrix::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
-    InversionRow& newItem, const BandData& curBand, float* weightBuffer,
-    std::complex<float>* modelBuffer, const bool* isSelected);
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
 
 template <size_t PolarizationCount>
-void MSGridderBase::rotateVisibilities(const BandData& bandData,
+void MSGridderBase::rotateVisibilities(const aocommon::BandData& bandData,
                                        double shiftFactor,
                                        std::complex<float>* dataIter) {
   for (size_t ch = 0; ch != bandData.ChannelCount(); ++ch) {
@@ -1121,8 +1127,8 @@ void MSGridderBase::rotateVisibilities(const BandData& bandData,
 }
 
 template void MSGridderBase::rotateVisibilities<1>(
-    const BandData& bandData, double shiftFactor,
+    const aocommon::BandData& bandData, double shiftFactor,
     std::complex<float>* dataIter);
 template void MSGridderBase::rotateVisibilities<4>(
-    const BandData& bandData, double shiftFactor,
+    const aocommon::BandData& bandData, double shiftFactor,
     std::complex<float>* dataIter);

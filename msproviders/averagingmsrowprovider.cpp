@@ -1,8 +1,8 @@
 #include "averagingmsrowprovider.h"
 
-#include "../structures/multibanddata.h"
-
 #include "../io/logger.h"
+
+#include <aocommon/multibanddata.h>
 
 #include <casacore/tables/Tables/ArrayColumn.h>
 
@@ -42,7 +42,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
   _nElements = selectedDataDescIds.size() * _nAntennae * _nAntennae;
   _averagingFactors.assign(_nElements, 0.0);
   _buffers.resize(_nElements);
-  MultiBandData bands(Ms().spectralWindow(), Ms().dataDescription());
+  aocommon::MultiBandData bands(Ms().spectralWindow(), Ms().dataDescription());
 
   double dt = (EndTime() - StartTime()) / (EndTimestep() - StartTimestep());
   Logger::Debug << "Assuming integration time of " << dt * (24.0 * 60.0 * 60.0)
@@ -61,7 +61,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
       for (std::map<size_t, size_t>::const_iterator spwIter =
                selectedDataDescIds.begin();
            spwIter != selectedDataDescIds.end(); ++spwIter) {
-        BandData band = bands[spwIter->first];
+        aocommon::BandData band = bands[spwIter->first];
         double lambda = band.SmallestWavelength();
         double nWavelengthsPerIntegration = 2.0 * M_PI * dist / lambda * dt;
         _averagingFactors[element] = std::max<size_t>(

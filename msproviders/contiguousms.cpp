@@ -55,7 +55,7 @@ void ContiguousMS::open() {
   _weightSpectrumArray = casacore::Array<float>(shape);
   _imagingWeightSpectrumArray = casacore::Array<float>(shape);
   _flagArray = casacore::Array<bool>(shape);
-  _bandData = MultiBandData(*_ms);
+  _bandData = aocommon::MultiBandData(*_ms);
 
   if (_bandData.BandCount() > 1) {
     throw std::runtime_error(

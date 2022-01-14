@@ -333,7 +333,6 @@ add_library(
   structures/imagingtable.cpp
   structures/imagingtableentry.cpp
   structures/msselection.cpp
-  structures/multibanddata.cpp
   structures/observationinfo.cpp
   structures/primarybeam.cpp
   system/fftwmanager.cpp
@@ -404,8 +403,7 @@ if(MPI_FOUND)
   target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 
-add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp
-                         structures/multibanddata.cpp)
+add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp)
 target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB}
                       ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 

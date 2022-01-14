@@ -22,7 +22,6 @@ add_executable(
   msproviders/tmsrowproviderbase.cpp
   structures/testimage.cpp
   structures/testimagingtable.cpp
-  structures/testmultibanddata.cpp
   ${WSCLEANFILES})
 
 add_custom_target(

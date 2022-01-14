@@ -72,7 +72,7 @@ void wsclean_initialize(void** userData, const imaging_parameters* parameters,
                                             casacore::MSMainEnums::ANTENNA1));
   casacore::ScalarColumn<int> a2Col(ms, casacore::MeasurementSet::columnName(
                                             casacore::MSMainEnums::ANTENNA2));
-  BandData bandData(ms.spectralWindow());
+  aocommon::BandData bandData(ms.spectralWindow());
   size_t nChannel = bandData.ChannelCount();
   size_t selectedRows = 0;
   for (size_t row = 0; row != ms.nrow(); ++row) {
@@ -113,7 +113,7 @@ void wsclean_read(void* userData, DCOMPLEX* data, double* weights) {
   std::lock_guard<std::mutex> lock(wscUserData->mutex);
 
   casacore::MeasurementSet ms(wscUserData->msPath);
-  BandData bandData(ms.spectralWindow());
+  aocommon::BandData bandData(ms.spectralWindow());
   size_t nChannels = bandData.ChannelCount();
 
   casacore::ScalarColumn<int> a1Col(ms, casacore::MeasurementSet::columnName(
@@ -259,7 +259,7 @@ void wsclean_operator_A(void* userData, DCOMPLEX* dataOut,
 
   // Read MODEL_DATA into dataOut
   casacore::MeasurementSet ms(wscUserData->msPath);
-  BandData bandData(ms.spectralWindow());
+  aocommon::BandData bandData(ms.spectralWindow());
   size_t nChannels = bandData.ChannelCount();
 
   casacore::ScalarColumn<int> a1Col(ms, casacore::MeasurementSet::columnName(
@@ -312,7 +312,7 @@ void wsclean_operator_At(void* userData, double* dataOut,
             << ", pixelscale=" << Angle::ToNiceString(wscUserData->pixelScaleX)
             << "," << Angle::ToNiceString(wscUserData->pixelScaleY) << '\n';
   casacore::MeasurementSet ms(wscUserData->msPath, casacore::Table::Update);
-  BandData bandData(ms.spectralWindow());
+  aocommon::BandData bandData(ms.spectralWindow());
   size_t nChannels = bandData.ChannelCount();
 
   casacore::ScalarColumn<int> a1Col(ms, casacore::MeasurementSet::columnName(

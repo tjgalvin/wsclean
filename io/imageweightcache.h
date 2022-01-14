@@ -51,7 +51,7 @@ class ImageWeightCache {
 
   std::shared_ptr<ImageWeights> Get(
       const std::vector<std::unique_ptr<MSDataDescription>>& msList,
-      const std::vector<MultiBandData>& bands, size_t outChannelIndex,
+      const std::vector<aocommon::MultiBandData>& bands, size_t outChannelIndex,
       size_t outIntervalIndex) {
     std::unique_lock<std::mutex> lock(_mutex);
     if (outChannelIndex != _currentWeightChannel ||
@@ -87,7 +87,7 @@ class ImageWeightCache {
  private:
   std::unique_ptr<ImageWeights> recalculateWeights(
       const std::vector<std::unique_ptr<MSDataDescription>>& msList,
-      const std::vector<MultiBandData>& bands) {
+      const std::vector<aocommon::MultiBandData>& bands) {
     Logger::Info << "Precalculating weights for " << _weightMode.ToString()
                  << " weighting...\n";
     std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
@@ -95,10 +95,11 @@ class ImageWeightCache {
       std::unique_ptr<MSProvider> provider = msList[i]->GetProvider();
       const MSSelection& selection = msList[i]->Selection();
       const size_t dataDescId = msList[i]->DataDescId();
-      const BandData selectedBand =
+      const aocommon::BandData selectedBand =
           selection.HasChannelRange()
-              ? BandData(bands[i][dataDescId], selection.ChannelRangeStart(),
-                         selection.ChannelRangeEnd())
+              ? aocommon::BandData(bands[i][dataDescId],
+                                   selection.ChannelRangeStart(),
+                                   selection.ChannelRangeEnd())
               : bands[i][dataDescId];
       weights->Grid(*provider, selectedBand);
       if (msList.size() > 1)

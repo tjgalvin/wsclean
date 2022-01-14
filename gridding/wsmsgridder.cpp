@@ -46,7 +46,7 @@ void WSMSGridder::countSamplesPerLayer(MSData& msData) {
   size_t total = 0;
   msData.matchingRows = 0;
   std::unique_ptr<MSReader> msReader = msData.msProvider->MakeReader();
-  const BandData& bandData = msData.bandData;
+  const aocommon::BandData& bandData = msData.bandData;
   while (msReader->CurrentRowAvailable()) {
     double uInM, vInM, wInM;
     msReader->ReadMeta(uInM, vInM, wInM);
@@ -124,7 +124,7 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
 
 template <DDGainMatrix GainEntry>
 void WSMSGridder::gridMeasurementSet(MSData& msData) {
-  const BandData selectedBand = msData.SelectedBand();
+  const aocommon::BandData selectedBand = msData.SelectedBand();
   StartMeasurementSet(msData, false);
   _gridder->PrepareBand(selectedBand);
   aocommon::UVector<std::complex<float>> modelBuffer(
@@ -157,7 +157,7 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
     while (msReader->CurrentRowAvailable()) {
       double uInMeters, vInMeters, wInMeters;
       msReader->ReadMeta(uInMeters, vInMeters, wInMeters);
-      const BandData& curBand(selectedBand);
+      const aocommon::BandData& curBand(selectedBand);
       const double w1 = wInMeters / curBand.LongestWavelength(),
                    w2 = wInMeters / curBand.SmallestWavelength();
       if (_gridder->IsInLayerRange(w1, w2)) {
@@ -257,7 +257,7 @@ template <DDGainMatrix GainEntry>
 void WSMSGridder::predictMeasurementSet(MSData& msData) {
   msData.msProvider->ReopenRW();
   msData.msProvider->ResetWritePosition();
-  const BandData selectedBandData(msData.SelectedBand());
+  const aocommon::BandData selectedBandData(msData.SelectedBand());
   _gridder->PrepareBand(selectedBandData);
 
   StartMeasurementSet(msData, true);
@@ -324,7 +324,8 @@ template void WSMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
 
 void WSMSGridder::predictCalcThread(
     aocommon::Lane<PredictionWorkItem>* inputLane,
-    aocommon::Lane<PredictionWorkItem>* outputLane, const BandData* bandData) {
+    aocommon::Lane<PredictionWorkItem>* outputLane,
+    const aocommon::BandData* bandData) {
   lane_write_buffer<PredictionWorkItem> writeBuffer(outputLane,
                                                     _laneBufferSize);
 
@@ -346,7 +347,7 @@ void WSMSGridder::predictCalcThread(
 template <DDGainMatrix GainEntry>
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const BandData* bandData) {
+    const MSData* msData, const aocommon::BandData* bandData) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -374,15 +375,15 @@ void WSMSGridder::predictWriteThread(
 
 template void WSMSGridder::predictWriteThread<DDGainMatrix::kXX>(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const BandData* bandData);
+    const MSData* msData, const aocommon::BandData* bandData);
 
 template void WSMSGridder::predictWriteThread<DDGainMatrix::kYY>(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const BandData* bandData);
+    const MSData* msData, const aocommon::BandData* bandData);
 
 template void WSMSGridder::predictWriteThread<DDGainMatrix::kTrace>(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const BandData* bandData);
+    const MSData* msData, const aocommon::BandData* bandData);
 
 void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
@@ -424,7 +425,7 @@ void WSMSGridder::Invert() {
     for (size_t i = 0; i != MeasurementSetCount(); ++i) {
       MSData& msData = msDataVector[i];
 
-      const BandData selectedBand(msData.SelectedBand());
+      const aocommon::BandData selectedBand(msData.SelectedBand());
 
       startInversionWorkThreads(selectedBand.ChannelCount());
 

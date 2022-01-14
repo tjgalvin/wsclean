@@ -158,7 +158,6 @@ class WStackingGridder {
   void PrepareWLayers(size_t nWLayers, double maxMem, double minW, double maxW);
 
 #ifndef AVOID_CASACORE
-  using BandData = aocommon::BandData;
   /**
    * Initialize the inversion/prediction stage with a given band. This is
    * required for calling methods that take a dataDescId, specifically @ref
@@ -170,7 +169,7 @@ class WStackingGridder {
    * dataDescId to a set of contiguous frequencies. This corresponds with the
    * DATA_DESC_ID field in meaurement sets.
    */
-  void PrepareBand(const BandData &bandData) { _bandData = bandData; }
+  void PrepareBand(const aocommon::BandData &bandData) { _bandData = bandData; }
 #endif  // AVOID_CASACORE
 
   /**
@@ -618,7 +617,7 @@ class WStackingGridder {
   double _minW, _maxW, _phaseCentreDL, _phaseCentreDM;
   bool _isComplex, _imageConjugatePart;
 #ifndef AVOID_CASACORE
-  BandData _bandData;
+  aocommon::BandData _bandData;
 #endif
 
   GridMode _gridMode;

@@ -884,7 +884,7 @@ void WSClean::RunPredict() {
 bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
                              size_t dataDescId,
                              const ImagingTableEntry& entry) {
-  const BandData& band = _msBands[msIndex][dataDescId];
+  const aocommon::BandData& band = _msBands[msIndex][dataDescId];
   double firstCh = band.ChannelFrequency(0);
   double lastCh = band.ChannelFrequency(band.ChannelCount() - 1);
   // Some mses have decreasing (i.e. reversed) channel frequencies in them
@@ -898,9 +898,9 @@ bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
       entry.highestFrequency >= firstCh) {
     size_t newStart, newEnd;
     if (isReversed) {
-      BandData::const_reverse_iterator lowPtr =
+      aocommon::BandData::const_reverse_iterator lowPtr =
           std::lower_bound(band.rbegin(), band.rend(), entry.lowestFrequency);
-      BandData::const_reverse_iterator highPtr =
+      aocommon::BandData::const_reverse_iterator highPtr =
           std::lower_bound(lowPtr, band.rend(), entry.highestFrequency);
 
       if (highPtr == band.rend()) --highPtr;
@@ -1799,10 +1799,10 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
 
 void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   std::set<aocommon::ChannelInfo> channelSet;
-  _msBands.assign(_settings.filenames.size(), MultiBandData());
+  _msBands.assign(_settings.filenames.size(), aocommon::MultiBandData());
   for (size_t i = 0; i != _settings.filenames.size(); ++i) {
     casacore::MeasurementSet ms(_settings.filenames[i]);
-    _msBands[i] = MultiBandData(ms);
+    _msBands[i] = aocommon::MultiBandData(ms);
     std::set<size_t> dataDescIds = _msBands[i].GetUsedDataDescIds(ms);
     if (dataDescIds.size() != _msBands[i].DataDescCount()) {
       Logger::Debug << dataDescIds.size() << "/" << _msBands[i].DataDescCount()

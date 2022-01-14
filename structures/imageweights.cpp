@@ -1,9 +1,8 @@
 #include "imageweights.h"
 
-#include "multibanddata.h"
-
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
+#include <aocommon/multibanddata.h>
 
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"

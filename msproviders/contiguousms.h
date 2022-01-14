@@ -4,7 +4,8 @@
 #include "msprovider.h"
 
 #include "../structures/msselection.h"
-#include "../structures/multibanddata.h"
+
+#include <aocommon/multibanddata.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -74,7 +75,7 @@ class ContiguousMS final : public MSProvider {
   aocommon::PolarizationEnum _polOut;
   std::string _msPath;
   SynchronizedMS _ms;
-  MultiBandData _bandData;
+  aocommon::MultiBandData _bandData;
   bool _msHasWeightSpectrum;
 
   casacore::ScalarColumn<int> _antenna1Column, _antenna2Column, _fieldIdColumn,

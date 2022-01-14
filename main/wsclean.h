@@ -1,6 +1,7 @@
 #ifndef WSCLEAN_H
 #define WSCLEAN_H
 
+#include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 #include <schaapcommon/facets/facet.h>
 
@@ -13,7 +14,6 @@
 
 #include "../structures/imagingtable.h"
 #include "../structures/msselection.h"
-#include "../structures/multibanddata.h"
 #include "../structures/observationinfo.h"
 #include "../structures/outputchannelinfo.h"
 #include "../structures/weightmode.h"
@@ -238,7 +238,7 @@ class WSClean {
   size_t _majorIterationNr;
   CachedImageSet _psfImages, _modelImages, _residualImages;
   std::vector<PartitionedMS::Handle> _partitionedMSHandles;
-  std::vector<MultiBandData> _msBands;
+  std::vector<aocommon::MultiBandData> _msBands;
   Deconvolution _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;

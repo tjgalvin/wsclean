@@ -1,7 +1,5 @@
 #include "progressbar.h"
 
-#include "../structures/multibanddata.h"
-
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
@@ -23,6 +21,7 @@
 
 #include <aocommon/banddata.h>
 #include <aocommon/imagecoordinates.h>
+#include <aocommon/multibanddata.h>
 #include <aocommon/radeccoord.h>
 
 #include <iostream>
@@ -104,7 +103,7 @@ Muvw calculateUVW(const MPosition& antennaPos, const MPosition& refPos,
   return Muvw(uvw, Muvw::J2000);
 }
 
-void rotateVisibilities(const BandData& bandData, double shiftFactor,
+void rotateVisibilities(const aocommon::BandData& bandData, double shiftFactor,
                         unsigned polarizationCount,
                         casacore::Array<casacore::Complex>::contiter dataIter) {
   for (unsigned ch = 0; ch != bandData.ChannelCount(); ++ch) {
@@ -225,7 +224,7 @@ void processField(casacore::MeasurementSet& set, const std::string& dataColumn,
                   int fieldIndex, MSField& fieldTable,
                   const MDirection& newDirection, bool onlyUVW, bool shiftback,
                   double newDl, double newDm, bool flipUVWSign, bool force) {
-  MultiBandData bandData(set.spectralWindow(), set.dataDescription());
+  aocommon::MultiBandData bandData(set.spectralWindow(), set.dataDescription());
   ScalarColumn<casacore::String> nameCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
   MDirection::ArrayColumn phaseDirCol(
@@ -350,7 +349,7 @@ void processField(casacore::MeasurementSet& set, const std::string& dataColumn,
                  dov = oldUVW.getValue().getVector()[1];
           shiftFactor -= -2.0 * M_PI * (dou * oldDl + dov * oldDm);
 
-          const BandData& thisBand = bandData[dataDescId];
+          const aocommon::BandData& thisBand = bandData[dataDescId];
           dataCol->get(row, *dataArray);
           rotateVisibilities(thisBand, shiftFactor, polarizationCount,
                              dataArray->cbegin());
@@ -458,7 +457,7 @@ void showChanges(casacore::MeasurementSet& set, int fieldIndex,
 
 void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
                        MSField& fieldTable, bool onlyUVW, bool flipUVWSign) {
-  MultiBandData bandData(set.spectralWindow(), set.dataDescription());
+  aocommon::MultiBandData bandData(set.spectralWindow(), set.dataDescription());
   ScalarColumn<casacore::String> nameCol(
       fieldTable, fieldTable.columnName(MSFieldEnums::NAME));
   MDirection::ArrayColumn phaseDirCol(
@@ -559,7 +558,7 @@ void rotateToGeoZenith(casacore::MeasurementSet& set, int fieldIndex,
           (newUVW.getVector()[2] - oldUVW.getValue().getVector()[2]);
 
       if (!onlyUVW) {
-        const BandData& thisBand = bandData[dataDescId];
+        const aocommon::BandData& thisBand = bandData[dataDescId];
         dataCol->get(row, *dataArray);
         rotateVisibilities(thisBand, shiftFactor, polarizationCount,
                            dataArray->cbegin());
