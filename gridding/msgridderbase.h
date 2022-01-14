@@ -54,6 +54,7 @@ class MSGridderBase {
 
   size_t ImageWidth() const { return _imageWidth; }
   size_t ImageHeight() const { return _imageHeight; }
+  double ImagePadding() const { return _imagePadding; }
   double PixelSizeX() const { return _pixelSizeX; }
   double PixelSizeY() const { return _pixelSizeY; }
   size_t ActualWGridSize() const { return _actualWGridSize; }
@@ -107,6 +108,7 @@ class MSGridderBase {
     _actualWGridSize = actualWGridSize;
   }
   void SetDoImagePSF(bool doImagePSF) { _doImagePSF = doImagePSF; }
+  void SetImagePadding(double imagePadding) { _imagePadding = imagePadding; }
   void SetPolarization(aocommon::PolarizationEnum polarization) {
     _polarization = polarization;
   }
@@ -416,6 +418,7 @@ class MSGridderBase {
   size_t _msIndex;
   /// @see SetAdditivePredict()
   bool _additivePredict;
+  double _imagePadding;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
   double _pixelSizeX, _pixelSizeY;

@@ -75,6 +75,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
     gridder.SetTrimSize(_settings.trimmedImageWidth,
                         _settings.trimmedImageHeight);
   }
+  gridder.SetImagePadding(_settings.imagePadding);
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
   gridder.SetPhaseCentreDM(task.observationInfo.shiftM);

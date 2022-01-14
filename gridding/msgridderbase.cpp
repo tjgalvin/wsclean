@@ -204,12 +204,12 @@ MSGridderBase::MSData::MSData()
       antennaNames() {}
 
 MSGridderBase::MSGridderBase(const Settings& settings)
-    : _actualInversionWidth(0),
+    : _metaDataCache(nullptr),
+      _settings(settings),
+      _actualInversionWidth(0),
       _actualInversionHeight(0),
       _actualPixelSizeX(0),
       _actualPixelSizeY(0),
-      _metaDataCache(nullptr),
-      _settings(settings),
       _phaseCentreRA(0.0),
       _phaseCentreDec(0.0),
       _phaseCentreDL(0.0),
@@ -220,6 +220,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _facetGroupIndex(0),
       _msIndex(0),
       _additivePredict(false),
+      _imagePadding(1.0),
       _imageWidth(0),
       _imageHeight(0),
       _trimWidth(0),
