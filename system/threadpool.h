@@ -1,8 +1,6 @@
 #ifndef WSCLEAN_THREAD_POOL_H
 #define WSCLEAN_THREAD_POOL_H
 
-#include "system.h"
-
 #include <functional>
 #include <thread>
 #include <mutex>
@@ -10,10 +8,12 @@
 
 #include <queue>
 
+#include <aocommon/system.h>
+
 class ThreadPool {
  public:
   ThreadPool() : _activeThreads(0), _finish(false) {
-    init_threads(System::ProcessorCount());
+    init_threads(aocommon::system::ProcessorCount());
   }
 
   ~ThreadPool() {

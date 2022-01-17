@@ -1,4 +1,4 @@
-#include "system.h"
+#include "pythonfilepath.h"
 
 #include "../io/logger.h"
 
@@ -9,7 +9,9 @@
 #include <sstream>
 #include <random>
 
-std::string System::FindPythonFilePath(const std::string& filename) {
+namespace wsclean {
+namespace system {
+std::string FindPythonFilePath(const std::string& filename) {
   if (boost::filesystem::exists(filename)) return filename;
   Logger::Debug << "Searching " << filename << "... ";
   Logger::Debug.Flush();
@@ -25,7 +27,7 @@ std::string System::FindPythonFilePath(const std::string& filename) {
           "echo \"from __future__ import print_function\nimport sys\nfor a in "
           "sys.path:\n  print(a)\"|python>") +
       tempFilename;
-  int status = system(command.c_str());
+  int status = std::system(command.c_str());
   if (status != 0) {
     // retry with python3
     command = std::string(
@@ -33,11 +35,12 @@ std::string System::FindPythonFilePath(const std::string& filename) {
                   "sys\nfor a in "
                   "sys.path:\n  print(a)\"|python3>") +
               tempFilename;
-    status = system(command.c_str());
+    status = std::system(command.c_str());
   }
   if (status != 0)
     throw std::runtime_error(
-        "system() returned non-zero error code: might be out of memory, or "
+        "std::system() returned non-zero error code: might be out of memory, "
+        "or "
         "python might not be working properly.\nCommand was:\n" +
         command);
   std::ifstream searchPathsFile(tempFilename.c_str());
@@ -78,3 +81,5 @@ std::string System::FindPythonFilePath(const std::string& filename) {
   boost::filesystem::remove(tempPath);
   throw std::runtime_error(err);
 }
+}  // namespace system
+}  // namespace wsclean

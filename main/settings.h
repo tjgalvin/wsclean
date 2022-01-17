@@ -1,8 +1,6 @@
 #ifndef WSCLEAN_SETTINGS_H
 #define WSCLEAN_SETTINGS_H
 
-#include "../system/system.h"
-
 #include "../gridding/wstackinggridder.h"
 
 #include "../gridding/visibilityweightingmode.h"
@@ -12,6 +10,8 @@
 
 #include "../deconvolution/deconvolutionalgorithm.h"
 #include "../multiscale/multiscaletransforms.h"
+
+#include <aocommon/system.h>
 
 enum class DirectFTPrecision { Half, Float, Double, LongDouble };
 
@@ -226,7 +226,7 @@ inline Settings::Settings()
       nWLayersFactor(1.0),
       antialiasingKernelSize(7),
       overSamplingFactor(1023),
-      threadCount(System::ProcessorCount()),
+      threadCount(aocommon::system::ProcessorCount()),
       parallelReordering(1),
       parallelGridding(1),
       useMPI(false),

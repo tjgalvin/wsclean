@@ -6,8 +6,6 @@
 #include "msrowprovider.h"
 #include "noisemsrowprovider.h"
 
-#include "../system/system.h"
-
 #include "../io/logger.h"
 
 #include "../main/progressbar.h"
@@ -25,6 +23,8 @@
 #include <sstream>
 #include <memory>
 #include <vector>
+
+#include <aocommon/system.h>
 
 #include <boost/filesystem/path.hpp>
 
@@ -85,7 +85,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
           reinterpret_cast<char*>(mmap(NULL, length, PROT_READ | PROT_WRITE,
                                        MAP_SHARED | MAP_NORESERVE, _fd, 0));
       if (_modelFileMap == MAP_FAILED) {
-        std::string msg = System::StrError(errno);
+        std::string msg = aocommon::system::GetErrorString(errno);
         _modelFileMap = nullptr;
         throw std::runtime_error(
             std::string("Error creating memory map to temporary model file: "

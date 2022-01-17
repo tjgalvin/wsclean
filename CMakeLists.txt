@@ -336,7 +336,7 @@ add_library(
   structures/observationinfo.cpp
   structures/primarybeam.cpp
   system/fftwmanager.cpp
-  system/system.cpp
+  system/pythonfilepath.cpp
   ${IDG_FILES}
   ${MPI_CPP_FILES}
   ${WGRIDDER_FILES})

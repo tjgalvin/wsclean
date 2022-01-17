@@ -1,7 +1,7 @@
 #ifndef WSCLEAN_MWA_FINDCOEFFFILE_H_
 #define WSCLEAN_MWA_FINDCOEFFFILE_H_
 
-#include "../system/system.h"
+#include "../system/pythonfilepath.h"
 
 #include <boost/filesystem.hpp>
 
@@ -31,7 +31,7 @@ inline static std::string FindCoeffFile(const std::string& search_path) {
   if (search_path.empty()) {
     std::string h5_test_path = DEFAULT_H5_FILE_PATH;
     h5_test_path += DEFAULT_H5_FILE;
-    h5_path = System::FindPythonFilePath(h5_test_path);
+    h5_path = wsclean::system::FindPythonFilePath(h5_test_path);
   } else {
     boost::filesystem::path p =
         boost::filesystem::path(search_path) / DEFAULT_H5_FILE;
