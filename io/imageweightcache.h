@@ -67,9 +67,11 @@ class ImageWeightCache {
   }
 
   std::unique_ptr<ImageWeights> MakeEmptyWeights() const {
-    return std::unique_ptr<ImageWeights>(new ImageWeights(
+    std::unique_ptr<ImageWeights> weights(new ImageWeights(
         _weightMode, _imageWidth, _imageHeight, _pixelScaleX, _pixelScaleY,
-        _weightsAsTaper, _weightMode.SuperWeight(), _threadCount));
+        _weightsAsTaper, _weightMode.SuperWeight()));
+    weights->SetThreadCount(_threadCount);
+    return weights;
   };
 
   std::shared_ptr<ImageWeights> GetMFWeights() const { return _cachedWeights; }

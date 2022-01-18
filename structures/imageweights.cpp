@@ -15,6 +15,7 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/banddata.h>
 #include <aocommon/staticfor.h>
+#include <aocommon/system.h>
 
 #include <cmath>
 #include <iostream>
@@ -28,12 +29,13 @@ ImageWeights::ImageWeights()
       _pixelScaleY(0),
       _totalSum(0.0),
       _isGriddingFinished(false),
-      _weightsAsTaper(false) {}
+      _weightsAsTaper(false),
+      _threadCount(aocommon::system::ProcessorCount()) {}
 
 ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth,
                            size_t imageHeight, double pixelScaleX,
                            double pixelScaleY, bool weightsAsTaper,
-                           double superWeight, size_t threadCount)
+                           double superWeight)
     : _weightMode(weightMode),
       _imageWidth(round(double(imageWidth) / superWeight)),
       _imageHeight(round(double(imageHeight) / superWeight)),
@@ -42,7 +44,7 @@ ImageWeights::ImageWeights(const WeightMode& weightMode, size_t imageWidth,
       _totalSum(0.0),
       _isGriddingFinished(false),
       _weightsAsTaper(weightsAsTaper),
-      _threadCount(threadCount) {
+      _threadCount(aocommon::system::ProcessorCount()) {
   if (_imageWidth % 2 != 0) ++_imageWidth;
   if (_imageHeight % 2 != 0) ++_imageHeight;
   _grid.assign(_imageWidth * _imageHeight / 2, 0.0);

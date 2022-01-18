@@ -19,13 +19,13 @@ class BandData;
 class ImageWeights {
  public:
   /**
-   * Constructor to be used when needing to unserialize an object
+   * Constructor to be used when needing to unserialize an object.
    */
   ImageWeights();
 
   ImageWeights(const WeightMode& weightMode, size_t imageWidth,
                size_t imageHeight, double pixelScaleX, double pixelScaleY,
-               bool weightsAsTaper, double superWeight, size_t threadCount = 1);
+               bool weightsAsTaper, double superWeight);
 
   ImageWeights(const ImageWeights&) = delete;
   ImageWeights& operator=(const ImageWeights&) = delete;
