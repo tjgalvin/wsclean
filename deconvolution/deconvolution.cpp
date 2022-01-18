@@ -281,6 +281,10 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   readMask(groupTable);
 }
 
+size_t Deconvolution::IterationNumber() const {
+  return _parallelDeconvolution.FirstAlgorithm().IterationNumber();
+}
+
 void Deconvolution::readMask(const ImagingTable& groupTable) {
   bool hasMask = false;
   if (!_settings.fitsDeconvolutionMask.empty()) {

@@ -30,8 +30,8 @@ WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
   setChannelKeywords(entry, entry.polarization, channelInfo);
   setDeconvolutionKeywords(settings);
   if (deconvolution.IsInitialized())
-    setDeconvolutionResultKeywords(
-        deconvolution.GetAlgorithm().IterationNumber(), majorIterationNr);
+    setDeconvolutionResultKeywords(deconvolution.IterationNumber(),
+                                   majorIterationNr);
   if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }
 
@@ -49,8 +49,8 @@ WSCFitsWriter::WSCFitsWriter(
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
   if (deconvolution.IsInitialized())
-    setDeconvolutionResultKeywords(
-        deconvolution.GetAlgorithm().IterationNumber(), majorIterationNr);
+    setDeconvolutionResultKeywords(deconvolution.IterationNumber(),
+                                   majorIterationNr);
   if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }
 

@@ -22,7 +22,6 @@
 #include "../structures/imageweights.h"
 #include "../structures/msselection.h"
 
-#include "../deconvolution/deconvolutionalgorithm.h"
 #include "../deconvolution/imageset.h"
 
 #include "../idg/idgmsgridder.h"

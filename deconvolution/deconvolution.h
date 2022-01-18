@@ -32,14 +32,10 @@ class Deconvolution {
     _parallelDeconvolution.FreeDeconvolutionAlgorithms();
   }
 
-  class DeconvolutionAlgorithm& GetAlgorithm() {
-    return _parallelDeconvolution.FirstAlgorithm();
-  }
-  const DeconvolutionAlgorithm& GetAlgorithm() const {
-    return _parallelDeconvolution.FirstAlgorithm();
-  }
-
   bool IsInitialized() const { return _parallelDeconvolution.IsInitialized(); }
+
+  /// Return IterationNumber of the underlying \c DeconvolutionAlgorithm
+  size_t IterationNumber() const;
 
   void SaveSourceList(const class ImagingTable& table,
                       long double phaseCentreRA, long double phaseCentreDec) {
