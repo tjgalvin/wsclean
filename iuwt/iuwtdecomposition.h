@@ -7,6 +7,7 @@
 
 #include "../structures/image.h"
 
+#include <aocommon/staticfor.h>
 #include <aocommon/uvector.h>
 
 #include <iostream>
@@ -76,13 +77,13 @@ class IUWTDecomposition {
     }
   }
 
-  void Decompose(class ThreadPool& pool, const float* input, float* scratch,
-                 bool includeLargest) {
-    DecomposeMT(pool, input, scratch, includeLargest);
+  void Decompose(aocommon::StaticFor<size_t>& loop, const float* input,
+                 float* scratch, bool includeLargest) {
+    DecomposeMT(loop, input, scratch, includeLargest);
   }
 
-  void DecomposeMT(class ThreadPool& pool, const float* input, float* scratch,
-                   bool includeLargest);
+  void DecomposeMT(aocommon::StaticFor<size_t>& loop, const float* input,
+                   float* scratch, bool includeLargest);
 
   void DecomposeST(const float* input, float* scratch) {
     aocommon::UVector<float> i0(input, input + _width * _height);
@@ -244,7 +245,7 @@ class IUWTDecomposition {
     }
   }
 
-  static void convolveMT(class ThreadPool& threadPool, float* output,
+  static void convolveMT(aocommon::StaticFor<size_t>& loop, float* output,
                          const float* image, float* scratch, size_t width,
                          size_t height, int scale);
 
@@ -255,19 +256,6 @@ class IUWTDecomposition {
     convolveHorizontalFast(&output[startIndex], &image[startIndex], width,
                            endY - startY, scale);
   }
-
-  struct ConvolveHorizontalPartialFunc {
-    void operator()() {
-      convolveHorizontalPartial(_output, _image, _width, _startY, _endY,
-                                _scale);
-    }
-    float* _output;
-    const float* _image;
-    size_t _width;
-    size_t _startY;
-    size_t _endY;
-    int _scale;
-  };
 
   static void convolveHorizontal(float* output, const float* image,
                                  size_t width, size_t height, int scale) {
@@ -313,20 +301,6 @@ class IUWTDecomposition {
                                                 size_t startX, size_t endX,
                                                 int scale);
 
-  struct ConvolveVerticalPartialFunc {
-    void operator()() {
-      convolveVerticalPartialFast(_output, _image, _width, _height, _startX,
-                                  _endX, _scale);
-    }
-    float* _output;
-    const float* _image;
-    size_t _width;
-    size_t _height;
-    size_t _startX;
-    size_t _endX;
-    int _scale;
-  };
-
   static void differencePartial(float* dest, const float* lhs, const float* rhs,
                                 size_t width, size_t startY, size_t endY) {
     size_t startIndex = startY * width;
@@ -334,19 +308,7 @@ class IUWTDecomposition {
                endY - startY);
   }
 
-  struct DifferencePartialFunc {
-    void operator()() {
-      differencePartial(_dest, _lhs, _rhs, _width, _startY, _endY);
-    }
-    float* _dest;
-    const float* _lhs;
-    const float* _rhs;
-    size_t _width;
-    size_t _startY;
-    size_t _endY;
-  };
-
-  static void differenceMT(class ThreadPool& threadPool, float* dest,
+  static void differenceMT(aocommon::StaticFor<size_t>& loop, float* dest,
                            const float* lhs, const float* rhs, size_t width,
                            size_t height);
 

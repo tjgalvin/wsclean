@@ -1,6 +1,7 @@
 #ifndef IUWT_DECONVOLUTION_ALGORITHM_H
 #define IUWT_DECONVOLUTION_ALGORITHM_H
 
+#include <aocommon/staticfor.h>
 #include <aocommon/uvector.h>
 #include <aocommon/fits/fitswriter.h>
 
@@ -178,7 +179,7 @@ class IUWTDeconvolutionAlgorithm {
   class ImageSet* _modelSet;
   class ImageSet* _dirtySet;
   aocommon::UVector<const float*> _psfs;
-  class ThreadPool* _threadPool;
+  aocommon::StaticFor<size_t>* _staticFor;
 };
 
 #endif
