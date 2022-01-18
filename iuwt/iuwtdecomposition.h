@@ -40,7 +40,7 @@ class IUWTDecomposition {
       copySmallerPart(_scales[i].Coefficients(), p->_scales[i].Coefficients(),
                       x1, y1, x2, y2);
     }
-    p->_scales.back().Coefficients() = 0.0;
+    p->_scales.back().Coefficients() = Image(_width, _height, 0.0);
     return p.release();
   }
 
@@ -149,7 +149,7 @@ class IUWTDecomposition {
         if (!mask[scale][i]) _scales[scale][i] = 0.0;
       }
     }
-    _scales[_scaleCount].Coefficients() = 0.0;
+    _scales[_scaleCount].Coefficients() = Image(_width, _height, 0.0);
   }
 
   void Save(const std::string& prefix) {

@@ -99,6 +99,7 @@ find_package(
   HDF5
   COMPONENTS C CXX
   REQUIRED)
+add_definitions(${HDF5_DEFINITIONS})
 
 set(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
 find_package(Casacore REQUIRED COMPONENTS casa ms tables measures fits)

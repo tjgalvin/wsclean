@@ -275,20 +275,23 @@ void IUWTDeconvolutionAlgorithm::trim(Image& dest, const float* source,
                                       size_t x1, size_t y1, size_t x2,
                                       size_t y2) {
   // We do this so that dest and source can be the same image.
-  dest = Image((x2 - x1), (y2 - y1));
+  Image scratch((x2 - x1), (y2 - y1));
   for (size_t y = y1; y != y2; ++y) {
     const float* oldPtr = &source[y * oldWidth];
-    float* newPtr = &dest[(y - y1) * (x2 - x1)];
+    float* newPtr = &scratch[(y - y1) * (x2 - x1)];
     for (size_t x = x1; x != x2; ++x) {
       newPtr[x - x1] = oldPtr[x];
     }
   }
+  dest = scratch;
 }
 
 void IUWTDeconvolutionAlgorithm::untrim(Image& image, size_t width,
                                         size_t height, size_t x1, size_t y1,
                                         size_t x2, size_t y2) {
-  image = Image(width, height, 0.0);
+  Image scratch(width, height, 0.0);
+  std::copy_n(image.data(), image.Width() * image.Height(), scratch.data());
+  image = scratch;
   size_t y = y2;
   while (y != y1) {
     --y;
