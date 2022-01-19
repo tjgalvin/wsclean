@@ -129,12 +129,6 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
 #endif
   } else if (_settings.directFT) {
     switch (_settings.directFTPrecision) {
-      case DirectFTPrecision::Half:
-        throw std::runtime_error("Half precision is not implemented");
-        // return std::unique_ptr<MSGridderBase>(new
-        // DirectMSGridder<half_float::half>(&_imageAllocator,
-        // _settings.threadCount));
-        break;
       case DirectFTPrecision::Float:
         return std::unique_ptr<MSGridderBase>(
             new DirectMSGridder<float>(_settings));

@@ -1396,9 +1396,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "direct-ft-precision") {
       ++argi;
       std::string precStr = argv[argi];
-      if (precStr == "half")
-        settings.directFTPrecision = DirectFTPrecision::Half;
-      else if (precStr == "float")
+      if (precStr == "float")
         settings.directFTPrecision = DirectFTPrecision::Float;
       else if (precStr == "double")
         settings.directFTPrecision = DirectFTPrecision::Double;

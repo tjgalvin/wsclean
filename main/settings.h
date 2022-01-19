@@ -13,7 +13,7 @@
 
 #include <aocommon/system.h>
 
-enum class DirectFTPrecision { Half, Float, Double, LongDouble };
+enum class DirectFTPrecision { Float, Double, LongDouble };
 
 /**
  * This class describes all settings for a single WSClean run.
