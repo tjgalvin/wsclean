@@ -3,15 +3,16 @@
 #include "subminorloop.h"
 #include "peakfinder.h"
 
-#include <aocommon/lane.h>
-
 #include "../multiscale/threadeddeconvolutiontools.h"
-
-#include "../units/fluxdensity.h"
 
 #include "../io/logger.h"
 
+#include <aocommon/lane.h>
+#include <aocommon/units/fluxdensity.h>
+
 #include <boost/thread/thread.hpp>
+
+using aocommon::units::FluxDensity;
 
 GenericClean::GenericClean(class FFTWManager& fftwManager,
                            bool useSubMinorOptimization)

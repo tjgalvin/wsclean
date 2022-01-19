@@ -10,7 +10,9 @@
 
 #include "../io/logger.h"
 
-#include "../units/fluxdensity.h"
+#include <aocommon/units/fluxdensity.h>
+
+using aocommon::units::FluxDensity;
 
 MultiScaleAlgorithm::MultiScaleAlgorithm(FFTWManager& fftwManager,
                                          double beamSize, double pixelScaleX,

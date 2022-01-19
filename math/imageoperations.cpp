@@ -8,9 +8,10 @@
 #include "../math/gaussianfitter.h"
 #include "../math/modelrenderer.h"
 
-#include "../units/angle.h"
-
 #include <aocommon/fits/fitsreader.h>
+#include <aocommon/units/angle.h>
+
+using aocommon::units::Angle;
 
 void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
                                   double& bMin, double& bPA, const float* image,

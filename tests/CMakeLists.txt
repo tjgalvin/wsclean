@@ -6,7 +6,6 @@ add_executable(
   testcomponentlist.cpp
   testcommandline.cpp
   testfitsdateobstime.cpp
-  testfluxdensity.cpp
   testimageset.cpp
   testcachedimageset.cpp
   testparsetreader.cpp

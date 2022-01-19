@@ -8,17 +8,17 @@
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"
 
-#include "../units/angle.h"
-
 #include "../io/logger.h"
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/banddata.h>
 #include <aocommon/staticfor.h>
 #include <aocommon/system.h>
+#include <aocommon/units/angle.h>
 
 #include <cmath>
 #include <iostream>
+#include <cassert>
 #include <cstring>
 
 ImageWeights::ImageWeights()
@@ -327,7 +327,7 @@ void ImageWeights::RankFilter(double rankLimit, size_t windowSize) {
 }
 
 void ImageWeights::SetGaussianTaper(double beamSize) {
-  Logger::Debug << "Applying " << Angle::ToNiceString(beamSize)
+  Logger::Debug << "Applying " << aocommon::units::Angle::ToNiceString(beamSize)
                 << " Gaussian taper...\n";
   double halfPowerUV = 1.0 / (beamSize * 2.0 * M_PI);
   const long double sigmaToHP = 2.0L * sqrtl(2.0L * logl(2.0L));

@@ -3,15 +3,16 @@
 #include "../main/commandline.h"
 #include "../main/wsclean.h"
 
-#include "../units/angle.h"
-
 #include <aocommon/banddata.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
+#include <aocommon/units/angle.h>
 
 #include <string>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
+using aocommon::units::Angle;
 
 struct WSCleanUserData {
   std::string msPath;
@@ -377,5 +378,5 @@ void wsclean_operator_At(void* userData, double* dataOut,
 }
 
 double wsclean_parse_angle(const char* angle) {
-  return Angle::Parse(angle, "angle", Angle::Degrees);
+  return Angle::Parse(angle, "angle", Angle::kDegrees);
 }

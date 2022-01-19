@@ -14,8 +14,6 @@
 
 #include "../scheduling/griddingtaskmanager.h"
 
-#include "../units/angle.h"
-
 #include "../system/application.h"
 
 #include "../structures/image.h"
@@ -42,6 +40,7 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include <aocommon/parallelfor.h>
+#include <aocommon/units/angle.h>
 
 #include <schaapcommon/facets/facetimage.h>
 
@@ -50,6 +49,7 @@
 
 using aocommon::Polarization;
 using aocommon::PolarizationEnum;
+using aocommon::units::Angle;
 
 WSClean::WSClean()
     : _globalSelection(),

@@ -17,14 +17,14 @@
 #include "../structures/image.h"
 #include "../structures/imagingtable.h"
 
-#include "../units/fluxdensity.h"
-
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/imagecoordinates.h>
+#include <aocommon/units/fluxdensity.h>
 
 using aocommon::FitsReader;
 using aocommon::FitsWriter;
 using aocommon::ImageCoordinates;
+using aocommon::units::FluxDensity;
 
 Deconvolution::Deconvolution(const class Settings& settings)
     : _settings(settings),
@@ -340,9 +340,9 @@ void Deconvolution::readMask(const ImagingTable& groupTable) {
       hasMask = true;
     }
 
-    double fovSq = M_PI * 0.5 - _settings.horizonMaskDistance;
+    double fovSq = M_PI_2 - _settings.horizonMaskDistance;
     if (fovSq < 0.0) fovSq = 0.0;
-    if (fovSq <= M_PI * 0.5)
+    if (fovSq <= M_PI_2)
       fovSq = std::sin(fovSq);
     else  // a negative horizon distance was given
       fovSq = 1.0 - _settings.horizonMaskDistance;

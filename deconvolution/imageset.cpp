@@ -75,7 +75,9 @@ void ImageSet::initializeIndices() {
 }
 
 void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
-  for (size_t i = 0; i != _images.size(); ++i) _images[i] = 0.0;
+  for (Image& image : _images) {
+    image = 0.0;
+  }
 
   Image scratch(_width, _height);
 

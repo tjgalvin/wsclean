@@ -8,14 +8,13 @@
 
 #include "../math/dijkstrasplitter.h"
 
-#include "../units/fluxdensity.h"
-
 #include "../structures/image.h"
 #include "../structures/primarybeam.h"
 
 #include "componentlist.h"
 
 #include <aocommon/parallelfor.h>
+#include <aocommon/units/fluxdensity.h>
 
 ParallelDeconvolution::ParallelDeconvolution(const class Settings& settings)
     : _horImages(0),
@@ -344,7 +343,7 @@ void ParallelDeconvolution::executeParallelRun(
     }
   }
   Logger::Info << "Subimage " << (indexOfMax + 1) << " has maximum peak of "
-               << FluxDensity::ToNiceString(maxValue) << ".\n";
+               << aocommon::units::FluxDensity::ToNiceString(maxValue) << ".\n";
   double mIterThreshold = maxValue * (1.0 - _settings.deconvolutionMGain);
 
   // Run the deconvolution

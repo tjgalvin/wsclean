@@ -5,13 +5,12 @@
 
 #include "../io/logger.h"
 
-#include "../units/angle.h"
-#include "../units/fluxdensity.h"
-
 #include "../structures/numberlist.h"
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/radeccoord.h>
+#include <aocommon/units/angle.h>
+#include <aocommon/units/fluxdensity.h>
 
 #include <schaapcommon/h5parm/jonesparameters.h>
 
@@ -21,6 +20,9 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+
+using aocommon::units::Angle;
+using aocommon::units::FluxDensity;
 
 void CommandLine::printHelp() {
   std::cout
@@ -802,7 +804,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "scale") {
       ++argi;
       settings.pixelScaleX =
-          Angle::Parse(argv[argi], "scale parameter", Angle::Degrees);
+          Angle::Parse(argv[argi], "scale parameter", Angle::kDegrees);
       settings.pixelScaleY = settings.pixelScaleX;
     } else if (param == "nwlayers") {
       ++argi;
@@ -832,7 +834,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "threshold") {
       ++argi;
       settings.deconvolutionThreshold = FluxDensity::Parse(
-          argv[argi], "threshold parameter", FluxDensity::Jansky);
+          argv[argi], "threshold parameter", FluxDensity::kJansky);
     } else if (param == "auto-threshold") {
       ++argi;
       settings.autoDeconvolutionThreshold = true;
@@ -1081,7 +1083,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "taper-gaussian") {
       ++argi;
       double taperBeamSize =
-          Angle::Parse(argv[argi], "Gaussian taper", Angle::Arcseconds);
+          Angle::Parse(argv[argi], "Gaussian taper", Angle::kArcseconds);
       settings.gaussianTaperBeamSize = taperBeamSize;
     } else if (param == "taper-edge") {
       ++argi;
@@ -1165,7 +1167,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       ++argi;
       settings.horizonMask = true;
       settings.horizonMaskDistance =
-          Angle::Parse(argv[argi], "horizon mask distance", Angle::Degrees);
+          Angle::Parse(argv[argi], "horizon mask distance", Angle::kDegrees);
     } else if (param == "fit-spectral-pol") {
       ++argi;
       settings.spectralFittingMode = SpectralFittingMode::Polynomial;
@@ -1234,18 +1236,18 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       argi += 3;
     } else if (param == "beam-size" || param == "beamsize") {
       ++argi;
-      double beam = Angle::Parse(argv[argi], "beam size", Angle::Arcseconds);
+      double beam = Angle::Parse(argv[argi], "beam size", Angle::kArcseconds);
       settings.manualBeamMajorSize = beam;
       settings.manualBeamMinorSize = beam;
       settings.manualBeamPA = 0.0;
       if (param == "beamsize") deprecated(isSlave, param, "beam-size");
     } else if (param == "beam-shape" || param == "beamshape") {
       double beamMaj = Angle::Parse(argv[argi + 1], "beam shape, major axis",
-                                    Angle::Arcseconds);
+                                    Angle::kArcseconds);
       double beamMin = Angle::Parse(argv[argi + 2], "beam shape, minor axis",
-                                    Angle::Arcseconds);
+                                    Angle::kArcseconds);
       double beamPA = Angle::Parse(argv[argi + 3], "beam shape, position angle",
-                                   Angle::Degrees);
+                                   Angle::kDegrees);
       argi += 3;
       settings.manualBeamMajorSize = beamMaj;
       settings.manualBeamMinorSize = beamMin;

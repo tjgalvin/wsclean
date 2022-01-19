@@ -10,7 +10,7 @@
 #include "../structures/imageweights.h"
 #include "../structures/multibanddata.h"
 
-#include "../units/angle.h"
+#include <aocommon/units/angle.h>
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
@@ -655,7 +655,8 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   _theoreticalBeamSize = 1.0 / maxBaseline;
   if (IsFirstIteration()) {
     Logger::Info << "Theoretic beam = "
-                 << Angle::ToNiceString(_theoreticalBeamSize) << "\n";
+                 << aocommon::units::Angle::ToNiceString(_theoreticalBeamSize)
+                 << "\n";
   }
   if (_wLimit != 0.0) {
     _maxW *= (1.0 - _wLimit);
