@@ -18,8 +18,34 @@
 
 class BBSModel {
  public:
+  /**
+   * Parse the specified model file and place the result in a Model object.
+   * @returns The model containing all sources specified by the file.
+   */
   static Model Read(const std::string& input,
                     const std::string& sourceName = "") {
+    return read(input, {}, sourceName);
+  }
+
+  /**
+   * Parse the specified model file and call a function when a source is
+   * found. This function avoids having the entire model in memory. The
+   * render tool makes use of this function to stream through a model
+   * and immediately draw the source to the image. In such scenarios,
+   * it is not uncommon to have millions of sources in the model file.
+   */
+  static void Read(
+      const std::string& input,
+      const std::function<void(const ModelSource& source)>& processSource,
+      const std::string& sourceName = "") {
+    read(input, processSource, sourceName);
+  }
+
+ private:
+  static Model read(
+      const std::string& input,
+      const std::function<void(const ModelSource& source)>& processSource,
+      const std::string& sourceName = "") {
     std::ifstream inFile(input);
     if (!inFile) throw BBSParseException("Could not open model file");
     std::string line;
@@ -103,13 +129,29 @@ class BBSModel {
           else if (index == h.raInd) {
             if (val.empty())
               isPatch = true;
-            else
-              component.SetPosRA(RaDecCoord::ParseRA(val));
+            else {
+              try {
+                const double ra = RaDecCoord::ParseRA(val);
+                component.SetPosRA(ra);
+              } catch (std::exception& e) {
+                throw std::runtime_error("Source " + source.Name() +
+                                         " has invalid RA: " + val + ",\n" +
+                                         e.what());
+              }
+            }
           } else if (index == h.decInd) {
             if (val.empty())
               isPatch = true;
-            else
-              component.SetPosDec(RaDecCoord::ParseDec(val));
+            else {
+              try {
+                const double dec = RaDecCoord::ParseDec(val);
+                component.SetPosDec(dec);
+              } catch (std::exception& e) {
+                throw std::runtime_error("Source " + source.Name() +
+                                         " has invalid Dec: " + val + ",\n" +
+                                         e.what());
+              }
+            }
           } else if (index == h.typeInd) {
             std::string typeStr(val);
             boost::algorithm::to_lower(typeStr);
@@ -148,7 +190,10 @@ class BBSModel {
         if (!isPatch) {
           if (sourceName.empty()) {
             source.AddComponent(component);
-            model.AddSource(source);
+            if (processSource)
+              processSource(source);
+            else
+              model.AddSource(source);
           } else {
             globalSource.AddComponent(component);
           }
@@ -156,7 +201,12 @@ class BBSModel {
       }
       std::getline(inFile, line);
     }
-    if (!sourceName.empty()) model.AddSource(globalSource);
+    if (!sourceName.empty()) {
+      if (processSource)
+        processSource(globalSource);
+      else
+        model.AddSource(globalSource);
+    }
     return model;
   }
 

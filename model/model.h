@@ -41,8 +41,6 @@ class Model {
 
   static size_t npos;
 
-  void Optimize();
-
   void AddSource(const ModelSource& source) { _sources.push_back(source); }
 
   /**
@@ -185,7 +183,6 @@ class Model {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';
   }
   void add(const ModelSource& source);
-  void addOptimized(const ModelSource& source);
   void combineMeasurements(const ModelSource& source);
 };
 

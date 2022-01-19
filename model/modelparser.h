@@ -45,6 +45,25 @@ class ModelParser : private Tokenizer {
     }
   }
 
+  void Stream(std::ifstream &stream,
+              std::function<void(ModelSource &source)> processSource) {
+    SetStream(stream);
+
+    std::string line;
+    std::getline(stream, line);
+    parseVersionLine(line);
+    if (stream.bad()) throw std::runtime_error("Error parsing model");
+
+    std::string token;
+    while (getToken(token)) {
+      if (token != "source") throw std::runtime_error("Expecting source");
+
+      ModelSource source;
+      parseSource(source);
+      processSource(source);
+    }
+  }
+
  private:
   bool _fileVersion1_0;
 
@@ -110,9 +129,19 @@ class ModelParser : private Tokenizer {
           throw std::runtime_error("Unsupported component type");
       } else if (token == "position") {
         getToken(token);
-        component.SetPosRA(RaDecCoord::ParseRA(token));
+        try {
+          component.SetPosRA(RaDecCoord::ParseRA(token));
+        } catch (std::exception &e) {
+          throw std::runtime_error("Failed to parse RA: " + token + ",\n" +
+                                   e.what());
+        }
         getToken(token);
-        component.SetPosDec(RaDecCoord::ParseDec(token));
+        try {
+          component.SetPosDec(RaDecCoord::ParseDec(token));
+        } catch (std::exception &e) {
+          throw std::runtime_error("Failed to parse dec: " + token + ",\n" +
+                                   e.what());
+        }
       } else if (token == "measurement") {
         Measurement measurement;
         parseMeasurement(measurement);
