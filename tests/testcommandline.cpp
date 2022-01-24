@@ -9,14 +9,15 @@ const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
 const char* kMWA_BDA_MS = "test_data/MWA_BDA_MOCK.ms/";
 
 std::vector<const char*> baseArgs() {
-  return {"wsclean", "-size",           "1024",   "512",        "-scale",
-          "1amin",   "-multiscale",     "-niter", "1000000",    "-mgain",
-          "0.8",     "-auto-threshold", "1",      "-auto-mask", "4"};
+  return {"wsclean", "-quiet", "-size",           "1024",   "512",
+          "-scale",  "1amin",  "-multiscale",     "-niter", "1000000",
+          "-mgain",  "0.8",    "-auto-threshold", "1",      "-auto-mask",
+          "4"};
 }
 
 std::vector<const char*> baseArgsBda() {
-  return {"wsclean", "-size",    "1024",      "1024", "-scale",
-          "1amin",   "-use-idg", "-idg-mode", "cpu"};
+  return {"wsclean", "-quiet", "-size",    "1024",      "1024",
+          "-scale",  "1amin",  "-use-idg", "-idg-mode", "cpu"};
 }
 }  // namespace
 
