@@ -3,7 +3,9 @@ WSClean version 3.0
 
 Released 2021-08-26
 
-WSClean 3.0 depends on `IDG version 0.8 <https://git.astron.nl/RD/idg/-/releases/0.8>`_ or newer.
+New/changed dependencies:
+- To make use of IDG, WSClean 3.0 requires `IDG version 0.8 <https://git.astron.nl/RD/idg/-/releases/0.8>`_ or newer.
+- To make use of EveryBeam, WSClean 3.0 requires `EveryBeam 0.2 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.2.0>`_. Using EveryBeam 0.3 (or newer) results in compilation errors.
 
 Summary: This is a major release containing many new features and bug fixes. The biggest new feature in this release is facetting, which runs the gridder for smaller parts of the image, stitches those parts and runs deconvolution on the resulting image. Not all facetting functionality is finished as of yet (see the :doc:`facetting documentation <../facet_based_imaging>`). Upcoming releases will add more functionality to facetted imaging. Two other significant features are deconvolution with forced spectra and the ability to write deconvolution scripts in Python.
 
