@@ -14,7 +14,7 @@ struct MetaDataCache {
         integrationTime;
   };
   std::vector<Entry> msDataVector;
-  std::unique_ptr<class AverageBeam> averageBeam;
+  std::unique_ptr<AverageBeam> averageBeam;
   float beamSum = 0.0;
   float h5Sum = 0.0;
 

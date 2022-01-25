@@ -343,7 +343,7 @@ class MSGridderBase {
 
   void initializeMSDataVector(std::vector<MSData>& msDataVector);
 
-  std::unique_ptr<struct MetaDataCache> _metaDataCache;
+  std::unique_ptr<MetaDataCache> _metaDataCache;
 
   template <size_t PolarizationCount>
   static void rotateVisibilities(const aocommon::BandData& bandData,

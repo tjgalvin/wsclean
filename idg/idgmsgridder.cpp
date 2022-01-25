@@ -77,7 +77,7 @@ void IdgMsGridder::Invert() {
 
   if (!_metaDataCache->averageBeam)
     _metaDataCache->averageBeam.reset(new AverageBeam());
-  _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
+  _averageBeam = _metaDataCache->averageBeam.get();
 
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
@@ -570,7 +570,6 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
     const MSGridderBase::MSData& msData) {
   SynchronizedMS ms = msData.msProvider->MS();
   size_t nr_stations = ms->antenna().nrow();
-  aocommon::UVector<std::complex<float>> aTermBuffer;
   if (!_settings.atermConfigFilename.empty() || _settings.gridWithBeam) {
     // IDG uses a flipped coordinate system which is moved by half a pixel:
     everybeam::coords::CoordinateSystem system;
