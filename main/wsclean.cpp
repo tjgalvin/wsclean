@@ -1179,13 +1179,8 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
     if (!isPredictOnly) {
       if (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty()) {
         // Apply average direction dependent correction before storing
-        float m = 1.0;
-        if (_settings.applyFacetBeam)
-          m *= _msGridderMetaCache[facetEntry.index]->beamSum /
-               facetEntry.imageWeight;
-        if (!_settings.facetSolutionFiles.empty())
-          m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
-               facetEntry.imageWeight;
+        const float m = _msGridderMetaCache[facetEntry.index]->correctionSum /
+                        facetEntry.imageWeight;
         facetImage *= 1.0f / std::sqrt(m);
       }
     }
@@ -1761,13 +1756,8 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
 
     if (!isPSF &&
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())) {
-      float m = 1.0;
-      if (_settings.applyFacetBeam)
-        m *= _msGridderMetaCache[facetEntry.index]->beamSum /
-             facetEntry.imageWeight;
-      if (!_settings.facetSolutionFiles.empty())
-        m *= _msGridderMetaCache[facetEntry.index]->h5Sum /
-             facetEntry.imageWeight;
+      const float m = _msGridderMetaCache[facetEntry.index]->correctionSum /
+                      facetEntry.imageWeight;
       facetImage *= 1.0f / std::sqrt(m);
     }
 
@@ -2110,8 +2100,8 @@ void WSClean::correctImagesH5(aocommon::FitsWriter& writer,
       facetImage.SetFacet(*entry.facet, true);
       // Requires std::map::at in order to comply with constness of member
       // function
-      const float m =
-          _msGridderMetaCache.at(entry.index)->h5Sum / entry.imageWeight;
+      const float m = _msGridderMetaCache.at(entry.index)->correctionSum /
+                      entry.imageWeight;
       facetImage.MultiplyImageInsideFacet(imagePtr, 1.0f / std::sqrt(m));
     }
 
