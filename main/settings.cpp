@@ -1,6 +1,7 @@
 #include "settings.h"
 
 #include "../io/logger.h"
+#include "../io/facetreader.h"
 
 #include <schaapcommon/h5parm/h5parm.h>
 
@@ -77,12 +78,28 @@ void Settings::Validate() const {
       }
     }
 
-    if (!facetSolutionFiles.empty() && facetSolutionFiles.size() != 1 &&
-        facetSolutionFiles.size() != filenames.size()) {
-      throw std::runtime_error(
-          "Incorrect number of facet solution files provided. The number of "
-          "facet solution files should be either 1 or match the number of "
-          "input measurement sets.");
+    if (!facetSolutionFiles.empty()) {
+      if (facetSolutionFiles.size() != 1 &&
+          facetSolutionFiles.size() != filenames.size()) {
+        throw std::runtime_error(
+            "Incorrect number of facet solution files provided. The number of "
+            "facet solution files should be either 1 or match the number of "
+            "input measurement sets.");
+      }
+
+      const std::size_t nfacets =
+          FacetReader::ReadFacets(facetRegionFilename).size();
+      for (const std::string& facetSolutionFile : facetSolutionFiles) {
+        schaapcommon::h5parm::H5Parm h5parm =
+            schaapcommon::h5parm::H5Parm(facetSolutionFile);
+        const size_t nsources = h5parm.GetNumSources();
+        if (nsources != nfacets) {
+          throw std::runtime_error(
+              "Number of source directions in one of the h5 facet solution "
+              "files does not match the number of facets in the facet "
+              "definition file.");
+        }
+      }
     }
   }
 

@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import pytest
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, CalledProcessError, STDOUT
 import shutil
 import sys
 import warnings
@@ -308,7 +308,7 @@ def test_parallel_gridding():
         f"mpirun -np 3 {tcf.WSCLEAN_MP}",
     ]
     for name, command in zip(names, wsclean_commands):
-        s = f"{command} -quiet -use-wgridder -name {name} -apply-facet-solutions  mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
+        s = f"{command} -quiet -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {MWA_MOCK_MS}"
         check_call(s.split())
 
     # Compare images, the threshold is chosen relatively large since the difference
