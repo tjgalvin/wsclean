@@ -334,8 +334,8 @@ def test_multi_ms():
 
     names = ["facets-single-ms", "facets-multiple-ms"]
     commands = [
-        f"-apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS}",
-        f"-apply-facet-solutions mock_soltab_2pol.h5,mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS} {MWA_MOCK_FULL}",
+        f"-mwa-path . -apply-facet-beam -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS}",
+        f"-mwa-path . -apply-facet-beam -apply-facet-solutions mock_soltab_2pol.h5,mock_soltab_2pol.h5 ampl000,phase000 {MWA_MOCK_MS} {MWA_MOCK_FULL}",
     ]
     for name, command in zip(names, commands):
         s = f"{tcf.WSCLEAN} -nmiter 2 -use-wgridder -name {name} -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS} -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {command}"
@@ -344,5 +344,9 @@ def test_multi_ms():
     # Compare images, the threshold is chosen relatively large since the difference
     # fluctuates between runs.
     # AST-611 aims to investigate this.
-    threshold = 8e-3
+    threshold = 1.2e-2
     compare_rms_fits(f"{names[0]}-image.fits", f"{names[1]}-image.fits", threshold)
+
+    # Model data columns should be equal
+    taql_command = f"select from {MWA_MOCK_MS} t1, {MWA_MOCK_FULL} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-4))"
+    assert_taql(taql_command)
