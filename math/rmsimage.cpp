@@ -2,7 +2,10 @@
 
 #include "modelrenderer.h"
 
+#include <aocommon/image.h>
 #include <aocommon/staticfor.h>
+
+using aocommon::Image;
 
 void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
                     double windowSize, long double beamMaj, long double beamMin,
@@ -13,7 +16,7 @@ void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
 
   for (auto& val : image) val *= val;
 
-  ModelRenderer::Restore(rmsOutput.data(), image.data(), image.Width(),
+  ModelRenderer::Restore(rmsOutput.Data(), image.Data(), image.Width(),
                          image.Height(), beamMaj * windowSize,
                          beamMin * windowSize, beamPA, pixelScaleL, pixelScaleM,
                          threadCount);
@@ -62,6 +65,14 @@ void RMSImage::SlidingMinimum(Image& output, const Image& input,
   });
 }
 
+void RMSImage::SlidingMaximum(Image& output, const Image& input,
+                              size_t windowSize, size_t threadCount) {
+  Image flipped(input);
+  flipped.Negate();
+  SlidingMinimum(output, flipped, windowSize, threadCount);
+  output.Negate();
+}
+
 void RMSImage::MakeWithNegativityLimit(
     Image& rmsOutput, const Image& inputImage, double windowSize,
     long double beamMaj, long double beamMin, long double beamPA,
@@ -72,7 +83,7 @@ void RMSImage::MakeWithNegativityLimit(
   double beamInPixels = std::max(beamMaj / pixelScaleL, 1.0L);
   SlidingMinimum(slidingMinimum, inputImage, windowSize * beamInPixels,
                  threadCount);
-  for (size_t i = 0; i != rmsOutput.size(); ++i) {
+  for (size_t i = 0; i != rmsOutput.Size(); ++i) {
     rmsOutput[i] = std::max<float>(rmsOutput[i],
                                    std::abs(slidingMinimum[i]) * (1.5 / 5.0));
   }

@@ -1,6 +1,7 @@
 #ifndef WSCLEAN_H
 #define WSCLEAN_H
 
+#include <aocommon/image.h>
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 #include <schaapcommon/facets/facet.h>
@@ -32,6 +33,12 @@ namespace facets {
 class FacetImage;
 }
 }  // namespace schaapcommon
+
+// namespace aocommon {
+// template <typename NumT>
+// class ImageBase;
+// using Image = ImageBase<float>;
+// }  // namespace aocommon
 
 class PrimaryBeam;
 class WSClean {
@@ -148,10 +155,10 @@ class WSClean {
 
   void predict(const ImagingTableEntry& entry);
 
-  void saveUVImage(const Image& image, const ImagingTableEntry& entry,
+  void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry,
                    bool isImaginary, const std::string& prefix) const;
 
-  void processFullPSF(Image& image, const ImagingTableEntry& entry);
+  void processFullPSF(aocommon::Image& image, const ImagingTableEntry& entry);
 
   /**
    * @brief Stitch facets for all FacetGroups
@@ -169,7 +176,7 @@ class WSClean {
    */
   void stitchSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
                          CachedImageSet& imageCache, bool writeDirty,
-                         bool isPSF, Image& fullImage,
+                         bool isPSF, aocommon::Image& fullImage,
                          schaapcommon::facets::FacetImage& facetImage,
                          size_t nFacetGroups);
   /**
@@ -181,7 +188,8 @@ class WSClean {
    * Partition image into facets for a single (Facet)Group
    */
   void partitionSingleGroup(const ImagingTable& facetGroup, size_t imageIndex,
-                            CachedImageSet& imageCache, const Image& fullImage,
+                            CachedImageSet& imageCache,
+                            const aocommon::Image& fullImage,
                             schaapcommon::facets::FacetImage& facetImage,
                             bool isPredictOnly);
 

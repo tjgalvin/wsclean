@@ -3,6 +3,7 @@
 #include "../scheduling/griddingtask.h"
 #include "../idg/averagebeam.h"
 
+#include <aocommon/image.h>
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 
@@ -79,14 +80,14 @@ BOOST_AUTO_TEST_CASE(msselection) {
 }
 
 BOOST_AUTO_TEST_CASE(image) {
-  Image a(12, 13);
+  aocommon::Image a(12, 13);
   for (size_t i = 0; i != 12 * 13; ++i) a[i] = i + 1;
 
   SerialOStream ostr;
   a.Serialize(ostr);
   BOOST_CHECK_NE(ostr.size(), 0u);
 
-  Image b;
+  aocommon::Image b;
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
   BOOST_CHECK_EQUAL(a.Width(), b.Width());

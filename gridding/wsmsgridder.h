@@ -4,11 +4,10 @@
 #include "msgridderbase.h"
 #include "wstackinggridder.h"
 
-#include "../structures/image.h"
-
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
+#include <aocommon/image.h>
 #include <aocommon/lane.h>
 #include <aocommon/multibanddata.h>
 
@@ -25,9 +24,9 @@ class WSMSGridder final : public MSGridderBase {
 
   virtual void Invert() override;
 
-  virtual void Predict(std::vector<Image>&& images) override;
+  virtual void Predict(std::vector<aocommon::Image>&& images) override;
 
-  virtual std::vector<Image> ResultImages() override {
+  virtual std::vector<aocommon::Image> ResultImages() override {
     if (IsComplex())
       return {std::move(_realImage), std::move(_imaginaryImage)};
     else
@@ -94,7 +93,8 @@ class WSMSGridder final : public MSGridderBase {
   size_t _antialiasingKernelSize, _overSamplingFactor;
   size_t _cpuCount, _laneBufferSize;
   int64_t _memSize;
-  Image _realImage, _imaginaryImage;
+  aocommon::Image _realImage;
+  aocommon::Image _imaginaryImage;
 };
 
 #endif

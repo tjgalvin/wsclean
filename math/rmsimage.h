@@ -1,27 +1,26 @@
 #ifndef RMS_IMAGE_H
 #define RMS_IMAGE_H
 
-#include "../structures/image.h"
+#include <aocommon/image.h>
 
 class RMSImage {
  public:
-  static void Make(Image& rmsOutput, const Image& inputImage, double windowSize,
+  static void Make(aocommon::Image& rmsOutput,
+                   const aocommon::Image& inputImage, double windowSize,
                    long double beamMaj, long double beamMin, long double beamPA,
                    long double pixelScaleL, long double pixelScaleM,
                    size_t threadCount);
 
-  static void SlidingMinimum(Image& output, const Image& input,
-                             size_t windowSize, size_t threadCount);
+  static void SlidingMinimum(aocommon::Image& output,
+                             const aocommon::Image& input, size_t windowSize,
+                             size_t threadCount);
 
-  static void SlidingMaximum(Image& output, const Image& input,
-                             size_t windowSize, size_t threadCount) {
-    Image flipped(input);
-    flipped.Negate();
-    SlidingMinimum(output, flipped, windowSize, threadCount);
-    output.Negate();
-  }
+  static void SlidingMaximum(aocommon::Image& output,
+                             const aocommon::Image& input, size_t windowSize,
+                             size_t threadCount);
 
-  static void MakeWithNegativityLimit(Image& rmsOutput, const Image& inputImage,
+  static void MakeWithNegativityLimit(aocommon::Image& rmsOutput,
+                                      const aocommon::Image& inputImage,
                                       double windowSize, long double beamMaj,
                                       long double beamMin, long double beamPA,
                                       long double pixelScaleL,

@@ -2,8 +2,8 @@
 #define GRIDDING_RESULT_H
 
 #include "../scheduling/metadatacache.h"
-#include "../structures/image.h"
 
+#include <aocommon/image.h>
 #include <aocommon/io/serialstreamfwd.h>
 
 #include <string>
@@ -27,7 +27,7 @@ struct GriddingResult {
    * IDG, the list will contain all four images ordered IQUV. In all other
    * cases, this list will only hold one image.
    */
-  std::vector<Image> images;
+  std::vector<aocommon::Image> images;
   double startTime;
   double beamSize;
   double imageWeight;

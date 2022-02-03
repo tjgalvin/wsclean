@@ -20,7 +20,6 @@ add_executable(
   msproviders/tbdamsrowproviderdata.cpp
   msproviders/tbdamsrowprovider.cpp
   msproviders/tmsrowproviderbase.cpp
-  structures/testimage.cpp
   structures/testimagingtable.cpp
   ${WSCLEANFILES})
 

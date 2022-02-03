@@ -5,8 +5,7 @@
 
 #include "iuwtmask.h"
 
-#include "../structures/image.h"
-
+#include <aocommon/image.h>
 #include <aocommon/staticfor.h>
 #include <aocommon/uvector.h>
 
@@ -16,13 +15,13 @@
 
 class IUWTDecompositionScale {
  public:
-  Image& Coefficients() { return _coefficients; }
-  const Image& Coefficients() const { return _coefficients; }
+  aocommon::Image& Coefficients() { return _coefficients; }
+  const aocommon::Image& Coefficients() const { return _coefficients; }
   float& operator[](size_t index) { return _coefficients[index]; }
   const float& operator[](size_t index) const { return _coefficients[index]; }
 
  private:
-  Image _coefficients;
+  aocommon::Image _coefficients;
 };
 
 class IUWTDecomposition {
@@ -41,35 +40,35 @@ class IUWTDecomposition {
       copySmallerPart(_scales[i].Coefficients(), p->_scales[i].Coefficients(),
                       x1, y1, x2, y2);
     }
-    p->_scales.back().Coefficients() = Image(_width, _height, 0.0);
+    p->_scales.back().Coefficients() = aocommon::Image(_width, _height, 0.0);
     return p.release();
   }
 
-  void Convolve(Image& image, int toScale) {
-    Image scratch(image.Width(), image.Height());
+  void Convolve(aocommon::Image& image, int toScale) {
+    aocommon::Image scratch(image.Width(), image.Height());
     for (int scale = 0; scale != toScale; ++scale) {
-      convolve(image.data(), image.data(), scratch.data(), _width, _height,
+      convolve(image.Data(), image.Data(), scratch.Data(), _width, _height,
                scale + 1);
     }
   }
 
-  void DecomposeSimple(Image& input) {
-    Image scratch(input.Width(), input.Height());
+  void DecomposeSimple(aocommon::Image& input) {
+    aocommon::Image scratch(input.Width(), input.Height());
     for (int scale = 0; scale != int(_scaleCount); ++scale) {
-      Image& coefficients = _scales[scale].Coefficients();
-      coefficients = Image(_width, _height);
+      aocommon::Image& coefficients = _scales[scale].Coefficients();
+      coefficients = aocommon::Image(_width, _height);
 
-      Image tmp(_width, _height);
-      convolve(tmp.data(), input.data(), scratch.data(), _width, _height,
+      aocommon::Image tmp(_width, _height);
+      convolve(tmp.Data(), input.Data(), scratch.Data(), _width, _height,
                scale);
-      difference(coefficients.data(), input.data(), tmp.data(), _width,
+      difference(coefficients.Data(), input.Data(), tmp.Data(), _width,
                  _height);
-      memcpy(input.data(), tmp.data(), sizeof(float) * _width * _height);
+      memcpy(input.Data(), tmp.Data(), sizeof(float) * _width * _height);
     }
     _scales.back().Coefficients() = input;
   }
 
-  void RecomposeSimple(Image& output) {
+  void RecomposeSimple(aocommon::Image& output) {
     output = _scales[0].Coefficients();
     for (size_t scale = 1; scale != _scaleCount - 1; ++scale) {
       for (size_t i = 0; i != _width * _height; ++i)
@@ -87,46 +86,48 @@ class IUWTDecomposition {
 
   void DecomposeST(const float* input, float* scratch) {
     aocommon::UVector<float> i0(input, input + _width * _height);
-    Image i1(_width, _height), i2(_width, _height);
+    aocommon::Image i1(_width, _height);
+    aocommon::Image i2(_width, _height);
     for (int scale = 0; scale != int(_scaleCount); ++scale) {
-      Image& coefficients = _scales[scale].Coefficients();
-      coefficients = Image(_width, _height);
-      convolve(i1.data(), i0.data(), scratch, _width, _height, scale + 1);
-      convolve(i2.data(), i1.data(), scratch, _width, _height, scale + 1);
+      aocommon::Image& coefficients = _scales[scale].Coefficients();
+      coefficients = aocommon::Image(_width, _height);
+      convolve(i1.Data(), i0.data(), scratch, _width, _height, scale + 1);
+      convolve(i2.Data(), i1.Data(), scratch, _width, _height, scale + 1);
 
       // coefficients = i0 - i2
-      difference(coefficients.data(), i0.data(), i2.data(), _width, _height);
+      difference(coefficients.Data(), i0.data(), i2.Data(), _width, _height);
 
       // i0 = i1;
       if (scale + 1 != int(_scaleCount))
-        memcpy(i0.data(), i1.data(), sizeof(float) * _width * _height);
+        memcpy(i0.data(), i1.Data(), sizeof(float) * _width * _height);
     }
     _scales.back().Coefficients() = i1;
   }
 
-  void Recompose(Image& output, bool includeLargest) {
-    Image scratch1(_width, _height), scratch2(_width, _height);
+  void Recompose(aocommon::Image& output, bool includeLargest) {
+    aocommon::Image scratch1(_width, _height);
+    aocommon::Image scratch2(_width, _height);
     bool isZero;
     if (includeLargest) {
       output = _scales.back().Coefficients();
       isZero = false;
     } else {
-      output = Image(_width, _height, 0.0);
+      output = aocommon::Image(_width, _height, 0.0);
       isZero = true;
     }
     for (int scale = int(_scaleCount) - 1; scale != -1; --scale) {
-      const Image& coefficients = _scales[scale].Coefficients();
+      const aocommon::Image& coefficients = _scales[scale].Coefficients();
       if (isZero) {
         output = coefficients;
         isZero = false;
       } else {
         // output = output (x) IUWT
-        convolve(scratch2.data(), output.data(), scratch1.data(), _width,
+        convolve(scratch2.Data(), output.Data(), scratch1.Data(), _width,
                  _height, scale + 1);
         output = scratch2;
 
         // output += coefficients
-        for (size_t i = 0; i != output.size(); ++i)
+        for (size_t i = 0; i != output.Size(); ++i)
           output[i] += coefficients[i];
       }
     }
@@ -146,11 +147,11 @@ class IUWTDecomposition {
 
   void ApplyMask(const IUWTMask& mask) {
     for (size_t scale = 0; scale != _scaleCount; ++scale) {
-      for (size_t i = 0; i != _scales[scale].Coefficients().size(); ++i) {
+      for (size_t i = 0; i != _scales[scale].Coefficients().Size(); ++i) {
         if (!mask[scale][i]) _scales[scale][i] = 0.0;
       }
     }
-    _scales[_scaleCount].Coefficients() = Image(_width, _height, 0.0);
+    _scales[_scaleCount].Coefficients() = aocommon::Image(_width, _height, 0.0);
   }
 
   void Save(const std::string& prefix) {
@@ -160,7 +161,7 @@ class IUWTDecomposition {
     for (size_t scale = 0; scale != _scales.size(); ++scale) {
       std::ostringstream str;
       str << prefix << "-iuwt-" << scale << ".fits";
-      writer.Write(str.str(), _scales[scale].Coefficients().data());
+      writer.Write(str.str(), _scales[scale].Coefficients().Data());
     }
   }
 
@@ -319,10 +320,10 @@ class IUWTDecomposition {
     }
   }
 
-  void copySmallerPart(const Image& input, Image& output, size_t x1, size_t y1,
-                       size_t x2, size_t y2) const {
+  void copySmallerPart(const aocommon::Image& input, aocommon::Image& output,
+                       size_t x1, size_t y1, size_t x2, size_t y2) const {
     size_t newWidth = x2 - x1;
-    output = Image(newWidth, y2 - y1);
+    output = aocommon::Image(newWidth, y2 - y1);
     for (size_t y = y1; y != y2; ++y) {
       const float* oldPtr = &input[y * _width];
       float* newPtr = &output[(y - y1) * newWidth];

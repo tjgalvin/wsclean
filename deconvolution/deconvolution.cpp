@@ -14,15 +14,16 @@
 
 #include "../multiscale/multiscalealgorithm.h"
 
-#include "../structures/image.h"
 #include "../structures/imagingtable.h"
 
+#include <aocommon/image.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/units/fluxdensity.h>
 
 using aocommon::FitsReader;
 using aocommon::FitsWriter;
+using aocommon::Image;
 using aocommon::ImageCoordinates;
 using aocommon::units::FluxDensity;
 
@@ -66,7 +67,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
     if (!_settings.localRMSImage.empty()) {
       Image rmsImage(_imgWidth, _imgHeight);
       FitsReader reader(_settings.localRMSImage);
-      reader.Read(rmsImage.data());
+      reader.Read(rmsImage.Data());
       // Normalize the RMS image
       stddev = rmsImage.Min();
       Logger::Info << "Lowest RMS in image: "
@@ -114,7 +115,7 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
     _parallelDeconvolution.SetThreshold(
         std::max(stddev * _settings.autoDeconvolutionThresholdSigma,
                  _settings.deconvolutionThreshold));
-  integrated.reset();
+  integrated.Reset();
 
   std::vector<aocommon::UVector<float>> psfVecs(residualSet.PSFCount());
   Logger::Debug << "Loading PSFs...\n";
@@ -274,7 +275,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
           "imaging size");
     std::vector<Image> terms(1);
     terms[0] = Image(_imgWidth, _imgHeight);
-    reader.Read(terms[0].data());
+    reader.Read(terms[0].Data());
     _parallelDeconvolution.SetSpectrallyForcedImages(std::move(terms));
   }
 
@@ -367,7 +368,7 @@ void Deconvolution::readMask(const ImagingTable& groupTable) {
     FitsWriter writer;
     writer.SetImageDimensions(_imgWidth, _imgHeight, _settings.pixelScaleX,
                               _settings.pixelScaleY);
-    writer.Write(_settings.prefixName + "-horizon-mask.fits", image.data());
+    writer.Write(_settings.prefixName + "-horizon-mask.fits", image.Data());
   }
 
   if (hasMask) _parallelDeconvolution.SetCleanMask(_cleanMask.data());

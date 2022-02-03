@@ -7,6 +7,8 @@
 
 #include <limits>
 
+using aocommon::Image;
+
 namespace {
 constexpr double kDefaultReferenceFrequency = 150e6;
 }

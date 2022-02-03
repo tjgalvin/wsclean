@@ -328,7 +328,6 @@ add_library(
   scheduling/griddingtask.cpp
   scheduling/metadatacache.cpp
   scheduling/threadedscheduler.cpp
-  structures/image.cpp
   structures/imageweights.cpp
   structures/imagingtable.cpp
   structures/imagingtableentry.cpp

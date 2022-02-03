@@ -1,5 +1,6 @@
 #include "moresane.h"
 
+#include <aocommon/image.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 
@@ -14,10 +15,10 @@ void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
                                      size_t height) {
   if (_iterationNumber != 0) {
     Logger::Info << "Convolving model with psf...\n";
-    Image preparedPsf(width, height);
-    FFTConvolver::PrepareKernel(preparedPsf.data(), psfImage, width, height,
+    aocommon::Image preparedPsf(width, height);
+    FFTConvolver::PrepareKernel(preparedPsf.Data(), psfImage, width, height,
                                 _threadCount);
-    FFTConvolver::ConvolveSameSize(_fftwManager, modelImage, preparedPsf.data(),
+    FFTConvolver::ConvolveSameSize(_fftwManager, modelImage, preparedPsf.Data(),
                                    width, height, _threadCount);
     Logger::Info << "Adding model back to residual...\n";
     for (size_t i = 0; i != width * height; ++i) dataImage[i] += modelImage[i];

@@ -15,6 +15,8 @@
 
 #include "../multiscale/multiscaletransforms.h"
 
+#include <aocommon/image.h>
+
 class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
  public:
   MultiScaleAlgorithm(class FFTWManager& fftwManager, double beamSize,
@@ -113,11 +115,12 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   aocommon::cloned_ptr<ComponentList> _componentList;
 
   void initializeScaleInfo();
-  void convolvePSFs(std::unique_ptr<Image[]>& convolvedPSFs, const float* psf,
-                    Image& scratch, bool isIntegrated);
+  void convolvePSFs(std::unique_ptr<aocommon::Image[]>& convolvedPSFs,
+                    const float* psf, aocommon::Image& scratch,
+                    bool isIntegrated);
   void findActiveScaleConvolvedMaxima(const ImageSet& imageSet,
-                                      Image& integratedScratch, float* scratch,
-                                      bool reportRMS,
+                                      aocommon::Image& integratedScratch,
+                                      float* scratch, bool reportRMS,
                                       ThreadedDeconvolutionTools* tools);
   bool selectMaximumScale(size_t& scaleWithPeak);
   void activateScales(size_t scaleWithLastPeak);
@@ -130,7 +133,8 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
 
   float* getConvolvedPSF(
       size_t psfIndex, size_t scaleIndex,
-      const std::unique_ptr<std::unique_ptr<Image[]>[]>& convolvedPSFs);
+      const std::unique_ptr<std::unique_ptr<aocommon::Image[]>[]>&
+          convolvedPSFs);
   void getConvolutionDimensions(size_t scaleIndex, size_t& width,
                                 size_t& height) const;
 };

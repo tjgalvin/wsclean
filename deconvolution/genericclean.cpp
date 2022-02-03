@@ -7,6 +7,7 @@
 
 #include "../io/logger.h"
 
+#include <aocommon/image.h>
 #include <aocommon/lane.h>
 #include <aocommon/units/fluxdensity.h>
 
@@ -33,20 +34,20 @@ float GenericClean::ExecuteMajorIteration(
   if (_convolutionWidth % 2 != 0) ++_convolutionWidth;
   if (_convolutionHeight % 2 != 0) ++_convolutionHeight;
 
-  Image integrated(width, height),
-      scratchA(_convolutionWidth, _convolutionHeight),
-      scratchB(_convolutionWidth, _convolutionHeight);
+  aocommon::Image integrated(width, height);
+  aocommon::Image scratchA(_convolutionWidth, _convolutionHeight);
+  aocommon::Image scratchB(_convolutionWidth, _convolutionHeight);
   dirtySet.GetLinearIntegrated(integrated);
   size_t componentX = 0, componentY = 0;
   boost::optional<float> maxValue =
-      findPeak(integrated.data(), scratchA.data(), componentX, componentY);
+      findPeak(integrated.Data(), scratchA.Data(), componentX, componentY);
   if (!maxValue) {
     _logReceiver->Info << "No peak found.\n";
     reachedMajorThreshold = false;
     return 0.0;
   }
   _logReceiver->Info << "Initial peak: "
-                     << peakDescription(integrated.data(), componentX,
+                     << peakDescription(integrated.Data(), componentX,
                                         componentY)
                      << '\n';
   float firstThreshold = this->_threshold;
@@ -73,7 +74,7 @@ float GenericClean::ExecuteMajorIteration(
     subMinorLoop.SetAllowNegativeComponents(AllowNegativeComponents());
     subMinorLoop.SetStopOnNegativeComponent(StopOnNegativeComponents());
     subMinorLoop.SetSpectralFitter(&Fitter());
-    if (!_rmsFactorImage.empty())
+    if (!_rmsFactorImage.Empty())
       subMinorLoop.SetRMSFactorImage(_rmsFactorImage);
     if (_cleanMask) subMinorLoop.SetMask(_cleanMask);
     const size_t horBorderSize = std::round(_width * CleanBorderRatio()),
@@ -93,14 +94,14 @@ float GenericClean::ExecuteMajorIteration(
     for (size_t imageIndex = 0; imageIndex != dirtySet.size(); ++imageIndex) {
       // TODO this can be multi-threaded if each thread has its own temporaries
       const float* psf = psfs[dirtySet.PSFIndex(imageIndex)];
-      subMinorLoop.CorrectResidualDirty(_fftwManager, scratchA.data(),
-                                        scratchB.data(), integrated.data(),
+      subMinorLoop.CorrectResidualDirty(_fftwManager, scratchA.Data(),
+                                        scratchB.Data(), integrated.Data(),
                                         imageIndex, dirtySet[imageIndex], psf);
 
-      subMinorLoop.GetFullIndividualModel(imageIndex, scratchA.data());
+      subMinorLoop.GetFullIndividualModel(imageIndex, scratchA.Data());
       float* model = modelSet[imageIndex];
       for (size_t i = 0; i != _width * _height; ++i)
-        model[i] += scratchA.data()[i];
+        model[i] += scratchA.Data()[i];
     }
   } else {
     ThreadedDeconvolutionTools tools(_threadCount);
@@ -117,7 +118,7 @@ float GenericClean::ExecuteMajorIteration(
            this->_iterationNumber % 100 == 0) ||
           this->_iterationNumber % 1000 == 0)
         _logReceiver->Info << "Iteration " << this->_iterationNumber << ": "
-                           << peakDescription(integrated.data(), componentX,
+                           << peakDescription(integrated.Data(), componentX,
                                               componentY)
                            << '\n';
 
@@ -138,7 +139,7 @@ float GenericClean::ExecuteMajorIteration(
 
       dirtySet.GetSquareIntegrated(integrated, scratchA);
       maxValue =
-          findPeak(integrated.data(), scratchA.data(), componentX, componentY);
+          findPeak(integrated.Data(), scratchA.Data(), componentX, componentY);
 
       peakIndex = componentX + componentY * _width;
 
@@ -188,7 +189,7 @@ std::string GenericClean::peakDescription(const float* image, size_t& x,
 boost::optional<float> GenericClean::findPeak(const float* image,
                                               float* scratch, size_t& x,
                                               size_t& y) {
-  if (_rmsFactorImage.empty()) {
+  if (_rmsFactorImage.Empty()) {
     if (_cleanMask == nullptr)
       return PeakFinder::Find(image, _width, _height, x, y,
                               _allowNegativeComponents, 0, _height,

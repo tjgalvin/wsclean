@@ -14,9 +14,12 @@
 #include "../system/buffered_lane.h"
 
 #include "../structures/imageweights.h"
-#include "../structures/image.h"
+
+#include <aocommon/image.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
+using aocommon::Image;
 
 WGriddingMSGridder::WGriddingMSGridder(const Settings& settings)
     : MSGridderBase(settings),
@@ -247,7 +250,7 @@ void WGriddingMSGridder::Invert() {
                            ImageWidth(), ImageHeight(), _cpuCount);
 
     Image resized(ImageWidth(), ImageHeight());
-    resampler.Resample(_image.data(), resized.data());
+    resampler.Resample(_image.Data(), resized.Data());
     _image = std::move(resized);
   }
 
@@ -256,7 +259,7 @@ void WGriddingMSGridder::Invert() {
                   << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
 
     Image trimmed(TrimWidth(), TrimHeight());
-    Image::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _image.data(),
+    Image::Trim(trimmed.Data(), TrimWidth(), TrimHeight(), _image.Data(),
                 ImageWidth(), ImageHeight());
     _image = std::move(trimmed);
   }
@@ -278,8 +281,8 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
     Image untrimmedImage(ImageWidth(), ImageHeight());
     Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight()
                   << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
-    Image::Untrim(untrimmedImage.data(), ImageWidth(), ImageHeight(),
-                  images[0].data(), TrimWidth(), TrimHeight());
+    Image::Untrim(untrimmedImage.Data(), ImageWidth(), ImageHeight(),
+                  images[0].Data(), TrimWidth(), TrimHeight());
     images[0] = std::move(untrimmedImage);
   }
 
@@ -289,12 +292,12 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
     FFTResampler resampler(ImageWidth(), ImageHeight(), ActualInversionWidth(),
                            ActualInversionHeight(), _cpuCount);
 
-    resampler.Resample(images[0].data(), resampledImage.data());
+    resampler.Resample(images[0].Data(), resampledImage.Data());
     images[0] = std::move(resampledImage);
   }
 
-  _gridder->InitializePrediction(images[0].data());
-  images[0].reset();
+  _gridder->InitializePrediction(images[0].Data());
+  images[0].Reset();
 
   for (MSData& msData : msDataVector) {
     if (Polarization() == aocommon::Polarization::XX) {

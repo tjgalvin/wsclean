@@ -4,9 +4,9 @@
 #include "imagebufferallocator.h"
 
 #include "../fftresampler.h"
-#include "../image.h"
 #include "../rmsimage.h"
 
+#include <aocommon/image.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 
@@ -23,9 +23,10 @@ class BinnedUVOutput {
     aocommon::FitsReader uvCoverageReader(uvCoveragePrefix + "-psf.fits");
     const size_t width = dirtyReader.ImageWidth(),
                  height = dirtyReader.ImageHeight();
-    Image dirty(width, height, allocator), psf(width, height, allocator),
-        uvCovPsf(width, height, allocator), realUV(width, height, allocator),
-        imagUV(width, height, allocator), realPsfUV(width, height, allocator),
+    aocommon::Image dirty(width, height, allocator),
+        psf(width, height, allocator), uvCovPsf(width, height, allocator),
+        realUV(width, height, allocator), imagUV(width, height, allocator),
+        realPsfUV(width, height, allocator),
         imagPsfUV(width, height, allocator),
         realPsfUVCoverage(width, height, allocator),
         imagPsfUVCoverage(width, height, allocator),

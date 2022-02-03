@@ -8,13 +8,14 @@
 
 #include "../math/dijkstrasplitter.h"
 
-#include "../structures/image.h"
 #include "../structures/primarybeam.h"
 
 #include "componentlist.h"
 
 #include <aocommon/parallelfor.h>
 #include <aocommon/units/fluxdensity.h>
+
+using aocommon::Image;
 
 ParallelDeconvolution::ParallelDeconvolution(const class Settings& settings)
     : _horImages(0),
@@ -109,14 +110,14 @@ void ParallelDeconvolution::runSubImage(
   aocommon::UVector<const float*> subPsfVector(psfImages.size());
   for (size_t i = 0; i != psfImages.size(); ++i) {
     subPsfs[i] = Image(subImg.width, subImg.height);
-    Image::Trim(subPsfs[i].data(), subImg.width, subImg.height, psfImages[i],
+    Image::Trim(subPsfs[i].Data(), subImg.width, subImg.height, psfImages[i],
                 width, height);
-    subPsfVector[i] = subPsfs[i].data();
+    subPsfVector[i] = subPsfs[i].Data();
   }
   _algorithms[subImg.index]->SetCleanMask(subImg.mask.data());
 
   // Construct smaller RMS image if necessary
-  if (!_rmsImage.empty()) {
+  if (!_rmsImage.Empty()) {
     Image subRmsImage =
         _rmsImage.TrimBox(subImg.x, subImg.y, subImg.width, subImg.height);
     _algorithms[subImg.index]->SetRMSFactorImage(std::move(subRmsImage));
@@ -235,7 +236,8 @@ void ParallelDeconvolution::executeParallelRun(
                avgHSubImageSize = width / _horImages,
                avgVSubImageSize = height / _verImages;
 
-  Image image(width, height), dividingLine(width, height, 0.0);
+  Image image(width, height);
+  Image dividingLine(width, height, 0.0);
   aocommon::UVector<bool> largeScratchMask(width * height);
   dataImage.GetLinearIntegrated(image);
 
@@ -254,13 +256,13 @@ void ParallelDeconvolution::executeParallelRun(
   splitLoop.Run(1, _horImages, [&](size_t divNr, size_t) {
     size_t splitStart = width * divNr / _horImages - avgHSubImageSize / 4,
            splitEnd = width * divNr / _horImages + avgHSubImageSize / 4;
-    divisor.DivideVertically(image.data(), dividingLine.data(), splitStart,
+    divisor.DivideVertically(image.Data(), dividingLine.Data(), splitStart,
                              splitEnd);
   });
   for (size_t divNr = 0; divNr != _horImages; ++divNr) {
     size_t midX = divNr * width / _horImages + avgHSubImageSize / 2;
     VerticalArea& area = verticalAreas[divNr];
-    divisor.FloodVerticalArea(dividingLine.data(), midX,
+    divisor.FloodVerticalArea(dividingLine.Data(), midX,
                               largeScratchMask.data(), area.x, area.width);
     area.mask.resize(area.width * height);
     Image::TrimBox(area.mask.data(), area.x, 0, area.width, height,
@@ -272,7 +274,7 @@ void ParallelDeconvolution::executeParallelRun(
   splitLoop.Run(1, _verImages, [&](size_t divNr, size_t) {
     size_t splitStart = height * divNr / _verImages - avgVSubImageSize / 4,
            splitEnd = height * divNr / _verImages + avgVSubImageSize / 4;
-    divisor.DivideHorizontally(image.data(), dividingLine.data(), splitStart,
+    divisor.DivideHorizontally(image.Data(), dividingLine.Data(), splitStart,
                                splitEnd);
   });
 
@@ -284,7 +286,7 @@ void ParallelDeconvolution::executeParallelRun(
   for (size_t y = 0; y != _verImages; ++y) {
     size_t midY = y * height / _verImages + avgVSubImageSize / 2;
     size_t hAreaY, hAreaWidth;
-    divisor.FloodHorizontalArea(dividingLine.data(), midY,
+    divisor.FloodHorizontalArea(dividingLine.Data(), midY,
                                 largeScratchMask.data(), hAreaY, hAreaWidth);
 
     for (size_t x = 0; x != _horImages; ++x) {
@@ -359,7 +361,7 @@ void ParallelDeconvolution::executeParallelRun(
     _logs[index].Mute(true);
   });
 
-  _rmsImage.reset();
+  _rmsImage.Reset();
 
   size_t subImagesFinished = 0;
   reachedMajorThreshold = false;

@@ -3,7 +3,6 @@
 #include "../io/logger.h"
 
 #include "../structures/imageweights.h"
-#include "../structures/image.h"
 
 #include "../system/buffered_lane.h"
 
@@ -19,6 +18,8 @@
 #include <cassert>
 #include <queue>
 #include <stdexcept>
+
+using aocommon::Image;
 
 WSMSGridder::WSMSGridder(const Settings& settings)
     : MSGridderBase(settings),
@@ -487,14 +488,14 @@ void WSMSGridder::Invert() {
       Image resizedReal(ImageWidth(), ImageHeight());
       Image resizedImag(ImageWidth(), ImageHeight());
       resampler.Start();
-      resampler.AddTask(_realImage.data(), resizedReal.data());
-      resampler.AddTask(_imaginaryImage.data(), resizedImag.data());
+      resampler.AddTask(_realImage.Data(), resizedReal.Data());
+      resampler.AddTask(_imaginaryImage.Data(), resizedImag.Data());
       resampler.Finish();
       _realImage = std::move(resizedReal);
       _imaginaryImage = std::move(resizedImag);
     } else {
       Image resized(ImageWidth(), ImageHeight());
-      resampler.Resample(_realImage.data(), resized.data());
+      resampler.Resample(_realImage.Data(), resized.Data());
       _realImage = std::move(resized);
     }
   }
@@ -505,14 +506,14 @@ void WSMSGridder::Invert() {
     // Perform trimming
 
     Image trimmed(TrimWidth(), TrimHeight());
-    Image::Trim(trimmed.data(), TrimWidth(), TrimHeight(), _realImage.data(),
+    Image::Trim(trimmed.Data(), TrimWidth(), TrimHeight(), _realImage.Data(),
                 ImageWidth(), ImageHeight());
     _realImage = std::move(trimmed);
 
     if (IsComplex()) {
       Image trimmedImag(TrimWidth(), TrimHeight());
-      Image::Trim(trimmedImag.data(), TrimWidth(), TrimHeight(),
-                  _imaginaryImage.data(), ImageWidth(), ImageHeight());
+      Image::Trim(trimmedImag.Data(), TrimWidth(), TrimHeight(),
+                  _imaginaryImage.Data(), ImageWidth(), ImageHeight());
       _imaginaryImage = std::move(trimmedImag);
     }
   }
@@ -566,7 +567,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
 
     if (images.size() == 1) {
       Image resampled(ImageWidth(), ImageHeight());
-      resampler.Resample(images[0].data(), resampled.data());
+      resampler.Resample(images[0].Data(), resampled.Data());
       images[0] = std::move(resampled);
     } else {
       std::vector<Image> resampled;
@@ -574,7 +575,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
       resampler.Start();
       for (Image& image : images) {
         resampled.emplace_back(ImageWidth(), ImageHeight());
-        resampler.AddTask(image.data(), resampled.back().data());
+        resampler.AddTask(image.Data(), resampled.back().Data());
       }
       resampler.Finish();
       for (size_t i = 0; i != images.size(); ++i)

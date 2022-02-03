@@ -2,9 +2,11 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "../../structures/image.h"
+#include <aocommon/image.h>
 
 #include <random>
+
+using aocommon::Image;
 
 BOOST_AUTO_TEST_SUITE(dijkstra_splitter)
 
@@ -90,7 +92,7 @@ BOOST_AUTO_TEST_CASE(vertical) {
                           "      XX  ");
   Image output(image.Width(), image.Height(), 0.0f);
   const DijkstraSplitter splitter(image.Width(), image.Height());
-  splitter.DivideVertically(image.data(), output.data(), 0, image.Width());
+  splitter.DivideVertically(image.Data(), output.Data(), 0, image.Width());
 
   BOOST_CHECK_EQUAL(PathStr(output),
                     "X         \n"
@@ -119,7 +121,7 @@ BOOST_AUTO_TEST_CASE(vertical_constrained) {
                           "      XX  ");
   Image output(input);
   const DijkstraSplitter splitter(input.Width(), input.Height());
-  splitter.DivideVertically(input.data(), output.data(), 2, 8);
+  splitter.DivideVertically(input.Data(), output.Data(), 2, 8);
 
   BOOST_CHECK_EQUAL(PathStr(output),
                     "XX  X   XX\n"
@@ -153,7 +155,7 @@ BOOST_AUTO_TEST_CASE(horizontal) {
                           "X     XX X");
   Image output(input.Width(), input.Height(), 0.0f);
   const DijkstraSplitter splitter(input.Width(), input.Height());
-  splitter.DivideHorizontally(input.data(), output.data(), 0, input.Width());
+  splitter.DivideHorizontally(input.Data(), output.Data(), 0, input.Width());
 
   BOOST_CHECK_EQUAL(PathStr(output),
                     "          \n"
@@ -182,7 +184,7 @@ BOOST_AUTO_TEST_CASE(horizontal_constrained) {
                           "    XXXX  ");
   Image output(image);
   const DijkstraSplitter splitter(image.Width(), image.Height());
-  splitter.DivideHorizontally(image.data(), output.data(), 2, 8);
+  splitter.DivideHorizontally(image.Data(), output.Data(), 2, 8);
 
   BOOST_CHECK_EQUAL(PathStr(output),
                     "XXXXXXXXXX\n"
@@ -216,8 +218,8 @@ BOOST_AUTO_TEST_CASE(flood_vertical_area) {
                           "      X  ");
   DijkstraSplitter splitter(width, height);
   Image scratch(image), dividingLines(width, height, 0.0f);
-  splitter.AddVerticalDivider(image.data(), scratch.data(),
-                              dividingLines.data(), 2, 7);
+  splitter.AddVerticalDivider(image.Data(), scratch.Data(),
+                              dividingLines.Data(), 2, 7);
 
   BOOST_CHECK_EQUAL(PathStr(dividingLines),
                     "   X     \n"
@@ -232,7 +234,7 @@ BOOST_AUTO_TEST_CASE(flood_vertical_area) {
 
   aocommon::UVector<bool> mask(width * height);
   size_t subX, subWidth;
-  splitter.FloodVerticalArea(dividingLines.data(), 1, mask.data(), subX,
+  splitter.FloodVerticalArea(dividingLines.Data(), 1, mask.data(), subX,
                              subWidth);
   BOOST_CHECK_EQUAL(subX, 0u);
   BOOST_CHECK_EQUAL(subWidth, 6u);
@@ -247,7 +249,7 @@ BOOST_AUTO_TEST_CASE(flood_vertical_area) {
                     "XXXXXX   \n"
                     "XXXXXX   \n");
 
-  splitter.FloodVerticalArea(dividingLines.data(), 7, mask.data(), subX,
+  splitter.FloodVerticalArea(dividingLines.Data(), 7, mask.data(), subX,
                              subWidth);
   BOOST_CHECK_EQUAL(subX, 2u);
   BOOST_CHECK_EQUAL(subWidth, 7u);
@@ -277,8 +279,8 @@ BOOST_AUTO_TEST_CASE(flood_horizontal_area) {
                           "         ");
   DijkstraSplitter splitter(width, height);
   Image scratch(image), dividingLines(width, height, 0.0f);
-  splitter.AddHorizontalDivider(image.data(), scratch.data(),
-                                dividingLines.data(), 2, 7);
+  splitter.AddHorizontalDivider(image.Data(), scratch.Data(),
+                                dividingLines.Data(), 2, 7);
 
   BOOST_CHECK_EQUAL(PathStr(dividingLines),
                     "         \n"
@@ -293,7 +295,7 @@ BOOST_AUTO_TEST_CASE(flood_horizontal_area) {
 
   aocommon::UVector<bool> mask(width * height);
   size_t subY, subHeight;
-  splitter.FloodHorizontalArea(dividingLines.data(), 1, mask.data(), subY,
+  splitter.FloodHorizontalArea(dividingLines.Data(), 1, mask.data(), subY,
                                subHeight);
   BOOST_CHECK_EQUAL(subY, 0u);
   BOOST_CHECK_EQUAL(subHeight, 6u);
@@ -308,7 +310,7 @@ BOOST_AUTO_TEST_CASE(flood_horizontal_area) {
                     "         \n"
                     "         \n");
 
-  splitter.FloodHorizontalArea(dividingLines.data(), 7, mask.data(), subY,
+  splitter.FloodHorizontalArea(dividingLines.Data(), 7, mask.data(), subY,
                                subHeight);
   BOOST_CHECK_EQUAL(subY, 2u);
   BOOST_CHECK_EQUAL(subHeight, 7u);
@@ -338,12 +340,12 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
                           "    X    ");
   DijkstraSplitter splitter(width, height);
   Image dividingLines(width, height, 0.0f);
-  splitter.DivideVertically(image.data(), dividingLines.data(), 3, 6);
+  splitter.DivideVertically(image.Data(), dividingLines.Data(), 3, 6);
 
   aocommon::UVector<bool> mask(width * height);
   size_t subXL, subXR, subY, subWidthL, subWidthR, subHeight;
 
-  splitter.FloodVerticalArea(dividingLines.data(), 1, mask.data(), subXL,
+  splitter.FloodVerticalArea(dividingLines.Data(), 1, mask.data(), subXL,
                              subWidthL);
   BOOST_CHECK_EQUAL(subXL, 0u);
   BOOST_CHECK_EQUAL(subWidthL, 4u);
@@ -361,7 +363,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
                     "XXXX\n"
                     "XXXX\n");
 
-  splitter.FloodVerticalArea(dividingLines.data(), 7, mask.data(), subXR,
+  splitter.FloodVerticalArea(dividingLines.Data(), 7, mask.data(), subXR,
                              subWidthR);
   BOOST_CHECK_EQUAL(subXR, 3u);
   BOOST_CHECK_EQUAL(subWidthR, 6u);
@@ -380,9 +382,9 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
                     " XXXXX\n");
 
   dividingLines = 0.0f;
-  splitter.DivideHorizontally(image.data(), dividingLines.data(), 3, 6);
+  splitter.DivideHorizontally(image.Data(), dividingLines.Data(), 3, 6);
 
-  splitter.FloodHorizontalArea(dividingLines.data(), 1, mask.data(), subY,
+  splitter.FloodHorizontalArea(dividingLines.Data(), 1, mask.data(), subY,
                                subHeight);
   BOOST_CHECK_EQUAL(subY, 0u);
   BOOST_CHECK_EQUAL(subHeight, 4u);
@@ -435,7 +437,7 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask) {
                     "         \n"
                     "         \n");
 
-  splitter.FloodHorizontalArea(dividingLines.data(), 7, mask.data(), subY,
+  splitter.FloodHorizontalArea(dividingLines.Data(), 7, mask.data(), subY,
                                subHeight);
   BOOST_CHECK_EQUAL(subY, 3u);
   BOOST_CHECK_EQUAL(subHeight, 6u);
@@ -487,11 +489,11 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask_on_noise) {
     for (size_t i = 0; i != width * height; ++i) image[i] = gaus(rnd);
 
     DijkstraSplitter splitter(width, height);
-    Image dividingLinesV(width, height, 0.0f),
-        dividingLinesH(width, height, 0.0f);
-    splitter.DivideVertically(image.data(), dividingLinesV.data(), width / 4,
+    Image dividingLinesV(width, height, 0.0f);
+    Image dividingLinesH(width, height, 0.0f);
+    splitter.DivideVertically(image.Data(), dividingLinesV.Data(), width / 4,
                               width * 3 / 4);
-    splitter.DivideHorizontally(image.data(), dividingLinesH.data(), height / 4,
+    splitter.DivideHorizontally(image.Data(), dividingLinesH.Data(), height / 4,
                                 height * 3 / 4);
 
     aocommon::UVector<bool> maskL(width * height), maskR(width * height),
@@ -499,13 +501,13 @@ BOOST_AUTO_TEST_CASE(get_bounding_mask_on_noise) {
         mask1(width * height, false), mask2(width * height, false),
         mask3(width * height, false), mask4(width * height, false);
     size_t subX, subY, subWidth, subHeight;
-    splitter.FloodVerticalArea(dividingLinesV.data(), width / 8, maskL.data(),
+    splitter.FloodVerticalArea(dividingLinesV.Data(), width / 8, maskL.data(),
                                subX, subWidth);
-    splitter.FloodVerticalArea(dividingLinesV.data(), width * 7 / 8,
+    splitter.FloodVerticalArea(dividingLinesV.Data(), width * 7 / 8,
                                maskR.data(), subX, subWidth);
-    splitter.FloodHorizontalArea(dividingLinesH.data(), width / 8, maskT.data(),
+    splitter.FloodHorizontalArea(dividingLinesH.Data(), width / 8, maskT.data(),
                                  subY, subHeight);
-    splitter.FloodHorizontalArea(dividingLinesH.data(), width * 7 / 8,
+    splitter.FloodHorizontalArea(dividingLinesH.Data(), width * 7 / 8,
                                  maskB.data(), subY, subHeight);
     splitter.GetBoundingMask(maskL.data(), 0, width, maskT.data(), mask1.data(),
                              subX, subY, subWidth, subHeight);

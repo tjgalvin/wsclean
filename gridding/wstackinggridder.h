@@ -12,7 +12,7 @@
 
 #include "gridmode.h"
 
-#include "../structures/image.h"
+#include <aocommon/image.h>
 
 #include <cmath>
 #include <cstring>
@@ -338,7 +338,7 @@ class WStackingGridder {
    *
    * @param image The model image that is to be predicted for.
    */
-  void InitializePrediction(Image image) {
+  void InitializePrediction(aocommon::Image image) {
     initializePrediction(std::move(image), _imageData);
   }
 
@@ -351,7 +351,7 @@ class WStackingGridder {
    * @param imaginary Array of width * height giving the imaginary (model) image
    * values.
    */
-  void InitializePrediction(Image real, Image imaginary) {
+  void InitializePrediction(aocommon::Image real, aocommon::Image imaginary) {
     initializePrediction(std::move(real), _imageData);
     initializePrediction(std::move(imaginary), _imageDataImaginary);
   }
@@ -409,28 +409,30 @@ class WStackingGridder {
    * If a complex image is produced, this image returns the real part. The
    * imaginary part can be acquired with @ref ImaginaryImage().
    */
-  ImageT<num_t> RealImage() { return std::move(_imageData[0]); }
+  aocommon::ImageBase<num_t> RealImage() { return std::move(_imageData[0]); }
 
   /**
    * Returns the real image that is always converted to a 32-bit float. It is
    * independent of the templated type of the class. It is otherwise equal to
    * @ref RealImage().
    */
-  Image RealImageFloat();
+  aocommon::Image RealImageFloat();
 
   /**
    * Get the imaginary part of a complex image after inversion. Otherwise
    * similar to
    * @ref RealImage().
    */
-  ImageT<num_t> ImaginaryImage() { return std::move(_imageDataImaginary[0]); }
+  aocommon::ImageBase<num_t> ImaginaryImage() {
+    return std::move(_imageDataImaginary[0]);
+  }
 
   /**
    * Returns the imaginary image that is always converted to a 32-bit float. It
    * is independent of the templated type of the class. It is otherwise equal to
    * @ref ImaginaryImage().
    */
-  Image ImaginaryImageFloat();
+  aocommon::Image ImaginaryImageFloat();
 
   /**
    * Get the number of threads used when performing the FFTs. The w-layers are
@@ -514,7 +516,7 @@ class WStackingGridder {
    * @returns The layer, with the currently gridded samples on it.
    */
   const std::complex<num_t> *GetGriddedUVLayer(size_t layerIndex) const {
-    return _layeredUVData[layerIndex].data();
+    return _layeredUVData[layerIndex].Data();
   }
 
   /**
@@ -577,8 +579,9 @@ class WStackingGridder {
                                 size_t threadIndex);
   void fftToUVThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks);
   void finalizeImage(double multiplicationFactor,
-                     std::vector<ImageT<num_t>> &dataArray);
-  void initializePrediction(Image image, std::vector<ImageT<num_t>> &dataArray);
+                     std::vector<aocommon::ImageBase<num_t>> &dataArray);
+  void initializePrediction(aocommon::Image image,
+                            std::vector<aocommon::ImageBase<num_t>> &dataArray);
 
   void makeKernels();
   /**
@@ -625,8 +628,8 @@ class WStackingGridder {
   std::vector<double> _1dKernel;
   std::vector<std::vector<num_t>> _griddingKernels;
 
-  std::vector<ImageTC<num_t>> _layeredUVData;
-  std::vector<ImageT<num_t>> _imageData, _imageDataImaginary;
+  std::vector<aocommon::ComplexImageBase<num_t>> _layeredUVData;
+  std::vector<aocommon::ImageBase<num_t>> _imageData, _imageDataImaginary;
   std::vector<num_t> _sqrtLMLookupTable;
   size_t _nFFTThreads;
 };

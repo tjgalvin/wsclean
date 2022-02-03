@@ -59,7 +59,7 @@ void DirectMSGridder<num_t>::Invert() {
   }
 
   // Wrap the image correctly and normalize it
-  _image = Image(TrimWidth(), TrimHeight());
+  _image = aocommon::Image(TrimWidth(), TrimHeight());
   double wFactor = 1.0 / totalWeight();
   for (size_t y = 0; y != height; ++y) {
     size_t ySrc = (height - y) + height / 2;
@@ -173,7 +173,7 @@ void DirectMSGridder<num_t>::invertMeasurementSet(
 }
 
 template <typename num_t>
-void DirectMSGridder<num_t>::Predict(std::vector<Image>&& /*image*/) {
+void DirectMSGridder<num_t>::Predict(std::vector<aocommon::Image>&& /*image*/) {
   throw std::runtime_error(
       "Prediction not yet implemented for direct FT gridding");
 }

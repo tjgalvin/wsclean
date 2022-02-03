@@ -7,6 +7,7 @@
 
 #include <idg-api.h>
 
+#include <aocommon/image.h>
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
 #include <aocommon/fits/fitswriter.h>
@@ -27,9 +28,9 @@ class IdgMsGridder final : public MSGridderBase {
 
   virtual void Invert() final override;
 
-  virtual void Predict(std::vector<Image>&& images) final override;
+  virtual void Predict(std::vector<aocommon::Image>&& images) final override;
 
-  virtual std::vector<Image> ResultImages() final override;
+  virtual std::vector<aocommon::Image> ResultImages() final override;
 
   static void SavePBCorrectedImages(class aocommon::FitsWriter& writer,
                                     const class ImageFilename& filename,

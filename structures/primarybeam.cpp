@@ -11,6 +11,7 @@
 
 #include "../io/findmwacoefffile.h"
 
+#include <aocommon/image.h>
 #include <aocommon/multibanddata.h>
 
 #include <schaapcommon/facets/facetimage.h>
@@ -30,6 +31,7 @@ using everybeam::ATermSettings;
 using everybeam::aterms::ATermConfig;
 #endif
 
+using aocommon::Image;
 using aocommon::Polarization;
 using aocommon::PolarizationEnum;
 
@@ -50,7 +52,7 @@ void writeBeamImages(const ImageFilename& imageName,
   for (size_t i = 0; i != beamImages.NImages(); ++i) {
     writer.Write(
         imageName.GetBeamPrefix(settings) + "-" + std::to_string(i) + ".fits",
-        beamImages[i].data());
+        beamImages[i].Data());
   }
 }
 }  // namespace
@@ -102,7 +104,7 @@ void PrimaryBeam::CorrectImages(
           "effects is not yet implemented.");
     } else {
       for (size_t i = 0; i != beamImages.NImages(); ++i) {
-        std::vector<float*> imagePtr{beamImages[i].data()};
+        std::vector<float*> imagePtr{beamImages[i].Data()};
         for (const ImagingTableEntry& entry : table) {
           const float m = metaCache.at(entry.index)->h5Sum / entry.imageWeight;
           const float factor = 1.0 / std::sqrt(m);
@@ -139,10 +141,10 @@ void PrimaryBeam::CorrectImages(
         prefix = stokesIName.GetPrefix(_settings);
       aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
       Image image(reader.ImageWidth(), reader.ImageHeight());
-      reader.Read(image.data());
+      reader.Read(image.Data());
 
-      beamImages.ApplyStokesI(image.data(), _settings.primaryBeamLimit);
-      writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.data());
+      beamImages.ApplyStokesI(image.Data(), _settings.primaryBeamLimit);
+      writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.Data());
     } else {
       throw std::runtime_error(
           "Primary beam correction is requested, but this is not supported "
@@ -163,10 +165,10 @@ void PrimaryBeam::CorrectImages(
       reader.reset(new aocommon::FitsReader(name.GetPrefix(_settings) + "-" +
                                             filenameKind + ".fits"));
       images[polIndex] = Image(reader->ImageWidth(), reader->ImageHeight());
-      reader->Read(images[polIndex].data());
+      reader->Read(images[polIndex].Data());
     }
 
-    float* imagePtrs[2] = {images[0].data(), images[1].data()};
+    float* imagePtrs[2] = {images[0].Data(), images[1].Data()};
     beamImages.ApplyDiagonal(imagePtrs, _settings.primaryBeamLimit);
 
     for (size_t polIndex = 0; polIndex != 2; ++polIndex) {
@@ -177,7 +179,7 @@ void PrimaryBeam::CorrectImages(
       name.SetPolarization(pol);
       writer.SetPolarization(pol);
       writer.Write(name.GetPrefix(_settings) + "-" + filenameKind + "-pb.fits",
-                   images[polIndex].data());
+                   images[polIndex].Data());
     }
   } else if (aocommon::Polarization::HasFullStokesPolarization(
                  _settings.polarizations)) {
@@ -191,11 +193,11 @@ void PrimaryBeam::CorrectImages(
       reader.reset(new aocommon::FitsReader(name.GetPrefix(_settings) + "-" +
                                             filenameKind + ".fits"));
       images[polIndex] = Image(reader->ImageWidth(), reader->ImageHeight());
-      reader->Read(images[polIndex].data());
+      reader->Read(images[polIndex].Data());
     }
 
-    float* imagePtrs[4] = {images[0].data(), images[1].data(), images[2].data(),
-                           images[3].data()};
+    float* imagePtrs[4] = {images[0].Data(), images[1].Data(), images[2].Data(),
+                           images[3].Data()};
     beamImages.ApplyFullStokes(imagePtrs, _settings.primaryBeamLimit);
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
       aocommon::PolarizationEnum pol =
@@ -204,7 +206,7 @@ void PrimaryBeam::CorrectImages(
       name.SetPolarization(pol);
       writer.SetPolarization(pol);
       writer.Write(name.GetPrefix(_settings) + "-" + filenameKind + "-pb.fits",
-                   images[polIndex].data());
+                   images[polIndex].Data());
     }
   } else {
     throw std::runtime_error(
@@ -227,7 +229,7 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
     ImageFilename polName(imageName);
     polName.SetPolarization(aocommon::Polarization::StokesI);
     aocommon::FitsReader reader(polName.GetBeamPrefix(settings) + ".fits");
-    reader.Read(beamImages[0].data());
+    reader.Read(beamImages[0].Data());
     for (size_t i = 0;
          i != settings.trimmedImageWidth * settings.trimmedImageHeight; ++i)
       beamImages[0][i] = std::sqrt(beamImages[0][i]);
@@ -235,9 +237,9 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
     // Copy zero entry to images of the diagonal
     std::array<size_t, 3> diagonal_entries = {3, 8, 15};
     for (size_t entry : diagonal_entries) {
-      std::copy_n(beamImages[0].data(),
+      std::copy_n(beamImages[0].Data(),
                   settings.trimmedImageWidth * settings.trimmedImageHeight,
-                  beamImages[entry].data());
+                  beamImages[entry].Data());
     }
     return beamImages;
   } else {
@@ -246,7 +248,7 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
     for (size_t i = 0; i != beamImages.NImages(); ++i) {
       aocommon::FitsReader reader(imageName.GetBeamPrefix(settings) + "-" +
                                   std::to_string(i) + ".fits");
-      reader.Read(beamImages[i].data());
+      reader.Read(beamImages[i].Data());
     }
     return beamImages;
     // }

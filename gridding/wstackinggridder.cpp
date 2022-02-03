@@ -7,6 +7,10 @@
 #include <iostream>
 #include <fstream>
 
+using aocommon::ComplexImageBase;
+using aocommon::Image;
+using aocommon::ImageBase;
+
 template <typename T>
 WStackingGridder<T>::WStackingGridder(size_t width, size_t height,
                                       double pixelSizeX, double pixelSizeY,
@@ -93,11 +97,11 @@ void WStackingGridder<T>::PrepareWLayers(size_t nWLayers, double maxMem,
   // Allocate FFT buffers
   size_t imgSize = _height * _width;
   for (size_t i = 0; i != _nFFTThreads; ++i) {
-    _imageData[i] = ImageT<num_t>(_width, _height);
-    std::fill_n(_imageData[i].data(), imgSize, 0.0);
+    _imageData[i] = ImageBase<num_t>(_width, _height);
+    std::fill_n(_imageData[i].Data(), imgSize, 0.0);
     if (_isComplex) {
-      _imageDataImaginary[i] = ImageT<num_t>(_width, _height);
-      std::fill_n(_imageDataImaginary[i].data(), imgSize, 0.0);
+      _imageDataImaginary[i] = ImageBase<num_t>(_width, _height);
+      std::fill_n(_imageDataImaginary[i].Data(), imgSize, 0.0);
     }
   }
 
@@ -116,7 +120,7 @@ void WStackingGridder<T>::initializeLayeredUVData(size_t n) {
     _layeredUVData.resize(n);
   else
     while (_layeredUVData.size() < n)
-      _layeredUVData.emplace_back(ImageTC<num_t>(_width, _height));
+      _layeredUVData.emplace_back(ComplexImageBase<num_t>(_width, _height));
 }
 
 template <typename T>
@@ -128,7 +132,7 @@ void WStackingGridder<T>::StartInversionPass(size_t passIndex) {
       layerRangeStart(passIndex + 1) - layerRangeStart(passIndex);
   initializeLayeredUVData(nLayersInPass);
   for (size_t i = 0; i != nLayersInPass; ++i)
-    std::uninitialized_fill_n(_layeredUVData[i].data(), _width * _height, 0.0);
+    std::uninitialized_fill_n(_layeredUVData[i].Data(), _width * _height, 0.0);
 }
 
 template <typename T>
@@ -154,13 +158,13 @@ void WStackingGridder<T>::StartPredictionPass(size_t passIndex) {
 template <>
 void WStackingGridder<double>::fftToImageThreadFunction(
     std::mutex *mutex, std::stack<size_t> *tasks, size_t threadIndex) {
-  ImageTC<double> fftwIn = ImageTC<double>(_width, _height),
-                  fftwOut = ImageTC<double>(_width, _height);
+  ComplexImageBase<double> fftwIn = ComplexImageBase<double>(_width, _height);
+  ComplexImageBase<double> fftwOut = ComplexImageBase<double>(_width, _height);
 
   std::unique_lock<std::mutex> lock(*mutex);
   fftw_plan plan = fftw_plan_dft_2d(
-      _height, _width, reinterpret_cast<fftw_complex *>(fftwIn.data()),
-      reinterpret_cast<fftw_complex *>(fftwOut.data()), FFTW_BACKWARD,
+      _height, _width, reinterpret_cast<fftw_complex *>(fftwIn.Data()),
+      reinterpret_cast<fftw_complex *>(fftwOut.Data()), FFTW_BACKWARD,
       FFTW_ESTIMATE);
 
   const size_t layerOffset = layerRangeStart(_curLayerRangeIndex);
@@ -172,17 +176,17 @@ void WStackingGridder<double>::fftToImageThreadFunction(
     lock.unlock();
 
     // Fourier transform the layer
-    std::complex<double> *uvData = _layeredUVData[layer].data();
-    std::copy_n(uvData, imgSize, fftwIn.data());
+    std::complex<double> *uvData = _layeredUVData[layer].Data();
+    std::copy_n(uvData, imgSize, fftwIn.Data());
     fftw_execute(plan);
 
     // Add layer to full image
     if (_isComplex)
       projectOnImageAndCorrect<true>(
-          fftwOut.data(), LayerToW(layer + layerOffset), threadIndex);
+          fftwOut.Data(), LayerToW(layer + layerOffset), threadIndex);
     else
       projectOnImageAndCorrect<false>(
-          fftwOut.data(), LayerToW(layer + layerOffset), threadIndex);
+          fftwOut.Data(), LayerToW(layer + layerOffset), threadIndex);
 
     // lock for accessing tasks in guard
     lock.lock();
@@ -195,13 +199,13 @@ void WStackingGridder<double>::fftToImageThreadFunction(
 template <>
 void WStackingGridder<float>::fftToImageThreadFunction(
     std::mutex *mutex, std::stack<size_t> *tasks, size_t threadIndex) {
-  ImageTC<float> fftwIn = ImageTC<float>(_width, _height),
-                 fftwOut = ImageTC<float>(_width, _height);
+  ComplexImageBase<float> fftwIn = ComplexImageBase<float>(_width, _height),
+                          fftwOut = ComplexImageBase<float>(_width, _height);
 
   std::unique_lock<std::mutex> lock(*mutex);
   fftwf_plan plan = fftwf_plan_dft_2d(
-      _height, _width, reinterpret_cast<fftwf_complex *>(fftwIn.data()),
-      reinterpret_cast<fftwf_complex *>(fftwOut.data()), FFTW_BACKWARD,
+      _height, _width, reinterpret_cast<fftwf_complex *>(fftwIn.Data()),
+      reinterpret_cast<fftwf_complex *>(fftwOut.Data()), FFTW_BACKWARD,
       FFTW_ESTIMATE);
 
   const size_t layerOffset = layerRangeStart(_curLayerRangeIndex);
@@ -213,17 +217,17 @@ void WStackingGridder<float>::fftToImageThreadFunction(
     lock.unlock();
 
     // Fourier transform the layer
-    std::complex<float> *uvData = _layeredUVData[layer].data();
-    std::copy_n(uvData, imgSize, fftwIn.data());
+    std::complex<float> *uvData = _layeredUVData[layer].Data();
+    std::copy_n(uvData, imgSize, fftwIn.Data());
     fftwf_execute(plan);
 
     // Add layer to full image
     if (_isComplex)
       projectOnImageAndCorrect<true>(
-          fftwOut.data(), LayerToW(layer + layerOffset), threadIndex);
+          fftwOut.Data(), LayerToW(layer + layerOffset), threadIndex);
     else
       projectOnImageAndCorrect<false>(
-          fftwOut.data(), LayerToW(layer + layerOffset), threadIndex);
+          fftwOut.Data(), LayerToW(layer + layerOffset), threadIndex);
 
     // lock for accessing tasks in guard
     lock.lock();
@@ -237,13 +241,13 @@ template <>
 void WStackingGridder<double>::fftToUVThreadFunction(
     std::mutex *mutex, std::stack<size_t> *tasks) {
   const size_t imgSize = _width * _height;
-  ImageTC<double> fftwIn = ImageTC<double>(_width, _height),
-                  fftwOut = ImageTC<double>(_width, _height);
+  ComplexImageBase<double> fftwIn = ComplexImageBase<double>(_width, _height),
+                           fftwOut = ComplexImageBase<double>(_width, _height);
 
   std::unique_lock<std::mutex> lock(*mutex);
   fftw_plan plan = fftw_plan_dft_2d(
-      _height, _width, reinterpret_cast<fftw_complex *>(fftwIn.data()),
-      reinterpret_cast<fftw_complex *>(fftwOut.data()), FFTW_FORWARD,
+      _height, _width, reinterpret_cast<fftw_complex *>(fftwIn.Data()),
+      reinterpret_cast<fftw_complex *>(fftwOut.Data()), FFTW_FORWARD,
       FFTW_ESTIMATE);
 
   const size_t layerOffset = layerRangeStart(_curLayerRangeIndex);
@@ -255,16 +259,16 @@ void WStackingGridder<double>::fftToUVThreadFunction(
 
     // Make copy of input and w-correct it
     if (_isComplex)
-      copyImageToLayerAndInverseCorrect<true>(fftwIn.data(),
+      copyImageToLayerAndInverseCorrect<true>(fftwIn.Data(),
                                               LayerToW(layer + layerOffset));
     else
-      copyImageToLayerAndInverseCorrect<false>(fftwIn.data(),
+      copyImageToLayerAndInverseCorrect<false>(fftwIn.Data(),
                                                LayerToW(layer + layerOffset));
 
     // Fourier transform the layer
     fftw_execute(plan);
-    std::complex<double> *uvData = _layeredUVData[layer].data();
-    std::copy_n(fftwOut.data(), imgSize, uvData);
+    std::complex<double> *uvData = _layeredUVData[layer].Data();
+    std::copy_n(fftwOut.Data(), imgSize, uvData);
 
     // lock for accessing tasks in guard
     lock.lock();
@@ -277,13 +281,13 @@ void WStackingGridder<double>::fftToUVThreadFunction(
 template <>
 void WStackingGridder<float>::fftToUVThreadFunction(std::mutex *mutex,
                                                     std::stack<size_t> *tasks) {
-  ImageTC<float> fftwIn = ImageTC<float>(_width, _height),
-                 fftwOut = ImageTC<float>(_width, _height);
+  ComplexImageBase<float> fftwIn = ComplexImageBase<float>(_width, _height),
+                          fftwOut = ComplexImageBase<float>(_width, _height);
 
   std::unique_lock<std::mutex> lock(*mutex);
   fftwf_plan plan = fftwf_plan_dft_2d(
-      _height, _width, reinterpret_cast<fftwf_complex *>(fftwIn.data()),
-      reinterpret_cast<fftwf_complex *>(fftwOut.data()), FFTW_FORWARD,
+      _height, _width, reinterpret_cast<fftwf_complex *>(fftwIn.Data()),
+      reinterpret_cast<fftwf_complex *>(fftwOut.Data()), FFTW_FORWARD,
       FFTW_ESTIMATE);
 
   const size_t layerOffset = layerRangeStart(_curLayerRangeIndex);
@@ -296,16 +300,16 @@ void WStackingGridder<float>::fftToUVThreadFunction(std::mutex *mutex,
 
     // Make copy of input and w-correct it
     if (_isComplex)
-      copyImageToLayerAndInverseCorrect<true>(fftwIn.data(),
+      copyImageToLayerAndInverseCorrect<true>(fftwIn.Data(),
                                               LayerToW(layer + layerOffset));
     else
-      copyImageToLayerAndInverseCorrect<false>(fftwIn.data(),
+      copyImageToLayerAndInverseCorrect<false>(fftwIn.Data(),
                                                LayerToW(layer + layerOffset));
 
     // Fourier transform the layer
     fftwf_execute(plan);
-    std::complex<float> *uvData = _layeredUVData[layer].data();
-    std::copy_n(fftwOut.data(), imgSize, uvData);
+    std::complex<float> *uvData = _layeredUVData[layer].Data();
+    std::copy_n(fftwOut.Data(), imgSize, uvData);
 
     // lock for accessing tasks in guard
     lock.lock();
@@ -528,10 +532,10 @@ void WStackingGridder<T>::AddDataSample(std::complex<float> sample,
   size_t wLayer = WToLayer(wInLambda);
   if (wLayer >= layerOffset && wLayer < layerRangeEnd) {
     size_t layerIndex = wLayer - layerOffset;
-    std::complex<num_t> *uvData = _layeredUVData[layerIndex].data();
+    std::complex<num_t> *uvData = _layeredUVData[layerIndex].Data();
     if (_gridMode == GridMode::NearestNeighbourGridding) {
-      int x = int(round(uInLambda * _pixelSizeX * _width)),
-          y = int(round(vInLambda * _pixelSizeY * _height));
+      int x = int(std::round(uInLambda * _pixelSizeX * _width)),
+          y = int(std::round(vInLambda * _pixelSizeY * _height));
       if (x > -int(_width) / 2 && y > -int(_height) / 2 &&
           x <= int(_width) / 2 && y <= int(_height) / 2) {
         if (x < 0) x += _width;
@@ -541,9 +545,10 @@ void WStackingGridder<T>::AddDataSample(std::complex<float> sample,
     } else {
       double xExact = uInLambda * _pixelSizeX * _width,
              yExact = vInLambda * _pixelSizeY * _height;
-      int x = round(xExact), y = round(yExact),
-          xKernelIndex = round((xExact - double(x)) * _overSamplingFactor),
-          yKernelIndex = round((yExact - double(y)) * _overSamplingFactor);
+      int x = std::round(xExact);
+      int y = std::round(yExact),
+          xKernelIndex = std::round((xExact - double(x)) * _overSamplingFactor),
+          yKernelIndex = std::round((yExact - double(y)) * _overSamplingFactor);
       xKernelIndex =
           (xKernelIndex + (_overSamplingFactor * 3) / 2) % _overSamplingFactor;
       yKernelIndex =
@@ -605,7 +610,7 @@ void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
   size_t wLayer = WToLayer(wInLambda);
   if (wLayer >= layerOffset && wLayer < layerRangeEnd) {
     size_t layerIndex = wLayer - layerOffset;
-    std::complex<num_t> *uvData = _layeredUVData[layerIndex].data();
+    std::complex<num_t> *uvData = _layeredUVData[layerIndex].Data();
     std::complex<float> sample;
     if (_gridMode == GridMode::NearestNeighbourGridding) {
       int x = int(std::round(uInLambda * _pixelSizeX * _width)),
@@ -689,10 +694,10 @@ void WStackingGridder<T>::FinalizeImage(double multiplicationFactor) {
 }
 
 template <typename T>
-void WStackingGridder<T>::finalizeImage(double multiplicationFactor,
-                                        std::vector<ImageT<num_t>> &dataArray) {
+void WStackingGridder<T>::finalizeImage(
+    double multiplicationFactor, std::vector<ImageBase<num_t>> &dataArray) {
   for (size_t i = 1; i != _nFFTThreads; ++i) {
-    num_t *primaryData = dataArray[0].data();
+    num_t *primaryData = dataArray[0].Data();
     for (num_t value : dataArray[i]) {
       *primaryData += value;
       ++primaryData;
@@ -704,7 +709,7 @@ void WStackingGridder<T>::finalizeImage(double multiplicationFactor,
   }
 
   if (_gridMode != GridMode::NearestNeighbourGridding)
-    correctImageForKernel<false>(dataArray[0].data());
+    correctImageForKernel<false>(dataArray[0].Data());
 }
 
 template <>
@@ -821,9 +826,9 @@ void WStackingGridder<float>::correctImageForKernel(num_t *image) const {
 
 template <typename T>
 void WStackingGridder<T>::initializePrediction(
-    Image image, std::vector<ImageT<num_t>> &dataArray) {
-  num_t *dataPtr = dataArray[0].data();
-  const float *inPtr = image.data();
+    Image image, std::vector<ImageBase<num_t>> &dataArray) {
+  num_t *dataPtr = dataArray[0].Data();
+  const float *inPtr = image.Data();
   for (size_t y = 0; y != _height; ++y) {
     double m = ((double)y - (_height / 2)) * _pixelSizeY + _phaseCentreDM;
     for (size_t x = 0; x != _width; ++x) {
@@ -837,7 +842,7 @@ void WStackingGridder<T>::initializePrediction(
     }
   }
   if (_gridMode != GridMode::NearestNeighbourGridding) {
-    correctImageForKernel<false>(dataArray[0].data());
+    correctImageForKernel<false>(dataArray[0].Data());
   }
 }
 
@@ -868,8 +873,8 @@ template <typename T>
 template <bool IsComplexImpl>
 void WStackingGridder<T>::projectOnImageAndCorrect(
     const std::complex<num_t> *source, double w, size_t threadIndex) {
-  num_t *dataReal = _imageData[threadIndex].data(), *dataImaginary;
-  if (IsComplexImpl) dataImaginary = _imageDataImaginary[threadIndex].data();
+  num_t *dataReal = _imageData[threadIndex].Data(), *dataImaginary;
+  if (IsComplexImpl) dataImaginary = _imageDataImaginary[threadIndex].Data();
 
   const double twoPiW = -2.0 * M_PI * w;
   typename std::vector<num_t>::const_iterator sqrtLMIter =
@@ -928,8 +933,8 @@ template <typename T>
 template <bool IsComplexImpl>
 void WStackingGridder<T>::copyImageToLayerAndInverseCorrect(
     std::complex<num_t> *dest, double w) {
-  num_t *dataReal = _imageData[0].data(), *dataImaginary;
-  if (IsComplexImpl) dataImaginary = _imageDataImaginary[0].data();
+  num_t *dataReal = _imageData[0].Data(), *dataImaginary;
+  if (IsComplexImpl) dataImaginary = _imageDataImaginary[0].Data();
 
   const double twoPiW = 2.0 * M_PI * w;
   typename std::vector<num_t>::const_iterator sqrtLMIter =
@@ -996,7 +1001,7 @@ template <>
 Image WStackingGridder<double>::RealImageFloat() {
   Image image(_width, _height);
   for (size_t i = 0; i != _width * _height; ++i) image[i] = _imageData[0][i];
-  _imageData[0].reset();
+  _imageData[0].Reset();
   return std::move(image);
 }
 
@@ -1010,7 +1015,7 @@ Image WStackingGridder<double>::ImaginaryImageFloat() {
   Image image(_width, _height);
   for (size_t i = 0; i != _width * _height; ++i)
     image[i] = _imageDataImaginary[0][i];
-  _imageDataImaginary[0].reset();
+  _imageDataImaginary[0].Reset();
   return std::move(image);
 }
 

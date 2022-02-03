@@ -3,11 +3,11 @@
 
 #include "../system/fftwmanager.h"
 
-#include "../structures/image.h"
 #include "../structures/primarybeamimageset.h"
 
 #include "controllablelog.h"
 
+#include <aocommon/image.h>
 #include <aocommon/uvector.h>
 
 #include <memory>
@@ -33,7 +33,7 @@ class ParallelDeconvolution {
 
   void SetAlgorithm(std::unique_ptr<class DeconvolutionAlgorithm> algorithm);
 
-  void SetRMSFactorImage(Image&& image);
+  void SetRMSFactorImage(aocommon::Image&& image);
 
   void SetThreshold(double threshold);
 
@@ -43,7 +43,7 @@ class ParallelDeconvolution {
 
   void SetCleanMask(const bool* mask);
 
-  void SetSpectrallyForcedImages(std::vector<Image>&& images);
+  void SetSpectrallyForcedImages(std::vector<aocommon::Image>&& images);
 
   void ExecuteMajorIteration(class ImageSet& dataImage,
                              class ImageSet& modelImage,
@@ -103,11 +103,11 @@ class ParallelDeconvolution {
   const Settings& _settings;
   ImageBufferAllocator* _allocator;
   const bool* _mask;
-  std::vector<Image> _spectrallyForcedImages;
+  std::vector<aocommon::Image> _spectrallyForcedImages;
   bool _trackPerScaleMasks, _usePerScaleMasks;
   std::vector<aocommon::UVector<bool>> _scaleMasks;
   std::unique_ptr<class ComponentList> _componentList;
-  Image _rmsImage;
+  aocommon::Image _rmsImage;
 };
 
 #endif

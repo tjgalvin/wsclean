@@ -1,5 +1,7 @@
 #include "iuwtdecomposition.h"
 
+using aocommon::Image;
+
 void IUWTDecomposition::DecomposeMT(aocommon::StaticFor<size_t>& loop,
                                     const float* input, float* scratch,
                                     bool includeLargest) {
@@ -10,12 +12,12 @@ void IUWTDecomposition::DecomposeMT(aocommon::StaticFor<size_t>& loop,
   // copy the input into i0.
   Image& coefficients0 = _scales[0].Coefficients();
   coefficients0 = Image(_width, _height);
-  convolveMT(loop, i1.data(), input, scratch, _width, _height, 1);
-  convolveMT(loop, coefficients0.data(), i1.data(), scratch, _width, _height,
+  convolveMT(loop, i1.Data(), input, scratch, _width, _height, 1);
+  convolveMT(loop, coefficients0.Data(), i1.Data(), scratch, _width, _height,
              1);
 
   // coefficients = i0 - i2
-  differenceMT(loop, coefficients0.data(), input, coefficients0.data(), _width,
+  differenceMT(loop, coefficients0.Data(), input, coefficients0.Data(), _width,
                _height);
 
   // i0 = i1;
@@ -24,17 +26,18 @@ void IUWTDecomposition::DecomposeMT(aocommon::StaticFor<size_t>& loop,
   for (int scale = 1; scale != int(_scaleCount); ++scale) {
     Image& coefficients = _scales[scale].Coefficients();
     coefficients = Image(_width, _height);
-    convolveMT(loop, i1.data(), i0.data(), scratch, _width, _height, scale + 1);
-    convolveMT(loop, coefficients.data(), i1.data(), scratch, _width, _height,
+    convolveMT(loop, i1.Data(), i0.Data(), scratch, _width, _height, scale + 1);
+    convolveMT(loop, coefficients.Data(), i1.Data(), scratch, _width, _height,
                scale + 1);
 
     // coefficients = i0 - i2
-    differenceMT(loop, coefficients.data(), i0.data(), coefficients.data(),
+    differenceMT(loop, coefficients.Data(), i0.Data(), coefficients.Data(),
                  _width, _height);
 
     // i0 = i1;
-    if (scale + 1 != int(_scaleCount))
-      memcpy(i0.data(), i1.data(), sizeof(float) * _width * _height);
+    if (scale + 1 != int(_scaleCount)) {
+      std::copy_n(i1.Data(), _width * _height, i0.Data());
+    }
   }
 
   // The largest (residual) scales are in i1, but since the
@@ -44,7 +47,7 @@ void IUWTDecomposition::DecomposeMT(aocommon::StaticFor<size_t>& loop,
   //	_scales.back().Coefficients() = i1;
 
   // Do free the memory of the largest scale if it is not necessary:
-  if (!includeLargest) _scales.back().Coefficients().reset();
+  if (!includeLargest) _scales.back().Coefficients().Reset();
 }
 
 void IUWTDecomposition::convolveMT(aocommon::StaticFor<size_t>& loop,

@@ -3,6 +3,8 @@
 
 #include "msgridderbase.h"
 
+#include <aocommon/image.h>
+
 #include <stdexcept>
 #include <string>
 
@@ -16,11 +18,11 @@ class UnavailableGridder final : public MSGridderBase {
 
   virtual void Invert() override { doThrow(); }
 
-  virtual void Predict(std::vector<Image>&&) override { doThrow(); }
+  virtual void Predict(std::vector<aocommon::Image>&&) override { doThrow(); }
 
-  virtual std::vector<Image> ResultImages() override {
+  virtual std::vector<aocommon::Image> ResultImages() override {
     doThrow();
-    return {Image()};
+    return {aocommon::Image()};
   }
 
   static void SavePBCorrectedImages(class FitsWriter& /*writer*/,

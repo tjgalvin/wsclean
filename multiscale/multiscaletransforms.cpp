@@ -2,6 +2,8 @@
 
 #include "../math/fftconvolver.h"
 
+using aocommon::Image;
+
 void MultiScaleTransforms::Transform(std::vector<Image>& images, Image& scratch,
                                      float scale) {
   size_t kernelSize;
@@ -9,10 +11,10 @@ void MultiScaleTransforms::Transform(std::vector<Image>& images, Image& scratch,
 
   scratch = 0.0;
 
-  FFTConvolver::PrepareSmallKernel(scratch.data(), _width, _height,
-                                   shape.data(), kernelSize, _threadCount);
+  FFTConvolver::PrepareSmallKernel(scratch.Data(), _width, _height,
+                                   shape.Data(), kernelSize, _threadCount);
   for (Image& image : images)
-    FFTConvolver::ConvolveSameSize(_fftwManager, image.data(), scratch.data(),
+    FFTConvolver::ConvolveSameSize(_fftwManager, image.Data(), scratch.Data(),
                                    _width, _height, _threadCount);
 }
 
@@ -22,7 +24,7 @@ void MultiScaleTransforms::PrepareTransform(float* kernel, float scale) {
 
   std::fill_n(kernel, _width * _height, 0.0);
 
-  FFTConvolver::PrepareSmallKernel(kernel, _width, _height, shape.data(),
+  FFTConvolver::PrepareSmallKernel(kernel, _width, _height, shape.Data(),
                                    kernelSize, _threadCount);
 }
 

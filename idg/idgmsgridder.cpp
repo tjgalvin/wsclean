@@ -36,6 +36,8 @@ using everybeam::aterms::ATermConfig;
 using everybeam::coords::CoordinateSystem;
 #endif  // HAVE_EVERYBEAM
 
+using aocommon::Image;
+
 namespace {
 constexpr const size_t kGridderIndex = 0;
 }
@@ -263,14 +265,14 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
   if (Polarization() == aocommon::Polarization::FullStokes) {
     assert(images.size() == 4);
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
-      std::copy_n(images[polIndex].data(), width * height,
+      std::copy_n(images[polIndex].Data(), width * height,
                   _image.data() + polIndex * width * height);
     }
   } else {
     assert(images.size() == 1);
     const size_t stokesIndex =
         aocommon::Polarization::StokesToIndex(Polarization());
-    std::copy_n(images[0].data(), width * height,
+    std::copy_n(images[0].Data(), width * height,
                 _image.data() + stokesIndex * width * height);
   }
 
@@ -417,13 +419,13 @@ std::vector<Image> IdgMsGridder::ResultImages() {
     for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
       images.emplace_back(width, height);
       std::copy_n(_image.data() + polIndex * width * height, width * height,
-                  images[polIndex].data());
+                  images[polIndex].Data());
     }
   } else {
     size_t polIndex = aocommon::Polarization::StokesToIndex(Polarization());
     images.emplace_back(width, height);
     std::copy_n(_image.data() + polIndex * width * height, width * height,
-                images[0].data());
+                images[0].Data());
   }
   return images;
 }
@@ -461,7 +463,7 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
   aocommon::FitsReader reader(beamName.GetBeamPrefix(settings) + ".fits");
 
   Image beam(reader.ImageWidth(), reader.ImageHeight());
-  reader.Read(beam.data());
+  reader.Read(beam.Data());
 
   Image image;
   for (size_t polIndex = 0; polIndex != 4; ++polIndex) {
@@ -471,8 +473,8 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
     name.SetPolarization(pol);
     aocommon::FitsReader reader(name.GetPrefix(settings) + "-" + filenameKind +
                                 ".fits");
-    if (image.empty()) image = Image(reader.ImageWidth(), reader.ImageHeight());
-    reader.Read(image.data());
+    if (image.Empty()) image = Image(reader.ImageWidth(), reader.ImageHeight());
+    reader.Read(image.Data());
 
     for (size_t i = 0; i != reader.ImageWidth() * reader.ImageHeight(); ++i) {
       if (beam[i] > 1e-6)
@@ -483,7 +485,7 @@ void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,
 
     writer.SetPolarization(pol);
     writer.Write(name.GetPrefix(settings) + "-" + filenameKind + "-pb.fits",
-                 image.data());
+                 image.Data());
   }
 }
 

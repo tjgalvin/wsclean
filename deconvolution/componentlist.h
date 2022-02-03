@@ -3,8 +3,7 @@
 
 #include "imageset.h"
 
-#include "../structures/image.h"
-
+#include <aocommon/image.h>
 #include <aocommon/uvector.h>
 
 #include <vector>
@@ -132,8 +131,9 @@ class ComponentList {
     aocommon::UVector<float> newValues;
     aocommon::UVector<Position> newPositions;
 
-    std::vector<Image> images(_nFrequencies);
-    for (Image& image : images) image = Image(_width, _height, 0.0);
+    std::vector<aocommon::Image> images(_nFrequencies);
+    for (aocommon::Image& image : images)
+      image = aocommon::Image(_width, _height, 0.0);
     size_t valueIndex = 0;
     for (size_t index = 0; index != list.positions.size(); ++index) {
       size_t position =
@@ -148,7 +148,7 @@ class ComponentList {
     list.positions.clear();
 
     for (size_t imageIndex = 0; imageIndex != images.size(); ++imageIndex) {
-      Image& image = images[imageIndex];
+      aocommon::Image& image = images[imageIndex];
       size_t posIndex = 0;
       for (size_t y = 0; y != _height; ++y) {
         for (size_t x = 0; x != _width; ++x) {

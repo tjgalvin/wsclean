@@ -6,9 +6,9 @@
 
 #include <boost/optional/optional.hpp>
 
-#include "../structures/image.h"
-
 #include "../deconvolution/imageset.h"
+
+#include <aocommon/image.h>
 
 /**
  * In multi-scale, a subminor optimized loop looks like this:
@@ -59,7 +59,7 @@ class SubMinorModel {
   size_t size() const { return _positions.size(); }
 
   void MakeSets(const ImageSet& templateSet);
-  void MakeRMSFactorImage(Image& rmsFactorImage);
+  void MakeRMSFactorImage(aocommon::Image& rmsFactorImage);
 
   ImageSet& Residual() { return *_residual; }
   const ImageSet& Residual() const { return *_residual; }
@@ -71,8 +71,8 @@ class SubMinorModel {
   size_t Y(size_t index) const { return _positions[index].second; }
   size_t FullIndex(size_t index) const { return X(index) + Y(index) * _width; }
   template <bool AllowNegatives>
-  size_t GetMaxComponent(Image& scratch, float& maxValue) const;
-  size_t GetMaxComponent(Image& scratch, float& maxValue,
+  size_t GetMaxComponent(aocommon::Image& scratch, float& maxValue) const;
+  size_t GetMaxComponent(aocommon::Image& scratch, float& maxValue,
                          bool allowNegatives) const {
     if (allowNegatives)
       return GetMaxComponent<true>(scratch, maxValue);
@@ -83,7 +83,7 @@ class SubMinorModel {
  private:
   std::vector<std::pair<size_t, size_t>> _positions;
   std::unique_ptr<ImageSet> _residual, _model;
-  Image _rmsFactorImage;
+  aocommon::Image _rmsFactorImage;
   size_t _width;
 };
 
@@ -149,7 +149,9 @@ class SubMinorLoop {
 
   void SetMask(const bool* mask) { _mask = mask; }
 
-  void SetRMSFactorImage(const Image& image) { _rmsFactorImage = image; }
+  void SetRMSFactorImage(const aocommon::Image& image) {
+    _rmsFactorImage = image;
+  }
 
   void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 
@@ -193,7 +195,7 @@ class SubMinorLoop {
   const SpectralFitter* _fitter;
   SubMinorModel _subMinorModel;
   float _fluxCleaned;
-  Image _rmsFactorImage;
+  aocommon::Image _rmsFactorImage;
   LogReceiver& _logReceiver;
   size_t _threadCount;
 };

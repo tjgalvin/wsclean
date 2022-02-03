@@ -1,10 +1,10 @@
 #ifndef SPECTRAL_FITTER_H
 #define SPECTRAL_FITTER_H
 
-#include <aocommon/uvector.h>
 #include <vector>
 
-#include "../structures/image.h"
+#include <aocommon/image.h>
+#include <aocommon/uvector.h>
 
 enum class SpectralFittingMode { NoFitting, Polynomial, LogPolynomial };
 
@@ -87,7 +87,7 @@ class SpectralFitter {
 
   double ReferenceFrequency() const { return _referenceFrequency; }
 
-  void SetForcedImages(std::vector<Image>&& images) {
+  void SetForcedImages(std::vector<aocommon::Image>&& images) {
     _forcedTerms = std::move(images);
   }
 
@@ -102,7 +102,7 @@ class SpectralFitter {
   aocommon::UVector<double> _frequencies;
   aocommon::UVector<num_t> _weights;
   double _referenceFrequency;
-  std::vector<Image> _forcedTerms;
+  std::vector<aocommon::Image> _forcedTerms;
 };
 
 #endif

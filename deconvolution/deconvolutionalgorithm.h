@@ -6,8 +6,7 @@
 
 #include "spectralfitter.h"
 
-#include "../structures/image.h"
-
+#include <aocommon/image.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
@@ -94,7 +93,7 @@ class DeconvolutionAlgorithm {
     _spectralFitter.SetMode(mode, nTerms);
   }
 
-  void SetSpectrallyForcedImages(std::vector<Image>&& images) {
+  void SetSpectrallyForcedImages(std::vector<aocommon::Image>&& images) {
     _spectralFitter.SetForcedImages(std::move(images));
   }
 
@@ -106,8 +105,10 @@ class DeconvolutionAlgorithm {
 
   const SpectralFitter& Fitter() const { return _spectralFitter; }
 
-  void SetRMSFactorImage(Image&& image) { _rmsFactorImage = std::move(image); }
-  const Image& RMSFactorImage() const { return _rmsFactorImage; }
+  void SetRMSFactorImage(aocommon::Image&& image) {
+    _rmsFactorImage = std::move(image);
+  }
+  const aocommon::Image& RMSFactorImage() const { return _rmsFactorImage; }
 
  protected:
   DeconvolutionAlgorithm();
@@ -121,7 +122,7 @@ class DeconvolutionAlgorithm {
   size_t _maxIter, _iterationNumber, _threadCount;
   bool _allowNegativeComponents, _stopOnNegativeComponent;
   const bool* _cleanMask;
-  Image _rmsFactorImage;
+  aocommon::Image _rmsFactorImage;
   mutable aocommon::UVector<float> _fittingScratch;
 
   class LogReceiver* _logReceiver;

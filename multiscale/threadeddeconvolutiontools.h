@@ -1,10 +1,9 @@
 #ifndef THREADED_DECONVOLUTION_TOOLS_H
 #define THREADED_DECONVOLUTION_TOOLS_H
 
-#include "../structures/image.h"
-
 #include <boost/optional/optional.hpp>
 
+#include <aocommon/image.h>
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
 
@@ -27,13 +26,13 @@ class ThreadedDeconvolutionTools {
                      size_t height, size_t x, size_t y, float factor);
 
   void FindMultiScalePeak(
-      class MultiScaleTransforms* msTransforms, const Image& image,
+      class MultiScaleTransforms* msTransforms, const aocommon::Image& image,
       const aocommon::UVector<float>& scales, std::vector<PeakData>& results,
       bool allowNegativeComponents, const bool* mask,
       const std::vector<aocommon::UVector<bool>>& scaleMasks, float borderRatio,
-      const Image& rmsFactorImage, bool calculateRMS);
+      const aocommon::Image& rmsFactorImage, bool calculateRMS);
 
-  static float RMS(const Image& image, size_t n) {
+  static float RMS(const aocommon::Image& image, size_t n) {
     float result = 0.0;
     for (size_t i = 0; i != n; ++i) result += image[i] * image[i];
     return std::sqrt(result / float(n));
@@ -65,14 +64,14 @@ class ThreadedDeconvolutionTools {
     virtual std::unique_ptr<ThreadResult> operator()();
 
     class MultiScaleTransforms* msTransforms;
-    Image* image;
-    Image* scratch;
+    aocommon::Image* image;
+    aocommon::Image* scratch;
     float scale;
     bool allowNegativeComponents;
     const bool* mask;
     float borderRatio;
     bool calculateRMS;
-    const Image* rmsFactorImage;
+    const aocommon::Image* rmsFactorImage;
   };
 
   std::vector<aocommon::Lane<std::unique_ptr<ThreadTask>>> _taskLanes;

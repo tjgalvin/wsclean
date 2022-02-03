@@ -2,8 +2,8 @@
 #define CACHED_IMAGE_SET_H
 
 #include "logger.h"
-#include "../structures/image.h"
 
+#include <aocommon/image.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 
@@ -36,7 +36,7 @@ class CachedImageSet {
     _freqCount = freqCount;
     _facetCount = facetCount;
     _prefix = prefix;
-    _image.reset();
+    _image.Reset();
   }
 
   void SetFitsWriter(const FitsWriter& writer) { _writer = writer; }
@@ -49,11 +49,11 @@ class CachedImageSet {
     Logger::Debug << "Loading " << name(polarization, freqIndex, isImaginary)
                   << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0)
-      if (_image.empty())
+      if (_image.Empty())
         throw std::runtime_error("Loading image before store");
       else
-        std::copy(_image.data(),
-                  _image.data() + _writer.Width() * _writer.Height(), image);
+        std::copy(_image.Data(),
+                  _image.Data() + _writer.Width() * _writer.Height(), image);
     else {
       FitsReader reader(name(polarization, freqIndex, isImaginary));
       reader.Read(image);
@@ -85,11 +85,11 @@ class CachedImageSet {
     Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary)
                   << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
-      if (_image.empty()) {
-        _image = Image(_writer.Width(), _writer.Height());
+      if (_image.Empty()) {
+        _image = aocommon::Image(_writer.Width(), _writer.Height());
       }
       std::copy(image, image + _writer.Width() * _writer.Height(),
-                _image.data());
+                _image.Data());
     } else {
       std::string filename = name(polarization, freqIndex, isImaginary);
       _writer.Write(filename, image);
@@ -168,7 +168,7 @@ class CachedImageSet {
   size_t _polCount, _freqCount, _facetCount;
   std::string _prefix;
 
-  Image _image;
+  aocommon::Image _image;
   std::set<std::string> _storedNames;
 };
 

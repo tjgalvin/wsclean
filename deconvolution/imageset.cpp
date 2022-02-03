@@ -11,6 +11,8 @@
 
 #include <aocommon/staticfor.h>
 
+using aocommon::Image;
+
 ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
     : _images(),
       _width(0),
@@ -92,7 +94,7 @@ void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
     const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
     for (const ImagingTable::EntryPtr& e : sqGroup) {
       for (size_t i = 0; i != e->imageCount; ++i) {
-        imageSet.Load(scratch.data(), e->polarization, e->outputChannelIndex,
+        imageSet.Load(scratch.Data(), e->polarization, e->outputChannelIndex,
                       i == 1);
         _images[imgIndex].AddWithFactor(scratch, e->imageWeight);
         averagedWeights[imgIndex] += e->imageWeight;
@@ -129,7 +131,7 @@ void ImageSet::LoadAndAveragePSFs(
     const ImagingTable::Group& sqGroup = _imagingTable.SquaredGroups()[sqIndex];
     const ImagingTableEntry& entry = *sqGroup.front();
     const double inputChannelWeight = entry.imageWeight;
-    psfSet.Load(scratch.data(), psfPolarization, entry.outputChannelIndex, 0);
+    psfSet.Load(scratch.Data(), psfPolarization, entry.outputChannelIndex, 0);
     for (size_t i = 0; i != _width * _height; ++i) {
       psfImages[chIndex][i] += scratch[i] * inputChannelWeight;
     }
@@ -203,7 +205,7 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
         }
       });
 
-      imageSet.Store(scratch.data(), e.polarization, e.outputChannelIndex,
+      imageSet.Store(scratch.Data(), e.polarization, e.outputChannelIndex,
                      false);
     }
   }
@@ -221,7 +223,7 @@ void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
       size_t imgIndexForChannel = imgIndex;
       for (const ImagingTable::EntryPtr& e : sqGroup) {
         for (size_t i = 0; i != e->imageCount; ++i) {
-          imageSet.Store(_images[imgIndex].data(), e->polarization,
+          imageSet.Store(_images[imgIndex].Data(), e->polarization,
                          e->outputChannelIndex, i == 1);
           ++imgIndex;
         }
@@ -240,7 +242,7 @@ void ImageSet::directStore(CachedImageSet& imageSet) {
   size_t imgIndex = 0;
   for (const ImagingTableEntry& e : _imagingTable) {
     for (size_t i = 0; i != e.imageCount; ++i) {
-      imageSet.Store(_images[imgIndex].data(), e.polarization,
+      imageSet.Store(_images[imgIndex].Data(), e.polarization,
                      e.outputChannelIndex, i == 1);
       ++imgIndex;
     }
@@ -426,7 +428,7 @@ void ImageSet::CalculateDeconvolutionFrequencies(
 void ImageSet::GetIntegratedPSF(Image& dest,
                                 const aocommon::UVector<const float*>& psfs) {
   if (PSFCount() == 1)
-    std::copy_n(psfs[0], _width * _height, dest.data());
+    std::copy_n(psfs[0], _width * _height, dest.Data());
   else {
     bool isFirst = true;
     double weightSum = 0.0;

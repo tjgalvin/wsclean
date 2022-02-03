@@ -5,14 +5,14 @@
 
 #include "../math/fftconvolver.h"
 
-#include "../structures/image.h"
-
 #include "../io/logger.h"
+
+using aocommon::Image;
 
 template <bool AllowNegatives>
 size_t SubMinorModel::GetMaxComponent(Image& scratch, float& maxValue) const {
   _residual->GetLinearIntegrated(scratch);
-  if (!_rmsFactorImage.empty()) {
+  if (!_rmsFactorImage.Empty()) {
     for (size_t i = 0; i != size(); ++i) scratch[i] *= _rmsFactorImage[i];
   }
   size_t maxComponent = 0;
@@ -41,7 +41,7 @@ boost::optional<float> SubMinorLoop::Run(
   findPeakPositions(convolvedResidual);
 
   _subMinorModel.MakeSets(convolvedResidual);
-  if (!_rmsFactorImage.empty())
+  if (!_rmsFactorImage.Empty())
     _subMinorModel.MakeRMSFactorImage(_rmsFactorImage);
   _logReceiver.Debug << "Number of components selected > " << _threshold << ": "
                      << _subMinorModel.size() << '\n';
@@ -134,7 +134,7 @@ void SubMinorLoop::findPeakPositions(ImageSet& convolvedResidual) {
   Image integratedScratch(_width, _height);
   convolvedResidual.GetLinearIntegrated(integratedScratch);
 
-  if (!_rmsFactorImage.empty()) {
+  if (!_rmsFactorImage.Empty()) {
     integratedScratch *= _rmsFactorImage;
   }
 
@@ -146,7 +146,7 @@ void SubMinorLoop::findPeakPositions(ImageSet& convolvedResidual) {
   if (_mask) {
     for (size_t y = yiStart; y != yiEnd; ++y) {
       const bool* maskPtr = _mask + y * _width;
-      float* imagePtr = integratedScratch.data() + y * _width;
+      float* imagePtr = integratedScratch.Data() + y * _width;
       for (size_t x = xiStart; x != xiEnd; ++x) {
         float value;
         if (_allowNegativeComponents)
@@ -158,7 +158,7 @@ void SubMinorLoop::findPeakPositions(ImageSet& convolvedResidual) {
     }
   } else {
     for (size_t y = yiStart; y != yiEnd; ++y) {
-      float* imagePtr = integratedScratch.data() + y * _width;
+      float* imagePtr = integratedScratch.Data() + y * _width;
       for (size_t x = xiStart; x != xiEnd; ++x) {
         float value;
         if (_allowNegativeComponents)

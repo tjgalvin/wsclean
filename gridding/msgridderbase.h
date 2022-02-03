@@ -4,12 +4,12 @@
 #include "gridmode.h"
 
 #include <aocommon/banddata.h>
+#include <aocommon/image.h>
 #include <aocommon/polarization.h>
 #include <aocommon/imagecoordinates.h>
 
 #include "../structures/observationinfo.h"
 #include "../structures/msselection.h"
-#include "../structures/image.h"
 #include "../structures/weightmode.h"
 
 #include "visibilityweightingmode.h"
@@ -140,9 +140,9 @@ class MSGridderBase {
 
   virtual void Invert() = 0;
 
-  virtual void Predict(std::vector<Image>&& images) = 0;
+  virtual void Predict(std::vector<aocommon::Image>&& images) = 0;
 
-  virtual std::vector<Image> ResultImages() = 0;
+  virtual std::vector<aocommon::Image> ResultImages() = 0;
 
   void SetPhaseCentreRA(const double phaseCentreRA) {
     _phaseCentreRA = phaseCentreRA;

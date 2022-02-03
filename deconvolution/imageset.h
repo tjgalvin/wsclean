@@ -1,12 +1,12 @@
 #ifndef DECONVOLUTION_IMAGE_SET_H
 #define DECONVOLUTION_IMAGE_SET_H
 
-#include <aocommon/uvector.h>
-
 #include "../main/settings.h"
 
-#include "../structures/image.h"
 #include "../structures/imagingtable.h"
+
+#include <aocommon/image.h>
+#include <aocommon/uvector.h>
 
 #include <vector>
 #include <map>
@@ -31,9 +31,11 @@ class ImageSet {
     allocateImages();
   }
 
-  Image Release(size_t imageIndex) { return std::move(_images[imageIndex]); }
+  aocommon::Image Release(size_t imageIndex) {
+    return std::move(_images[imageIndex]);
+  }
 
-  void SetImage(size_t imageIndex, Image&& data) {
+  void SetImage(size_t imageIndex, aocommon::Image&& data) {
     _images[imageIndex] = std::move(data);
   }
 
@@ -76,7 +78,8 @@ class ImageSet {
    * integrated image.
    * @param scratch Pre-allocated scratch space, same size as image.
    */
-  void GetSquareIntegrated(Image& dest, Image& scratch) const {
+  void GetSquareIntegrated(aocommon::Image& dest,
+                           aocommon::Image& scratch) const {
     if (_squareJoinedChannels)
       getSquareIntegratedWithSquaredChannels(dest);
     else
@@ -94,14 +97,14 @@ class ImageSet {
    * @param dest Pre-allocated output array that will be filled with the average
    * values.
    */
-  void GetLinearIntegrated(Image& dest) const {
+  void GetLinearIntegrated(aocommon::Image& dest) const {
     if (_squareJoinedChannels)
       getSquareIntegratedWithSquaredChannels(dest);
     else
       getLinearIntegratedWithNormalChannels(dest);
   }
 
-  void GetIntegratedPSF(Image& dest,
+  void GetIntegratedPSF(aocommon::Image& dest,
                         const aocommon::UVector<const float*>& psfs);
 
   size_t PSFCount() const { return _channelsInDeconvolution; }
@@ -109,13 +112,13 @@ class ImageSet {
   size_t ChannelsInDeconvolution() const { return _channelsInDeconvolution; }
 
   ImageSet& operator=(float val) {
-    for (Image& image : _images) image = val;
+    for (aocommon::Image& image : _images) image = val;
     return *this;
   }
 
-  float* operator[](size_t index) { return _images[index].data(); }
+  float* operator[](size_t index) { return _images[index].Data(); }
 
-  const float* operator[](size_t index) const { return _images[index].data(); }
+  const float* operator[](size_t index) const { return _images[index].Data(); }
 
   size_t size() const { return _images.size(); }
 
@@ -152,7 +155,7 @@ class ImageSet {
   }
 
   ImageSet& operator*=(float factor) {
-    for (Image& image : _images) image *= factor;
+    for (aocommon::Image& image : _images) image *= factor;
     return *this;
   }
 
@@ -183,16 +186,17 @@ class ImageSet {
   ImageSet& operator=(const ImageSet&) = delete;
 
   void allocateImages() {
-    for (Image& img : _images) {
-      img = Image(_width, _height);
+    for (aocommon::Image& img : _images) {
+      img = aocommon::Image(_width, _height);
     }
   }
 
-  void assignMultiply(Image& lhs, const Image& rhs, float factor) const {
+  void assignMultiply(aocommon::Image& lhs, const aocommon::Image& rhs,
+                      float factor) const {
     for (size_t i = 0; i != _width * _height; ++i) lhs[i] = rhs[i] * factor;
   }
 
-  void squareRootMultiply(Image& image, float factor) const {
+  void squareRootMultiply(aocommon::Image& image, float factor) const {
     for (size_t i = 0; i != _width * _height; ++i)
       image[i] = std::sqrt(image[i]) * factor;
   }
@@ -220,9 +224,9 @@ class ImageSet {
       _polarizationNormalizationFactor = 1.0;
   }
 
-  static void copySmallerPart(const Image& input, Image& output, size_t x1,
-                              size_t y1, size_t x2, size_t y2,
-                              size_t oldWidth) {
+  static void copySmallerPart(const aocommon::Image& input,
+                              aocommon::Image& output, size_t x1, size_t y1,
+                              size_t x2, size_t y2, size_t oldWidth) {
     size_t newWidth = x2 - x1;
     for (size_t y = y1; y != y2; ++y) {
       const float* oldPtr = &input[y * oldWidth];
@@ -233,18 +237,19 @@ class ImageSet {
     }
   }
 
-  static void copyToLarger(Image& to, size_t toX, size_t toY, size_t toWidth,
-                           const Image& from, size_t fromWidth,
-                           size_t fromHeight) {
+  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
+                           size_t toWidth, const aocommon::Image& from,
+                           size_t fromWidth, size_t fromHeight) {
     for (size_t y = 0; y != fromHeight; ++y) {
-      std::copy(from.data() + y * fromWidth, from.data() + (y + 1) * fromWidth,
-                to.data() + toX + (toY + y) * toWidth);
+      std::copy(from.Data() + y * fromWidth, from.Data() + (y + 1) * fromWidth,
+                to.Data() + toX + (toY + y) * toWidth);
     }
   }
 
-  static void copyToLarger(Image& to, size_t toX, size_t toY, size_t toWidth,
-                           const Image& from, size_t fromWidth,
-                           size_t fromHeight, const bool* fromMask) {
+  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
+                           size_t toWidth, const aocommon::Image& from,
+                           size_t fromWidth, size_t fromHeight,
+                           const bool* fromMask) {
     for (size_t y = 0; y != fromHeight; ++y) {
       for (size_t x = 0; x != fromWidth; ++x) {
         if (fromMask[y * fromWidth + x])
@@ -255,11 +260,12 @@ class ImageSet {
 
   void directStore(class CachedImageSet& imageSet);
 
-  void getSquareIntegratedWithNormalChannels(Image& dest, Image& scratch) const;
+  void getSquareIntegratedWithNormalChannels(aocommon::Image& dest,
+                                             aocommon::Image& scratch) const;
 
-  void getSquareIntegratedWithSquaredChannels(Image& dest) const;
+  void getSquareIntegratedWithSquaredChannels(aocommon::Image& dest) const;
 
-  void getLinearIntegratedWithNormalChannels(Image& dest) const;
+  void getLinearIntegratedWithNormalChannels(aocommon::Image& dest) const;
 
   size_t channelToSqIndex(size_t channel) const {
     // Calculate reverse of
@@ -273,12 +279,13 @@ class ImageSet {
     return fromFloor;
   }
 
-  const Image& entryToImage(const ImagingTable::EntryPtr& entry) const {
+  const aocommon::Image& entryToImage(
+      const ImagingTable::EntryPtr& entry) const {
     size_t imageIndex = _entryIndexToImageIndex.find(entry->index)->second;
     return _images[imageIndex];
   }
 
-  std::vector<Image> _images;
+  std::vector<aocommon::Image> _images;
   size_t _width, _height, _channelsInDeconvolution;
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;

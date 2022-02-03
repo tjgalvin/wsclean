@@ -2,9 +2,9 @@
 #define GRIDDING_TASK_H
 
 #include <aocommon/io/serialstreamfwd.h>
+#include <aocommon/image.h>
 #include <aocommon/polarization.h>
 
-#include "../structures/image.h"
 #include "../structures/imageweights.h"
 #include "../structures/observationinfo.h"
 
@@ -35,7 +35,7 @@ class GriddingTask {
    * Images for prediction. See the documentation of
    * @ref GriddingResult::images for an explanation of why this is a vector.
    */
-  std::vector<Image> modelImages;
+  std::vector<aocommon::Image> modelImages;
   ObservationInfo observationInfo;
 
   std::shared_ptr<schaapcommon::facets::Facet> facet;

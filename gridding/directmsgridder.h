@@ -1,6 +1,7 @@
 #ifndef DIRECT_MS_GRIDDER_H
 #define DIRECT_MS_GRIDDER_H
 
+#include <aocommon/image.h>
 #include <aocommon/lane.h>
 
 #include "msgridderbase.h"
@@ -15,9 +16,9 @@ class DirectMSGridder final : public MSGridderBase {
 
   virtual void Invert() override;
 
-  virtual void Predict(std::vector<Image>&& images) override;
+  virtual void Predict(std::vector<aocommon::Image>&& images) override;
 
-  virtual std::vector<Image> ResultImages() override {
+  virtual std::vector<aocommon::Image> ResultImages() override {
     return {std::move(_image)};
   }
   virtual size_t getSuggestedWGridSize() const override { return 1; }
@@ -28,7 +29,7 @@ class DirectMSGridder final : public MSGridderBase {
     std::complex<float> sample;
   };
   size_t _nThreads;
-  Image _image;
+  aocommon::Image _image;
   num_t* _sqrtLMTable;
   std::vector<num_t*> _layers;
   aocommon::Lane<InversionSample> _inversionLane;

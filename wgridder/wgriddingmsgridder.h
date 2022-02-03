@@ -3,6 +3,8 @@
 
 #include "../gridding/msgridderbase.h"
 
+#include <aocommon/image.h>
+
 #include <memory>
 
 class WGriddingMSGridder final : public MSGridderBase {
@@ -11,9 +13,9 @@ class WGriddingMSGridder final : public MSGridderBase {
 
   virtual void Invert() override;
 
-  virtual void Predict(std::vector<Image>&& images) override;
+  virtual void Predict(std::vector<aocommon::Image>&& images) override;
 
-  virtual std::vector<Image> ResultImages() override {
+  virtual std::vector<aocommon::Image> ResultImages() override {
     return {std::move(_image)};
   }
 
@@ -22,7 +24,7 @@ class WGriddingMSGridder final : public MSGridderBase {
   virtual size_t getSuggestedWGridSize() const override { return 1; }
 
  private:
-  Image _image;
+  aocommon::Image _image;
 
   template <DDGainMatrix GainEntry>
   void gridMeasurementSet(MSData& msData);

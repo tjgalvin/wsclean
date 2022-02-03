@@ -12,14 +12,13 @@ Since WSClean 1.9, the gridder is contained in the unit file ``wsclean/wstacking
 The gridder can be compiled with two external libraries: FFTW and Boost. To avoid a Casacore dependency, you need to define AVOID_CASACORE while compiling the gridder. There's a prediction example in wsclean/examples called "`wspredictionexample.cpp <https://gitlab.com/aroffringa/wsclean/-/blob/development/wsclean/examples/wspredictionexample.cpp>`_)", which can be compiled with:
 
 .. code-block:: bash
-    
+
     g++ -o wspredictionexample -O3 -march=native -pthread \
       -I ../../external/aocommon/include/ \
       -DAVOID_CASACORE \
       wspredictionexample.cpp \
       ../wstackinggridder.cpp \
       ../../io/logger.cpp \
-      ../../structures/image.cpp \
       -lfftw3f -lfftw3 -lfftw3f_threads -lfftw3_threads \
       -lboost_date_time -lboost_system
 

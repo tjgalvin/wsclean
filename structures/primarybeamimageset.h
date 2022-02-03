@@ -6,12 +6,11 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <aocommon/hmatrix4x4.h>
+#include <aocommon/image.h>
 #include <aocommon/matrix2x2.h>
 #include <aocommon/polarization.h>
 
 #include <aocommon/fits/fitsreader.h>
-
-#include "../structures/image.h"
 
 class PrimaryBeamImageSet {
  public:
@@ -20,12 +19,12 @@ class PrimaryBeamImageSet {
   PrimaryBeamImageSet(size_t width, size_t height)
       : _width(width), _height(height) {
     for (size_t i = 0; i != _beamImages.size(); ++i)
-      _beamImages[i] = Image(width, height);
+      _beamImages[i] = aocommon::Image(width, height);
   }
 
   void SetToZero() {
-    for (Image& img : _beamImages)
-      std::fill_n(img.data(), _width * _height, 0.0);
+    for (aocommon::Image& img : _beamImages)
+      std::fill_n(img.Data(), _width * _height, 0.0);
   }
 
   double GetUnpolarizedCorrectionFactor(size_t x, size_t y) {
@@ -43,8 +42,10 @@ class PrimaryBeamImageSet {
     return v[0].real() + v[3].real();
   }
 
-  const Image& operator[](size_t index) const { return _beamImages[index]; }
-  Image& operator[](size_t index) { return _beamImages[index]; }
+  const aocommon::Image& operator[](size_t index) const {
+    return _beamImages[index];
+  }
+  aocommon::Image& operator[](size_t index) { return _beamImages[index]; }
 
   PrimaryBeamImageSet& operator+=(const PrimaryBeamImageSet& rhs) {
     if (_beamImages.size() != rhs._beamImages.size())
@@ -152,7 +153,7 @@ class PrimaryBeamImageSet {
   size_t Height() const { return _height; }
 
  private:
-  std::array<Image, 16> _beamImages;
+  std::array<aocommon::Image, 16> _beamImages;
   size_t _width, _height;
 };
 
