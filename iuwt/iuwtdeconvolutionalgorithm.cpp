@@ -630,11 +630,10 @@ bool IUWTDeconvolutionAlgorithm::fillAndDeconvolveStructure(
         smallPSFKernel, curEndScale, curMinScale, x2 - x1, y2 - y1, thresholds,
         newMaxComp, false, trimmedPriorMaskPtr);
     for (size_t i = 0; i != structureModelFull.size(); ++i) {
-      memcpy(scratch.Data(), (*trimmedStructureModel)[i],
-             (y2 - y1) * (x2 - x1) * sizeof(float));
+      std::copy_n((*trimmedStructureModel)[i], (y2 - y1) * (x2 - x1),
+                  scratch.Data());
       untrim(scratch, width, height, x1, y1, x2, y2);
-      memcpy(structureModelFull[i], scratch.Data(),
-             width * height * sizeof(float));
+      std::copy_n(scratch.Data(), width * height, structureModelFull[i]);
     }
 
     dirty = Image(scratch.Width(), scratch.Height());

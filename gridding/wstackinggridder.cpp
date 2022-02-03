@@ -158,8 +158,8 @@ void WStackingGridder<T>::StartPredictionPass(size_t passIndex) {
 template <>
 void WStackingGridder<double>::fftToImageThreadFunction(
     std::mutex *mutex, std::stack<size_t> *tasks, size_t threadIndex) {
-  ComplexImageBase<double> fftwIn = ComplexImageBase<double>(_width, _height);
-  ComplexImageBase<double> fftwOut = ComplexImageBase<double>(_width, _height);
+  ComplexImageBase<double> fftwIn(_width, _height);
+  ComplexImageBase<double> fftwOut(_width, _height);
 
   std::unique_lock<std::mutex> lock(*mutex);
   fftw_plan plan = fftw_plan_dft_2d(
@@ -241,8 +241,8 @@ template <>
 void WStackingGridder<double>::fftToUVThreadFunction(
     std::mutex *mutex, std::stack<size_t> *tasks) {
   const size_t imgSize = _width * _height;
-  ComplexImageBase<double> fftwIn = ComplexImageBase<double>(_width, _height),
-                           fftwOut = ComplexImageBase<double>(_width, _height);
+  ComplexImageBase<double> fftwIn(_width, _height);
+  ComplexImageBase<double> fftwOut(_width, _height);
 
   std::unique_lock<std::mutex> lock(*mutex);
   fftw_plan plan = fftw_plan_dft_2d(
@@ -281,8 +281,8 @@ void WStackingGridder<double>::fftToUVThreadFunction(
 template <>
 void WStackingGridder<float>::fftToUVThreadFunction(std::mutex *mutex,
                                                     std::stack<size_t> *tasks) {
-  ComplexImageBase<float> fftwIn = ComplexImageBase<float>(_width, _height),
-                          fftwOut = ComplexImageBase<float>(_width, _height);
+  ComplexImageBase<float> fftwIn(_width, _height);
+  ComplexImageBase<float> fftwOut(_width, _height);
 
   std::unique_lock<std::mutex> lock(*mutex);
   fftwf_plan plan = fftwf_plan_dft_2d(

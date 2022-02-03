@@ -63,7 +63,7 @@ class IUWTDecomposition {
                scale);
       difference(coefficients.Data(), input.Data(), tmp.Data(), _width,
                  _height);
-      memcpy(input.Data(), tmp.Data(), sizeof(float) * _width * _height);
+      std::copy_n(tmp.Data(), _width * _height, input.Data());
     }
     _scales.back().Coefficients() = input;
   }
@@ -98,8 +98,9 @@ class IUWTDecomposition {
       difference(coefficients.Data(), i0.data(), i2.Data(), _width, _height);
 
       // i0 = i1;
-      if (scale + 1 != int(_scaleCount))
-        memcpy(i0.data(), i1.Data(), sizeof(float) * _width * _height);
+      if (scale + 1 != int(_scaleCount)) {
+        std::copy_n(i1.Data(), _width * _height, i0.data());
+      }
     }
     _scales.back().Coefficients() = i1;
   }

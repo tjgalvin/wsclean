@@ -4,33 +4,17 @@
 //#define EXTRA_ASSERTIONS 1
 
 #include <cstring>
+#include <array>
 
 #include <aocommon/polarization.h>
 
 class Measurement {
  public:
-  Measurement() : _frequencyHz(0.0), _bandWidthHz(0.0) {
-    for (size_t p = 0; p != 4; ++p) {
-      _fluxDensities[p] = 0;
-      _fluxDensityStddevs[p] = 0;
-    }
-  }
-
-  Measurement(const Measurement &source)
-      : _frequencyHz(source._frequencyHz), _bandWidthHz(source._bandWidthHz) {
-    memcpy(_fluxDensities, source._fluxDensities, sizeof(long double) * 4);
-    memcpy(_fluxDensityStddevs, source._fluxDensityStddevs,
-           sizeof(long double) * 4);
-  }
-
-  Measurement &operator=(const Measurement &source) {
-    _frequencyHz = source._frequencyHz;
-    _bandWidthHz = source._bandWidthHz;
-    memcpy(_fluxDensities, source._fluxDensities, sizeof(long double) * 4);
-    memcpy(_fluxDensityStddevs, source._fluxDensityStddevs,
-           sizeof(long double) * 4);
-    return *this;
-  }
+  Measurement()
+      : _frequencyHz(0.0),
+        _bandWidthHz(0.0),
+        _fluxDensities{},
+        _fluxDensityStddevs{} {}
 
   void operator+=(const Measurement &rhs) {
     for (size_t p = 0; p != 4; ++p) {
@@ -78,10 +62,7 @@ class Measurement {
 
   void SetZeroExceptSinglePol(aocommon::PolarizationEnum polarization,
                               long double flux) {
-    _fluxDensities[0] = 0.0;
-    _fluxDensities[1] = 0.0;
-    _fluxDensities[2] = 0.0;
-    _fluxDensities[3] = 0.0;
+    _fluxDensities.fill(0.0);
     _fluxDensities[aocommon::Polarization::StokesToIndex(polarization)] = flux;
 #ifdef EXTRA_ASSERTIONS
     if (!aocommon::Polarization::IsStokes(polarization))
@@ -121,8 +102,8 @@ class Measurement {
  private:
   double _frequencyHz;
   double _bandWidthHz;
-  long double _fluxDensities[4];
-  long double _fluxDensityStddevs[4];
+  std::array<long double, 4> _fluxDensities;
+  std::array<long double, 4> _fluxDensityStddevs;
 };
 
 #endif

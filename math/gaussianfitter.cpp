@@ -205,8 +205,8 @@ void GaussianFitter::fit2DGaussianCentredInBox(const float* image, size_t width,
   size_t startY = (height - boxHeight) / 2;
   aocommon::UVector<float> smallImage(boxWidth * boxHeight);
   for (size_t y = startY; y != (height + boxHeight) / 2; ++y) {
-    memcpy(&smallImage[(y - startY) * boxWidth], &image[y * width + startX],
-           sizeof(float) * boxWidth);
+    std::copy_n(&image[y * width + startX], boxWidth,
+                &smallImage[(y - startY) * boxWidth]);
   }
 
   fit2DGaussianCentred(&smallImage[0], boxWidth, boxHeight, beamEst, beamMaj,
@@ -220,8 +220,8 @@ void GaussianFitter::fit2DCircularGaussianCentredInBox(
   size_t startY = (height - boxHeight) / 2;
   aocommon::UVector<float> smallImage(boxWidth * boxHeight);
   for (size_t y = startY; y != (height + boxHeight) / 2; ++y) {
-    memcpy(&smallImage[(y - startY) * boxWidth], &image[y * width + startX],
-           sizeof(float) * boxWidth);
+    std::copy_n(&image[y * width + startX], boxWidth,
+                &smallImage[(y - startY) * boxWidth]);
   }
 
   fit2DCircularGaussianCentred(&smallImage[0], boxWidth, boxHeight, beamSize);
@@ -442,8 +442,8 @@ void GaussianFitter::fit2DGaussianWithAmplitudeInBox(
   size_t boxHeight = yEnd - yStart;
   aocommon::UVector<float> smallImage(boxWidth * boxHeight);
   for (size_t y = yStart; y != yEnd; ++y) {
-    memcpy(&smallImage[(y - yStart) * boxWidth], &image[y * width + xStart],
-           sizeof(float) * boxWidth);
+    std::copy_n(&image[y * width + xStart], boxWidth,
+                &smallImage[(y - yStart) * boxWidth]);
   }
 
   posX -= xStart;
