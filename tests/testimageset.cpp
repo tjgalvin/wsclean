@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(psfCount1) {
   settings.deconvolutionChannelCount = 1;
   settings.squaredJoins = false;
   settings.linkedPolarizations = std::set<PolarizationEnum>();
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   BOOST_CHECK_EQUAL(dset.PSFCount(), 1u);
 }
 
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(psfCount2) {
   settings.deconvolutionChannelCount = 2;
   settings.squaredJoins = false;
   settings.linkedPolarizations = std::set<PolarizationEnum>();
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   BOOST_CHECK_EQUAL(dset.PSFCount(), 2u);
 }
 
@@ -115,7 +115,7 @@ BOOST_FIXTURE_TEST_CASE(load, AdvImageSetFixture) {
 }
 
 BOOST_FIXTURE_TEST_CASE(loadAndAverage, AdvImageSetFixture) {
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset.LoadAndAverage(cSet);
   BOOST_CHECK_CLOSE_FRACTION(dset[0][0], 0.5 * (2.0 + 20.0), 1e-8);
   BOOST_CHECK_CLOSE_FRACTION(dset[1][0], 0.5 * (-1.0 - 10.0), 1e-8);
@@ -123,7 +123,7 @@ BOOST_FIXTURE_TEST_CASE(loadAndAverage, AdvImageSetFixture) {
 
 BOOST_FIXTURE_TEST_CASE(interpolateAndStore, AdvImageSetFixture) {
   settings.deconvolutionChannelCount = 2;
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   SpectralFitter fitter(SpectralFittingMode::NoFitting, 2);
   dset.LoadAndAverage(cSet);
   dset.InterpolateAndStore(cSet, fitter);
@@ -136,7 +136,7 @@ BOOST_FIXTURE_TEST_CASE(xxNormalization, ImageSetFixtureBase) {
       std::set<PolarizationEnum>{aocommon::Polarization::XX};
   addToImageSet(table, 0, 0, 0, 0, aocommon::Polarization::XX, 100);
   table.Update();
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][1] = 5.0;
   checkLinearValue(1, 5.0, dset);
@@ -148,7 +148,7 @@ BOOST_FIXTURE_TEST_CASE(iNormalization, ImageSetFixtureBase) {
   table.Update();
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][2] = 6.0;
   checkLinearValue(2, 6.0, dset);
@@ -163,7 +163,7 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_Normalization, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
   std::set<PolarizationEnum> pols{aocommon::Polarization::StokesI};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][0] = 12.0;
   dset[1][0] = 13.0;
@@ -179,7 +179,7 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_NaNs, ImageSetFixtureBase) {
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
   std::set<PolarizationEnum> pols{aocommon::Polarization::StokesI};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][0] = std::numeric_limits<float>::quiet_NaN();
   dset[1][0] = 42.0;
@@ -193,7 +193,7 @@ BOOST_FIXTURE_TEST_CASE(xxyyNormalization, ImageSetFixtureBase) {
   table.Update();
   settings.linkedPolarizations = std::set<PolarizationEnum>{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][3] = 7.0;
   dset[1][3] = 8.0;
@@ -208,7 +208,7 @@ BOOST_FIXTURE_TEST_CASE(iqNormalization, ImageSetFixtureBase) {
   table.Update();
   settings.linkedPolarizations = std::set<PolarizationEnum>{
       aocommon::Polarization::StokesI, aocommon::Polarization::StokesQ};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][0] = 6.0;
   dset[1][0] = -1.0;
@@ -222,7 +222,7 @@ BOOST_FIXTURE_TEST_CASE(linkedINormalization, ImageSetFixtureBase) {
   table.Update();
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][0] = 3.0;
   dset[1][0] = -1.0;
@@ -239,7 +239,7 @@ BOOST_FIXTURE_TEST_CASE(iquvNormalization, ImageSetFixtureBase) {
   settings.linkedPolarizations = std::set<PolarizationEnum>{
       aocommon::Polarization::StokesI, aocommon::Polarization::StokesQ,
       aocommon::Polarization::StokesU, aocommon::Polarization::StokesV};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][0] = 9.0;
   dset[1][0] = 0.2;
@@ -258,7 +258,7 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yyNormalization, ImageSetFixtureBase) {
   settings.linkedPolarizations = std::set<PolarizationEnum>{
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][1] = 10.0;
   dset[1][1] = 0.25;
@@ -284,7 +284,7 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yy_2channel_Normalization,
   settings.linkedPolarizations = std::set<PolarizationEnum>{
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][2] = 5.0;
   dset[1][2] = 0.1;
@@ -318,7 +318,7 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_yy_2channel_Normalization,
   settings.deconvolutionChannelCount = 2;
   settings.linkedPolarizations = std::set<PolarizationEnum>{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][2] = 7.5;
   dset[1][2] = 0.1;
@@ -348,7 +348,7 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_2channel_Normalization, ImageSetFixtureBase) {
   settings.deconvolutionChannelCount = 2;
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::XX};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][2] = 7.5;
   dset[1][2] = 0.1;
@@ -372,7 +372,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_normalization, ImageSetFixtureBase) {
   settings.deconvolutionChannelCount = 2;
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][0] = 10.0;
   dset[1][0] = 13.0;
@@ -389,7 +389,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_zeroweight, ImageSetFixtureBase) {
   settings.deconvolutionChannelCount = 2;
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   dset[0][0] = 10.0;
   dset[1][0] = 5.0;
@@ -405,7 +405,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_divisor, ImageSetFixtureBase) {
   settings.deconvolutionChannelCount = 3;
   settings.linkedPolarizations =
       std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
   dset = 0.0;
   for (size_t ch = 0; ch != 3; ++ch) dset[ch][0] = 7.0;
   checkLinearValue(0, 7.0, dset);
@@ -432,7 +432,7 @@ BOOST_FIXTURE_TEST_CASE(psfindex, ImageSetFixtureBase) {
   settings.linkedPolarizations = std::set<PolarizationEnum>{
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
-  ImageSet dset(&table, settings, 2, 2);
+  ImageSet dset(table, settings, 2, 2);
 
   BOOST_CHECK_EQUAL(dset.PSFIndex(0), 0u);
   BOOST_CHECK_EQUAL(dset.PSFIndex(1), 0u);
@@ -471,7 +471,7 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
   settings.deconvolutionChannelCount = 2;
   table.Update();
 
-  ImageSet imageSet(&table, settings, width, height);
+  ImageSet imageSet(table, settings, width, height);
   imageSet.LoadAndAverage(cachedImgs);
   // The first image has all values set to 2^0, the second image 2^1, etc...
   // The XX polarizations of deconvolution channel 1 consists of

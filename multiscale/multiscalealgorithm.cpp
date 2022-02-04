@@ -173,7 +173,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
     twiceConvolvedPSFs[i] = Image(_width, _height);
   }
 
-  ImageSet individualConvolvedImages(&dirtySet.Table(), dirtySet.Settings(),
+  ImageSet individualConvolvedImages(dirtySet.Table(), dirtySet.Settings(),
                                      _width, _height);
 
   //

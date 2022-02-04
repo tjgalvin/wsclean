@@ -45,8 +45,8 @@ void Deconvolution::Perform(const class ImagingTable& groupTable,
   Logger::Info.Flush();
   Logger::Info << " == Deconvolving (" << majorIterationNr << ") ==\n";
 
-  ImageSet residualSet(&groupTable, _settings, _imgWidth, _imgHeight),
-      modelSet(&groupTable, _settings, _imgWidth, _imgHeight);
+  ImageSet residualSet(groupTable, _settings, _imgWidth, _imgHeight);
+  ImageSet modelSet(groupTable, _settings, _imgWidth, _imgHeight);
 
   Logger::Debug << "Loading residual images...\n";
   residualSet.LoadAndAverage(*_residualImages);

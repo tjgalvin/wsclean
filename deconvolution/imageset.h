@@ -14,9 +14,9 @@
 
 class ImageSet {
  public:
-  ImageSet(const ImagingTable* table, const Settings& settings);
+  ImageSet(const ImagingTable& table, const Settings& settings);
 
-  ImageSet(const ImagingTable* table, const Settings& settings, size_t width,
+  ImageSet(const ImagingTable& table, const Settings& settings, size_t width,
            size_t height);
 
   void AllocateImages() {
@@ -131,7 +131,7 @@ class ImageSet {
   std::unique_ptr<ImageSet> Trim(size_t x1, size_t y1, size_t x2, size_t y2,
                                  size_t oldWidth) const {
     std::unique_ptr<ImageSet> p(
-        new ImageSet(&_imagingTable, _settings, x2 - x1, y2 - y1));
+        new ImageSet(_imagingTable, _settings, x2 - x1, y2 - y1));
     for (size_t i = 0; i != _images.size(); ++i) {
       copySmallerPart(_images[i], p->_images[i], x1, y1, x2, y2, oldWidth);
     }

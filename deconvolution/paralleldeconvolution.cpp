@@ -403,7 +403,7 @@ void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages,
   } else {
     const size_t w = _settings.trimmedImageWidth,
                  h = _settings.trimmedImageHeight;
-    ImageSet modelSet(&table, _settings, w, h);
+    ImageSet modelSet(table, _settings, w, h);
     modelSet.LoadAndAverage(modelImages);
     ComponentList componentList(w, h, modelSet);
     writeSourceList(componentList, filename, phaseCentreRA, phaseCentreDec);
@@ -439,7 +439,7 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages,
     else
       list.reset(new ComponentList(*_componentList));
   } else {
-    ImageSet modelSet(&table, _settings, w, h);
+    ImageSet modelSet(table, _settings, w, h);
     modelSet.LoadAndAverage(modelImages);
     list.reset(new ComponentList(w, h, modelSet));
   }

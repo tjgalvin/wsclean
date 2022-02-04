@@ -13,19 +13,19 @@
 
 using aocommon::Image;
 
-ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
+ImageSet::ImageSet(const ImagingTable& table, const class Settings& settings)
     : _images(),
       _width(0),
       _height(0),
       _channelsInDeconvolution((settings.deconvolutionChannelCount == 0)
-                                   ? table->SquaredGroups().size()
+                                   ? table.SquaredGroups().size()
                                    : settings.deconvolutionChannelCount),
       _squareJoinedChannels(settings.squaredJoins),
-      _imagingTable(*table),
+      _imagingTable(table),
       _imageIndexToPSFIndex(),
       _linkedPolarizations(settings.linkedPolarizations),
       _settings(settings) {
-  size_t nPol = table->SquaredGroups().front().size();
+  size_t nPol = table.SquaredGroups().front().size();
   size_t nImages = nPol * _channelsInDeconvolution;
   _images.resize(nImages);
   _imageIndexToPSFIndex.resize(nImages);
@@ -33,11 +33,11 @@ ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings)
   initializePolFactor();
   initializeIndices();
   aocommon::UVector<double> frequencies;
-  CalculateDeconvolutionFrequencies(*table, frequencies, _weights,
+  CalculateDeconvolutionFrequencies(table, frequencies, _weights,
                                     _channelsInDeconvolution);
 }
 
-ImageSet::ImageSet(const ImagingTable* table, const class Settings& settings,
+ImageSet::ImageSet(const ImagingTable& table, const class Settings& settings,
                    size_t width, size_t height)
     : ImageSet(table, settings) {
   _width = width;
