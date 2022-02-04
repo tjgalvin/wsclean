@@ -15,7 +15,7 @@ Test script containing a collection of wsclean commands, tested on an MWA measur
 file can be invoked via various routes:
 
 - execute "make checksystemtests"  in your build directory
-- execute "[python3 -m] pytest [OPTIONS] source/tests.py" in your build directory
+- execute "[python3 -m] pytest [OPTIONS] source/<test_name.py>" in your build/tests directory
 - execute "./various-tests.sh <MWA_MS> [optional] <MWA_COEFFS_PATH>" from the scripts
   directory in the repository
 """
@@ -283,11 +283,14 @@ def test_facet_beam():
         )
 
 
-def test_mpi():
-    # Test wsclean-mp command
-    s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
+# Test wsclean-mp command
+def test_mpi_join_channels():
+    s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-join')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
 
+def test_mpi_split_channels():
+    s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-split')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
+    check_call(s.split())
 
 def test_idg_with_reuse_psf():
     # Test for issue #81: -reuse-psf gives segmentation fault in IDG

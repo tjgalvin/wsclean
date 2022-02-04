@@ -71,6 +71,15 @@ class ImagingTable {
 
   size_t FacetGroupCount() const { return _facetGroups.size(); }
 
+  // When an imagingtable is split into different tables, a facetGroupIndex may
+  // be greater-equal than FacetGroupCount(). Since facetGroupIndices are used
+  // for acquiring scheduler locks, always use (MaxFacetGroupIndex() + 1) for
+  // determining the number of scheduler locks.
+  size_t MaxFacetGroupIndex() const {
+    // _facetGroups is sorted, since Update() converts a sorted map to it.
+    return _facetGroups.back().front()->facetGroupIndex;
+  }
+
   ImagingTable GetFacetGroup(size_t index) const {
     return ImagingTable(_facetGroups[index]);
   }

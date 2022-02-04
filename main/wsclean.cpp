@@ -350,9 +350,9 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 
     // If !_facets.empty(), these actions are performed in stitchFacets
     if (isInitialInversion && _facets.empty()) {
-      // nFacetGroups is always 1
-      const size_t nFacetGroups = 1;
-      initializeModelImages(entry, polarization, nFacetGroups);
+      // maxFacetGroupIndex is always 1
+      const size_t maxFacetGroupIndex = 1;
+      initializeModelImages(entry, polarization, maxFacetGroupIndex);
 
       _residualImages.SetFitsWriter(
           createWSCFitsWriter(entry, polarization, false, false, false)
@@ -1193,12 +1193,12 @@ void WSClean::partitionSingleGroup(const ImagingTable& facetGroup,
 
 void WSClean::initializeModelImages(const ImagingTableEntry& entry,
                                     PolarizationEnum polarization,
-                                    size_t nFacetGroups) {
+                                    size_t maxFacetGroupIndex) {
   _modelImages.SetFitsWriter(
       createWSCFitsWriter(entry, polarization, false, true, false).Writer());
 
   if (_settings.continuedRun) {
-    readExistingModelImages(entry, polarization, nFacetGroups);
+    readExistingModelImages(entry, polarization, maxFacetGroupIndex);
   } else {
     // Set model to zero: already done if this is YX of XY/YX imaging combi
     if (!(polarization == Polarization::YX &&
@@ -1216,7 +1216,7 @@ void WSClean::initializeModelImages(const ImagingTableEntry& entry,
 
 void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
                                       PolarizationEnum polarization,
-                                      size_t nFacetGroups) {
+                                      size_t maxFacetGroupIndex) {
   // load image(s) from disk and store them in the model-image cache.
   for (size_t i = 0; i != entry.imageCount; ++i) {
     std::string prefix = ImageFilename::GetPrefix(
@@ -1238,7 +1238,8 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
         resetModelColumns(entry);
       }
       _griddingTaskManager = GriddingTaskManager::Make(_settings);
-      _griddingTaskManager->Start(getMaxNrMSProviders() * nFacetGroups);
+      _griddingTaskManager->Start(getMaxNrMSProviders() *
+                                  (maxFacetGroupIndex + 1));
     }
 
     if (!_imageWeightCache) {
@@ -1327,7 +1328,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
   resetModelColumns(groupTable);
   _predictingWatch.Start();
   _griddingTaskManager->Start(getMaxNrMSProviders() *
-                              groupTable.FacetGroupCount());
+                              (groupTable.MaxFacetGroupIndex() + 1));
 
   for (size_t groupIndex = 0; groupIndex != groupTable.IndependentGroupCount();
        ++groupIndex) {
@@ -1352,7 +1353,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 
       readExistingModelImages(facetGroup.Front(),
                               facetGroup.Front().polarization,
-                              groupTable.FacetGroupCount());
+                              groupTable.MaxFacetGroupIndex());
       partitionModelIntoFacets(facetGroup, true);
     }
 
@@ -1536,7 +1537,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           resetModelColumns(groupTable);
           _predictingWatch.Start();
           _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                      groupTable.FacetGroupCount());
+                                      (groupTable.MaxFacetGroupIndex() + 1));
           // Iterate over polarizations, channels & facets
           for (const ImagingTableEntry& entry : groupTable) {
             // Only request one polarization for each facet/channel. The
@@ -1559,7 +1560,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           resetModelColumns(groupTable);
           _predictingWatch.Start();
           _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                      groupTable.FacetGroupCount());
+                                      (groupTable.MaxFacetGroupIndex() + 1));
           for (const ImagingTable::Group& sqGroup :
                groupTable.SquaredGroups()) {
             for (const ImagingTable::EntryPtr& entry : sqGroup) {
@@ -1582,7 +1583,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           resetModelColumns(groupTable);
           _predictingWatch.Start();
           _griddingTaskManager->Start(getMaxNrMSProviders() *
-                                      groupTable.FacetGroupCount());
+                                      (groupTable.MaxFacetGroupIndex() + 1));
           bool hasMore;
           size_t sqIndex = 0;
           do {
@@ -1735,7 +1736,7 @@ void WSClean::stitchFacets(const ImagingTable& table,
         for (size_t imageIndex = 0; imageIndex != imageCount; ++imageIndex) {
           stitchSingleGroup(stitchGroup, imageIndex, imageCache, writeDirty,
                             isPSF, fullImage, facetImage,
-                            table.FacetGroupCount());
+                            table.MaxFacetGroupIndex());
         }
       }
     }
@@ -1746,7 +1747,7 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
                                 size_t imageIndex, CachedImageSet& imageCache,
                                 bool writeDirty, bool isPSF, Image& fullImage,
                                 schaapcommon::facets::FacetImage& facetImage,
-                                size_t nFacetGroups) {
+                                size_t maxFacetGroupIndex) {
   const bool isImaginary = (imageIndex == 1);
   fullImage = 0.0f;
   for (const ImagingTableEntry& facetEntry : facetGroup) {
@@ -1769,7 +1770,7 @@ void WSClean::stitchSingleGroup(const ImagingTable& facetGroup,
   }
   if (writeDirty) {
     initializeModelImages(facetGroup.Front(), facetGroup.Front().polarization,
-                          nFacetGroups);
+                          maxFacetGroupIndex);
     _residualImages.SetFitsWriter(
         createWSCFitsWriter(facetGroup.Front(), false, false, true).Writer());
     WSCFitsWriter writer(
