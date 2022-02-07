@@ -11,6 +11,8 @@
 
 #include <aocommon/staticfor.h>
 
+#include <cassert>
+
 using aocommon::Image;
 
 ImageSet::ImageSet(const DeconvolutionTable& table,
@@ -50,6 +52,7 @@ void ImageSet::initializeIndices() {
   size_t lastDeconvolutionChannel = 0;
   size_t deconvolutionChannelStartIndex = 0, lastOutChannel = 0;
   size_t imgIndex = 0;
+  _entryIndexToImageIndex.reserve(_imagingTable.Size());
   for (const DeconvolutionTableEntry& entry : _imagingTable) {
     size_t outChannel = entry.outputChannelIndex;
     size_t chIndex = (outChannel * _channelsInDeconvolution) /
@@ -62,7 +65,8 @@ void ImageSet::initializeIndices() {
     if (chIndex != lastDeconvolutionChannel) {
       deconvolutionChannelStartIndex = imgIndex;
     }
-    _entryIndexToImageIndex.emplace(entry.index, imgIndex);
+    assert(entry.index == _entryIndexToImageIndex.size());
+    _entryIndexToImageIndex.push_back(imgIndex);
     lastOutChannel = outChannel;
     lastDeconvolutionChannel = chIndex;
     ++imgIndex;
@@ -72,7 +76,7 @@ void ImageSet::initializeIndices() {
     const DeconvolutionTable::Group& sqGroup =
         _imagingTable.SquaredGroups()[sqIndex];
     for (const DeconvolutionTableEntry* entry : sqGroup) {
-      size_t imageIndex = _entryIndexToImageIndex.find(entry->index)->second;
+      const size_t imageIndex = _entryIndexToImageIndex[entry->index];
       _imageIndexToPSFIndex[imageIndex] = channel;
     }
   }

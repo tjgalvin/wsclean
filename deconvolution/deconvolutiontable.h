@@ -58,7 +58,15 @@ class DeconvolutionTable {
    */
   void AddEntry(std::unique_ptr<DeconvolutionTableEntry> entry);
 
+  /**
+   * @return A reference to the first entry.
+   */
   const DeconvolutionTableEntry& Front() const { return *_entries.front(); }
+
+  /**
+   * @return The number of entries in the table.
+   */
+  size_t Size() const { return _entries.size(); }
 
  private:
   Entries _entries;

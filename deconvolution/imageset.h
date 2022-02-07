@@ -282,8 +282,7 @@ class ImageSet {
 
   const aocommon::Image& entryToImage(
       const DeconvolutionTableEntry& entry) const {
-    size_t imageIndex = _entryIndexToImageIndex.find(entry.index)->second;
-    return _images[imageIndex];
+    return _images[_entryIndexToImageIndex[entry.index]];
   }
 
   std::vector<aocommon::Image> _images;
@@ -292,7 +291,7 @@ class ImageSet {
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
   const DeconvolutionTable& _imagingTable;
-  std::map<size_t, size_t> _entryIndexToImageIndex;
+  std::vector<size_t> _entryIndexToImageIndex;
   aocommon::UVector<size_t> _imageIndexToPSFIndex;
   float _polarizationNormalizationFactor;
   std::set<aocommon::PolarizationEnum> _linkedPolarizations;
