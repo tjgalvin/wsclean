@@ -2,6 +2,7 @@
 #define WSCLEAN_IMAGING_TABLE_H
 
 #include "imagingtableentry.h"
+#include "../deconvolution/deconvolutiontable.h"
 
 #include <functional>
 #include <memory>
@@ -139,6 +140,8 @@ class ImagingTable {
    * polarization to all other polarizations.
    */
   void AssignGridDataFromPolarization(aocommon::PolarizationEnum polarization);
+
+  std::unique_ptr<DeconvolutionTable> CreateDeconvolutionTable() const;
 
  private:
   explicit ImagingTable(const Group& entries);

@@ -3,7 +3,7 @@
 
 #include "../main/settings.h"
 
-#include "../structures/imagingtable.h"
+#include "deconvolutiontable.h"
 
 #include <aocommon/image.h>
 #include <aocommon/uvector.h>
@@ -14,10 +14,10 @@
 
 class ImageSet {
  public:
-  ImageSet(const ImagingTable& table, const Settings& settings);
+  ImageSet(const DeconvolutionTable& table, const Settings& settings);
 
-  ImageSet(const ImagingTable& table, const Settings& settings, size_t width,
-           size_t height);
+  ImageSet(const DeconvolutionTable& table, const Settings& settings,
+           size_t width, size_t height);
 
   void AllocateImages() {
     _images.clear();
@@ -126,7 +126,7 @@ class ImageSet {
     return _imageIndexToPSFIndex[imageIndex];
   }
 
-  const ImagingTable& Table() const { return _imagingTable; }
+  const DeconvolutionTable& Table() const { return _imagingTable; }
 
   std::unique_ptr<ImageSet> Trim(size_t x1, size_t y1, size_t x2, size_t y2,
                                  size_t oldWidth) const {
@@ -178,8 +178,9 @@ class ImageSet {
   const class Settings& Settings() const { return _settings; }
 
   static void CalculateDeconvolutionFrequencies(
-      const ImagingTable& groupTable, aocommon::UVector<double>& frequencies,
-      aocommon::UVector<float>& weights, size_t nDeconvolutionChannels);
+      const DeconvolutionTable& groupTable,
+      aocommon::UVector<double>& frequencies, aocommon::UVector<float>& weights,
+      size_t nDeconvolutionChannels);
 
  private:
   ImageSet(const ImageSet&) = delete;
@@ -204,10 +205,10 @@ class ImageSet {
   void initializeIndices();
 
   void initializePolFactor() {
-    const ImagingTable::Group& firstChannelGroup =
+    const DeconvolutionTable::Group& firstChannelGroup =
         _imagingTable.SquaredGroups().front();
     std::set<aocommon::PolarizationEnum> pols;
-    for (const ImagingTable::EntryPtr& entry : firstChannelGroup) {
+    for (const DeconvolutionTableEntry* entry : firstChannelGroup) {
       if (_linkedPolarizations.empty() ||
           _linkedPolarizations.count(entry->polarization) != 0) {
         pols.insert(entry->polarization);
@@ -280,8 +281,8 @@ class ImageSet {
   }
 
   const aocommon::Image& entryToImage(
-      const ImagingTable::EntryPtr& entry) const {
-    size_t imageIndex = _entryIndexToImageIndex.find(entry->index)->second;
+      const DeconvolutionTableEntry& entry) const {
+    size_t imageIndex = _entryIndexToImageIndex.find(entry.index)->second;
     return _images[imageIndex];
   }
 
@@ -290,7 +291,7 @@ class ImageSet {
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
-  const ImagingTable& _imagingTable;
+  const DeconvolutionTable& _imagingTable;
   std::map<size_t, size_t> _entryIndexToImageIndex;
   aocommon::UVector<size_t> _imageIndexToPSFIndex;
   float _polarizationNormalizationFactor;

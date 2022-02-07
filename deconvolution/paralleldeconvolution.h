@@ -56,11 +56,11 @@ class ParallelDeconvolution {
   }
 
   void SaveSourceList(class CachedImageSet& modelImages,
-                      const class ImagingTable& table,
+                      const class DeconvolutionTable& table,
                       long double phaseCentreRA, long double phaseCentreDec);
 
   void SavePBSourceList(class CachedImageSet& modelImages,
-                        const class ImagingTable& table,
+                        const class DeconvolutionTable& table,
                         long double phaseCentreRA,
                         long double phaseCentreDec) const;
 
@@ -87,10 +87,10 @@ class ParallelDeconvolution {
                    std::mutex* mutex);
 
   void correctChannelForPB(class ComponentList& list,
-                           const struct ImagingTableEntry& entry) const;
+                           const struct DeconvolutionTableEntry& entry) const;
 
   PrimaryBeamImageSet loadAveragePrimaryBeam(
-      size_t imageIndex, const class ImagingTable& table) const;
+      size_t imageIndex, const class DeconvolutionTable& table) const;
 
   void writeSourceList(ComponentList& componentList,
                        const std::string& filename, long double phaseCentreRA,

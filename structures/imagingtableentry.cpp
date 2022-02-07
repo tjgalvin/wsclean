@@ -1,4 +1,7 @@
 #include "imagingtableentry.h"
+#include "../deconvolution/deconvolutiontableentry.h"
+
+#include <boost/make_unique.hpp>
 
 ImagingTableEntry::ImagingTableEntry()
     : index(0),
@@ -21,3 +24,20 @@ ImagingTableEntry::ImagingTableEntry()
       imageCount(0),
       tmpFilePrefix(),
       imageWeight(0.0) {}
+
+std::unique_ptr<DeconvolutionTableEntry>
+ImagingTableEntry::CreateDeconvolutionEntry(bool isImaginary) const {
+  auto entry = boost::make_unique<DeconvolutionTableEntry>();
+
+  entry->index = index;
+  entry->bandStartFrequency = bandStartFrequency;
+  entry->bandEndFrequency = bandEndFrequency;
+  entry->polarization = polarization;
+  entry->outputChannelIndex = outputChannelIndex;
+  entry->outputIntervalIndex = outputIntervalIndex;
+  entry->squaredDeconvolutionIndex = squaredDeconvolutionIndex;
+  entry->isImaginary = isImaginary;
+  entry->imageWeight = imageWeight;
+
+  return entry;
+}

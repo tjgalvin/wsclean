@@ -1507,8 +1507,11 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                  std::unique_ptr<PrimaryBeam>& primaryBeam,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
+  std::unique_ptr<DeconvolutionTable> deconvolution_table =
+      groupTable.GetFacet(0).CreateDeconvolutionTable();
+
   _deconvolution.InitializeDeconvolutionAlgorithm(
-      groupTable.GetFacet(0), *_settings.polarizations.begin(),
+      std::move(deconvolution_table), *_settings.polarizations.begin(),
       minTheoreticalBeamSize(groupTable), _settings.threadCount);
 
   if (_settings.deconvolutionIterationCount > 0) {
@@ -1519,8 +1522,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       _deconvolution.InitializeImages(_residualImages, _modelImages,
                                       _psfImages);
       _deconvolutionWatch.Start();
-      _deconvolution.Perform(groupTable.GetFacet(0), reachedMajorThreshold,
-                             _majorIterationNr);
+      _deconvolution.Perform(reachedMajorThreshold, _majorIterationNr);
       _deconvolutionWatch.Pause();
 
       if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
@@ -1633,12 +1635,15 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
   }
 
   if (_settings.saveSourceList) {
-    _deconvolution.SaveSourceList(groupTable, _observationInfo.phaseCentreRA,
+    std::unique_ptr<DeconvolutionTable> deconvolution_table =
+        groupTable.CreateDeconvolutionTable();
+    _deconvolution.SaveSourceList(*deconvolution_table,
+                                  _observationInfo.phaseCentreRA,
                                   _observationInfo.phaseCentreDec);
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
         !_settings.facetSolutionFiles.empty() || _settings.gridWithBeam ||
         !_settings.atermConfigFilename.empty()) {
-      _deconvolution.SavePBSourceList(groupTable,
+      _deconvolution.SavePBSourceList(*deconvolution_table,
                                       _observationInfo.phaseCentreRA,
                                       _observationInfo.phaseCentreDec);
     }

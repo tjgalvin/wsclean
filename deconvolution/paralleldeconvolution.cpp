@@ -386,7 +386,7 @@ void ParallelDeconvolution::executeParallelRun(
 }
 
 void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages,
-                                           const ImagingTable& table,
+                                           const DeconvolutionTable& table,
                                            long double phaseCentreRA,
                                            long double phaseCentreDec) {
   std::string filename = _settings.prefixName + "-sources.txt";
@@ -411,7 +411,7 @@ void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages,
 }
 
 void ParallelDeconvolution::correctChannelForPB(
-    ComponentList& list, const ImagingTableEntry& entry) const {
+    ComponentList& list, const DeconvolutionTableEntry& entry) const {
   Logger::Debug << "Correcting source list of channel "
                 << entry.outputChannelIndex << " for beam\n";
   ImageFilename filename(entry.outputChannelIndex, entry.outputIntervalIndex);
@@ -422,7 +422,7 @@ void ParallelDeconvolution::correctChannelForPB(
 }
 
 void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages,
-                                             const ImagingTable& table,
+                                             const DeconvolutionTable& table,
                                              long double phaseCentreRA,
                                              long double phaseCentreDec) const {
   // TODO make this work with subimages
@@ -447,7 +447,7 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages,
   if (_settings.deconvolutionChannelCount == 0 ||
       _settings.deconvolutionChannelCount == table.SquaredGroups().size()) {
     // No beam averaging is required
-    for (const ImagingTable::Group& sqGroup : table.SquaredGroups()) {
+    for (const DeconvolutionTable::Group& sqGroup : table.SquaredGroups()) {
       correctChannelForPB(*list, *sqGroup.front());
     }
   } else {
@@ -485,7 +485,7 @@ void ParallelDeconvolution::writeSourceList(ComponentList& componentList,
 }
 
 PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
-    size_t imageIndex, const ImagingTable& table) const {
+    size_t imageIndex, const DeconvolutionTable& table) const {
   Logger::Debug << "Averaging beam for deconvolution channel " << imageIndex
                 << "\n";
 
@@ -497,12 +497,13 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
   /// TODO : use real weights of images
   size_t count = 0;
   PrimaryBeam pb(_settings);
-  const ImagingTable::Groups& squaredGroups = table.SquaredGroups();
+  const std::vector<DeconvolutionTable::Group>& squaredGroups =
+      table.SquaredGroups();
   for (size_t sqIndex = 0; sqIndex != squaredGroups.size(); ++sqIndex) {
     size_t curImageIndex =
         (sqIndex * deconvolutionChannels) / squaredGroups.size();
     if (curImageIndex == imageIndex) {
-      const ImagingTableEntry& e = *squaredGroups[sqIndex].front();
+      const DeconvolutionTableEntry& e = *squaredGroups[sqIndex].front();
       Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6
                     << " MHz\n";
       ImageFilename filename(e.outputChannelIndex, e.outputIntervalIndex);

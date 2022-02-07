@@ -268,6 +268,7 @@ add_library(
   deconvolution/componentlist.cpp
   deconvolution/deconvolution.cpp
   deconvolution/deconvolutionalgorithm.cpp
+  deconvolution/deconvolutiontable.cpp
   deconvolution/genericclean.cpp
   deconvolution/imageset.cpp
   deconvolution/moresane.cpp

@@ -13,6 +13,8 @@ class Facet;
 }
 }  // namespace schaapcommon
 
+struct DeconvolutionTableEntry;
+
 struct ImagingTableEntry {
   struct MSBandInfo {
     size_t bandIndex;
@@ -24,6 +26,9 @@ struct ImagingTableEntry {
   };
 
   ImagingTableEntry();
+
+  std::unique_ptr<DeconvolutionTableEntry> CreateDeconvolutionEntry(
+      bool isImaginary) const;
 
   /**
    * Unique index of the entry within its ImagingTable.
@@ -74,10 +79,10 @@ struct ImagingTableEntry {
   std::vector<MSInfo> msData;
 
   /**
-   * The group of entries with equal squaredDeconvolutionIndex
-   * should be 'joinedly' deconvolved by adding their squared powers
-   * together. Normally, all the polarizations from a single
-   * (output)channel / timestep form such a group.
+   * The group of entries with equal squaredDeconvolutionIndex should be
+   * 'joinedly' deconvolved by adding their squared flux density values
+   * together. Normally, all the polarizations from a single (output)channel /
+   * timestep form such a group.
    */
   size_t squaredDeconvolutionIndex;
 

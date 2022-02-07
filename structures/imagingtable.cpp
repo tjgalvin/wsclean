@@ -2,8 +2,11 @@
 #include "../io/logger.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iomanip>
 #include <map>
+
+#include <boost/make_unique.hpp>
 
 ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
     : _entries(entries),
@@ -92,4 +95,28 @@ void ImagingTable::AssignGridDataFromPolarization(
       }
     }
   }
+}
+
+std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable()
+    const {
+  auto table = boost::make_unique<DeconvolutionTable>();
+  for (const EntryPtr& entry_ptr : _entries) {
+    assert(entry_ptr);
+
+    switch (entry_ptr->imageCount) {
+      case 0:  // Do nothing.
+        break;
+      case 1:  // Only add entry for real image.
+        table->AddEntry(entry_ptr->CreateDeconvolutionEntry(false));
+        break;
+      case 2:  // Add entries for real and imaginary images.
+        table->AddEntry(entry_ptr->CreateDeconvolutionEntry(false));
+        table->AddEntry(entry_ptr->CreateDeconvolutionEntry(true));
+        break;
+      default:
+        assert(false);
+        break;
+    }
+  }
+  return table;
 }
