@@ -10,6 +10,7 @@ add_executable(
   testcachedimageset.cpp
   testparsetreader.cpp
   testpeakfinder.cpp
+  testprimarybeamimageset.cpp
   testserialization.cpp
   math/tdijkstrasplitter.cpp
   math/tgaussianfitter.cpp

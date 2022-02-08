@@ -385,7 +385,7 @@ void ParallelDeconvolution::executeParallelRun(
     Logger::Info << ": Deconvolution finished.\n";
 }
 
-void ParallelDeconvolution::SaveSourceList(CachedImageSet& modelImages,
+void ParallelDeconvolution::SaveSourceList(const CachedImageSet& modelImages,
                                            const DeconvolutionTable& table,
                                            long double phaseCentreRA,
                                            long double phaseCentreDec) {
@@ -417,18 +417,18 @@ void ParallelDeconvolution::correctChannelForPB(
   ImageFilename filename(entry.outputChannelIndex, entry.outputIntervalIndex);
   filename.SetPolarization(entry.polarization);
   PrimaryBeam pb(_settings);
-  PrimaryBeamImageSet beam = pb.Load(filename);
-  list.CorrectForBeam(beam, entry.outputChannelIndex);
+  PrimaryBeamImageSet beamImages = pb.Load(filename);
+  beamImages.CorrectComponentList(list, entry.outputChannelIndex);
 }
 
-void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages,
+void ParallelDeconvolution::SavePBSourceList(const CachedImageSet& modelImages,
                                              const DeconvolutionTable& table,
                                              long double phaseCentreRA,
                                              long double phaseCentreDec) const {
   // TODO make this work with subimages
   std::unique_ptr<ComponentList> list;
-  const size_t w = _settings.trimmedImageWidth,
-               h = _settings.trimmedImageHeight;
+  const size_t w = _settings.trimmedImageWidth;
+  const size_t h = _settings.trimmedImageHeight;
   if (_settings.useMultiscale) {
     // If no parallel deconvolution was used, the component list must be
     // retrieved from the deconvolution algorithm.
@@ -455,7 +455,7 @@ void ParallelDeconvolution::SavePBSourceList(CachedImageSet& modelImages,
       Logger::Debug << "Correcting source list of channel " << ch
                     << " for averaged beam\n";
       PrimaryBeamImageSet beamImages = loadAveragePrimaryBeam(ch, table);
-      list->CorrectForBeam(beamImages, ch);
+      beamImages.CorrectComponentList(*list, ch);
     }
   }
 
