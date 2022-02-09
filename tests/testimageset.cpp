@@ -55,17 +55,17 @@ struct ImageSetFixture : public ImageSetFixtureBase {
   }
 };
 
-BOOST_FIXTURE_TEST_SUITE(imageset, ImageSetFixture)
+BOOST_AUTO_TEST_SUITE(imageset)
 
-BOOST_AUTO_TEST_CASE(squaredGroupCount) {
+BOOST_FIXTURE_TEST_CASE(squaredGroupCount, ImageSetFixture) {
   BOOST_CHECK_EQUAL(table.SquaredGroups().size(), 2u);
 }
 
-BOOST_AUTO_TEST_CASE(entriesInGroup) {
+BOOST_FIXTURE_TEST_CASE(entriesInGroup, ImageSetFixture) {
   BOOST_CHECK_EQUAL(table.SquaredGroups().front().size(), 2u);
 }
 
-BOOST_AUTO_TEST_CASE(psfCount1) {
+BOOST_FIXTURE_TEST_CASE(psfCount1, ImageSetFixture) {
   Settings settings;
   settings.deconvolutionChannelCount = 1;
   settings.squaredJoins = false;
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(psfCount1) {
   BOOST_CHECK_EQUAL(dset.PSFCount(), 1u);
 }
 
-BOOST_AUTO_TEST_CASE(psfCount2) {
+BOOST_FIXTURE_TEST_CASE(psfCount2, ImageSetFixture) {
   Settings settings;
   settings.deconvolutionChannelCount = 2;
   settings.squaredJoins = false;

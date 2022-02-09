@@ -75,13 +75,17 @@ class ParallelDeconvolution {
 
   struct SubImage {
     size_t index, x, y, width, height;
+    // Mask to be used during deconvoution (combines user mask with the
+    // boundary mask)
     aocommon::UVector<bool> mask;
+    // Selects the pixels inside this subimage
+    aocommon::UVector<bool> boundaryMask;
     double peak;
     bool reachedMajorThreshold;
   };
 
   void runSubImage(SubImage& subImg, ImageSet& dataImage,
-                   class ImageSet& modelImage,
+                   const ImageSet& modelImage, ImageSet& resultModel,
                    const aocommon::UVector<const float*>& psfImages,
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex* mutex);

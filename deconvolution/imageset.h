@@ -19,6 +19,8 @@ class ImageSet {
   ImageSet(const DeconvolutionTable& table, const Settings& settings,
            size_t width, size_t height);
 
+  ImageSet(const ImageSet&) = default;
+
   void AllocateImages() {
     _images.clear();
     allocateImages();
@@ -31,6 +33,13 @@ class ImageSet {
     allocateImages();
   }
 
+  /**
+   * Make a new image set with the same dimensions and uninitialized image data.
+   */
+  ImageSet UnsetCopy() const {
+    return ImageSet(_imagingTable, _settings, _width, _height);
+  }
+
   aocommon::Image Release(size_t imageIndex) {
     return std::move(_images[imageIndex]);
   }
@@ -38,6 +47,13 @@ class ImageSet {
   void SetImage(size_t imageIndex, aocommon::Image&& data) {
     _images[imageIndex] = std::move(data);
   }
+
+  /**
+   * Replace the images of this ImageSet. The images may be of a different size.
+   * Both ImageSets are expected to be for the same deconvolution configuration:
+   * besides the images and their dimension, no fields are changed.
+   */
+  void SetImages(ImageSet&& source);
 
   bool IsAllocated() const { return _width * _height != 0; }
 
@@ -138,19 +154,44 @@ class ImageSet {
     return p;
   }
 
-  void Copy(const ImageSet& from, size_t toX, size_t toY, size_t toWidth,
-            size_t fromWidth, size_t fromHeight) {
+  /**
+   * Like Trim(), but only copies values that are in the mask. All other values
+   * are set to zero.
+   * @param mask A mask of size (x2-x1) x (y2-y1)
+   */
+  std::unique_ptr<ImageSet> TrimMasked(size_t x1, size_t y1, size_t x2,
+                                       size_t y2, size_t oldWidth,
+                                       const bool* mask) const {
+    std::unique_ptr<ImageSet> p = Trim(x1, y1, x2, y2, oldWidth);
+    for (aocommon::Image& image : p->_images) {
+      for (size_t pixel = 0; pixel != image.Size(); ++pixel) {
+        if (!mask[pixel]) image[pixel] = 0.0;
+      }
+    }
+    return p;
+  }
+
+  void CopyMasked(const ImageSet& fromImageSet, size_t toX, size_t toY,
+                  const bool* fromMask) {
     for (size_t i = 0; i != _images.size(); ++i) {
-      copyToLarger(_images[i], toX, toY, toWidth, from._images[i], fromWidth,
-                   fromHeight);
+      aocommon::Image::CopyMasked(
+          _images[i].Data(), toX, toY, _images[i].Width(),
+          fromImageSet._images[i].Data(), fromImageSet._images[i].Width(),
+          fromImageSet._images[i].Height(), fromMask);
     }
   }
 
-  void CopyMasked(const ImageSet& from, size_t toX, size_t toY, size_t toWidth,
-                  size_t fromWidth, size_t fromHeight, const bool* fromMask) {
+  /**
+   * Place all images in @c from onto the images in this ImageSet at a
+   * given position. The dimensions of @c from can be smaller or equal
+   * to ones in this.
+   */
+  void AddSubImage(const ImageSet& from, size_t toX, size_t toY) {
     for (size_t i = 0; i != _images.size(); ++i) {
-      copyToLarger(_images[i], toX, toY, toWidth, from._images[i], fromWidth,
-                   fromHeight, fromMask);
+      aocommon::Image::AddSubImage(_images[i].Data(), toX, toY,
+                                   _images[i].Width(), from._images[i].Data(),
+                                   from._images[i].Width(),
+                                   from._images[i].Height());
     }
   }
 
@@ -183,7 +224,6 @@ class ImageSet {
       size_t nDeconvolutionChannels);
 
  private:
-  ImageSet(const ImageSet&) = delete;
   ImageSet& operator=(const ImageSet&) = delete;
 
   void allocateImages() {
@@ -234,27 +274,6 @@ class ImageSet {
       float* newPtr = &output[(y - y1) * newWidth];
       for (size_t x = x1; x != x2; ++x) {
         newPtr[x - x1] = oldPtr[x];
-      }
-    }
-  }
-
-  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
-                           size_t toWidth, const aocommon::Image& from,
-                           size_t fromWidth, size_t fromHeight) {
-    for (size_t y = 0; y != fromHeight; ++y) {
-      std::copy(from.Data() + y * fromWidth, from.Data() + (y + 1) * fromWidth,
-                to.Data() + toX + (toY + y) * toWidth);
-    }
-  }
-
-  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
-                           size_t toWidth, const aocommon::Image& from,
-                           size_t fromWidth, size_t fromHeight,
-                           const bool* fromMask) {
-    for (size_t y = 0; y != fromHeight; ++y) {
-      for (size_t x = 0; x != fromWidth; ++x) {
-        if (fromMask[y * fromWidth + x])
-          to[toX + (toY + y) * toWidth + x] = from[y * fromWidth + x];
       }
     }
   }

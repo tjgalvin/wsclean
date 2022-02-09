@@ -306,3 +306,22 @@ def test_idg_with_reuse_psf():
     # Now continue:
     s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
     check_call(s.split())
+
+def test_masked_parallel_deconvolution():
+    # Test for two issues:
+    # - issue #96: Source edges in restored image after parallel deconvolution
+    # - issue #31: Model images are masked in parallel cleaning
+    # The result of this test should be a model image with an unmasked Gaussian and a
+    # properly residual. Before the fix, the Gaussian was masked in the model, and
+    # therefore only a single pixel was visible, and residual would only be updated
+    # on the place of the pixel.
+    
+    # First create a mask image with one pixel set:
+    s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution-prepare')} -size 256 256 -scale 1amin -interval 10 14 -niter 1 {os.environ['MWA_MS']}"
+    check_call(s.split())
+    # Now use this as a mask, and force a Gaussian on the position
+    s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution')} -size 256 256 -scale 1amin -fits-mask {name('masked-parallel-deconvolution-prepare')}-model.fits -interval 10 14 -niter 10 -parallel-deconvolution 128 -multiscale -multiscale-scales 10 {os.environ['MWA_MS']}"
+    check_call(s.split())
+    for f in glob.glob(f"{name('masked-parallel-deconvolution-prepare')}*.fits"):
+      os.remove(f)
+    
