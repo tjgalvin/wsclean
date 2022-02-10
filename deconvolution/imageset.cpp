@@ -1,9 +1,9 @@
 #include "imageset.h"
+
 #include "spectralfitter.h"
 
 #include "../math/nlplfitter.h"
 
-#include "../io/cachedimageset.h"
 #include "../io/logger.h"
 
 #include "../structures/primarybeam.h"
@@ -92,7 +92,7 @@ void ImageSet::SetImages(ImageSet&& source) {
   source._height = 0;
 }
 
-void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
+void ImageSet::LoadAndAverage(bool use_residual_image) {
   for (Image& image : _images) {
     image = 0.0;
   }
@@ -110,8 +110,11 @@ void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
     const DeconvolutionTable::Group& sqGroup =
         _imagingTable.SquaredGroups()[sqIndex];
     for (const DeconvolutionTableEntry* entry_ptr : sqGroup) {
-      imageSet.Load(scratch.Data(), entry_ptr->polarization,
-                    entry_ptr->outputChannelIndex, entry_ptr->isImaginary);
+      if (use_residual_image) {
+        entry_ptr->residual_accessor->Load(scratch);
+      } else {
+        entry_ptr->model_accessor->Load(scratch);
+      }
       _images[imgIndex].AddWithFactor(scratch, entry_ptr->imageWeight);
       averagedWeights[imgIndex] += entry_ptr->imageWeight;
       ++imgIndex;
@@ -130,7 +133,6 @@ void ImageSet::LoadAndAverage(const CachedImageSet& imageSet) {
 }
 
 void ImageSet::LoadAndAveragePSFs(
-    const CachedImageSet& psfSet,
     std::vector<aocommon::UVector<float>>& psfImages,
     aocommon::PolarizationEnum psfPolarization) {
   for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex)
@@ -147,7 +149,7 @@ void ImageSet::LoadAndAveragePSFs(
         _imagingTable.SquaredGroups()[sqIndex];
     const DeconvolutionTableEntry& entry = *sqGroup.front();
     const double inputChannelWeight = entry.imageWeight;
-    psfSet.Load(scratch.Data(), psfPolarization, entry.outputChannelIndex, 0);
+    entry.psf_accessor->Load(scratch);
     for (size_t i = 0; i != _width * _height; ++i) {
       psfImages[chIndex][i] += scratch[i] * inputChannelWeight;
     }
@@ -163,10 +165,13 @@ void ImageSet::LoadAndAveragePSFs(
   }
 }
 
-void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
-                                   const SpectralFitter& fitter) {
+void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
   if (_channelsInDeconvolution == _imagingTable.SquaredGroups().size()) {
-    directStore(imageSet);
+    size_t imgIndex = 0;
+    for (const DeconvolutionTableEntry& e : _imagingTable) {
+      e.model_accessor->Store(_images[imgIndex]);
+      ++imgIndex;
+    }
   } else {
     Logger::Info << "Interpolating from " << _channelsInDeconvolution << " to "
                  << _imagingTable.SquaredGroups().size() << " channels...\n";
@@ -221,15 +226,18 @@ void ImageSet::InterpolateAndStore(CachedImageSet& imageSet,
         }
       });
 
-      imageSet.Store(scratch.Data(), e.polarization, e.outputChannelIndex,
-                     false);
+      e.model_accessor->Store(scratch);
     }
   }
 }
 
-void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
+void ImageSet::AssignAndStoreResidual() {
   if (_channelsInDeconvolution == _imagingTable.SquaredGroups().size()) {
-    directStore(imageSet);
+    size_t imgIndex = 0;
+    for (const DeconvolutionTableEntry& e : _imagingTable) {
+      e.residual_accessor->Store(_images[imgIndex]);
+      ++imgIndex;
+    }
   } else {
     Logger::Info << "Assigning from " << _channelsInDeconvolution << " to "
                  << _imagingTable.SquaredGroups().size() << " channels...\n";
@@ -239,8 +247,7 @@ void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
          _imagingTable.SquaredGroups()) {
       size_t imgIndexForChannel = imgIndex;
       for (const DeconvolutionTableEntry* e : sqGroup) {
-        imageSet.Store(_images[imgIndex].Data(), e->polarization,
-                       e->outputChannelIndex, e->isImaginary);
+        e->residual_accessor->Store(_images[imgIndex]);
         ++imgIndex;
       }
       size_t thisChannelIndex = (sqIndex * _channelsInDeconvolution) /
@@ -250,15 +257,6 @@ void ImageSet::AssignAndStore(CachedImageSet& imageSet) {
       if (thisChannelIndex == nextChannelIndex) imgIndex = imgIndexForChannel;
       ++sqIndex;
     }
-  }
-}
-
-void ImageSet::directStore(CachedImageSet& imageSet) {
-  size_t imgIndex = 0;
-  for (const DeconvolutionTableEntry& e : _imagingTable) {
-    imageSet.Store(_images[imgIndex].Data(), e.polarization,
-                   e.outputChannelIndex, e.isImaginary);
-    ++imgIndex;
   }
 }
 

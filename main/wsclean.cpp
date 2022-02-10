@@ -60,6 +60,9 @@ WSClean::WSClean()
       _deconvolutionWatch(false),
       _isFirstInversion(true),
       _majorIterationNr(0),
+      _psfImages(),
+      _modelImages(),
+      _residualImages(),
       _deconvolution(_settings),
       _lastStartTime(0.0) {}
 
@@ -1508,7 +1511,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
   std::unique_ptr<DeconvolutionTable> deconvolution_table =
-      groupTable.GetFacet(0).CreateDeconvolutionTable();
+      groupTable.GetFacet(0).CreateDeconvolutionTable(_psfImages, _modelImages,
+                                                      _residualImages);
 
   _deconvolution.InitializeDeconvolutionAlgorithm(
       std::move(deconvolution_table), *_settings.polarizations.begin(),
@@ -1519,8 +1523,6 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     _majorIterationNr = 1;
     bool reachedMajorThreshold = false;
     do {
-      _deconvolution.InitializeImages(_residualImages, _modelImages,
-                                      _psfImages);
       _deconvolutionWatch.Start();
       _deconvolution.Perform(reachedMajorThreshold, _majorIterationNr);
       _deconvolutionWatch.Pause();
@@ -1636,7 +1638,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
 
   if (_settings.saveSourceList) {
     std::unique_ptr<DeconvolutionTable> deconvolution_table =
-        groupTable.CreateDeconvolutionTable();
+        groupTable.CreateDeconvolutionTable(_psfImages, _modelImages,
+                                            _residualImages);
     _deconvolution.SaveSourceList(*deconvolution_table,
                                   _observationInfo.phaseCentreRA,
                                   _observationInfo.phaseCentreDec);

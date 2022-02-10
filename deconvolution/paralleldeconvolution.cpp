@@ -395,8 +395,7 @@ void ParallelDeconvolution::executeParallelRun(
     Logger::Info << ": Deconvolution finished.\n";
 }
 
-void ParallelDeconvolution::SaveSourceList(const CachedImageSet& modelImages,
-                                           const DeconvolutionTable& table,
+void ParallelDeconvolution::SaveSourceList(const DeconvolutionTable& table,
                                            long double phaseCentreRA,
                                            long double phaseCentreDec) {
   std::string filename = _settings.prefixName + "-sources.txt";
@@ -414,7 +413,7 @@ void ParallelDeconvolution::SaveSourceList(const CachedImageSet& modelImages,
     const size_t w = _settings.trimmedImageWidth,
                  h = _settings.trimmedImageHeight;
     ImageSet modelSet(table, _settings, w, h);
-    modelSet.LoadAndAverage(modelImages);
+    modelSet.LoadAndAverage(false);
     ComponentList componentList(w, h, modelSet);
     writeSourceList(componentList, filename, phaseCentreRA, phaseCentreDec);
   }
@@ -431,8 +430,7 @@ void ParallelDeconvolution::correctChannelForPB(
   beamImages.CorrectComponentList(list, entry.outputChannelIndex);
 }
 
-void ParallelDeconvolution::SavePBSourceList(const CachedImageSet& modelImages,
-                                             const DeconvolutionTable& table,
+void ParallelDeconvolution::SavePBSourceList(const DeconvolutionTable& table,
                                              long double phaseCentreRA,
                                              long double phaseCentreDec) const {
   // TODO make this work with subimages
@@ -450,7 +448,7 @@ void ParallelDeconvolution::SavePBSourceList(const CachedImageSet& modelImages,
       list.reset(new ComponentList(*_componentList));
   } else {
     ImageSet modelSet(table, _settings, w, h);
-    modelSet.LoadAndAverage(modelImages);
+    modelSet.LoadAndAverage(false);
     list.reset(new ComponentList(w, h, modelSet));
   }
 

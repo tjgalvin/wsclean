@@ -57,16 +57,18 @@ class ImageSet {
 
   bool IsAllocated() const { return _width * _height != 0; }
 
-  void LoadAndAverage(const class CachedImageSet& imageSet);
+  /**
+   * @param use_residual_images: True: Load residual images. False: Load model
+   * images.
+   */
+  void LoadAndAverage(bool use_residual_images);
 
-  void LoadAndAveragePSFs(const class CachedImageSet& psfSet,
-                          std::vector<aocommon::UVector<float>>& psfImages,
+  void LoadAndAveragePSFs(std::vector<aocommon::UVector<float>>& psfImages,
                           aocommon::PolarizationEnum psfPolarization);
 
-  void InterpolateAndStore(class CachedImageSet& imageSet,
-                           const class SpectralFitter& fitter);
+  void InterpolateAndStoreModel(const class SpectralFitter& fitter);
 
-  void AssignAndStore(class CachedImageSet& imageSet);
+  void AssignAndStoreResidual();
 
   /**
    * This function will calculate the integration over all images, squaring
@@ -278,7 +280,26 @@ class ImageSet {
     }
   }
 
-  void directStore(class CachedImageSet& imageSet);
+  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
+                           size_t toWidth, const aocommon::Image& from,
+                           size_t fromWidth, size_t fromHeight) {
+    for (size_t y = 0; y != fromHeight; ++y) {
+      std::copy(from.Data() + y * fromWidth, from.Data() + (y + 1) * fromWidth,
+                to.Data() + toX + (toY + y) * toWidth);
+    }
+  }
+
+  static void copyToLarger(aocommon::Image& to, size_t toX, size_t toY,
+                           size_t toWidth, const aocommon::Image& from,
+                           size_t fromWidth, size_t fromHeight,
+                           const bool* fromMask) {
+    for (size_t y = 0; y != fromHeight; ++y) {
+      for (size_t x = 0; x != fromWidth; ++x) {
+        if (fromMask[y * fromWidth + x])
+          to[toX + (toY + y) * toWidth + x] = from[y * fromWidth + x];
+      }
+    }
+  }
 
   void getSquareIntegratedWithNormalChannels(aocommon::Image& dest,
                                              aocommon::Image& scratch) const;

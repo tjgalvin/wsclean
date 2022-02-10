@@ -16,6 +16,8 @@ void DeconvolutionTable::AddEntry(
   assert(sqIndex <= _squaredGroups.size());
   if (sqIndex == _squaredGroups.size()) {
     // Create a new group for the entry.
+    // The first entry of a group must have a psf image accessor.
+    assert(_entries.back()->psf_accessor);
     _squaredGroups.emplace_back(1, _entries.back().get());
   } else {
     // Add the entry to an existing group.

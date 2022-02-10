@@ -13,6 +13,7 @@ class Facet;
 }
 }  // namespace schaapcommon
 
+class CachedImageSet;
 struct DeconvolutionTableEntry;
 
 struct ImagingTableEntry {
@@ -27,8 +28,28 @@ struct ImagingTableEntry {
 
   ImagingTableEntry();
 
+  /**
+   * @brief Creates a DeconvolutionTableEntry for the ImagingTableEntry.
+   *
+   * Copies all necessary information from the ImagingTableEntry into a newly
+   * created DeconvolutionTableEntry. Creates CachedImageAccessors for the new
+   * entry, and initalizes them using the given CachedImageSets.
+   * Creating the PSF image accessor is optional, since it is not always needed.
+   * Image accessors for the model and residual images are always created.
+   *
+   * @param psf_images Pointer to a CachedImageSet for PSF images. If this
+   * pointer is null, the created DeconvolutionTableEntry will have no
+   * ImageAccessor for a PSF image.
+   * @param model_images CachedImageSet for model images.
+   * @param residual_images CachedImageSet for residual images.
+   * @param is_imaginary False: Create a DeconvolutionTableEntry for an image
+   * with real values. True: Create a DeconvolutionTableEntry for an image with
+   * imaginary values.
+   * @return A new DeconvolutionTableEntry.
+   */
   std::unique_ptr<DeconvolutionTableEntry> CreateDeconvolutionEntry(
-      bool isImaginary) const;
+      CachedImageSet* psf_images, CachedImageSet& model_images,
+      CachedImageSet& residual_images, bool is_imaginary) const;
 
   /**
    * Unique index of the entry within its ImagingTable.

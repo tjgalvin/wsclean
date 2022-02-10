@@ -32,6 +32,7 @@ Deconvolution::Deconvolution(const class Settings& settings)
       _autoMaskIsFinished(false),
       _imgWidth(0),  // these are not yet set the in settings obj -- load later
       _imgHeight(0),
+      _autoMask(),
       _beamSize(0.0),
       _pixelScaleX(0),
       _pixelScaleY(0) {}
@@ -49,9 +50,9 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
   ImageSet modelSet(*_table, _settings, _imgWidth, _imgHeight);
 
   Logger::Debug << "Loading residual images...\n";
-  residualSet.LoadAndAverage(*_residualImages);
+  residualSet.LoadAndAverage(true);
   Logger::Debug << "Loading model images...\n";
-  modelSet.LoadAndAverage(*_modelImages);
+  modelSet.LoadAndAverage(false);
 
   Image integrated(_imgWidth, _imgHeight);
   residualSet.GetLinearIntegrated(integrated);
@@ -119,7 +120,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
 
   std::vector<aocommon::UVector<float>> psfVecs(residualSet.PSFCount());
   Logger::Debug << "Loading PSFs...\n";
-  residualSet.LoadAndAveragePSFs(*_psfImages, psfVecs, _psfPolarization);
+  residualSet.LoadAndAveragePSFs(psfVecs, _psfPolarization);
 
   aocommon::UVector<const float*> psfs(residualSet.PSFCount());
   for (size_t i = 0; i != psfVecs.size(); ++i) psfs[i] = psfVecs[i].data();
@@ -172,9 +173,9 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
            "continuing deconvolution.\n";
   }
 
-  residualSet.AssignAndStore(*_residualImages);
-  modelSet.InterpolateAndStore(
-      *_modelImages, _parallelDeconvolution.FirstAlgorithm().Fitter());
+  residualSet.AssignAndStoreResidual();
+  modelSet.InterpolateAndStoreModel(
+      _parallelDeconvolution.FirstAlgorithm().Fitter());
 }
 
 void Deconvolution::InitializeDeconvolutionAlgorithm(
@@ -198,21 +199,6 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   if (!std::isfinite(_beamSize)) {
     Logger::Warn << "No proper beam size available in deconvolution!\n";
     _beamSize = 0.0;
-  }
-
-  {
-    const DeconvolutionTable::Group& firstSquaredGroup =
-        _table->SquaredGroups().front();
-    std::set<std::pair<aocommon::PolarizationEnum, bool>> polarizations;
-    for (const DeconvolutionTableEntry* entry : firstSquaredGroup) {
-      const auto inserted =
-          polarizations.emplace(entry->polarization, entry->isImaginary);
-      if (!inserted.second) {  // Item already existed in the set.
-        throw std::runtime_error(
-            "Two equal polarizations were given to the deconvolution algorithm "
-            "within a single polarized group");
-      }
-    }
   }
 
   std::unique_ptr<class DeconvolutionAlgorithm> algorithm;
@@ -280,6 +266,11 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   }
 
   readMask(*_table);
+}
+
+void Deconvolution::FreeDeconvolutionAlgorithms() {
+  _parallelDeconvolution.FreeDeconvolutionAlgorithms();
+  _table.reset();
 }
 
 size_t Deconvolution::IterationNumber() const {

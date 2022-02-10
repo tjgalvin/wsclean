@@ -97,25 +97,38 @@ void ImagingTable::AssignGridDataFromPolarization(
   }
 }
 
-std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable()
-    const {
+std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
+    CachedImageSet& psf_images, CachedImageSet& model_images,
+    CachedImageSet& residual_images) const {
   auto table = boost::make_unique<DeconvolutionTable>();
+
+  int max_squared_index = -1;
+
   for (const EntryPtr& entry_ptr : _entries) {
     assert(entry_ptr);
 
-    switch (entry_ptr->imageCount) {
-      case 0:  // Do nothing.
-        break;
-      case 1:  // Only add entry for real image.
-        table->AddEntry(entry_ptr->CreateDeconvolutionEntry(false));
-        break;
-      case 2:  // Add entries for real and imaginary images.
-        table->AddEntry(entry_ptr->CreateDeconvolutionEntry(false));
-        table->AddEntry(entry_ptr->CreateDeconvolutionEntry(true));
-        break;
-      default:
-        assert(false);
-        break;
+    if (entry_ptr->imageCount >= 1) {
+      CachedImageSet* psf_images_ptr = nullptr;
+
+      // Only set psf_images_ptr for the first entry of each squared group.
+      // This way, CreateDeconvolutionEntry() only creates psf accessors for
+      // those entries.
+      if (int(entry_ptr->squaredDeconvolutionIndex) > max_squared_index) {
+        max_squared_index = entry_ptr->squaredDeconvolutionIndex;
+        psf_images_ptr = &psf_images;
+      }
+
+      std::unique_ptr<DeconvolutionTableEntry> real_entry =
+          entry_ptr->CreateDeconvolutionEntry(psf_images_ptr, model_images,
+                                              residual_images, false);
+      table->AddEntry(std::move(real_entry));
+    }
+
+    if (entry_ptr->imageCount == 2) {
+      std::unique_ptr<DeconvolutionTableEntry> imaginary_entry =
+          entry_ptr->CreateDeconvolutionEntry(nullptr, model_images,
+                                              residual_images, true);
+      table->AddEntry(std::move(imaginary_entry));
     }
   }
   return table;

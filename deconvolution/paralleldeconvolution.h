@@ -55,12 +55,10 @@ class ParallelDeconvolution {
     _mask = nullptr;
   }
 
-  void SaveSourceList(const CachedImageSet& modelImages,
-                      const DeconvolutionTable& table,
+  void SaveSourceList(const DeconvolutionTable& table,
                       long double phaseCentreRA, long double phaseCentreDec);
 
-  void SavePBSourceList(const CachedImageSet& modelImages,
-                        const DeconvolutionTable& table,
+  void SavePBSourceList(const DeconvolutionTable& table,
                         long double phaseCentreRA,
                         long double phaseCentreDec) const;
 

@@ -1,8 +1,10 @@
 #ifndef WSCLEAN_DECONVOLUTION_TABLE_ENTRY_H_
 #define WSCLEAN_DECONVOLUTION_TABLE_ENTRY_H_
 
+#include <memory>
 #include <vector>
 
+#include <aocommon/imageaccessor.h>
 #include <aocommon/polarization.h>
 
 struct DeconvolutionTableEntry {
@@ -11,7 +13,7 @@ struct DeconvolutionTableEntry {
   }
 
   /**
-   * Unique index of the entry within its ImagingTable.
+   * Index of the entry in its DeconvolutionTable.
    */
   size_t index = 0;
 
@@ -35,17 +37,27 @@ struct DeconvolutionTableEntry {
   size_t squaredDeconvolutionIndex = 0;
 
   /**
-   * Flag that indicates if the image is real or imaginary. This flag is
-   * passed on to CachedImageSet when loading and storing the image.
-   */
-  bool isImaginary = false;
-
-  /**
    * A number that scales with the estimated inverse-variance of the image. It
    * can be used when averaging images or fitting functions through the images
    * to get the optimal sensitivity. It is set after the first inversion.
    */
   double imageWeight = 0.0;
+
+  /**
+   * Image accessor for the PSF image for this entry. This accessor is only used
+   * for the first entry of each channel group.
+   */
+  std::unique_ptr<aocommon::ImageAccessor> psf_accessor;
+
+  /**
+   * Image accessor for the model image for this entry.
+   */
+  std::unique_ptr<aocommon::ImageAccessor> model_accessor;
+
+  /**
+   * Image accessor for the residual image for this entry.
+   */
+  std::unique_ptr<aocommon::ImageAccessor> residual_accessor;
 };
 
 #endif

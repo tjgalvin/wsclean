@@ -1,5 +1,6 @@
 #include "imagingtableentry.h"
 #include "../deconvolution/deconvolutiontableentry.h"
+#include "../io/cachedimageaccessor.h"
 
 #include <boost/make_unique.hpp>
 
@@ -26,7 +27,10 @@ ImagingTableEntry::ImagingTableEntry()
       imageWeight(0.0) {}
 
 std::unique_ptr<DeconvolutionTableEntry>
-ImagingTableEntry::CreateDeconvolutionEntry(bool isImaginary) const {
+ImagingTableEntry::CreateDeconvolutionEntry(CachedImageSet* psf_images,
+                                            CachedImageSet& model_images,
+                                            CachedImageSet& residual_images,
+                                            bool is_imaginary) const {
   auto entry = boost::make_unique<DeconvolutionTableEntry>();
 
   entry->index = index;
@@ -36,8 +40,17 @@ ImagingTableEntry::CreateDeconvolutionEntry(bool isImaginary) const {
   entry->outputChannelIndex = outputChannelIndex;
   entry->outputIntervalIndex = outputIntervalIndex;
   entry->squaredDeconvolutionIndex = squaredDeconvolutionIndex;
-  entry->isImaginary = isImaginary;
   entry->imageWeight = imageWeight;
+
+  // A PSF accessor is only needed for the first entry of a squared group.
+  if (psf_images) {
+    entry->psf_accessor = boost::make_unique<CachedImageAccessor>(
+        *psf_images, polarization, outputChannelIndex, is_imaginary);
+  }
+  entry->model_accessor = boost::make_unique<CachedImageAccessor>(
+      model_images, polarization, outputChannelIndex, is_imaginary);
+  entry->residual_accessor = boost::make_unique<CachedImageAccessor>(
+      residual_images, polarization, outputChannelIndex, is_imaginary);
 
   return entry;
 }
