@@ -74,8 +74,7 @@ add_custom_target(
   COMMAND
     python3 -B -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_integration.xml
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_basics.py
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_veladeconvolution.py)
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_basics.py)
 
 add_custom_target(check DEPENDS checkunit;checkintegration)
 
@@ -102,13 +101,14 @@ add_custom_target(
     --junitxml=${CMAKE_BINARY_DIR}/test_facets.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/test_facets.py)
 
-# Test a number of wsclean commands, which can be considered system level tests3
+# Test a number of wsclean commands, which can be considered system level tests
 # FIXME: maybe other name for target, e.g. checkwscleancommands?
 add_custom_target(
   checkcommandcatalogue
   COMMAND
     python3 -B -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/test_command_catalogue.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_veladeconvolution.py
     ${CMAKE_CURRENT_SOURCE_DIR}/test_command_catalogue.py)
 
 # Collect all tests that should run on das5 in a single target

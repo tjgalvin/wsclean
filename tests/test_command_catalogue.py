@@ -32,11 +32,13 @@ def name(name: str):
 
 @pytest.fixture(autouse=True)
 def startup():
-    # Fixture is ran for every test function
+    """Fixture is ran for every test function"""
+
+    # Make directory for test results
+    os.makedirs(os.path.join(CWD, TEST_RESULTS), exist_ok=True)
 
     # Check if file exist in test_data
     os.makedirs(tcf.WORKDIR, exist_ok=True)
-    os.makedirs(TEST_RESULTS, exist_ok=True)
     os.chdir(tcf.WORKDIR)
 
     if not "MWA_MS" in os.environ:
@@ -288,9 +290,11 @@ def test_mpi_join_channels():
     s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-join')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
 
+
 def test_mpi_split_channels():
     s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-split')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
+
 
 def test_idg_with_reuse_psf():
     # Test for issue #81: -reuse-psf gives segmentation fault in IDG
@@ -307,6 +311,7 @@ def test_idg_with_reuse_psf():
     s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
     check_call(s.split())
 
+
 def test_masked_parallel_deconvolution():
     # Test for two issues:
     # - issue #96: Source edges in restored image after parallel deconvolution
@@ -315,7 +320,7 @@ def test_masked_parallel_deconvolution():
     # properly residual. Before the fix, the Gaussian was masked in the model, and
     # therefore only a single pixel was visible, and residual would only be updated
     # on the place of the pixel.
-    
+
     # First create a mask image with one pixel set:
     s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution-prepare')} -size 256 256 -scale 1amin -interval 10 14 -niter 1 {os.environ['MWA_MS']}"
     check_call(s.split())
@@ -323,5 +328,4 @@ def test_masked_parallel_deconvolution():
     s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution')} -size 256 256 -scale 1amin -fits-mask {name('masked-parallel-deconvolution-prepare')}-model.fits -interval 10 14 -niter 10 -parallel-deconvolution 128 -multiscale -multiscale-scales 10 {os.environ['MWA_MS']}"
     check_call(s.split())
     for f in glob.glob(f"{name('masked-parallel-deconvolution-prepare')}*.fits"):
-      os.remove(f)
-    
+        os.remove(f)
