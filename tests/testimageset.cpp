@@ -35,12 +35,12 @@ struct ImageSetFixtureBase {
                      PolarizationEnum pol, size_t frequencyMHz,
                      double imageWeight = 1.0) {
     auto e = boost::make_unique<DeconvolutionTableEntry>();
-    e->outputChannelIndex = outChannel;
-    e->squaredDeconvolutionIndex = squaredIndex;
+    e->output_channel_index = outChannel;
+    e->channel_group_id = squaredIndex;
     e->polarization = pol;
-    e->bandStartFrequency = frequencyMHz;
-    e->bandEndFrequency = frequencyMHz;
-    e->imageWeight = imageWeight;
+    e->band_start_frequency = frequencyMHz;
+    e->band_end_frequency = frequencyMHz;
+    e->image_weight = imageWeight;
     e->psf_accessor = boost::make_unique<DummyImageAccessor>();
     e->model_accessor =
         boost::make_unique<CachedImageAccessor>(cSet, pol, outChannel, false);
@@ -80,12 +80,12 @@ struct ImageSetFixture : public ImageSetFixtureBase {
 
 BOOST_AUTO_TEST_SUITE(imageset)
 
-BOOST_FIXTURE_TEST_CASE(squaredGroupCount, ImageSetFixture) {
-  BOOST_CHECK_EQUAL(table.SquaredGroups().size(), 2u);
+BOOST_FIXTURE_TEST_CASE(channelGroupCount, ImageSetFixture) {
+  BOOST_CHECK_EQUAL(table.ChannelGroups().size(), 2u);
 }
 
 BOOST_FIXTURE_TEST_CASE(entriesInGroup, ImageSetFixture) {
-  BOOST_CHECK_EQUAL(table.SquaredGroups().front().size(), 2u);
+  BOOST_CHECK_EQUAL(table.ChannelGroups().front().size(), 2u);
 }
 
 BOOST_FIXTURE_TEST_CASE(psfCount1, ImageSetFixture) {

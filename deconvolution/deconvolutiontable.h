@@ -26,33 +26,36 @@ class DeconvolutionTable {
     using BaseIterator = Entries::const_iterator;
 
    public:
-    explicit EntryIterator(BaseIterator baseIt) : _baseIterator(baseIt) {}
+    explicit EntryIterator(BaseIterator base_iterator)
+        : base_iterator_(base_iterator) {}
 
-    const DeconvolutionTableEntry& operator*() const { return **_baseIterator; }
-    void operator++() { ++_baseIterator; }
+    const DeconvolutionTableEntry& operator*() const {
+      return **base_iterator_;
+    }
+    void operator++() { ++base_iterator_; }
     bool operator!=(const EntryIterator& other) const {
-      return _baseIterator != other._baseIterator;
+      return base_iterator_ != other.base_iterator_;
     }
 
    private:
-    BaseIterator _baseIterator;
+    BaseIterator base_iterator_;
   };
 
-  const std::vector<Group>& SquaredGroups() const { return _squaredGroups; }
+  const std::vector<Group>& ChannelGroups() const { return channel_groups_; }
 
-  EntryIterator begin() const { return EntryIterator(_entries.begin()); }
-  EntryIterator end() const { return EntryIterator(_entries.end()); }
+  EntryIterator begin() const { return EntryIterator(entries_.begin()); }
+  EntryIterator end() const { return EntryIterator(entries_.end()); }
 
   /**
    * @brief Adds an entry to the table.
    *
    * When adding multiple entries, these restrictions apply to the
-   * the squaredDeconvolutionIndex ('sqIndex') of the entries:
-   * - The sqIndex must be greater than or equal to the sqIndex of the first
-   *   entry. (The first entry must have the smallest sqIndex of all entries.)
-   * - The sqIndex must be at most 1 larger than the sqIndex of any of the
+   * the channel group id of the entries:
+   * - The group id must be greater than or equal to the group id of the first
+   *   entry. (The first entry must have the smallest group id of all entries.)
+   * - The group id must be at most 1 larger than the group id of any of the
    *   previously added entries.
-   * For example, valid indices are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
+   * For example, valid group ids are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
    *
    * @param entry A new entry.
    */
@@ -61,16 +64,16 @@ class DeconvolutionTable {
   /**
    * @return A reference to the first entry.
    */
-  const DeconvolutionTableEntry& Front() const { return *_entries.front(); }
+  const DeconvolutionTableEntry& Front() const { return *entries_.front(); }
 
   /**
    * @return The number of entries in the table.
    */
-  size_t Size() const { return _entries.size(); }
+  size_t Size() const { return entries_.size(); }
 
  private:
-  Entries _entries;
-  std::vector<Group> _squaredGroups;
+  Entries entries_;
+  std::vector<Group> channel_groups_;
 };
 
 #endif

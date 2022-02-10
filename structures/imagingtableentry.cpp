@@ -34,13 +34,13 @@ ImagingTableEntry::CreateDeconvolutionEntry(CachedImageSet* psf_images,
   auto entry = boost::make_unique<DeconvolutionTableEntry>();
 
   entry->index = index;
-  entry->bandStartFrequency = bandStartFrequency;
-  entry->bandEndFrequency = bandEndFrequency;
+  entry->band_start_frequency = bandStartFrequency;
+  entry->band_end_frequency = bandEndFrequency;
   entry->polarization = polarization;
-  entry->outputChannelIndex = outputChannelIndex;
-  entry->outputIntervalIndex = outputIntervalIndex;
-  entry->squaredDeconvolutionIndex = squaredDeconvolutionIndex;
-  entry->imageWeight = imageWeight;
+  entry->output_channel_index = outputChannelIndex;
+  entry->output_interval_index = outputIntervalIndex;
+  entry->channel_group_id = squaredDeconvolutionIndex;
+  entry->image_weight = imageWeight;
 
   // A PSF accessor is only needed for the first entry of a squared group.
   if (psf_images) {

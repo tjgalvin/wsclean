@@ -37,7 +37,7 @@ class ImageSet {
    * Make a new image set with the same dimensions and uninitialized image data.
    */
   ImageSet UnsetCopy() const {
-    return ImageSet(_imagingTable, _settings, _width, _height);
+    return ImageSet(_deconvolutionTable, _settings, _width, _height);
   }
 
   aocommon::Image Release(size_t imageIndex) {
@@ -144,12 +144,12 @@ class ImageSet {
     return _imageIndexToPSFIndex[imageIndex];
   }
 
-  const DeconvolutionTable& Table() const { return _imagingTable; }
+  const DeconvolutionTable& Table() const { return _deconvolutionTable; }
 
   std::unique_ptr<ImageSet> Trim(size_t x1, size_t y1, size_t x2, size_t y2,
                                  size_t oldWidth) const {
     std::unique_ptr<ImageSet> p(
-        new ImageSet(_imagingTable, _settings, x2 - x1, y2 - y1));
+        new ImageSet(_deconvolutionTable, _settings, x2 - x1, y2 - y1));
     for (size_t i = 0; i != _images.size(); ++i) {
       copySmallerPart(_images[i], p->_images[i], x1, y1, x2, y2, oldWidth);
     }
@@ -248,7 +248,7 @@ class ImageSet {
 
   void initializePolFactor() {
     const DeconvolutionTable::Group& firstChannelGroup =
-        _imagingTable.SquaredGroups().front();
+        _deconvolutionTable.ChannelGroups().front();
     std::set<aocommon::PolarizationEnum> pols;
     for (const DeconvolutionTableEntry* entry : firstChannelGroup) {
       if (_linkedPolarizations.empty() ||
@@ -308,14 +308,14 @@ class ImageSet {
 
   void getLinearIntegratedWithNormalChannels(aocommon::Image& dest) const;
 
-  size_t channelToSqIndex(size_t channel) const {
+  size_t channelIndexToGroupIndex(size_t chIndex) const {
     // Calculate reverse of
-    // (outChannel*_channelsInDeconvolution)/_imagingTable.SquaredGroups().size();
-    size_t fromFloor = channel * _imagingTable.SquaredGroups().size() /
+    // (outChannel*_channelsInDeconvolution)/_deconvolutionTable.ChannelGroups().size();
+    size_t fromFloor = chIndex * _deconvolutionTable.ChannelGroups().size() /
                        _channelsInDeconvolution;
     while (fromFloor * _channelsInDeconvolution /
-               _imagingTable.SquaredGroups().size() !=
-           channel)
+               _deconvolutionTable.ChannelGroups().size() !=
+           chIndex)
       ++fromFloor;
     return fromFloor;
   }
@@ -330,7 +330,7 @@ class ImageSet {
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
-  const DeconvolutionTable& _imagingTable;
+  const DeconvolutionTable& _deconvolutionTable;
   std::vector<size_t> _entryIndexToImageIndex;
   aocommon::UVector<size_t> _imageIndexToPSFIndex;
   float _polarizationNormalizationFactor;
