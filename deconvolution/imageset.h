@@ -248,7 +248,7 @@ class ImageSet {
 
   void initializePolFactor() {
     const DeconvolutionTable::Group& firstChannelGroup =
-        _deconvolutionTable.ChannelGroups().front();
+        _deconvolutionTable.OriginalGroups().front();
     std::set<aocommon::PolarizationEnum> pols;
     for (const DeconvolutionTableEntry* entry : firstChannelGroup) {
       if (_linkedPolarizations.empty() ||
@@ -310,11 +310,11 @@ class ImageSet {
 
   size_t channelIndexToGroupIndex(size_t chIndex) const {
     // Calculate reverse of
-    // (outChannel*_channelsInDeconvolution)/_deconvolutionTable.ChannelGroups().size();
-    size_t fromFloor = chIndex * _deconvolutionTable.ChannelGroups().size() /
+    // (outChannel*_channelsInDeconvolution)/_deconvolutionTable.OriginalGroups().size();
+    size_t fromFloor = chIndex * _deconvolutionTable.OriginalGroups().size() /
                        _channelsInDeconvolution;
     while (fromFloor * _channelsInDeconvolution /
-               _deconvolutionTable.ChannelGroups().size() !=
+               _deconvolutionTable.OriginalGroups().size() !=
            chIndex)
       ++fromFloor;
     return fromFloor;

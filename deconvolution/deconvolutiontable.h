@@ -41,7 +41,21 @@ class DeconvolutionTable {
     BaseIterator base_iterator_;
   };
 
-  const std::vector<Group>& ChannelGroups() const { return channel_groups_; }
+  /**
+   * @brief Constructs a new DeconvolutionTable object.
+   *
+   * @param n_original_groups The number of original channel groups. When adding
+   * entries, their original channel index must be less than the number of
+   * original groups.
+   */
+  explicit DeconvolutionTable(size_t n_original_groups)
+      : entries_(), original_groups_(n_original_groups) {}
+
+  /**
+   * @return The table entries, grouped by their original channel index.
+   * @see AddEntry()
+   */
+  const std::vector<Group>& OriginalGroups() const { return original_groups_; }
 
   EntryIterator begin() const { return EntryIterator(entries_.begin()); }
   EntryIterator end() const { return EntryIterator(entries_.end()); }
@@ -49,13 +63,9 @@ class DeconvolutionTable {
   /**
    * @brief Adds an entry to the table.
    *
-   * When adding multiple entries, these restrictions apply to the
-   * the channel group id of the entries:
-   * - The group id must be greater than or equal to the group id of the first
-   *   entry. (The first entry must have the smallest group id of all entries.)
-   * - The group id must be at most 1 larger than the group id of any of the
-   *   previously added entries.
-   * For example, valid group ids are: 0-1-2-0-1-2-0-1-2 or 4-4-4-5-5-5-6-6-6.
+   * The original channel index of the entry determines the original group for
+   * the entry. It must be less than the number of original channel groups, as
+   * given in the constructor.
    *
    * @param entry A new entry.
    */
@@ -73,7 +83,11 @@ class DeconvolutionTable {
 
  private:
   Entries entries_;
-  std::vector<Group> channel_groups_;
+
+  /**
+   * An original group has entries with equal original channel indices.
+   */
+  std::vector<Group> original_groups_;
 };
 
 #endif

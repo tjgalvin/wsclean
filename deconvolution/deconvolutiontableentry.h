@@ -25,16 +25,16 @@ struct DeconvolutionTableEntry {
 
   aocommon::PolarizationEnum polarization = aocommon::PolarizationEnum::StokesI;
 
-  size_t output_channel_index = 0;
-  size_t output_interval_index = 0;
-
   /**
-   * The group of entries with equal channel group id should be 'joinedly'
-   * deconvolved by adding their squared flux density values together. Normally,
-   * all the polarizations from a single (output)channel / timestep form such a
-   * group.
+   * Entries with equal original channel indices are 'joinedly' deconvolved by
+   * adding their squared flux density values together. Normally, all the
+   * polarizations from a single channel / timestep form such a group.
+   *
+   * When the number of deconvolution channels is less than the number of
+   * original channels, entries in multiple groups are 'joinedly' deconvolved.
    */
-  size_t channel_group_id = 0;
+  size_t original_channel_index = 0;
+  size_t original_interval_index = 0;
 
   /**
    * A number that scales with the estimated inverse-variance of the image. It

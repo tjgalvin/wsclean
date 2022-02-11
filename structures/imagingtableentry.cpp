@@ -37,9 +37,8 @@ ImagingTableEntry::CreateDeconvolutionEntry(CachedImageSet* psf_images,
   entry->band_start_frequency = bandStartFrequency;
   entry->band_end_frequency = bandEndFrequency;
   entry->polarization = polarization;
-  entry->output_channel_index = outputChannelIndex;
-  entry->output_interval_index = outputIntervalIndex;
-  entry->channel_group_id = squaredDeconvolutionIndex;
+  entry->original_channel_index = outputChannelIndex;
+  entry->original_interval_index = outputIntervalIndex;
   entry->image_weight = imageWeight;
 
   // A PSF accessor is only needed for the first entry of a squared group.

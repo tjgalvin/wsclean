@@ -100,7 +100,9 @@ void ImagingTable::AssignGridDataFromPolarization(
 std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
     CachedImageSet& psf_images, CachedImageSet& model_images,
     CachedImageSet& residual_images) const {
-  auto table = boost::make_unique<DeconvolutionTable>();
+  assert(_entries.front()->outputChannelIndex == 0);
+  auto table = boost::make_unique<DeconvolutionTable>(
+      _entries.back()->outputChannelIndex + 1);
 
   int max_squared_index = -1;
 
