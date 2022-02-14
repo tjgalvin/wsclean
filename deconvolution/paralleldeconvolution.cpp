@@ -420,10 +420,12 @@ void ParallelDeconvolution::SaveSourceList(const DeconvolutionTable& table,
 }
 
 void ParallelDeconvolution::correctChannelForPB(
-    ComponentList& list, const DeconvolutionTableEntry& entry) const {
+    ComponentList& list, const DeconvolutionTableEntry& entry,
+    size_t channel_index_offset) const {
   Logger::Debug << "Correcting source list of channel "
-                << entry.original_channel_index << " for beam\n";
-  ImageFilename filename(entry.original_channel_index,
+                << (entry.original_channel_index + channel_index_offset)
+                << " for beam\n";
+  ImageFilename filename(entry.original_channel_index + channel_index_offset,
                          entry.original_interval_index);
   filename.SetPolarization(entry.polarization);
   PrimaryBeam pb(_settings);
@@ -457,7 +459,7 @@ void ParallelDeconvolution::SavePBSourceList(const DeconvolutionTable& table,
       _settings.deconvolutionChannelCount == table.OriginalGroups().size()) {
     // No beam averaging is required
     for (const DeconvolutionTable::Group& group : table.OriginalGroups()) {
-      correctChannelForPB(*list, *group.front());
+      correctChannelForPB(*list, *group.front(), table.GetChannelIndexOffset());
     }
   } else {
     for (size_t ch = 0; ch != _settings.deconvolutionChannelCount; ++ch) {
@@ -516,8 +518,9 @@ PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
       const DeconvolutionTableEntry& e = *channelGroups[groupIndex].front();
       Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6
                     << " MHz\n";
-      ImageFilename filename(e.original_channel_index,
-                             e.original_interval_index);
+      ImageFilename filename(
+          e.original_channel_index + table.GetChannelIndexOffset(),
+          e.original_interval_index);
 
       if (count == 0)
         beamImages = pb.Load(filename);

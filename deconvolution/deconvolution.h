@@ -42,9 +42,6 @@ class Deconvolution {
   }
 
  private:
-  void correctChannelForPB(class ComponentList& list,
-                           const DeconvolutionTableEntry& entry) const;
-
   void readMask(const DeconvolutionTable& groupTable);
 
   const class Settings& _settings;

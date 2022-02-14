@@ -47,9 +47,13 @@ class DeconvolutionTable {
    * @param n_original_groups The number of original channel groups. When adding
    * entries, their original channel index must be less than the number of
    * original groups.
+   * @param channel_index_offset The index of the first channel in the caller.
    */
-  explicit DeconvolutionTable(size_t n_original_groups)
-      : entries_(), original_groups_(n_original_groups) {}
+  explicit DeconvolutionTable(size_t n_original_groups,
+                              size_t channel_index_offset = 0)
+      : entries_(),
+        original_groups_(n_original_groups),
+        channel_index_offset_(channel_index_offset) {}
 
   /**
    * @return The table entries, grouped by their original channel index.
@@ -81,6 +85,11 @@ class DeconvolutionTable {
    */
   size_t Size() const { return entries_.size(); }
 
+  /**
+   * @return The channel index offset, which was set in the constructor.
+   */
+  size_t GetChannelIndexOffset() const { return channel_index_offset_; }
+
  private:
   Entries entries_;
 
@@ -88,6 +97,15 @@ class DeconvolutionTable {
    * An original group has entries with equal original channel indices.
    */
   std::vector<Group> original_groups_;
+
+  /**
+   * A user of the DeconvolutionTable may use different channel indices than
+   * the DeconvolutionTable. This offset is the difference between those
+   * indices.
+   * For example, with three channels, the DeconvolutionTable indices are always
+   * 0, 1, and 2. When the user indices are 4, 5, and 6, this offset will be 4.
+   */
+  const std::size_t channel_index_offset_;
 };
 
 #endif

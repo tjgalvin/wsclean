@@ -27,7 +27,8 @@ ImagingTableEntry::ImagingTableEntry()
       imageWeight(0.0) {}
 
 std::unique_ptr<DeconvolutionTableEntry>
-ImagingTableEntry::CreateDeconvolutionEntry(CachedImageSet* psf_images,
+ImagingTableEntry::CreateDeconvolutionEntry(size_t channel_index_offset,
+                                            CachedImageSet* psf_images,
                                             CachedImageSet& model_images,
                                             CachedImageSet& residual_images,
                                             bool is_imaginary) const {
@@ -37,7 +38,7 @@ ImagingTableEntry::CreateDeconvolutionEntry(CachedImageSet* psf_images,
   entry->band_start_frequency = bandStartFrequency;
   entry->band_end_frequency = bandEndFrequency;
   entry->polarization = polarization;
-  entry->original_channel_index = outputChannelIndex;
+  entry->original_channel_index = outputChannelIndex - channel_index_offset;
   entry->original_interval_index = outputIntervalIndex;
   entry->image_weight = imageWeight;
 

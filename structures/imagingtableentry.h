@@ -37,6 +37,7 @@ struct ImagingTableEntry {
    * Creating the PSF image accessor is optional, since it is not always needed.
    * Image accessors for the model and residual images are always created.
    *
+   * @param channel_index_offset Index of the first channel in the ImagingTable.
    * @param psf_images Pointer to a CachedImageSet for PSF images. If this
    * pointer is null, the created DeconvolutionTableEntry will have no
    * ImageAccessor for a PSF image.
@@ -48,8 +49,9 @@ struct ImagingTableEntry {
    * @return A new DeconvolutionTableEntry.
    */
   std::unique_ptr<DeconvolutionTableEntry> CreateDeconvolutionEntry(
-      CachedImageSet* psf_images, CachedImageSet& model_images,
-      CachedImageSet& residual_images, bool is_imaginary) const;
+      size_t channel_index_offset, CachedImageSet* psf_images,
+      CachedImageSet& model_images, CachedImageSet& residual_images,
+      bool is_imaginary) const;
 
   /**
    * Unique index of the entry within its ImagingTable.

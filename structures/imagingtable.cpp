@@ -100,10 +100,18 @@ void ImagingTable::AssignGridDataFromPolarization(
 std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
     CachedImageSet& psf_images, CachedImageSet& model_images,
     CachedImageSet& residual_images) const {
-  assert(_entries.front()->outputChannelIndex == 0);
-  auto table = boost::make_unique<DeconvolutionTable>(
-      _entries.back()->outputChannelIndex + 1);
+  // In a DeconvolutionTable the output channel indices range from
+  // 0 to (#channels - 1). In an ImagingTable that forms an indepent group,
+  // output channel indices may start at a higher index.
 
+  // Assume that the first entry has the lowest index and that the last entry
+  // has the highest output channel index.
+  const size_t channel_index_offset = _entries.front()->outputChannelIndex;
+  const size_t n_channels =
+      _entries.back()->outputChannelIndex + 1 - channel_index_offset;
+
+  auto table =
+      boost::make_unique<DeconvolutionTable>(n_channels, channel_index_offset);
   int max_squared_index = -1;
 
   for (const EntryPtr& entry_ptr : _entries) {
@@ -121,15 +129,17 @@ std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
       }
 
       std::unique_ptr<DeconvolutionTableEntry> real_entry =
-          entry_ptr->CreateDeconvolutionEntry(psf_images_ptr, model_images,
+          entry_ptr->CreateDeconvolutionEntry(channel_index_offset,
+                                              psf_images_ptr, model_images,
                                               residual_images, false);
       table->AddEntry(std::move(real_entry));
     }
 
     if (entry_ptr->imageCount == 2) {
       std::unique_ptr<DeconvolutionTableEntry> imaginary_entry =
-          entry_ptr->CreateDeconvolutionEntry(nullptr, model_images,
-                                              residual_images, true);
+          entry_ptr->CreateDeconvolutionEntry(channel_index_offset, nullptr,
+                                              model_images, residual_images,
+                                              true);
       table->AddEntry(std::move(imaginary_entry));
     }
   }
