@@ -4,7 +4,7 @@ Basic cleaning
 Image dimensions
 ----------------
 
-The image size is set in pixels with the ``-size`` parameter, which takes a width and an height. An image is not required to be square shaped. It is however highly recommended to use even numbers for width and height: odd image dimensions can result in cleaning artefacts. The ``-size`` parameter sets the angular size of the image together with the ``-scale`` parameter, which takes an angle and sets the angular size of a single pixel. The pixel scale currently has to be square shaped.
+The image size is set in pixels with the ``-size`` parameter, which takes a width and a height. An image is not required to be square shaped. It is however required to use even numbers for width and height. The ``-scale`` parameter takes an angle and sets the angular size of a single pixel. The pixel scale currently has to be square shaped. Together, the ``-size`` and ``-scale`` parameters set the angular size of the image. 
 
 Threshold and maximum number of iterations
 ------------------------------------------
@@ -33,8 +33,8 @@ Using Cotton-Schwab: the ``-mgain`` parameter
 
 The ``-mgain`` parameter sets the major iteration gain: during every major iteration, the peak is reduced by the given factor. With an ``mgain`` of 0.8, the peak is reduced by 80%. This is quite a common and safe option for cleaning. With a reasonable good PSF, using 0.9 is possible without loss of accuracy, and a bit faster. With a very bad PSF, it might be necessary to lower the ``mgain`` parameter.
 
-When ``-mgain`` is not given, or when it is set to 1, WSClean will never go back to the visibilities. It will therefore perform a simple image-based Högbom clean. While this is fast, it limits the accuracy of the image and the dynamic range that can be reached. WSClean will also not write to the MODEL column, as would be required for self-calibration (see the chapter on :doc:`self-calibration <selfcal>`). To use Högbom clean nevertheless, while still filling the model column, one can either use an mgain of e.g. 0.9999, or one can :doc:`predict the final model <prediction>` in a second WSClean run.
+When ``-mgain`` is not given, or when it is set to 1, WSClean will never go back to the visibilities. It will therefore perform a simple image-based Högbom clean. While this is fast, it limits the accuracy of the image and the dynamic range that can be reached. WSClean will also not write to the MODEL column, as would be required for self-calibration (see the chapter on :doc:`self-calibration <selfcal>`). To use Högbom clean and still fill the model column, an mgain of e.g. 0.9999 can be used. Alternatively, the final model :doc:`can be predicted <prediction>` in a second WSClean run.
 
-Note that the ``-mgain`` parameter is not the same as the ``-gain``  parameter. The latter sets the minor loop cleaning gain, and is 0.1 by default.
+Note that the ``-mgain`` parameter is not the same as the ``-gain``  parameter. The latter sets the minor loop cleaning gain, and is 0.1 by default. It is almost never required to change the ``gain`` parameter.
 
 **Next chapter:** :doc:`prediction`

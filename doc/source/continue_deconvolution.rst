@@ -95,21 +95,21 @@ The ``-subtract-model`` option only makes WSClean subtract the model column from
 
     taql update obs.ms set DATA=DATA-MODEL_DATA
     
-Reusing psf / dirty image
+Reusing PSF / dirty image
 -------------------------
 
-Existing psf or dirty images can be reused to:
+Existing PSF or dirty images can be reused to:
  - run the deconvolution algorithms of wsclean without doing the inversion (i.e. without ever going back to the visibilities)
- - speed up a second run of imaging when the psf/dirty already exist, and no change in imaging settings (pixel scale, size, weighting, etc.) is made.
+ - speed up a second run of imaging when the PSF/dirty already exist, and no change in imaging settings (pixel scale, size, weighting, etc.) is made.
  
-A first "regular" run to make the psf and dirty image:
+A first "regular" run to make the PSF and dirty image:
 
 .. code-block:: bash
 
     wsclean -make-psf -size 1024 1024 -scale 30asec -channels-out 4 \
       obs.ms
 
-A run that reuses the psf and dirty images from the previous run:
+A run that reuses the PSF and dirty images from the previous run:
 
 .. code-block:: bash
 

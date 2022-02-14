@@ -12,7 +12,7 @@ Assume we have a measurement set 'myobservation.ms' with 100 channels. To image 
     wsclean -scale 1amin -size 3072 3072 -niter 1000 -threshold 1 \
       -channels-out 100 myobservation.ms
 
-This will output 100 images, named wsclean-0000-image.fits, wsclean-0001-image.fits, ..., wsclean-0099-image.fits (and similarly for the psf, residual and dirty). Additionally, images named like wsclean-MFS-image.fits will be outputted, which are the weighted sum over all 100 images.
+This will output 100 images, named wsclean-0000-image.fits, wsclean-0001-image.fits, ..., wsclean-0099-image.fits (and similarly for the PSF, residual and dirty). Additionally, images named like wsclean-MFS-image.fits will be outputted, which are the weighted sum over all 100 images.
 
 WSClean does not output these images in a normal "imaging cube" like CASA does, i.e., a single fits file with several images in it. For now I've decided not to implement this (one of the reasons for this is that information about the synthesized beam is not properly stored in a multi-frequency fits file). One has of course the option to combine the output manually, e.g. with a simple Python script.
 

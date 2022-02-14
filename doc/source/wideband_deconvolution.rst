@@ -1,12 +1,12 @@
 Wideband deconvolution
 ======================
 
-Since :doc:`version 1.1 <changelogs/v1.1>`, WSClean has a 'wideband' multi-frequency deconvolution mode, which allows cleaning channels joinedly. This means that peak finding is performed in the sum of all channels, allowing deep cleaning, and the psf is subtracted from each channel & polarization individually, scaled to the value of the peak in that image, which takes care of spectral variation.
+WSClean has a 'wideband' multi-frequency deconvolution mode, which allows cleaning channels joinedly. This means that peak finding is performed in the sum of all channels, allowing deep cleaning, and the PSF is subtracted from each channel & polarization individually, scaled to the value of the peak in that image, which takes care of spectral variation and deconvolves each channel with its own PSF.
+
+Wideband options are available since :doc:`WSClean version 1.1 <changelogs/v1.1>`.
 
 Usage
 -----
-
-WSClean's wideband mode can work together with joined polarization cleaning or for imaging a single polarization (from :doc:`version 1.5 <changelogs/v1.5>`).
 
 A typical run in multi-frequency deconvolution would look like:
 
@@ -15,9 +15,12 @@ A typical run in multi-frequency deconvolution would look like:
     wsclean -join-channels -channels-out 4 [other parameters] \
       <measurement set>
 
-This outputs 4 deconvolved images at the different frequencies and the weighted average of those 4. It is of course expensive: the deconvolution performance of the above statement is about four times more expensive than a bandwidth-integrated clean, and especially the minor clean iterations become much slower.  This mode can be combined with Cotton-Schwab imaging (with ``-mgain ...``) which would fill the ``MODEL_DATA`` column with frequency dependent model info, so that it is possible to perform self-cal with the proper frequency information. It can also be combined with -joinpolarizations to clean polarizations and channels both joinedly.
+This outputs 4 deconvolved images at the different frequencies and the weighted average of those 4. This mode can be combined with Cotton-Schwab imaging (with ``-mgain ...``) which would fill the ``MODEL_DATA`` column with frequency dependent model info, so that it is possible to perform self-cal with the proper frequency information. Joining channels can also be combined with joining polarizations (``-join-polarizations``, see :doc:`polarimetric deconvolution <polarimetric_deconvolution>`) to clean polarizations and channels both joinedly. This is available from :doc:`version 1.5 <changelogs/v1.5>`.
 
-Something to be aware of is that the ``-join-channels`` parameter turns on :doc:`MF weighting <mf_weighting>`.
+Joined channel deconvolution is computationally more expensive than bandwidth-integrated cleaning. If the processing time (or memory) becomes untractable, the speed and memory usage can be improved by using channel interpolation (see description of ``-deconvolution-channels`` below) or by using :doc:`parallel/subimage deconvolution <parallel_deconvolution>`.
+
+.. note::
+   Something to be aware of is that the ``-join-channels`` parameter turns on :doc:`MF weighting <mf_weighting>`.
 
 Multiple measurement sets and subbands
 --------------------------------------
@@ -121,7 +124,7 @@ The spectral index map may be the result of earlier runs or from fitting between
 
 Together with :doc:`multiscale cleaning <multiscale_cleaning>` and :doc:`source list output <component_list>`, this mode allows building (text) models of sources with accurate spectral index information. 
 
-This method is currently being written up into an article -- to be submitted somewhere in 2021.
+This method is currently being written up into an article -- to be submitted somewhere in 2022.
 
 Fit normal or logarithmic polynomials?
 --------------------------------------

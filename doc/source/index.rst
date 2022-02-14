@@ -3,9 +3,9 @@ WSClean manual
 
 This is the official WSClean manual.
 The latest version of WSClean can be found at
-https://gitlab.com/aroffringa/wsclean/ .
+`<https://gitlab.com/aroffringa/wsclean/>`_.
 
-If you use WSClean for scientific work, please cite :doc:`the appropriate paper(s) <citing_wsclean>`
+If you use WSClean for scientific work, please cite :doc:`the appropriate paper(s) <citing_wsclean>`.
 
 Contents:
  

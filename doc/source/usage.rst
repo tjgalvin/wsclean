@@ -30,16 +30,16 @@ For fast imaging with somewhat less accuracy, you can perform a Högbom clean an
 
 Because the '``mgain``' parameter was left out, WSClean will not iteratively go back to the visibilities. This also implies that the MODEL_DATA column will not be filled (see :doc:`self-calibration with WSClean <selfcal>`) for more info).
 
-A description of the basic cleaning parameters is given on the :doc:`manual page for basic cleaning <basic_cleaning>`.
+A description of the basic cleaning parameters is given in the :doc:`basic cleaning chapter <basic_cleaning>`.
 
 An advanced MWA example
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-As a more enhanced example, here's an advanced command to clean MWA data:
+As a more enhanced example, here is a command to clean `MWA GLEAM <https://www.mwatelescope.org/gleam>`_ data:
 
 .. code-block:: bash
 
-    wsclean -name obs-1068210256 -absmem 128 -j 12 \
+    wsclean -name obs-1068210256 \
       -size 4000 4000 -niter 1000000 -mgain 0.95 \
       -weight briggs -1.0 -scale 0.75amin \
       -auto-threshold 1 -auto-mask 5 -multiscale \
@@ -49,8 +49,8 @@ As a more enhanced example, here's an advanced command to clean MWA data:
 
 A little explanation of this command:
 
-* Briggs' weighting with robustness of -1 is used. For the MWA, this decreases the noise in single snapshots slightly. See :doc:`image_weighting` for more info on supported weightings.
-* The (instrumental) XX and YY polarizations are imaged separately and cleaned together. This allows more accurate primary beam correction for the MWA. See [polarized cleaning](PolarizedCleaning) for more info.
+* Briggs' weighting with robustness of -1 is used. For the MWA, this decreases the noise in single snapshots slightly. See :doc:`image weighting <image_weighting>` for more info on supported weightings.
+* The (instrumental) XX and YY polarizations are imaged separately and cleaned together. This allows more accurate primary beam correction for the MWA. See :doc:`polarimetric deconvolution <polarimetric_deconvolution>` for more info.
 * A larger ``mgain`` value is used because the MWA synthesized beam is well behaved.
 * A larger image is made because GLEAM includes lower frequencies, at which the primary beam is larger.
 * For GLEAM, the W-snapshot algorithm is used by executing the ``chgcentre`` command prior to imaging, as described on the :doc:`w_snapshot_algorithm`.
