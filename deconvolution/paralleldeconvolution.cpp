@@ -8,10 +8,6 @@
 
 #include "../math/dijkstrasplitter.h"
 
-#include "../structures/primarybeam.h"
-
-#include "componentlist.h"
-
 #include <aocommon/parallelfor.h>
 #include <aocommon/units/fluxdensity.h>
 
@@ -30,14 +26,56 @@ ParallelDeconvolution::ParallelDeconvolution(const Settings& settings)
 
 ParallelDeconvolution::~ParallelDeconvolution() {}
 
+ComponentList ParallelDeconvolution::GetComponentList(
+    const DeconvolutionTable& table) const {
+  // TODO make this work with subimages
+  ComponentList list;
+  if (_settings.useMultiscale) {
+    // If no parallel deconvolution was used, the component list must be
+    // retrieved from the deconvolution algorithm.
+    if (_algorithms.size() == 1) {
+      list = static_cast<MultiScaleAlgorithm*>(_algorithms.front().get())
+                 ->GetComponentList();
+    } else {
+      list = *_componentList;
+    }
+  } else {
+    const size_t w = _settings.trimmedImageWidth;
+    const size_t h = _settings.trimmedImageHeight;
+    ImageSet modelSet(table, _settings, w, h);
+    modelSet.LoadAndAverage(false);
+    list = ComponentList(w, h, modelSet);
+  }
+  list.MergeDuplicates();
+  return list;
+}
+
+const DeconvolutionAlgorithm& ParallelDeconvolution::MaxScaleCountAlgorithm()
+    const {
+  if (_settings.useMultiscale) {
+    MultiScaleAlgorithm* maxAlgorithm =
+        static_cast<MultiScaleAlgorithm*>(_algorithms.front().get());
+    for (size_t i = 1; i != _algorithms.size(); ++i) {
+      MultiScaleAlgorithm* mAlg =
+          static_cast<MultiScaleAlgorithm*>(_algorithms[i].get());
+      if (mAlg->ScaleCount() > maxAlgorithm->ScaleCount()) {
+        maxAlgorithm = mAlg;
+      }
+    }
+    return *maxAlgorithm;
+  } else {
+    return FirstAlgorithm();
+  }
+}
+
 void ParallelDeconvolution::SetAlgorithm(
     std::unique_ptr<class DeconvolutionAlgorithm> algorithm) {
   if (_settings.parallelDeconvolutionMaxSize == 0) {
     _algorithms.resize(1);
     _algorithms.front() = std::move(algorithm);
   } else {
-    const size_t width = _settings.trimmedImageWidth,
-                 height = _settings.trimmedImageHeight;
+    const size_t width = _settings.trimmedImageWidth;
+    const size_t height = _settings.trimmedImageHeight;
     size_t maxSubImageSize = _settings.parallelDeconvolutionMaxSize;
     _horImages = (width + maxSubImageSize - 1) / maxSubImageSize,
     _verImages = (height + maxSubImageSize - 1) / maxSubImageSize;
@@ -393,142 +431,4 @@ void ParallelDeconvolution::executeParallelRun(
     reachedMajorThreshold = false;
   } else
     Logger::Info << ": Deconvolution finished.\n";
-}
-
-void ParallelDeconvolution::SaveSourceList(const DeconvolutionTable& table,
-                                           long double phaseCentreRA,
-                                           long double phaseCentreDec) {
-  std::string filename = _settings.prefixName + "-sources.txt";
-  if (_settings.useMultiscale) {
-    ComponentList* list;
-    // If no parallel deconvolution was used, the component list must be
-    // retrieved from the deconvolution algorithm.
-    if (_algorithms.size() == 1)
-      list = &static_cast<MultiScaleAlgorithm*>(_algorithms.front().get())
-                  ->GetComponentList();
-    else
-      list = _componentList.get();
-    writeSourceList(*list, filename, phaseCentreRA, phaseCentreDec);
-  } else {
-    const size_t w = _settings.trimmedImageWidth,
-                 h = _settings.trimmedImageHeight;
-    ImageSet modelSet(table, _settings, w, h);
-    modelSet.LoadAndAverage(false);
-    ComponentList componentList(w, h, modelSet);
-    writeSourceList(componentList, filename, phaseCentreRA, phaseCentreDec);
-  }
-}
-
-void ParallelDeconvolution::correctChannelForPB(
-    ComponentList& list, const DeconvolutionTableEntry& entry,
-    size_t channel_index_offset) const {
-  Logger::Debug << "Correcting source list of channel "
-                << (entry.original_channel_index + channel_index_offset)
-                << " for beam\n";
-  ImageFilename filename(entry.original_channel_index + channel_index_offset,
-                         entry.original_interval_index);
-  filename.SetPolarization(entry.polarization);
-  PrimaryBeam pb(_settings);
-  PrimaryBeamImageSet beamImages = pb.Load(filename);
-  beamImages.CorrectComponentList(list, entry.original_channel_index);
-}
-
-void ParallelDeconvolution::SavePBSourceList(const DeconvolutionTable& table,
-                                             long double phaseCentreRA,
-                                             long double phaseCentreDec) const {
-  // TODO make this work with subimages
-  std::unique_ptr<ComponentList> list;
-  const size_t w = _settings.trimmedImageWidth;
-  const size_t h = _settings.trimmedImageHeight;
-  if (_settings.useMultiscale) {
-    // If no parallel deconvolution was used, the component list must be
-    // retrieved from the deconvolution algorithm.
-    if (_algorithms.size() == 1)
-      list.reset(new ComponentList(
-          static_cast<MultiScaleAlgorithm*>(_algorithms.front().get())
-              ->GetComponentList()));
-    else
-      list.reset(new ComponentList(*_componentList));
-  } else {
-    ImageSet modelSet(table, _settings, w, h);
-    modelSet.LoadAndAverage(false);
-    list.reset(new ComponentList(w, h, modelSet));
-  }
-
-  if (_settings.deconvolutionChannelCount == 0 ||
-      _settings.deconvolutionChannelCount == table.OriginalGroups().size()) {
-    // No beam averaging is required
-    for (const DeconvolutionTable::Group& group : table.OriginalGroups()) {
-      correctChannelForPB(*list, *group.front(), table.GetChannelIndexOffset());
-    }
-  } else {
-    for (size_t ch = 0; ch != _settings.deconvolutionChannelCount; ++ch) {
-      Logger::Debug << "Correcting source list of channel " << ch
-                    << " for averaged beam\n";
-      PrimaryBeamImageSet beamImages = loadAveragePrimaryBeam(ch, table);
-      beamImages.CorrectComponentList(*list, ch);
-    }
-  }
-
-  std::string filename = _settings.prefixName + "-sources-pb.txt";
-  writeSourceList(*list, filename, phaseCentreRA, phaseCentreDec);
-}
-
-void ParallelDeconvolution::writeSourceList(ComponentList& componentList,
-                                            const std::string& filename,
-                                            long double phaseCentreRA,
-                                            long double phaseCentreDec) const {
-  if (_settings.useMultiscale) {
-    MultiScaleAlgorithm* maxAlgorithm =
-        static_cast<MultiScaleAlgorithm*>(_algorithms.front().get());
-    for (size_t i = 1; i != _algorithms.size(); ++i) {
-      MultiScaleAlgorithm* mAlg =
-          static_cast<MultiScaleAlgorithm*>(_algorithms[i].get());
-      if (mAlg->ScaleCount() > maxAlgorithm->ScaleCount()) maxAlgorithm = mAlg;
-    }
-    componentList.Write(filename, *maxAlgorithm, _settings.pixelScaleX,
-                        _settings.pixelScaleY, phaseCentreRA, phaseCentreDec);
-  } else {
-    componentList.WriteSingleScale(filename, *_algorithms.front(),
-                                   _settings.pixelScaleX, _settings.pixelScaleY,
-                                   phaseCentreRA, phaseCentreDec);
-  }
-}
-
-PrimaryBeamImageSet ParallelDeconvolution::loadAveragePrimaryBeam(
-    size_t imageIndex, const DeconvolutionTable& table) const {
-  Logger::Debug << "Averaging beam for deconvolution channel " << imageIndex
-                << "\n";
-
-  PrimaryBeamImageSet beamImages;
-
-  Image scratch(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  size_t deconvolutionChannels = _settings.deconvolutionChannelCount;
-
-  /// TODO : use real weights of images
-  size_t count = 0;
-  PrimaryBeam pb(_settings);
-  const std::vector<DeconvolutionTable::Group>& channelGroups =
-      table.OriginalGroups();
-  for (size_t groupIndex = 0; groupIndex != channelGroups.size();
-       ++groupIndex) {
-    size_t curImageIndex =
-        (groupIndex * deconvolutionChannels) / channelGroups.size();
-    if (curImageIndex == imageIndex) {
-      const DeconvolutionTableEntry& e = *channelGroups[groupIndex].front();
-      Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6
-                    << " MHz\n";
-      ImageFilename filename(
-          e.original_channel_index + table.GetChannelIndexOffset(),
-          e.original_interval_index);
-
-      if (count == 0)
-        beamImages = pb.Load(filename);
-      else
-        beamImages += pb.Load(filename);
-      count++;
-    }
-  }
-  beamImages *= (1.0 / double(count));
-  return beamImages;
 }

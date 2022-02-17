@@ -149,12 +149,22 @@ def test_mutifrequency_multiscale_parallel():
 
 
 def test_save_components():
+    test_name = name("mfms-components")
+
+    # Remove old component list if it exists
+    component_file = test_name + "-sources.txt"
+    if os.path.exists(component_file):
+        os.remove(component_file)
+
     # Save the list of components
-    s = f"{tcf.WSCLEAN} -name {name('mfms-components')} -save-source-list -channels-out 4 \
+    s = f"{tcf.WSCLEAN} -name {test_name} -save-source-list -channels-out 4 \
         -join-channels -parallel-gridding 4 -fit-spectral-pol 2 \
             -auto-threshold 0.5 -auto-mask 3 -mgain 0.8 -niter 1000000 \
                 -multiscale -parallel-deconvolution 1000 {tcf.DIMS} {os.environ['MWA_MS']}"
     check_call(s.split())
+
+    # Check whether source files is generated
+    assert os.path.isfile(component_file)
 
 
 def test_linear_joined_polarizations():
@@ -204,6 +214,12 @@ def test_grid_with_beam():
     """
     name = "idg-beam"
     if os.environ["MWA_COEFFS_PATH"]:
+        # Remove existing component files if present
+        for source_file in ["sources", "sources-pb"]:
+            component_file = name + "-" + source_file + ".txt"
+            if os.path.exists(component_file):
+                os.remove(component_file)
+
         s = f"{tcf.WSCLEAN} -name {name} -use-idg -grid-with-beam -save-source-list -mgain 0.8 -auto-threshold 5 -niter 1000000 -interval 10 14 {tcf.DIMS} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
         check_call(s.split())
         for image_type in [
@@ -219,7 +235,7 @@ def test_grid_with_beam():
         ]:
             image_name = name + "-" + image_type + ".fits"
             assert os.path.isfile(image_name)
-        # Check whether source files are correctly generated
+        # Check whether source files are generated
         for source_file in ["sources", "sources-pb"]:
             assert os.path.isfile(name + "-" + source_file + ".txt")
     else:

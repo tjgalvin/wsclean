@@ -12,32 +12,35 @@ void ComponentList::Write(const std::string& filename,
                           const MultiScaleAlgorithm& multiscale,
                           long double pixelScaleX, long double pixelScaleY,
                           long double phaseCentreRA,
-                          long double phaseCentreDec) {
+                          long double phaseCentreDec) const {
   aocommon::UVector<double> scaleSizes(NScales());
   for (size_t scaleIndex = 0; scaleIndex != NScales(); ++scaleIndex)
     scaleSizes[scaleIndex] = multiscale.ScaleSize(scaleIndex);
-  write(filename, multiscale, scaleSizes, pixelScaleX, pixelScaleY,
+  write(filename, multiscale.Fitter(), scaleSizes, pixelScaleX, pixelScaleY,
         phaseCentreRA, phaseCentreDec);
 }
 
 void ComponentList::WriteSingleScale(
     const std::string& filename, const class DeconvolutionAlgorithm& algorithm,
     long double pixelScaleX, long double pixelScaleY, long double phaseCentreRA,
-    long double phaseCentreDec) {
+    long double phaseCentreDec) const {
   aocommon::UVector<double> scaleSizes(1, 0);
-  write(filename, algorithm, scaleSizes, pixelScaleX, pixelScaleY,
+  write(filename, algorithm.Fitter(), scaleSizes, pixelScaleX, pixelScaleY,
         phaseCentreRA, phaseCentreDec);
 }
 
 void ComponentList::write(const std::string& filename,
-                          const class DeconvolutionAlgorithm& algorithm,
+                          const SpectralFitter& fitter,
                           const aocommon::UVector<double>& scaleSizes,
                           long double pixelScaleX, long double pixelScaleY,
                           long double phaseCentreRA,
-                          long double phaseCentreDec) {
-  MergeDuplicates();
+                          long double phaseCentreDec) const {
+  if (_componentsAddedSinceLastMerge != 0) {
+    throw std::runtime_error(
+        "ComponentList::write called while there are yet unmerged components. "
+        "Run ComponentList::MergeDuplicates() first.");
+  }
 
-  const SpectralFitter& fitter = algorithm.Fitter();
   if (fitter.Mode() == SpectralFittingMode::NoFitting && _nFrequencies > 1)
     throw std::runtime_error(
         "Can't write component list, because you have not specified a spectral "
@@ -58,7 +61,7 @@ void ComponentList::write(const std::string& filename,
                                               fitter.ReferenceFrequency());
   aocommon::UVector<float> terms;
   for (size_t scaleIndex = 0; scaleIndex != NScales(); ++scaleIndex) {
-    ScaleList& list = _listPerScale[scaleIndex];
+    const ScaleList& list = _listPerScale[scaleIndex];
     size_t componentIndex = 0;
     const double scale = scaleSizes[scaleIndex],
                  // Using the FWHM formula for a Gaussian

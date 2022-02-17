@@ -270,6 +270,7 @@ add_library(
   gridding/wstackinggridder.cpp
   idg/averagebeam.cpp
   interface/wscleaninterface.cpp
+  io/componentlistwriter.cpp
   io/facetreader.cpp
   io/logger.cpp
   io/parsetreader.cpp

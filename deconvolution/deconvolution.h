@@ -16,6 +16,19 @@ class Deconvolution {
   explicit Deconvolution(const class Settings& settings);
   ~Deconvolution();
 
+  ComponentList GetComponentList() const {
+    return _parallelDeconvolution.GetComponentList(*_table);
+  }
+
+  /**
+   * @brief Exposes a const reference to either the first algorithm, or - in
+   * case of a multiscale clean - the algorithm with the maximum number of scale
+   * counts.
+   */
+  const DeconvolutionAlgorithm& MaxScaleCountAlgorithm() const {
+    return _parallelDeconvolution.MaxScaleCountAlgorithm();
+  }
+
   void Perform(bool& reachedMajorThreshold, size_t majorIterationNr);
 
   void InitializeDeconvolutionAlgorithm(
@@ -29,17 +42,6 @@ class Deconvolution {
 
   /// Return IterationNumber of the underlying \c DeconvolutionAlgorithm
   size_t IterationNumber() const;
-
-  void SaveSourceList(const DeconvolutionTable& table,
-                      long double phaseCentreRA, long double phaseCentreDec) {
-    _parallelDeconvolution.SaveSourceList(table, phaseCentreRA, phaseCentreDec);
-  }
-
-  void SavePBSourceList(const DeconvolutionTable& table,
-                        long double phaseCentreRA, long double phaseCentreDec) {
-    _parallelDeconvolution.SavePBSourceList(table, phaseCentreRA,
-                                            phaseCentreDec);
-  }
 
  private:
   void readMask(const DeconvolutionTable& groupTable);

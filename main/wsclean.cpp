@@ -6,6 +6,7 @@
 
 #include "../gridding/directmsgridder.h"
 
+#include "../io/componentlistwriter.h"
 #include "../io/facetreader.h"
 #include "../io/imagefilename.h"
 #include "../io/imageweightcache.h"
@@ -1640,15 +1641,17 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     std::unique_ptr<DeconvolutionTable> deconvolution_table =
         groupTable.CreateDeconvolutionTable(_psfImages, _modelImages,
                                             _residualImages);
-    _deconvolution.SaveSourceList(*deconvolution_table,
-                                  _observationInfo.phaseCentreRA,
-                                  _observationInfo.phaseCentreDec);
+    ComponentListWriter componentListWriter(_settings,
+                                            std::move(deconvolution_table));
+    componentListWriter.SaveSourceList(_deconvolution,
+                                       _observationInfo.phaseCentreRA,
+                                       _observationInfo.phaseCentreDec);
     if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
         !_settings.facetSolutionFiles.empty() || _settings.gridWithBeam ||
         !_settings.atermConfigFilename.empty()) {
-      _deconvolution.SavePBSourceList(*deconvolution_table,
-                                      _observationInfo.phaseCentreRA,
-                                      _observationInfo.phaseCentreDec);
+      componentListWriter.SavePbCorrectedSourceList(
+          _deconvolution, _observationInfo.phaseCentreRA,
+          _observationInfo.phaseCentreDec);
     }
   }
 

@@ -3,8 +3,7 @@
 
 #include "../system/fftwmanager.h"
 
-#include "../structures/primarybeamimageset.h"
-
+#include "componentlist.h"
 #include "controllablelog.h"
 
 #include <aocommon/image.h>
@@ -26,6 +25,14 @@ class ParallelDeconvolution {
   const class DeconvolutionAlgorithm& FirstAlgorithm() const {
     return *_algorithms.front();
   }
+
+  ComponentList GetComponentList(const DeconvolutionTable& table) const;
+
+  /**
+   * @brief Same as @c FirstAlgorithm , except that for a multi-scale clean
+   * the algorithm with the maximum number of scale counts is returned.
+   */
+  const DeconvolutionAlgorithm& MaxScaleCountAlgorithm() const;
 
   void SetAllocator(class ImageBufferAllocator* allocator) {
     _allocator = allocator;
@@ -55,13 +62,6 @@ class ParallelDeconvolution {
     _mask = nullptr;
   }
 
-  void SaveSourceList(const DeconvolutionTable& table,
-                      long double phaseCentreRA, long double phaseCentreDec);
-
-  void SavePBSourceList(const DeconvolutionTable& table,
-                        long double phaseCentreRA,
-                        long double phaseCentreDec) const;
-
   class FFTWManager& GetFFTWManager() {
     return _fftwManager;
   }
@@ -87,17 +87,6 @@ class ParallelDeconvolution {
                    const aocommon::UVector<const float*>& psfImages,
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex* mutex);
-
-  void correctChannelForPB(class ComponentList& list,
-                           const struct DeconvolutionTableEntry& entry,
-                           size_t channel_index_offset) const;
-
-  PrimaryBeamImageSet loadAveragePrimaryBeam(
-      size_t imageIndex, const class DeconvolutionTable& table) const;
-
-  void writeSourceList(ComponentList& componentList,
-                       const std::string& filename, long double phaseCentreRA,
-                       long double phaseCentreDec) const;
 
   FFTWManager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
