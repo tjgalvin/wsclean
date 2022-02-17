@@ -20,6 +20,9 @@
 
 #include "../main/stopwatch.h"
 
+struct ImagingTableEntry;
+class ImageFilename;
+
 class IdgMsGridder final : public MSGridderBase {
  public:
   IdgMsGridder(const class Settings& settings);
@@ -32,18 +35,22 @@ class IdgMsGridder final : public MSGridderBase {
 
   virtual std::vector<aocommon::Image> ResultImages() final override;
 
-  static void SavePBCorrectedImages(class aocommon::FitsWriter& writer,
-                                    const class ImageFilename& filename,
+  static void SavePBCorrectedImages(aocommon::FitsWriter& writer,
+                                    const ImageFilename& filename,
                                     const std::string& filenameKind,
                                     const Settings& settings);
 
-  static void SaveBeamImage(const struct ImagingTableEntry& entry,
-                            class ImageFilename& filename,
-                            const Settings& settings, double ra, double dec,
-                            double pdl, double pdm, const MetaDataCache& cache);
+  static void SaveBeamImage(const ImagingTableEntry& entry,
+                            ImageFilename& filename, const Settings& settings,
+                            double ra, double dec, double pdl, double pdm,
+                            const AverageBeam& average_beam);
+
+  void SetAverageBeam(std::unique_ptr<AverageBeam> average_beam);
+
+  std::unique_ptr<AverageBeam> ReleaseAverageBeam();
 
  private:
-  AverageBeam* _averageBeam;
+  std::unique_ptr<AverageBeam> _averageBeam;
 
   virtual size_t getSuggestedWGridSize() const override final {
     return 1;  // TODO

@@ -1,8 +1,15 @@
 #include "griddingtask.h"
 
+#include "../idg/averagebeam.h"
+
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 #include <schaapcommon/facets/facet.h>
+
+GriddingTask::GriddingTask() = default;
+GriddingTask::GriddingTask(GriddingTask&& source) noexcept = default;
+GriddingTask::~GriddingTask() noexcept = default;
+GriddingTask& GriddingTask::operator=(GriddingTask&& source) noexcept = default;
 
 void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt32(operation)
@@ -11,6 +18,7 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
       .UInt32(polarization)
       .Bool(verbose)
       .Ptr(cache)
+      .Ptr(averageBeam)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
       .Ptr(facet)
@@ -31,6 +39,7 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
   polarization = static_cast<aocommon::PolarizationEnum>(stream.UInt32());
   stream.Bool(verbose)
       .Ptr(cache)
+      .Ptr(averageBeam)
       .Bool(storeImagingWeights)
       .Ptr(imageWeights)
       .Ptr(facet)

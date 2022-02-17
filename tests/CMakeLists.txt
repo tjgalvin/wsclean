@@ -12,6 +12,7 @@ add_executable(
   testpeakfinder.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
+  idg/taveragebeam.cpp
   math/tdijkstrasplitter.cpp
   math/tgaussianfitter.cpp
   math/tpolynomialfitter.cpp

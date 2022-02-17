@@ -33,7 +33,14 @@ class UnavailableGridder final : public MSGridderBase {
   static void SaveBeamImage(const struct ImagingTableEntry& /*entry*/,
                             class ImageFilename& /*filename*/, const Settings&,
                             double, double, double, double,
-                            const MetaDataCache&) {}
+                            const AverageBeam&) {}
+
+  void SetAverageBeam(std::unique_ptr<AverageBeam>) { doThrow(); }
+
+  std::unique_ptr<AverageBeam> ReleaseAverageBeam() {
+    doThrow();
+    return {};
+  }
 
  private:
   virtual size_t getSuggestedWGridSize() const override {

@@ -110,7 +110,7 @@ void MPIScheduler::runTaskOnNode0(GriddingTask &&task) {
   GriddingResult result = RunDirect(std::move(task));
   Logger::Info << "Main node has finished a gridding task.\n";
   std::unique_lock<std::mutex> lock(_mutex);
-  _readyList.emplace_back(std::move(result), _nodes[0].second);
+  _readyList.emplace_back(std::move(result), std::move(_nodes[0].second));
   _nodes[0].first = NodeState::kAvailable;
   lock.unlock();
   _notify.notify_all();

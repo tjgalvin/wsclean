@@ -82,7 +82,7 @@ class MSGridderBase {
   bool SmallInversion() const { return _smallInversion; }
   aocommon::PolarizationEnum Polarization() const { return _polarization; }
   WeightMode Weighting() const { return _weighting; }
-  const class ImageWeights* GetImageWeights() const {
+  const ImageWeights* GetImageWeights() const {
     return _precalculatedWeightInfo;
   }
   bool IsComplex() const { return _isComplex; }
@@ -243,7 +243,7 @@ class MSGridderBase {
     ~MSData() = default;
     MSData& operator=(const MSData& source) = delete;
 
-    class MSProvider* msProvider;
+    MSProvider* msProvider;
     size_t msIndex;
     size_t dataDescId;
     aocommon::BandData bandData;

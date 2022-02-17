@@ -41,6 +41,9 @@ class CachedImageSet {
 
   void SetFitsWriter(const FitsWriter& writer) { _writer = writer; }
 
+  FitsWriter& Writer() { return _writer; }
+  const FitsWriter& Writer() const { return _writer; }
+
   template <typename NumT>
   void Load(NumT* image, aocommon::PolarizationEnum polarization,
             size_t freqIndex, bool isImaginary) const {
@@ -48,13 +51,14 @@ class CachedImageSet {
       throw std::runtime_error("Writer is not set.");
     Logger::Debug << "Loading " << name(polarization, freqIndex, isImaginary)
                   << '\n';
-    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0)
+    if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
+      assert(!isImaginary);
       if (_image.Empty())
         throw std::runtime_error("Loading image before store");
       else
         std::copy(_image.Data(),
                   _image.Data() + _writer.Width() * _writer.Height(), image);
-    else {
+    } else {
       FitsReader reader(name(polarization, freqIndex, isImaginary));
       reader.Read(image);
     }
@@ -85,6 +89,7 @@ class CachedImageSet {
     Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary)
                   << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
+      assert(!isImaginary);
       if (_image.Empty()) {
         _image = aocommon::Image(_writer.Width(), _writer.Height());
       }
@@ -119,6 +124,11 @@ class CachedImageSet {
       _storedNames.insert(filename);
     }
   }
+
+  /**
+   * A CachedImageSet is empty as long as Store() has not been called.
+   */
+  bool Empty() const { return _storedNames.empty() && _image.Empty(); }
 
   /**
    * @return The filenames of the temporarily stored files, for testing only.

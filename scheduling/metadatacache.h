@@ -6,15 +6,12 @@
 #include <memory>
 #include <vector>
 
-#include "../idg/averagebeam.h"
-
 struct MetaDataCache {
   struct Entry {
     double minW, maxW, maxWWithFlags, maxBaselineUVW, maxBaselineInM,
         integrationTime;
   };
   std::vector<Entry> msDataVector;
-  std::unique_ptr<AverageBeam> averageBeam;
   float h5Sum = 0.0;
   float correctionSum = 0.0;
 

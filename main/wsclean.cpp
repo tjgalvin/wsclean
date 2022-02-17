@@ -22,6 +22,7 @@
 
 #include "../deconvolution/imageset.h"
 
+#include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
 
 #include "../math/fftresampler.h"
@@ -139,6 +140,18 @@ void WSClean::loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo) {
   imageMainCallback(entry, result, updateBeamInfo, true);
 }
 
+void WSClean::storeAverageBeam(const ImagingTableEntry& entry,
+                               std::unique_ptr<AverageBeam>& averageBeam) {
+  if (averageBeam) {
+    _scalarBeamImages.SetFitsWriter(
+        createWSCFitsWriter(entry, false, false, true).Writer());
+    _matrixBeamImages.SetFitsWriter(
+        createWSCFitsWriter(entry, false, false, true).Writer());
+    averageBeam->Store(_scalarBeamImages, _matrixBeamImages,
+                       entry.outputChannelIndex);
+  }
+}
+
 void WSClean::imagePSF(ImagingTableEntry& entry) {
   Logger::Info.Flush();
   Logger::Info << " == Constructing PSF ==\n";
@@ -158,6 +171,8 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   applyFacetPhaseShift(entry, task.observationInfo);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
+  // during PSF imaging, the average beam will never exist, so it is not
+  // necessary to set task.averageBeam
 
   const bool writeBeamImage = true;
   _griddingTaskManager->Run(std::move(task),
@@ -197,13 +212,20 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
+    if (!result.averageBeam || result.averageBeam->Empty()) {
+      throw std::runtime_error(
+          "Trying to write the IDG beam while the beam has not been computed "
+          "yet.");
+    }
     IdgMsGridder::SaveBeamImage(
         entry, imageName, _settings, _observationInfo.phaseCentreRA,
         _observationInfo.phaseCentreDec, _observationInfo.shiftL,
-        _observationInfo.shiftM, *_msGridderMetaCache[entry.index]);
+        _observationInfo.shiftM, *result.averageBeam);
   }
 
   _isFirstInversion = false;
+
+  storeAverageBeam(entry, result.averageBeam);
 }
 
 void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
@@ -274,6 +296,9 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
   task.facetGroupIndex = entry.facetGroupIndex;
+  task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
+                                       entry.outputChannelIndex);
+
   applyFacetPhaseShift(entry, task.observationInfo);
 
   _griddingTaskManager->Run(
@@ -378,6 +403,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       }
     }
   }
+
+  storeAverageBeam(entry, result.averageBeam);
 }
 
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,
@@ -471,6 +498,8 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
   task.facetGroupIndex = entry.facetGroupIndex;
+  task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
+                                       entry.outputChannelIndex);
   applyFacetPhaseShift(entry, task.observationInfo);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
@@ -952,9 +981,16 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   _residualImages.Initialize(writer.Writer(), _settings.polarizations.size(),
                              _settings.channelsOut, _facets.size(),
                              _settings.prefixName + "-residual");
-  if (groupTable.Front().polarization == *_settings.polarizations.begin())
+  if (groupTable.Front().polarization == *_settings.polarizations.begin()) {
     _psfImages.Initialize(writer.Writer(), 1, groupTable.SquaredGroups().size(),
                           _facets.size(), _settings.prefixName + "-psf");
+    _scalarBeamImages.Initialize(
+        writer.Writer(), 1, groupTable.SquaredGroups().size(), _facets.size(),
+        _settings.prefixName + "-scalar-beam");
+    _matrixBeamImages.Initialize(
+        writer.Writer(), 2, groupTable.SquaredGroups().size(), _facets.size(),
+        _settings.prefixName + "-matrix-beam");
+  }
 
   // In the case of IDG we have to directly ask for all four polarizations.
   const bool requestPolarizationsAtOnce =

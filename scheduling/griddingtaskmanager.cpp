@@ -9,6 +9,7 @@
 #include "../gridding/wsmsgridder.h"
 #include "../gridding/directmsgridder.h"
 
+#include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
 
 #include <schaapcommon/facets/facet.h>
@@ -55,6 +56,12 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   for (auto& p : task.msList) {
     msProviders.emplace_back(p->GetProvider());
     gridder.AddMeasurementSet(msProviders.back().get(), p->Selection());
+  }
+  const bool has_input_average_beam(task.averageBeam);
+  if (has_input_average_beam) {
+    assert(dynamic_cast<IdgMsGridder*>(&gridder));
+    IdgMsGridder& idgGridder = static_cast<IdgMsGridder&>(gridder);
+    idgGridder.SetAverageBeam(std::move(task.averageBeam));
   }
 
   gridder.SetFacetGroupIndex(task.facetGroupIndex);
@@ -110,6 +117,13 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
       gridder.EffectiveGriddedVisibilityCount();
   result.visibilityWeightSum = gridder.VisibilityWeightSum();
   result.cache = gridder.AcquireMetaDataCache();
+
+  // If the average beam already exists on input, IDG will not recompute it, so
+  // in that case there is no need to return the unchanged average beam.
+  IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(&gridder);
+  if (idgGridder && !has_input_average_beam) {
+    result.averageBeam = idgGridder->ReleaseAverageBeam();
+  }
   return result;
 }
 

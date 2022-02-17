@@ -27,8 +27,7 @@ void ThreadedScheduler::Run(
     _readyList.pop_back();
   }
 
-  _taskList.write(std::pair<GriddingTask, std::function<void(GriddingResult&)>>(
-      std::move(task), finishCallback));
+  _taskList.emplace(std::move(task), std::move(finishCallback));
 }
 
 void ThreadedScheduler::processQueue() {

@@ -21,6 +21,7 @@
 
 #include "../main/settings.h"
 
+#include "averagebeam.h"
 #include "idgconfiguration.h"
 
 #ifdef HAVE_EVERYBEAM
@@ -77,9 +78,7 @@ void IdgMsGridder::Invert() {
   _options["stokes_I_only"] = stokes_I_only;
   const size_t nr_polarizations = stokes_I_only ? 1 : 4;
 
-  if (!_metaDataCache->averageBeam)
-    _metaDataCache->averageBeam.reset(new AverageBeam());
-  _averageBeam = _metaDataCache->averageBeam.get();
+  if (!_averageBeam) _averageBeam.reset(new AverageBeam());
 
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
@@ -112,8 +111,10 @@ void IdgMsGridder::Invert() {
       gridMeasurementSet(msData);
     }
     _bufferset->finalize_compute_avg_beam();
-    _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
-    _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam());
+    _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam(), width, height);
+    _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam(),
+                                       _bufferset->get_subgridsize(),
+                                       _bufferset->get_subgridsize());
     _image.assign(nr_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
 
@@ -140,8 +141,10 @@ void IdgMsGridder::Invert() {
       }
       _bufferset->finalize_compute_avg_beam();
       Logger::Debug << "Finished computing average beam.\n";
-      _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam());
-      _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam());
+      _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam(), width, height);
+      _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam(),
+                                         _bufferset->get_subgridsize(),
+                                         _bufferset->get_subgridsize());
     }
 
     resetVisibilityCounters();
@@ -256,11 +259,10 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
   const size_t nr_polarizations = stokes_I_only ? 1 : 4;
 
   _image.assign(nr_polarizations * width * height, 0.0);
-  if (!_metaDataCache->averageBeam) {
-    Logger::Info << "no average_beam in cache, creating an empty one.\n";
-    _metaDataCache->averageBeam.reset(new AverageBeam());
+  if (!_averageBeam) {
+    Logger::Debug << "No average beam in cache, creating an empty one.\n";
+    _averageBeam.reset(new AverageBeam());
   }
-  _averageBeam = static_cast<AverageBeam*>(_metaDataCache->averageBeam.get());
 
   if (Polarization() == aocommon::Polarization::FullStokes) {
     assert(images.size() == 4);
@@ -430,16 +432,19 @@ std::vector<Image> IdgMsGridder::ResultImages() {
   return images;
 }
 
+void IdgMsGridder::SetAverageBeam(std::unique_ptr<AverageBeam> average_beam) {
+  _averageBeam = std::move(average_beam);
+}
+
+std::unique_ptr<AverageBeam> IdgMsGridder::ReleaseAverageBeam() {
+  return std::move(_averageBeam);
+}
+
 void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry,
                                  ImageFilename& filename,
                                  const Settings& settings, double ra,
                                  double dec, double pdl, double pdm,
-                                 const MetaDataCache& cache) {
-  if (!cache.averageBeam || cache.averageBeam->Empty()) {
-    throw std::runtime_error(
-        "IDG gridder can not save the beam image. Beam has not been computed "
-        "yet.");
-  }
+                                 const AverageBeam& average_beam) {
   aocommon::FitsWriter writer;
   writer.SetImageDimensions(settings.trimmedImageWidth,
                             settings.trimmedImageHeight, ra, dec,
@@ -451,7 +456,7 @@ void IdgMsGridder::SaveBeamImage(const ImagingTableEntry& entry,
   writer.SetFrequency(entry.CentralFrequency(),
                       entry.bandEndFrequency - entry.bandStartFrequency);
   writer.Write(polName.GetBeamPrefix(settings) + ".fits",
-               cache.averageBeam->ScalarBeam()->data());
+               average_beam.ScalarBeam()->data());
 }
 
 void IdgMsGridder::SavePBCorrectedImages(aocommon::FitsWriter& writer,

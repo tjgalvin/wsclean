@@ -216,6 +216,9 @@ class WSClean {
                        const ImageFilename& imageName,
                        const std::string& filenameKind) const;
 
+  void storeAverageBeam(const ImagingTableEntry& entry,
+                        std::unique_ptr<AverageBeam>& averageBeam);
+
   /**
    * @brief Compute the total amount of MSProviders that will be generated.
    * This number is needed to initialize the writer locks in the prediction
@@ -244,7 +247,11 @@ class WSClean {
   Stopwatch _inversionWatch, _predictingWatch, _deconvolutionWatch;
   bool _isFirstInversion;
   size_t _majorIterationNr;
-  CachedImageSet _psfImages, _modelImages, _residualImages;
+  CachedImageSet _psfImages;
+  CachedImageSet _modelImages;
+  CachedImageSet _residualImages;
+  CachedImageSet _scalarBeamImages;
+  CachedImageSet _matrixBeamImages;
   std::vector<PartitionedMS::Handle> _partitionedMSHandles;
   std::vector<aocommon::MultiBandData> _msBands;
   Deconvolution _deconvolution;
