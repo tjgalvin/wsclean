@@ -13,9 +13,7 @@
 
 #include <schaapcommon/facets/facet.h>
 
-#ifdef HAVE_WGRIDDER
 #include "../wgridder/wgriddingmsgridder.h"
-#endif
 
 GriddingTaskManager::GriddingTaskManager(const class Settings& settings)
     : _settings(settings) {}
@@ -119,14 +117,7 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
   if (_settings.useIDG) {
     return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
   } else if (_settings.useWGridder) {
-#ifdef HAVE_WGRIDDER
     return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
-#else
-    throw std::runtime_error(
-        "WGridder cannot be used: WGridder requires a C++17 compiler, which "
-        "was not found during compilation. Update your compiler and recompile "
-        "wsclean.");
-#endif
   } else if (_settings.directFT) {
     switch (_settings.directFTPrecision) {
       case DirectFTPrecision::Float:

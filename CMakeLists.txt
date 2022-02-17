@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.8)
 
 project(wsclean)
 
@@ -20,30 +20,14 @@ else()
   add_compile_options(-DNDEBUG)
 endif()
 
-include(CheckCXXCompilerFlag)
-check_cxx_compiler_flag("-std=c++17" COMPILER_HAS_CXX17)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(DISABLE_CXX17 "Do not use C++17 for compilation" OFF)
 option(PORTABLE "Generate portable code" OFF)
 option(BUILD_PACKAGES "Build Debian packages" OFF)
 
-if(COMPILER_HAS_CXX17 AND NOT DISABLE_CXX17)
-  add_compile_options(-std=c++17)
-  add_definitions(-DHAVE_WGRIDDER)
-  set(WGRIDDER_FILES
-      wgridder/wgriddingmsgridder.cpp
-      external/wgridder/ducc0/infra/threading.cc
-      wgridder/wgriddinggridder_simple.cpp)
-  include_directories(external/wgridder)
-else()
-  add_compile_options(-std=c++11)
-  message(
-    WARNING
-      "Selected compiler does not support the C++17 standard. This will disable the 'wgridder' gridder, which requires C++17."
-  )
-  set(WGRIDDER_FILES)
-endif()
-
+include(CheckCXXCompilerFlag)
 if(PORTABLE)
   if(DEFINED TARGET_CPU)
     message(WARNING "You have selected to build PORTABLE binaries. "
@@ -91,6 +75,8 @@ include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 # Schaapcommon
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
+
+include_directories(external/wgridder)
 
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
@@ -337,9 +323,11 @@ add_library(
   structures/primarybeam.cpp
   system/fftwmanager.cpp
   system/pythonfilepath.cpp
+  wgridder/wgriddingmsgridder.cpp
+  wgridder/wgriddinggridder_simple.cpp
+  external/wgridder/ducc0/infra/threading.cc
   ${IDG_FILES}
-  ${MPI_CPP_FILES}
-  ${WGRIDDER_FILES})
+  ${MPI_CPP_FILES})
 
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is

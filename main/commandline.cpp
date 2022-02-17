@@ -744,9 +744,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
 #ifdef HAVE_IDG
         Logger::Info << "IDG is available.\n";
 #endif
-#ifdef HAVE_WGRIDDER
         Logger::Info << "WGridder is available.\n";
-#endif
       }
       return false;
     } else if (param == "help") {
