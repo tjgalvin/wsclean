@@ -1,5 +1,6 @@
 #include "../../msproviders/noisemsrowprovider.h"
-#include "../../io/logger.h"
+
+#include <aocommon/logger.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -8,7 +9,7 @@
 BOOST_AUTO_TEST_SUITE(noise_ms_row_provider)
 
 BOOST_AUTO_TEST_CASE(noise_baseline_map) {
-  Logger::SetVerbosity(Logger::QuietVerbosity);
+  aocommon::Logger::SetVerbosity(aocommon::Logger::kQuietVerbosity);
   BOOST_CHECK(NoiseMSRowProvider::NoiseMap().Empty());
 
   const std::string input =

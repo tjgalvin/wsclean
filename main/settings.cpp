@@ -1,7 +1,8 @@
 #include "settings.h"
 
-#include "../io/logger.h"
 #include "../io/facetreader.h"
+
+#include <aocommon/logger.h>
 
 #include <schaapcommon/h5parm/h5parm.h>
 
@@ -9,6 +10,8 @@
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <sstream>
+
+using aocommon::Logger;
 
 void Settings::Validate() const {
   if (mode == ImagingMode) {

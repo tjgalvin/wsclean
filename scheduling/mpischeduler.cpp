@@ -2,13 +2,12 @@
 
 #include "griddingresult.h"
 
-#include "../io/logger.h"
-
 #include "../main/settings.h"
 
 #include "../distributed/mpibig.h"
 #include "../distributed/taskmessage.h"
 
+#include <aocommon/logger.h>
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 
@@ -17,6 +16,8 @@
 #include <mpi.h>
 
 #include <cassert>
+
+using aocommon::Logger;
 
 MPIScheduler::MPIScheduler(const Settings &settings)
     : GriddingTaskManager(settings),

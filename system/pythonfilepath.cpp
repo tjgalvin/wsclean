@@ -1,6 +1,6 @@
 #include "pythonfilepath.h"
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <boost/filesystem.hpp>
 
@@ -13,8 +13,8 @@ namespace wsclean {
 namespace system {
 std::string FindPythonFilePath(const std::string& filename) {
   if (boost::filesystem::exists(filename)) return filename;
-  Logger::Debug << "Searching " << filename << "... ";
-  Logger::Debug.Flush();
+  aocommon::Logger::Debug << "Searching " << filename << "... ";
+  aocommon::Logger::Debug.Flush();
   std::random_device rndDev;
   std::mt19937 gen(rndDev());
   std::stringstream filenameStr;
@@ -62,7 +62,7 @@ std::string FindPythonFilePath(const std::string& filename) {
     }
     if (pathExists) {
       const std::string result = searchPath.string();
-      Logger::Debug << result << '\n';
+      aocommon::Logger::Debug << result << '\n';
       searchPathsFile.close();
       boost::filesystem::remove(tempPath);
       return result;

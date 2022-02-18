@@ -1,7 +1,5 @@
 #include "msgridderbase.h"
 
-#include "../io/logger.h"
-
 #include "../math/calculatefftsize.h"
 
 #include "../msproviders/msprovider.h"
@@ -9,6 +7,7 @@
 
 #include "../structures/imageweights.h"
 
+#include <aocommon/logger.h>
 #include <aocommon/units/angle.h>
 
 #ifdef HAVE_EVERYBEAM
@@ -42,6 +41,7 @@
 
 #include <atomic>
 
+using aocommon::Logger;
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {

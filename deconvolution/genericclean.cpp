@@ -5,8 +5,6 @@
 
 #include "../multiscale/threadeddeconvolutiontools.h"
 
-#include "../io/logger.h"
-
 #include <aocommon/image.h>
 #include <aocommon/lane.h>
 #include <aocommon/units/fluxdensity.h>

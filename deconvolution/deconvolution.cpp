@@ -14,15 +14,17 @@
 
 #include "../multiscale/multiscalealgorithm.h"
 
-#include <aocommon/image.h>
 #include <aocommon/fits/fitsreader.h>
+#include <aocommon/image.h>
 #include <aocommon/imagecoordinates.h>
+#include <aocommon/logger.h>
 #include <aocommon/units/fluxdensity.h>
 
 using aocommon::FitsReader;
 using aocommon::FitsWriter;
 using aocommon::Image;
 using aocommon::ImageCoordinates;
+using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
 Deconvolution::Deconvolution(const class Settings& settings)

@@ -3,8 +3,6 @@
 #include "../math/polynomialfitter.h"
 #include "../math/nlplfitter.h"
 
-#include "../io/logger.h"
-
 #include <limits>
 
 using aocommon::Image;

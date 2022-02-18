@@ -1,8 +1,7 @@
 #include "msprovider.h"
 #include "msreaders/msreader.h"
 
-#include "../io/logger.h"
-
+#include <aocommon/logger.h>
 #include <aocommon/multibanddata.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -10,6 +9,8 @@
 #include <casacore/tables/Tables/ArrColDesc.h>
 
 #include "../structures/msselection.h"
+
+using aocommon::Logger;
 
 namespace {
 template <bool add>

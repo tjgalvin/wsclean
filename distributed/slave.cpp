@@ -2,14 +2,13 @@
 
 #include <aocommon/io/serialistream.h>
 #include <aocommon/io/serialostream.h>
+#include <aocommon/logger.h>
 
 #include "mpibig.h"
 #include "taskmessage.h"
 
 #include "../scheduling/griddingtask.h"
 #include "../scheduling/griddingtaskmanager.h"
-
-#include "../io/logger.h"
 
 #include <mpi.h>
 
@@ -34,7 +33,7 @@ void Slave::Run() {
     }
 
   } while (message.type != TaskMessage::Type::kFinish);
-  Logger::Info << "Worker node received exit message.\n";
+  aocommon::Logger::Info << "Worker node received exit message.\n";
 }
 
 void Slave::grid(size_t bodySize) {
@@ -48,9 +47,9 @@ void Slave::grid(size_t bodySize) {
   task.Unserialize(stream);
   std::unique_ptr<GriddingTaskManager> scheduler =
       GriddingTaskManager::Make(_settings);
-  Logger::Info << "Worker node is starting gridding.\n";
+  aocommon::Logger::Info << "Worker node is starting gridding.\n";
   GriddingResult result = scheduler->RunDirect(std::move(task));
-  Logger::Info << "Worker node is done gridding.\n";
+  aocommon::Logger::Info << "Worker node is done gridding.\n";
 
   aocommon::SerialOStream resStream;
   resStream.UInt64(0);  // reserve nr of packages for MPI_Send_Big

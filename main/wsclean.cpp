@@ -10,7 +10,6 @@
 #include "../io/facetreader.h"
 #include "../io/imagefilename.h"
 #include "../io/imageweightcache.h"
-#include "../io/logger.h"
 #include "../io/wscfitswriter.h"
 
 #include "../scheduling/griddingtaskmanager.h"
@@ -40,6 +39,7 @@
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
+#include <aocommon/logger.h>
 #include <aocommon/uvector.h>
 #include <aocommon/parallelfor.h>
 #include <aocommon/units/angle.h>
@@ -50,6 +50,7 @@
 #include <memory>
 
 using aocommon::Image;
+using aocommon::Logger;
 using aocommon::Polarization;
 using aocommon::PolarizationEnum;
 using aocommon::units::Angle;

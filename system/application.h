@@ -1,7 +1,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -11,7 +11,7 @@
 class Application {
  public:
   static void Run(const std::string& commandLine) {
-    Logger::Info << "Running: " << commandLine << '\n';
+    aocommon::Logger::Info << "Running: " << commandLine << '\n';
     const char* commandLineCStr = commandLine.c_str();
     int pid = vfork();
     switch (pid) {

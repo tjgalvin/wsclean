@@ -3,8 +3,6 @@
 
 #include "../main/settings.h"
 
-#include "../io/logger.h"
-
 #include "../structures/imageweights.h"
 
 #include "../msproviders/msdatadescription.h"
@@ -12,6 +10,7 @@
 #include "../io/findmwacoefffile.h"
 
 #include <aocommon/image.h>
+#include <aocommon/logger.h>
 #include <aocommon/multibanddata.h>
 
 #include <schaapcommon/facets/facetimage.h>
@@ -32,6 +31,7 @@ using everybeam::aterms::ATermConfig;
 #endif
 
 using aocommon::Image;
+using aocommon::Logger;
 using aocommon::Polarization;
 using aocommon::PolarizationEnum;
 

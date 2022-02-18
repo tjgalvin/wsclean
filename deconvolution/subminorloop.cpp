@@ -5,8 +5,6 @@
 
 #include "../math/fftconvolver.h"
 
-#include "../io/logger.h"
-
 using aocommon::Image;
 
 template <bool AllowNegatives>

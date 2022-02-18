@@ -4,16 +4,16 @@
 
 #include "../math/nlplfitter.h"
 
-#include "../io/logger.h"
-
 #include "../structures/primarybeam.h"
 #include "../structures/primarybeamimageset.h"
 
+#include <aocommon/logger.h>
 #include <aocommon/staticfor.h>
 
 #include <cassert>
 
 using aocommon::Image;
+using aocommon::Logger;
 
 ImageSet::ImageSet(const DeconvolutionTable& table,
                    const class Settings& settings)

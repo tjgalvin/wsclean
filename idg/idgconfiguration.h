@@ -1,7 +1,7 @@
 #ifndef IDG_CONFIGURATION_H
 #define IDG_CONFIGURATION_H
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <idg-api.h>
 
@@ -21,12 +21,12 @@ class IdgConfiguration {
                                                  "");
 
     po::variables_map vm;
-    Logger::Debug << "trying to open config file\n";
+    aocommon::Logger::Debug << "trying to open config file\n";
     std::ifstream ifs("idg.conf");
     if (ifs.fail()) {
-      Logger::Debug << "could not open config file\n";
+      aocommon::Logger::Debug << "could not open config file\n";
     } else {
-      Logger::Debug << "reading config file\n";
+      aocommon::Logger::Debug << "reading config file\n";
       try {
         po::store(po::parse_config_file(ifs, desc), vm);
       } catch (po::error&) {

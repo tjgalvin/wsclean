@@ -12,6 +12,7 @@
 #include <aocommon/units/fluxdensity.h>
 
 using aocommon::Image;
+using aocommon::Logger;
 
 class ImageSet;
 
@@ -263,7 +264,7 @@ void ParallelDeconvolution::ExecuteMajorIteration(
   const size_t width = _settings.trimmedImageWidth,
                height = _settings.trimmedImageHeight;
   if (_algorithms.size() == 1) {
-    ForwardingLogReceiver fwdReceiver;
+    aocommon::ForwardingLogReceiver fwdReceiver;
     _algorithms.front()->SetLogReceiver(fwdReceiver);
     _algorithms.front()->ExecuteMajorIteration(
         dataImage, modelImage, psfImages, width, height, reachedMajorThreshold);

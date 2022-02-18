@@ -1,9 +1,12 @@
 #include "contiguousms.h"
 #include "msreaders/contiguousmsreader.h"
-#include "../io/logger.h"
+
+#include <aocommon/logger.h>
+
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/tables/Tables/TableLocker.h>
+
 #include <boost/make_unique.hpp>
 
 ContiguousMS::ContiguousMS(const string& msPath,
@@ -26,8 +29,8 @@ ContiguousMS::ContiguousMS(const string& msPath,
 }
 
 void ContiguousMS::open() {
-  Logger::Info << "Opening " << _msPath << ", spw " << _dataDescId
-               << " with contiguous MS reader.\n";
+  aocommon::Logger::Info << "Opening " << _msPath << ", spw " << _dataDescId
+                         << " with contiguous MS reader.\n";
 
   _ms = SynchronizedMS(_msPath, _useMPI ? casacore::TableLock::UserNoReadLocking
                                         : casacore::TableLock::DefaultLocking);

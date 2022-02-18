@@ -18,7 +18,6 @@ The gridder can be compiled with two external libraries: FFTW and Boost. To avoi
       -DAVOID_CASACORE \
       wspredictionexample.cpp \
       ../wstackinggridder.cpp \
-      ../../io/logger.cpp \
       -lfftw3f -lfftw3 -lfftw3f_threads -lfftw3_threads \
       -lboost_date_time -lboost_system
 

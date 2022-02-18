@@ -1,10 +1,12 @@
 #include "mpibig.h"
 
+#include <aocommon/logger.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <limits>
 
-#include "../io/logger.h"
+using aocommon::Logger;
 
 int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
                  MPI_Comm comm) {

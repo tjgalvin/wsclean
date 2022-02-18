@@ -3,8 +3,9 @@
 
 #include "../system/fftwmanager.h"
 
-#include "componentlist.h"
-#include "controllablelog.h"
+#include "../structures/primarybeamimageset.h"
+
+#include "subimagelogset.h"
 
 #include <aocommon/image.h>
 #include <aocommon/uvector.h>
@@ -90,7 +91,7 @@ class ParallelDeconvolution {
 
   FFTWManager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
-  FacetLogSet _logs;
+  SubImageLogSet _logs;
   size_t _horImages, _verImages;
   const Settings& _settings;
   ImageBufferAllocator* _allocator;

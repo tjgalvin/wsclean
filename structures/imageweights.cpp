@@ -7,10 +7,9 @@
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"
 
-#include "../io/logger.h"
-
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/banddata.h>
+#include <aocommon/logger.h>
 #include <aocommon/staticfor.h>
 #include <aocommon/system.h>
 #include <aocommon/units/angle.h>
@@ -326,12 +325,13 @@ void ImageWeights::RankFilter(double rankLimit, size_t windowSize) {
 }
 
 void ImageWeights::SetGaussianTaper(double beamSize) {
-  Logger::Debug << "Applying " << aocommon::units::Angle::ToNiceString(beamSize)
-                << " Gaussian taper...\n";
+  aocommon::Logger::Debug << "Applying "
+                          << aocommon::units::Angle::ToNiceString(beamSize)
+                          << " Gaussian taper...\n";
   double halfPowerUV = 1.0 / (beamSize * 2.0 * M_PI);
   const long double sigmaToHP = 2.0L * sqrtl(2.0L * logl(2.0L));
   double minusTwoSigmaSq = halfPowerUV * sigmaToHP;
-  Logger::Debug << "UV taper: " << minusTwoSigmaSq << '\n';
+  aocommon::Logger::Debug << "UV taper: " << minusTwoSigmaSq << '\n';
   minusTwoSigmaSq *= -2.0 * minusTwoSigmaSq;
   aocommon::StaticFor<size_t> loop(_threadCount);
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {

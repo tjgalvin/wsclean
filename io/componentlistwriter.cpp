@@ -1,7 +1,5 @@
 #include "componentlistwriter.h"
 
-#include "../io/logger.h"
-
 #include "../main/settings.h"
 
 #include "../multiscale/multiscalealgorithm.h"
@@ -9,6 +7,9 @@
 #include "../structures/primarybeam.h"
 
 #include <aocommon/image.h>
+#include <aocommon/logger.h>
+
+using aocommon::Logger;
 
 void ComponentListWriter::SaveSourceList(const Deconvolution& deconvolution,
                                          long double phase_centre_ra,

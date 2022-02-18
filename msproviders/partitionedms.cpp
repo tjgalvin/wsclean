@@ -6,8 +6,6 @@
 #include "msrowprovider.h"
 #include "noisemsrowprovider.h"
 
-#include "../io/logger.h"
-
 #include "../main/progressbar.h"
 #include "../main/settings.h"
 
@@ -24,6 +22,7 @@
 #include <memory>
 #include <vector>
 
+#include <aocommon/logger.h>
 #include <aocommon/system.h>
 
 #include <boost/filesystem/path.hpp>
@@ -31,6 +30,8 @@
 #include <casacore/measures/Measures/MEpoch.h>
 
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+
+using aocommon::Logger;
 
 /**
  * MAP_NORESERVE is unsuported AND not defined on hurd-i386, so

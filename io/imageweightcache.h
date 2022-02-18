@@ -1,12 +1,12 @@
 #ifndef IMAGE_WEIGHT_CACHE_H
 #define IMAGE_WEIGHT_CACHE_H
 
-#include "logger.h"
-
 #include "../structures/imageweights.h"
 #include "../structures/weightmode.h"
 
 #include "../msproviders/msdatadescription.h"
+
+#include <aocommon/logger.h>
 
 #include <limits>
 #include <mutex>
@@ -88,8 +88,8 @@ class ImageWeightCache {
   std::unique_ptr<ImageWeights> recalculateWeights(
       const std::vector<std::unique_ptr<MSDataDescription>>& msList,
       const std::vector<aocommon::MultiBandData>& bands) {
-    Logger::Info << "Precalculating weights for " << _weightMode.ToString()
-                 << " weighting...\n";
+    aocommon::Logger::Info << "Precalculating weights for "
+                           << _weightMode.ToString() << " weighting...\n";
     std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
     for (size_t i = 0; i != msList.size(); ++i) {
       std::unique_ptr<MSProvider> provider = msList[i]->GetProvider();
@@ -103,7 +103,7 @@ class ImageWeightCache {
               : bands[i][dataDescId];
       weights->Grid(*provider, selectedBand);
       if (msList.size() > 1)
-        (Logger::Info << provider->MS().Filename() << ' ').Flush();
+        (aocommon::Logger::Info << provider->MS().Filename() << ' ').Flush();
     }
     weights->FinishGridding();
     initializeWeightTapers(*weights);

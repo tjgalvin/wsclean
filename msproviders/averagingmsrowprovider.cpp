@@ -1,10 +1,11 @@
 #include "averagingmsrowprovider.h"
 
-#include "../io/logger.h"
-
+#include <aocommon/logger.h>
 #include <aocommon/multibanddata.h>
 
 #include <casacore/tables/Tables/ArrayColumn.h>
+
+using aocommon::Logger;
 
 namespace {
 template <typename ArrayT>
@@ -13,7 +14,6 @@ void copyAndResize(const ArrayT& source, ArrayT& destination) {
   const size_t bufferSize = source.shape()[0] * source.shape()[1];
   std::copy_n(source.data(), bufferSize, destination.data());
 }
-
 }  // namespace
 
 AveragingMSRowProvider::AveragingMSRowProvider(

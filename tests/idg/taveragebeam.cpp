@@ -3,6 +3,7 @@
 #include "../../idg/averagebeam.h"
 #include "../../io/cachedimageset.h"
 
+#include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
@@ -78,7 +79,7 @@ BOOST_AUTO_TEST_CASE(filled_serialization) {
 BOOST_AUTO_TEST_CASE(empty_store_load) {
   CachedImageSet scalar_cache;
   CachedImageSet matrix_cache;
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   scalar_cache.Initialize(writer, 2, 1, 0, "test_scalar");
   matrix_cache.Initialize(writer, 2, 1, 0, "test_matrix");
 
@@ -98,7 +99,7 @@ BOOST_AUTO_TEST_CASE(filled_store_load) {
 
   CachedImageSet scalar_cache;
   CachedImageSet matrix_cache;
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   scalar_cache.Initialize(writer, 2, 1, 0, "test_scalar");
   matrix_cache.Initialize(writer, 2, 1, 0, "test_matrix");
 

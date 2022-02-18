@@ -1,7 +1,5 @@
 #include "wsmsgridder.h"
 
-#include "../io/logger.h"
-
 #include "../structures/imageweights.h"
 
 #include "../system/buffered_lane.h"
@@ -10,6 +8,8 @@
 
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"
+
+#include <aocommon/logger.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -20,6 +20,7 @@
 #include <stdexcept>
 
 using aocommon::Image;
+using aocommon::Logger;
 
 WSMSGridder::WSMSGridder(const Settings& settings)
     : MSGridderBase(settings),

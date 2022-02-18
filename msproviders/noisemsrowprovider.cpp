@@ -1,6 +1,6 @@
 #include "noisemsrowprovider.h"
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <fstream>
 #include <string>
@@ -30,8 +30,8 @@ NoiseMSRowProvider::NoiseMap::NoiseMap(std::istream& stream) {
       }
     }
   }
-  Logger::Info << "Read noise baseline file with " << _map.size()
-               << " rows and " << maxAnt + 1 << " antennas.\n";
+  aocommon::Logger::Info << "Read noise baseline file with " << _map.size()
+                         << " rows and " << maxAnt + 1 << " antennas.\n";
 }
 
 float NoiseMSRowProvider::NoiseMap::GetNoiseValue(size_t antenna1,

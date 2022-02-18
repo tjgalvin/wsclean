@@ -1,5 +1,6 @@
 #include "../io/cachedimageset.h"
 
+#include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
@@ -37,7 +38,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
   size_t image_height = 8;
   double dl_dm = 0.0125;
 
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   writer.SetImageDimensions(image_width, image_height, dl_dm, dl_dm);
 
   // Make two 4x4 facets

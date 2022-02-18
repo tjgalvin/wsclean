@@ -5,8 +5,8 @@
 #include "deconvolution/imageset.h"
 #include "deconvolution/genericclean.h"
 #include "stopwatch.h"
-#include "wsclean/logger.h"
 
+#include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
 
 int main(int argc, char* argv[]) {
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  Logger::SetVerbosity(Logger::VerboseVerbosity);
+  aocommon::Logger::SetVerbosity(aocommon::Logger::kVerboseVerbosity);
 
   bool useClark = true;
   int argi = 1;

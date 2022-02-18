@@ -3,24 +3,23 @@
 #include <aocommon/image.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
+#include <aocommon/logger.h>
 
 #include "../math/fftconvolver.h"
 
 #include "../system/application.h"
 
-#include "../io/logger.h"
-
 void MoreSane::ExecuteMajorIteration(float* dataImage, float* modelImage,
                                      const float* psfImage, size_t width,
                                      size_t height) {
   if (_iterationNumber != 0) {
-    Logger::Info << "Convolving model with psf...\n";
+    aocommon::Logger::Info << "Convolving model with psf...\n";
     aocommon::Image preparedPsf(width, height);
     FFTConvolver::PrepareKernel(preparedPsf.Data(), psfImage, width, height,
                                 _threadCount);
     FFTConvolver::ConvolveSameSize(_fftwManager, modelImage, preparedPsf.Data(),
                                    width, height, _threadCount);
-    Logger::Info << "Adding model back to residual...\n";
+    aocommon::Logger::Info << "Adding model back to residual...\n";
     for (size_t i = 0; i != width * height; ++i) dataImage[i] += modelImage[i];
   }
   std::ostringstream outputStr;

@@ -7,6 +7,7 @@
 #include "spectralfitter.h"
 
 #include <aocommon/image.h>
+#include <aocommon/logger.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
@@ -52,7 +53,9 @@ class DeconvolutionAlgorithm {
 
   void SetThreadCount(size_t threadCount) { _threadCount = threadCount; }
 
-  void SetLogReceiver(class LogReceiver& receiver) { _logReceiver = &receiver; }
+  void SetLogReceiver(aocommon::LogReceiver& receiver) {
+    _logReceiver = &receiver;
+  }
 
   size_t MaxNIter() const { return _maxIter; }
   float Threshold() const { return _threshold; }
@@ -125,7 +128,7 @@ class DeconvolutionAlgorithm {
   aocommon::Image _rmsFactorImage;
   mutable aocommon::UVector<float> _fittingScratch;
 
-  class LogReceiver* _logReceiver;
+  aocommon::LogReceiver* _logReceiver;
 
   SpectralFitter _spectralFitter;
 };

@@ -3,11 +3,10 @@
 
 #include <wscversion.h>
 
-#include "../io/logger.h"
-
 #include "../structures/numberlist.h"
 
 #include <aocommon/fits/fitswriter.h>
+#include <aocommon/logger.h>
 #include <aocommon/radeccoord.h>
 #include <aocommon/units/angle.h>
 #include <aocommon/units/fluxdensity.h>
@@ -21,6 +20,7 @@
 #include <string>
 #include <sstream>
 
+using aocommon::Logger;
 using aocommon::units::Angle;
 using aocommon::units::FluxDensity;
 
@@ -731,7 +731,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   int argi = 1;
   bool mfWeighting = false, noMFWeighting = false, dryRun = false;
   auto atermKernelSize = boost::make_optional<double>(false, 0.0);
-  Logger::SetVerbosity(Logger::NormalVerbosity);
+  Logger::SetVerbosity(Logger::kNormalVerbosity);
   while (argi < argc && argv[argi][0] == '-') {
     const std::string param =
         argv[argi][1] == '-' ? (&argv[argi][2]) : (&argv[argi][1]);
@@ -754,9 +754,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       }
       return false;
     } else if (param == "quiet") {
-      Logger::SetVerbosity(Logger::QuietVerbosity);
+      Logger::SetVerbosity(Logger::kQuietVerbosity);
     } else if (param == "v" || param == "verbose") {
-      Logger::SetVerbosity(Logger::VerboseVerbosity);
+      Logger::SetVerbosity(Logger::kVerboseVerbosity);
     } else if (param == "log-time") {
       Logger::SetLogTime(true);
     } else if (param == "temp-dir" || param == "tempdir") {

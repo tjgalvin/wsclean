@@ -5,13 +5,15 @@
 #include "../main/commandline.h"
 #include "../main/wsclean.h"
 
-#include "../io/logger.h"
 #include <aocommon/checkblas.h>
+#include <aocommon/logger.h>
 
 #include <exception>
 #include <iostream>
 
 #include <mpi.h>
+
+using aocommon::Logger;
 
 int main(int argc, char* argv[]) {
   int provided;

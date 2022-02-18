@@ -10,6 +10,10 @@
 
 #include <aocommon/image.h>
 
+namespace aocommon {
+class LogReceiver;
+}
+
 /**
  * In multi-scale, a subminor optimized loop looks like this:
  *
@@ -90,7 +94,7 @@ class SubMinorModel {
 class SubMinorLoop {
  public:
   SubMinorLoop(size_t width, size_t height, size_t convolutionWidth,
-               size_t convolutionHeight, LogReceiver& logReceiver)
+               size_t convolutionHeight, aocommon::LogReceiver& logReceiver)
       : _width(width),
         _height(height),
         _paddedWidth(convolutionWidth),
@@ -196,7 +200,7 @@ class SubMinorLoop {
   SubMinorModel _subMinorModel;
   float _fluxCleaned;
   aocommon::Image _rmsFactorImage;
-  LogReceiver& _logReceiver;
+  aocommon::LogReceiver& _logReceiver;
   size_t _threadCount;
 };
 

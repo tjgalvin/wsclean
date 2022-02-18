@@ -1,5 +1,6 @@
 #include "imagingtable.h"
-#include "../io/logger.h"
+
+#include <aocommon/logger.h>
 
 #include <algorithm>
 #include <cassert>
@@ -7,6 +8,8 @@
 #include <map>
 
 #include <boost/make_unique.hpp>
+
+using aocommon::Logger;
 
 ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
     : _entries(entries),

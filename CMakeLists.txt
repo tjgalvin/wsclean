@@ -272,7 +272,6 @@ add_library(
   interface/wscleaninterface.cpp
   io/componentlistwriter.cpp
   io/facetreader.cpp
-  io/logger.cpp
   io/parsetreader.cpp
   io/wscfitswriter.cpp
   iuwt/imageanalysis.cpp

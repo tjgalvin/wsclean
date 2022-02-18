@@ -1,6 +1,6 @@
 #include "wstackinggridder.h"
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <fftw3.h>
 
@@ -10,6 +10,7 @@
 using aocommon::ComplexImageBase;
 using aocommon::Image;
 using aocommon::ImageBase;
+using aocommon::Logger;
 
 template <typename T>
 WStackingGridder<T>::WStackingGridder(size_t width, size_t height,

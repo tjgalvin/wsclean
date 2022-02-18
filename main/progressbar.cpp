@@ -1,8 +1,10 @@
 #include "progressbar.h"
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <iostream>
+
+using aocommon::Logger;
 
 ProgressBar::ProgressBar(const std::string& taskDescription)
     : _taskDescription(taskDescription), _displayedDots(-1) {}

@@ -4,6 +4,7 @@
 
 #include <aocommon/io/serialistream.h>
 #include <aocommon/io/serialostream.h>
+#include <aocommon/logger.h>
 
 #include <cassert>
 
@@ -68,7 +69,7 @@ std::unique_ptr<AverageBeam> AverageBeam::Load(
     size_t frequency_index) {
   std::unique_ptr<AverageBeam> result;
   if (!scalar_cache.Empty()) {
-    Logger::Debug << "Loading average beam from cache.\n";
+    aocommon::Logger::Debug << "Loading average beam from cache.\n";
     result.reset(new AverageBeam());
 
     // Scalar beam

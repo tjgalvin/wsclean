@@ -5,8 +5,6 @@
 
 #include "../msproviders/msreaders/msreader.h"
 
-#include "../io/logger.h"
-
 #include "../math/fftresampler.h"
 
 #include "../msproviders/msprovider.h"
@@ -16,10 +14,12 @@
 #include "../structures/imageweights.h"
 
 #include <aocommon/image.h>
+#include <aocommon/logger.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 using aocommon::Image;
+using aocommon::Logger;
 
 WGriddingMSGridder::WGriddingMSGridder(const Settings& settings)
     : MSGridderBase(settings),

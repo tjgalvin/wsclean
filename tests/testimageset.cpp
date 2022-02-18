@@ -3,12 +3,14 @@
 #include "../io/cachedimageaccessor.h"
 #include "../io/cachedimageset.h"
 
+#include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
 #include <aocommon/polarization.h>
 
 #include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
 
+using aocommon::FitsWriter;
 using aocommon::Image;
 using aocommon::PolarizationEnum;
 

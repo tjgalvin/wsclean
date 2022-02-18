@@ -8,12 +8,12 @@
 
 #include "../system/fftwmanager.h"
 
-#include "../io/logger.h"
-
 #include <aocommon/image.h>
+#include <aocommon/logger.h>
 #include <aocommon/units/fluxdensity.h>
 
 using aocommon::Image;
+using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
 MultiScaleAlgorithm::MultiScaleAlgorithm(FFTWManager& fftwManager,
@@ -36,21 +36,22 @@ MultiScaleAlgorithm::MultiScaleAlgorithm(FFTWManager& fftwManager,
 }
 
 MultiScaleAlgorithm::~MultiScaleAlgorithm() {
-  Logger::Info << "Multi-scale cleaning summary:\n";
+  aocommon::Logger::Info << "Multi-scale cleaning summary:\n";
   size_t sumComponents = 0;
   float sumFlux = 0.0;
   for (size_t scaleIndex = 0; scaleIndex != _scaleInfos.size(); ++scaleIndex) {
     const ScaleInfo& scaleEntry = _scaleInfos[scaleIndex];
-    Logger::Info << "- Scale " << round(scaleEntry.scale)
-                 << " px, nr of components cleaned: "
-                 << scaleEntry.nComponentsCleaned << " ("
-                 << FluxDensity::ToNiceString(scaleEntry.totalFluxCleaned)
-                 << ")\n";
+    aocommon::Logger::Info << "- Scale " << round(scaleEntry.scale)
+                           << " px, nr of components cleaned: "
+                           << scaleEntry.nComponentsCleaned << " ("
+                           << FluxDensity::ToNiceString(
+                                  scaleEntry.totalFluxCleaned)
+                           << ")\n";
     sumComponents += scaleEntry.nComponentsCleaned;
     sumFlux += scaleEntry.totalFluxCleaned;
   }
-  Logger::Info << "Total: " << sumComponents << " components ("
-               << FluxDensity::ToNiceString(sumFlux) << ")\n";
+  aocommon::Logger::Info << "Total: " << sumComponents << " components ("
+                         << FluxDensity::ToNiceString(sumFlux) << ")\n";
 }
 
 float MultiScaleAlgorithm::ExecuteMajorIteration(

@@ -1,7 +1,7 @@
 #include "../msproviders/averagingmsrowprovider.h"
 #include "../msproviders/directmsrowprovider.h"
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_SUITE(baseline_dependent_averaging)
 
 BOOST_AUTO_TEST_CASE(noAveraging,
                      *boost::unit_test::precondition(dataIsAvailable)) {
-  Logger::SetVerbosity(Logger::QuietVerbosity);
+  aocommon::Logger::SetVerbosity(aocommon::Logger::kQuietVerbosity);
   const size_t nAnt = 70;
   MSSelection selection;
   std::map<size_t, size_t> dataDescIds;
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(noAveraging,
   BOOST_CHECK_GT(nRow, 0u);
   BOOST_CHECK_GT(nFinite, 0u);
   BOOST_CHECK_EQUAL(avgProvider.AtEnd(), directProvider.AtEnd());
-  Logger::SetVerbosity(Logger::NormalVerbosity);
+  aocommon::Logger::SetVerbosity(aocommon::Logger::kNormalVerbosity);
 }
 
 // This test is to prevent the issue reported in
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(noAveraging,
 // observation spanned from MJD 0 to MJD now, and making millions of beams.
 BOOST_AUTO_TEST_CASE(nonZeroTime,
                      *boost::unit_test::precondition(dataIsAvailable)) {
-  Logger::SetVerbosity(Logger::QuietVerbosity);
+  aocommon::Logger::SetVerbosity(aocommon::Logger::kQuietVerbosity);
 
   double time = 10.0;
   const double startTime = 4929192878.0;
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(nonZeroTime,
   }
 
   BOOST_CHECK_GT(nRow, 0u);
-  Logger::SetVerbosity(Logger::NormalVerbosity);
+  aocommon::Logger::SetVerbosity(aocommon::Logger::kNormalVerbosity);
 }
 
 /*

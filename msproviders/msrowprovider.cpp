@@ -1,8 +1,6 @@
 #include "directmsrowprovider.h"
 #include "msprovider.h"
 
-#include "../io/logger.h"
-
 #include <aocommon/throwruntimeerror.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>

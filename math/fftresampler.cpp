@@ -1,10 +1,11 @@
 #include "fftresampler.h"
 
-#include "../io/logger.h"
+#include <aocommon/logger.h>
 
 #include <complex>
 #include <iostream>
 
+using aocommon::Logger;
 using aocommon::WindowFunction;
 
 FFTResampler::FFTResampler(size_t inWidth, size_t inHeight, size_t outWidth,

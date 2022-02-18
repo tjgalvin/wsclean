@@ -1,11 +1,13 @@
 #include "commandline.h"
 #include "wsclean.h"
 
-#include "../io/logger.h"
 #include <aocommon/checkblas.h>
+#include <aocommon/logger.h>
 
 #include <exception>
 #include <iostream>
+
+using aocommon::Logger;
 
 int main(int argc, char* argv[]) {
   try {

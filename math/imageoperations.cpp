@@ -1,6 +1,5 @@
 #include "imageoperations.h"
 
-#include "../io/logger.h"
 #include "../io/wscfitswriter.h"
 
 #include "../main/settings.h"
@@ -8,9 +7,11 @@
 #include "../math/gaussianfitter.h"
 #include "../math/modelrenderer.h"
 
+#include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/units/angle.h>
 
+using aocommon::Logger;
 using aocommon::units::Angle;
 
 void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,

@@ -8,13 +8,13 @@
 #include <idg-api.h>
 
 #include <aocommon/fits/fitsreader.h>
+#include <aocommon/logger.h>
 
 #include "../msproviders/msprovider.h"
 #include "../msproviders/timestepbuffer.h"
 
 #include "../io/findmwacoefffile.h"
 #include "../io/imagefilename.h"
-#include "../io/logger.h"
 #include "../io/parsetreader.h"
 
 #include "../structures/imagingtable.h"
@@ -38,6 +38,7 @@ using everybeam::coords::CoordinateSystem;
 #endif  // HAVE_EVERYBEAM
 
 using aocommon::Image;
+using aocommon::Logger;
 
 namespace {
 constexpr const size_t kGridderIndex = 0;
