@@ -6,12 +6,13 @@ add_executable(
   testcomponentlist.cpp
   testcommandline.cpp
   testfitsdateobstime.cpp
-  testimageset.cpp
   testcachedimageset.cpp
   testparsetreader.cpp
   testpeakfinder.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
+  deconvolution/testdeconvolutiontable.cpp
+  deconvolution/testimageset.cpp
   idg/taveragebeam.cpp
   math/tdijkstrasplitter.cpp
   math/tgaussianfitter.cpp

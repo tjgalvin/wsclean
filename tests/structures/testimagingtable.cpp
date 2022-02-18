@@ -1,6 +1,11 @@
+#include "../../structures/imagingtable.h"
+
+#include <array>
+
 #include <boost/test/unit_test.hpp>
 
-#include "../../structures/imagingtable.h"
+#include "../../io/cachedimageaccessor.h"
+#include "../../io/cachedimageset.h"
 
 #include "../common/smartptr.h"
 
@@ -240,6 +245,116 @@ BOOST_AUTO_TEST_CASE(squared_groups) {
   BOOST_TEST(groups[0][1].get() == entry0_1.get());
   BOOST_TEST(groups[0][2].get() == entry0_2.get());
   BOOST_TEST(groups[1][0].get() == entry1_0.get());
+}
+
+BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
+  ImagingTable table;
+  test::UniquePtr<ImagingTableEntry> entry;
+  entry->polarization = aocommon::PolarizationEnum::StokesV;
+  entry->bandStartFrequency = 42.0;
+  entry->bandEndFrequency = 43.0;
+  entry->outputChannelIndex = 0;
+  entry->outputIntervalIndex = 15;
+  entry->imageWeight = 44.0;
+  entry->imageCount = 2;
+  table.AddEntry(entry.take());
+
+  CachedImageSet psf_images;
+  CachedImageSet model_images;
+  CachedImageSet residual_images;
+  std::unique_ptr<DeconvolutionTable> deconvolution_table =
+      table.CreateDeconvolutionTable(psf_images, model_images, residual_images);
+  BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() == 1u);
+  BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups()[0].size() == 2u);
+
+  BOOST_TEST_REQUIRE(deconvolution_table->Size() == entry->imageCount);
+
+  size_t index = 0;
+  for (const DeconvolutionTableEntry& deconvolution_entry :
+       *deconvolution_table) {
+    BOOST_TEST(&deconvolution_entry ==
+               deconvolution_table->OriginalGroups()[0][index]);
+    BOOST_TEST(deconvolution_entry.index == index);
+    BOOST_TEST(deconvolution_entry.band_start_frequency ==
+               entry->bandStartFrequency);
+    BOOST_TEST(deconvolution_entry.band_end_frequency ==
+               entry->bandEndFrequency);
+    BOOST_TEST(deconvolution_entry.polarization == entry->polarization);
+    BOOST_TEST(deconvolution_entry.original_channel_index ==
+               entry->outputChannelIndex);
+    BOOST_TEST(deconvolution_entry.original_interval_index ==
+               entry->outputIntervalIndex);
+    BOOST_TEST(deconvolution_entry.image_weight == entry->imageWeight);
+
+    if (index == 0) {
+      auto* psf_accessor = dynamic_cast<CachedImageAccessor*>(
+          deconvolution_entry.psf_accessor.get());
+      BOOST_TEST_REQUIRE(psf_accessor);
+      BOOST_TEST(&psf_accessor->GetImageSet() == &psf_images);
+      BOOST_TEST(psf_accessor->GetPolarization() == entry->polarization);
+      BOOST_TEST(psf_accessor->GetFrequencyIndex() ==
+                 entry->outputChannelIndex);
+      BOOST_TEST(!psf_accessor->GetIsImaginary());
+    } else {
+      BOOST_TEST(!deconvolution_entry.psf_accessor);
+    }
+
+    auto* model_accessor = dynamic_cast<CachedImageAccessor*>(
+        deconvolution_entry.model_accessor.get());
+    BOOST_TEST_REQUIRE(model_accessor);
+    BOOST_TEST(&model_accessor->GetImageSet() == &model_images);
+    BOOST_TEST(model_accessor->GetPolarization() == entry->polarization);
+    BOOST_TEST(model_accessor->GetFrequencyIndex() ==
+               entry->outputChannelIndex);
+    BOOST_TEST(model_accessor->GetIsImaginary() == (index == 1));
+
+    auto* residual_accessor = dynamic_cast<CachedImageAccessor*>(
+        deconvolution_entry.residual_accessor.get());
+    BOOST_TEST_REQUIRE(residual_accessor);
+    BOOST_TEST(&residual_accessor->GetImageSet() == &residual_images);
+    BOOST_TEST(residual_accessor->GetPolarization() == entry->polarization);
+    BOOST_TEST(residual_accessor->GetFrequencyIndex() ==
+               entry->outputChannelIndex);
+    BOOST_TEST(residual_accessor->GetIsImaginary() == (index == 1));
+
+    ++index;
+  }
+}
+
+BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
+  ImagingTable table;
+  std::array<test::UniquePtr<ImagingTableEntry>, 5> entries;
+  for (size_t i = 0; i < entries.size(); ++i) {
+    entries[i]->outputChannelIndex = i;
+    entries[i]->imageWeight = 42 + i;
+    entries[i]->imageCount = 1;
+    table.AddEntry(entries[i].take());
+  }
+
+  CachedImageSet images;
+  std::unique_ptr<DeconvolutionTable> deconvolution_table =
+      table.CreateDeconvolutionTable(images, images, images);
+
+  BOOST_TEST_REQUIRE(deconvolution_table->Size() == entries.size());
+  BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() ==
+                     entries.size());
+
+  size_t index = 0;
+  for (const DeconvolutionTableEntry& deconvolution_entry :
+       *deconvolution_table) {
+    BOOST_TEST(deconvolution_entry.original_channel_index ==
+               entries[index]->outputChannelIndex);
+    // Only use image_weight for checking if the entry is the correct entry.
+    // The single entry test above checks if the other fields are copied.
+    BOOST_TEST(deconvolution_entry.image_weight == entries[index]->imageWeight);
+
+    const DeconvolutionTable::Group& group =
+        deconvolution_table->OriginalGroups()[index];
+    BOOST_TEST_REQUIRE(group.size() == 1);
+    BOOST_TEST(group[0] == &deconvolution_entry);
+
+    ++index;
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

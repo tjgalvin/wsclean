@@ -1,7 +1,7 @@
-#include "../deconvolution/imageset.h"
-#include "../deconvolution/spectralfitter.h"
-#include "../io/cachedimageaccessor.h"
-#include "../io/cachedimageset.h"
+#include "../../deconvolution/imageset.h"
+#include "../../deconvolution/spectralfitter.h"
+#include "../../io/cachedimageaccessor.h"
+#include "../../io/cachedimageset.h"
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>

@@ -17,24 +17,30 @@ class DeconvolutionTable {
   using Group = std::vector<const DeconvolutionTableEntry*>;
 
   /**
-   * Iterator class for looping over entries.
+   * Iterator-like class which (only) supports a range-based loop over entries.
    *
-   * Dereferencing this iterator yields a reference to the actual object instead
+   * Dereferencing this class yields a reference to the actual object instead
    * of a reference to the pointer for the object.
    */
-  class EntryIterator {
+  class EntryIteratorLite {
     using BaseIterator = Entries::const_iterator;
 
    public:
-    explicit EntryIterator(BaseIterator base_iterator)
+    explicit EntryIteratorLite(BaseIterator base_iterator)
         : base_iterator_(base_iterator) {}
 
     const DeconvolutionTableEntry& operator*() const {
       return **base_iterator_;
     }
-    void operator++() { ++base_iterator_; }
-    bool operator!=(const EntryIterator& other) const {
+    EntryIteratorLite& operator++() {
+      ++base_iterator_;
+      return *this;
+    }
+    bool operator!=(const EntryIteratorLite& other) const {
       return base_iterator_ != other.base_iterator_;
+    }
+    bool operator==(const EntryIteratorLite& other) const {
+      return base_iterator_ == other.base_iterator_;
     }
 
    private:
@@ -61,8 +67,15 @@ class DeconvolutionTable {
    */
   const std::vector<Group>& OriginalGroups() const { return original_groups_; }
 
-  EntryIterator begin() const { return EntryIterator(entries_.begin()); }
-  EntryIterator end() const { return EntryIterator(entries_.end()); }
+  /**
+   * begin() and end() allow writing range-based loops over all entries.
+   * @{
+   */
+  EntryIteratorLite begin() const {
+    return EntryIteratorLite(entries_.begin());
+  }
+  EntryIteratorLite end() const { return EntryIteratorLite(entries_.end()); }
+  /** @} */
 
   /**
    * @brief Adds an entry to the table.

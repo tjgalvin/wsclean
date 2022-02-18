@@ -37,6 +37,16 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
                      is_imaginary_);
   }
 
+  /**
+   * Get functions, mainly for testing purposes.
+   * @{
+   */
+  const CachedImageSet& GetImageSet() const { return image_set_; }
+  aocommon::PolarizationEnum GetPolarization() const { return polarization_; }
+  size_t GetFrequencyIndex() const { return frequency_index_; }
+  bool GetIsImaginary() const { return is_imaginary_; }
+  /** @} */
+
  private:
   CachedImageSet& image_set_;
   aocommon::PolarizationEnum polarization_;
