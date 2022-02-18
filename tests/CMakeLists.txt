@@ -1,5 +1,5 @@
 add_executable(
-  unittest EXCLUDE_FROM_ALL
+  unittest
   test.cpp
   testbaselinedependentaveraging.cpp
   testclean.cpp
