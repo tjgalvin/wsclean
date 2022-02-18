@@ -414,6 +414,74 @@ void MSGridderBase::CacheBeamResponse(double time, size_t fieldId,
 }
 #endif
 
+void MSGridderBase::SetH5Parms() {
+  _h5parms.resize(MeasurementSetCount());
+  _h5SolTabs.resize(MeasurementSetCount());
+  _correctType.resize(MeasurementSetCount());
+
+  for (size_t i = 0; i < _h5parms.size(); ++i) {
+    if (_settings.facetSolutionFiles.size() > 1) {
+      _h5parms[i].reset(
+          new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFiles[i]));
+    } else {
+      _h5parms[i].reset(
+          new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFiles[0]));
+    }
+
+    if (_settings.facetSolutionTables.size() == 1) {
+      _h5SolTabs[i] = std::make_pair(
+          &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[0]), nullptr);
+      _correctType[i] =
+          JonesParameters::StringToCorrectType(_h5SolTabs[i].first->GetType());
+    } else if (_settings.facetSolutionTables.size() == 2) {
+      const std::array<std::string, 2> solTabTypes{
+          _h5parms[i]->GetSolTab(_settings.facetSolutionTables[0]).GetType(),
+          _h5parms[i]->GetSolTab(_settings.facetSolutionTables[1]).GetType()};
+
+      auto itrA =
+          std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
+      auto itrP = std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
+
+      if (itrA == solTabTypes.end() || itrP == solTabTypes.end()) {
+        throw std::runtime_error(
+            "WSClean expected solution tables with name 'amplitude' and "
+            "'phase', but received " +
+            solTabTypes[0] + " and " + solTabTypes[1]);
+      } else {
+        const size_t idxA = std::distance(solTabTypes.begin(), itrA);
+        const size_t idxP = std::distance(solTabTypes.begin(), itrP);
+        _h5SolTabs[i] = std::make_pair(
+            &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxA]),
+            &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxP]));
+      }
+
+      const size_t npol1 = _h5SolTabs[i].first->HasAxis("pol")
+                               ? _h5SolTabs[i].first->GetAxis("pol").size
+                               : 1;
+      const size_t npol2 = _h5SolTabs[i].second->HasAxis("pol")
+                               ? _h5SolTabs[i].second->GetAxis("pol").size
+                               : 1;
+      if (npol1 == 1 && npol2 == 1) {
+        _correctType[i] = JonesParameters::CorrectType::SCALARGAIN;
+      } else if (npol1 == 2 && npol2 == 2) {
+        _correctType[i] = JonesParameters::CorrectType::GAIN;
+      } else if (npol1 == 4 && npol2 == 4) {
+        _correctType[i] = JonesParameters::CorrectType::FULLJONES;
+      } else {
+        throw std::runtime_error(
+            "Incorrect or mismatching number of polarizations in the "
+            "provided soltabs. Number of polarizations should be either "
+            "all 1, 2 or 4, but received " +
+            std::to_string(npol1) + " and " + std::to_string(npol2));
+      }
+    } else {
+      throw std::runtime_error(
+          "Specify the solution table name(s) with "
+          "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
+    }
+  }
+}
+
 void MSGridderBase::CacheParmResponse(
     double time, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand) {
@@ -567,6 +635,10 @@ void MSGridderBase::initializeMSDataVector(
     _timeOffset.assign(MeasurementSetCount(), 0u);
   }
 
+  if (!_settings.facetSolutionFiles.empty()) {
+    SetH5Parms();
+  }
+
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     msDataVector[i].msIndex = i;
     initializeMeasurementSet(msDataVector[i], _metaDataCache->msDataVector[i],
@@ -615,74 +687,6 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
     cacheEntry.maxBaselineUVW = msData.maxBaselineUVW;
     cacheEntry.maxBaselineInM = msData.maxBaselineInM;
     cacheEntry.integrationTime = msData.integrationTime;
-  }
-
-  if (!_settings.facetSolutionFiles.empty()) {
-    _h5parms.resize(MeasurementSetCount());
-    _h5SolTabs.resize(MeasurementSetCount());
-    _correctType.resize(MeasurementSetCount());
-
-    for (size_t i = 0; i < _h5parms.size(); ++i) {
-      if (_settings.facetSolutionFiles.size() > 1) {
-        _h5parms[i].reset(
-            new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFiles[i]));
-      } else {
-        _h5parms[i].reset(
-            new schaapcommon::h5parm::H5Parm(_settings.facetSolutionFiles[0]));
-      }
-
-      if (_settings.facetSolutionTables.size() == 1) {
-        _h5SolTabs[i] = std::make_pair(
-            &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[0]), nullptr);
-        _correctType[i] = JonesParameters::StringToCorrectType(
-            _h5SolTabs[i].first->GetType());
-      } else if (_settings.facetSolutionTables.size() == 2) {
-        const std::array<std::string, 2> solTabTypes{
-            _h5parms[i]->GetSolTab(_settings.facetSolutionTables[0]).GetType(),
-            _h5parms[i]->GetSolTab(_settings.facetSolutionTables[1]).GetType()};
-
-        auto itrA =
-            std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
-        auto itrP = std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
-
-        if (itrA == solTabTypes.end() || itrP == solTabTypes.end()) {
-          throw std::runtime_error(
-              "WSClean expected solution tables with name 'amplitude' and "
-              "'phase', but received " +
-              solTabTypes[0] + " and " + solTabTypes[1]);
-        } else {
-          const size_t idxA = std::distance(solTabTypes.begin(), itrA);
-          const size_t idxP = std::distance(solTabTypes.begin(), itrP);
-          _h5SolTabs[i] = std::make_pair(
-              &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxA]),
-              &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxP]));
-        }
-
-        const size_t npol1 = _h5SolTabs[i].first->HasAxis("pol")
-                                 ? _h5SolTabs[i].first->GetAxis("pol").size
-                                 : 1;
-        const size_t npol2 = _h5SolTabs[i].second->HasAxis("pol")
-                                 ? _h5SolTabs[i].second->GetAxis("pol").size
-                                 : 1;
-        if (npol1 == 1 && npol2 == 1) {
-          _correctType[i] = JonesParameters::CorrectType::SCALARGAIN;
-        } else if (npol1 == 2 && npol2 == 2) {
-          _correctType[i] = JonesParameters::CorrectType::GAIN;
-        } else if (npol1 == 4 && npol2 == 4) {
-          _correctType[i] = JonesParameters::CorrectType::FULLJONES;
-        } else {
-          throw std::runtime_error(
-              "Incorrect or mismatching number of polarizations in the "
-              "provided soltabs. Number of polarizations should be either "
-              "all 1, 2 or 4, but received " +
-              std::to_string(npol1) + " and " + std::to_string(npol2));
-        }
-      } else {
-        throw std::runtime_error(
-            "Specify the solution table name(s) with "
-            "-soltab-names=soltabname1[OPTIONAL,soltabname2]");
-      }
-    }
   }
 }
 

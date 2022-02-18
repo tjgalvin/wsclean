@@ -378,6 +378,8 @@ class MSGridderBase {
                          const std::vector<std::string>& antennaNames,
                          const aocommon::BandData& curBand);
 
+  void SetH5Parms();
+
   void resetMetaData() { _hasFrequencies = false; }
 
   void calculateMSLimits(const aocommon::BandData& selectedBand,
