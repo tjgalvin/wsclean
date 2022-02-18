@@ -311,7 +311,6 @@ def test_mpi_split_channels():
     s = f"mpirun {tcf.WSCLEAN_MP} -name {name('mpi-split')} {tcf.RECTDIMS} -scale 1amin -channels-out 2 -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {os.environ['MWA_MS']}"
     check_call(s.split())
 
-
 def test_idg_with_reuse_psf():
     # Test for issue #81: -reuse-psf gives segmentation fault in IDG
     # First make sure input files exist:
@@ -327,6 +326,15 @@ def test_idg_with_reuse_psf():
     s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
     check_call(s.split())
 
+def test_idg_with_reuse_dirty():
+    # Test for issue #80: -reuse-dirty option fails (#80)
+    # First make sure input files exist:
+    s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
+    check_call(s.split())
+    os.rename(name('idg-reuse-dirty-A')+"-model.fits", name('idg-reuse-dirty-B')+"-model.fits")
+    # Now continue:
+    s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path {os.environ['MWA_COEFFS_PATH']} {os.environ['MWA_MS']}"
+    check_call(s.split())
 
 def test_masked_parallel_deconvolution():
     # Test for two issues:

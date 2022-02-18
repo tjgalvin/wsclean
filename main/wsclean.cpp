@@ -80,19 +80,22 @@ void WSClean::multiplyImage(double factor, double* image) const {
 
 GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
                                           bool isPSF) {
-  size_t channelIndex = entry.outputChannelIndex;
-  Settings modifiedSettings(_settings);
-  modifiedSettings.prefixName = _settings.reusePsfPrefix;
   std::string name;
-  if (isPSF)
-    name = ImageFilename::GetPSFPrefix(modifiedSettings, channelIndex,
-                                       entry.outputIntervalIndex) +
-           "-psf.fits";
-  else
+  if (isPSF) {
+    Settings modifiedSettings(_settings);
+    modifiedSettings.prefixName = _settings.reusePsfPrefix;
+    name =
+        ImageFilename::GetPSFPrefix(modifiedSettings, entry.outputChannelIndex,
+                                    entry.outputIntervalIndex) +
+        "-psf.fits";
+  } else {
+    Settings modifiedSettings(_settings);
+    modifiedSettings.prefixName = _settings.reuseDirtyPrefix;
     name = ImageFilename::GetPrefix(modifiedSettings, entry.polarization,
-                                    channelIndex, entry.outputIntervalIndex,
-                                    false) +
+                                    entry.outputChannelIndex,
+                                    entry.outputIntervalIndex, false) +
            "-dirty.fits";
+  }
   FitsReader reader(name);
   if (reader.ImageWidth() != _settings.trimmedImageWidth ||
       reader.ImageHeight() != _settings.trimmedImageHeight)
