@@ -7,8 +7,9 @@
 #include <aocommon/image.h>
 #include <aocommon/polarization.h>
 
-#include <boost/make_unique.hpp>
 #include <boost/test/unit_test.hpp>
+
+#include <memory>
 
 using aocommon::FitsWriter;
 using aocommon::Image;
@@ -38,16 +39,16 @@ struct ImageSetFixtureBase {
 
   void addToImageSet(size_t outChannel, PolarizationEnum pol,
                      size_t frequencyMHz, double imageWeight = 1.0) {
-    auto e = boost::make_unique<DeconvolutionTableEntry>();
+    auto e = std::make_unique<DeconvolutionTableEntry>();
     e->original_channel_index = outChannel;
     e->polarization = pol;
     e->band_start_frequency = frequencyMHz;
     e->band_end_frequency = frequencyMHz;
     e->image_weight = imageWeight;
-    e->psf_accessor = boost::make_unique<DummyImageAccessor>();
+    e->psf_accessor = std::make_unique<DummyImageAccessor>();
     e->model_accessor =
-        boost::make_unique<CachedImageAccessor>(cSet, pol, outChannel, false);
-    e->residual_accessor = boost::make_unique<DummyImageAccessor>();
+        std::make_unique<CachedImageAccessor>(cSet, pol, outChannel, false);
+    e->residual_accessor = std::make_unique<DummyImageAccessor>();
     table.AddEntry(std::move(e));
   }
 

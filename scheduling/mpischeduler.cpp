@@ -11,11 +11,10 @@
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 
-#include <boost/make_unique.hpp>
-
 #include <mpi.h>
 
 #include <cassert>
+#include <memory>
 
 using aocommon::Logger;
 
@@ -43,10 +42,10 @@ MPIScheduler::MPIScheduler(const Settings &settings)
       throw std::runtime_error(
           "Master was told not to work, but no other workers available");
     if (settings.masterDoesWork) {
-      _writerLock = boost::make_unique<MasterWriterLock>(*this);
+      _writerLock = std::make_unique<MasterWriterLock>(*this);
     }
   } else {
-    _writerLock = boost::make_unique<WorkerWriterLock>();
+    _writerLock = std::make_unique<WorkerWriterLock>();
   }
 }
 

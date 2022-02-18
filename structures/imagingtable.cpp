@@ -6,8 +6,7 @@
 #include <cassert>
 #include <iomanip>
 #include <map>
-
-#include <boost/make_unique.hpp>
+#include <memory>
 
 using aocommon::Logger;
 
@@ -114,7 +113,7 @@ std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
       _entries.back()->outputChannelIndex + 1 - channel_index_offset;
 
   auto table =
-      boost::make_unique<DeconvolutionTable>(n_channels, channel_index_offset);
+      std::make_unique<DeconvolutionTable>(n_channels, channel_index_offset);
   int max_squared_index = -1;
 
   for (const EntryPtr& entry_ptr : _entries) {

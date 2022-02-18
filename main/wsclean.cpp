@@ -854,7 +854,7 @@ std::unique_ptr<ImageWeightCache> WSClean::createWeightCache() {
       _settings.gaussianTaperBeamSize, _settings.tukeyTaperInLambda,
       _settings.tukeyInnerTaperInLambda, _settings.edgeTaperInLambda,
       _settings.edgeTukeyTaperInLambda);
-  return std::move(cache);
+  return cache;
 }
 
 void WSClean::RunPredict() {

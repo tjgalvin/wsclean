@@ -7,7 +7,7 @@
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/tables/Tables/TableLocker.h>
 
-#include <boost/make_unique.hpp>
+#include <memory>
 
 ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
@@ -150,8 +150,8 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
   if (_useMPI) {
     // When using different MPI processes, automatic casacore locks do not work.
     // -> Use UserNoReadLocking with explicit write locks.
-    lock = boost::make_unique<casacore::TableLocker>(
-        *_ms, casacore::FileLocker::Write);
+    lock = std::make_unique<casacore::TableLocker>(*_ms,
+                                                   casacore::FileLocker::Write);
 
     // This resync() is required for synchronizing different MPI processes.
     _ms->resync();

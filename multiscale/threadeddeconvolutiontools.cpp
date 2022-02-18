@@ -6,7 +6,7 @@
 
 #include <aocommon/image.h>
 
-#include <boost/make_unique.hpp>
+#include <memory>
 
 using aocommon::Image;
 
@@ -35,7 +35,7 @@ void ThreadedDeconvolutionTools::SubtractImage(float* image, const float* psf,
                                                size_t x, size_t y,
                                                float factor) {
   for (size_t thr = 0; thr != _threadCount; ++thr) {
-    auto task = boost::make_unique<SubtractionTask>();
+    auto task = std::make_unique<SubtractionTask>();
     task->image = image;
     task->psf = psf;
     task->width = width;

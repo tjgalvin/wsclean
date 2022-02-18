@@ -7,18 +7,17 @@
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 
-#include <boost/make_unique.hpp>
-
 #include <cassert>
+#include <memory>
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   if (_isPartitioned)
-    return boost::make_unique<PartitionedMS>(_partitionHandle, _partIndex,
-                                             _polarization, _dataDescId);
+    return std::make_unique<PartitionedMS>(_partitionHandle, _partIndex,
+                                           _polarization, _dataDescId);
   else
-    return boost::make_unique<ContiguousMS>(_filename, _dataColumnName,
-                                            _selection, _polarization,
-                                            _dataDescId, _useMPI);
+    return std::make_unique<ContiguousMS>(_filename, _dataColumnName,
+                                          _selection, _polarization,
+                                          _dataDescId, _useMPI);
 }
 
 void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
