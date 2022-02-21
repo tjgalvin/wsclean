@@ -52,20 +52,43 @@ class DeconvolutionTable {
    *
    * @param n_original_groups The number of original channel groups. When adding
    * entries, their original channel index must be less than the number of
-   * original groups.
+   * original groups. If the value is zero or less, one group is used.
+   * @param n_deconvolution_groups The number of deconvolution groups.
+   * A deconvolution group consist of one or more channel groups, which are then
+   * joinedly deconvolved.
+   * If the value is zero or less, or larger than the number of original groups,
+   * all channels are deconvolved separately.
    * @param channel_index_offset The index of the first channel in the caller.
+   * Must be >= 0.
    */
-  explicit DeconvolutionTable(size_t n_original_groups,
-                              size_t channel_index_offset = 0)
-      : entries_(),
-        original_groups_(n_original_groups),
-        channel_index_offset_(channel_index_offset) {}
+  explicit DeconvolutionTable(int n_original_groups, int n_deconvolution_groups,
+                              int channel_index_offset = 0);
 
   /**
    * @return The table entries, grouped by their original channel index.
    * @see AddEntry()
    */
   const std::vector<Group>& OriginalGroups() const { return original_groups_; }
+
+  /**
+   * @return The original group indices for each deconvolution group.
+   */
+  const std::vector<std::vector<int>>& DeconvolutionGroups() const {
+    return deconvolution_groups_;
+  }
+
+  /**
+   * Find the first group of original channels, given a deconvolution group
+   * index.
+   *
+   * @param deconvolution_index Index for a deconvolution group. Must be less
+   * than the number of deconvolution groups.
+   * @return A reference to the first original group for the deconvolution
+   * group.
+   */
+  const Group& FirstOriginalGroup(size_t deconvolution_index) const {
+    return original_groups_[deconvolution_groups_[deconvolution_index].front()];
+  }
 
   /**
    * begin() and end() allow writing range-based loops over all entries.
@@ -107,11 +130,6 @@ class DeconvolutionTable {
   Entries entries_;
 
   /**
-   * An original group has entries with equal original channel indices.
-   */
-  std::vector<Group> original_groups_;
-
-  /**
    * A user of the DeconvolutionTable may use different channel indices than
    * the DeconvolutionTable. This offset is the difference between those
    * indices.
@@ -119,6 +137,18 @@ class DeconvolutionTable {
    * 0, 1, and 2. When the user indices are 4, 5, and 6, this offset will be 4.
    */
   const std::size_t channel_index_offset_;
+
+  /**
+   * An original group has entries with equal original channel indices.
+   */
+  std::vector<Group> original_groups_;
+
+  /**
+   * A deconvolution group consists of one or more original groups, which
+   * are deconvolved together. Each entry contains the indices of the original
+   * groups that are part of the deconvolution group.
+   */
+  std::vector<std::vector<int>> deconvolution_groups_;
 };
 
 #endif

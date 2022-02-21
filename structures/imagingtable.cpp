@@ -100,20 +100,20 @@ void ImagingTable::AssignGridDataFromPolarization(
 }
 
 std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
-    CachedImageSet& psf_images, CachedImageSet& model_images,
-    CachedImageSet& residual_images) const {
+    int n_deconvolution_channels, CachedImageSet& psf_images,
+    CachedImageSet& model_images, CachedImageSet& residual_images) const {
   // In a DeconvolutionTable the output channel indices range from
   // 0 to (#channels - 1). In an ImagingTable that forms an indepent group,
   // output channel indices may start at a higher index.
 
   // Assume that the first entry has the lowest index and that the last entry
   // has the highest output channel index.
-  const size_t channel_index_offset = _entries.front()->outputChannelIndex;
-  const size_t n_channels =
+  const int channel_index_offset = _entries.front()->outputChannelIndex;
+  const int n_original_channels =
       _entries.back()->outputChannelIndex + 1 - channel_index_offset;
 
-  auto table =
-      std::make_unique<DeconvolutionTable>(n_channels, channel_index_offset);
+  auto table = std::make_unique<DeconvolutionTable>(
+      n_original_channels, n_deconvolution_channels, channel_index_offset);
   int max_squared_index = -1;
 
   for (const EntryPtr& entry_ptr : _entries) {

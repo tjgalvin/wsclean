@@ -123,8 +123,8 @@ PythonDeconvolution::PythonDeconvolution(const std::string& filename)
 
 void PythonDeconvolution::setBuffer(const ImageSet& imageSet, double* ptr,
                                     size_t width, size_t height) {
-  size_t nFreq = imageSet.ChannelsInDeconvolution();
-  size_t nPol = imageSet.size() / imageSet.ChannelsInDeconvolution();
+  size_t nFreq = imageSet.NDeconvolutionChannels();
+  size_t nPol = imageSet.size() / imageSet.NDeconvolutionChannels();
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
@@ -137,8 +137,8 @@ void PythonDeconvolution::setBuffer(const ImageSet& imageSet, double* ptr,
 
 void PythonDeconvolution::getBuffer(ImageSet& imageSet, const double* ptr,
                                     size_t width, size_t height) {
-  size_t nFreq = imageSet.ChannelsInDeconvolution();
-  size_t nPol = imageSet.size() / imageSet.ChannelsInDeconvolution();
+  size_t nFreq = imageSet.NDeconvolutionChannels();
+  size_t nPol = imageSet.size() / imageSet.NDeconvolutionChannels();
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
@@ -169,8 +169,8 @@ float PythonDeconvolution::ExecuteMajorIteration(
     ImageSet& dirtySet, ImageSet& modelSet,
     const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
     bool& reachedMajorThreshold) {
-  size_t nFreq = dirtySet.ChannelsInDeconvolution();
-  size_t nPol = dirtySet.size() / dirtySet.ChannelsInDeconvolution();
+  size_t nFreq = dirtySet.NDeconvolutionChannels();
+  size_t nPol = dirtySet.size() / dirtySet.NDeconvolutionChannels();
 
   pybind11::object result;
 

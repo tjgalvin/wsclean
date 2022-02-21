@@ -1552,12 +1552,13 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
   std::unique_ptr<DeconvolutionTable> deconvolution_table =
-      groupTable.GetFacet(0).CreateDeconvolutionTable(_psfImages, _modelImages,
-                                                      _residualImages);
+      groupTable.GetFacet(0).CreateDeconvolutionTable(
+          _settings.deconvolutionChannelCount, _psfImages, _modelImages,
+          _residualImages);
 
   _deconvolution.InitializeDeconvolutionAlgorithm(
-      std::move(deconvolution_table), *_settings.polarizations.begin(),
-      minTheoreticalBeamSize(groupTable), _settings.threadCount);
+      std::move(deconvolution_table), minTheoreticalBeamSize(groupTable),
+      _settings.threadCount);
 
   if (_settings.deconvolutionIterationCount > 0) {
     // Start major cleaning loop
@@ -1679,7 +1680,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
 
   if (_settings.saveSourceList) {
     std::unique_ptr<DeconvolutionTable> deconvolution_table =
-        groupTable.CreateDeconvolutionTable(_psfImages, _modelImages,
+        groupTable.CreateDeconvolutionTable(_settings.deconvolutionChannelCount,
+                                            _psfImages, _modelImages,
                                             _residualImages);
     ComponentListWriter componentListWriter(_settings,
                                             std::move(deconvolution_table));

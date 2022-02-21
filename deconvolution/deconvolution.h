@@ -32,8 +32,7 @@ class Deconvolution {
   void Perform(bool& reachedMajorThreshold, size_t majorIterationNr);
 
   void InitializeDeconvolutionAlgorithm(
-      std::unique_ptr<DeconvolutionTable> table,
-      aocommon::PolarizationEnum psfPolarization, double beamSize,
+      std::unique_ptr<DeconvolutionTable> table, double beamSize,
       size_t threadCount);
 
   void FreeDeconvolutionAlgorithms();
@@ -57,7 +56,6 @@ class Deconvolution {
   bool _autoMaskIsFinished;
   aocommon::UVector<double> _channelFrequencies;
   aocommon::UVector<float> _channelWeights;
-  aocommon::PolarizationEnum _psfPolarization;
   size_t _imgWidth, _imgHeight;
   aocommon::UVector<bool> _autoMask;
   double _beamSize, _pixelScaleX, _pixelScaleY;

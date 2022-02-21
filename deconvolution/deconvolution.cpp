@@ -120,9 +120,9 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
                  _settings.deconvolutionThreshold));
   integrated.Reset();
 
-  std::vector<aocommon::UVector<float>> psfVecs(residualSet.PSFCount());
   Logger::Debug << "Loading PSFs...\n";
-  residualSet.LoadAndAveragePSFs(psfVecs, _psfPolarization);
+  const std::vector<aocommon::UVector<float>> psfVecs =
+      residualSet.LoadAndAveragePSFs();
 
   aocommon::UVector<const float*> psfs(residualSet.PSFCount());
   for (size_t i = 0; i != psfVecs.size(); ++i) psfs[i] = psfVecs[i].data();
@@ -181,15 +181,13 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
 }
 
 void Deconvolution::InitializeDeconvolutionAlgorithm(
-    std::unique_ptr<DeconvolutionTable> table,
-    aocommon::PolarizationEnum psfPolarization, double beamSize,
+    std::unique_ptr<DeconvolutionTable> table, double beamSize,
     size_t threadCount) {
   _imgWidth = _settings.trimmedImageWidth;
   _imgHeight = _settings.trimmedImageHeight;
   _pixelScaleX = _settings.pixelScaleX;
   _pixelScaleY = _settings.pixelScaleY;
 
-  _psfPolarization = psfPolarization;
   _beamSize = beamSize;
   _autoMaskIsFinished = false;
   _autoMask.clear();
@@ -248,9 +246,8 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   algorithm->SetSpectralFittingMode(_settings.spectralFittingMode,
                                     _settings.spectralFittingTerms);
 
-  ImageSet::CalculateDeconvolutionFrequencies(
-      *_table, _channelFrequencies, _channelWeights,
-      _settings.deconvolutionChannelCount);
+  ImageSet::CalculateDeconvolutionFrequencies(*_table, _channelFrequencies,
+                                              _channelWeights);
   algorithm->InitializeFrequencies(_channelFrequencies, _channelWeights);
   _parallelDeconvolution.SetAlgorithm(std::move(algorithm));
 

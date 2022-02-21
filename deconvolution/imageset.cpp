@@ -20,24 +20,20 @@ ImageSet::ImageSet(const DeconvolutionTable& table,
     : _images(),
       _width(0),
       _height(0),
-      _channelsInDeconvolution((settings.deconvolutionChannelCount == 0)
-                                   ? table.OriginalGroups().size()
-                                   : settings.deconvolutionChannelCount),
       _squareJoinedChannels(settings.squaredJoins),
       _deconvolutionTable(table),
       _imageIndexToPSFIndex(),
       _linkedPolarizations(settings.linkedPolarizations),
       _settings(settings) {
-  size_t nPol = table.OriginalGroups().front().size();
-  size_t nImages = nPol * _channelsInDeconvolution;
+  const size_t nPol = table.OriginalGroups().front().size();
+  const size_t nImages = nPol * NDeconvolutionChannels();
   _images.resize(nImages);
   _imageIndexToPSFIndex.resize(nImages);
 
   initializePolFactor();
   initializeIndices();
   aocommon::UVector<double> frequencies;
-  CalculateDeconvolutionFrequencies(table, frequencies, _weights,
-                                    _channelsInDeconvolution);
+  CalculateDeconvolutionFrequencies(table, frequencies, _weights);
 }
 
 ImageSet::ImageSet(const DeconvolutionTable& table,
@@ -49,33 +45,28 @@ ImageSet::ImageSet(const DeconvolutionTable& table,
 }
 
 void ImageSet::initializeIndices() {
-  size_t lastDeconvolutionChannel = 0;
-  size_t deconvolutionChannelStartIndex = 0, lastOutChannel = 0;
-  size_t imgIndex = 0;
   _entryIndexToImageIndex.reserve(_deconvolutionTable.Size());
-  for (const DeconvolutionTableEntry& entry : _deconvolutionTable) {
-    size_t outChannel = entry.original_channel_index;
-    size_t chIndex = (outChannel * _channelsInDeconvolution) /
-                     _deconvolutionTable.OriginalGroups().size();
-    if (outChannel != lastOutChannel && chIndex == lastDeconvolutionChannel) {
-      // New output channel maps to an earlier deconvolution channel:
-      // start at index of previous deconvolution channel
+  size_t imgIndex = 0;
+  for (const std::vector<int>& group :
+       _deconvolutionTable.DeconvolutionGroups()) {
+    const size_t deconvolutionChannelStartIndex = imgIndex;
+    for (const int originalIndex : group) {
       imgIndex = deconvolutionChannelStartIndex;
+
+      for (const DeconvolutionTableEntry* entry :
+           _deconvolutionTable.OriginalGroups()[originalIndex]) {
+        assert(entry->index == _entryIndexToImageIndex.size());
+        _entryIndexToImageIndex.push_back(imgIndex);
+
+        ++imgIndex;
+      }
     }
-    if (chIndex != lastDeconvolutionChannel) {
-      deconvolutionChannelStartIndex = imgIndex;
-    }
-    assert(entry.index == _entryIndexToImageIndex.size());
-    _entryIndexToImageIndex.push_back(imgIndex);
-    lastOutChannel = outChannel;
-    lastDeconvolutionChannel = chIndex;
-    ++imgIndex;
   }
-  for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex) {
-    size_t groupIndex = channelIndexToGroupIndex(chIndex);
-    const DeconvolutionTable::Group& channelGroup =
-        _deconvolutionTable.OriginalGroups()[groupIndex];
-    for (const DeconvolutionTableEntry* entry : channelGroup) {
+
+  for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
+    const DeconvolutionTable::Group& originalGroup =
+        _deconvolutionTable.FirstOriginalGroup(chIndex);
+    for (const DeconvolutionTableEntry* entry : originalGroup) {
       const size_t imageIndex = _entryIndexToImageIndex[entry->index];
       _imageIndexToPSFIndex[imageIndex] = chIndex;
     }
@@ -101,53 +92,46 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
 
   aocommon::UVector<double> averagedWeights(_images.size(), 0.0);
   size_t imgIndex = 0;
-  for (size_t groupIndex = 0;
-       groupIndex != _deconvolutionTable.OriginalGroups().size();
-       ++groupIndex) {
-    // The next loop iterates over the polarizations. The logic in the next loop
-    // makes sure that images of the same polarizations and that belong to the
-    // same deconvolution channel are averaged together.
-    const size_t imgIndexForChannel = imgIndex;
-    const DeconvolutionTable::Group& channelGroup =
-        _deconvolutionTable.OriginalGroups()[groupIndex];
-    for (const DeconvolutionTableEntry* entry_ptr : channelGroup) {
-      if (use_residual_image) {
-        entry_ptr->residual_accessor->Load(scratch);
-      } else {
-        entry_ptr->model_accessor->Load(scratch);
+  for (const std::vector<int>& group :
+       _deconvolutionTable.DeconvolutionGroups()) {
+    const size_t deconvolutionChannelStartIndex = imgIndex;
+    for (const int originalIndex : group) {
+      // The next loop iterates over the polarizations. The logic in the next
+      // loop makes sure that images of the same polarizations and that belong
+      // to the same deconvolution channel are averaged together.
+      imgIndex = deconvolutionChannelStartIndex;
+      for (const DeconvolutionTableEntry* entry_ptr :
+           _deconvolutionTable.OriginalGroups()[originalIndex]) {
+        if (use_residual_image) {
+          entry_ptr->residual_accessor->Load(scratch);
+        } else {
+          entry_ptr->model_accessor->Load(scratch);
+        }
+        _images[imgIndex].AddWithFactor(scratch, entry_ptr->image_weight);
+        averagedWeights[imgIndex] += entry_ptr->image_weight;
+        ++imgIndex;
       }
-      _images[imgIndex].AddWithFactor(scratch, entry_ptr->image_weight);
-      averagedWeights[imgIndex] += entry_ptr->image_weight;
-      ++imgIndex;
     }
-    const size_t thisChannelIndex = (groupIndex * _channelsInDeconvolution) /
-                                    _deconvolutionTable.OriginalGroups().size();
-    const size_t nextChannelIndex =
-        ((groupIndex + 1) * _channelsInDeconvolution) /
-        _deconvolutionTable.OriginalGroups().size();
-    // If the next loaded image belongs to the same deconvolution channel as the
-    // previously loaded, they need to be averaged together.
-    if (thisChannelIndex == nextChannelIndex) imgIndex = imgIndexForChannel;
   }
 
-  for (size_t i = 0; i != _images.size(); ++i)
+  for (size_t i = 0; i != _images.size(); ++i) {
     _images[i] *= 1.0 / averagedWeights[i];
+  }
 }
 
-void ImageSet::LoadAndAveragePSFs(
-    std::vector<aocommon::UVector<float>>& psfImages,
-    aocommon::PolarizationEnum psfPolarization) {
-  for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex)
-    psfImages[chIndex].assign(_width * _height, 0.0);
+std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
+  std::vector<aocommon::UVector<float>> psfImages;
+  psfImages.reserve(NDeconvolutionChannels());
+  for (size_t i = 0; i < NDeconvolutionChannels(); ++i) {
+    psfImages.emplace_back(_width * _height, 0.0);
+  }
 
   Image scratch(_width, _height);
 
-  aocommon::UVector<double> averagedWeights(_channelsInDeconvolution, 0.0);
-  for (size_t groupIndex = 0;
-       groupIndex != _deconvolutionTable.OriginalGroups().size();
-       ++groupIndex) {
-    size_t chIndex = (groupIndex * _channelsInDeconvolution) /
-                     _deconvolutionTable.OriginalGroups().size();
+  aocommon::UVector<double> averagedWeights(NDeconvolutionChannels(), 0.0);
+  for (size_t groupIndex = 0; groupIndex != NOriginalChannels(); ++groupIndex) {
+    const size_t chIndex =
+        (groupIndex * NDeconvolutionChannels()) / NOriginalChannels();
     const DeconvolutionTable::Group& channelGroup =
         _deconvolutionTable.OriginalGroups()[groupIndex];
     const DeconvolutionTableEntry& entry = *channelGroup.front();
@@ -159,26 +143,27 @@ void ImageSet::LoadAndAveragePSFs(
     averagedWeights[chIndex] += inputChannelWeight;
   }
 
-  for (size_t chIndex = 0; chIndex != ChannelsInDeconvolution(); ++chIndex) {
+  for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
     const double factor =
         averagedWeights[chIndex] == 0.0 ? 0.0 : 1.0 / averagedWeights[chIndex];
     for (size_t i = 0; i != _width * _height; ++i) {
       psfImages[chIndex][i] *= factor;
     }
   }
+
+  return psfImages;
 }
 
 void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
-  if (_channelsInDeconvolution == _deconvolutionTable.OriginalGroups().size()) {
+  if (NDeconvolutionChannels() == NOriginalChannels()) {
     size_t imgIndex = 0;
     for (const DeconvolutionTableEntry& e : _deconvolutionTable) {
       e.model_accessor->Store(_images[imgIndex]);
       ++imgIndex;
     }
   } else {
-    Logger::Info << "Interpolating from " << _channelsInDeconvolution << " to "
-                 << _deconvolutionTable.OriginalGroups().size()
-                 << " channels...\n";
+    Logger::Info << "Interpolating from " << NDeconvolutionChannels() << " to "
+                 << NOriginalChannels() << " channels...\n";
 
     // TODO should use spectralimagefitter to do the interpolation of images;
     // here we should just unpack the data structure
@@ -191,7 +176,7 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
     aocommon::UVector<float> termsImage(_width * _height * nTerms);
     aocommon::StaticFor<size_t> loop(_settings.threadCount);
     loop.Run(0, _height, [&](size_t yStart, size_t yEnd) {
-      aocommon::UVector<float> spectralPixel(_channelsInDeconvolution);
+      aocommon::UVector<float> spectralPixel(NDeconvolutionChannels());
       aocommon::UVector<float> termsPixel(nTerms);
       for (size_t y = yStart; y != yEnd; ++y) {
         size_t px = y * _width;
@@ -236,31 +221,21 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
 }
 
 void ImageSet::AssignAndStoreResidual() {
-  if (_channelsInDeconvolution == _deconvolutionTable.OriginalGroups().size()) {
-    size_t imgIndex = 0;
-    for (const DeconvolutionTableEntry& e : _deconvolutionTable) {
-      e.residual_accessor->Store(_images[imgIndex]);
-      ++imgIndex;
-    }
-  } else {
-    Logger::Info << "Assigning from " << _channelsInDeconvolution << " to "
-                 << _deconvolutionTable.OriginalGroups().size()
-                 << " channels...\n";
-    size_t imgIndex = 0;
-    size_t groupIndex = 0;
-    for (const DeconvolutionTable::Group& channelGroup :
-         _deconvolutionTable.OriginalGroups()) {
-      size_t imgIndexForChannel = imgIndex;
-      for (const DeconvolutionTableEntry* e : channelGroup) {
-        e->residual_accessor->Store(_images[imgIndex]);
+  Logger::Info << "Assigning from " << NDeconvolutionChannels() << " to "
+               << NOriginalChannels() << " channels...\n";
+
+  size_t imgIndex = 0;
+  for (const std::vector<int>& group :
+       _deconvolutionTable.DeconvolutionGroups()) {
+    const size_t deconvolutionChannelStartIndex = imgIndex;
+    for (const int originalIndex : group) {
+      imgIndex = deconvolutionChannelStartIndex;
+
+      for (const DeconvolutionTableEntry* entry :
+           _deconvolutionTable.OriginalGroups()[originalIndex]) {
+        entry->residual_accessor->Store(_images[imgIndex]);
         ++imgIndex;
       }
-      size_t thisChannelIndex = (groupIndex * _channelsInDeconvolution) /
-                                _deconvolutionTable.OriginalGroups().size();
-      size_t nextChannelIndex = ((groupIndex + 1) * _channelsInDeconvolution) /
-                                _deconvolutionTable.OriginalGroups().size();
-      if (thisChannelIndex == nextChannelIndex) imgIndex = imgIndexForChannel;
-      ++groupIndex;
     }
   }
 }
@@ -269,16 +244,16 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
                                                      Image& scratch) const {
   // In case only one frequency channel is used, we do not have to use
   // 'scratch', which saves copying and normalizing the data.
-  if (_channelsInDeconvolution == 1) {
-    const DeconvolutionTable::Group& channelGroup =
+  if (NDeconvolutionChannels() == 1) {
+    const DeconvolutionTable::Group& originalGroup =
         _deconvolutionTable.OriginalGroups().front();
-    if (channelGroup.size() == 1) {
-      const DeconvolutionTableEntry& entry = *channelGroup.front();
+    if (originalGroup.size() == 1) {
+      const DeconvolutionTableEntry& entry = *originalGroup.front();
       dest = entryToImage(entry);
     } else {
       const bool useAllPolarizations = _linkedPolarizations.empty();
       bool isFirst = true;
-      for (const DeconvolutionTableEntry* entry_ptr : channelGroup) {
+      for (const DeconvolutionTableEntry* entry_ptr : originalGroup) {
         if (useAllPolarizations ||
             _linkedPolarizations.count(entry_ptr->polarization) != 0) {
           if (isFirst) {
@@ -295,22 +270,22 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
   } else {
     double weightSum = 0.0;
     bool isFirstChannel = true;
-    for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex) {
-      size_t groupIndex = channelIndexToGroupIndex(chIndex);
-      const DeconvolutionTable::Group& channelGroup =
-          _deconvolutionTable.OriginalGroups()[groupIndex];
+
+    for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
+      const DeconvolutionTable::Group& originalGroup =
+          _deconvolutionTable.FirstOriginalGroup(chIndex);
       const double groupWeight = _weights[chIndex];
       // if the groupWeight is zero, the image might contain NaNs, so we
       // shouldn't add it to the total in that case.
       if (groupWeight != 0.0) {
         weightSum += groupWeight;
-        if (channelGroup.size() == 1) {
-          const DeconvolutionTableEntry& entry = *channelGroup.front();
+        if (originalGroup.size() == 1) {
+          const DeconvolutionTableEntry& entry = *originalGroup.front();
           scratch = entryToImage(entry);
         } else {
           const bool useAllPolarizations = _linkedPolarizations.empty();
           bool isFirstPolarization = true;
-          for (const DeconvolutionTableEntry* entry_ptr : channelGroup) {
+          for (const DeconvolutionTableEntry* entry_ptr : originalGroup) {
             if (useAllPolarizations ||
                 _linkedPolarizations.count(entry_ptr->polarization) != 0) {
               if (isFirstPolarization) {
@@ -329,13 +304,11 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
       if (isFirstChannel) {
         assignMultiply(dest, scratch, groupWeight);
         isFirstChannel = false;
-      } else
+      } else {
         dest.AddWithFactor(scratch, groupWeight);
+      }
     }
-    if (_channelsInDeconvolution > 0)
-      dest *= std::sqrt(_polarizationNormalizationFactor) / weightSum;
-    else
-      dest = 0.0;
+    dest *= std::sqrt(_polarizationNormalizationFactor) / weightSum;
   }
 }
 
@@ -343,14 +316,14 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
   bool isFirst = true;
   const bool useAllPolarizations = _linkedPolarizations.empty();
   double weightSum = 0.0;
-  for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex) {
+
+  for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
     const double groupWeight = _weights[chIndex];
     weightSum += groupWeight;
     if (groupWeight != 0.0) {
-      size_t groupIndex = channelIndexToGroupIndex(chIndex);
-      const DeconvolutionTable::Group& channelGroup =
-          _deconvolutionTable.OriginalGroups()[groupIndex];
-      for (const DeconvolutionTableEntry* entry_ptr : channelGroup) {
+      const DeconvolutionTable::Group& originalGroup =
+          _deconvolutionTable.FirstOriginalGroup(chIndex);
+      for (const DeconvolutionTableEntry* entry_ptr : originalGroup) {
         if (useAllPolarizations ||
             _linkedPolarizations.count(entry_ptr->polarization) != 0) {
           if (isFirst) {
@@ -372,25 +345,24 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
 
 void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
   const bool useAllPolarizations = _linkedPolarizations.empty();
-  if (_channelsInDeconvolution == 1 &&
+  if (_deconvolutionTable.DeconvolutionGroups().size() == 1 &&
       _deconvolutionTable.OriginalGroups().front().size() == 1) {
-    const DeconvolutionTable::Group& channelGroup =
+    const DeconvolutionTable::Group& originalGroup =
         _deconvolutionTable.OriginalGroups().front();
-    const DeconvolutionTableEntry& entry = *channelGroup.front();
+    const DeconvolutionTableEntry& entry = *originalGroup.front();
     dest = entryToImage(entry);
   } else {
     bool isFirst = true;
     double weightSum = 0.0;
-    for (size_t chIndex = 0; chIndex != _channelsInDeconvolution; ++chIndex) {
-      size_t groupIndex = channelIndexToGroupIndex(chIndex);
-      const DeconvolutionTable::Group& channelGroup =
-          _deconvolutionTable.OriginalGroups()[groupIndex];
+    for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
+      const DeconvolutionTable::Group& originalGroup =
+          _deconvolutionTable.FirstOriginalGroup(chIndex);
       const double groupWeight = _weights[chIndex];
       // if the groupWeight is zero, the image might contain NaNs, so we
       // shouldn't add it to the total in that case.
       if (groupWeight != 0.0) {
         weightSum += groupWeight;
-        for (const DeconvolutionTableEntry* entry_ptr : channelGroup) {
+        for (const DeconvolutionTableEntry* entry_ptr : originalGroup) {
           if (useAllPolarizations ||
               _linkedPolarizations.count(entry_ptr->polarization) != 0) {
             if (isFirst) {
@@ -412,10 +384,9 @@ void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
 
 void ImageSet::CalculateDeconvolutionFrequencies(
     const DeconvolutionTable& groupTable,
-    aocommon::UVector<double>& frequencies, aocommon::UVector<float>& weights,
-    size_t nDeconvolutionChannels) {
+    aocommon::UVector<double>& frequencies, aocommon::UVector<float>& weights) {
   const size_t nInputChannels = groupTable.OriginalGroups().size();
-  if (nDeconvolutionChannels == 0) nDeconvolutionChannels = nInputChannels;
+  const size_t nDeconvolutionChannels = groupTable.DeconvolutionGroups().size();
   frequencies.assign(nDeconvolutionChannels, 0.0);
   weights.assign(nDeconvolutionChannels, 0.0);
   std::vector<double> unweightedFrequencies(nDeconvolutionChannels, 0.0);
@@ -447,12 +418,12 @@ void ImageSet::CalculateDeconvolutionFrequencies(
 
 void ImageSet::GetIntegratedPSF(Image& dest,
                                 const aocommon::UVector<const float*>& psfs) {
-  if (PSFCount() == 1)
+  if (NDeconvolutionChannels() == 1)
     std::copy_n(psfs[0], _width * _height, dest.Data());
   else {
     bool isFirst = true;
     double weightSum = 0.0;
-    for (size_t channel = 0; channel != _channelsInDeconvolution; ++channel) {
+    for (size_t channel = 0; channel != NDeconvolutionChannels(); ++channel) {
       const double groupWeight = _weights[channel];
       // if the groupWeight is zero, the image might contain NaNs, so we
       // shouldn't add it to the total in that case.

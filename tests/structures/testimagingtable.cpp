@@ -263,9 +263,15 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   CachedImageSet model_images;
   CachedImageSet residual_images;
   std::unique_ptr<DeconvolutionTable> deconvolution_table =
-      table.CreateDeconvolutionTable(psf_images, model_images, residual_images);
+      table.CreateDeconvolutionTable(1, psf_images, model_images,
+                                     residual_images);
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() == 1u);
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups()[0].size() == 2u);
+
+  const std::vector<std::vector<int>>& deconvolution_groups =
+      deconvolution_table->DeconvolutionGroups();
+  BOOST_TEST_REQUIRE(deconvolution_groups.size() == 1);
+  BOOST_TEST_REQUIRE(deconvolution_groups.front() == std::vector<int>(1, 0));
 
   BOOST_TEST_REQUIRE(deconvolution_table->Size() == entry->imageCount);
 
@@ -333,15 +339,19 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
 
   CachedImageSet images;
   std::unique_ptr<DeconvolutionTable> deconvolution_table =
-      table.CreateDeconvolutionTable(images, images, images);
+      table.CreateDeconvolutionTable(entries.size(), images, images, images);
 
   BOOST_TEST_REQUIRE(deconvolution_table->Size() == entries.size());
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() ==
                      entries.size());
+  BOOST_TEST_REQUIRE(deconvolution_table->DeconvolutionGroups().size() ==
+                     entries.size());
 
-  size_t index = 0;
-  for (const DeconvolutionTableEntry& deconvolution_entry :
-       *deconvolution_table) {
+  auto entry_iterator = deconvolution_table->begin();
+  for (int index = 0; index < int(entries.size()); ++index, ++entry_iterator) {
+    BOOST_TEST((entry_iterator != deconvolution_table->end()));
+
+    const DeconvolutionTableEntry& deconvolution_entry = *entry_iterator;
     BOOST_TEST(deconvolution_entry.original_channel_index ==
                entries[index]->outputChannelIndex);
     // Only use image_weight for checking if the entry is the correct entry.
@@ -353,8 +363,10 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
     BOOST_TEST_REQUIRE(group.size() == 1);
     BOOST_TEST(group[0] == &deconvolution_entry);
 
-    ++index;
+    BOOST_TEST(deconvolution_table->DeconvolutionGroups()[index] ==
+               std::vector<int>(1, index));
   }
+  BOOST_TEST((entry_iterator == deconvolution_table->end()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

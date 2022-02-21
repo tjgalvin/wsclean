@@ -63,8 +63,7 @@ class ImageSet {
    */
   void LoadAndAverage(bool use_residual_images);
 
-  void LoadAndAveragePSFs(std::vector<aocommon::UVector<float>>& psfImages,
-                          aocommon::PolarizationEnum psfPolarization);
+  std::vector<aocommon::UVector<float>> LoadAndAveragePSFs();
 
   void InterpolateAndStoreModel(const class SpectralFitter& fitter);
 
@@ -125,9 +124,15 @@ class ImageSet {
   void GetIntegratedPSF(aocommon::Image& dest,
                         const aocommon::UVector<const float*>& psfs);
 
-  size_t PSFCount() const { return _channelsInDeconvolution; }
+  size_t NOriginalChannels() const {
+    return _deconvolutionTable.OriginalGroups().size();
+  }
 
-  size_t ChannelsInDeconvolution() const { return _channelsInDeconvolution; }
+  size_t PSFCount() const { return NDeconvolutionChannels(); }
+
+  size_t NDeconvolutionChannels() const {
+    return _deconvolutionTable.DeconvolutionGroups().size();
+  }
 
   ImageSet& operator=(float val) {
     for (aocommon::Image& image : _images) image = val;
@@ -212,18 +217,12 @@ class ImageSet {
       _images[i].AddWithFactor(rhs._images[i], factor);
   }
 
-  bool SquareJoinedChannels() const { return _squareJoinedChannels; }
-
-  const std::set<aocommon::PolarizationEnum>& LinkedPolarizations() const {
-    return _linkedPolarizations;
-  }
-
   const class Settings& Settings() const { return _settings; }
 
   static void CalculateDeconvolutionFrequencies(
       const DeconvolutionTable& groupTable,
-      aocommon::UVector<double>& frequencies, aocommon::UVector<float>& weights,
-      size_t nDeconvolutionChannels);
+      aocommon::UVector<double>& frequencies,
+      aocommon::UVector<float>& weights);
 
  private:
   ImageSet& operator=(const ImageSet&) = delete;
@@ -308,25 +307,14 @@ class ImageSet {
 
   void getLinearIntegratedWithNormalChannels(aocommon::Image& dest) const;
 
-  size_t channelIndexToGroupIndex(size_t chIndex) const {
-    // Calculate reverse of
-    // (outChannel*_channelsInDeconvolution)/_deconvolutionTable.OriginalGroups().size();
-    size_t fromFloor = chIndex * _deconvolutionTable.OriginalGroups().size() /
-                       _channelsInDeconvolution;
-    while (fromFloor * _channelsInDeconvolution /
-               _deconvolutionTable.OriginalGroups().size() !=
-           chIndex)
-      ++fromFloor;
-    return fromFloor;
-  }
-
   const aocommon::Image& entryToImage(
       const DeconvolutionTableEntry& entry) const {
     return _images[_entryIndexToImageIndex[entry.index]];
   }
 
   std::vector<aocommon::Image> _images;
-  size_t _width, _height, _channelsInDeconvolution;
+  size_t _width;
+  size_t _height;
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
