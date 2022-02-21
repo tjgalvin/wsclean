@@ -102,10 +102,8 @@ boost::optional<float> SubMinorLoop::Run(
 }
 
 void SubMinorModel::MakeSets(const ImageSet& residualSet) {
-  _residual.reset(
-      new ImageSet(residualSet.Table(), residualSet.Settings(), size(), 1));
-  _model.reset(
-      new ImageSet(residualSet.Table(), residualSet.Settings(), size(), 1));
+  _residual = std::make_unique<ImageSet>(residualSet, size(), 1);
+  _model = std::make_unique<ImageSet>(residualSet, size(), 1);
   for (size_t imgIndex = 0; imgIndex != _model->size(); ++imgIndex) {
     std::fill((*_model)[imgIndex], (*_model)[imgIndex] + size(), 0.0);
 

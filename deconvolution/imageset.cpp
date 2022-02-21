@@ -15,19 +15,37 @@
 using aocommon::Image;
 using aocommon::Logger;
 
-ImageSet::ImageSet(const DeconvolutionTable& table,
-                   const class Settings& settings)
+namespace {
+void assignMultiply(aocommon::Image& lhs, const aocommon::Image& rhs,
+                    float factor) {
+  const size_t image_size = lhs.Size();
+  for (size_t i = 0; i != image_size; ++i) lhs[i] = rhs[i] * factor;
+}
+
+void squareRootMultiply(aocommon::Image& image, float factor) {
+  const size_t image_size = image.Size();
+  for (size_t i = 0; i != image_size; ++i) {
+    image[i] = std::sqrt(image[i]) * factor;
+  }
+}
+}  // namespace
+
+ImageSet::ImageSet(
+    const DeconvolutionTable& table, bool squared_joins,
+    const std::set<aocommon::PolarizationEnum>& linked_polarizations,
+    size_t width, size_t height)
     : _images(),
-      _width(0),
-      _height(0),
-      _squareJoinedChannels(settings.squaredJoins),
+      _squareJoinedChannels(squared_joins),
       _deconvolutionTable(table),
       _imageIndexToPSFIndex(),
-      _linkedPolarizations(settings.linkedPolarizations),
-      _settings(settings) {
+      _linkedPolarizations(linked_polarizations) {
   const size_t nPol = table.OriginalGroups().front().size();
   const size_t nImages = nPol * NDeconvolutionChannels();
-  _images.resize(nImages);
+  assert(nImages >= 1);
+  _images.reserve(nImages);
+  for (size_t i = 0; i < nImages; ++i) {
+    _images.emplace_back(width, height);
+  }
   _imageIndexToPSFIndex.resize(nImages);
 
   initializePolFactor();
@@ -36,13 +54,9 @@ ImageSet::ImageSet(const DeconvolutionTable& table,
   CalculateDeconvolutionFrequencies(table, frequencies, _weights);
 }
 
-ImageSet::ImageSet(const DeconvolutionTable& table,
-                   const class Settings& settings, size_t width, size_t height)
-    : ImageSet(table, settings) {
-  _width = width;
-  _height = height;
-  allocateImages();
-}
+ImageSet::ImageSet(const ImageSet& image_set, size_t width, size_t height)
+    : ImageSet(image_set._deconvolutionTable, image_set._squareJoinedChannels,
+               image_set._linkedPolarizations, width, height) {}
 
 void ImageSet::initializeIndices() {
   _entryIndexToImageIndex.reserve(_deconvolutionTable.Size());
@@ -74,13 +88,10 @@ void ImageSet::initializeIndices() {
 }
 
 void ImageSet::SetImages(ImageSet&& source) {
-  for (size_t imageIndex = 0; imageIndex != _images.size(); ++imageIndex) {
-    _images[imageIndex] = std::move(source._images[imageIndex]);
-  }
-  _width = source._width;
-  _height = source._height;
-  source._width = 0;
-  source._height = 0;
+  _images = std::move(source._images);
+  // Note: 'source' becomes invalid now: Since its _images becomes empty,
+  // Width() and Height() will fail. Move semantics allow this case, though:
+  // The state of 'source' is unknown and the destructor will not fail.
 }
 
 void ImageSet::LoadAndAverage(bool use_residual_image) {
@@ -88,7 +99,7 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
     image = 0.0;
   }
 
-  Image scratch(_width, _height);
+  Image scratch(Width(), Height());
 
   aocommon::UVector<double> averagedWeights(_images.size(), 0.0);
   size_t imgIndex = 0;
@@ -120,13 +131,15 @@ void ImageSet::LoadAndAverage(bool use_residual_image) {
 }
 
 std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
+  const size_t image_size = Width() * Height();
+
   std::vector<aocommon::UVector<float>> psfImages;
   psfImages.reserve(NDeconvolutionChannels());
   for (size_t i = 0; i < NDeconvolutionChannels(); ++i) {
-    psfImages.emplace_back(_width * _height, 0.0);
+    psfImages.emplace_back(image_size, 0.0);
   }
 
-  Image scratch(_width, _height);
+  Image scratch(Width(), Height());
 
   aocommon::UVector<double> averagedWeights(NDeconvolutionChannels(), 0.0);
   for (size_t groupIndex = 0; groupIndex != NOriginalChannels(); ++groupIndex) {
@@ -137,7 +150,7 @@ std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
     const DeconvolutionTableEntry& entry = *channelGroup.front();
     const double inputChannelWeight = entry.image_weight;
     entry.psf_accessor->Load(scratch);
-    for (size_t i = 0; i != _width * _height; ++i) {
+    for (size_t i = 0; i != image_size; ++i) {
       psfImages[chIndex][i] += scratch[i] * inputChannelWeight;
     }
     averagedWeights[chIndex] += inputChannelWeight;
@@ -146,7 +159,7 @@ std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
   for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
     const double factor =
         averagedWeights[chIndex] == 0.0 ? 0.0 : 1.0 / averagedWeights[chIndex];
-    for (size_t i = 0; i != _width * _height; ++i) {
+    for (size_t i = 0; i != image_size; ++i) {
       psfImages[chIndex][i] *= factor;
     }
   }
@@ -154,7 +167,8 @@ std::vector<aocommon::UVector<float>> ImageSet::LoadAndAveragePSFs() {
   return psfImages;
 }
 
-void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
+void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
+                                        size_t threadCount) {
   if (NDeconvolutionChannels() == NOriginalChannels()) {
     size_t imgIndex = 0;
     for (const DeconvolutionTableEntry& e : _deconvolutionTable) {
@@ -173,14 +187,14 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
     // to have all channel images in memory at the same time.
     // TODO: this assumes that polarizations are not joined!
     size_t nTerms = fitter.NTerms();
-    aocommon::UVector<float> termsImage(_width * _height * nTerms);
-    aocommon::StaticFor<size_t> loop(_settings.threadCount);
-    loop.Run(0, _height, [&](size_t yStart, size_t yEnd) {
+    aocommon::UVector<float> termsImage(Width() * Height() * nTerms);
+    aocommon::StaticFor<size_t> loop(threadCount);
+    loop.Run(0, Height(), [&](size_t yStart, size_t yEnd) {
       aocommon::UVector<float> spectralPixel(NDeconvolutionChannels());
       aocommon::UVector<float> termsPixel(nTerms);
       for (size_t y = yStart; y != yEnd; ++y) {
-        size_t px = y * _width;
-        for (size_t x = 0; x != _width; ++x) {
+        size_t px = y * Width();
+        for (size_t x = 0; x != Width(); ++x) {
           bool isZero = true;
           for (size_t s = 0; s != _images.size(); ++s) {
             float value = _images[s][px];
@@ -203,10 +217,10 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter) {
 
     // Now that we know the fit for each pixel, evaluate the function for each
     // pixel of each output channel.
-    Image scratch(_width, _height);
+    Image scratch(Width(), Height());
     for (const DeconvolutionTableEntry& e : _deconvolutionTable) {
       double freq = e.CentralFrequency();
-      loop.Run(0, _width * _height, [&](size_t pxStart, size_t pxEnd) {
+      loop.Run(0, Width() * Height(), [&](size_t pxStart, size_t pxEnd) {
         aocommon::UVector<float> termsPixel(nTerms);
         for (size_t px = pxStart; px != pxEnd; ++px) {
           const float* termsPtr = &termsImage[px * nTerms];
@@ -418,8 +432,10 @@ void ImageSet::CalculateDeconvolutionFrequencies(
 
 void ImageSet::GetIntegratedPSF(Image& dest,
                                 const aocommon::UVector<const float*>& psfs) {
+  const size_t image_size = Width() * Height();
+
   if (NDeconvolutionChannels() == 1)
-    std::copy_n(psfs[0], _width * _height, dest.Data());
+    std::copy_n(psfs[0], image_size, dest.Data());
   else {
     bool isFirst = true;
     double weightSum = 0.0;
@@ -430,16 +446,16 @@ void ImageSet::GetIntegratedPSF(Image& dest,
       if (groupWeight != 0.0) {
         weightSum += groupWeight;
         if (isFirst) {
-          for (size_t i = 0; i != _width * _height; ++i)
+          for (size_t i = 0; i != image_size; ++i)
             dest[i] = psfs[channel][i] * groupWeight;
           isFirst = false;
         } else {
-          for (size_t i = 0; i != _width * _height; ++i)
+          for (size_t i = 0; i != image_size; ++i)
             dest[i] += psfs[channel][i] * groupWeight;
         }
       }
     }
     const double factor = weightSum == 0.0 ? 0.0 : 1.0 / weightSum;
-    for (size_t i = 0; i != _width * _height; ++i) dest[i] *= factor;
+    for (size_t i = 0; i != image_size; ++i) dest[i] *= factor;
   }
 }

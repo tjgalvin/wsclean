@@ -903,11 +903,9 @@ float IUWTDeconvolutionAlgorithm::PerformMajorIteration(
                        maxScale, _psfResponse);
   }
 
-  ImageSet structureModel(modelSet.Table(), modelSet.Settings(), _width,
-                          _height);
+  ImageSet structureModel(modelSet, _width, _height);
 
-  std::unique_ptr<IUWTDecomposition> iuwt(
-      new IUWTDecomposition(curEndScale, _width, _height));
+  auto iuwt = std::make_unique<IUWTDecomposition>(curEndScale, _width, _height);
 
   Image dirtyBeforeIteration;
 

@@ -48,8 +48,10 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
   Logger::Info.Flush();
   Logger::Info << " == Deconvolving (" << majorIterationNr << ") ==\n";
 
-  ImageSet residualSet(*_table, _settings, _imgWidth, _imgHeight);
-  ImageSet modelSet(*_table, _settings, _imgWidth, _imgHeight);
+  ImageSet residualSet(*_table, _settings.squaredJoins,
+                       _settings.linkedPolarizations, _imgWidth, _imgHeight);
+  ImageSet modelSet(*_table, _settings.squaredJoins,
+                    _settings.linkedPolarizations, _imgWidth, _imgHeight);
 
   Logger::Debug << "Loading residual images...\n";
   residualSet.LoadAndAverage(true);
@@ -177,7 +179,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
 
   residualSet.AssignAndStoreResidual();
   modelSet.InterpolateAndStoreModel(
-      _parallelDeconvolution.FirstAlgorithm().Fitter());
+      _parallelDeconvolution.FirstAlgorithm().Fitter(), _settings.threadCount);
 }
 
 void Deconvolution::InitializeDeconvolutionAlgorithm(

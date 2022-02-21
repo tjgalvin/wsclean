@@ -69,16 +69,12 @@ struct ImageSetFixtureBase {
   }
 
   std::unique_ptr<DeconvolutionTable> table;
-  Settings settings;
   CachedImageSet cSet;
 };
 
 template <size_t NDeconvolutionChannels>
 struct ImageSetFixture : public ImageSetFixtureBase {
   ImageSetFixture() {
-    settings.squaredJoins = false;
-    settings.linkedPolarizations = std::set<PolarizationEnum>();
-
     initTable(2, NDeconvolutionChannels);
     addToImageSet(0, aocommon::Polarization::XX, 100);
     addToImageSet(0, aocommon::Polarization::YY, 100);
@@ -90,19 +86,28 @@ struct ImageSetFixture : public ImageSetFixtureBase {
 BOOST_AUTO_TEST_SUITE(imageset)
 
 BOOST_FIXTURE_TEST_CASE(constructor_1, ImageSetFixture<1>) {
-  ImageSet dset(*table, settings, 2, 2);
+  const bool kSquareJoinedChannels = false;
+  const std::set<aocommon::PolarizationEnum> kLinkedPolarizations;
+  ImageSet dset(*table, kSquareJoinedChannels, kLinkedPolarizations, 2, 2);
   BOOST_CHECK_EQUAL(&dset.Table(), table.get());
-  BOOST_CHECK_EQUAL(&dset.Settings(), &settings);
   BOOST_CHECK_EQUAL(dset.NOriginalChannels(), 2u);
   BOOST_CHECK_EQUAL(dset.PSFCount(), 1u);
   BOOST_CHECK_EQUAL(dset.NDeconvolutionChannels(), 1u);
+  BOOST_CHECK_EQUAL(dset.SquareJoinedChannels(), kSquareJoinedChannels);
+  BOOST_CHECK(dset.LinkedPolarizations() == kLinkedPolarizations);
 }
 
 BOOST_FIXTURE_TEST_CASE(constructor_2, ImageSetFixture<2>) {
-  ImageSet dset(*table, settings, 2, 2);
+  const bool kSquareJoinedChannels = true;
+  const std::set<aocommon::PolarizationEnum> kLinkedPolarizations{
+      aocommon::PolarizationEnum::StokesI, aocommon::PolarizationEnum::StokesQ,
+      aocommon::PolarizationEnum::StokesU, aocommon::PolarizationEnum::StokesV};
+  ImageSet dset(*table, kSquareJoinedChannels, kLinkedPolarizations, 2, 2);
   BOOST_CHECK_EQUAL(dset.NOriginalChannels(), 2u);
   BOOST_CHECK_EQUAL(dset.PSFCount(), 2u);
   BOOST_CHECK_EQUAL(dset.NDeconvolutionChannels(), 2u);
+  BOOST_CHECK_EQUAL(dset.SquareJoinedChannels(), kSquareJoinedChannels);
+  BOOST_CHECK(dset.LinkedPolarizations() == kLinkedPolarizations);
 }
 
 template <size_t NDeconvolutionChannels>
@@ -130,27 +135,25 @@ BOOST_FIXTURE_TEST_CASE(load, AdvImageSetFixture<1>) {
 }
 
 BOOST_FIXTURE_TEST_CASE(loadAndAverage, AdvImageSetFixture<1>) {
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {}, 2, 2);
   dset.LoadAndAverage(false);
   BOOST_CHECK_CLOSE_FRACTION(dset[0][0], 0.5 * (2.0 + 20.0), 1e-8);
   BOOST_CHECK_CLOSE_FRACTION(dset[1][0], 0.5 * (-1.0 - 10.0), 1e-8);
 }
 
 BOOST_FIXTURE_TEST_CASE(interpolateAndStore, AdvImageSetFixture<2>) {
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {}, 2, 2);
   SpectralFitter fitter(SpectralFittingMode::NoFitting, 2);
   dset.LoadAndAverage(false);
-  dset.InterpolateAndStoreModel(fitter);
+  dset.InterpolateAndStoreModel(fitter, 1);
   BOOST_CHECK_CLOSE_FRACTION(dset[0][0], 2.0, 1e-8);
   BOOST_CHECK_CLOSE_FRACTION(dset[1][0], -1.0, 1e-8);
 }
 
 BOOST_FIXTURE_TEST_CASE(xxNormalization, ImageSetFixtureBase) {
   initTable(1, 1);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::XX};
   addToImageSet(0, aocommon::Polarization::XX, 100);
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::XX}, 2, 2);
   dset = 0.0;
   dset[0][1] = 5.0;
   checkLinearValue(1, 5.0, dset);
@@ -160,9 +163,7 @@ BOOST_FIXTURE_TEST_CASE(xxNormalization, ImageSetFixtureBase) {
 BOOST_FIXTURE_TEST_CASE(iNormalization, ImageSetFixtureBase) {
   initTable(1, 1);
   addToImageSet(0, aocommon::Polarization::StokesI, 100);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   dset[0][2] = 6.0;
   checkLinearValue(2, 6.0, dset);
@@ -173,10 +174,7 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_Normalization, ImageSetFixtureBase) {
   initTable(2, 2);
   addToImageSet(0, aocommon::Polarization::StokesI, 100);
   addToImageSet(1, aocommon::Polarization::StokesI, 200);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  std::set<PolarizationEnum> pols{aocommon::Polarization::StokesI};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   dset[0][0] = 12.0;
   dset[1][0] = 13.0;
@@ -188,10 +186,7 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_NaNs, ImageSetFixtureBase) {
   initTable(2, 2);
   addToImageSet(0, aocommon::Polarization::StokesI, 100, 0.0);
   addToImageSet(1, aocommon::Polarization::StokesI, 200, 1.0);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  std::set<PolarizationEnum> pols{aocommon::Polarization::StokesI};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   dset[0][0] = std::numeric_limits<float>::quiet_NaN();
   dset[1][0] = 42.0;
@@ -203,9 +198,9 @@ BOOST_FIXTURE_TEST_CASE(xxyyNormalization, ImageSetFixtureBase) {
   initTable(1, 1);
   addToImageSet(0, aocommon::Polarization::XX, 100);
   addToImageSet(0, aocommon::Polarization::YY, 100);
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
   dset[0][3] = 7.0;
   dset[1][3] = 8.0;
@@ -218,9 +213,9 @@ BOOST_FIXTURE_TEST_CASE(iqNormalization, ImageSetFixtureBase) {
   initTable(1, 1);
   addToImageSet(0, aocommon::Polarization::StokesI, 100);
   addToImageSet(0, aocommon::Polarization::StokesQ, 100);
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::StokesI, aocommon::Polarization::StokesQ};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
   dset[0][0] = 6.0;
   dset[1][0] = -1.0;
@@ -232,9 +227,7 @@ BOOST_FIXTURE_TEST_CASE(linkedINormalization, ImageSetFixtureBase) {
   initTable(1, 1);
   addToImageSet(0, aocommon::Polarization::StokesI, 100);
   addToImageSet(0, aocommon::Polarization::StokesQ, 100);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   dset[0][0] = 3.0;
   dset[1][0] = -1.0;
@@ -248,10 +241,10 @@ BOOST_FIXTURE_TEST_CASE(iquvNormalization, ImageSetFixtureBase) {
   addToImageSet(0, aocommon::Polarization::StokesQ, 100);
   addToImageSet(0, aocommon::Polarization::StokesU, 100);
   addToImageSet(0, aocommon::Polarization::StokesV, 100);
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::StokesI, aocommon::Polarization::StokesQ,
       aocommon::Polarization::StokesU, aocommon::Polarization::StokesV};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
   dset[0][0] = 9.0;
   dset[1][0] = 0.2;
@@ -267,10 +260,10 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yyNormalization, ImageSetFixtureBase) {
   addToImageSet(0, aocommon::Polarization::XY, 100);
   addToImageSet(0, aocommon::Polarization::YX, 100);
   addToImageSet(0, aocommon::Polarization::YY, 100);
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
   dset[0][1] = 10.0;
   dset[1][1] = 0.25;
@@ -292,10 +285,10 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yy_2channel_Normalization,
   addToImageSet(1, aocommon::Polarization::XY, 200);
   addToImageSet(1, aocommon::Polarization::YX, 200);
   addToImageSet(1, aocommon::Polarization::YY, 200);
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
   dset[0][2] = 5.0;
   dset[1][2] = 0.1;
@@ -326,9 +319,9 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_yy_2channel_Normalization,
   addToImageSet(1, aocommon::Polarization::XY, 200);
   addToImageSet(1, aocommon::Polarization::YX, 200);
   addToImageSet(1, aocommon::Polarization::YY, 200);
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
   dset[0][2] = 7.5;
   dset[1][2] = 0.1;
@@ -355,9 +348,7 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_2channel_Normalization, ImageSetFixtureBase) {
   addToImageSet(1, aocommon::Polarization::XY, 200);
   addToImageSet(1, aocommon::Polarization::YX, 200);
   addToImageSet(1, aocommon::Polarization::YY, 200);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::XX};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::XX}, 2, 2);
   dset = 0.0;
   dset[0][2] = 7.5;
   dset[1][2] = 0.1;
@@ -378,9 +369,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_normalization, ImageSetFixtureBase) {
   addToImageSet(1, aocommon::Polarization::StokesI, 200, 1);
   addToImageSet(2, aocommon::Polarization::StokesI, 300, 2);
   addToImageSet(3, aocommon::Polarization::StokesI, 400, 2);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   dset[0][0] = 10.0;
   dset[1][0] = 13.0;
@@ -394,9 +383,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_zeroweight, ImageSetFixtureBase) {
   addToImageSet(1, aocommon::Polarization::StokesI, 200, 0);
   addToImageSet(2, aocommon::Polarization::StokesI, 300, 2);
   addToImageSet(3, aocommon::Polarization::StokesI, 400, 2);
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   dset[0][0] = 10.0;
   dset[1][0] = 5.0;
@@ -409,9 +396,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_divisor, ImageSetFixtureBase) {
   for (size_t ch = 0; ch != table->OriginalGroups().size(); ++ch) {
     addToImageSet(ch, aocommon::Polarization::StokesI, 100 + ch, 1);
   }
-  settings.linkedPolarizations =
-      std::set<PolarizationEnum>{aocommon::Polarization::StokesI};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   for (size_t ch = 0; ch != table->DeconvolutionGroups().size(); ++ch) {
     dset[ch][0] = 7.0;
@@ -432,10 +417,10 @@ BOOST_FIXTURE_TEST_CASE(psfindex, ImageSetFixtureBase) {
     addToImageSet(ch, aocommon::Polarization::YX, 300, 2);
     addToImageSet(ch, aocommon::Polarization::YY, 400, 2);
   }
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::XX, aocommon::Polarization::XY,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
-  ImageSet dset(*table, settings, 2, 2);
+  ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
 
   BOOST_CHECK_EQUAL(dset.PSFIndex(0), 0u);
   BOOST_CHECK_EQUAL(dset.PSFIndex(1), 0u);
@@ -468,10 +453,10 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
       cSet.Store(storedImage.Data(), pols[p], ch, false);
     }
   }
-  settings.linkedPolarizations = std::set<PolarizationEnum>{
+  const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
 
-  ImageSet imageSet(*table, settings, width, height);
+  ImageSet imageSet(*table, false, kLinkedPolarizations, width, height);
   imageSet.LoadAndAverage(false);
   // The first image has all values set to 2^0, the second image 2^1, etc...
   // The XX polarizations of deconvolution channel 1 consists of

@@ -14,31 +14,22 @@
 
 class ImageSet {
  public:
-  ImageSet(const DeconvolutionTable& table, const Settings& settings);
-
-  ImageSet(const DeconvolutionTable& table, const Settings& settings,
+  ImageSet(const DeconvolutionTable& table, bool squared_joins,
+           const std::set<aocommon::PolarizationEnum>& linked_polarizations,
            size_t width, size_t height);
 
-  ImageSet(const ImageSet&) = default;
-
-  void AllocateImages() {
-    _images.clear();
-    allocateImages();
-  }
-
-  void AllocateImages(size_t width, size_t height) {
-    _images.clear();
-    _width = width;
-    _height = height;
-    allocateImages();
-  }
-
   /**
-   * Make a new image set with the same dimensions and uninitialized image data.
+   * Constructs an ImageSet with the same settings as an existing ImageSet
+   * object, but a different image size.
+   *
+   * @param image_set An existing ImageSet.
+   * @param width The image width for the new ImageSet.
+   * @param height The image height for the new ImageSet.
    */
-  ImageSet UnsetCopy() const {
-    return ImageSet(_deconvolutionTable, _settings, _width, _height);
-  }
+  ImageSet(const ImageSet& image_set, size_t width, size_t height);
+
+  ImageSet(const ImageSet&) = delete;
+  ImageSet& operator=(const ImageSet&) = delete;
 
   aocommon::Image Release(size_t imageIndex) {
     return std::move(_images[imageIndex]);
@@ -55,8 +46,6 @@ class ImageSet {
    */
   void SetImages(ImageSet&& source);
 
-  bool IsAllocated() const { return _width * _height != 0; }
-
   /**
    * @param use_residual_images: True: Load residual images. False: Load model
    * images.
@@ -65,7 +54,8 @@ class ImageSet {
 
   std::vector<aocommon::UVector<float>> LoadAndAveragePSFs();
 
-  void InterpolateAndStoreModel(const class SpectralFitter& fitter);
+  void InterpolateAndStoreModel(const class SpectralFitter& fitter,
+                                size_t threadCount);
 
   void AssignAndStoreResidual();
 
@@ -153,8 +143,7 @@ class ImageSet {
 
   std::unique_ptr<ImageSet> Trim(size_t x1, size_t y1, size_t x2, size_t y2,
                                  size_t oldWidth) const {
-    std::unique_ptr<ImageSet> p(
-        new ImageSet(_deconvolutionTable, _settings, x2 - x1, y2 - y1));
+    auto p = std::make_unique<ImageSet>(*this, x2 - x1, y2 - y1);
     for (size_t i = 0; i != _images.size(); ++i) {
       copySmallerPart(_images[i], p->_images[i], x1, y1, x2, y2, oldWidth);
     }
@@ -217,7 +206,15 @@ class ImageSet {
       _images[i].AddWithFactor(rhs._images[i], factor);
   }
 
-  const class Settings& Settings() const { return _settings; }
+  bool SquareJoinedChannels() const { return _squareJoinedChannels; }
+
+  const std::set<aocommon::PolarizationEnum>& LinkedPolarizations() const {
+    return _linkedPolarizations;
+  }
+
+  size_t Width() const { return _images.front().Width(); }
+
+  size_t Height() const { return _images.front().Height(); }
 
   static void CalculateDeconvolutionFrequencies(
       const DeconvolutionTable& groupTable,
@@ -225,24 +222,6 @@ class ImageSet {
       aocommon::UVector<float>& weights);
 
  private:
-  ImageSet& operator=(const ImageSet&) = delete;
-
-  void allocateImages() {
-    for (aocommon::Image& img : _images) {
-      img = aocommon::Image(_width, _height);
-    }
-  }
-
-  void assignMultiply(aocommon::Image& lhs, const aocommon::Image& rhs,
-                      float factor) const {
-    for (size_t i = 0; i != _width * _height; ++i) lhs[i] = rhs[i] * factor;
-  }
-
-  void squareRootMultiply(aocommon::Image& image, float factor) const {
-    for (size_t i = 0; i != _width * _height; ++i)
-      image[i] = std::sqrt(image[i]) * factor;
-  }
-
   void initializeIndices();
 
   void initializePolFactor() {
@@ -313,8 +292,6 @@ class ImageSet {
   }
 
   std::vector<aocommon::Image> _images;
-  size_t _width;
-  size_t _height;
   // Weight of each deconvolution channels
   aocommon::UVector<float> _weights;
   bool _squareJoinedChannels;
@@ -323,7 +300,6 @@ class ImageSet {
   aocommon::UVector<size_t> _imageIndexToPSFIndex;
   float _polarizationNormalizationFactor;
   std::set<aocommon::PolarizationEnum> _linkedPolarizations;
-  const class Settings& _settings;
 };
 
 #endif  // DECONVOLUTION_IMAGE_SET_H
