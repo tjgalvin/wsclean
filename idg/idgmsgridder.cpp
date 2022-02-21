@@ -615,7 +615,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
           new ATermConfig(nr_stations, system, aterm_settings));
       config->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
       config->Read(*ms, parset_aterms, ms.Filename());
-      return std::move(config);
+      return config;
     } else {
       // If MWA MS, get the path to the coefficient file
       if (everybeam::GetTelescopeType(*ms) ==
@@ -634,7 +634,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
           elementResponseModel, _settings.beamMode);
       beam->SetSaveATerms(_settings.saveATerms, _settings.prefixName);
       beam->SetUpdateInterval(_settings.beamAtermUpdateTime);
-      return std::move(beam);
+      return beam;
     }
   } else {
     return std::unique_ptr<ATermBase>();

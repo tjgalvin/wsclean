@@ -29,7 +29,7 @@ class ImageFilename {
   }
 
   std::string GetBeamPrefix(const Settings& settings) const {
-    return GetBeamPrefix(settings, _channelIndex, _intervalIndex, _isImaginary);
+    return GetBeamPrefix(settings, _channelIndex, _intervalIndex);
   }
 
   aocommon::PolarizationEnum GetPolarization() const { return _polarization; }
@@ -67,8 +67,7 @@ class ImageFilename {
   }
 
   static std::string GetBeamPrefix(const Settings& settings,
-                                   size_t channelIndex, size_t intervalIndex,
-                                   bool isImaginary) {
+                                   size_t channelIndex, size_t intervalIndex) {
     std::ostringstream partPrefixNameStr;
     partPrefixNameStr << settings.prefixName;
     if (settings.intervalsOut != 1)
