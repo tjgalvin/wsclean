@@ -345,8 +345,9 @@ void MSGridderBase::initializePointResponse(
             element_response_string, _settings.beamMode);
 
     _telescope = everybeam::Load(*ms, options);
-    _pointResponse =
-        _telescope->GetPointResponse(msData.msProvider->StartTime());
+    // Initialize with 0.0 time to make sure first call to UpdateTime()
+    // will fill the beam response cache.
+    _pointResponse = _telescope->GetPointResponse(0.0);
     _pointResponse->SetUpdateInterval(_settings.facetBeamUpdateTime);
     _cachedBeamResponse.resize(msData.bandData.ChannelCount() *
                                _pointResponse->GetAllStationsBufferSize());
