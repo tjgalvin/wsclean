@@ -191,13 +191,14 @@ if(IDGAPI_FOUND)
     set(IDG_FILES idg/idgmsgridder.cpp)
     include_directories(${IDGAPI_INCLUDE_DIRS})
     add_definitions(-DHAVE_IDG)
-    message("Image domain gridder libraries found.")
+    message(STATUS "Image domain gridder libraries found.")
   endif()
 else()
   set(IDGAPI_LIBRARIES)
   set(IDG_FILES)
   message(
-    "Image domain gridder libraries NOT found. This gridder will not be available."
+    STATUS
+      "Image domain gridder libraries NOT found. This gridder will not be available."
   )
 endif()
 
@@ -454,7 +455,8 @@ if(BUILD_TESTING)
     add_subdirectory(tests)
   else()
     message(
-      "Boost testing framework not found (not required for wsclean: only required for running tests)."
+      STATUS
+        "Boost testing framework not found (not required for wsclean: only required for running tests)."
     )
   endif()
 endif()
