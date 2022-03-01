@@ -28,7 +28,7 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
         new MultiScaleAlgorithm(*this));
   }
 
-  void SetManualScaleList(const aocommon::UVector<double>& scaleList) {
+  void SetManualScaleList(const std::vector<double>& scaleList) {
     _manualScaleList = scaleList;
   }
 
@@ -107,7 +107,7 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
     float totalFluxCleaned;
   };
   std::vector<MultiScaleAlgorithm::ScaleInfo> _scaleInfos;
-  aocommon::UVector<double> _manualScaleList;
+  std::vector<double> _manualScaleList;
 
   bool _trackPerScaleMasks, _usePerScaleMasks, _fastSubMinorLoop,
       _trackComponents;

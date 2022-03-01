@@ -9,10 +9,7 @@
 #include "../deconvolution/imageset.h"
 
 #include <aocommon/image.h>
-
-namespace aocommon {
-class LogReceiver;
-}
+#include <aocommon/logger.h>
 
 /**
  * In multi-scale, a subminor optimized loop looks like this:

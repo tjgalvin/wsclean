@@ -6,8 +6,6 @@
 
 #include <aocommon/fits/fitsreader.h>
 
-#include "../deconvolution/deconvolution.h"
-
 #include "../math/modelrenderer.h"
 
 #include "../model/bbsmodel.h"
@@ -16,7 +14,7 @@
 
 WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
                              const Settings& settings,
-                             const class Deconvolution& deconvolution,
+                             const std::optional<Deconvolution>& deconvolution,
                              const ObservationInfo& observationInfo,
                              size_t majorIterationNr,
                              const std::string& commandLine,
@@ -29,18 +27,22 @@ WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, entry.polarization, channelInfo);
   setDeconvolutionKeywords(settings);
-  if (deconvolution.IsInitialized())
-    setDeconvolutionResultKeywords(deconvolution.IterationNumber(),
+  if (deconvolution.has_value() && deconvolution->IsInitialized()) {
+    setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
                                    majorIterationNr);
+  }
   if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }
 
-WSCFitsWriter::WSCFitsWriter(
-    const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
-    bool isImaginary, const Settings& settings,
-    const Deconvolution& deconvolution, const ObservationInfo& observationInfo,
-    size_t majorIterationNr, const std::string& commandLine,
-    const OutputChannelInfo& channelInfo, bool isModel, double startTime) {
+WSCFitsWriter::WSCFitsWriter(const ImagingTableEntry& entry,
+                             aocommon::PolarizationEnum polarization,
+                             bool isImaginary, const Settings& settings,
+                             const std::optional<Deconvolution>& deconvolution,
+                             const ObservationInfo& observationInfo,
+                             size_t majorIterationNr,
+                             const std::string& commandLine,
+                             const OutputChannelInfo& channelInfo, bool isModel,
+                             double startTime) {
   _filenamePrefix =
       ImageFilename::GetPrefix(settings, polarization, entry.outputChannelIndex,
                                entry.outputIntervalIndex, isImaginary);
@@ -48,9 +50,10 @@ WSCFitsWriter::WSCFitsWriter(
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
-  if (deconvolution.IsInitialized())
-    setDeconvolutionResultKeywords(deconvolution.IterationNumber(),
+  if (deconvolution.has_value() && deconvolution->IsInitialized()) {
+    setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
                                    majorIterationNr);
+  }
   if (isModel) _writer.SetUnit(FitsWriter::JanskyPerPixel);
 }
 

@@ -5,6 +5,7 @@
 
 #include "../structures/primarybeamimageset.h"
 
+#include "deconvolutionsettings.h"
 #include "subimagelogset.h"
 
 #include <aocommon/image.h>
@@ -16,7 +17,7 @@
 
 class ParallelDeconvolution {
  public:
-  ParallelDeconvolution(const class Settings& settings);
+  ParallelDeconvolution(const DeconvolutionSettings& deconvolutionSettings);
 
   ~ParallelDeconvolution();
 
@@ -92,8 +93,10 @@ class ParallelDeconvolution {
   FFTWManager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
   SubImageLogSet _logs;
-  size_t _horImages, _verImages;
-  const Settings& _settings;
+  size_t _horImages;
+  size_t _verImages;
+  // Deconvolution::_settings outlives ParallelDeconvolution::_settings
+  const DeconvolutionSettings& _settings;
   ImageBufferAllocator* _allocator;
   const bool* _mask;
   std::vector<aocommon::Image> _spectrallyForcedImages;

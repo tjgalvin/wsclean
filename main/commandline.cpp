@@ -865,9 +865,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       std::string method = argv[argi];
       settings.localRMS = true;
       if (method == "rms")
-        settings.localRMSMethod = Settings::RMSWindow;
+        settings.localRMSMethod = LocalRmsMethod::kRmsWindow;
       else if (method == "rms-with-min")
-        settings.localRMSMethod = Settings::RMSAndMinimumWindow;
+        settings.localRMSMethod = LocalRmsMethod::kRmsAndMinimumWindow;
       else
         throw std::runtime_error("Unknown RMS background method specified");
       if (param == "rms-background-method")
@@ -1479,7 +1479,7 @@ void CommandLine::Validate(WSClean& wsclean) {
 }
 
 void CommandLine::Run(class WSClean& wsclean) {
-  Settings& settings = wsclean.GetSettings();
+  const Settings& settings = wsclean.GetSettings();
   switch (settings.mode) {
     case Settings::RestoreMode:
       WSCFitsWriter::Restore(settings);

@@ -67,7 +67,7 @@ void ImageSet::initializeIndices() {
     for (const int originalIndex : group) {
       imgIndex = deconvolutionChannelStartIndex;
 
-      for (const DeconvolutionTableEntry* entry :
+      for ([[maybe_unused]] const DeconvolutionTableEntry* entry :
            _deconvolutionTable.OriginalGroups()[originalIndex]) {
         assert(entry->index == _entryIndexToImageIndex.size());
         _entryIndexToImageIndex.push_back(imgIndex);

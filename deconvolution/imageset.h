@@ -1,8 +1,6 @@
 #ifndef DECONVOLUTION_IMAGE_SET_H
 #define DECONVOLUTION_IMAGE_SET_H
 
-#include "../main/settings.h"
-
 #include "deconvolutiontable.h"
 
 #include <aocommon/image.h>

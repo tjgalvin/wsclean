@@ -9,6 +9,7 @@
 #include "../structures/msselection.h"
 
 #include "../deconvolution/deconvolutionalgorithm.h"
+#include "../deconvolution/deconvolutionsettings.h"
 #include "../multiscale/multiscaletransforms.h"
 
 #include <aocommon/system.h>
@@ -71,8 +72,6 @@ class Settings {
   std::string prefixName;
   bool joinedPolarizationDeconvolution;
   bool joinedFrequencyDeconvolution;
-  std::set<aocommon::PolarizationEnum> linkedPolarizations;
-  size_t parallelDeconvolutionMaxSize, parallelDeconvolutionMaxThreads;
   bool smallInversion, makePSF, makePSFOnly, isWeightImageSaved, isUVImageSaved,
       isDirtySaved, isFirstResidualSaved;
   bool reusePsf, reuseDirty;
@@ -113,12 +112,17 @@ class Settings {
   /** @{
    * These settings all relate to the deconvolution.
    */
-  double deconvolutionThreshold, deconvolutionGain, deconvolutionMGain;
+  std::set<aocommon::PolarizationEnum> linkedPolarizations;
+  size_t parallelDeconvolutionMaxSize;
+  size_t parallelDeconvolutionMaxThreads;
+  double deconvolutionThreshold;
+  double deconvolutionGain;
+  double deconvolutionMGain;
   bool autoDeconvolutionThreshold, autoMask;
   double autoDeconvolutionThresholdSigma, autoMaskSigma;
   bool localRMS;
   double localRMSWindow;
-  enum LocalRMSMethod { RMSWindow, RMSAndMinimumWindow } localRMSMethod;
+  LocalRmsMethod localRMSMethod;
   bool saveSourceList;
   size_t deconvolutionIterationCount, majorIterationCount;
   bool allowNegativeComponents, stopOnNegativeComponents;
@@ -154,6 +158,13 @@ class Settings {
   /**
    * @}
    */
+
+  /**
+   * @brief Extract the settings that are relevant to the deconvolution.
+   * Currently, it duplicates the existing settings into a DeconvolutionSettings
+   * object.
+   */
+  DeconvolutionSettings GetDeconvolutionSettings() const;
 
   MSSelection GetMSSelection() const {
     MSSelection selection;
@@ -244,9 +255,6 @@ inline Settings::Settings()
       prefixName("wsclean"),
       joinedPolarizationDeconvolution(false),
       joinedFrequencyDeconvolution(false),
-      linkedPolarizations(),
-      parallelDeconvolutionMaxSize(0),
-      parallelDeconvolutionMaxThreads(threadCount),
       smallInversion(true),
       makePSF(false),
       makePSFOnly(false),
@@ -301,6 +309,9 @@ inline Settings::Settings()
       simulatedNoiseStdDev(0.0),
       simulatedBaselineNoiseFilename(),
       // Deconvolution default settings:
+      linkedPolarizations(),
+      parallelDeconvolutionMaxSize(0),
+      parallelDeconvolutionMaxThreads(threadCount),
       deconvolutionThreshold(0.0),
       deconvolutionGain(0.1),
       deconvolutionMGain(1.0),
@@ -310,7 +321,7 @@ inline Settings::Settings()
       autoMaskSigma(0.0),
       localRMS(false),
       localRMSWindow(25.0),
-      localRMSMethod(RMSWindow),
+      localRMSMethod(LocalRmsMethod::kRmsWindow),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),
