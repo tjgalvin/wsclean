@@ -333,8 +333,8 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
 
   for (size_t chIndex = 0; chIndex != NDeconvolutionChannels(); ++chIndex) {
     const double groupWeight = _weights[chIndex];
-    weightSum += groupWeight;
     if (groupWeight != 0.0) {
+      weightSum += groupWeight;
       const DeconvolutionTable::Group& originalGroup =
           _deconvolutionTable.FirstOriginalGroup(chIndex);
       for (const DeconvolutionTableEntry* entry_ptr : originalGroup) {
@@ -351,8 +351,8 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
       }
     }
   }
-  double factor = weightSum > 0.0
-                      ? std::sqrt(_polarizationNormalizationFactor) / weightSum
+  const double factor =
+      weightSum > 0.0 ? std::sqrt(_polarizationNormalizationFactor / weightSum)
                       : 0.0;
   squareRootMultiply(dest, factor);
 }

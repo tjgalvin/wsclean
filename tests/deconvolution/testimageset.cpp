@@ -308,6 +308,30 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yy_2channel_Normalization,
       2, (std::sqrt(sqVal1 * 0.5) + std::sqrt(sqVal2 * 0.5)) * 0.5, dset);
 }
 
+BOOST_FIXTURE_TEST_CASE(qu_squared_2channel_Normalization,
+                        ImageSetFixtureBase) {
+  initTable(2, 2);
+  addToImageSet(0, aocommon::Polarization::StokesQ, 100);
+  addToImageSet(0, aocommon::Polarization::StokesU, 100);
+  addToImageSet(1, aocommon::Polarization::StokesQ, 100);
+  addToImageSet(1, aocommon::Polarization::StokesU, 100);
+  const std::set<PolarizationEnum> kJoinedPolarizations{
+      aocommon::Polarization::StokesQ, aocommon::Polarization::StokesU};
+  const bool kSquaredJoins = true;
+  ImageSet dset(*table, kSquaredJoins, kJoinedPolarizations, 2, 2);
+  dset = 0.0;
+  const size_t kCheckedPixel = 2;
+  dset[0][kCheckedPixel] = 5.0;
+  dset[1][kCheckedPixel] = 6.0;
+  dset[2][kCheckedPixel] = 7.0;
+  dset[3][kCheckedPixel] = 8.0;
+  double sqVal = 0.0;
+  for (size_t i = 0; i != 4; ++i) {
+    sqVal += dset[i][kCheckedPixel] * dset[i][kCheckedPixel];
+  }
+  checkSquaredValue(kCheckedPixel, std::sqrt(sqVal / 4.0), dset);
+}
+
 BOOST_FIXTURE_TEST_CASE(linked_xx_yy_2channel_Normalization,
                         ImageSetFixtureBase) {
   initTable(2, 2);

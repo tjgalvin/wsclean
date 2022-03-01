@@ -226,18 +226,25 @@ class ImageSet {
     const DeconvolutionTable::Group& firstChannelGroup =
         _deconvolutionTable.OriginalGroups().front();
     std::set<aocommon::PolarizationEnum> pols;
+    bool all_stokes_without_i = true;
     for (const DeconvolutionTableEntry* entry : firstChannelGroup) {
       if (_linkedPolarizations.empty() ||
           _linkedPolarizations.count(entry->polarization) != 0) {
+        if (!aocommon::Polarization::IsStokes(entry->polarization) ||
+            entry->polarization == aocommon::Polarization::StokesI)
+          all_stokes_without_i = false;
         pols.insert(entry->polarization);
       }
     }
-    bool isDual =
+    const bool isDual =
         pols.size() == 2 && aocommon::Polarization::HasDualPolarization(pols);
-    bool isFull = pols.size() == 4 &&
-                  (aocommon::Polarization::HasFullLinearPolarization(pols) ||
-                   aocommon::Polarization::HasFullCircularPolarization(pols));
-    if (isDual || isFull)
+    const bool isFull =
+        pols.size() == 4 &&
+        (aocommon::Polarization::HasFullLinearPolarization(pols) ||
+         aocommon::Polarization::HasFullCircularPolarization(pols));
+    if (all_stokes_without_i)
+      _polarizationNormalizationFactor = 1.0 / pols.size();
+    else if (isDual || isFull)
       _polarizationNormalizationFactor = 0.5;
     else
       _polarizationNormalizationFactor = 1.0;
