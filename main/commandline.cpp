@@ -14,9 +14,9 @@
 #include <schaapcommon/h5parm/jonesparameters.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/optional/optional.hpp>
 
 #include <iostream>
+#include <optional>
 #include <string>
 #include <sstream>
 
@@ -730,7 +730,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   Settings& settings = wsclean.GetSettings();
   int argi = 1;
   bool mfWeighting = false, noMFWeighting = false, dryRun = false;
-  auto atermKernelSize = boost::make_optional<double>(false, 0.0);
+  auto atermKernelSize = std::make_optional<double>();
   Logger::SetVerbosity(Logger::kNormalVerbosity);
   while (argi < argc && argv[argi][0] == '-') {
     const std::string param =
@@ -1451,8 +1451,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   // and possibly set to quiet.
   if (!isSlave) printHeader();
 
-  size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;
-  settings.atermKernelSize = atermKernelSize.get_value_or(defaultAtermSize);
+  const size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;
+  settings.atermKernelSize = atermKernelSize.value_or(defaultAtermSize);
 
   settings.mfWeighting =
       (settings.joinedFrequencyDeconvolution && !noMFWeighting) || mfWeighting;

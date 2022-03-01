@@ -11,12 +11,12 @@
 
 #include <limits>
 
-boost::optional<float> PeakFinder::Simple(const float *image, size_t width,
-                                          size_t height, size_t &x, size_t &y,
-                                          bool allowNegativeComponents,
-                                          size_t startY, size_t endY,
-                                          size_t horizontalBorder,
-                                          size_t verticalBorder) {
+std::optional<float> PeakFinder::Simple(const float *image, size_t width,
+                                        size_t height, size_t &x, size_t &y,
+                                        bool allowNegativeComponents,
+                                        size_t startY, size_t endY,
+                                        size_t horizontalBorder,
+                                        size_t verticalBorder) {
   float peakMax = std::numeric_limits<float>::min();
   size_t peakIndex = width * height;
 
@@ -42,7 +42,7 @@ boost::optional<float> PeakFinder::Simple(const float *image, size_t width,
   if (peakIndex == width * height) {
     x = width;
     y = height;
-    return boost::optional<float>();
+    return std::optional<float>();
   } else {
     x = peakIndex % width;
     y = peakIndex / width;
@@ -50,12 +50,12 @@ boost::optional<float> PeakFinder::Simple(const float *image, size_t width,
   }
 }
 
-boost::optional<double> PeakFinder::Simple(const double *image, size_t width,
-                                           size_t height, size_t &x, size_t &y,
-                                           bool allowNegativeComponents,
-                                           size_t startY, size_t endY,
-                                           size_t horizontalBorder,
-                                           size_t verticalBorder) {
+std::optional<double> PeakFinder::Simple(const double *image, size_t width,
+                                         size_t height, size_t &x, size_t &y,
+                                         bool allowNegativeComponents,
+                                         size_t startY, size_t endY,
+                                         size_t horizontalBorder,
+                                         size_t verticalBorder) {
   double peakMax = std::numeric_limits<double>::min();
   size_t peakIndex = width * height;
 
@@ -81,7 +81,7 @@ boost::optional<double> PeakFinder::Simple(const double *image, size_t width,
   if (peakIndex == width * height) {
     x = width;
     y = height;
-    return boost::optional<double>();
+    return {};
   } else {
     x = peakIndex % width;
     y = peakIndex / width;
@@ -89,7 +89,7 @@ boost::optional<double> PeakFinder::Simple(const double *image, size_t width,
   }
 }
 
-boost::optional<float> PeakFinder::FindWithMask(
+std::optional<float> PeakFinder::FindWithMask(
     const float *image, size_t width, size_t height, size_t &x, size_t &y,
     bool allowNegativeComponents, size_t startY, size_t endY,
     const bool *cleanMask, size_t horizontalBorder, size_t verticalBorder) {
@@ -119,18 +119,18 @@ boost::optional<float> PeakFinder::FindWithMask(
     }
   }
   if (y == height)
-    return boost::optional<float>();
+    return std::optional<float>();
   else
     return image[x + y * width];
 }
 
 #if defined __AVX__ && defined USE_INTRINSICS && !defined FORCE_NON_AVX
 template <bool AllowNegativeComponent>
-boost::optional<double> PeakFinder::AVX(const double *image, size_t width,
-                                        size_t height, size_t &x, size_t &y,
-                                        size_t startY, size_t endY,
-                                        size_t horizontalBorder,
-                                        size_t verticalBorder) {
+std::optional<double> PeakFinder::AVX(const double *image, size_t width,
+                                      size_t height, size_t &x, size_t &y,
+                                      size_t startY, size_t endY,
+                                      size_t horizontalBorder,
+                                      size_t verticalBorder) {
   double peakMax = std::numeric_limits<double>::min();
   size_t peakIndex = 0;
 
@@ -181,19 +181,19 @@ boost::optional<double> PeakFinder::AVX(const double *image, size_t width,
   return image[x + y * width];
 }
 
-template boost::optional<double> PeakFinder::AVX<false>(
+template std::optional<double> PeakFinder::AVX<false>(
     const double *image, size_t width, size_t height, size_t &x, size_t &y,
     size_t startY, size_t endY, size_t horizontalBorder, size_t verticalBorder);
-template boost::optional<double> PeakFinder::AVX<true>(
+template std::optional<double> PeakFinder::AVX<true>(
     const double *image, size_t width, size_t height, size_t &x, size_t &y,
     size_t startY, size_t endY, size_t horizontalBorder, size_t verticalBorder);
 
 template <bool AllowNegativeComponent>
-boost::optional<float> PeakFinder::AVX(const float *image, size_t width,
-                                       size_t height, size_t &x, size_t &y,
-                                       size_t startY, size_t endY,
-                                       size_t horizontalBorder,
-                                       size_t verticalBorder) {
+std::optional<float> PeakFinder::AVX(const float *image, size_t width,
+                                     size_t height, size_t &x, size_t &y,
+                                     size_t startY, size_t endY,
+                                     size_t horizontalBorder,
+                                     size_t verticalBorder) {
   float peakMax = std::numeric_limits<float>::min();
   size_t peakIndex = 0;
 
@@ -244,10 +244,10 @@ boost::optional<float> PeakFinder::AVX(const float *image, size_t width,
   return image[x + y * width];
 }
 
-template boost::optional<float> PeakFinder::AVX<false>(
+template std::optional<float> PeakFinder::AVX<false>(
     const float *image, size_t width, size_t height, size_t &x, size_t &y,
     size_t startY, size_t endY, size_t horizontalBorder, size_t verticalBorder);
-template boost::optional<float> PeakFinder::AVX<true>(
+template std::optional<float> PeakFinder::AVX<true>(
     const float *image, size_t width, size_t height, size_t &x, size_t &y,
     size_t startY, size_t endY, size_t horizontalBorder, size_t verticalBorder);
 

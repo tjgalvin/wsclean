@@ -7,7 +7,7 @@
 
 #include <aocommon/uvector.h>
 
-#include <boost/optional/optional.hpp>
+#include <optional>
 
 /**
  * This class implements a generalized version of Högbom clean. It performs a
@@ -34,8 +34,8 @@ class GenericClean : public DeconvolutionAlgorithm {
   float _convolutionPadding;
   bool _useSubMinorOptimization;
 
-  boost::optional<float> findPeak(const float* image, float* scratch, size_t& x,
-                                  size_t& y);
+  std::optional<float> findPeak(const float* image, float* scratch, size_t& x,
+                                size_t& y);
 
   std::string peakDescription(const float* image, size_t& x, size_t& y);
 

@@ -31,7 +31,7 @@ size_t SubMinorModel::GetMaxComponent(Image& scratch, float& maxValue) const {
   return maxComponent;
 }
 
-boost::optional<float> SubMinorLoop::Run(
+std::optional<float> SubMinorLoop::Run(
     ImageSet& convolvedResidual,
     const aocommon::UVector<const float*>& twiceConvolvedPsfs) {
   _subMinorModel = SubMinorModel(_width, _height);
@@ -44,7 +44,7 @@ boost::optional<float> SubMinorLoop::Run(
   _logReceiver.Debug << "Number of components selected > " << _threshold << ": "
                      << _subMinorModel.size() << '\n';
 
-  if (_subMinorModel.size() == 0) return boost::optional<float>();
+  if (_subMinorModel.size() == 0) return std::optional<float>();
 
   Image scratch(_subMinorModel.size(), 1);
   float maxValue;

@@ -10,7 +10,7 @@
 
 const char* BdaMsRowProvider::kBDAFactorsTable = "BDA_FACTORS";
 
-static boost::optional<casacore::ArrayColumn<casacore::Complex>> GetModel(
+static std::optional<casacore::ArrayColumn<casacore::Complex>> GetModel(
     const casacore::MeasurementSet& ms, bool require_model) {
   if (require_model)
     return casacore::ArrayColumn<casacore::Complex>(

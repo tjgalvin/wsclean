@@ -26,6 +26,7 @@
 #include "stopwatch.h"
 #include "settings.h"
 
+#include <optional>
 #include <set>
 
 namespace schaapcommon {

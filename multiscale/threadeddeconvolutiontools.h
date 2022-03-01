@@ -1,13 +1,12 @@
 #ifndef THREADED_DECONVOLUTION_TOOLS_H
 #define THREADED_DECONVOLUTION_TOOLS_H
 
-#include <boost/optional/optional.hpp>
-
 #include <aocommon/image.h>
 #include <aocommon/lane.h>
 #include <aocommon/uvector.h>
 
 #include <cmath>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -17,7 +16,7 @@ class ThreadedDeconvolutionTools {
   ~ThreadedDeconvolutionTools();
 
   struct PeakData {
-    boost::optional<float> normalizedValue, unnormalizedValue;
+    std::optional<float> normalizedValue, unnormalizedValue;
     float rms;
     size_t x, y;
   };
@@ -41,7 +40,7 @@ class ThreadedDeconvolutionTools {
  private:
   struct ThreadResult {};
   struct FindMultiScalePeakResult : public ThreadResult {
-    boost::optional<float> unnormalizedValue, normalizedValue;
+    std::optional<float> unnormalizedValue, normalizedValue;
     float rms;
     size_t x, y;
   };

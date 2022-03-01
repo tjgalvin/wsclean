@@ -9,8 +9,6 @@
 #include <aocommon/lane.h>
 #include <aocommon/units/fluxdensity.h>
 
-#include <boost/thread/thread.hpp>
-
 using aocommon::units::FluxDensity;
 
 GenericClean::GenericClean(class FFTWManager& fftwManager,
@@ -37,7 +35,7 @@ float GenericClean::ExecuteMajorIteration(
   aocommon::Image scratchB(_convolutionWidth, _convolutionHeight);
   dirtySet.GetLinearIntegrated(integrated);
   size_t componentX = 0, componentY = 0;
-  boost::optional<float> maxValue =
+  std::optional<float> maxValue =
       findPeak(integrated.Data(), scratchA.Data(), componentX, componentY);
   if (!maxValue) {
     _logReceiver->Info << "No peak found.\n";
@@ -184,9 +182,8 @@ std::string GenericClean::peakDescription(const float* image, size_t& x,
   return str.str();
 }
 
-boost::optional<float> GenericClean::findPeak(const float* image,
-                                              float* scratch, size_t& x,
-                                              size_t& y) {
+std::optional<float> GenericClean::findPeak(const float* image, float* scratch,
+                                            size_t& x, size_t& y) {
   if (_rmsFactorImage.Empty()) {
     if (_cleanMask == nullptr)
       return PeakFinder::Find(image, _width, _height, x, y,

@@ -12,6 +12,8 @@
 #include <aocommon/logger.h>
 #include <aocommon/units/fluxdensity.h>
 
+#include <optional>
+
 using aocommon::Image;
 using aocommon::Logger;
 using aocommon::units::FluxDensity;
@@ -536,9 +538,9 @@ void MultiScaleAlgorithm::findActiveScaleConvolvedMaxima(
   for (size_t i = 0; i != results.size(); ++i) {
     ScaleInfo& scaleEntry = _scaleInfos[transformIndices[i]];
     scaleEntry.maxNormalizedImageValue =
-        get_optional_value_or(results[i].normalizedValue, 0.0);
+        results[i].normalizedValue.value_or(0.0);
     scaleEntry.maxUnnormalizedImageValue =
-        get_optional_value_or(results[i].unnormalizedValue, 0.0);
+        results[i].unnormalizedValue.value_or(0.0);
     scaleEntry.maxImageValueX = results[i].x;
     scaleEntry.maxImageValueY = results[i].y;
     if (reportRMS) scaleEntry.rms = results[i].rms;
@@ -656,7 +658,7 @@ void MultiScaleAlgorithm::findPeakDirect(const float* image, float* scratch,
     actualImage = scratch;
   }
 
-  boost::optional<float> maxValue;
+  std::optional<float> maxValue;
   if (_usePerScaleMasks)
     maxValue = PeakFinder::FindWithMask(
         actualImage, _width, _height, scaleInfo.maxImageValueX,
@@ -673,12 +675,12 @@ void MultiScaleAlgorithm::findPeakDirect(const float* image, float* scratch,
         scaleInfo.maxImageValueY, _allowNegativeComponents, 0, _height,
         _cleanMask, horBorderSize, vertBorderSize);
 
-  scaleInfo.maxUnnormalizedImageValue = get_optional_value_or(maxValue, 0.0);
+  scaleInfo.maxUnnormalizedImageValue = maxValue.value_or(0.0);
   if (_rmsFactorImage.Empty())
-    scaleInfo.maxNormalizedImageValue = get_optional_value_or(maxValue, 0.0);
+    scaleInfo.maxNormalizedImageValue = maxValue.value_or(0.0);
   else
     scaleInfo.maxNormalizedImageValue =
-        get_optional_value_or(maxValue, 0.0) /
+        maxValue.value_or(0.0) /
         _rmsFactorImage[scaleInfo.maxImageValueX +
                         scaleInfo.maxImageValueY * _width];
 }

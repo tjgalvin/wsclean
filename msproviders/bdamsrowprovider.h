@@ -4,7 +4,7 @@
 #include "msrowproviderbase.h"
 #include "msweightcolumn.h"
 
-#include <boost/optional.hpp>
+#include <optional>
 
 /** A MSRowProvider providing the selected rows in a BDA measurement set. */
 class BdaMsRowProvider final : public MsRowProviderBase {
@@ -39,7 +39,7 @@ class BdaMsRowProvider final : public MsRowProviderBase {
  private:
   std::map<size_t, size_t> selected_data_description_ids_;
   MsWeightColumn weight_;
-  boost::optional<casacore::ArrayColumn<casacore::Complex>> model_;
+  std::optional<casacore::ArrayColumn<casacore::Complex>> model_;
   size_t current_row_;
 
   struct Data {

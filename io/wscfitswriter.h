@@ -14,6 +14,7 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/polarization.h>
 
+#include <optional>
 #include <string>
 
 using aocommon::FitsReader;
