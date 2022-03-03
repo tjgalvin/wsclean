@@ -134,14 +134,14 @@ void ParallelDeconvolution::SetSpectrallyForcedImages(
 
 void ParallelDeconvolution::runSubImage(
     SubImage& subImg, ImageSet& dataImage, const ImageSet& modelImage,
-    ImageSet& resultModel, const aocommon::UVector<const float*>& psfImages,
-    double majorIterThreshold, bool findPeakOnly, std::mutex* mutex) {
+    ImageSet& resultModel, const std::vector<aocommon::Image>& psfImages,
+    double majorIterThreshold, bool findPeakOnly, std::mutex& mutex) {
   const size_t width = _settings.trimmedImageWidth;
   const size_t height = _settings.trimmedImageHeight;
 
   std::unique_ptr<ImageSet> subModel, subData;
   {
-    std::lock_guard<std::mutex> lock(*mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     subData = dataImage.Trim(subImg.x, subImg.y, subImg.x + subImg.width,
                              subImg.y + subImg.height, width);
     // Because the model of this subimage might extend outside of its boundaries
@@ -155,13 +155,10 @@ void ParallelDeconvolution::runSubImage(
   }
 
   // Construct the smaller psfs
-  std::vector<Image> subPsfs(psfImages.size());
-  aocommon::UVector<const float*> subPsfVector(psfImages.size());
+  std::vector<Image> subPsfs;
+  subPsfs.reserve(psfImages.size());
   for (size_t i = 0; i != psfImages.size(); ++i) {
-    subPsfs[i] = Image(subImg.width, subImg.height);
-    Image::Trim(subPsfs[i].Data(), subImg.width, subImg.height, psfImages[i],
-                width, height);
-    subPsfVector[i] = subPsfs[i].Data();
+    subPsfs.emplace_back(psfImages[i].Trim(subImg.width, subImg.height));
   }
   _algorithms[subImg.index]->SetCleanMask(subImg.mask.data());
 
@@ -190,7 +187,7 @@ void ParallelDeconvolution::runSubImage(
     _algorithms[subImg.index]->SetMajorIterThreshold(majorIterThreshold);
 
   if (_usePerScaleMasks || _trackPerScaleMasks) {
-    std::lock_guard<std::mutex> lock(*mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     MultiScaleAlgorithm& msAlg =
         static_cast<class MultiScaleAlgorithm&>(*_algorithms[subImg.index]);
     // During the first iteration, msAlg will not have scales/masks yet and the
@@ -213,15 +210,14 @@ void ParallelDeconvolution::runSubImage(
   }
 
   subImg.peak = _algorithms[subImg.index]->ExecuteMajorIteration(
-      *subData, *subModel, subPsfVector, subImg.width, subImg.height,
-      subImg.reachedMajorThreshold);
+      *subData, *subModel, subPsfs, subImg.reachedMajorThreshold);
 
   // Since this was an RMS image specifically for this subimage size, we free it
   // immediately
   _algorithms[subImg.index]->SetRMSFactorImage(Image());
 
   if (_trackPerScaleMasks) {
-    std::lock_guard<std::mutex> lock(*mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     MultiScaleAlgorithm& msAlg =
         static_cast<class MultiScaleAlgorithm&>(*_algorithms[subImg.index]);
     if (_scaleMasks.empty()) {
@@ -239,7 +235,7 @@ void ParallelDeconvolution::runSubImage(
   }
 
   if (_settings.saveSourceList && _settings.useMultiscale) {
-    std::lock_guard<std::mutex> lock(*mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     MultiScaleAlgorithm& algorithm =
         static_cast<MultiScaleAlgorithm&>(*_algorithms[subImg.index]);
     if (!_componentList)
@@ -252,7 +248,7 @@ void ParallelDeconvolution::runSubImage(
   if (findPeakOnly) {
     _algorithms[subImg.index]->SetMaxNIter(maxNIter);
   } else {
-    std::lock_guard<std::mutex> lock(*mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     dataImage.CopyMasked(*subData, subImg.x, subImg.y,
                          subImg.boundaryMask.data());
     resultModel.AddSubImage(*subModel, subImg.x, subImg.y);
@@ -261,15 +257,13 @@ void ParallelDeconvolution::runSubImage(
 
 void ParallelDeconvolution::ExecuteMajorIteration(
     ImageSet& dataImage, ImageSet& modelImage,
-    const aocommon::UVector<const float*>& psfImages,
+    const std::vector<aocommon::Image>& psfImages,
     bool& reachedMajorThreshold) {
-  const size_t width = _settings.trimmedImageWidth,
-               height = _settings.trimmedImageHeight;
   if (_algorithms.size() == 1) {
     aocommon::ForwardingLogReceiver fwdReceiver;
     _algorithms.front()->SetLogReceiver(fwdReceiver);
-    _algorithms.front()->ExecuteMajorIteration(
-        dataImage, modelImage, psfImages, width, height, reachedMajorThreshold);
+    _algorithms.front()->ExecuteMajorIteration(dataImage, modelImage, psfImages,
+                                               reachedMajorThreshold);
   } else {
     executeParallelRun(dataImage, modelImage, psfImages, reachedMajorThreshold);
   }
@@ -277,12 +271,12 @@ void ParallelDeconvolution::ExecuteMajorIteration(
 
 void ParallelDeconvolution::executeParallelRun(
     ImageSet& dataImage, ImageSet& modelImage,
-    const aocommon::UVector<const float*>& psfImages,
+    const std::vector<aocommon::Image>& psfImages,
     bool& reachedMajorThreshold) {
-  const size_t width = _settings.trimmedImageWidth,
-               height = _settings.trimmedImageHeight,
-               avgHSubImageSize = width / _horImages,
-               avgVSubImageSize = height / _verImages;
+  const size_t width = dataImage.Width();
+  const size_t height = dataImage.Height();
+  const size_t avgHSubImageSize = width / _horImages;
+  const size_t avgVSubImageSize = height / _verImages;
 
   Image image(width, height);
   Image dividingLine(width, height, 0.0);
@@ -379,7 +373,7 @@ void ParallelDeconvolution::executeParallelRun(
   loop.Run(0, _algorithms.size(), [&](size_t index, size_t) {
     _logs.Activate(index);
     runSubImage(subImages[index], dataImage, modelImage, resultModel, psfImages,
-                0.0, true, &mutex);
+                0.0, true, mutex);
     _logs.Deactivate(index);
 
     _logs[index].Mute(false);
@@ -402,7 +396,7 @@ void ParallelDeconvolution::executeParallelRun(
   loop.Run(0, _algorithms.size(), [&](size_t index, size_t) {
     _logs.Activate(index);
     runSubImage(subImages[index], dataImage, modelImage, resultModel, psfImages,
-                mIterThreshold, false, &mutex);
+                mIterThreshold, false, mutex);
     _logs.Deactivate(index);
 
     _logs[index].Mute(false);

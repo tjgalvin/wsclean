@@ -155,7 +155,7 @@ BOOST_FIXTURE_TEST_CASE(xxNormalization, ImageSetFixtureBase) {
   addToImageSet(0, aocommon::Polarization::XX, 100);
   ImageSet dset(*table, false, {aocommon::Polarization::XX}, 2, 2);
   dset = 0.0;
-  dset[0][1] = 5.0;
+  dset.Data(0)[1] = 5.0;
   checkLinearValue(1, 5.0, dset);
   checkSquaredValue(1, 5.0, dset);
 }
@@ -165,7 +165,7 @@ BOOST_FIXTURE_TEST_CASE(iNormalization, ImageSetFixtureBase) {
   addToImageSet(0, aocommon::Polarization::StokesI, 100);
   ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
-  dset[0][2] = 6.0;
+  dset.Data(0)[2] = 6.0;
   checkLinearValue(2, 6.0, dset);
   checkSquaredValue(2, 6.0, dset);
 }
@@ -176,8 +176,8 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_Normalization, ImageSetFixtureBase) {
   addToImageSet(1, aocommon::Polarization::StokesI, 200);
   ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
-  dset[0][0] = 12.0;
-  dset[1][0] = 13.0;
+  dset.Data(0)[0] = 12.0;
+  dset.Data(1)[0] = 13.0;
   checkLinearValue(0, 12.5, dset);
   checkSquaredValue(0, 12.5, dset);
 }
@@ -188,8 +188,8 @@ BOOST_FIXTURE_TEST_CASE(i_2channel_NaNs, ImageSetFixtureBase) {
   addToImageSet(1, aocommon::Polarization::StokesI, 200, 1.0);
   ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
-  dset[0][0] = std::numeric_limits<float>::quiet_NaN();
-  dset[1][0] = 42.0;
+  dset.Data(0)[0] = std::numeric_limits<float>::quiet_NaN();
+  dset.Data(1)[0] = 42.0;
   checkLinearValue(0, 42.0f, dset);
   checkSquaredValue(0, 42.0f, dset);
 }
@@ -202,10 +202,10 @@ BOOST_FIXTURE_TEST_CASE(xxyyNormalization, ImageSetFixtureBase) {
       aocommon::Polarization::XX, aocommon::Polarization::YY};
   ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
-  dset[0][3] = 7.0;
-  dset[1][3] = 8.0;
+  dset.Data(0)[3] = 7.0;
+  dset.Data(1)[3] = 8.0;
   checkLinearValue(3, 7.5, dset);
-  dset[0][3] = -7.0;
+  dset.Data(0)[3] = -7.0;
   checkSquaredValue(3, std::sqrt((7.0 * 7.0 + 8.0 * 8.0) * 0.5), dset);
 }
 
@@ -217,8 +217,8 @@ BOOST_FIXTURE_TEST_CASE(iqNormalization, ImageSetFixtureBase) {
       aocommon::Polarization::StokesI, aocommon::Polarization::StokesQ};
   ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
-  dset[0][0] = 6.0;
-  dset[1][0] = -1.0;
+  dset.Data(0)[0] = 6.0;
+  dset.Data(1)[0] = -1.0;
   checkLinearValue(0, 5.0, dset);
   checkSquaredValue(0, std::sqrt(6.0 * 6.0 + -1.0 * -1.0), dset);
 }
@@ -229,8 +229,8 @@ BOOST_FIXTURE_TEST_CASE(linkedINormalization, ImageSetFixtureBase) {
   addToImageSet(0, aocommon::Polarization::StokesQ, 100);
   ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
-  dset[0][0] = 3.0;
-  dset[1][0] = -1.0;
+  dset.Data(0)[0] = 3.0;
+  dset.Data(1)[0] = -1.0;
   checkLinearValue(0, 3.0, dset);
   checkSquaredValue(0, 3.0, dset);
 }
@@ -246,10 +246,10 @@ BOOST_FIXTURE_TEST_CASE(iquvNormalization, ImageSetFixtureBase) {
       aocommon::Polarization::StokesU, aocommon::Polarization::StokesV};
   ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
-  dset[0][0] = 9.0;
-  dset[1][0] = 0.2;
-  dset[2][0] = 0.2;
-  dset[3][0] = 0.2;
+  dset.Data(0)[0] = 9.0;
+  dset.Data(1)[0] = 0.2;
+  dset.Data(2)[0] = 0.2;
+  dset.Data(3)[0] = 0.2;
   checkLinearValue(0, 9.6, dset);
   checkSquaredValue(0, std::sqrt(9.0 * 9.0 + 3.0 * 0.2 * 0.2), dset);
 }
@@ -265,10 +265,10 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yyNormalization, ImageSetFixtureBase) {
       aocommon::Polarization::YX, aocommon::Polarization::YY};
   ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
-  dset[0][1] = 10.0;
-  dset[1][1] = 0.25;
-  dset[2][1] = 0.25;
-  dset[3][1] = 10.0;
+  dset.Data(0)[1] = 10.0;
+  dset.Data(1)[1] = 0.25;
+  dset.Data(2)[1] = 0.25;
+  dset.Data(3)[1] = 10.0;
   checkLinearValue(1, 10.25f, dset);
   checkSquaredValue(
       1, std::sqrt((10.0f * 10.0f * 2.0f + 0.25f * 0.25f * 2.0f) * 0.5f), dset);
@@ -290,14 +290,14 @@ BOOST_FIXTURE_TEST_CASE(xx_xy_yx_yy_2channel_Normalization,
       aocommon::Polarization::YX, aocommon::Polarization::YY};
   ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
-  dset[0][2] = 5.0;
-  dset[1][2] = 0.1;
-  dset[2][2] = 0.2;
-  dset[3][2] = 6.0;
-  dset[4][2] = 7.0;
-  dset[5][2] = 0.3;
-  dset[6][2] = 0.4;
-  dset[7][2] = 8.0;
+  dset.Data(0)[2] = 5.0;
+  dset.Data(1)[2] = 0.1;
+  dset.Data(2)[2] = 0.2;
+  dset.Data(3)[2] = 6.0;
+  dset.Data(4)[2] = 7.0;
+  dset.Data(5)[2] = 0.3;
+  dset.Data(6)[2] = 0.4;
+  dset.Data(7)[2] = 8.0;
   double sqVal1 = 0.0, sqVal2 = 0.0;
   for (size_t i = 0; i != 4; ++i) {
     sqVal1 += dset[i][2] * dset[i][2];
@@ -321,10 +321,10 @@ BOOST_FIXTURE_TEST_CASE(qu_squared_2channel_Normalization,
   ImageSet dset(*table, kSquaredJoins, kJoinedPolarizations, 2, 2);
   dset = 0.0;
   const size_t kCheckedPixel = 2;
-  dset[0][kCheckedPixel] = 5.0;
-  dset[1][kCheckedPixel] = 6.0;
-  dset[2][kCheckedPixel] = 7.0;
-  dset[3][kCheckedPixel] = 8.0;
+  dset.Data(0)[kCheckedPixel] = 5.0;
+  dset.Data(1)[kCheckedPixel] = 6.0;
+  dset.Data(2)[kCheckedPixel] = 7.0;
+  dset.Data(3)[kCheckedPixel] = 8.0;
   double sqVal = 0.0;
   for (size_t i = 0; i != 4; ++i) {
     sqVal += dset[i][kCheckedPixel] * dset[i][kCheckedPixel];
@@ -347,14 +347,14 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_yy_2channel_Normalization,
       aocommon::Polarization::XX, aocommon::Polarization::YY};
   ImageSet dset(*table, false, kLinkedPolarizations, 2, 2);
   dset = 0.0;
-  dset[0][2] = 7.5;
-  dset[1][2] = 0.1;
-  dset[2][2] = -0.2;
-  dset[3][2] = 6.5;
-  dset[4][2] = 8.5;
-  dset[5][2] = 0.3;
-  dset[6][2] = -0.4;
-  dset[7][2] = 9.5;
+  dset.Data(0)[2] = 7.5;
+  dset.Data(1)[2] = 0.1;
+  dset.Data(2)[2] = -0.2;
+  dset.Data(3)[2] = 6.5;
+  dset.Data(4)[2] = 8.5;
+  dset.Data(5)[2] = 0.3;
+  dset.Data(6)[2] = -0.4;
+  dset.Data(7)[2] = 9.5;
   double sqVal1 = dset[0][2] * dset[0][2] + dset[3][2] * dset[3][2],
          sqVal2 = dset[4][2] * dset[4][2] + dset[7][2] * dset[7][2];
   checkLinearValue(2, 32.0 * 0.25, dset);
@@ -374,14 +374,14 @@ BOOST_FIXTURE_TEST_CASE(linked_xx_2channel_Normalization, ImageSetFixtureBase) {
   addToImageSet(1, aocommon::Polarization::YY, 200);
   ImageSet dset(*table, false, {aocommon::Polarization::XX}, 2, 2);
   dset = 0.0;
-  dset[0][2] = 7.5;
-  dset[1][2] = 0.1;
-  dset[2][2] = -0.2;
-  dset[3][2] = 6.5;
-  dset[4][2] = 8.5;
-  dset[5][2] = 0.3;
-  dset[6][2] = -0.4;
-  dset[7][2] = 9.5;
+  dset.Data(0)[2] = 7.5;
+  dset.Data(1)[2] = 0.1;
+  dset.Data(2)[2] = -0.2;
+  dset.Data(3)[2] = 6.5;
+  dset.Data(4)[2] = 8.5;
+  dset.Data(5)[2] = 0.3;
+  dset.Data(6)[2] = -0.4;
+  dset.Data(7)[2] = 9.5;
   double sqVal1 = dset[0][2] * dset[0][2], sqVal2 = dset[4][2] * dset[4][2];
   checkLinearValue(2, 32.0 * 0.25, dset);
   checkSquaredValue(2, (std::sqrt(sqVal1) + std::sqrt(sqVal2)) * 0.5, dset);
@@ -395,8 +395,8 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_normalization, ImageSetFixtureBase) {
   addToImageSet(3, aocommon::Polarization::StokesI, 400, 2);
   ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
-  dset[0][0] = 10.0;
-  dset[1][0] = 13.0;
+  dset.Data(0)[0] = 10.0;
+  dset.Data(1)[0] = 13.0;
   checkLinearValue(0, 12.0, dset);
   checkSquaredValue(0, 12.0, dset);
 }
@@ -409,8 +409,8 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_zeroweight, ImageSetFixtureBase) {
   addToImageSet(3, aocommon::Polarization::StokesI, 400, 2);
   ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
-  dset[0][0] = 10.0;
-  dset[1][0] = 5.0;
+  dset.Data(0)[0] = 10.0;
+  dset.Data(1)[0] = 5.0;
   checkLinearValue(0, 6.0, dset);
   checkSquaredValue(0, 6.0, dset);
 }
@@ -423,7 +423,7 @@ BOOST_FIXTURE_TEST_CASE(deconvchannels_divisor, ImageSetFixtureBase) {
   ImageSet dset(*table, false, {aocommon::Polarization::StokesI}, 2, 2);
   dset = 0.0;
   for (size_t ch = 0; ch != table->DeconvolutionGroups().size(); ++ch) {
-    dset[ch][0] = 7.0;
+    dset.Data(ch)[0] = 7.0;
   }
   checkLinearValue(0, 7.0, dset);
   checkSquaredValue(0, 7.0, dset);

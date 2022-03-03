@@ -21,8 +21,8 @@ class ThreadedDeconvolutionTools {
     size_t x, y;
   };
 
-  void SubtractImage(float* image, const float* psf, size_t width,
-                     size_t height, size_t x, size_t y, float factor);
+  void SubtractImage(float* image, const aocommon::Image& psf, size_t x,
+                     size_t y, float factor);
 
   void FindMultiScalePeak(
       class MultiScaleTransforms* msTransforms, const aocommon::Image& image,
@@ -53,8 +53,8 @@ class ThreadedDeconvolutionTools {
     virtual std::unique_ptr<ThreadResult> operator()();
 
     float* image;
-    const float* psf;
-    size_t width, height, x, y;
+    const aocommon::Image* psf;
+    size_t x, y;
     float factor;
     size_t startY, endY;
   };

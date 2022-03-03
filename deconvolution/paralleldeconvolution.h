@@ -56,7 +56,7 @@ class ParallelDeconvolution {
 
   void ExecuteMajorIteration(class ImageSet& dataImage,
                              class ImageSet& modelImage,
-                             const aocommon::UVector<const float*>& psfImages,
+                             const std::vector<aocommon::Image>& psfImages,
                              bool& reachedMajorThreshold);
 
   void FreeDeconvolutionAlgorithms() {
@@ -70,7 +70,7 @@ class ParallelDeconvolution {
 
  private:
   void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage,
-                          const aocommon::UVector<const float*>& psfImages,
+                          const std::vector<aocommon::Image>& psfImages,
                           bool& reachedMajorThreshold);
 
   struct SubImage {
@@ -86,9 +86,9 @@ class ParallelDeconvolution {
 
   void runSubImage(SubImage& subImg, ImageSet& dataImage,
                    const ImageSet& modelImage, ImageSet& resultModel,
-                   const aocommon::UVector<const float*>& psfImages,
+                   const std::vector<aocommon::Image>& psfImages,
                    double majorIterThreshold, bool findPeakOnly,
-                   std::mutex* mutex);
+                   std::mutex& mutex);
 
   FFTWManager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;

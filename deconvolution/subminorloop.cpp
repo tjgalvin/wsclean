@@ -33,7 +33,7 @@ size_t SubMinorModel::GetMaxComponent(Image& scratch, float& maxValue) const {
 
 std::optional<float> SubMinorLoop::Run(
     ImageSet& convolvedResidual,
-    const aocommon::UVector<const float*>& twiceConvolvedPsfs) {
+    const std::vector<aocommon::Image>& twiceConvolvedPsfs) {
   _subMinorModel = SubMinorModel(_width, _height);
 
   findPeakPositions(convolvedResidual);
@@ -70,7 +70,7 @@ std::optional<float> SubMinorLoop::Run(
 
     for (size_t imgIndex = 0; imgIndex != _subMinorModel.Model().size();
          ++imgIndex)
-      _subMinorModel.Model()[imgIndex][maxComponent] +=
+      _subMinorModel.Model().Data(imgIndex)[maxComponent] +=
           componentValues[imgIndex];
 
     /*
@@ -82,8 +82,8 @@ std::optional<float> SubMinorLoop::Run(
     */
     for (size_t imgIndex = 0; imgIndex != _subMinorModel.Residual().size();
          ++imgIndex) {
-      float* image = _subMinorModel.Residual()[imgIndex];
-      const float* psf =
+      float* image = _subMinorModel.Residual().Data(imgIndex);
+      const aocommon::Image& psf =
           twiceConvolvedPsfs[_subMinorModel.Residual().PSFIndex(imgIndex)];
       float psfFactor = componentValues[imgIndex];
       for (size_t px = 0; px != _subMinorModel.size(); ++px) {
@@ -104,11 +104,10 @@ std::optional<float> SubMinorLoop::Run(
 void SubMinorModel::MakeSets(const ImageSet& residualSet) {
   _residual = std::make_unique<ImageSet>(residualSet, size(), 1);
   _model = std::make_unique<ImageSet>(residualSet, size(), 1);
+  *_model = 0.0;
   for (size_t imgIndex = 0; imgIndex != _model->size(); ++imgIndex) {
-    std::fill((*_model)[imgIndex], (*_model)[imgIndex] + size(), 0.0);
-
-    const float* sourceResidual = residualSet[imgIndex];
-    float* destResidual = (*_residual)[imgIndex];
+    const float* sourceResidual = residualSet[imgIndex].Data();
+    float* destResidual = _residual->Data(imgIndex);
     for (size_t pxIndex = 0; pxIndex != size(); ++pxIndex) {
       size_t srcIndex =
           _positions[pxIndex].second * _width + _positions[pxIndex].first;
@@ -170,7 +169,7 @@ void SubMinorLoop::findPeakPositions(ImageSet& convolvedResidual) {
 void SubMinorLoop::GetFullIndividualModel(size_t imageIndex,
                                           float* individualModelImg) const {
   std::fill(individualModelImg, individualModelImg + _width * _height, 0.0);
-  const float* data = _subMinorModel.Model()[imageIndex];
+  const float* data = _subMinorModel.Model()[imageIndex].Data();
   for (size_t px = 0; px != _subMinorModel.size(); ++px) {
     individualModelImg[_subMinorModel.FullIndex(px)] = data[px];
   }
@@ -205,7 +204,7 @@ void SubMinorLoop::CorrectResidualDirty(class FFTWManager& fftw,
 void SubMinorLoop::UpdateAutoMask(bool* mask) const {
   for (size_t imageIndex = 0; imageIndex != _subMinorModel.Model().size();
        ++imageIndex) {
-    const float* image = _subMinorModel.Model()[imageIndex];
+    const aocommon::Image& image = _subMinorModel.Model()[imageIndex];
     for (size_t px = 0; px != _subMinorModel.size(); ++px) {
       if (image[px] != 0.0) mask[_subMinorModel.FullIndex(px)] = true;
     }

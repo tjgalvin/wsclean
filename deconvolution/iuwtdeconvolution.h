@@ -18,13 +18,13 @@ class IUWTDeconvolution : public DeconvolutionAlgorithm {
   IUWTDeconvolution(class FFTWManager& fftwManager)
       : _fftwManager(fftwManager), _useSNRTest(false) {}
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dataImage, ImageSet& modelImage,
-      const aocommon::UVector<const float*>& psfImages, size_t width,
-      size_t height, bool& reachedMajorThreshold) final override {
+  float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
+                              const std::vector<aocommon::Image>& psfImages,
+                              bool& reachedMajorThreshold) final override {
     IUWTDeconvolutionAlgorithm algorithm(
-        _fftwManager, width, height, _gain, _mGain, _cleanBorderRatio,
-        _allowNegativeComponents, _cleanMask, _threshold, _useSNRTest);
+        _fftwManager, dataImage.Width(), dataImage.Height(), _gain, _mGain,
+        _cleanBorderRatio, _allowNegativeComponents, _cleanMask, _threshold,
+        _useSNRTest);
     float val = algorithm.PerformMajorIteration(
         _iterationNumber, MaxNIter(), modelImage, dataImage, psfImages,
         reachedMajorThreshold);
@@ -33,7 +33,7 @@ class IUWTDeconvolution : public DeconvolutionAlgorithm {
   }
 
   std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
-    return std::unique_ptr<IUWTDeconvolution>(new IUWTDeconvolution(*this));
+    return std::make_unique<IUWTDeconvolution>(*this);
   }
 
   void SetUseSNRTest(bool useSNRTest) { _useSNRTest = useSNRTest; }

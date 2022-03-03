@@ -24,18 +24,16 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   ~MultiScaleAlgorithm();
 
   std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
-    return std::unique_ptr<DeconvolutionAlgorithm>(
-        new MultiScaleAlgorithm(*this));
+    return std::make_unique<MultiScaleAlgorithm>(*this);
   }
 
   void SetManualScaleList(const std::vector<double>& scaleList) {
     _manualScaleList = scaleList;
   }
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dataImage, ImageSet& modelImage,
-      const aocommon::UVector<const float*>& psfImages, size_t width,
-      size_t height, bool& reachedMajorThreshold) final override;
+  float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
+                              const std::vector<aocommon::Image>& psfImages,
+                              bool& reachedMajorThreshold) final override;
 
   void SetAutoMaskMode(bool trackPerScaleMasks, bool usePerScaleMasks) {
     _trackPerScaleMasks = trackPerScaleMasks;
@@ -67,7 +65,6 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
 
  private:
   FFTWManager& _fftwManager;
-  size_t _width, _height;
   float _convolutionPadding;
   double _beamSizeInPixels;
   float _multiscaleScaleBias;
@@ -114,29 +111,26 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   std::vector<aocommon::UVector<bool>> _scaleMasks;
   aocommon::cloned_ptr<ComponentList> _componentList;
 
-  void initializeScaleInfo();
+  void initializeScaleInfo(size_t minWidthHeight);
   void convolvePSFs(std::unique_ptr<aocommon::Image[]>& convolvedPSFs,
-                    const float* psf, aocommon::Image& scratch,
+                    const aocommon::Image& psf, aocommon::Image& scratch,
                     bool isIntegrated);
   void findActiveScaleConvolvedMaxima(const ImageSet& imageSet,
                                       aocommon::Image& integratedScratch,
-                                      float* scratch, bool reportRMS,
+                                      aocommon::Image& scratch, bool reportRMS,
                                       ThreadedDeconvolutionTools* tools);
   bool selectMaximumScale(size_t& scaleWithPeak);
   void activateScales(size_t scaleWithLastPeak);
   void measureComponentValues(aocommon::UVector<float>& componentValues,
                               size_t scaleIndex, ImageSet& imageSet);
-  void addComponentToModel(float* model, size_t scaleWithPeak,
-                           float componentValue);
+  void addComponentToModel(ImageSet& modelSet, size_t imgIndex,
+                           size_t scaleWithPeak, float componentValue);
 
-  void findPeakDirect(const float* image, float* scratch, size_t scaleIndex);
+  void findPeakDirect(const aocommon::Image& image, aocommon::Image& scratch,
+                      size_t scaleIndex);
 
-  float* getConvolvedPSF(
-      size_t psfIndex, size_t scaleIndex,
-      const std::unique_ptr<std::unique_ptr<aocommon::Image[]>[]>&
-          convolvedPSFs);
-  void getConvolutionDimensions(size_t scaleIndex, size_t& width,
-                                size_t& height) const;
+  void getConvolutionDimensions(size_t scaleIndex, size_t width, size_t height,
+                                size_t& width_out, size_t& height_out) const;
 };
 
 #endif

@@ -121,40 +121,41 @@ PythonDeconvolution::PythonDeconvolution(const std::string& filename)
       .def("fit_and_evaluate", &PySpectralFitter::fit_and_evaluate);
 }
 
-void PythonDeconvolution::setBuffer(const ImageSet& imageSet, double* ptr,
-                                    size_t width, size_t height) {
+void PythonDeconvolution::setBuffer(const ImageSet& imageSet, double* ptr) {
   size_t nFreq = imageSet.NDeconvolutionChannels();
   size_t nPol = imageSet.size() / imageSet.NDeconvolutionChannels();
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
-      const float* img = imageSet[freq * nPol + pol];
-      std::copy_n(img, width * height, ptr);
-      ptr += width * height;
+      const aocommon::Image& image = imageSet[freq * nPol + pol];
+      std::copy_n(image.Data(), image.Size(), ptr);
+      ptr += image.Size();
     }
   }
 }
 
-void PythonDeconvolution::getBuffer(ImageSet& imageSet, const double* ptr,
-                                    size_t width, size_t height) {
+void PythonDeconvolution::getBuffer(ImageSet& imageSet, const double* ptr) {
   size_t nFreq = imageSet.NDeconvolutionChannels();
   size_t nPol = imageSet.size() / imageSet.NDeconvolutionChannels();
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
     for (size_t pol = 0; pol != nPol; ++pol) {
-      float* img = imageSet[freq * nPol + pol];
-      std::copy_n(ptr, width * height, img);
-      ptr += width * height;
+      const size_t imageIndex = freq * nPol + pol;
+      float* img = imageSet.Data(imageIndex);
+      const size_t imageSize = imageSet[imageIndex].Size();
+      std::copy_n(ptr, imageSize, img);
+      ptr += imageSize;
+      ;
     }
   }
 }
 
-void PythonDeconvolution::setPsf(const aocommon::UVector<const float*>& psfs,
+void PythonDeconvolution::setPsf(const std::vector<aocommon::Image>& psfs,
                                  double* pyPtr, size_t width, size_t height) {
   size_t nFreq = psfs.size();
 
   for (size_t freq = 0; freq != nFreq; ++freq) {
-    const float* psf = psfs[freq];
+    const float* psf = psfs[freq].Data();
 
     for (size_t y = 0; y != height; ++y) {
       for (size_t x = 0; x != width; ++x) pyPtr[x] = psf[x];
@@ -167,8 +168,9 @@ void PythonDeconvolution::setPsf(const aocommon::UVector<const float*>& psfs,
 
 float PythonDeconvolution::ExecuteMajorIteration(
     ImageSet& dirtySet, ImageSet& modelSet,
-    const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
-    bool& reachedMajorThreshold) {
+    const std::vector<aocommon::Image>& psfs, bool& reachedMajorThreshold) {
+  const size_t width = dirtySet.Width();
+  const size_t height = dirtySet.Height();
   size_t nFreq = dirtySet.NDeconvolutionChannels();
   size_t nPol = dirtySet.size() / dirtySet.NDeconvolutionChannels();
 
@@ -187,8 +189,7 @@ float PythonDeconvolution::ExecuteMajorIteration(
          sizeof(double)}  // Strides
     );
     pybind11::array_t<double> pyResiduals(residualBuf);
-    setBuffer(dirtySet, static_cast<double*>(pyResiduals.request(true).ptr),
-              width, height);
+    setBuffer(dirtySet, static_cast<double*>(pyResiduals.request(true).ptr));
 
     // Create Model array
     pybind11::buffer_info modelBuf(
@@ -199,8 +200,7 @@ float PythonDeconvolution::ExecuteMajorIteration(
          sizeof(double) * width * height, sizeof(double) * width,
          sizeof(double)});
     pybind11::array_t<double> pyModel(modelBuf);
-    setBuffer(modelSet, static_cast<double*>(pyModel.request(true).ptr), width,
-              height);
+    setBuffer(modelSet, static_cast<double*>(pyModel.request(true).ptr));
 
     // Create PSF array
     pybind11::buffer_info psfBuf(
@@ -250,12 +250,10 @@ float PythonDeconvolution::ExecuteMajorIteration(
         "'continue'");
   pybind11::array_t<double> residualRes =
       resultDict["residual"].cast<pybind11::array_t<double>>();
-  getBuffer(dirtySet, static_cast<const double*>(residualRes.request().ptr),
-            width, height);
+  getBuffer(dirtySet, static_cast<const double*>(residualRes.request().ptr));
   pybind11::array_t<double> modelRes =
       resultDict["model"].cast<pybind11::array_t<double>>();
-  getBuffer(modelSet, static_cast<const double*>(modelRes.request().ptr), width,
-            height);
+  getBuffer(modelSet, static_cast<const double*>(modelRes.request().ptr));
 
   double level = resultDict["level"].cast<double>();
   reachedMajorThreshold = resultDict["continue"].cast<bool>();

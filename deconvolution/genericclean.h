@@ -20,30 +20,25 @@ class GenericClean : public DeconvolutionAlgorithm {
   explicit GenericClean(class FFTWManager& fftwManager,
                         bool useSubMinorOptimization);
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dirtySet, ImageSet& modelSet,
-      const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
-      bool& reachedMajorThreshold) final override;
+  float ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet,
+                              const std::vector<aocommon::Image>& psfs,
+                              bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
     return std::unique_ptr<DeconvolutionAlgorithm>(new GenericClean(*this));
   }
 
  private:
-  size_t _width, _height, _convolutionWidth, _convolutionHeight;
+  size_t _convolutionWidth;
+  size_t _convolutionHeight;
   float _convolutionPadding;
   bool _useSubMinorOptimization;
 
-  std::optional<float> findPeak(const float* image, float* scratch, size_t& x,
-                                size_t& y);
+  std::optional<float> findPeak(const aocommon::Image& image,
+                                aocommon::Image& scratch, size_t& x, size_t& y);
 
-  std::string peakDescription(const float* image, size_t& x, size_t& y);
-
-  void subtractImage(float* image, const float* psf, size_t x, size_t y,
-                     float factor, size_t startY, size_t endY) const {
-    SimpleClean::PartialSubtractImage(image, _width, _height, psf, _width,
-                                      _height, x, y, factor, startY, endY);
-  }
+  std::string peakDescription(const aocommon::Image& image, size_t& x,
+                              size_t& y);
 
   class FFTWManager& _fftwManager;
 };

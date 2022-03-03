@@ -34,6 +34,7 @@ class ImageSet {
   }
 
   void SetImage(size_t imageIndex, aocommon::Image&& data) {
+    assert(data.Width() == Width() && data.Height() == Height());
     _images[imageIndex] = std::move(data);
   }
 
@@ -50,7 +51,7 @@ class ImageSet {
    */
   void LoadAndAverage(bool use_residual_images);
 
-  std::vector<aocommon::UVector<float>> LoadAndAveragePSFs();
+  std::vector<aocommon::Image> LoadAndAveragePSFs();
 
   void InterpolateAndStoreModel(const class SpectralFitter& fitter,
                                 size_t threadCount);
@@ -110,7 +111,7 @@ class ImageSet {
   }
 
   void GetIntegratedPSF(aocommon::Image& dest,
-                        const aocommon::UVector<const float*>& psfs);
+                        const std::vector<aocommon::Image>& psfs);
 
   size_t NOriginalChannels() const {
     return _deconvolutionTable.OriginalGroups().size();
@@ -127,9 +128,28 @@ class ImageSet {
     return *this;
   }
 
-  float* operator[](size_t index) { return _images[index].Data(); }
+  /**
+   * Exposes image data.
+   *
+   * ImageSet only exposes a non-const pointer to the image data. When exposing
+   * non-const reference to the images themselves, the user could change the
+   * image size and violate the invariant that all images have equal sizes.
+   * @param index An image index.
+   * @return A non-const pointer to the data area for the image.
+   */
+  float* Data(size_t index) { return _images[index].Data(); }
 
-  const float* operator[](size_t index) const { return _images[index].Data(); }
+  /**
+   * Exposes the images in the image set.
+   *
+   * Creating a non-const version of this operator is not desirable. See Data().
+   *
+   * @param index An image index.
+   * @return A const reference to the image with the given index.
+   */
+  const aocommon::Image& operator[](size_t index) const {
+    return _images[index];
+  }
 
   size_t size() const { return _images.size(); }
 

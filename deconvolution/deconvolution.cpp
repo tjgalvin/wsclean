@@ -121,11 +121,8 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
   integrated.Reset();
 
   Logger::Debug << "Loading PSFs...\n";
-  const std::vector<aocommon::UVector<float>> psfVecs =
+  const std::vector<aocommon::Image> psfImages =
       residualSet.LoadAndAveragePSFs();
-
-  aocommon::UVector<const float*> psfs(residualSet.PSFCount());
-  for (size_t i = 0; i != psfVecs.size(); ++i) psfs[i] = psfVecs[i].data();
 
   if (_settings.useMultiscale) {
     if (_settings.autoMask) {
@@ -139,7 +136,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
       if (_autoMask.empty()) {
         _autoMask.resize(_imgWidth * _imgHeight);
         for (size_t imgIndex = 0; imgIndex != modelSet.size(); ++imgIndex) {
-          const float* image = modelSet[imgIndex];
+          const aocommon::Image& image = modelSet[imgIndex];
           for (size_t i = 0; i != _imgWidth * _imgHeight; ++i) {
             _autoMask[i] = (image[i] == 0.0) ? false : true;
           }
@@ -149,7 +146,7 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
     }
   }
 
-  _parallelDeconvolution.ExecuteMajorIteration(residualSet, modelSet, psfs,
+  _parallelDeconvolution.ExecuteMajorIteration(residualSet, modelSet, psfImages,
                                                reachedMajorThreshold);
 
   if (!reachedMajorThreshold && _settings.autoMask && !_autoMaskIsFinished) {

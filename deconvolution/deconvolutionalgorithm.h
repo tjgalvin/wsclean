@@ -22,8 +22,8 @@ class DeconvolutionAlgorithm {
 
   virtual float ExecuteMajorIteration(
       class ImageSet& dataImage, class ImageSet& modelImage,
-      const aocommon::UVector<const float*>& psfImages, size_t width,
-      size_t height, bool& reachedMajorThreshold) = 0;
+      const std::vector<aocommon::Image>& psfImages,
+      bool& reachedMajorThreshold) = 0;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const = 0;
 

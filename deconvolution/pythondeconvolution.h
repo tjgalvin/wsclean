@@ -12,14 +12,12 @@ class PythonDeconvolution : public DeconvolutionAlgorithm {
  public:
   PythonDeconvolution(const std::string& filename);
 
-  virtual float ExecuteMajorIteration(
-      ImageSet& dirtySet, ImageSet& modelSet,
-      const aocommon::UVector<const float*>& psfs, size_t width, size_t height,
-      bool& reachedMajorThreshold) final override;
+  float ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet,
+                              const std::vector<aocommon::Image>& psfs,
+                              bool& reachedMajorThreshold) final override;
 
   virtual std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
-    return std::unique_ptr<DeconvolutionAlgorithm>(
-        new PythonDeconvolution(*this));
+    return std::make_unique<PythonDeconvolution>(*this);
   }
 
  private:
@@ -29,12 +27,10 @@ class PythonDeconvolution : public DeconvolutionAlgorithm {
   std::shared_ptr<pybind11::scoped_interpreter> _guard;
   pybind11::function _deconvolveFunction;
 
-  void setBuffer(const ImageSet& imageSet, double* pyPtr, size_t width,
-                 size_t height);
-  void setPsf(const aocommon::UVector<const float*>& psfs, double* pyPtr,
+  void setBuffer(const ImageSet& imageSet, double* pyPtr);
+  void setPsf(const std::vector<aocommon::Image>& psfs, double* pyPtr,
               size_t width, size_t height);
-  void getBuffer(ImageSet& imageSet, const double* pyPtr, size_t width,
-                 size_t height);
+  void getBuffer(ImageSet& imageSet, const double* pyPtr);
 };
 
 #endif  // PYTHON_DECONVOLUTION_H

@@ -161,7 +161,7 @@ class SubMinorLoop {
 
   std::optional<float> Run(
       ImageSet& convolvedResidual,
-      const aocommon::UVector<const float*>& twiceConvolvedPsfs);
+      const std::vector<aocommon::Image>& twiceConvolvedPsfs);
 
   /**
    * The produced model is convolved with the given psf, and the result is
