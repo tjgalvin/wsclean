@@ -327,6 +327,10 @@ void Settings::Propagate(bool verbose) {
                  << trimmedImageHeight << '\n';
   }
 
+  if (parallelDeconvolutionMaxThreads == 0) {
+    parallelDeconvolutionMaxThreads = threadCount;
+  }
+
   // When using IDG with aterms, a PSF must be made, because the beam
   // image is created during the PSF imaging stage.
   if (useIDG && (!atermConfigFilename.empty() || gridWithBeam)) {

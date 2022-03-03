@@ -311,7 +311,7 @@ inline Settings::Settings()
       // Deconvolution default settings:
       linkedPolarizations(),
       parallelDeconvolutionMaxSize(0),
-      parallelDeconvolutionMaxThreads(threadCount),
+      parallelDeconvolutionMaxThreads(0),
       deconvolutionThreshold(0.0),
       deconvolutionGain(0.1),
       deconvolutionMGain(1.0),
