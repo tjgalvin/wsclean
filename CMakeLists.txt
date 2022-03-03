@@ -48,6 +48,19 @@ else()
   endif()
 endif()
 
+set(ExternalSubmoduleDirectories aocommon pybind11 schaapcommon)
+foreach(ExternalSubmodule ${ExternalSubmoduleDirectories})
+  if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExternalSubmodule})
+    message(
+      FATAL_ERROR
+        "The external submodule '${ExternalSubmodule}' is missing in the external/ subdirectory. "
+        "This is likely the result of downloading a git tarball without submodules. "
+        "This is not supported: git tarballs do not provide the required versioning "
+        "information for the submodules. Please perform a git clone of this repository."
+    )
+  endif()
+endforeach()
+
 # Find and include git submodules
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
