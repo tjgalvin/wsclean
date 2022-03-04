@@ -10,7 +10,7 @@ There are multiple scenarios why continuing can be useful, for example:
  * If you want different image weighting settings with the same deconvolution. For example, one can run the deconvolution with uniform weights, and then reimage the set with the same deconvolution results but with different weighting.
 
 There might be other use-cases for ``-continue``. However, not that what ``-continue`` does is a bit complex, so you should understand the specific steps that ``-continue`` performs to make effective use of it.
- 
+
 Syntax
 ------
 
@@ -23,7 +23,7 @@ First run:
     wsclean -size 1024 1024 -scale 1amin -niter 1000 \
       -auto-threshold 10 -mgain 0.8                   \
       observations.ms
-      
+
 Continued run:
 
 .. code-block:: bash
@@ -31,12 +31,12 @@ Continued run:
     wsclean -continue -size 1024 1024 -scale 1amin -niter 1000 \
       -auto-threshold 3 -mgain 0.8                             \
       observations.ms
-    
+
 There are few considerations:
 
  * The constructed model visibilities need to be stored in the measurement set. This implies that ``-mgain`` should be used (see the :doc:`Selfcal instructions <selfcal>` for more info on mgain) in the first run, or you have to manually predict the model image from the first run, before continuing. WSClean does not verify whether this assumption holds.
  * As a result, it is not directly possible to use ``-no-update-model-required`` in the first run, because the second run requires the ``MODEL_DATA`` column to be filled. If ``-no-update-model-required`` was enabled, or only a model image without the corresponding predicted visibilities is available, it is still possible to continue the run by first :doc:`predicting <prediction>` the model data (using ``wsclean -predict ...``) from the model image before continuing.
- * In a continued run, WSClean expects the model image to be there. It also expects it to have its normal name, i.e. something like `prefix-model.fits`. This implies that one should use the same ``-name`` option in the first and second run. This implies the restored image will be overwritten, so if the first images are of interest they should be copied before the second run.
+ * In a continued run, WSClean expects the model image to be there. It also expects it to have its normal name, i.e. something like `prefix-model.fits`. For predicts that include a beam while gridding (facet-based or using IDG), the beam-corrected model image is read, with a name such as `prefix-model-pb.fits`.
  * One cannot change the image dimensions, phase center or pixel scale between the first and a continued run.
  * The second run can not include more visibilities than the first run. E.g., if selection parameters such as ``-maxuv-l`` are used, the first run should not be more restrictive than the second run, because the ``MODEL_DATA`` column would not be set for those visibilities.
 
@@ -56,7 +56,7 @@ The following sequence of statements would do this:
       -niter 10000 -threshold 0.1 -mgain 0.8  \
       -weight uniform                         \
       -name diffuse-field observation.ms
-      
+
     # Since the images will be overwritten in the second run,
     # here I copy the images so they can be inspected for
     # debugging purposes.
@@ -78,7 +78,7 @@ What ``-continue`` really does
 By adding ``-continue`` to the command line, WSClean will do the following things:
 
  * The previous model image will be read.
- * During the first inversion, WSClean will image the PSF (even thought it might already exist -- since e.g. the weights might have been changed). 
+ * During the first inversion, WSClean will image the PSF (even thought it might already exist -- since e.g. the weights might have been changed).
  * During the first inversion, WSClean will immediately image the residual data (data - model data). This image is still named 'dirty image', even though it is actually the residual image of the first deconvolution.
  * Any new components found during cleaning will be added to the previous model image.
  * The previous model image will be overwritten.
@@ -94,14 +94,14 @@ The ``-subtract-model`` option only makes WSClean subtract the model column from
 .. code-block:: bash
 
     taql update obs.ms set DATA=DATA-MODEL_DATA
-    
+
 Reusing PSF / dirty image
 -------------------------
 
 Existing PSF or dirty images can be reused to:
  - run the deconvolution algorithms of wsclean without doing the inversion (i.e. without ever going back to the visibilities)
  - speed up a second run of imaging when the PSF/dirty already exist, and no change in imaging settings (pixel scale, size, weighting, etc.) is made.
- 
+
 A first "regular" run to make the PSF and dirty image:
 
 .. code-block:: bash
@@ -117,5 +117,5 @@ A run that reuses the PSF and dirty images from the previous run:
       -no-reorder -name secondrun \
       -size 1024 1024 -scale 30asec -channels-out 4 \
       -niter 1000 -auto-threshold 5 obs.ms
-    
+
 The use of '``-no-reorder``' skips the reordering of visibilities by wsclean, which is useful when wsclean would never go back to the visibilities, as then the reordering is just overhead. It is allowed to keep the name between the runs the same (so to remove '``-name secondrun``' from the second run).

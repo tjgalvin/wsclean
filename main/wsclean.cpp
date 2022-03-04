@@ -890,7 +890,11 @@ void WSClean::RunPredict() {
           ImageFilename::GetPrefix(_settings, _imagingTable[0].polarization,
                                    _imagingTable[0].outputChannelIndex,
                                    _imagingTable[0].outputIntervalIndex, false);
-      FitsReader reader(prefix + "-model.fits");
+      const std::string suffix =
+          (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())
+              ? "-model-pb.fits"
+              : "-model.fits";
+      FitsReader reader(prefix + suffix);
       overrideImageSettings(reader);
 
       for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
@@ -1269,7 +1273,13 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
     std::string prefix = ImageFilename::GetPrefix(
         _settings, polarization, entry.outputChannelIndex,
         entry.outputIntervalIndex, i == 1);
-    FitsReader reader(prefix + "-model.fits");
+
+    const std::string suffix =
+        (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty() ||
+         _settings.gridWithBeam || !_settings.atermConfigFilename.empty())
+            ? "-model-pb.fits"
+            : "-model.fits";
+    FitsReader reader(prefix + suffix);
     Logger::Info << "Reading " << reader.Filename() << "...\n";
 
     const bool resetGridder = overrideImageSettings(reader);
