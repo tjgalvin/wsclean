@@ -7,7 +7,8 @@ from utils import validate_call
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
 
-import testconfig as tcf
+# Import configuration variables as test configuration (tcf)
+import config_vars as tcf
 
 """
 Test script containing a collection of wsclean commands, tested on an MWA measurement set. Tests contained in this
@@ -23,11 +24,7 @@ def name(name: str):
 
 
 @pytest.mark.usefixtures("prepare_large_ms")
-class TestLongSystem:
-    """
-    Collection of long system tests.
-    """
-    
+class TestCommandCatalogue:
     def test_dirty_image(self):
         # Make dirty image
         s = f"{tcf.WSCLEAN} -name {name('test-dirty')} {tcf.DIMS_LARGE} {tcf.MWA_MS}"

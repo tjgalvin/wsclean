@@ -65,7 +65,7 @@ build-without-everybeam:
     - make doc
     - make install
     # For a push pipeline, run unittests only, otherwise run both unit and integration tests
-    - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make checkunit; else make check; fi
+    - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make unitchecks; else make check; fi
     - gcovr -r .. -e '.*/tests/.*' -e '.*/external/.*' -e '.*/CompilerIdCXX/.*' --json -o run-unit.json
     # gcovr to enable line coverage highlighting in MRs
     - gcovr --add-tracefile run-unit.json --xml > coverage.xml
@@ -87,7 +87,7 @@ build-with-everybeam:
     - cmake -DBUILD_TESTING=ON -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
     - make -j`nproc` install
     # For a push pipeline, run unittests only, otherwise run both unit and integration tests
-    - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make checkunit; else make check; fi
+    - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make unitchecks; else make check; fi
 
 build-casacore-3.0.0:
   stage: build
@@ -149,7 +149,7 @@ test-nightly-das5:
     - mkdir -p build && cd build && rm -rf *
     - cmake -DBUILD_TESTING=ON -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT_DIR -DCASACORE_ROOT_DIR=$CASACORE_ROOT_DIR -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT_DIR};$CI_PROJECT_DIR/everybeam;${FFTW3_ROOT_DIR}" ..
     - make -j`nproc`
-    - make checkintegration-nightly
+    - make nightlychecks
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "merge_request_event"
       when: always
@@ -166,20 +166,20 @@ test-system-das5:
     - source scripts/das5_modules.sh
     - export OPENBLAS_NUM_THREADS=1
   script:
-    # Remove MS and coefficient file at end of tests
-    - export CLEANUP="true"
+    # Remove testing directory at end of tests
+    - export CLEANUP_WSCLEAN_TESTS=1
     # Create directory for storing the output reports
     - rm -rf reports/* && mkdir -p reports
     - mkdir -p build && cd build && rm -rf *
     - cmake -DBUILD_TESTING=ON -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT_DIR -DCASACORE_ROOT_DIR=$CASACORE_ROOT_DIR -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT_DIR};${EVERYBEAM_ROOT_DIR};${FFTW3_ROOT_DIR}" ..
     - make -j4
-    - make checkcommandcatalogue
-    - mv test_*.xml $CI_PROJECT_DIR/reports/
+    - make longsystemchecks
+    - mv check_*.xml $CI_PROJECT_DIR/reports/
   artifacts:
     paths:
-      - reports/test_*.xml
+      - reports/check_*.xml
     reports:
-      junit: reports/test_*.xml
+      junit: reports/check_*.xml
   rules:
     # Do not run for all scheduled pipelines
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SYSTEM_TESTS == "true"

@@ -1,0 +1,41 @@
+"""
+Script collecting test variables.
+"""
+
+WORKING_DIR = "@CMAKE_BINARY_DIR@/test_data"
+# LOCAL TESTING ONLY
+# WORKING_DIR = "/var/scratch/maljaars/data/test"
+# END
+RESULTS_DIR = "test_results"
+
+# Base URL for downloading CI data
+EVERYBEAM_BASE_URL = "https://www.astron.nl/citt/EveryBeam/"
+
+# WSClean executables
+WSCLEAN = "@CMAKE_BINARY_DIR@/wsclean"
+WSCLEAN_MP = "@CMAKE_BINARY_DIR@/wsclean-mp"
+
+DIMS_LARGE = "-size 1024 1024 -scale 1amin"
+DIMS_SMALL = "-size 256 256 -scale 4amin"
+DIMS_RECTANGULAR = "-size 1536 1024 -scale 1amin"
+
+FACETFILE_2FACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_2facets.reg"
+FACETFILE_4FACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_4facets.reg"
+FACETFILE_NFACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_nfacets.reg"
+
+# MWA beam coefficient file and dummy MODEL_IMAGe
+MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
+MWA_COEFF_FILE = "mwa_full_embedded_element_pattern.h5"
+MODEL_IMAGE = "point-source-model.fits"
+
+# Large MWA measurement set
+MWA_MS = "MWA-1052736496-averaged.ms"
+
+# Mock MWA measurement set
+MWA_MOCK_ARCHIVE="MWA_ARCHIVE.tar.bz2"
+MWA_MOCK_MS = "MWA_MOCK.ms"
+MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
+MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
+# Copies for multi measurement set tests
+MWA_MOCK_COPY_1 = "MWA_MOCK_COPY_1.ms"
+MWA_MOCK_COPY_2 = "MWA_MOCK_COPY_2.ms"
