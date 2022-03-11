@@ -316,7 +316,6 @@ add_library(
   msproviders/partitionedms.cpp
   msproviders/timestepbuffer.cpp
   msproviders/synchronizedms.cpp
-  msproviders/msreaders/msreader.cpp
   msproviders/msreaders/contiguousmsreader.cpp
   msproviders/msreaders/partitionedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp

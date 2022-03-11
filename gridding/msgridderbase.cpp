@@ -48,7 +48,7 @@ namespace {
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
- * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * @tparam PolarizationCount polarization count, 2 or 4 for IDG, 1 for all other
  * gridders.
  * @tparam GainEntry Which entry or entries from the gain matrices should be
  * taken into account when correcting the visibilities? See also the
@@ -82,6 +82,13 @@ void ApplyConjugatedGain<1, DDGainMatrix::kTrace>(
 }
 
 template <>
+void ApplyConjugatedGain<2, DDGainMatrix::kFull>(std::complex<float>*,
+                                                 const aocommon::MC2x2F&,
+                                                 const aocommon::MC2x2F&) {
+  throw std::runtime_error("Not implemented");
+}
+
+template <>
 void ApplyConjugatedGain<4, DDGainMatrix::kFull>(
     std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
     const aocommon::MC2x2F& gain2) {
@@ -95,7 +102,7 @@ void ApplyConjugatedGain<4, DDGainMatrix::kFull>(
 /**
  * @brief Apply gains to the visibilities.
  *
- * @tparam PolarizationCount polarization count, 4 for IDG, 1 for all other
+ * @tparam PolarizationCount polarization count, 2 or 4 for IDG, 1 for all other
  * gridders.
  * @tparam GainEntry Which entry or entries from the gain matrices should be
  * taken into account when correcting the visibilities? See also the
@@ -125,6 +132,13 @@ void ApplyGain<1, DDGainMatrix::kTrace>(std::complex<float>* visibilities,
                                         const aocommon::MC2x2F& gain2) {
   // Stokes-I.
   *visibilities *= 0.5f * gain1.DoubleDot(gain2.Conjugate());
+}
+
+template <>
+void ApplyGain<2, DDGainMatrix::kFull>(std::complex<float>*,
+                                       const aocommon::MC2x2F&,
+                                       const aocommon::MC2x2F&) {
+  throw std::runtime_error("Not implemented");
 }
 
 template <>
@@ -608,6 +622,7 @@ void MSGridderBase::calculateWLimits(MSGridderBase::MSData& msData) {
 }
 
 template void MSGridderBase::calculateWLimits<1>(MSGridderBase::MSData& msData);
+template void MSGridderBase::calculateWLimits<2>(MSGridderBase::MSData& msData);
 template void MSGridderBase::calculateWLimits<4>(MSGridderBase::MSData& msData);
 
 void MSGridderBase::initializeMSDataVector(
@@ -679,6 +694,9 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   } else {
     if (msProvider.Polarization() == aocommon::Polarization::Instrumental)
       calculateWLimits<4>(msData);
+    else if (msProvider.Polarization() ==
+             aocommon::Polarization::DiagonalInstrumental)
+      calculateWLimits<2>(msData);
     else
       calculateWLimits<1>(msData);
     cacheEntry.maxW = msData.maxW;
@@ -865,6 +883,10 @@ template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kTrace>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
+template void MSGridderBase::writeVisibilities<2, DDGainMatrix::kFull>(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const aocommon::BandData& curBand, std::complex<float>* buffer);
+
 template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
@@ -893,7 +915,7 @@ void MSGridderBase::ApplyConjugatedFacetBeam(MSReader& msReader,
     ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
     const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-    const float weight = *weightIter * _scratchWeights[ch];
+    const float weight = *weightIter * _scratchImageWeights[ch];
     _metaDataCache->correctionSum += (conj(g) * weight * g).real();
 
     // Only admissible PolarizationCount for applying the facet beam is 1.
@@ -954,7 +976,7 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
       const std::complex<float> g_h5 =
           ComputeGain<GainEntry>(gain_h5_1, gain_h5_2);
 
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       // h5Sum needed for the primary beam correction
       _metaDataCache->h5Sum += (conj(g_h5) * weight * g_h5).real();
       _metaDataCache->correctionSum +=
@@ -996,7 +1018,7 @@ void MSGridderBase::ApplyConjugatedFacetDdEffects(
           ComputeGain<GainEntry>(gain_h5_1, gain_h5_2);
 
       // Compute weight
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       // h5Sum needed for the primary beam correction
       _metaDataCache->h5Sum += (conj(g_h5) * weight * g_h5).real();
       _metaDataCache->correctionSum +=
@@ -1045,7 +1067,7 @@ void MSGridderBase::ApplyConjugatedH5Parm(
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       _metaDataCache->correctionSum += (conj(g) * weight * g).real();
 
       // Only admissible PolarizationCount for applying gains from solution
@@ -1065,7 +1087,7 @@ void MSGridderBase::ApplyConjugatedH5Parm(
       ApplyConjugatedGain<PolarizationCount, GainEntry>(iter, gain1, gain2);
       const std::complex<float> g = ComputeGain<GainEntry>(gain1, gain2);
 
-      const float weight = *weightIter * _scratchWeights[ch];
+      const float weight = *weightIter * _scratchImageWeights[ch];
       _metaDataCache->correctionSum += (conj(g) * weight * g).real();
 
       // Only admissible PolarizationCount for applying gains from solution
@@ -1114,8 +1136,8 @@ void MSGridderBase::readAndWeightVisibilities(
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
   // to have zero weight.
-  for (size_t ch = 0; ch != dataSize; ++ch) {
-    if (!isSelected[ch]) weightBuffer[ch] = 0.0;
+  for (size_t i = 0; i != dataSize; ++i) {
+    if (!isSelected[i]) weightBuffer[i] = 0.0;
   }
 
   switch (GetVisibilityWeightingMode()) {
@@ -1124,26 +1146,25 @@ void MSGridderBase::readAndWeightVisibilities(
       break;
     case VisibilityWeightingMode::SquaredVisibilityWeighting:
       // Square the visibility weights
-      for (size_t chp = 0; chp != dataSize; ++chp)
-        weightBuffer[chp] *= weightBuffer[chp];
+      for (size_t i = 0; i != dataSize; ++i) weightBuffer[i] *= weightBuffer[i];
       break;
     case VisibilityWeightingMode::UnitVisibilityWeighting:
       // Set the visibility weights to one
-      for (size_t chp = 0; chp != dataSize; ++chp) {
-        if (weightBuffer[chp] != 0.0) weightBuffer[chp] = 1.0f;
+      for (size_t i = 0; i != dataSize; ++i) {
+        if (weightBuffer[i] != 0.0) weightBuffer[i] = 1.0f;
       }
       break;
   }
 
   // Precompute imaging weights
-  _scratchWeights.resize(curBand.ChannelCount());
+  _scratchImageWeights.resize(curBand.ChannelCount());
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     const double u = rowData.uvw[0] / curBand.ChannelWavelength(ch);
     const double v = rowData.uvw[1] / curBand.ChannelWavelength(ch);
-    _scratchWeights[ch] = GetImageWeights()->GetWeight(u, v);
+    _scratchImageWeights[ch] = GetImageWeights()->GetWeight(u, v);
   }
   if (StoreImagingWeights())
-    msReader.WriteImagingWeights(_scratchWeights.data());
+    msReader.WriteImagingWeights(_scratchImageWeights.data());
 
   if (!DoImagePSF()) {
     if (_settings.applyFacetBeam && !_h5parms.empty()) {
@@ -1165,7 +1186,7 @@ void MSGridderBase::readAndWeightVisibilities(
   float* weightIter = weightBuffer;
   for (size_t ch = 0; ch != curBand.ChannelCount(); ++ch) {
     for (size_t p = 0; p != PolarizationCount; ++p) {
-      const double cumWeight = *weightIter * _scratchWeights[ch];
+      const double cumWeight = *weightIter * _scratchImageWeights[ch];
       if (p == 0 && cumWeight != 0.0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
         _visibilityWeightSum += *weightIter;
@@ -1175,7 +1196,7 @@ void MSGridderBase::readAndWeightVisibilities(
         _totalWeight += cumWeight;
       }
       *weightIter = cumWeight;
-      *dataIter *= *weightIter;
+      *dataIter *= cumWeight;
       ++dataIter;
       ++weightIter;
     }
@@ -1195,6 +1216,12 @@ template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kYY>(
     const bool* isSelected);
 
 template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kTrace>(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& newItem, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected);
+
+template void MSGridderBase::readAndWeightVisibilities<2, DDGainMatrix::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
@@ -1221,6 +1248,9 @@ void MSGridderBase::rotateVisibilities(const aocommon::BandData& bandData,
 }
 
 template void MSGridderBase::rotateVisibilities<1>(
+    const aocommon::BandData& bandData, double shiftFactor,
+    std::complex<float>* dataIter);
+template void MSGridderBase::rotateVisibilities<2>(
     const aocommon::BandData& bandData, double shiftFactor,
     std::complex<float>* dataIter);
 template void MSGridderBase::rotateVisibilities<4>(

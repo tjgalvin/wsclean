@@ -12,8 +12,8 @@
 ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
                            const MSSelection& selection,
-                           aocommon::PolarizationEnum polOut, size_t dataDescId,
-                           bool useMPI)
+                           aocommon::PolarizationEnum outputPolarization,
+                           size_t dataDescId, bool useMPI)
     : _currentOutputRow(0),
       _currentOutputTimestep(0),
       _currentOutputTime(0.0),
@@ -22,7 +22,7 @@ ContiguousMS::ContiguousMS(const string& msPath,
       _nAntenna(0),
       _isModelColumnPrepared(false),
       _selection(selection),
-      _polOut(polOut),
+      _outputPolarization(outputPolarization),
       _msPath(msPath),
       _dataColumnName(dataColumnName) {
   open();
@@ -133,7 +133,16 @@ size_t ContiguousMS::NChannels() {
     return _bandData[_dataDescId].ChannelCount();
 }
 
-size_t ContiguousMS::NPolarizations() { return _inputPolarizations.size(); }
+size_t ContiguousMS::NPolarizations() {
+  switch (_outputPolarization) {
+    case aocommon::Polarization::Instrumental:
+      return 4;
+    case aocommon::Polarization::DiagonalInstrumental:
+      return 2;
+    default:
+      return 1;
+  }
+}
 
 void ContiguousMS::prepareModelColumn() {
   InitializeModelColumn(*_ms);
@@ -146,7 +155,6 @@ void ContiguousMS::prepareModelColumn() {
 
 void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
   std::unique_ptr<casacore::TableLocker> lock;
-
   if (_useMPI) {
     // When using different MPI processes, automatic casacore locks do not work.
     // -> Use UserNoReadLocking with explicit write locks.
@@ -171,10 +179,10 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
   _modelColumn.get(_currentOutputRow, _modelArray);
   if (addToMS) {
     ReverseCopyData<true>(_modelArray, startChannel, endChannel,
-                          _inputPolarizations, buffer, _polOut);
+                          _inputPolarizations, buffer, _outputPolarization);
   } else {
     ReverseCopyData<false>(_modelArray, startChannel, endChannel,
-                           _inputPolarizations, buffer, _polOut);
+                           _inputPolarizations, buffer, _outputPolarization);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);
 }

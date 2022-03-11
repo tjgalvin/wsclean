@@ -24,6 +24,7 @@ add_executable(
   msproviders/tbdamsrowprovider.cpp
   msproviders/tmsrowproviderbase.cpp
   structures/testimagingtable.cpp
+  system/tmappedfile.cpp
   ${WSCLEANFILES})
 
 add_definitions(

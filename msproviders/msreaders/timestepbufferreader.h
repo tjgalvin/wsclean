@@ -24,8 +24,6 @@ class TimestepBufferReader final : public MSReader {
 
   void ReadModel(std::complex<float>* buffer) final override;
 
-  void ReadWeights(std::complex<float>* buffer) final override;
-
   void ReadWeights(float* buffer) final override;
 
   void WriteImagingWeights(const float* buffer) final override;

@@ -100,9 +100,9 @@ class MSProvider {
 
   /**
    * Polarization that this msprovider provides.
-   * Be aware that it may return 'Instrumental', which means it provides
-   * all polarizations that are provided by the underlying measurement set /
-   * data.
+   * Be aware that it may return 'DiagonalInstrumental' or 'Instrumental',
+   * which means it provides 2 or 4 polarizations that are provided by the
+   * underlying measurement set / data.
    */
   virtual aocommon::PolarizationEnum Polarization() = 0;
 

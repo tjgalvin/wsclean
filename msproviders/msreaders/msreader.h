@@ -59,8 +59,6 @@ class MSReader {
 
   virtual void ReadWeights(float* buffer) = 0;
 
-  virtual void ReadWeights(std::complex<float>* buffer) = 0;
-
   /**
    * Write imaging weights to the current READING position.
    * Note that despite this is a write operation, the reading position is
@@ -72,18 +70,6 @@ class MSReader {
 
  protected:
   MSProvider* _msProvider;
-
-  static void copyData(std::complex<float>* dest, size_t startChannel,
-                       size_t endChannel,
-                       const std::vector<aocommon::PolarizationEnum>& polsIn,
-                       const casacore::Array<std::complex<float>>& data,
-                       aocommon::PolarizationEnum polOut);
-
- private:
-  template <typename NumType>
-  static bool isCFinite(const std::complex<NumType>& c) {
-    return std::isfinite(c.real()) && std::isfinite(c.imag());
-  }
 };
 
 #endif

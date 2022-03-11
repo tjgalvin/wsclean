@@ -228,6 +228,18 @@ class WSClean {
     return msCount;
   }
 
+  /**
+   * Determines if IDG uses diagonal instrumental or full instrumental
+   * polarizations.
+   */
+  aocommon::PolarizationEnum getIdgPolarization() const {
+    return _settings.polarizations ==
+                   std::set<aocommon::PolarizationEnum>{
+                       aocommon::Polarization::StokesI}
+               ? aocommon::Polarization::DiagonalInstrumental
+               : aocommon::Polarization::Instrumental;
+  }
+
   MSSelection _globalSelection;
   std::string _commandLine;
 

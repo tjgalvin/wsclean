@@ -75,9 +75,7 @@ void ImageWeights::Unserialize(aocommon::SerialIStream& stream) {
 void ImageWeights::Grid(MSProvider& msProvider,
                         const aocommon::BandData& selectedBand) {
   assert(!_isGriddingFinished);
-  size_t polarizationCount =
-      (msProvider.Polarization() == aocommon::Polarization::Instrumental) ? 4
-                                                                          : 1;
+  const size_t polarizationCount = msProvider.NPolarizations();
   if (_weightMode.RequiresGridding()) {
     aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
                                           polarizationCount);

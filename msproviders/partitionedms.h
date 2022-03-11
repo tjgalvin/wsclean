@@ -4,6 +4,7 @@
 #include "msprovider.h"
 
 #include "../structures/msselection.h"
+#include "../system/mappedfile.h"
 
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
@@ -152,21 +153,20 @@ class PartitionedMS final : public MSProvider {
 
   const Handle _handle;
   const size_t _partIndex;
-  char* _modelFileMap;
+  MappedFile _modelFile;
   size_t _currentOutputRow;
   std::unique_ptr<std::ofstream> _modelDataFile;
-  int _fd;
   const aocommon::PolarizationEnum _polarization;
-  const size_t _polarizationCountInFile;
+  size_t _polarizationCountInFile;
 
   struct MetaHeader {
-    uint64_t selectedRowCount;
-    uint32_t filenameLength;
-    double startTime;
+    uint64_t selectedRowCount = 0;
+    uint32_t filenameLength = 0;
+    double startTime = 0.0;
   } _metaHeader;
   struct MetaRecord {
-    double u, v, w, time;
-    uint16_t antenna1, antenna2, fieldId;
+    double u = 0.0, v = 0.0, w = 0.0, time = 0.0;
+    uint16_t antenna1 = 0, antenna2 = 0, fieldId = 0;
     static constexpr size_t BINARY_SIZE = 8 * 4 + 2 * 3;
     void read(std::istream& str) {
       str.read(reinterpret_cast<char*>(&u), sizeof(double));
@@ -188,10 +188,10 @@ class PartitionedMS final : public MSProvider {
     }
   };
   struct PartHeader {
-    uint64_t channelCount;
-    uint64_t channelStart;
-    uint32_t dataDescId;
-    bool hasModel;
+    uint64_t channelCount = 0;
+    uint64_t channelStart = 0;
+    uint32_t dataDescId = 0;
+    bool hasModel = false;
   } _partHeader;
 
   static std::string getFilenamePrefix(const std::string& msPath,

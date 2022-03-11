@@ -120,8 +120,9 @@ void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
     endChannel =
         contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
   }
-  copyData(buffer, startChannel, endChannel, contiguousms._inputPolarizations,
-           contiguousms._dataArray, contiguousms._polOut);
+  MSProvider::CopyData(
+      buffer, startChannel, endChannel, contiguousms._inputPolarizations,
+      contiguousms._dataArray, contiguousms._outputPolarization);
 }
 
 void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
@@ -140,29 +141,9 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
     endChannel =
         contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
   }
-  copyData(buffer, startChannel, endChannel, contiguousms._inputPolarizations,
-           contiguousms._modelArray, contiguousms._polOut);
-}
-
-void ContiguousMSReader::ReadWeights(std::complex<float>* buffer) {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
-
-  readData();
-  readWeights();
-  size_t startChannel, endChannel;
-  if (contiguousms._selection.HasChannelRange()) {
-    startChannel = contiguousms._selection.ChannelRangeStart();
-    endChannel = contiguousms._selection.ChannelRangeEnd();
-  } else {
-    startChannel = 0;
-    endChannel =
-        contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
-  }
-  MSProvider::CopyWeights(
+  MSProvider::CopyData(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
-      contiguousms._dataArray, contiguousms._weightSpectrumArray,
-      contiguousms._flagArray, contiguousms._polOut);
+      contiguousms._modelArray, contiguousms._outputPolarization);
 }
 
 void ContiguousMSReader::ReadWeights(float* buffer) {
@@ -183,7 +164,7 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
   MSProvider::CopyWeights(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
       contiguousms._dataArray, contiguousms._weightSpectrumArray,
-      contiguousms._flagArray, contiguousms._polOut);
+      contiguousms._flagArray, contiguousms._outputPolarization);
 }
 
 void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
@@ -205,9 +186,10 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
 
   _imagingWeightsColumn->get(_currentInputRow,
                              contiguousms._imagingWeightSpectrumArray);
-  MSProvider::ReverseCopyWeights(
-      contiguousms._imagingWeightSpectrumArray, startChannel, endChannel,
-      contiguousms._inputPolarizations, buffer, contiguousms._polOut);
+  MSProvider::ReverseCopyWeights(contiguousms._imagingWeightSpectrumArray,
+                                 startChannel, endChannel,
+                                 contiguousms._inputPolarizations, buffer,
+                                 contiguousms._outputPolarization);
   _imagingWeightsColumn->put(_currentInputRow,
                              contiguousms._imagingWeightSpectrumArray);
 }

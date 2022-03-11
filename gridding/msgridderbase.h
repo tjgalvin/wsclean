@@ -289,7 +289,8 @@ class MSGridderBase {
    * values, they still need to provide an already allocated buffer. This is to
    * avoid having to allocate memory within this method.
    * @tparam PolarizationCount Normally set to one when imaging a single
-   * polarization, but set to 4 for IDG as it images all polarizations at once.
+   * polarization, but set to 2 or 4 for IDG as it images multiple polarizations
+   * at once.
    * @tparam DDGainMatrix Selects which entry or entries in the gain matrix
    * (provided by EveryBeam and/or an h5 solution) file to use for correcting
    * the visibilities. Can be kXX for the XX-entry, kYY for the YY-entry, kTrace
@@ -318,7 +319,7 @@ class MSGridderBase {
   /**
    * @brief Write (modelled) visibilities to MS, provides an interface to
    * MSProvider::WriteModel(). Method can be templated on the number of
-   * polarizations (1 or 4), and the DDGainMatrix which can be used to
+   * polarizations (1, 2 or 4), and the DDGainMatrix which can be used to
    * select an entry or entries from the gain matrix that should be used for the
    * correction (XX-pol: kXX, YY-pol: kYY, Trace: kTrace, Full Jones: kFull)
    */
@@ -480,7 +481,7 @@ class MSGridderBase {
   double _maxGriddedWeight;
   double _visibilityWeightSum;
 
-  aocommon::UVector<float> _scratchWeights;
+  aocommon::UVector<float> _scratchImageWeights;
 
   std::unique_ptr<MSReader> _predictReader;
   WriterLockManager* _writerLockManager;

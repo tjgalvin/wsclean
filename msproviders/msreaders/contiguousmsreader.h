@@ -25,8 +25,6 @@ class ContiguousMSReader final : public MSReader {
 
   void ReadModel(std::complex<float>* buffer) override;
 
-  void ReadWeights(std::complex<float>* buffer) override;
-
   void ReadWeights(float* buffer) override;
 
   void WriteImagingWeights(const float* buffer) override;

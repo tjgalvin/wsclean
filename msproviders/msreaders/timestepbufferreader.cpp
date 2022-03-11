@@ -44,11 +44,6 @@ void TimestepBufferReader::ReadWeights(float* buffer) {
             _buffer[_bufferPosition].weights.end(), buffer);
 }
 
-void TimestepBufferReader::ReadWeights(std::complex<float>* buffer) {
-  std::copy(_buffer[_bufferPosition].weights.begin(),
-            _buffer[_bufferPosition].weights.end(), buffer);
-}
-
 void TimestepBufferReader::WriteImagingWeights(const float* buffer) {
   _msReader->WriteImagingWeights(buffer);
 }

@@ -36,20 +36,50 @@ void MSProvider::CopyData(std::complex<float>* dest, size_t startChannel,
       data.cbegin() + startChannel * polCount;
   const size_t selectedChannelCount = endChannel - startChannel;
 
-  size_t polIndex;
   if (polOut == aocommon::Polarization::Instrumental) {
-    if (polsIn.size() != 4)
+    if (polsIn.size() != 4) {
       throw std::runtime_error(
           "This mode requires the four polarizations to be present in the "
           "measurement set");
+    }
     for (size_t ch = 0; ch != selectedChannelCount * polsIn.size(); ++ch) {
       if (IsCFinite(*inPtr))
         dest[ch] = *inPtr;
       else
         dest[ch] = 0;
-      inPtr++;
+      ++inPtr;
     }
-  } else if (aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
+  } else if (polOut == aocommon::Polarization::DiagonalInstrumental) {
+    if (polsIn.size() == 4) {
+      size_t ch = 0;
+      while (ch != selectedChannelCount * 2) {
+        if (IsCFinite(*inPtr))
+          dest[ch] = *inPtr;
+        else
+          dest[ch] = 0;
+        inPtr += 3;  // jump from xx to yy
+        ++ch;
+        if (IsCFinite(*inPtr))
+          dest[ch] = *inPtr;
+        else
+          dest[ch] = 0;
+        ++inPtr;
+        ++ch;
+      }
+    } else if (polsIn.size() == 2) {
+      for (size_t ch = 0; ch != selectedChannelCount * 2; ++ch) {
+        if (IsCFinite(*inPtr))
+          dest[ch] = *inPtr;
+        else
+          dest[ch] = 0;
+        ++inPtr;
+      }
+    } else
+      throw std::runtime_error(
+          "Diagonal instrument visibilities requested, but this requires 2 or "
+          "4 polarizations in the data");
+  } else if (size_t polIndex;
+             aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
     inPtr += polIndex;
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
       if (IsCFinite(*inPtr))
@@ -261,7 +291,7 @@ void MSProvider::CopyWeights(
     const casacore::Array<float>& weights, const casacore::Array<bool>& flags,
     aocommon::PolarizationEnum polOut) {
   const size_t polCount = polsIn.size();
-  casacore::Array<std::complex<float>>::const_contiter inPtr =
+  casacore::Array<std::complex<float>>::const_contiter dataPtr =
       data.cbegin() + startChannel * polCount;
   casacore::Array<float>::const_contiter weightPtr =
       weights.cbegin() + startChannel * polCount;
@@ -272,27 +302,60 @@ void MSProvider::CopyWeights(
   size_t polIndex;
   if (polOut == aocommon::Polarization::Instrumental) {
     for (size_t ch = 0; ch != selectedChannelCount * polsIn.size(); ++ch) {
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         // The factor of 4 is to be consistent with StokesI
         // It is for having conjugate visibilities and because IDG doesn't
         // separately count XX and YY visibilities
         dest[ch] = *weightPtr * 4.0f;
       else
         dest[ch] = 0.0f;
-      inPtr++;
+      dataPtr++;
       weightPtr++;
       flagPtr++;
     }
+  } else if (polOut == aocommon::Polarization::DiagonalInstrumental) {
+    if (polsIn.size() == 4) {
+      size_t ch = 0;
+      while (ch != selectedChannelCount * 2) {
+        if (!*flagPtr && IsCFinite(*dataPtr))
+          // See explanation above for factor of 4
+          dest[ch] = *weightPtr * 4.0f;
+        else
+          dest[ch] = 0.0f;
+        dataPtr += 3;  // jump from xx to yy
+        weightPtr += 3;
+        flagPtr += 3;
+        ++ch;
+        if (!*flagPtr && IsCFinite(*dataPtr))
+          dest[ch] = *weightPtr * 4.0f;
+        else
+          dest[ch] = 0.0f;
+        ++dataPtr;
+        ++weightPtr;
+        ++flagPtr;
+        ++ch;
+      }
+    } else if (polsIn.size() == 2) {
+      for (size_t ch = 0; ch != selectedChannelCount * 2; ++ch) {
+        if (!*flagPtr && IsCFinite(*dataPtr))
+          dest[ch] = *weightPtr * 4.0f;
+        else
+          dest[ch] = 0.0f;
+        ++dataPtr;
+        ++weightPtr;
+        ++flagPtr;
+      }
+    }
   } else if (aocommon::Polarization::TypeToIndex(polOut, polsIn, polIndex)) {
-    inPtr += polIndex;
+    dataPtr += polIndex;
     weightPtr += polIndex;
     flagPtr += polIndex;
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         dest[ch] = *weightPtr;
       else
         dest[ch] = 0.0f;
-      inPtr += polCount;
+      dataPtr += polCount;
       weightPtr += polCount;
       flagPtr += polCount;
     }
@@ -354,24 +417,24 @@ void MSProvider::CopyWeights(
     }
 
     weightPtr += polIndexA;
-    inPtr += polIndexA;
+    dataPtr += polIndexA;
     flagPtr += polIndexA;
     for (size_t ch = 0; ch != selectedChannelCount; ++ch) {
       NumType w;
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         w = *weightPtr * 4.0f;
       else
         w = 0.0f;
-      inPtr += polIndexB - polIndexA;
+      dataPtr += polIndexB - polIndexA;
       weightPtr += polIndexB - polIndexA;
       flagPtr += polIndexB - polIndexA;
-      if (!*flagPtr && IsCFinite(*inPtr))
+      if (!*flagPtr && IsCFinite(*dataPtr))
         w = std::min<NumType>(w, *weightPtr * 4.0f);
       else
         w = 0.0f;
       dest[ch] = w;
       weightPtr += polCount - polIndexB + polIndexA;
-      inPtr += polCount - polIndexB + polIndexA;
+      dataPtr += polCount - polIndexB + polIndexA;
       flagPtr += polCount - polIndexB + polIndexA;
     }
   }
@@ -408,6 +471,29 @@ void MSProvider::ReverseCopyData(
         AddOrAssign<add>(dataIter, source[chp]);
       }
       dataIter++;
+    }
+  } else if (polSource == aocommon::Polarization::DiagonalInstrumental) {
+    if (polsDest.size() == 2) {
+      for (size_t chp = 0; chp != selectedChannelCount * 2; ++chp) {
+        if (std::isfinite(source[chp].real())) {
+          AddOrAssign<add>(dataIter, source[chp]);
+        }
+        dataIter++;
+      }
+    } else {
+      size_t chp = 0;
+      while (chp != selectedChannelCount * 2) {
+        if (std::isfinite(source[chp].real())) {
+          AddOrAssign<add>(dataIter, source[chp]);
+        }
+        dataIter += 3;  // jump from xx to yy
+        ++chp;
+        if (std::isfinite(source[chp].real())) {
+          AddOrAssign<add>(dataIter, source[chp]);
+        }
+        ++dataIter;
+        ++chp;
+      }
     }
   } else if (aocommon::Polarization::TypeToIndex(polSource, polsDest,
                                                  polIndex)) {
