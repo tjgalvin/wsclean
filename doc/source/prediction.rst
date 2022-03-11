@@ -3,7 +3,7 @@ Prediction
 
 WSClean can be used to fill the ``MODEL_DATA`` column with the visibilities corresponding to an image. This is called 'predicting' visibilities (CASA's corresponding task is 'ft' -- sometimes this is referred to as 'degridding').
 
-Predicting can be performed by adding '-predict' to the command line. For this to work, the input image needs to be in the exact same projection as that WSClean would output it. If your image is in a different projection, you will have to regrid it first.
+Predicting can be performed by adding '``-predict``' to the command line. For this to work, the input image needs to be in the exact same projection as that WSClean would output it. If your image is in a different projection, you will have to regrid it first.
 
 An example prediction run:
 

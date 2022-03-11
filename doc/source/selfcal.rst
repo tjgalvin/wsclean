@@ -16,6 +16,11 @@ To perform self-cal, you need to use major iterations, as these will fill/update
 
 Filling the ``MODEL_DATA`` requires a setting of mgain < 1, e.g. an mgain of 0.9. As long as mgain is not 1, WSClean will end with a major iteration, and the ``MODEL_DATA`` column will be set to the "best" model from the cleaning model.
 
+Self-calibration from existing image
+------------------------------------
+
+The '``-predict``' option can be used to fill the ``MODEL_DATA`` column with a prediction from a pre-existing image (see :doc:`prediction <prediction>`). After having predicted model visibilities, these visibilities can be used to calibrate the data (e.g. with `DP3 <https://www.astron.nl/citt/DP3/>`_).
+
 Polarized imaging & calibration
 -------------------------------
 
@@ -29,10 +34,5 @@ Certain CASA commands (e.g. ft) will put keywords in a measurement set that turn
     delmod(vis='myobs.ms',otf=True,scr=False)
 
 WSClean will never use or change OTF keywords in the measurement set.
-
-Direct prediction
------------------
-
-Since WSClean version 1.2, WSClean understands the '``-predict``' option (see :doc:`prediction <prediction>`). This will fill the ``MODEL_DATA`` column with a prediction from an existing image. It's also possible to image the model by running a normal WSClean run and specifying '``-datacolumn MODEL_DATA``'.
 
 **Next chapter:** :doc:`image_weighting`
