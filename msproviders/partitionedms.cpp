@@ -45,7 +45,7 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
   std::ifstream metaFile(getMetaFilename(
       handle._data->_msPath, handle._data->_temporaryDirectory, dataDescId));
 
-  metaFile.read(reinterpret_cast<char*>(&_metaHeader), sizeof(MetaHeader));
+  _metaHeader.Read(metaFile);
   std::vector<char> msPath(_metaHeader.filenameLength + 1, char(0));
   metaFile.read(msPath.data(), _metaHeader.filenameLength);
   Logger::Info << "Opening reordered part " << partIndex << " spw "
@@ -58,14 +58,15 @@ PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
   if (!dataFile.good())
     throw std::runtime_error("Error opening temporary data file '" +
                              partPrefix + ".tmp'");
-  dataFile.read(reinterpret_cast<char*>(&_partHeader), sizeof(PartHeader));
+  _partHeader.Read(dataFile);
   if (!dataFile.good())
     throw std::runtime_error("Error reading header from file '" + partPrefix +
                              ".tmp'");
 
   if (_partHeader.hasModel) {
-    size_t length = _partHeader.channelCount * _metaHeader.selectedRowCount *
-                    _polarizationCountInFile * sizeof(std::complex<float>);
+    const size_t length =
+        _partHeader.channelCount * _metaHeader.selectedRowCount *
+        _polarizationCountInFile * sizeof(std::complex<float>);
     _modelFile = MappedFile(partPrefix + "-m.tmp", length);
   }
   metaFile.close();
@@ -223,7 +224,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
       f.weight.reset(new std::ofstream(partPrefix + "-w.tmp"));
       if (initialModelRequired)
         f.model.reset(new std::ofstream(partPrefix + "-m.tmp"));
-      f.data->seekp(sizeof(PartHeader), std::ios::beg);
+      f.data->seekp(PartHeader::BINARY_SIZE, std::ios::beg);
 
       ++fileIndex;
     }
@@ -278,8 +279,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     metaHeader.selectedRowCount = 0;  // not yet known
     metaHeader.filenameLength = msPath.size();
     metaHeader.startTime = rowProvider->StartTime();
-    metaFiles[spwIndex]->write(reinterpret_cast<char*>(&metaHeader),
-                               sizeof(metaHeader));
+    metaHeader.Write(*metaFiles[spwIndex]);
     metaFiles[spwIndex]->write(msPath.c_str(), msPath.size());
     if (!metaFiles[spwIndex]->good())
       throw std::runtime_error("Error writing to temporary file " +
@@ -323,7 +323,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     ++selectedRowCountPerSpwIndex[spwIndex];
     ++selectedRowsTotal;
     std::ofstream& metaFile = *metaFiles[spwIndex];
-    meta.write(metaFile);
+    meta.Write(metaFile);
     if (!metaFile.good())
       throw std::runtime_error("Error writing to temporary file");
 
@@ -386,8 +386,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     metaHeader.filenameLength = msPath.size();
     metaHeader.startTime = rowProvider->StartTime();
     metaFiles[spwIndex]->seekp(0);
-    metaFiles[spwIndex]->write(reinterpret_cast<char*>(&metaHeader),
-                               sizeof(metaHeader));
+    metaHeader.Write(*metaFiles[spwIndex]);
     metaFiles[spwIndex]->write(msPath.c_str(), msPath.size());
   }
 
@@ -408,7 +407,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
          p != polsOut.end(); ++p) {
       PartitionFiles& f = files[fileIndex];
       f.data->seekp(0, std::ios::beg);
-      f.data->write(reinterpret_cast<char*>(&header), sizeof(PartHeader));
+      header.Write(*f.data);
       if (!f.data->good())
         throw std::runtime_error("Error writing to temporary data file");
 
@@ -454,7 +453,7 @@ void PartitionedMS::unpartition(
     std::ifstream metaFile(getMetaFilename(
         handle._msPath, handle._temporaryDirectory, dataDescId.first));
     MetaHeader& metaHeader = metaHeaders[dataDescId.second];
-    metaFile.read(reinterpret_cast<char*>(&metaHeader), sizeof(MetaHeader));
+    metaHeader.Read(metaFile);
     std::vector<char> msPath(metaHeader.filenameLength + 1, char(0));
     metaFile.read(msPath.data(), metaHeader.filenameLength);
   }
@@ -468,8 +467,7 @@ void PartitionedMS::unpartition(
   if (!firstDataFile.good())
     throw std::runtime_error("Error opening temporary data file");
   PartHeader firstPartHeader;
-  firstDataFile.read(reinterpret_cast<char*>(&firstPartHeader),
-                     sizeof(PartHeader));
+  firstPartHeader.Read(firstDataFile);
   if (!firstDataFile.good())
     throw std::runtime_error("Error reading from temporary data file");
 

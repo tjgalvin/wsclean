@@ -59,7 +59,6 @@ class MSRowProvider : public MsRowProviderBase {
 
  private:
   std::map<size_t, size_t> _selectedDataDescIds;
-  MSSelection _selection;
   bool _msHasWeights;
   bool _requireModel;
   casacore::Array<float> _scratchWeightScalarArray;

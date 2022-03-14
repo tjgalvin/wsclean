@@ -68,17 +68,13 @@ class MsRowProviderBase {
   MSSelection selection_;
   MsColumns columns_;
   /**
-   * Index of the beginning of the selected rows.
-   *
-   * This is an index to the rows in the original ms.
+   * Index of the beginning and end of the selected rows.
+   * These are indices to the rows in the original ms.
+   * @{
    */
   size_t begin_row_{0};
-  /**
-   * Index of the end of the selected rows.
-   *
-   * This is an index to the rows in the original ms.
-   */
   size_t end_row_{0};
+  /** @} */
 };
 
 /**
