@@ -129,26 +129,22 @@ build-casacore-3.0.0:
     - when: manual
       allow_failure: true
 
-test-nightly-das5:
+.test-das6-common:
   stage: test
   needs: []
   tags:
-    - das5
+    - das6
   before_script:
-    - source scripts/das5_modules.sh
+    - source scripts/das6_modules.sh
     - export OPENBLAS_NUM_THREADS=1
-  script:
-    # Recompile EveryBeam against hdf5-mt, which supports multithreading.
-    - module unload hdf5
-    - module load hdf5-mt
-    - mkdir -p everybeam/build
-    - cd everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
-    - cd build/ && cmake -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT_DIR -DCASACORE_ROOT_DIR=$CASACORE_ROOT_DIR -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/
-    - make -j`nproc` install
-    - cd $CI_PROJECT_DIR
-    - mkdir -p build && cd build && rm -rf *
-    - cmake -DBUILD_TESTING=ON -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT_DIR -DCASACORE_ROOT_DIR=$CASACORE_ROOT_DIR -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT_DIR};$CI_PROJECT_DIR/everybeam;${FFTW3_ROOT_DIR}" ..
+    - mkdir -p build && cd build
+    - cmake -DBUILD_TESTING=ON -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT -DCASACORE_ROOT_DIR=$CASACORE_ROOT -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT};${EVERYBEAM_ROOT};${FFTW_ROOT}" ..
     - make -j`nproc`
+
+test-nightly-das6:
+  extends: .test-das6-common
+  script:
+    - cd $CI_PROJECT_DIR/build
     - make nightlychecks
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -157,23 +153,15 @@ test-nightly-das5:
       when: manual
       allow_failure: true
 
-test-system-das5:
-  stage: test
-  needs: []
-  tags:
-    - das5
-  before_script:
-    - source scripts/das5_modules.sh
-    - export OPENBLAS_NUM_THREADS=1
-  script:
+test-system-das6:
+  extends: .test-das6-common
+  variables:
     # Remove testing directory at end of tests
-    - export CLEANUP_WSCLEAN_TESTS=1
-    # Create directory for storing the output reports
-    - rm -rf reports/* && mkdir -p reports
-    - mkdir -p build && cd build && rm -rf *
-    - cmake -DBUILD_TESTING=ON -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT_DIR -DCASACORE_ROOT_DIR=$CASACORE_ROOT_DIR -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT_DIR};${EVERYBEAM_ROOT_DIR};${FFTW3_ROOT_DIR}" ..
-    - make -j4
+    CLEANUP_WSCLEAN_TESTS: 1
+  script:
+    - cd $CI_PROJECT_DIR/build
     - make longsystemchecks
+    - mkdir $CI_PROJECT_DIR/reports
     - mv check_*.xml $CI_PROJECT_DIR/reports/
   artifacts:
     paths:
