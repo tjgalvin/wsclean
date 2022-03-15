@@ -32,7 +32,7 @@ class TestCommandCatalogue:
 
     def test_clean_rectangular_unpadded_image(self):
         # Clean a rectangular unpadded image
-        s = f"{tcf.WSCLEAN} -name {name('clean-rectangular')} -padding 1 \
+        s = f"{tcf.WSCLEAN} -name {name('clean-rectangular')} -padding 1 -local-rms \
               -auto-threshold 5 -mgain 0.8 -niter 100000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 

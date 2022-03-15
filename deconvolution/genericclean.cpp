@@ -185,8 +185,12 @@ std::optional<float> GenericClean::findPeak(const aocommon::Image& image,
                                             size_t& y) {
   const float* actual_image = image.Data();
   if (!_rmsFactorImage.Empty()) {
-    scratch = image;
-    scratch *= _rmsFactorImage;
+    // Don't copy-assign, since scratch.Size() >= image.Size()
+    // and scratch shouldn't be resized.
+    std::copy_n(image.Data(), image.Size(), scratch.Data());
+    for (size_t i = 0; i != image.Size(); ++i) {
+      scratch[i] *= _rmsFactorImage[i];
+    }
     actual_image = scratch.Data();
   }
 
