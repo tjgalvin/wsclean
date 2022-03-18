@@ -18,15 +18,12 @@ using aocommon::Logger;
 namespace {
 void assignMultiply(aocommon::Image& lhs, const aocommon::Image& rhs,
                     float factor) {
+  // As this function is used in cases where rhs.Size() is larger than
+  // lhs.Size(), this method can't be easily migrated to aocommon. Maybe
+  // consider a stricter enforcement of lhs.Size() and rhs.Size() to be equal?
   const size_t image_size = lhs.Size();
+  assert(rhs.Size() >= image_size);
   for (size_t i = 0; i != image_size; ++i) lhs[i] = rhs[i] * factor;
-}
-
-void squareRootMultiply(aocommon::Image& image, float factor) {
-  const size_t image_size = image.Size();
-  for (size_t i = 0; i != image_size; ++i) {
-    image[i] = std::sqrt(image[i]) * factor;
-  }
 }
 }  // namespace
 
@@ -279,7 +276,7 @@ void ImageSet::getSquareIntegratedWithNormalChannels(Image& dest,
           }
         }
       }
-      squareRootMultiply(dest, std::sqrt(_polarizationNormalizationFactor));
+      dest.SqrtWithFactor(std::sqrt(_polarizationNormalizationFactor));
     }
   } else {
     double weightSum = 0.0;
@@ -351,10 +348,14 @@ void ImageSet::getSquareIntegratedWithSquaredChannels(Image& dest) const {
       }
     }
   }
-  const double factor =
-      weightSum > 0.0 ? std::sqrt(_polarizationNormalizationFactor / weightSum)
-                      : 0.0;
-  squareRootMultiply(dest, factor);
+
+  if (weightSum > 0.0) {
+    dest.SqrtWithFactor(
+        std::sqrt(_polarizationNormalizationFactor / weightSum));
+  } else {
+    // Effectively multiplying with a 0.0 weighting factor
+    dest = 0.0;
+  }
 }
 
 void ImageSet::getLinearIntegratedWithNormalChannels(Image& dest) const {
