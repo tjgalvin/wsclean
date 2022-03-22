@@ -1,4 +1,3 @@
-#include "fftwmanager.h"
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include "stopwatch.h"
@@ -7,6 +6,8 @@
 #include "multiscale/multiscalealgorithm.h"
 
 #include <aocommon/fits/fitsreader.h>
+
+#include <mutex>
 
 int main(int argc, char* argv[]) {
   if (argc <= 1) {
@@ -89,21 +90,20 @@ int main(int argc, char* argv[]) {
     modelSet = 0.0;
   }
 
-  FFTWManager fftwManager;
-  MultiScaleAlgorithm multiscale(fftwManager, beamSize, pixelScaleX,
-                                 pixelScaleY);
+  MultiScaleAlgorithm multiscale(beamSize, pixelScaleX, pixelScaleY);
 
   /*if(hasInitialModel)
   {
           for(size_t i=0; i!=freqCount; ++i)
           {
                   aocommon::UVector<double> psfKernel(psfs[0].size());
-                  FFTConvolver::PrepareKernel(psfKernel.data(), psfs[i].data(),
-  width, height);
+                  schaapcommon::fft::PrepareConvolutionKernel(psfKernel.data(),
+  psfs[i].data(), width, height);
 
                   // Calculate: residual = dirty - model (x) psf
                   aocommon::UVector<double> tmp(modelSet[i],
-  modelSet[i]+width*height); FFTConvolver::ConvolveSameSize(tmp.data(),
+  modelSet[i]+width*height);
+  schaapcommon::fft::Convolve(tmp.data(),
   psfKernel.data(), width, height);
 
                   // residual = residual - scratch

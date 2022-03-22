@@ -292,9 +292,6 @@ add_library(
   iuwt/iuwtdecomposition.cpp
   iuwt/iuwtdeconvolutionalgorithm.cpp
   iuwt/iuwtmask.cpp
-  math/fftkernels.cpp
-  math/fftconvolver.cpp
-  math/fftresampler.cpp
   math/gaussianfitter.cpp
   math/imageoperations.cpp
   math/modelrenderer.cpp
@@ -334,7 +331,6 @@ add_library(
   structures/msselection.cpp
   structures/observationinfo.cpp
   structures/primarybeam.cpp
-  system/fftwmanager.cpp
   system/pythonfilepath.cpp
   wgridder/wgriddingmsgridder.cpp
   wgridder/wgriddinggridder_simple.cpp
@@ -413,16 +409,14 @@ add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp
 target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
 
 add_executable(
-  wspredictionexample EXCLUDE_FROM_ALL
-  gridding/examples/wspredictionexample.cpp gridding/wstackinggridder.cpp
-  system/fftwmanager.cpp)
+  wspredictionexample EXCLUDE_FROM_ALL gridding/examples/wspredictionexample.cpp
+                                       gridding/wstackinggridder.cpp)
 target_link_libraries(wspredictionexample ${ALL_LIBRARIES})
 
 add_executable(
   mscaleexample EXCLUDE_FROM_ALL
-  multiscale/mscaleexample.cpp math/fftconvolver.cpp
-  multiscale/multiscalealgorithm.cpp multiscale/multiscaletransforms.cpp
-  deconvolution/simpleclean.cpp)
+  multiscale/mscaleexample.cpp multiscale/multiscalealgorithm.cpp
+  multiscale/multiscaletransforms.cpp deconvolution/simpleclean.cpp)
 target_link_libraries(mscaleexample ${ALL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)

@@ -17,8 +17,7 @@
  */
 class GenericClean : public DeconvolutionAlgorithm {
  public:
-  explicit GenericClean(class FFTWManager& fftwManager,
-                        bool useSubMinorOptimization);
+  explicit GenericClean(bool useSubMinorOptimization);
 
   float ExecuteMajorIteration(ImageSet& dirtySet, ImageSet& modelSet,
                               const std::vector<aocommon::Image>& psfs,
@@ -38,8 +37,6 @@ class GenericClean : public DeconvolutionAlgorithm {
   // and is only used to avoid unnecessary memory allocations.
   std::optional<float> findPeak(const aocommon::Image& image,
                                 float* scratch_buffer, size_t& x, size_t& y);
-
-  class FFTWManager& _fftwManager;
 };
 
 #endif

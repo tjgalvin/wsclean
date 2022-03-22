@@ -2,6 +2,7 @@
 
 #include "../wstackinggridder.h"
 
+#include <aocommon/image.h>
 #include <aocommon/system.h>
 
 int main(int argc, char* argv[]) {
@@ -15,7 +16,7 @@ int main(int argc, char* argv[]) {
   const long memSize = aocommon::system::TotalMemory();
 
   // Initialize an image with all zero except one pixel
-  Image image(width, height, 0.0);
+  aocommon::Image image(width, height, 0.0);
   const size_t sourceX = width / 2 - width / 17,
                sourceY = height / 2 - height / 21;
   image[sourceX + sourceY * width] = 100.0;

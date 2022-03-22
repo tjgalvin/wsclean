@@ -6,8 +6,6 @@
 #include "../deconvolution/peakfinder.h"
 #include "../deconvolution/subminorloop.h"
 
-#include "../system/fftwmanager.h"
-
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
 #include <aocommon/units/fluxdensity.h>
@@ -18,11 +16,9 @@ using aocommon::Image;
 using aocommon::Logger;
 using aocommon::units::FluxDensity;
 
-MultiScaleAlgorithm::MultiScaleAlgorithm(FFTWManager& fftwManager,
-                                         double beamSize, double pixelScaleX,
+MultiScaleAlgorithm::MultiScaleAlgorithm(double beamSize, double pixelScaleX,
                                          double pixelScaleY)
-    : _fftwManager(fftwManager),
-      _convolutionPadding(1.1),
+    : _convolutionPadding(1.1),
       _beamSizeInPixels(beamSize / std::max(pixelScaleX, pixelScaleY)),
       _multiscaleScaleBias(0.6),
       _multiscaleGain(0.2),
@@ -135,7 +131,7 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
     }
   }
 
-  MultiScaleTransforms msTransforms(_fftwManager, width, height, _scaleShape);
+  MultiScaleTransforms msTransforms(width, height, _scaleShape);
   msTransforms.SetThreadCount(_threadCount);
 
   size_t scaleWithPeak;
@@ -270,10 +266,9 @@ float MultiScaleAlgorithm::ExecuteMajorIteration(
         // temporaries
         const aocommon::Image& psf =
             convolvedPSFs[dirtySet.PSFIndex(imageIndex)][scaleWithPeak];
-        subLoop.CorrectResidualDirty(_fftwManager, scratch.Data(),
-                                     scratchB.Data(), integratedScratch.Data(),
-                                     imageIndex, dirtySet.Data(imageIndex),
-                                     psf.Data());
+        subLoop.CorrectResidualDirty(scratch.Data(), scratchB.Data(),
+                                     integratedScratch.Data(), imageIndex,
+                                     dirtySet.Data(imageIndex), psf.Data());
 
         subLoop.GetFullIndividualModel(imageIndex, scratch.Data());
         if (imageIndex == 0) {
@@ -441,8 +436,7 @@ void MultiScaleAlgorithm::initializeScaleInfo(size_t minWidthHeight) {
 void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<Image[]>& convolvedPSFs,
                                        const Image& psf, Image& scratch,
                                        bool isIntegrated) {
-  MultiScaleTransforms msTransforms(_fftwManager, psf.Width(), psf.Height(),
-                                    _scaleShape);
+  MultiScaleTransforms msTransforms(psf.Width(), psf.Height(), _scaleShape);
   msTransforms.SetThreadCount(_threadCount);
   convolvedPSFs.reset(new Image[_scaleInfos.size()]);
   if (isIntegrated) _logReceiver->Info << "Scale info:\n";
@@ -501,8 +495,8 @@ void MultiScaleAlgorithm::convolvePSFs(std::unique_ptr<Image[]>& convolvedPSFs,
 void MultiScaleAlgorithm::findActiveScaleConvolvedMaxima(
     const ImageSet& imageSet, Image& integratedScratch, Image& scratch,
     bool reportRMS, ThreadedDeconvolutionTools* tools) {
-  MultiScaleTransforms msTransforms(_fftwManager, imageSet.Width(),
-                                    imageSet.Height(), _scaleShape);
+  MultiScaleTransforms msTransforms(imageSet.Width(), imageSet.Height(),
+                                    _scaleShape);
   // ImageBufferAllocator::Ptr convolvedImage;
   //_allocator.Allocate(_width*_height, convolvedImage);
   imageSet.GetLinearIntegrated(integratedScratch);

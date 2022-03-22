@@ -1,4 +1,3 @@
-#include "fftwmanager.h"
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include "wsclean/imagingtable.h"
@@ -85,8 +84,7 @@ int main(int argc, char* argv[]) {
 
   modelSet = 0.0;
 
-  FFTWManager fftw;
-  GenericClean clean(fftw, useClark);
+  GenericClean clean(useClark);
 
   aocommon::UVector<const double*> psfVec(psfs.size());
   for (size_t i = 0; i != psfs.size(); ++i) psfVec[i] = psfs[i].data();

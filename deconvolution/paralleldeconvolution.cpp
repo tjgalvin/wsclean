@@ -9,6 +9,8 @@
 #include <aocommon/parallelfor.h>
 #include <aocommon/units/fluxdensity.h>
 
+#include <schaapcommon/fft/convolution.h>
+
 #include "deconvolutionsettings.h"
 
 using aocommon::Image;
@@ -24,7 +26,11 @@ ParallelDeconvolution::ParallelDeconvolution(
       _allocator(nullptr),
       _mask(nullptr),
       _trackPerScaleMasks(false),
-      _usePerScaleMasks(false) {}
+      _usePerScaleMasks(false) {
+  // Make all FFTWF plan calls inside ParallelDeconvolution
+  // thread safe.
+  schaapcommon::fft::MakeFftwfPlannerThreadSafe();
+}
 
 ParallelDeconvolution::~ParallelDeconvolution() {}
 

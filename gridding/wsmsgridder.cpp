@@ -4,12 +4,12 @@
 
 #include "../system/buffered_lane.h"
 
-#include "../math/fftresampler.h"
-
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"
 
 #include <aocommon/logger.h>
+
+#include <schaapcommon/fft/resampler.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -34,8 +34,8 @@ WSMSGridder::WSMSGridder(const Settings& settings)
   _memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
 
   // We do this once here. WStackingGridder does this too, but by default only
-  // for the float variant of fftw. FFTResampler does double fft's
-  // multithreaded, hence this needs to be done here too.
+  // for the float variant of fftw. schaapcommon::fft::Resampler does double
+  // fft's multithreaded, hence this needs to be done here too.
   fftw_make_planner_thread_safe();
 }
 
@@ -482,8 +482,9 @@ void WSMSGridder::Invert() {
       ImageHeight() != ActualInversionHeight()) {
     // Interpolate the image
     // The input is of size ActualInversionWidth() x ActualInversionHeight()
-    FFTResampler resampler(ActualInversionWidth(), ActualInversionHeight(),
-                           ImageWidth(), ImageHeight(), _cpuCount);
+    schaapcommon::fft::Resampler resampler(
+        ActualInversionWidth(), ActualInversionHeight(), ImageWidth(),
+        ImageHeight(), _cpuCount);
 
     if (IsComplex()) {
       Image resizedReal(ImageWidth(), ImageHeight());
@@ -563,8 +564,9 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
       ImageHeight() != ActualInversionHeight()) {
     // Decimate the image
     // Input is ImageWidth() x ImageHeight()
-    FFTResampler resampler(ImageWidth(), ImageHeight(), ActualInversionWidth(),
-                           ActualInversionHeight(), _cpuCount);
+    schaapcommon::fft::Resampler resampler(ImageWidth(), ImageHeight(),
+                                           ActualInversionWidth(),
+                                           ActualInversionHeight(), _cpuCount);
 
     if (images.size() == 1) {
       Image resampled(ImageWidth(), ImageHeight());

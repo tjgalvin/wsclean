@@ -3,7 +3,7 @@
 #include "../deconvolution/spectralfitter.h"
 #include "../deconvolution/componentlist.h"
 
-#include "../math/fftconvolver.h"
+#include <schaapcommon/fft/convolution.h>
 
 using aocommon::Image;
 
@@ -175,16 +175,15 @@ void SubMinorLoop::GetFullIndividualModel(size_t imageIndex,
   }
 }
 
-void SubMinorLoop::CorrectResidualDirty(class FFTWManager& fftw,
-                                        float* scratchA, float* scratchB,
+void SubMinorLoop::CorrectResidualDirty(float* scratchA, float* scratchB,
                                         float* scratchC, size_t imageIndex,
                                         float* residual,
                                         const float* singleConvolvedPsf) const {
   // Get padded kernel in scratchB
   Image::Untrim(scratchA, _paddedWidth, _paddedHeight, singleConvolvedPsf,
                 _width, _height);
-  FFTConvolver::PrepareKernel(scratchB, scratchA, _paddedWidth, _paddedHeight,
-                              _threadCount);
+  schaapcommon::fft::PrepareConvolutionKernel(scratchB, scratchA, _paddedWidth,
+                                              _paddedHeight, _threadCount);
 
   // Get padded model image in scratchA
   GetFullIndividualModel(imageIndex, scratchC);
@@ -192,8 +191,8 @@ void SubMinorLoop::CorrectResidualDirty(class FFTWManager& fftw,
                 _height);
 
   // Convolve and store in scratchA
-  FFTConvolver::ConvolveSameSize(fftw, scratchA, scratchB, _paddedWidth,
-                                 _paddedHeight, _threadCount);
+  schaapcommon::fft::Convolve(scratchA, scratchB, _paddedWidth, _paddedHeight,
+                              _threadCount);
 
   // Trim the result into scratchC
   Image::Trim(scratchC, _width, _height, scratchA, _paddedWidth, _paddedHeight);

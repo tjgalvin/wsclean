@@ -1,8 +1,6 @@
 #ifndef PARALLEL_DECONVOLUTION_H
 #define PARALLEL_DECONVOLUTION_H
 
-#include "../system/fftwmanager.h"
-
 #include "../structures/primarybeamimageset.h"
 
 #include "deconvolutionsettings.h"
@@ -64,10 +62,6 @@ class ParallelDeconvolution {
     _mask = nullptr;
   }
 
-  class FFTWManager& GetFFTWManager() {
-    return _fftwManager;
-  }
-
  private:
   void executeParallelRun(class ImageSet& dataImage, class ImageSet& modelImage,
                           const std::vector<aocommon::Image>& psfImages,
@@ -90,7 +84,6 @@ class ParallelDeconvolution {
                    double majorIterThreshold, bool findPeakOnly,
                    std::mutex& mutex);
 
-  FFTWManager _fftwManager;
   std::vector<std::unique_ptr<class DeconvolutionAlgorithm>> _algorithms;
   SubImageLogSet _logs;
   size_t _horImages;

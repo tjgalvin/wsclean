@@ -3,12 +3,10 @@
 
 #include "../model/model.h"
 
-#include "../math/fftconvolver.h"
-
-#include "../system/fftwmanager.h"
-
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/uvector.h>
+
+#include <schaapcommon/fft/convolution.h>
 
 #include <cmath>
 
@@ -249,9 +247,9 @@ void ModelRenderer::Restore(float* imageData, const float* modelData,
     aocommon::UVector<float> convolvedModel(
         modelData, modelData + imageWidth * imageHeight);
 
-    FFTWManager fftw;
-    FFTConvolver::Convolve(fftw, convolvedModel.data(), imageWidth, imageHeight,
-                           kernel.data(), boundingBoxSize, threadCount);
+    schaapcommon::fft::ResizeAndConvolve(convolvedModel.data(), imageWidth,
+                                         imageHeight, kernel.data(),
+                                         boundingBoxSize, threadCount);
     for (size_t j = 0; j != imageWidth * imageHeight; ++j) {
       imageData[j] += convolvedModel[j];
     }

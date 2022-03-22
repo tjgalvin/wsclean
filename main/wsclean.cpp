@@ -24,7 +24,6 @@
 #include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
 
-#include "../math/fftresampler.h"
 #include "../math/modelrenderer.h"
 #include "../math/nlplfitter.h"
 
@@ -45,6 +44,7 @@
 #include <aocommon/units/angle.h>
 
 #include <schaapcommon/facets/facetimage.h>
+#include <schaapcommon/fft/resampler.h>
 
 #include <iostream>
 #include <memory>
@@ -1762,9 +1762,9 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
                           bool isImaginary, const std::string& prefix) const {
   Image realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
       imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  FFTResampler fft(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
-                   _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1,
-                   true);
+  schaapcommon::fft::Resampler fft(
+      _settings.trimmedImageWidth, _settings.trimmedImageHeight,
+      _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
   fft.SingleFT(image.Data(), realUV.Data(), imagUV.Data());
   // Factors of 2 involved: because of SingleFT()
   // (also one from the fact that normF excludes a factor of two?)

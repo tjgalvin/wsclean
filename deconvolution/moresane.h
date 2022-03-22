@@ -11,12 +11,11 @@ class MoreSane : public DeconvolutionAlgorithm {
   MoreSane(const std::string& moreSaneLocation,
            const std::string& moresaneArguments,
            const std::vector<double>& moresaneSigmaLevels,
-           const std::string& prefixName, class FFTWManager& fftwManager)
+           const std::string& prefixName)
       : _moresaneLocation(moreSaneLocation),
         _moresaneArguments(moresaneArguments),
         _moresaneSigmaLevels(moresaneSigmaLevels),
-        _prefixName(prefixName),
-        _fftwManager(fftwManager) {}
+        _prefixName(prefixName) {}
 
   float ExecuteMajorIteration(ImageSet& dataImage, ImageSet& modelImage,
                               const std::vector<aocommon::Image>& psfImages,
@@ -34,8 +33,6 @@ class MoreSane : public DeconvolutionAlgorithm {
 
   const std::vector<double> _moresaneSigmaLevels;
   const std::string _prefixName;
-
-  class FFTWManager& _fftwManager;
 };
 
 #endif

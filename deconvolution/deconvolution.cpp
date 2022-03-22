@@ -18,6 +18,8 @@
 #include <aocommon/logger.h>
 #include <aocommon/units/fluxdensity.h>
 
+#include <schaapcommon/fft/convolution.h>
+
 using aocommon::FitsReader;
 using aocommon::FitsWriter;
 using aocommon::Image;
@@ -35,7 +37,11 @@ Deconvolution::Deconvolution(const DeconvolutionSettings& deconvolutionSettings)
       _pixelScaleX(_settings.pixelScaleX),
       _pixelScaleY(_settings.pixelScaleY),
       _autoMask(),
-      _beamSize(0.0) {}
+      _beamSize(0.0) {
+  // Ensure that all FFTWF plan calls inside Deconvolution are
+  // thread safe.
+  schaapcommon::fft::MakeFftwfPlannerThreadSafe();
+}
 
 Deconvolution::~Deconvolution() { FreeDeconvolutionAlgorithms(); }
 
@@ -201,17 +207,14 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
   } else if (_settings.useMoreSaneDeconvolution) {
     algorithm.reset(
         new MoreSane(_settings.moreSaneLocation, _settings.moreSaneArgs,
-                     _settings.moreSaneSigmaLevels, _settings.prefixName,
-                     _parallelDeconvolution.GetFFTWManager()));
+                     _settings.moreSaneSigmaLevels, _settings.prefixName));
   } else if (_settings.useIUWTDeconvolution) {
-    IUWTDeconvolution* method =
-        new IUWTDeconvolution(_parallelDeconvolution.GetFFTWManager());
+    IUWTDeconvolution* method = new IUWTDeconvolution;
     method->SetUseSNRTest(_settings.iuwtSNRTest);
     algorithm.reset(method);
   } else if (_settings.useMultiscale) {
     MultiScaleAlgorithm* msAlgorithm =
-        new MultiScaleAlgorithm(_parallelDeconvolution.GetFFTWManager(),
-                                beamSize, _pixelScaleX, _pixelScaleY);
+        new MultiScaleAlgorithm(beamSize, _pixelScaleX, _pixelScaleY);
     msAlgorithm->SetManualScaleList(_settings.multiscaleScaleList);
     msAlgorithm->SetMultiscaleScaleBias(
         _settings.multiscaleDeconvolutionScaleBias);
@@ -223,8 +226,7 @@ void Deconvolution::InitializeDeconvolutionAlgorithm(
     msAlgorithm->SetUseFastSubMinorLoop(_settings.multiscaleFastSubMinorLoop);
     algorithm.reset(msAlgorithm);
   } else {
-    algorithm.reset(new GenericClean(_parallelDeconvolution.GetFFTWManager(),
-                                     _settings.useSubMinorOptimization));
+    algorithm.reset(new GenericClean(_settings.useSubMinorOptimization));
   }
 
   algorithm->SetMaxNIter(_settings.deconvolutionIterationCount);

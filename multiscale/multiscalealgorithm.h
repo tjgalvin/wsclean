@@ -20,8 +20,7 @@
 
 class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
  public:
-  MultiScaleAlgorithm(class FFTWManager& fftwManager, double beamSize,
-                      double pixelScaleX, double pixelScaleY);
+  MultiScaleAlgorithm(double beamSize, double pixelScaleX, double pixelScaleY);
   ~MultiScaleAlgorithm();
 
   std::unique_ptr<DeconvolutionAlgorithm> Clone() const final override {
@@ -68,7 +67,6 @@ class MultiScaleAlgorithm : public DeconvolutionAlgorithm {
   void SetMaxScales(size_t maxScales) { _maxScales = maxScales; }
 
  private:
-  FFTWManager& _fftwManager;
   float _convolutionPadding;
   double _beamSizeInPixels;
   float _multiscaleScaleBias;

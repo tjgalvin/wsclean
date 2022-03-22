@@ -5,8 +5,6 @@
 
 #include "../msproviders/msreaders/msreader.h"
 
-#include "../math/fftresampler.h"
-
 #include "../msproviders/msprovider.h"
 
 #include "../system/buffered_lane.h"
@@ -15,6 +13,8 @@
 
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
+
+#include <schaapcommon/fft/resampler.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -26,8 +26,9 @@ WGriddingMSGridder::WGriddingMSGridder(const Settings& settings)
       _cpuCount(_settings.threadCount),
       _accuracy(_settings.wgridderAccuracy) {
   _memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
-  // It may happen that several FFTResamplers are created concurrently, so we
-  // must make sure that the FFTW planner can deal with this.
+  // It may happen that several schaapcommon::fft::Resamplers are created
+  // concurrently, so we must make sure that the FFTW planner can deal with
+  // this.
   fftwf_make_planner_thread_safe();
 }
 
@@ -246,8 +247,9 @@ void WGriddingMSGridder::Invert() {
       ImageHeight() != ActualInversionHeight()) {
     // Interpolate the image
     // The input is of size ActualInversionWidth() x ActualInversionHeight()
-    FFTResampler resampler(ActualInversionWidth(), ActualInversionHeight(),
-                           ImageWidth(), ImageHeight(), _cpuCount);
+    schaapcommon::fft::Resampler resampler(
+        ActualInversionWidth(), ActualInversionHeight(), ImageWidth(),
+        ImageHeight(), _cpuCount);
 
     Image resized(ImageWidth(), ImageHeight());
     resampler.Resample(_image.Data(), resized.Data());
@@ -289,8 +291,9 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   if (ImageWidth() != ActualInversionWidth() ||
       ImageHeight() != ActualInversionHeight()) {
     Image resampledImage(ImageWidth(), ImageHeight());
-    FFTResampler resampler(ImageWidth(), ImageHeight(), ActualInversionWidth(),
-                           ActualInversionHeight(), _cpuCount);
+    schaapcommon::fft::Resampler resampler(ImageWidth(), ImageHeight(),
+                                           ActualInversionWidth(),
+                                           ActualInversionHeight(), _cpuCount);
 
     resampler.Resample(images[0].Data(), resampledImage.Data());
     images[0] = std::move(resampledImage);
