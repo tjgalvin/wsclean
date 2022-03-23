@@ -27,7 +27,7 @@ void SpectralFitter::SetFrequencies(const double* frequencies,
     _referenceFrequency = kDefaultReferenceFrequency;
 }
 
-void SpectralFitter::Fit(aocommon::UVector<num_t>& terms, const num_t* values,
+void SpectralFitter::Fit(std::vector<num_t>& terms, const num_t* values,
                          size_t x, size_t y) const {
   if (IsForced()) {
     forcedFit(terms, values, x, y);
@@ -65,7 +65,7 @@ void SpectralFitter::Fit(aocommon::UVector<num_t>& terms, const num_t* values,
   }
 }
 
-void SpectralFitter::forcedFit(aocommon::UVector<num_t>& terms,
+void SpectralFitter::forcedFit(std::vector<num_t>& terms,
                                const SpectralFitter::num_t* values, size_t x,
                                size_t y) const {
   terms.resize(_nTerms);
@@ -100,7 +100,7 @@ void SpectralFitter::forcedFit(aocommon::UVector<num_t>& terms,
 }
 
 void SpectralFitter::Evaluate(num_t* values,
-                              const aocommon::UVector<num_t>& terms) const {
+                              const std::vector<num_t>& terms) const {
   switch (_mode) {
     default:
     case SpectralFittingMode::NoFitting:
@@ -124,8 +124,8 @@ void SpectralFitter::Evaluate(num_t* values,
   }
 }
 
-SpectralFitter::num_t SpectralFitter::Evaluate(
-    const aocommon::UVector<num_t>& terms, double frequency) const {
+SpectralFitter::num_t SpectralFitter::Evaluate(const std::vector<num_t>& terms,
+                                               double frequency) const {
   switch (_mode) {
     default:
     case SpectralFittingMode::NoFitting:

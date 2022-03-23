@@ -3,6 +3,8 @@
 
 #include "spectralenergydistribution.h"
 
+#include <aocommon/uvector.h>
+
 #include "../math/polynomialfitter.h"
 
 class PowerLawSED final : public SpectralEnergyDistribution {
@@ -153,7 +155,7 @@ class PowerLawSED final : public SpectralEnergyDistribution {
  private:
   double _referenceFrequency;
   double _factors[4];
-  aocommon::UVector<float> _terms;
+  std::vector<float> _terms;
   bool _isLogarithmic;
 };
 

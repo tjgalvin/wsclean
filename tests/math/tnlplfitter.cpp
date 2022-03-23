@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_CASE(first_order) {
   const double xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<float> terms{1.0, -0.7};
+  std::vector<float> terms{1.0, -0.7};
 
   for (size_t x = 1; x != 10; ++x) {
     float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
@@ -29,13 +29,13 @@ BOOST_AUTO_TEST_CASE(second_order_zero) {
   const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<float> terms{1.0, -0.7};
+  std::vector<float> terms{1.0, -0.7};
 
   for (size_t x = 1; x != 10; ++x) {
     float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
-  aocommon::UVector<float> fitted;
+  std::vector<float> fitted;
   fitter.Fit(fitted, 3);
   BOOST_CHECK_SMALL(std::fabs(1.0f - fitted[0]), 1e-6f);
   BOOST_CHECK_SMALL(std::fabs(-0.7f - fitted[1]), 1e-6f);
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(first_order_stability) {
   const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<float> terms{1.0, -0.7, -0.01};
+  std::vector<float> terms{1.0, -0.7, -0.01};
   for (size_t x = 1; x != 10; ++x) {
     float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
@@ -61,12 +61,12 @@ BOOST_AUTO_TEST_CASE(second_order_nonzero) {
   const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<float> terms{1.0, -0.7, -0.01};
+  std::vector<float> terms{1.0, -0.7, -0.01};
   for (size_t x = 1; x != 10; ++x) {
     float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
-  aocommon::UVector<float> fitted;
+  std::vector<float> fitted;
   fitter.Fit(fitted, 3);
   BOOST_CHECK_SMALL(std::fabs(terms[0] - fitted[0]), 1e-3f);
   BOOST_CHECK_SMALL(std::fabs(terms[1] - fitted[1]), 1e-3f);
@@ -77,12 +77,12 @@ BOOST_AUTO_TEST_CASE(third_order) {
   const float xFact = 1e1;
 
   NonLinearPowerLawFitter fitter;
-  aocommon::UVector<float> terms{1.0, -0.7, -0.01, 0.05};
+  std::vector<float> terms{1.0, -0.7, -0.01, 0.05};
   for (size_t x = 1; x != 10; ++x) {
     float y = NonLinearPowerLawFitter::Evaluate(x * xFact, terms);
     fitter.AddDataPoint(x * xFact, y);
   }
-  aocommon::UVector<float> fitted;
+  std::vector<float> fitted;
   fitter.Fit(fitted, 4);
   BOOST_CHECK_SMALL(std::fabs(terms[0] - fitted[0]), 1e-2f);
   BOOST_CHECK_SMALL(std::fabs(terms[1] - fitted[1]), 1e-2f);

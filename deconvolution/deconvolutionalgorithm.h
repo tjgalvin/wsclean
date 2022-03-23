@@ -126,7 +126,7 @@ class DeconvolutionAlgorithm {
   bool _allowNegativeComponents, _stopOnNegativeComponent;
   const bool* _cleanMask;
   aocommon::Image _rmsFactorImage;
-  mutable aocommon::UVector<float> _fittingScratch;
+  mutable std::vector<float> _fittingScratch;
 
   aocommon::LogReceiver* _logReceiver;
 

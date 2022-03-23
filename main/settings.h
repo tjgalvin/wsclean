@@ -128,7 +128,7 @@ class Settings {
   bool allowNegativeComponents, stopOnNegativeComponents;
   bool useMultiscale, useSubMinorOptimization, squaredJoins;
   double spectralCorrectionFrequency;
-  aocommon::UVector<float> spectralCorrection;
+  std::vector<float> spectralCorrection;
   bool multiscaleFastSubMinorLoop;
   double multiscaleGain, multiscaleDeconvolutionScaleBias;
   size_t multiscaleMaxScales;

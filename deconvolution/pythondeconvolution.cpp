@@ -29,7 +29,7 @@ class PySpectralFitter {
     for (size_t i = 0; i != _fitter.NFrequencies(); ++i) {
       vec[i] = *reinterpret_cast<const double*>(buffer + info.strides[0] * i);
     }
-    aocommon::UVector<float> result;
+    std::vector<float> result;
     _fitter.Fit(result, vec.data(), x, y);
 
     pybind11::buffer_info resultBuf(
@@ -59,7 +59,7 @@ class PySpectralFitter {
       vec[i] = *reinterpret_cast<const double*>(buffer + info.strides[0] * i);
     }
 
-    aocommon::UVector<float> fittingScratch;
+    std::vector<float> fittingScratch;
     _fitter.FitAndEvaluate(vec.data(), x, y, fittingScratch);
 
     pybind11::buffer_info resultBuf(

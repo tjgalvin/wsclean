@@ -50,7 +50,7 @@ std::optional<float> SubMinorLoop::Run(
   float maxValue;
   size_t maxComponent = _subMinorModel.GetMaxComponent(
       scratch, maxValue, _allowNegativeComponents);
-  aocommon::UVector<float> fittingScratch;
+  std::vector<float> fittingScratch;
 
   while (std::fabs(maxValue) > _threshold &&
          _currentIteration < _maxIterations &&

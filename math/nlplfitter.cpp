@@ -1,10 +1,11 @@
 #include "nlplfitter.h"
 
-#include <stdexcept>
 #include <cmath>
-#include <limits>
-
 #include <iostream>
+#include <limits>
+#include <stdexcept>
+
+#include <aocommon/uvector.h>
 
 #ifdef HAVE_GSL
 #include <gsl/gsl_vector.h>
@@ -17,11 +18,10 @@ class NLPLFitterData {
   PointVec points;
   size_t nTerms;
 #ifdef HAVE_GSL
-  gsl_multifit_fdfsolver *solver;
+  gsl_multifit_fdfsolver* solver;
 
-  static int fitting_func(const gsl_vector *xvec, void *data, gsl_vector *f) {
-    const NLPLFitterData &fitterData =
-        *reinterpret_cast<NLPLFitterData *>(data);
+  static int fitting_func(const gsl_vector* xvec, void* data, gsl_vector* f) {
+    const NLPLFitterData& fitterData = *reinterpret_cast<NLPLFitterData*>(data);
     double exponent = gsl_vector_get(xvec, 0);
     double factor = gsl_vector_get(xvec, 1);
 
@@ -34,10 +34,9 @@ class NLPLFitterData {
     return GSL_SUCCESS;
   }
 
-  static int fitting_func_deriv(const gsl_vector *xvec, void *data,
-                                gsl_matrix *J) {
-    const NLPLFitterData &fitterData =
-        *reinterpret_cast<NLPLFitterData *>(data);
+  static int fitting_func_deriv(const gsl_vector* xvec, void* data,
+                                gsl_matrix* J) {
+    const NLPLFitterData& fitterData = *reinterpret_cast<NLPLFitterData*>(data);
     double exponent = gsl_vector_get(xvec, 0);
     double factor = gsl_vector_get(xvec, 1);
 
@@ -55,17 +54,16 @@ class NLPLFitterData {
     return GSL_SUCCESS;
   }
 
-  static int fitting_func_both(const gsl_vector *x, void *data, gsl_vector *f,
-                               gsl_matrix *J) {
+  static int fitting_func_both(const gsl_vector* x, void* data, gsl_vector* f,
+                               gsl_matrix* J) {
     fitting_func(x, data, f);
     fitting_func_deriv(x, data, J);
     return GSL_SUCCESS;
   }
 
-  static int fitting_2nd_order(const gsl_vector *xvec, void *data,
-                               gsl_vector *f) {
-    const NLPLFitterData &fitterData =
-        *reinterpret_cast<NLPLFitterData *>(data);
+  static int fitting_2nd_order(const gsl_vector* xvec, void* data,
+                               gsl_vector* f) {
+    const NLPLFitterData& fitterData = *reinterpret_cast<NLPLFitterData*>(data);
     double exponent = gsl_vector_get(xvec, 0);
     double facB = gsl_vector_get(xvec, 1);
     double facC = gsl_vector_get(xvec, 2);
@@ -80,10 +78,9 @@ class NLPLFitterData {
     return GSL_SUCCESS;
   }
 
-  static int fitting_2nd_order_deriv(const gsl_vector *xvec, void *data,
-                                     gsl_matrix *J) {
-    const NLPLFitterData &fitterData =
-        *reinterpret_cast<NLPLFitterData *>(data);
+  static int fitting_2nd_order_deriv(const gsl_vector* xvec, void* data,
+                                     gsl_matrix* J) {
+    const NLPLFitterData& fitterData = *reinterpret_cast<NLPLFitterData*>(data);
     double a = gsl_vector_get(xvec, 0);
     double b = gsl_vector_get(xvec, 1);
     double c = gsl_vector_get(xvec, 2);
@@ -110,17 +107,16 @@ class NLPLFitterData {
     return GSL_SUCCESS;
   }
 
-  static int fitting_2nd_order_both(const gsl_vector *x, void *data,
-                                    gsl_vector *f, gsl_matrix *J) {
+  static int fitting_2nd_order_both(const gsl_vector* x, void* data,
+                                    gsl_vector* f, gsl_matrix* J) {
     fitting_2nd_order(x, data, f);
     fitting_2nd_order_deriv(x, data, J);
     return GSL_SUCCESS;
   }
 
-  static int fitting_multi_order(const gsl_vector *xvec, void *data,
-                                 gsl_vector *f) {
-    const NLPLFitterData &fitterData =
-        *reinterpret_cast<NLPLFitterData *>(data);
+  static int fitting_multi_order(const gsl_vector* xvec, void* data,
+                                 gsl_vector* f) {
+    const NLPLFitterData& fitterData = *reinterpret_cast<NLPLFitterData*>(data);
 
     for (size_t i = 0; i != fitterData.points.size(); ++i) {
       const double x = fitterData.points[i].first,
@@ -142,10 +138,9 @@ class NLPLFitterData {
     return GSL_SUCCESS;
   }
 
-  static int fitting_multi_order_deriv(const gsl_vector *xvec, void *data,
-                                       gsl_matrix *J) {
-    const NLPLFitterData &fitterData =
-        *reinterpret_cast<NLPLFitterData *>(data);
+  static int fitting_multi_order_deriv(const gsl_vector* xvec, void* data,
+                                       gsl_matrix* J) {
+    const NLPLFitterData& fitterData = *reinterpret_cast<NLPLFitterData*>(data);
 
     for (size_t i = 0; i != fitterData.points.size(); ++i) {
       double x = fitterData.points[i].first;
@@ -174,8 +169,8 @@ class NLPLFitterData {
     return GSL_SUCCESS;
   }
 
-  static int fitting_multi_order_both(const gsl_vector *x, void *data,
-                                      gsl_vector *f, gsl_matrix *J) {
+  static int fitting_multi_order_both(const gsl_vector* x, void* data,
+                                      gsl_vector* f, gsl_matrix* J) {
     fitting_multi_order(x, data, f);
     fitting_multi_order_deriv(x, data, J);
     return GSL_SUCCESS;
@@ -185,9 +180,9 @@ class NLPLFitterData {
 };
 
 #ifdef HAVE_GSL
-void NonLinearPowerLawFitter::Fit(num_t &exponent, num_t &factor) {
+void NonLinearPowerLawFitter::Fit(num_t& exponent, num_t& factor) {
   if (_data->points.size() >= 2) {
-    const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
+    const gsl_multifit_fdfsolver_type* T = gsl_multifit_fdfsolver_lmsder;
     _data->solver = gsl_multifit_fdfsolver_alloc(T, _data->points.size(), 2);
 
     gsl_multifit_function_fdf fdf;
@@ -228,12 +223,12 @@ void NonLinearPowerLawFitter::Fit(num_t &exponent, num_t &factor) {
   }
 }
 
-void NonLinearPowerLawFitter::Fit(num_t &a, num_t &b, num_t &c) {
+void NonLinearPowerLawFitter::Fit(num_t& a, num_t& b, num_t& c) {
   Fit(a, b);
   b = pow(b, 1.0 / a);
 
   if (_data->points.size() >= 3) {
-    const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
+    const gsl_multifit_fdfsolver_type* T = gsl_multifit_fdfsolver_lmsder;
     _data->solver = gsl_multifit_fdfsolver_alloc(T, _data->points.size(), 3);
 
     gsl_multifit_function_fdf fdf;
@@ -269,10 +264,10 @@ void NonLinearPowerLawFitter::Fit(num_t &a, num_t &b, num_t &c) {
   }
 }
 
-void NonLinearPowerLawFitter::fit_implementation(
-    aocommon::UVector<num_t> &terms, size_t nTerms) {
+void NonLinearPowerLawFitter::fit_implementation(std::vector<num_t>& terms,
+                                                 size_t nTerms) {
   _data->nTerms = nTerms;
-  const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
+  const gsl_multifit_fdfsolver_type* T = gsl_multifit_fdfsolver_lmsder;
   _data->solver = gsl_multifit_fdfsolver_alloc(T, _data->points.size(), nTerms);
 
   gsl_multifit_function_fdf fdf;
@@ -283,7 +278,7 @@ void NonLinearPowerLawFitter::fit_implementation(
   fdf.p = nTerms;
   fdf.params = &*_data;
 
-  aocommon::UVector<double> termsView(terms.begin(), terms.end());
+  std::vector<double> termsView(terms.begin(), terms.end());
   gsl_vector_view initialVals = gsl_vector_view_array(termsView.data(), nTerms);
   gsl_multifit_fdfsolver_set(_data->solver, &fdf, &initialVals.vector);
 
@@ -345,8 +340,7 @@ void NonLinearPowerLawFitter::AddDataPoint(num_t x, num_t y) {
   _data->points.push_back(std::make_pair(x, y));
 }
 
-void NonLinearPowerLawFitter::Fit(aocommon::UVector<num_t> &terms,
-                                  size_t nTerms) {
+void NonLinearPowerLawFitter::Fit(std::vector<num_t>& terms, size_t nTerms) {
   terms.assign(nTerms, 0.0);
 
   if (_data->points.size() < nTerms) nTerms = _data->points.size();
@@ -357,9 +351,8 @@ void NonLinearPowerLawFitter::Fit(aocommon::UVector<num_t> &terms,
   Fit(a, b);
   bool isNegative = b < 0.0;
   if (isNegative) {
-    for (NLPLFitterData::PointVec::iterator i = _data->points.begin();
-         i != _data->points.end(); ++i) {
-      i->second = -i->second;
+    for (std::pair<double, double>& point : _data->points) {
+      point.second = -point.second;
     }
     terms[0] = -std::log10(-b);
     a = -a;
@@ -379,7 +372,7 @@ void NonLinearPowerLawFitter::Fit(aocommon::UVector<num_t> &terms,
     terms[0] = std::pow(10.0, terms[0]);
 }
 
-void NonLinearPowerLawFitter::FitStable(aocommon::UVector<num_t> &terms,
+void NonLinearPowerLawFitter::FitStable(std::vector<num_t>& terms,
                                         size_t nTerms) {
   terms.assign(nTerms, 0.0);
   if (nTerms == 0) return;
@@ -389,9 +382,8 @@ void NonLinearPowerLawFitter::FitStable(aocommon::UVector<num_t> &terms,
 
   bool isNegative = b < 0.0;
   if (isNegative) {
-    for (NLPLFitterData::PointVec::iterator i = _data->points.begin();
-         i != _data->points.end(); ++i) {
-      i->second = -i->second;
+    for (std::pair<double, double>& point : _data->points) {
+      point.second = -point.second;
     }
     terms[0] = -std::log10(-b);
     a = -a;
@@ -414,14 +406,14 @@ void NonLinearPowerLawFitter::FitStable(aocommon::UVector<num_t> &terms,
     terms[0] = pow(10.0, terms[0]);
 }
 
-void NonLinearPowerLawFitter::FastFit(num_t &exponent, num_t &factor) {
+void NonLinearPowerLawFitter::FastFit(num_t& exponent, num_t& factor) {
   num_t sumxy = 0.0, sumx = 0.0, sumy = 0.0, sumxx = 0.0;
   size_t n = 0;
   bool requireNonLinear = false;
 
-  for (NLPLFitterData::PointVec::const_iterator i = _data->points.begin();
-       i != _data->points.end(); ++i) {
-    num_t x = i->first, y = i->second;
+  for (const std::pair<double, double>& point : _data->points) {
+    const num_t x = point.first;
+    const num_t y = point.second;
     if (y <= 0) {
       requireNonLinear = true;
       break;
@@ -455,8 +447,7 @@ void NonLinearPowerLawFitter::FastFit(num_t &exponent, num_t &factor) {
 }
 
 NonLinearPowerLawFitter::num_t NonLinearPowerLawFitter::Evaluate(
-    num_t x, const aocommon::UVector<num_t> &terms,
-    num_t referenceFrequencyHz) {
+    num_t x, const std::vector<num_t>& terms, num_t referenceFrequencyHz) {
   if (terms.empty()) return 0.0;
   num_t y = 0.0;
   const num_t lg = std::log10(x / referenceFrequencyHz);

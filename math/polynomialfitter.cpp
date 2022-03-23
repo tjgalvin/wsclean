@@ -2,8 +2,8 @@
 
 #include <gsl/gsl_multifit.h>
 
-void PolynomialFitter::Fit(aocommon::UVector<num_t>& terms, size_t nTerms) {
-  size_t n = _dataPoints.size();
+void PolynomialFitter::Fit(std::vector<num_t>& terms, size_t nTerms) {
+  size_t n = data_points_.size();
   terms.assign(nTerms, 0.0);
 
   if (nTerms > n) {
@@ -21,9 +21,9 @@ void PolynomialFitter::Fit(aocommon::UVector<num_t>& terms, size_t nTerms) {
   double chisq;
 
   for (size_t i = 0; i != n; ++i) {
-    num_t x = _dataPoints[i][0];
-    num_t y = _dataPoints[i][1];
-    num_t w = _dataPoints[i][2];
+    num_t x = data_points_[i][0];
+    num_t y = data_points_[i][1];
+    num_t w = data_points_[i][2];
 
     num_t f = 1.0;
     gsl_matrix_set(xData, i, 0, f);

@@ -3,8 +3,7 @@
 
 #include <cmath>
 #include <memory>
-
-#include <aocommon/uvector.h>
+#include <vector>
 
 /**
  * This class fits a power law to a set of points. Note that there is a
@@ -27,12 +26,17 @@ class NonLinearPowerLawFitter {
 
   void Fit(num_t& a, num_t& b, num_t& c);
 
-  void Fit(aocommon::UVector<num_t>& terms, size_t nTerms);
-  void FitStable(aocommon::UVector<num_t>& terms, size_t nTerms);
+  /**
+   * @param [out] terms The resulting terms.
+   * Using a pre-allocated vector instead of a return value avoids
+   * memory allocations in this performance-critical function.
+   */
+  void Fit(std::vector<num_t>& terms, size_t nTerms);
+  void FitStable(std::vector<num_t>& terms, size_t nTerms);
 
   void FastFit(num_t& exponent, num_t& factor);
 
-  static num_t Evaluate(num_t x, const aocommon::UVector<num_t>& terms,
+  static num_t Evaluate(num_t x, const std::vector<num_t>& terms,
                         num_t referenceFrequencyHz = 1.0);
 
   static long double Evaluate(long double factor, long double exponent,
@@ -41,7 +45,7 @@ class NonLinearPowerLawFitter {
   }
 
  private:
-  void fit_implementation(aocommon::UVector<num_t>& terms, size_t nTerms);
+  void fit_implementation(std::vector<num_t>& terms, size_t nTerms);
 
   std::unique_ptr<class NLPLFitterData> _data;
 };

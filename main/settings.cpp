@@ -402,8 +402,7 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.squaredJoins = squaredJoins;
   deconvolutionSettings.spectralCorrectionFrequency =
       spectralCorrectionFrequency;
-  deconvolutionSettings.spectralCorrection.assign(spectralCorrection.begin(),
-                                                  spectralCorrection.end());
+  deconvolutionSettings.spectralCorrection = spectralCorrection;
   deconvolutionSettings.multiscaleFastSubMinorLoop = multiscaleFastSubMinorLoop;
   deconvolutionSettings.multiscaleGain = multiscaleGain;
   deconvolutionSettings.multiscaleDeconvolutionScaleBias =

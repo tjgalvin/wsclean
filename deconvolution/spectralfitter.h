@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <aocommon/image.h>
-#include <aocommon/uvector.h>
 
 enum class SpectralFittingMode { NoFitting, Polynomial, LogPolynomial };
 
@@ -32,13 +31,14 @@ class SpectralFitter {
    *
    * @param [out] terms will hold the fitted terms. The meaning of these terms
    * depends on the fitted curve type, and are relative to the reference
-   * frequency.
+   * frequency. Using a pre-allocated vector instead of a return value avoids
+   * memory allocations in this performance-critical function.
    * @param values array of size @ref NFrequencies() with the values to be
    * fitted. values[i] should correspond Frequency(i) and Weight(i).
    * @param x a pixel index giving the horizontal position
    * @param y a pixel index giving the vertical position
    */
-  void Fit(aocommon::UVector<num_t>& terms, const num_t* values, size_t x,
+  void Fit(std::vector<num_t>& terms, const num_t* values, size_t x,
            size_t y) const;
 
   /**
@@ -48,7 +48,7 @@ class SpectralFitter {
    * curve values.
    * @param terms array of size @ref NTerms() with previously fitted terms.
    */
-  void Evaluate(num_t* values, const aocommon::UVector<num_t>& terms) const;
+  void Evaluate(num_t* values, const std::vector<num_t>& terms) const;
 
   /**
    * Evaluate the curve at a specified frequency.
@@ -56,7 +56,7 @@ class SpectralFitter {
    * @param terms array of size @ref NTerms() with previously fitted terms.
    * @param frequency Frequency in Hz.
    */
-  num_t Evaluate(const aocommon::UVector<num_t>& terms, double frequency) const;
+  num_t Evaluate(const std::vector<num_t>& terms, double frequency) const;
 
   /**
    * Fit an array of values to a curve, and replace those values
@@ -69,7 +69,7 @@ class SpectralFitter {
    * critical loops inside deconvolution. It will be resized to @ref NTerms().
    */
   void FitAndEvaluate(num_t* values, size_t x, size_t y,
-                      aocommon::UVector<num_t>& terms) const {
+                      std::vector<num_t>& terms) const {
     Fit(terms, values, x, y);
     Evaluate(values, terms);
   }
@@ -94,7 +94,7 @@ class SpectralFitter {
   bool IsForced() const { return !_forcedTerms.empty(); }
 
  private:
-  void forcedFit(aocommon::UVector<num_t>& terms, const num_t* values, size_t x,
+  void forcedFit(std::vector<num_t>& terms, const num_t* values, size_t x,
                  size_t y) const;
 
   enum SpectralFittingMode _mode;

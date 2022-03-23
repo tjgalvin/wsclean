@@ -3,6 +3,8 @@
 
 #include <map>
 
+#include <aocommon/uvector.h>
+
 #include "measurement.h"
 #include "spectralenergydistribution.h"
 
@@ -425,7 +427,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
     c = cTemp;
   }
 
-  void FitLogPolynomial(aocommon::UVector<float>& terms, size_t nTerms,
+  void FitLogPolynomial(std::vector<float>& terms, size_t nTerms,
                         aocommon::PolarizationEnum polarization,
                         double referenceFrequencyHz = 1.0) const {
     NonLinearPowerLawFitter fitter;
@@ -439,7 +441,6 @@ class MeasuredSED : public SpectralEnergyDistribution {
         ++n;
       }
     }
-    terms.assign(nTerms, 0.0);
     fitter.Fit(terms, nTerms);
   }
 

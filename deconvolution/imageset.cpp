@@ -188,7 +188,7 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
     aocommon::StaticFor<size_t> loop(threadCount);
     loop.Run(0, Height(), [&](size_t yStart, size_t yEnd) {
       aocommon::UVector<float> spectralPixel(NDeconvolutionChannels());
-      aocommon::UVector<float> termsPixel(nTerms);
+      std::vector<float> termsPixel;
       for (size_t y = yStart; y != yEnd; ++y) {
         size_t px = y * Width();
         for (size_t x = 0; x != Width(); ++x) {
@@ -202,10 +202,10 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
           // Skip fitting if it is zero; most of model images will be zero, so
           // this can save a lot of time.
           if (isZero) {
-            for (float* p = termsPtr; p != termsPtr + nTerms; ++p) *p = 0.0;
+            std::fill_n(termsPtr, nTerms, 0.0);
           } else {
             fitter.Fit(termsPixel, spectralPixel.data(), x, y);
-            for (size_t i = 0; i != nTerms; ++i) termsPtr[i] = termsPixel[i];
+            std::copy_n(termsPixel.cbegin(), nTerms, termsPtr);
           }
           ++px;
         }
@@ -218,10 +218,10 @@ void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
     for (const DeconvolutionTableEntry& e : _deconvolutionTable) {
       double freq = e.CentralFrequency();
       loop.Run(0, Width() * Height(), [&](size_t pxStart, size_t pxEnd) {
-        aocommon::UVector<float> termsPixel(nTerms);
+        std::vector<float> termsPixel;
         for (size_t px = pxStart; px != pxEnd; ++px) {
           const float* termsPtr = &termsImage[px * nTerms];
-          for (size_t i = 0; i != nTerms; ++i) termsPixel[i] = termsPtr[i];
+          termsPixel.assign(termsPtr, termsPtr + nTerms);
           scratch[px] = fitter.Evaluate(termsPixel, freq);
         }
       });

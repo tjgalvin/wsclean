@@ -59,7 +59,7 @@ void ComponentList::write(const std::string& filename,
   }
   wsclean::model::WriteHeaderForSpectralTerms(file,
                                               fitter.ReferenceFrequency());
-  aocommon::UVector<float> terms;
+  std::vector<float> terms;
   for (size_t scaleIndex = 0; scaleIndex != NScales(); ++scaleIndex) {
     const ScaleList& list = _listPerScale[scaleIndex];
     size_t componentIndex = 0;
@@ -82,8 +82,6 @@ void ComponentList::write(const std::string& filename,
         terms.assign(1, spectrum[0]);
       else
         fitter.Fit(terms, spectrum.data(), x, y);
-      float stokesI = terms[0];
-      terms.erase(terms.begin());
       long double l, m;
       ImageCoordinates::XYToLM<long double>(x, y, pixelScaleX, pixelScaleY,
                                             _width, _height, l, m);
@@ -93,11 +91,11 @@ void ComponentList::write(const std::string& filename,
       name << 's' << scaleIndex << 'c' << componentIndex;
       if (scale == 0.0)
         wsclean::model::WritePolynomialPointComponent(
-            file, name.str(), ra, dec, stokesI, useLogSI, terms,
+            file, name.str(), ra, dec, useLogSI, terms,
             fitter.ReferenceFrequency());
       else {
         wsclean::model::WritePolynomialGaussianComponent(
-            file, name.str(), ra, dec, stokesI, useLogSI, terms,
+            file, name.str(), ra, dec, useLogSI, terms,
             fitter.ReferenceFrequency(), scaleFWHML, scaleFWHMM, 0.0);
       }
       ++componentIndex;
