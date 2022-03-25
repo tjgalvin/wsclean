@@ -1,8 +1,7 @@
 #ifndef PARALLEL_DECONVOLUTION_H
 #define PARALLEL_DECONVOLUTION_H
 
-#include "../structures/primarybeamimageset.h"
-
+#include "componentlist.h"
 #include "deconvolutionsettings.h"
 #include "subimagelogset.h"
 
