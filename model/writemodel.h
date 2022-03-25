@@ -18,6 +18,7 @@ inline void WriteHeaderForSpectralTerms(std::ostream& stream,
 
 inline void AddSiTerms(std::ostream& stream,
                        const std::vector<float>& si_terms) {
+  assert(!si_terms.empty());
   stream << si_terms.front() << ",[";
   if (si_terms.size() >= 2) {
     stream << si_terms[1];
