@@ -1970,8 +1970,9 @@ void WSClean::makeImagingTableEntry(
     // outChannelIndex.
     const size_t nSplits = _settings.divideChannelFrequencies.size();
     for (size_t i = 0; i != nSplits + 1; ++i) {
-      size_t outChannelStart = _settings.channelsOut * i / (nSplits + 1),
-             outChannelEnd = _settings.channelsOut * (i + 1) / (nSplits + 1);
+      const size_t outChannelStart = _settings.channelsOut * i / (nSplits + 1);
+      const size_t outChannelEnd =
+          _settings.channelsOut * (i + 1) / (nSplits + 1);
       if (outChannelIndex >= outChannelStart &&
           outChannelIndex < outChannelEnd) {
         double splitFreqLow =
@@ -2035,6 +2036,9 @@ void WSClean::makeImagingTableEntryChannelSettings(
     std::vector<size_t> orderedGaps;
     auto iter = gaps.rbegin();
     for (size_t i = 0; i != nOutChannels - 1; ++i) {
+      if (iter == gaps.rend())
+        throw std::runtime_error(
+            "Channel gap division leads to invalid selection");
       orderedGaps.push_back(iter->second);
       ++iter;
     }
@@ -2050,6 +2054,15 @@ void WSClean::makeImagingTableEntryChannelSettings(
   } else {
     chLowIndex = outChannelIndex * channels.size() / nOutChannels;
     chHighIndex = (outChannelIndex + 1) * channels.size() / nOutChannels - 1;
+    if (chLowIndex == chHighIndex + 1)
+      throw std::runtime_error(
+          "Too many output channels requested: output channel " +
+          std::to_string(outChannelIndex) +
+          " would be empty. Number of output channels requested: " +
+          std::to_string(_settings.channelsOut) +
+          ". Number of channels in the measurement set(s) available (after "
+          "applying channel range selections and splits): " +
+          std::to_string(channels.size()));
   }
   if (channels[chLowIndex].Frequency() > channels[chHighIndex].Frequency())
     std::swap(chLowIndex, chHighIndex);

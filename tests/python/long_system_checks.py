@@ -316,3 +316,19 @@ class TestCommandCatalogue:
 
         s1 = f"{tcf.WSCLEAN} -name {run_name} {tcf.DIMS_LARGE} -predict -use-idg -idg-mode cpu {grid_with_beam} -interval 10 12 -mwa-path . {tcf.MWA_MS}"
         validate_call(s1.split())
+
+    def test_catch_invalid_channel_selection(self):
+        # Invalid selection: people often forget the second value of -channel-range is an open interval end (i.e. excluded the value itself).
+        s = f"{tcf.WSCLEAN} -name {name('test-caught-bad-selection')} -channels-out 256 -channel-range 0 255 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        with pytest.raises(Exception):
+            validate_call(s.split())
+            
+    def test_catch_invalid_channel_selection_with_gaps(self):
+        s = f"{tcf.WSCLEAN} -name {name('test-caught-bad-selection')} -gap-channel-division -channels-out 256 -channel-range 0 255 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        with pytest.raises(Exception):
+            validate_call(s.split())
+            
+    def test_catch_invalid_channel_selection_with_division(self):
+        s = f"{tcf.WSCLEAN} -name {name('test-caught-bad-selection')} -channel-division-frequencies 145e6 -channels-out 256 -channel-range 0 255 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        with pytest.raises(Exception):
+            validate_call(s.split())
