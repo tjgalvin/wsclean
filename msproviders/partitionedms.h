@@ -39,7 +39,7 @@ class PartitionedMS final : public MSProvider {
   };
 
   PartitionedMS(const Handle& handle, size_t partIndex,
-                aocommon::PolarizationEnum polarization, size_t bandIndex);
+                aocommon::PolarizationEnum polarization, size_t dataDescId);
 
   virtual ~PartitionedMS();
 
@@ -83,6 +83,10 @@ class PartitionedMS final : public MSProvider {
                           bool initialModelRequired,
                           const class Settings& settings);
 
+  const aocommon::BandData& Band() override {
+    return _handle._data->_bands[_dataDescId];
+  }
+
   class Handle {
     // PartitionedMSReader is a friend of Handle
     // in order to access the _data member.
@@ -105,7 +109,8 @@ class PartitionedMS final : public MSProvider {
                  const std::vector<ChannelRange>& channels,
                  bool initialModelRequired, bool modelUpdateRequired,
                  const std::set<aocommon::PolarizationEnum>& polarizations,
-                 const MSSelection& selection, size_t nAntennas)
+                 const MSSelection& selection,
+                 const aocommon::MultiBandData& bands, size_t nAntennas)
           : _msPath(msPath),
             _dataColumnName(dataColumnName),
             _temporaryDirectory(temporaryDirectory),
@@ -114,6 +119,7 @@ class PartitionedMS final : public MSProvider {
             _modelUpdateRequired(modelUpdateRequired),
             _polarizations(polarizations),
             _selection(selection),
+            _bands(bands),
             _nAntennas(nAntennas),
             _isCopy(false) {}
 
@@ -124,6 +130,7 @@ class PartitionedMS final : public MSProvider {
       bool _initialModelRequired, _modelUpdateRequired;
       std::set<aocommon::PolarizationEnum> _polarizations;
       MSSelection _selection;
+      aocommon::MultiBandData _bands;
       size_t _nAntennas;
       bool _isCopy;
 
@@ -137,11 +144,12 @@ class PartitionedMS final : public MSProvider {
            const std::vector<ChannelRange>& channels, bool initialModelRequired,
            bool modelUpdateRequired,
            const std::set<aocommon::PolarizationEnum>& polarizations,
-           const MSSelection& selection, size_t nAntennas)
+           const MSSelection& selection, const aocommon::MultiBandData& bands,
+           size_t nAntennas)
         : _data(new HandleData(msPath, dataColumnName, temporaryDirectory,
                                channels, initialModelRequired,
                                modelUpdateRequired, polarizations, selection,
-                               nAntennas)) {}
+                               bands, nAntennas)) {}
   };
 
  private:
@@ -153,6 +161,7 @@ class PartitionedMS final : public MSProvider {
 
   const Handle _handle;
   const size_t _partIndex;
+  const size_t _dataDescId;
   MappedFile _modelFile;
   size_t _currentOutputRow;
   std::unique_ptr<std::ofstream> _modelDataFile;

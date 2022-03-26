@@ -51,13 +51,12 @@ class ImageWeightCache {
 
   std::shared_ptr<ImageWeights> Get(
       const std::vector<std::unique_ptr<MSDataDescription>>& msList,
-      const std::vector<aocommon::MultiBandData>& bands, size_t outChannelIndex,
-      size_t outIntervalIndex) {
+      size_t outChannelIndex, size_t outIntervalIndex) {
     std::unique_lock<std::mutex> lock(_mutex);
     if (outChannelIndex != _currentWeightChannel ||
         outIntervalIndex != _currentWeightInterval) {
       lock.unlock();
-      std::unique_ptr<ImageWeights> weights = recalculateWeights(msList, bands);
+      std::unique_ptr<ImageWeights> weights = recalculateWeights(msList);
       lock.lock();
       _currentWeightChannel = outChannelIndex;
       _currentWeightInterval = outIntervalIndex;
@@ -86,21 +85,19 @@ class ImageWeightCache {
 
  private:
   std::unique_ptr<ImageWeights> recalculateWeights(
-      const std::vector<std::unique_ptr<MSDataDescription>>& msList,
-      const std::vector<aocommon::MultiBandData>& bands) {
+      const std::vector<std::unique_ptr<MSDataDescription>>& msList) {
     aocommon::Logger::Info << "Precalculating weights for "
                            << _weightMode.ToString() << " weighting...\n";
     std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
     for (size_t i = 0; i != msList.size(); ++i) {
       std::unique_ptr<MSProvider> provider = msList[i]->GetProvider();
       const MSSelection& selection = msList[i]->Selection();
-      const size_t dataDescId = msList[i]->DataDescId();
       const aocommon::BandData selectedBand =
           selection.HasChannelRange()
-              ? aocommon::BandData(bands[i][dataDescId],
+              ? aocommon::BandData(provider->Band(),
                                    selection.ChannelRangeStart(),
                                    selection.ChannelRangeEnd())
-              : bands[i][dataDescId];
+              : provider->Band();
       weights->Grid(*provider, selectedBand);
       if (msList.size() > 1)
         (aocommon::Logger::Info << provider->MS().Filename() << ' ').Flush();

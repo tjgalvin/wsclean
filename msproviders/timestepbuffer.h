@@ -62,6 +62,8 @@ class TimestepBuffer final : public MSProvider {
 
   size_t NPolarizations() override { return _msProvider->NPolarizations(); }
 
+  const aocommon::BandData& Band() override { return _msProvider->Band(); }
+
  private:
   struct RowData {
     std::vector<std::complex<float>> data, model;

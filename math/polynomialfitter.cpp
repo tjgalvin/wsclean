@@ -2,6 +2,8 @@
 
 #include <gsl/gsl_multifit.h>
 
+#include <stdexcept>
+
 void PolynomialFitter::Fit(std::vector<num_t>& terms, size_t nTerms) {
   size_t n = data_points_.size();
   terms.assign(nTerms, 0.0);

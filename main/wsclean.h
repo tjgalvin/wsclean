@@ -99,8 +99,6 @@ class WSClean {
                               const ImagingTableEntry& entry,
                               aocommon::PolarizationEnum polarization,
                               bool isImaginary, const float* image);
-  bool selectChannels(MSSelection& selection, size_t msIndex, size_t dataDescId,
-                      const ImagingTableEntry& entry);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
 
   void makeImagingTable(size_t outputIntervalIndex);

@@ -53,6 +53,16 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
 
+ExternalProject_Add(
+  jvla_test_ms
+  URL http://astron.nl/citt/ci_data/wsclean/JVLA-MultiBand-S1_C5-minimal.ms.tar.bz2
+  URL_HASH
+    SHA256=7c8d41b5ff59c8736b1223e6b855a96e410f27fb4be05d179c8292fdb78cdc7e
+  SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/JVLA-MultiBand-S1_C5-minimal.ms
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "")
+
 set(TEST_LIBRARIES pybind11::embed ${ALL_LIBRARIES}
                    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
@@ -60,7 +70,7 @@ target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 
 add_custom_target(
   unitchecks
-  DEPENDS unittest download_mocks mwa_bda_mock_ms
+  DEPENDS unittest download_mocks mwa_bda_mock_ms jvla_test_ms
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND unittest)
 

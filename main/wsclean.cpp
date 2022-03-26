@@ -543,7 +543,7 @@ std::shared_ptr<ImageWeights> WSClean::initializeImageWeights(
     return _imageWeightCache->GetMFWeights();
   } else {
     std::shared_ptr<ImageWeights> weights = _imageWeightCache->Get(
-        msList, _msBands, entry.outputChannelIndex, entry.outputIntervalIndex);
+        msList, entry.outputChannelIndex, entry.outputIntervalIndex);
     if (_settings.isWeightImageSaved) {
       std::string prefix = ImageFilename::GetPSFPrefix(
           _settings, entry.outputChannelIndex, entry.outputIntervalIndex);
@@ -566,9 +566,8 @@ void WSClean::initializeMFSImageWeights() {
         for (size_t dataDescId = 0;
              dataDescId != _msBands[msIndex].DataDescCount(); ++dataDescId) {
           MSSelection partSelection(_globalSelection);
-          partSelection.SetBandId(dataDescId);
-          const bool hasSelection =
-              selectChannels(partSelection, msIndex, dataDescId, entry);
+          const bool hasSelection = partSelection.SelectMsChannels(
+              _msBands[msIndex], dataDescId, entry);
           if (hasSelection) {
             const PolarizationEnum pol =
                 _settings.useIDG ? getIdgPolarization() : entry.polarization;
@@ -642,7 +641,7 @@ void WSClean::performReordering(bool isPredictMode) {
         const ImagingTableEntry& entry = facetGroup.Front();
         for (size_t d = 0; d != _msBands[msIndex].DataDescCount(); ++d) {
           MSSelection selection(_globalSelection);
-          if (selectChannels(selection, msIndex, d, entry)) {
+          if (selection.SelectMsChannels(_msBands[msIndex], d, entry)) {
             if (entry.polarization == *_settings.polarizations.begin()) {
               PartitionedMS::ChannelRange r;
               r.dataDescId = d;
@@ -922,49 +921,6 @@ void WSClean::RunPredict() {
     predictGroup(_imagingTable);
 
     _griddingTaskManager.reset();
-  }
-}
-
-bool WSClean::selectChannels(MSSelection& selection, size_t msIndex,
-                             size_t dataDescId,
-                             const ImagingTableEntry& entry) {
-  const aocommon::BandData& band = _msBands[msIndex][dataDescId];
-  double firstCh = band.ChannelFrequency(0);
-  double lastCh = band.ChannelFrequency(band.ChannelCount() - 1);
-  // Some mses have decreasing (i.e. reversed) channel frequencies in them
-  bool isReversed = false;
-  if (firstCh > lastCh) {
-    std::swap(firstCh, lastCh);
-    isReversed = true;
-    Logger::Debug << "Warning: MS has reversed channel frequencies.\n";
-  }
-  if (band.ChannelCount() != 0 && entry.lowestFrequency <= lastCh &&
-      entry.highestFrequency >= firstCh) {
-    size_t newStart, newEnd;
-    if (isReversed) {
-      aocommon::BandData::const_reverse_iterator lowPtr =
-          std::lower_bound(band.rbegin(), band.rend(), entry.lowestFrequency);
-      aocommon::BandData::const_reverse_iterator highPtr =
-          std::lower_bound(lowPtr, band.rend(), entry.highestFrequency);
-
-      if (highPtr == band.rend()) --highPtr;
-      newStart = band.ChannelCount() - 1 - (highPtr - band.rbegin());
-      newEnd = band.ChannelCount() - (lowPtr - band.rbegin());
-    } else {
-      const double *lowPtr, *highPtr;
-      lowPtr =
-          std::lower_bound(band.begin(), band.end(), entry.lowestFrequency);
-      highPtr = std::lower_bound(lowPtr, band.end(), entry.highestFrequency);
-
-      if (highPtr == band.end()) --highPtr;
-      newStart = lowPtr - band.begin();
-      newEnd = highPtr - band.begin() + 1;
-    }
-
-    selection.SetChannelRange(newStart, newEnd);
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -1448,7 +1404,7 @@ void WSClean::initializeMSList(
     for (size_t dataDescId = 0; dataDescId != _msBands[msIndex].DataDescCount();
          ++dataDescId) {
       MSSelection selection(_globalSelection);
-      if (selectChannels(selection, msIndex, dataDescId, entry)) {
+      if (selection.SelectMsChannels(_msBands[msIndex], dataDescId, entry)) {
         std::unique_ptr<MSDataDescription> dataDescription;
         if (_settings.doReorder)
           dataDescription = MSDataDescription::ForPartitioned(

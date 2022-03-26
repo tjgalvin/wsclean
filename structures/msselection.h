@@ -1,7 +1,11 @@
 #ifndef MS_SELECTION
 #define MS_SELECTION
 
+#include "imagingtableentry.h"
+
 #include <aocommon/io/serialstreamfwd.h>
+#include <aocommon/multibanddata.h>
+
 #include <casacore/casa/Arrays/Vector.h>
 
 #include <cstring>
@@ -120,6 +124,15 @@ class MSSelection {
 
   void Serialize(aocommon::SerialOStream& stream) const;
   void Unserialize(aocommon::SerialIStream& stream);
+
+  /**
+   * Change this selection object so that its datadescid and channel range
+   * correspond with the given entry. If the specified bands are not necessary
+   * for this entry, the msselection is not changed and the function returns
+   * false.
+   */
+  bool SelectMsChannels(const aocommon::MultiBandData& msBands,
+                        size_t dataDescId, const ImagingTableEntry& entry);
 
  private:
   std::vector<size_t> _fieldIds;

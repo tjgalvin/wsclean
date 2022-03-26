@@ -58,6 +58,8 @@ class ContiguousMS final : public MSProvider {
 
   size_t NAntennas() override { return _nAntenna; }
 
+  const aocommon::BandData& Band() override { return _bandData[_dataDescId]; }
+
  private:
   void open();
 

@@ -2,7 +2,6 @@
 #include "msreaders/msreader.h"
 
 #include <aocommon/logger.h>
-#include <aocommon/multibanddata.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/Tables/ScalarColumn.h>

@@ -39,3 +39,6 @@ MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
 # Copies for multi measurement set tests
 MWA_MOCK_COPY_1 = "MWA_MOCK_COPY_1.ms"
 MWA_MOCK_COPY_2 = "MWA_MOCK_COPY_2.ms"
+
+# JVLA multi-band example MS
+JVLA_MS = "JVLA-MultiBand-S1_C5-minimal.ms"

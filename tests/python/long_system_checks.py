@@ -332,3 +332,11 @@ class TestCommandCatalogue:
         s = f"{tcf.WSCLEAN} -name {name('test-caught-bad-selection')} -channel-division-frequencies 145e6 -channels-out 256 -channel-range 0 255 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         with pytest.raises(Exception):
             validate_call(s.split())
+            
+    def test_multiband_no_mf_weighting(self):
+        # Tests issue #105: Segmentation fault (core dumped), when grouping spectral windows + no-mf-weighting Master Branch
+        # The issue was caused by invalid indexing into the BandData object.
+        s = f"{tcf.WSCLEAN} -name {name('vla-multiband-no-mf')} -size 768 768 -scale 0.05arcsec -pol QU -mgain 0.85 -niter 1000 -auto-threshold 3 -join-polarizations -squared-channel-joining -no-update-model-required -no-mf-weighting {tcf.JVLA_MS}"
+        validate_call(s.split())
+        for f in glob.glob(f"{name('vla-multiband-no-mf')}*.fits"):
+            os.remove(f)

@@ -33,11 +33,20 @@ using aocommon::Logger;
 #define MAP_NORESERVE 0
 #endif
 
+namespace {
+struct PartitionFiles {
+  std::unique_ptr<std::ofstream> data;
+  std::unique_ptr<std::ofstream> weight;
+  std::unique_ptr<std::ofstream> model;
+};
+}  // namespace
+
 PartitionedMS::PartitionedMS(const Handle& handle, size_t partIndex,
                              aocommon::PolarizationEnum polarization,
                              size_t dataDescId)
     : _handle(handle),
       _partIndex(partIndex),
+      _dataDescId(dataDescId),
       _currentOutputRow(0),
       _polarization(polarization),
       _polarizationCountInFile(
@@ -155,11 +164,6 @@ string PartitionedMS::getMetaFilename(const string& msPathStr,
   return s.str();
 }
 
-// should be private but is not allowed on older compilers
-struct PartitionFiles {
-  std::unique_ptr<std::ofstream> data, weight, model;
-};
-
 /*
  * When partitioned:
  * One global file stores:
@@ -260,6 +264,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
   const std::vector<aocommon::PolarizationEnum> msPolarizations =
       GetMSPolarizations(rowProvider->Ms().polarization());
   const size_t nAntennas = rowProvider->Ms().antenna().nrow();
+  const aocommon::MultiBandData bands(rowProvider->Ms());
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << msPath << " into " << channelParts << " x "
@@ -438,7 +443,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
 
   return Handle(msPath, dataColumnName, temporaryDirectory, channels,
                 initialModelRequired, modelUpdateRequired, polsOut, selection,
-                nAntennas);
+                bands, nAntennas);
 }
 
 void PartitionedMS::unpartition(
