@@ -10,7 +10,7 @@ BOOST_AUTO_TEST_CASE(fit_line) {
   fitter.AddChannel(1.0, 2.0);
   fitter.AddChannel(2.0, 3.0);
 
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(0, 0.0);
   fitter.AddDataPoint(0, 1.0);
   fitter.AddDataPoint(1, 1.0);
@@ -19,8 +19,8 @@ BOOST_AUTO_TEST_CASE(fit_line) {
   // hence y = x - 1
   fitter.Fit(terms, 2);
 
-  BOOST_CHECK_CLOSE_FRACTION(terms[0], -1.0, 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[1], 1.0, 1e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[0], -1.0, 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[1], 1.0, 1.0e-3);
 }
 
 BOOST_AUTO_TEST_CASE(fit_squared_function) {
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(fit_squared_function) {
   fitter.AddChannel(3.0, 4.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(
       0, 7.0 / 3.0);  // int_{x=1}^2 x^2 / 1 = 1/3 (2^3 - 1^3) = 7/3
   fitter.AddDataPoint(
@@ -39,9 +39,9 @@ BOOST_AUTO_TEST_CASE(fit_squared_function) {
       2, 37.0 / 3.0);  // int_{x=3}^4 x^2 / 1 = 1/3 (4^3 - 3^3) = 37/3
   fitter.Fit(terms, 3);
 
-  BOOST_CHECK_LT(terms[0], 1e-3);
-  BOOST_CHECK_LT(terms[1], 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[2], 1.0, 1e-3);
+  BOOST_CHECK_LT(terms[0], 1.0e-3);
+  BOOST_CHECK_LT(terms[1], 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[2], 1.0, 1.0e-3);
 }
 
 BOOST_AUTO_TEST_CASE(fit_irregular_channels) {
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(fit_irregular_channels) {
   fitter.AddChannel(3.0, 6.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(
       0, 8.0 / 6.0);  // int_{x=0}^2 x^2 / 2 = 1/3 (2^3 - 0^3) = 8/6
   fitter.AddDataPoint(
@@ -60,9 +60,9 @@ BOOST_AUTO_TEST_CASE(fit_irregular_channels) {
       2, 189.0 / 9.0);  // int_{x=3}^6 x^2 / 3 = 1/3 (6^3 - 3^3) = 189/9
   fitter.Fit(terms, 3);
 
-  BOOST_CHECK_LT(terms[0], 1e-3);
-  BOOST_CHECK_LT(terms[1], 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[2], 1.0, 1e-3);
+  BOOST_CHECK_LT(terms[0], 1.0e-3);
+  BOOST_CHECK_LT(terms[1], 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[2], 1.0, 1.0e-3);
 }
 
 BOOST_AUTO_TEST_CASE(fit_squared_missing_bandwidth) {
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(fit_squared_missing_bandwidth) {
   fitter.AddChannel(20.0, 22.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(
       0, 8.0 / 6.0);  // int_{x=0}^2 x^2 / 2 = 1/2 (2^3 - 0^3) = 8/6
   fitter.AddDataPoint(
@@ -81,9 +81,9 @@ BOOST_AUTO_TEST_CASE(fit_squared_missing_bandwidth) {
       2, 2648.0 / 6.0);  // int_{x=3}^6 x^2 / 3 = 1/2 (22^3 - 20^3) = 2648/6
   fitter.Fit(terms, 3);
 
-  BOOST_CHECK_LT(terms[0], 1e-3);
-  BOOST_CHECK_LT(terms[1], 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[2], 1.0, 1e-3);
+  BOOST_CHECK_LT(terms[0], 1.0e-3);
+  BOOST_CHECK_LT(terms[1], 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[2], 1.0, 1.0e-3);
 }
 
 double integrate(double xa, double xb, double a, double b, double c, double d) {
@@ -102,15 +102,15 @@ BOOST_AUTO_TEST_CASE(fit_2nd_order) {
   fitter.AddChannel(6.0, 7.0);
 
   // Fit to function x^2
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(0, integrate(0.0, 1.0, a, b, c, d));
   fitter.AddDataPoint(1, integrate(3.0, 4.0, a, b, c, d));
   fitter.AddDataPoint(2, integrate(6.0, 7.0, a, b, c, d));
   fitter.Fit(terms, 3);
 
-  BOOST_CHECK_CLOSE_FRACTION(terms[0], a, 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[1], b, 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[2], c, 1e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[0], a, 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[1], b, 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[2], c, 1.0e-3);
 }
 
 BOOST_AUTO_TEST_CASE(fit_higher_order) {
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(fit_higher_order) {
   fitter.AddChannel(1.8, 1.9);
   fitter.AddChannel(2.0, 2.1);
 
-  aocommon::UVector<double> terms;
+  std::vector<double> terms;
   fitter.AddDataPoint(0, integrate(1.0, 1.1, a, b, c, d));
   fitter.AddDataPoint(1, integrate(1.3, 1.4, a, b, c, d));
   fitter.AddDataPoint(2, integrate(1.4, 1.5, a, b, c, d));
@@ -130,10 +130,10 @@ BOOST_AUTO_TEST_CASE(fit_higher_order) {
   fitter.AddDataPoint(4, integrate(2.0, 2.1, a, b, c, d));
   fitter.Fit(terms, 4);
 
-  BOOST_CHECK_CLOSE_FRACTION(terms[0], a, 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[1], b, 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[2], c, 1e-3);
-  BOOST_CHECK_CLOSE_FRACTION(terms[3], d, 1e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[0], a, 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[1], b, 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[2], c, 1.0e-3);
+  BOOST_CHECK_CLOSE_FRACTION(terms[3], d, 1.0e-3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
