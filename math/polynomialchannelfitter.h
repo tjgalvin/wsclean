@@ -1,6 +1,7 @@
 #ifndef POLYNOMIAL_CHANNEL_FITTER_H
 #define POLYNOMIAL_CHANNEL_FITTER_H
 
+#include <cstddef>
 #include <vector>
 
 class PolynomialChannelFitter {
