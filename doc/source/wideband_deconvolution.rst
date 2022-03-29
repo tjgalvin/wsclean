@@ -99,20 +99,20 @@ A simple -- but very slow -- example to perform cleaning with spectral fitting:
 
 .. code-block:: bash
 
-    wsclean -multiscale -join-channels -channels-out 64 -niter 10000 \
+    wsclean -multiscale -join-channels -channels-out 128 -niter 10000 \
       -mgain 0.8 -auto-threshold 3 -fit-spectral-pol 4 observations.ms
 
-This will fit a polynomial with 4 terms (i.e., a third-order polynomial). This would be similar to CASA multi-term deconvolution with ``nterms=4``. During each minor clean cycle, the 64 images at different frequencies will be added together, the pixel with the highest summed brightness is selected, the brightness for that pixel is found for each image, a 3rd order polynomial is fitted through those measurements and the smoothed "model" component is added to the model, as well as convolved with the PSF and subtracted from the residual dirty image. Spectral fitting works in all joined-channel modes (i.e., hogbom, multi-scale, iuwt, moresane).
+This will fit a polynomial with 4 terms (i.e., a third-order polynomial). This would be similar to CASA multi-term deconvolution with ``nterms=4``. During each minor clean cycle, the 128 images at different frequencies will be added together, the pixel with the highest summed brightness is selected, the brightness for that pixel is found for each image, a 3rd order polynomial is fitted through those measurements and the smoothed "model" component is added to the model, as well as convolved with the PSF and subtracted from the residual dirty image. Spectral fitting works in all joined-channel modes (i.e., hogbom, multi-scale, iuwt, moresane).
 
-As you might imagine, doing a clean with 64 images in memory is expensive, both in terms of memory and computing. Since it is not necessary to have that many images in memory when fitting only a few terms, it is also possible to decrease the number of output channels just during deconvolution. This is done with the ``-deconvolution-channels`` parameter, for example:
+As you might imagine, doing a clean with 128 images in memory is expensive, both in terms of memory and computing. Since it is not necessary to have that many images in memory when fitting only a few terms, it is also possible to decrease the number of output channels just during deconvolution. This is done with the ``-deconvolution-channels`` parameter, for example:
 
 .. code-block:: bash
 
-    wsclean -join-channels -channels-out 64 -niter 10000 \
+    wsclean -join-channels -channels-out 128 -niter 10000 \
       -mgain 0.8 -auto-threshold 3 -fit-spectral-pol 4 \
       -deconvolution-channels 8 observations.ms
 
-This will decrease the number of images from 64 to 8 before starting the deconvolution by averaging 8 groups together. Cleaning is then performed with just 8 images. After cleaning, the requested function (3rd order polynomial in this case) is fitted to the model, and the model is interpolated using that function.
+This will decrease the number of images from 128 to 8 before starting the deconvolution by averaging groups of 16 channels together. Cleaning is then performed with just 8 images. After cleaning, the requested function (3rd order polynomial in this case) is fitted to the model, and the model is interpolated using that function.
 This is much faster than the previous command, and equally precise. Setting the deconvolution channels is supported in all modes since :doc:`WSClean 2.2 <changelogs/v2.2>`. The spectral-fitting features were added in :doc:`WSClean version 1.11 <changelogs/v1.11>`.
 
 Forced spectral indices
