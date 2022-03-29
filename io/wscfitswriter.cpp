@@ -4,7 +4,11 @@
 
 #include "imagefilename.h"
 
-#include "../math/modelrenderer.h"
+#include <aocommon/fits/fitsreader.h>
+
+#include <schaapcommon/fft/restoreimage.h>
+
+#include "../math/renderer.h"
 
 #include "../model/bbsmodel.h"
 
@@ -210,10 +214,10 @@ void WSCFitsWriter::Restore(const Settings& settings) {
     beamPA = imgReader.BeamPositionAngle();
   }
 
-  ModelRenderer::Restore(image.data(), model.data(), imgReader.ImageWidth(),
-                         imgReader.ImageHeight(), beamMaj, beamMin, beamPA,
-                         imgReader.PixelSizeX(), imgReader.PixelSizeY(),
-                         settings.threadCount);
+  schaapcommon::fft::RestoreImage(
+      image.data(), model.data(), imgReader.ImageWidth(),
+      imgReader.ImageHeight(), beamMaj, beamMin, beamPA, imgReader.PixelSizeX(),
+      imgReader.PixelSizeY(), settings.threadCount);
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
@@ -223,9 +227,8 @@ void WSCFitsWriter::Restore(const Settings& settings) {
 void WSCFitsWriter::RestoreList(const Settings& settings) {
   const Model model = BBSModel::Read(settings.restoreModel);
   aocommon::FitsReader imgReader(settings.restoreInput);
-  aocommon::UVector<float> image(imgReader.ImageWidth() *
-                                 imgReader.ImageHeight());
-  imgReader.Read(image.data());
+  aocommon::Image image(imgReader.ImageWidth(), imgReader.ImageHeight());
+  imgReader.Read(image.Data());
 
   double beamMaj, beamMin, beamPA;
   if (settings.manualBeamMajorSize != 0.0) {
@@ -241,18 +244,15 @@ void WSCFitsWriter::RestoreList(const Settings& settings) {
   double frequency = imgReader.Frequency();
   double bandwidth = imgReader.Bandwidth();
 
-  ModelRenderer renderer(imgReader.PhaseCentreRA(), imgReader.PhaseCentreDec(),
-                         imgReader.PixelSizeX(), imgReader.PixelSizeY(),
-                         imgReader.PhaseCentreDL(), imgReader.PhaseCentreDM());
-
-  renderer.Restore(image.data(), imgReader.ImageWidth(),
-                   imgReader.ImageHeight(), model, beamMaj, beamMin, beamPA,
-                   frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
-                   aocommon::Polarization::StokesI, settings.threadCount);
+  renderer::ImageCoordinateSettings imageSettings(imgReader);
+  renderer::RestoreWithEllipticalBeam(
+      image, imageSettings, model, beamMaj, beamMin, beamPA,
+      frequency - bandwidth * 0.5, frequency + bandwidth * 0.5,
+      aocommon::Polarization::StokesI, settings.threadCount);
 
   aocommon::FitsWriter writer(WSCFitsWriter(imgReader).Writer());
   writer.SetBeamInfo(beamMaj, beamMin, beamPA);
-  writer.Write(settings.restoreOutput, image.data());
+  writer.Write(settings.restoreOutput, image.Data());
 }
 
 ObservationInfo WSCFitsWriter::ReadObservationInfo(

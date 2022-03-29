@@ -5,12 +5,14 @@
 #include "../main/settings.h"
 
 #include "../math/gaussianfitter.h"
-#include "../math/modelrenderer.h"
+#include "../math/renderer.h"
 
 #include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/units/angle.h>
+
+#include <schaapcommon/fft/restoreimage.h>
 
 using aocommon::Logger;
 using aocommon::units::Angle;
@@ -207,7 +209,7 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
       v = 0.0;
     }
   }
-  ModelRenderer::Restore(
+  schaapcommon::fft::RestoreImage(
       image.data(), modelImage.data(), settings.trimmedImageWidth,
       settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
       settings.pixelScaleX, settings.pixelScaleY, settings.threadCount);

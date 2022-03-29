@@ -24,7 +24,7 @@
 #include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
 
-#include "../math/modelrenderer.h"
+#include "../math/renderer.h"
 #include "../math/nlplfitter.h"
 
 #include "../model/model.h"
@@ -45,6 +45,7 @@
 
 #include <schaapcommon/facets/facetimage.h>
 #include <schaapcommon/fft/resampler.h>
+#include <schaapcommon/fft/restoreimage.h>
 
 #include <iostream>
 #include <memory>
@@ -1047,7 +1048,7 @@ void WSClean::saveRestoredImagesForGroup(
     }
     Logger::Info << "Rendering sources to restored image " + beamStr + "... ";
     Logger::Info.Flush();
-    ModelRenderer::Restore(
+    schaapcommon::fft::RestoreImage(
         restoredImage.Data(), modelImage.Data(), _settings.trimmedImageWidth,
         _settings.trimmedImageHeight, beamMaj, beamMin, beamPA,
         _settings.pixelScaleX, _settings.pixelScaleY, _settings.threadCount);

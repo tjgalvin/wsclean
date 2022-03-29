@@ -1,9 +1,11 @@
 #include "rmsimage.h"
 
-#include "modelrenderer.h"
+#include "renderer.h"
 
 #include <aocommon/image.h>
 #include <aocommon/staticfor.h>
+
+#include <schaapcommon/fft/restoreimage.h>
 
 using aocommon::Image;
 
@@ -12,16 +14,15 @@ void RMSImage::Make(Image& rmsOutput, const Image& inputImage,
                     long double beamPA, long double pixelScaleL,
                     long double pixelScaleM, size_t threadCount) {
   Image image(inputImage);
+  image.Square();
   rmsOutput = Image(image.Width(), image.Height(), 0.0);
 
-  for (auto& val : image) val *= val;
+  schaapcommon::fft::RestoreImage(rmsOutput.Data(), image.Data(), image.Width(),
+                                  image.Height(), beamMaj * windowSize,
+                                  beamMin * windowSize, beamPA, pixelScaleL,
+                                  pixelScaleM, threadCount);
 
-  ModelRenderer::Restore(rmsOutput.Data(), image.Data(), image.Width(),
-                         image.Height(), beamMaj * windowSize,
-                         beamMin * windowSize, beamPA, pixelScaleL, pixelScaleM,
-                         threadCount);
-
-  double s = std::sqrt(2.0 * M_PI);
+  const double s = std::sqrt(2.0 * M_PI);
   const long double sigmaMaj = beamMaj / (2.0L * sqrtl(2.0L * logl(2.0L)));
   const long double sigmaMin = beamMin / (2.0L * sqrtl(2.0L * logl(2.0L)));
   const double norm = 1.0 / (s * sigmaMaj / pixelScaleL * windowSize * s *

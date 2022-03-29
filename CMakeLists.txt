@@ -294,10 +294,10 @@ add_library(
   iuwt/iuwtmask.cpp
   math/gaussianfitter.cpp
   math/imageoperations.cpp
-  math/modelrenderer.cpp
   math/nlplfitter.cpp
   math/polynomialchannelfitter.cpp
   math/polynomialfitter.cpp
+  math/renderer.cpp
   math/rmsimage.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp
