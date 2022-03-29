@@ -11,11 +11,6 @@
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
-namespace ao {
-template <typename T>
-class lane;
-}
-
 class DeconvolutionAlgorithm {
  public:
   virtual ~DeconvolutionAlgorithm() {}

@@ -176,12 +176,12 @@ void wsclean_write(void* userData, const char* filename, const double* image) {
   std::lock_guard<std::mutex> lock(wscUserData->mutex);
 
   std::cout << "wsclean_write() : Writing " << filename << "...\n";
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   writer.SetImageDimensions(wscUserData->width, wscUserData->height,
                             wscUserData->pixelScaleX, wscUserData->pixelScaleY);
   if (wscUserData->nAtCalls != 0) {
-    FitsReader reader("tmp-operator-At-0-image.fits");
-    writer = FitsWriter(reader);
+    aocommon::FitsReader reader("tmp-operator-At-0-image.fits");
+    writer = aocommon::FitsWriter(reader);
   }
   writer.Write(filename, image);
 }
@@ -242,7 +242,7 @@ void wsclean_operator_A(void* userData, DCOMPLEX* dataOut,
   filenameStr << "tmp-operator-A-" << wscUserData->nACalls;
 
   // Write dataIn to a fits file
-  FitsWriter writer;
+  aocommon::FitsWriter writer;
   writer.SetImageDimensions(wscUserData->width, wscUserData->height,
                             wscUserData->pixelScaleX, wscUserData->pixelScaleY);
   writer.Write(filenameStr.str() + "-model.fits", dataIn);
@@ -359,7 +359,7 @@ void wsclean_operator_At(void* userData, double* dataOut,
   wsclean_main(commandline);
 
   // Read dirty image and store in dataOut
-  FitsReader reader(prefixName.str() + "-image.fits");
+  aocommon::FitsReader reader(prefixName.str() + "-image.fits");
   reader.Read(dataOut);
   if (wscUserData->doNormalize == 0) {
     size_t n = wscUserData->width * wscUserData->height;

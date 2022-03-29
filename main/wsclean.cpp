@@ -96,7 +96,7 @@ GriddingResult WSClean::loadExistingImage(ImagingTableEntry& entry,
                                     entry.outputIntervalIndex, false) +
            "-dirty.fits";
   }
-  FitsReader reader(name);
+  aocommon::FitsReader reader(name);
   if (reader.ImageWidth() != _settings.trimmedImageWidth ||
       reader.ImageHeight() != _settings.trimmedImageHeight)
     throw std::runtime_error(
@@ -893,7 +893,7 @@ void WSClean::RunPredict() {
           (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty())
               ? "-model-pb.fits"
               : "-model.fits";
-      FitsReader reader(prefix + suffix);
+      aocommon::FitsReader reader(prefix + suffix);
       overrideImageSettings(reader);
 
       for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
@@ -1235,7 +1235,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
          _settings.gridWithBeam || !_settings.atermConfigFilename.empty())
             ? "-model-pb.fits"
             : "-model.fits";
-    FitsReader reader(prefix + suffix);
+    aocommon::FitsReader reader(prefix + suffix);
     Logger::Info << "Reading " << reader.Filename() << "...\n";
 
     const bool resetGridder = overrideImageSettings(reader);
@@ -1262,7 +1262,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
       if (_settings.mfWeighting) initializeMFSImageWeights();
     }
 
-    FitsWriter writer(reader);
+    aocommon::FitsWriter writer(reader);
     _modelImages.SetFitsWriter(writer);
 
     Image buffer(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
@@ -1279,7 +1279,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
   }
 }
 
-bool WSClean::overrideImageSettings(const FitsReader& reader) {
+bool WSClean::overrideImageSettings(const aocommon::FitsReader& reader) {
   bool resetGridder = false;
   if (_settings.trimmedImageWidth == 0 && _settings.trimmedImageHeight == 0) {
     _settings.trimmedImageWidth = reader.ImageWidth();

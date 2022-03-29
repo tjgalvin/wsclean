@@ -4,6 +4,7 @@
 #include "msgridderbase.h"
 
 #include <aocommon/image.h>
+#include <aocommon/fits/fitswriter.h>
 
 #include <stdexcept>
 #include <string>
@@ -25,7 +26,7 @@ class UnavailableGridder final : public MSGridderBase {
     return {aocommon::Image()};
   }
 
-  static void SavePBCorrectedImages(class FitsWriter& /*writer*/,
+  static void SavePBCorrectedImages(aocommon::FitsWriter& /*writer*/,
                                     class ImageFilename& /*filename*/,
                                     const std::string& /*filenameKind*/,
                                     const Settings&) {}

@@ -2,6 +2,8 @@
 #define WSCLEAN_H
 
 #include <aocommon/image.h>
+#include <aocommon/fits/fitsreader.h>
+#include <aocommon/fits/fitswriter.h>
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 #include <schaapcommon/facets/facet.h>
@@ -131,7 +133,7 @@ class WSClean {
    * The boolean return value indicates whether the gridder needs
    * to be reset.
    */
-  bool overrideImageSettings(const FitsReader& reader);
+  bool overrideImageSettings(const aocommon::FitsReader& reader);
   GriddingResult loadExistingImage(ImagingTableEntry& entry, bool isPSF);
   void loadExistingPSF(ImagingTableEntry& entry);
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
