@@ -276,7 +276,6 @@ add_library(
   deconvolution/peakfinder.cpp
   deconvolution/pythondeconvolution.cpp
   deconvolution/simpleclean.cpp
-  deconvolution/spectralfitter.cpp
   deconvolution/subminorloop.cpp
   gridding/directmsgridder.cpp
   gridding/msgridderbase.cpp
@@ -294,10 +293,8 @@ add_library(
   iuwt/iuwtmask.cpp
   math/gaussianfitter.cpp
   math/imageoperations.cpp
-  math/nlplfitter.cpp
-  math/polynomialchannelfitter.cpp
-  math/polynomialfitter.cpp
   math/renderer.cpp
+  math/polynomialchannelfitter.cpp
   math/rmsimage.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp
@@ -347,7 +344,6 @@ set_source_files_properties(
   deconvolution/genericclean.cpp
   deconvolution/imageset.cpp
   deconvolution/simpleclean.cpp
-  deconvolution/spectralfitter.cpp
   multiscale/multiscalealgorithm.cpp
   multiscale/multiscaletransforms.cpp
   multiscale/threadeddeconvolutiontools.cpp

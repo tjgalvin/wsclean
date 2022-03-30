@@ -156,7 +156,8 @@ class ComponentList {
     aocommon::UVector<Position> positions;
   };
 
-  void write(const std::string& filename, const SpectralFitter& fitter,
+  void write(const std::string& filename,
+             const schaapcommon::fitters::SpectralFitter& fitter,
              const aocommon::UVector<double>& scaleSizes,
              long double pixelScaleX, long double pixelScaleY,
              long double phaseCentreRA, long double phaseCentreDec) const;

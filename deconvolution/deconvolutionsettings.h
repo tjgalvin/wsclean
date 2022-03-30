@@ -6,7 +6,8 @@
 #include <aocommon/polarization.h>
 #include <aocommon/system.h>
 
-#include "spectralfitter.h"
+#include <schaapcommon/fitters/spectralfitter.h>
+
 #include "../multiscale/multiscaletransforms.h"
 
 /**
@@ -79,7 +80,7 @@ struct DeconvolutionSettings {
   std::string moreSaneLocation;
   std::string moreSaneArgs;
   std::vector<double> moreSaneSigmaLevels;
-  enum SpectralFittingMode spectralFittingMode;
+  schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
   std::string forcedSpectrumFilename;
   /**
@@ -141,7 +142,8 @@ inline DeconvolutionSettings::DeconvolutionSettings()
       iuwtSNRTest(false),
       moreSaneLocation(),
       moreSaneArgs(),
-      spectralFittingMode(SpectralFittingMode::NoFitting),
+      spectralFittingMode(
+          schaapcommon::fitters::SpectralFittingMode::NoFitting),
       spectralFittingTerms(0),
       forcedSpectrumFilename(),
       deconvolutionChannelCount(0) {}

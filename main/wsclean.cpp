@@ -25,7 +25,6 @@
 #include "../idg/idgmsgridder.h"
 
 #include "../math/renderer.h"
-#include "../math/nlplfitter.h"
 
 #include "../model/model.h"
 
@@ -33,8 +32,6 @@
 #include "../msproviders/msdatadescription.h"
 
 #include "progressbar.h"
-
-#include <schaapcommon/facets/facetimage.h>
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
@@ -46,6 +43,7 @@
 #include <schaapcommon/facets/facetimage.h>
 #include <schaapcommon/fft/resampler.h>
 #include <schaapcommon/fft/restoreimage.h>
+#include <schaapcommon/fitters/nlplfitter.h>
 
 #include <iostream>
 #include <memory>
@@ -1958,10 +1956,10 @@ void WSClean::makeImagingTableEntry(
         0.5 * (channels.front().Frequency() + channels.back().Frequency());
     double chCentralFrequency =
         0.5 * (entry.lowestFrequency + entry.highestFrequency);
-    double chFlux = NonLinearPowerLawFitter::Evaluate(
+    double chFlux = schaapcommon::fitters::NonLinearPowerLawFitter::Evaluate(
         chCentralFrequency, _settings.spectralCorrection,
         _settings.spectralCorrectionFrequency);
-    double midFlux = NonLinearPowerLawFitter::Evaluate(
+    double midFlux = schaapcommon::fitters::NonLinearPowerLawFitter::Evaluate(
         bandwidthCentre, _settings.spectralCorrection,
         _settings.spectralCorrectionFrequency);
     entry.siCorrection = midFlux / chFlux;

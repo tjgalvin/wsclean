@@ -15,7 +15,8 @@ DeconvolutionAlgorithm::DeconvolutionAlgorithm()
       _stopOnNegativeComponent(false),
       _cleanMask(nullptr),
       _logReceiver(nullptr),
-      _spectralFitter(SpectralFittingMode::NoFitting, 0) {}
+      _spectralFitter(schaapcommon::fitters::SpectralFittingMode::NoFitting,
+                      0) {}
 
 void DeconvolutionAlgorithm::ResizeImage(float* dest, size_t newWidth,
                                          size_t newHeight, const float* source,

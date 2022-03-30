@@ -6,6 +6,8 @@
 
 #include <aocommon/uvector.h>
 
+#include <schaapcommon/fitters/spectralfitter.h>
+
 #include <pybind11/embed.h>
 
 class PythonDeconvolution : public DeconvolutionAlgorithm {

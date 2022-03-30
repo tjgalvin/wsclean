@@ -1,11 +1,12 @@
 #include "../../deconvolution/imageset.h"
-#include "../../deconvolution/spectralfitter.h"
 #include "../../io/cachedimageaccessor.h"
 #include "../../io/cachedimageset.h"
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
 #include <aocommon/polarization.h>
+
+#include <schaapcommon/fitters/spectralfitter.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -143,7 +144,8 @@ BOOST_FIXTURE_TEST_CASE(loadAndAverage, AdvImageSetFixture<1>) {
 
 BOOST_FIXTURE_TEST_CASE(interpolateAndStore, AdvImageSetFixture<2>) {
   ImageSet dset(*table, false, {}, 2, 2);
-  SpectralFitter fitter(SpectralFittingMode::NoFitting, 2);
+  schaapcommon::fitters::SpectralFitter fitter(
+      schaapcommon::fitters::SpectralFittingMode::NoFitting, 2);
   dset.LoadAndAverage(false);
   dset.InterpolateAndStoreModel(fitter, 1);
   BOOST_CHECK_CLOSE_FRACTION(dset[0][0], 2.0, 1e-8);

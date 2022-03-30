@@ -14,6 +14,8 @@
 
 #include <aocommon/system.h>
 
+#include <schaapcommon/fitters/spectralfitter.h>
+
 enum class DirectFTPrecision { Float, Double, LongDouble };
 
 /**
@@ -145,7 +147,7 @@ class Settings {
   bool useMoreSaneDeconvolution, useIUWTDeconvolution, iuwtSNRTest;
   std::string moreSaneLocation, moreSaneArgs;
   aocommon::UVector<double> moreSaneSigmaLevels;
-  enum SpectralFittingMode spectralFittingMode;
+  schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
   size_t spectralFittingTerms;
   std::string forcedSpectrumFilename;
   /**
@@ -177,7 +179,8 @@ class Settings {
   }
 
   bool IsSpectralFittingEnabled() const {
-    return spectralFittingMode != SpectralFittingMode::NoFitting;
+    return spectralFittingMode !=
+           schaapcommon::fitters::SpectralFittingMode::NoFitting;
   }
 
  private:
@@ -350,7 +353,8 @@ inline Settings::Settings()
       iuwtSNRTest(false),
       moreSaneLocation(),
       moreSaneArgs(),
-      spectralFittingMode(SpectralFittingMode::NoFitting),
+      spectralFittingMode(
+          schaapcommon::fitters::SpectralFittingMode::NoFitting),
       spectralFittingTerms(0),
       forcedSpectrumFilename(),
       deconvolutionChannelCount(0) {}

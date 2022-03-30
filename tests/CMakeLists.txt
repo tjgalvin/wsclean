@@ -16,8 +16,6 @@ add_executable(
   idg/taveragebeam.cpp
   math/tdijkstrasplitter.cpp
   math/tgaussianfitter.cpp
-  math/tpolynomialfitter.cpp
-  math/tnlplfitter.cpp
   math/tpolynomialchannelfitter.cpp
   msproviders/tnoisemsrowprovider.cpp
   msproviders/tbdamsrowproviderdata.cpp

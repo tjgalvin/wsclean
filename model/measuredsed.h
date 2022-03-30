@@ -5,6 +5,8 @@
 
 #include <aocommon/uvector.h>
 
+#include <schaapcommon/fitters/nlplfitter.h>
+
 #include "measurement.h"
 #include "spectralenergydistribution.h"
 
@@ -376,7 +378,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
       }
     }
     if (requireNonLinear) {
-      NonLinearPowerLawFitter fitter;
+      schaapcommon::fitters::NonLinearPowerLawFitter fitter;
       n = 0;
       for (FluxMap::const_iterator i = _measurements.begin();
            i != _measurements.end(); ++i) {
@@ -409,7 +411,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
 
   void FitPowerlaw2ndOrder(long double& a, long double& b, long double& c,
                            aocommon::PolarizationEnum polarization) const {
-    NonLinearPowerLawFitter fitter;
+    schaapcommon::fitters::NonLinearPowerLawFitter fitter;
     size_t n = 0;
     for (FluxMap::const_iterator i = _measurements.begin();
          i != _measurements.end(); ++i) {
@@ -430,7 +432,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
   void FitLogPolynomial(std::vector<float>& terms, size_t nTerms,
                         aocommon::PolarizationEnum polarization,
                         double referenceFrequencyHz = 1.0) const {
-    NonLinearPowerLawFitter fitter;
+    schaapcommon::fitters::NonLinearPowerLawFitter fitter;
     size_t n = 0;
     for (FluxMap::const_iterator i = _measurements.begin();
          i != _measurements.end(); ++i) {

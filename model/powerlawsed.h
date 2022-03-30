@@ -5,7 +5,8 @@
 
 #include <aocommon/uvector.h>
 
-#include "../math/polynomialfitter.h"
+#include <schaapcommon/fitters/nlplfitter.h>
+#include <schaapcommon/fitters/polynomialfitter.h>
 
 class PowerLawSED final : public SpectralEnergyDistribution {
  public:
@@ -49,12 +50,12 @@ class PowerLawSED final : public SpectralEnergyDistribution {
   virtual long double FluxAtFrequencyFromIndex(long double frequencyHz,
                                                size_t pIndex) const override {
     if (_isLogarithmic)
-      return NonLinearPowerLawFitter::Evaluate(
+      return schaapcommon::fitters::NonLinearPowerLawFitter::Evaluate(
                  frequencyHz / _referenceFrequency, _terms) *
              _factors[pIndex];
     else
-      return PolynomialFitter::Evaluate(frequencyHz / _referenceFrequency - 1.0,
-                                        _terms) *
+      return schaapcommon::fitters::PolynomialFitter::Evaluate(
+                 frequencyHz / _referenceFrequency - 1.0, _terms) *
              _factors[pIndex];
   }
 

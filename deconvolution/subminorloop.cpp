@@ -1,6 +1,5 @@
 #include "subminorloop.h"
 
-#include "../deconvolution/spectralfitter.h"
 #include "../deconvolution/componentlist.h"
 
 #include <schaapcommon/fft/convolution.h>

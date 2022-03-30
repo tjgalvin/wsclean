@@ -11,6 +11,7 @@
 #include <aocommon/units/angle.h>
 #include <aocommon/units/fluxdensity.h>
 
+#include <schaapcommon/fitters/spectralfitter.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
 
 #include <boost/algorithm/string.hpp>
@@ -1170,12 +1171,14 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           Angle::Parse(argv[argi], "horizon mask distance", Angle::kDegrees);
     } else if (param == "fit-spectral-pol") {
       ++argi;
-      settings.spectralFittingMode = SpectralFittingMode::Polynomial;
+      settings.spectralFittingMode =
+          schaapcommon::fitters::SpectralFittingMode::Polynomial;
       settings.spectralFittingTerms =
           parse_size_t(argv[argi], "fit-spectral-pol");
     } else if (param == "fit-spectral-log-pol") {
       ++argi;
-      settings.spectralFittingMode = SpectralFittingMode::LogPolynomial;
+      settings.spectralFittingMode =
+          schaapcommon::fitters::SpectralFittingMode::LogPolynomial;
       settings.spectralFittingTerms =
           parse_size_t(argv[argi], "fit-spectral-log-pol");
     } else if (param == "force-spectrum") {

@@ -215,7 +215,8 @@ void Settings::Validate() const {
 
   if (deconvolutionChannelCount != 0 &&
       deconvolutionChannelCount != channelsOut &&
-      spectralFittingMode == SpectralFittingMode::NoFitting)
+      spectralFittingMode ==
+          schaapcommon::fitters::SpectralFittingMode::NoFitting)
     throw std::runtime_error(
         "You have requested to deconvolve with a decreased number of channels "
         "(-deconvolution-channels), but you have not enabled spectral fitting. "
@@ -240,7 +241,8 @@ void Settings::Validate() const {
     throw std::runtime_error("A source list cannot be saved without cleaning.");
 
   if (!forcedSpectrumFilename.empty() &&
-      (spectralFittingMode != SpectralFittingMode::LogPolynomial ||
+      (spectralFittingMode !=
+           schaapcommon::fitters::SpectralFittingMode::LogPolynomial ||
        spectralFittingTerms != 2))
     throw std::runtime_error(
         "When using forced spectrum mode, currently it is required to fit "

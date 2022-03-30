@@ -140,7 +140,9 @@ class SubMinorLoop {
     _stopOnNegativeComponent = stopOnNegativeComponent;
   }
 
-  void SetSpectralFitter(const SpectralFitter* fitter) { _fitter = fitter; }
+  void SetSpectralFitter(const schaapcommon::fitters::SpectralFitter* fitter) {
+    _fitter = fitter;
+  }
 
   void SetCleanBorders(size_t horizontalBorder, size_t verticalBorder) {
     _horizontalBorder = horizontalBorder;
@@ -191,7 +193,7 @@ class SubMinorLoop {
   size_t _currentIteration, _maxIterations;
   bool _allowNegativeComponents, _stopOnNegativeComponent;
   const bool* _mask;
-  const SpectralFitter* _fitter;
+  const schaapcommon::fitters::SpectralFitter* _fitter;
   SubMinorModel _subMinorModel;
   float _fluxCleaned;
   aocommon::Image _rmsFactorImage;

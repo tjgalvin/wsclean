@@ -1,9 +1,5 @@
 #include "imageset.h"
 
-#include "spectralfitter.h"
-
-#include "../math/nlplfitter.h"
-
 #include "../structures/primarybeam.h"
 #include "../structures/primarybeamimageset.h"
 
@@ -164,8 +160,8 @@ std::vector<aocommon::Image> ImageSet::LoadAndAveragePSFs() {
   return psfImages;
 }
 
-void ImageSet::InterpolateAndStoreModel(const SpectralFitter& fitter,
-                                        size_t threadCount) {
+void ImageSet::InterpolateAndStoreModel(
+    const schaapcommon::fitters::SpectralFitter& fitter, size_t threadCount) {
   if (NDeconvolutionChannels() == NOriginalChannels()) {
     size_t imgIndex = 0;
     for (const DeconvolutionTableEntry& e : _deconvolutionTable) {

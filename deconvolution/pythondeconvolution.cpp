@@ -13,7 +13,8 @@ struct PyChannel {
 
 class PySpectralFitter {
  public:
-  PySpectralFitter(SpectralFitter& fitter) : _fitter(fitter) {}
+  PySpectralFitter(schaapcommon::fitters::SpectralFitter& fitter)
+      : _fitter(fitter) {}
 
   pybind11::array_t<double> fit(pybind11::array_t<double> values, size_t x,
                                 size_t y) {
@@ -74,12 +75,12 @@ class PySpectralFitter {
   }
 
  private:
-  SpectralFitter& _fitter;
+  schaapcommon::fitters::SpectralFitter& _fitter;
 };
 
 struct PyMetaData {
  public:
-  PyMetaData(SpectralFitter& _spectral_fitter)
+  PyMetaData(schaapcommon::fitters::SpectralFitter& _spectral_fitter)
       : spectral_fitter(_spectral_fitter) {}
 
   std::vector<PyChannel> channels;

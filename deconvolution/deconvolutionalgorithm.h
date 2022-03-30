@@ -4,12 +4,12 @@
 #include <string>
 #include <cmath>
 
-#include "spectralfitter.h"
-
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
+
+#include <schaapcommon/fitters/spectralfitter.h>
 
 class DeconvolutionAlgorithm {
  public:
@@ -87,7 +87,8 @@ class DeconvolutionAlgorithm {
     _spectralFitter = source._spectralFitter;
   }
 
-  void SetSpectralFittingMode(SpectralFittingMode mode, size_t nTerms) {
+  void SetSpectralFittingMode(schaapcommon::fitters::SpectralFittingMode mode,
+                              size_t nTerms) {
     _spectralFitter.SetMode(mode, nTerms);
   }
 
@@ -101,7 +102,9 @@ class DeconvolutionAlgorithm {
                                    frequencies.size());
   }
 
-  const SpectralFitter& Fitter() const { return _spectralFitter; }
+  const schaapcommon::fitters::SpectralFitter& Fitter() const {
+    return _spectralFitter;
+  }
 
   void SetRMSFactorImage(aocommon::Image&& image) {
     _rmsFactorImage = std::move(image);
@@ -125,7 +128,7 @@ class DeconvolutionAlgorithm {
 
   aocommon::LogReceiver* _logReceiver;
 
-  SpectralFitter _spectralFitter;
+  schaapcommon::fitters::SpectralFitter _spectralFitter;
 };
 
 #endif

@@ -30,7 +30,7 @@ void ComponentList::WriteSingleScale(
 }
 
 void ComponentList::write(const std::string& filename,
-                          const SpectralFitter& fitter,
+                          const schaapcommon::fitters::SpectralFitter& fitter,
                           const aocommon::UVector<double>& scaleSizes,
                           long double pixelScaleX, long double pixelScaleY,
                           long double phaseCentreRA,
@@ -41,7 +41,8 @@ void ComponentList::write(const std::string& filename,
         "Run ComponentList::MergeDuplicates() first.");
   }
 
-  if (fitter.Mode() == SpectralFittingMode::NoFitting && _nFrequencies > 1)
+  if (fitter.Mode() == schaapcommon::fitters::SpectralFittingMode::NoFitting &&
+      _nFrequencies > 1)
     throw std::runtime_error(
         "Can't write component list, because you have not specified a spectral "
         "fitting method. You probably want to add '-fit-spectral-pol'.");
@@ -49,11 +50,11 @@ void ComponentList::write(const std::string& filename,
   std::ofstream file(filename);
   bool useLogSI = false;
   switch (fitter.Mode()) {
-    case SpectralFittingMode::NoFitting:
-    case SpectralFittingMode::Polynomial:
+    case schaapcommon::fitters::SpectralFittingMode::NoFitting:
+    case schaapcommon::fitters::SpectralFittingMode::Polynomial:
       useLogSI = false;
       break;
-    case SpectralFittingMode::LogPolynomial:
+    case schaapcommon::fitters::SpectralFittingMode::LogPolynomial:
       useLogSI = true;
       break;
   }

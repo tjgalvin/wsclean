@@ -6,6 +6,8 @@
 #include <aocommon/image.h>
 #include <aocommon/uvector.h>
 
+#include <schaapcommon/fitters/spectralfitter.h>
+
 #include <vector>
 #include <map>
 #include <memory>
@@ -53,8 +55,8 @@ class ImageSet {
 
   std::vector<aocommon::Image> LoadAndAveragePSFs();
 
-  void InterpolateAndStoreModel(const class SpectralFitter& fitter,
-                                size_t threadCount);
+  void InterpolateAndStoreModel(
+      const schaapcommon::fitters::SpectralFitter& fitter, size_t threadCount);
 
   void AssignAndStoreResidual();
 
