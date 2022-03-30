@@ -291,7 +291,6 @@ add_library(
   iuwt/iuwtdecomposition.cpp
   iuwt/iuwtdeconvolutionalgorithm.cpp
   iuwt/iuwtmask.cpp
-  math/gaussianfitter.cpp
   math/imageoperations.cpp
   math/renderer.cpp
   math/polynomialchannelfitter.cpp

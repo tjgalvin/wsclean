@@ -4,7 +4,6 @@
 
 #include "../main/settings.h"
 
-#include "../math/gaussianfitter.h"
 #include "../math/renderer.h"
 
 #include <aocommon/logger.h>
@@ -13,6 +12,7 @@
 #include <aocommon/units/angle.h>
 
 #include <schaapcommon/fft/restoreimage.h>
+#include <schaapcommon/fitters/gaussianfitter.h>
 
 using aocommon::Logger;
 using aocommon::units::Angle;
@@ -20,7 +20,7 @@ using aocommon::units::Angle;
 void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
                                   double& bMin, double& bPA, const float* image,
                                   double beamEstimate) {
-  GaussianFitter beamFitter;
+  schaapcommon::fitters::GaussianFitter beamFitter;
   Logger::Info << "Fitting beam... ";
   Logger::Info.Flush();
   if (settings.circularBeam) {

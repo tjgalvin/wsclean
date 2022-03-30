@@ -2,14 +2,13 @@
 
 #include "imageanalysis.h"
 
-#include "../math/gaussianfitter.h"
-
 #include "../deconvolution/imageset.h"
 
 #include <aocommon/image.h>
 #include <aocommon/system.h>
 
 #include <schaapcommon/fft/convolution.h>
+#include <schaapcommon/fitters/gaussianfitter.h>
 
 #include <boost/numeric/conversion/bounds.hpp>
 
@@ -44,7 +43,7 @@ void IUWTDeconvolutionAlgorithm::measureRMSPerScale(
   _psfMin = 2.0;
   _psfPA = 0.0;
   double fl = 0.0;
-  GaussianFitter fitter;
+  schaapcommon::fitters::GaussianFitter fitter;
   fitter.Fit2DGaussianCentred(image, _width, _height, 2.0, _psfMaj, _psfMin,
                               _psfPA);
   _psfVolume = (M_PI / 4.0) * _psfMaj * _psfMin / M_LOG2E;

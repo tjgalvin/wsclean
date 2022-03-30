@@ -15,8 +15,8 @@ add_executable(
   deconvolution/testimageset.cpp
   idg/taveragebeam.cpp
   math/tdijkstrasplitter.cpp
-  math/tgaussianfitter.cpp
   math/tpolynomialchannelfitter.cpp
+  math/trenderer.cpp
   msproviders/tnoisemsrowprovider.cpp
   msproviders/tbdamsrowproviderdata.cpp
   msproviders/tbdamsrowprovider.cpp
