@@ -122,7 +122,6 @@ class Settings {
   double deconvolutionMGain;
   bool autoDeconvolutionThreshold, autoMask;
   double autoDeconvolutionThresholdSigma, autoMaskSigma;
-  bool localRMS;
   double localRMSWindow;
   LocalRmsMethod localRMSMethod;
   bool saveSourceList;
@@ -322,9 +321,8 @@ inline Settings::Settings()
       autoMask(false),
       autoDeconvolutionThresholdSigma(0.0),
       autoMaskSigma(0.0),
-      localRMS(false),
       localRMSWindow(25.0),
-      localRMSMethod(LocalRmsMethod::kRmsWindow),
+      localRMSMethod(LocalRmsMethod::kNone),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),

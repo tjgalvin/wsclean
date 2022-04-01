@@ -390,9 +390,9 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.autoDeconvolutionThresholdSigma =
       autoDeconvolutionThresholdSigma;
   deconvolutionSettings.autoMaskSigma = autoMaskSigma;
-  deconvolutionSettings.localRMS = localRMS;
-  deconvolutionSettings.localRMSWindow = localRMSWindow;
   deconvolutionSettings.localRMSMethod = localRMSMethod;
+  deconvolutionSettings.localRMSWindow = localRMSWindow;
+  deconvolutionSettings.localRMSImage = localRMSImage;
   deconvolutionSettings.saveSourceList = saveSourceList;
   deconvolutionSettings.deconvolutionIterationCount =
       deconvolutionIterationCount;
@@ -420,7 +420,6 @@ DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
   deconvolutionSettings.casaDeconvolutionMask = casaDeconvolutionMask;
   deconvolutionSettings.horizonMask = horizonMask;
   deconvolutionSettings.horizonMaskDistance = horizonMaskDistance;
-  deconvolutionSettings.localRMSImage = localRMSImage;
   deconvolutionSettings.pythonDeconvolutionFilename =
       pythonDeconvolutionFilename;
   deconvolutionSettings.useMoreSaneDeconvolution = useMoreSaneDeconvolution;

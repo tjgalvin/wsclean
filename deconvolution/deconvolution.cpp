@@ -89,11 +89,14 @@ void Deconvolution::Perform(bool& reachedMajorThreshold,
         if (value != 0.0) value = stddev / value;
       }
       _parallelDeconvolution.SetRMSFactorImage(std::move(rmsImage));
-    } else if (_settings.localRMS) {
+    } else if (_settings.localRMSMethod != LocalRmsMethod::kNone) {
       Logger::Debug << "Constructing local RMS image...\n";
       Image rmsImage;
       // TODO this should use full beam parameters
       switch (_settings.localRMSMethod) {
+        case LocalRmsMethod::kNone:
+          assert(false);
+          break;
         case LocalRmsMethod::kRmsWindow:
           RMSImage::Make(rmsImage, integrated, _settings.localRMSWindow,
                          _beamSize, _beamSize, 0.0, _pixelScaleX, _pixelScaleY,

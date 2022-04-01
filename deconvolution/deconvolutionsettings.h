@@ -14,7 +14,7 @@
  * @brief The value of LocalRmsMethod describes how the RMS map
  * should be used.
  */
-enum class LocalRmsMethod { kRmsWindow, kRmsAndMinimumWindow };
+enum class LocalRmsMethod { kNone, kRmsWindow, kRmsAndMinimumWindow };
 
 struct DeconvolutionSettings {
   DeconvolutionSettings();
@@ -47,9 +47,9 @@ struct DeconvolutionSettings {
   bool autoMask;
   double autoDeconvolutionThresholdSigma;
   double autoMaskSigma;
-  bool localRMS;
-  double localRMSWindow;
   LocalRmsMethod localRMSMethod;
+  double localRMSWindow;
+  std::string localRMSImage;
   bool saveSourceList;
   size_t deconvolutionIterationCount;
   size_t majorIterationCount;
@@ -72,7 +72,6 @@ struct DeconvolutionSettings {
   std::string casaDeconvolutionMask;
   bool horizonMask;
   double horizonMaskDistance;
-  std::string localRMSImage;
   std::string pythonDeconvolutionFilename;
   bool useMoreSaneDeconvolution;
   bool useIUWTDeconvolution;
@@ -111,9 +110,9 @@ inline DeconvolutionSettings::DeconvolutionSettings()
       autoMask(false),
       autoDeconvolutionThresholdSigma(0.0),
       autoMaskSigma(0.0),
-      localRMS(false),
+      localRMSMethod(LocalRmsMethod::kNone),
       localRMSWindow(25.0),
-      localRMSMethod(LocalRmsMethod::kRmsWindow),
+      localRMSImage(),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),
