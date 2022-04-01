@@ -1,20 +1,55 @@
 WSClean version 3.1
 ===================
 
-Released 202x-xx-xx
+Released 2022-04-01
 
+New/changed dependencies:
+
+* To make use of IDG, WSClean 3.1 requires `IDG version 1.0 <https://git.astron.nl/RD/idg/-/releases/1.0.0>`_ or newer.
+* To make use of EveryBeam, WSClean 3.1 requires `EveryBeam version 0.3.1 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.3.1>`_.
+
+Summary: :doc:`Facet-based imaging <facet_based_imaging>` is significantly improved, and now supports applying per-facet solutions (from H5Parm files) and beam corrections (from EveryBeam). Stokes-I-only imaging with IDG imaging is now significantly faster. WSClean 3.1 also adds experimental support for GMRT primary beam correction.
 
 Major & visible changes
 -----------------------
 
-* :ref:`Timebase BDA-ed data from DP3 <BDA_DP3>` can be used.
+* Support time-direction :ref:`baseline-dependently averaged data from DP3 <BDA_DP3>`.
+* Reduce disk-access during :ref:`IDG <image_domain_gridding>` Stokes I imaging by not storing XY/YX to disk, and enable the faster IDG Stokes I mode when possible.
+* Automatically use the primary beam corrected image (``...-pb.fits``) file when predicting with beam correction.
+* Cache average beam to disk in IDG mode to reduce memory usage.
+* Add support for the GMRT beam (scientific validation still in progress).
+* Add a beam-normalisation-mode option to control EveryBeam's normalisation mode.
+* Support multiple h5 files in facetting mode.
+* Introduce ``-pb-grid-size`` and deprecate ``-pb-undersampling``.
 
 Bug fixes
 ---------
 
-* …
+* Report error when user asks for incorrect channel selection.
+* Fix certain selection parameters that no longer worked in reorder mode (e.g. even/odd timestep selection).
+* Correctly normalize reported flux levels for squared channels.
+* Fix a crash with the ``-reuse-dirty`` option in certain modes.
+* Fix segmentation fault when using ``-reuse-psf`` with IDG.
+* Fix masked parallel deconvolution.
+* Fix beam + H5 solution application in facetting mode.
+* Fix possible ``-facet-regions`` mismatch with H5Parms.
+* Support differential lofar beam in facet-based imaging.
+* Support scalar gain corrections in facet-based imaging.
+* Do not apply beam or solutions to PSF in facet-based imaging.
+* Fix unset threadcount value in imageweights class.
+* Fix IUWT. Because of code clean-ups in Nov 2020, the IUWT deconvolution option was no longer producing correct results.
+* Fix channel selection issue for non-uniform multi-SPW sets (#79).
+* Fix channel selection issue for multi-SPW set with no-mf-weighting (#105).
+* Fix rare crash caused by uninitialized array.
+* Fix compilation on hurd-i386.
 
 Other significant code changes
 ------------------------------
 
-* …
+* WSClean now requires a compiler that supports C++17.
+* Add support for gcc versions 11 and 12.
+* Lots of refactoring.
+* Preparations to split off deconvolution code as a separate reusable module.
+* Several documentation improvements / updates.
+* Better support and error reporting for missing git submodules.
+* Many new unit and system tests.
