@@ -733,7 +733,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   Settings& settings = wsclean.GetSettings();
   int argi = 1;
   bool mfWeighting = false, noMFWeighting = false, dryRun = false;
-  auto atermKernelSize = std::make_optional<double>();
+  std::optional<double> atermKernelSize;
   Logger::SetVerbosity(Logger::kNormalVerbosity);
   while (argi < argc && argv[argi][0] == '-') {
     const std::string param =

@@ -30,4 +30,5 @@ add_custom_target(
     python3 -B -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/check_long_system.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/vela_deconvolution_checks.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/aterms_checks.py
     ${CMAKE_CURRENT_SOURCE_DIR}/long_system_checks.py)
