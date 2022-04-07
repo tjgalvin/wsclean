@@ -71,6 +71,20 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=0.066667):
     return w
 
 
+def convert_to_deg(array_ra, array_dec):
+
+    try:
+        # Degree format
+        new_ra = Angle(array_ra, unit="degree")
+        new_dec = Angle(array_dec, unit="degree")
+    except ValueError:
+        # Skymodel.txt format
+        new_ra = Angle(array_ra, unit="hourangle")
+        new_dec = Angle(np.char.replace(array_dec, ".", ":", 2), unit="degree")
+
+    return [new_ra.deg, new_dec.deg]
+
+
 def generate_centroids_from_source_catalog(catalog_file, npoints, w):
     """
     Generate centroids from a source cataloge, such as gleam-osm.
@@ -90,9 +104,26 @@ def generate_centroids_from_source_catalog(catalog_file, npoints, w):
         Numpy (npoints, 2) array with pixel coordinates of . Dimension:
     """
 
-    catalog = np.genfromtxt(catalog_file, delimiter=",")
+    catalog = np.genfromtxt(catalog_file, delimiter=",", dtype=str, encoding=None)
     source_idx = np.argsort(catalog[:, 2])[: -npoints - 1 : -1]
-    x, y = w.wcs_world2pix(catalog[source_idx, 0], catalog[source_idx, 1], 1)
+    catalog = np.char.strip(catalog)
+
+    # Search the keywords "ra" and "dec" in the first line of the catalog
+    # to get the right indexes.
+    # If not found use the indexes 0 and 1 as in the "gleam.osm" catalog
+    try:
+        index_ra = list(np.char.lower(catalog[0, :])).index("ra")
+        index_dec = list(np.char.lower(catalog[0, :])).index("dec")
+    except:
+        index_ra = 0
+        index_dec = 1
+
+    # Convert Ra/Dec unit to degrees
+    [ra_coords, dec_coords] = convert_to_deg(
+        catalog[source_idx, index_ra], catalog[source_idx, index_dec]
+    )
+
+    x, y = w.wcs_world2pix(ra_coords, dec_coords, 1)
     return np.vstack((x.flatten(), y.flatten())).T
 
 
