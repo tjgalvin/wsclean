@@ -1,8 +1,10 @@
 #include "imagingtableentry.h"
-#include "../deconvolution/deconvolutiontableentry.h"
-#include "../io/cachedimageaccessor.h"
 
 #include <memory>
+
+#include <radler/deconvolution_table_entry.h>
+
+#include "../io/cachedimageaccessor.h"
 
 ImagingTableEntry::ImagingTableEntry()
     : index(0),
@@ -26,13 +28,13 @@ ImagingTableEntry::ImagingTableEntry()
       tmpFilePrefix(),
       imageWeight(0.0) {}
 
-std::unique_ptr<DeconvolutionTableEntry>
+std::unique_ptr<radler::DeconvolutionTableEntry>
 ImagingTableEntry::CreateDeconvolutionEntry(size_t channel_index_offset,
                                             CachedImageSet* psf_images,
                                             CachedImageSet& model_images,
                                             CachedImageSet& residual_images,
                                             bool is_imaginary) const {
-  auto entry = std::make_unique<DeconvolutionTableEntry>();
+  auto entry = std::make_unique<radler::DeconvolutionTableEntry>();
 
   entry->index = index;
   entry->band_start_frequency = bandStartFrequency;

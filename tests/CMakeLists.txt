@@ -2,19 +2,14 @@ add_executable(
   unittest
   test.cpp
   testbaselinedependentaveraging.cpp
-  testclean.cpp
-  testcomponentlist.cpp
   testcommandline.cpp
   testfitsdateobstime.cpp
   testcachedimageset.cpp
   testparsetreader.cpp
-  testpeakfinder.cpp
   testprimarybeamimageset.cpp
   testserialization.cpp
-  deconvolution/testdeconvolutiontable.cpp
-  deconvolution/testimageset.cpp
   idg/taveragebeam.cpp
-  math/tdijkstrasplitter.cpp
+  io/tcachedimageset.cpp
   math/tpolynomialchannelfitter.cpp
   math/trenderer.cpp
   msproviders/tnoisemsrowprovider.cpp

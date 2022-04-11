@@ -7,6 +7,10 @@
 #include <string>
 #include <vector>
 
+namespace radler {
+struct DeconvolutionTableEntry;
+}
+
 namespace schaapcommon {
 namespace facets {
 class Facet;
@@ -14,7 +18,6 @@ class Facet;
 }  // namespace schaapcommon
 
 class CachedImageSet;
-struct DeconvolutionTableEntry;
 
 struct ImagingTableEntry {
   struct MSBandInfo {
@@ -48,7 +51,7 @@ struct ImagingTableEntry {
    * imaginary values.
    * @return A new DeconvolutionTableEntry.
    */
-  std::unique_ptr<DeconvolutionTableEntry> CreateDeconvolutionEntry(
+  std::unique_ptr<radler::DeconvolutionTableEntry> CreateDeconvolutionEntry(
       size_t channel_index_offset, CachedImageSet* psf_images,
       CachedImageSet& model_images, CachedImageSet& residual_images,
       bool is_imaginary) const;

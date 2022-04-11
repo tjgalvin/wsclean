@@ -1,9 +1,10 @@
 #include <boost/test/unit_test.hpp>
 
 #include "../structures/primarybeamimageset.h"
-#include "../deconvolution/componentlist.h"
 
 #include <aocommon/image.h>
+
+#include <radler/component_list.h>
 
 namespace {
 const size_t kWidth = 4;
@@ -47,9 +48,10 @@ BOOST_AUTO_TEST_CASE(correct_component_list) {
     }
   }
 
-  ComponentList list(kWidth, kHeight, kNumScales, kNumFreqs);
-  const std::vector<ComponentList::Position> positions = {
-      ComponentList::Position(1, 2), ComponentList::Position(3, 3)};
+  radler::ComponentList list(kWidth, kHeight, kNumScales, kNumFreqs);
+  const std::vector<radler::ComponentList::Position> positions = {
+      radler::ComponentList::Position(1, 2),
+      radler::ComponentList::Position(3, 3)};
 
   const std::vector<std::vector<float>> values{{1.0, 2.0, 3.0},
                                                {5.0, 6.0, 7.0}};

@@ -1,7 +1,7 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/uvector.h>
 #include "wsclean/imagingtable.h"
-#include "deconvolution/imageset.h"
+#include "deconvolution/image_set.h"
 #include "deconvolution/genericclean.h"
 #include "stopwatch.h"
 

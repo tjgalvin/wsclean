@@ -365,8 +365,8 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
   }
 }
 
-DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
-  DeconvolutionSettings deconvolutionSettings;
+radler::DeconvolutionSettings Settings::GetDeconvolutionSettings() const {
+  radler::DeconvolutionSettings deconvolutionSettings;
 
   deconvolutionSettings.trimmedImageWidth = trimmedImageWidth;
   deconvolutionSettings.trimmedImageHeight = trimmedImageHeight;

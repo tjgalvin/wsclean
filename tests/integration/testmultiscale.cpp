@@ -2,7 +2,7 @@
 #include <aocommon/uvector.h>
 #include "stopwatch.h"
 #include "wsclean/imagingtable.h"
-#include "deconvolution/imageset.h"
+#include "deconvolution/image_set.h"
 #include "multiscale/multiscalealgorithm.h"
 
 #include <aocommon/fits/fitsreader.h>

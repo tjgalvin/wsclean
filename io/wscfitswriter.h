@@ -1,28 +1,26 @@
 #ifndef WSC_FITS_WRITER_H
 #define WSC_FITS_WRITER_H
 
-#include "imagefilename.h"
-
-#include "../structures/observationinfo.h"
-#include "../structures/outputchannelinfo.h"
-#include "../structures/imagingtable.h"
-
-#include "../deconvolution/deconvolution.h"
-
-#include "../main/settings.h"
+#include <optional>
+#include <string>
 
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/polarization.h>
 
-#include <optional>
-#include <string>
+#include <radler/radler.h>
+
+#include "imagefilename.h"
+#include "../main/settings.h"
+#include "../structures/observationinfo.h"
+#include "../structures/outputchannelinfo.h"
+#include "../structures/imagingtable.h"
 
 class WSCFitsWriter {
  public:
   WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
                 const Settings& settings,
-                const std::optional<Deconvolution>& deconvolution,
+                const std::optional<radler::Radler>& deconvolution,
                 const ObservationInfo& observationInfo, size_t majorIterationNr,
                 const std::string& commandLine,
                 const OutputChannelInfo& channelInfo, bool isModel,
@@ -31,7 +29,7 @@ class WSCFitsWriter {
   WSCFitsWriter(const ImagingTableEntry& entry,
                 aocommon::PolarizationEnum polarization, bool isImaginary,
                 const Settings& settings,
-                const std::optional<Deconvolution>& deconvolution,
+                const std::optional<radler::Radler>& deconvolution,
                 const ObservationInfo& observationInfo, size_t majorIterationNr,
                 const std::string& commandLine,
                 const OutputChannelInfo& channelInfo, bool isModel,

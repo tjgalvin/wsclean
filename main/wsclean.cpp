@@ -19,7 +19,7 @@
 #include "../structures/imageweights.h"
 #include "../structures/msselection.h"
 
-#include "../deconvolution/imageset.h"
+#include <radler/radler.h>
 
 #include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
@@ -246,8 +246,8 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   image *= normFactor * entry.siCorrection;
   Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
 
-  DeconvolutionAlgorithm::RemoveNaNsInPSF(
-      image.Data(), _settings.trimmedImageWidth, _settings.trimmedImageHeight);
+  radler::Radler::RemoveNaNsInPSF(image.Data(), _settings.trimmedImageWidth,
+                                  _settings.trimmedImageHeight);
 
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
   double initialFitSize =
@@ -1519,7 +1519,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                  std::unique_ptr<PrimaryBeam>& primaryBeam,
                                  bool requestPolarizationsAtOnce,
                                  bool parallelizePolarizations) {
-  std::unique_ptr<DeconvolutionTable> deconvolution_table =
+  std::unique_ptr<radler::DeconvolutionTable> deconvolution_table =
       groupTable.GetFacet(0).CreateDeconvolutionTable(
           _settings.deconvolutionChannelCount, _psfImages, _modelImages,
           _residualImages);
@@ -1647,7 +1647,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
   }
 
   if (_settings.saveSourceList) {
-    std::unique_ptr<DeconvolutionTable> deconvolution_table =
+    std::unique_ptr<radler::DeconvolutionTable> deconvolution_table =
         groupTable.CreateDeconvolutionTable(_settings.deconvolutionChannelCount,
                                             _psfImages, _modelImages,
                                             _residualImages);

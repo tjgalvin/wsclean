@@ -99,9 +99,11 @@ void ImagingTable::AssignGridDataFromPolarization(
   }
 }
 
-std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
-    int n_deconvolution_channels, CachedImageSet& psf_images,
-    CachedImageSet& model_images, CachedImageSet& residual_images) const {
+std::unique_ptr<radler::DeconvolutionTable>
+ImagingTable::CreateDeconvolutionTable(int n_deconvolution_channels,
+                                       CachedImageSet& psf_images,
+                                       CachedImageSet& model_images,
+                                       CachedImageSet& residual_images) const {
   // In a DeconvolutionTable the output channel indices range from
   // 0 to (#channels - 1). In an ImagingTable that forms an indepent group,
   // output channel indices may start at a higher index.
@@ -112,7 +114,7 @@ std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
   const int n_original_channels =
       _entries.back()->outputChannelIndex + 1 - channel_index_offset;
 
-  auto table = std::make_unique<DeconvolutionTable>(
+  auto table = std::make_unique<radler::DeconvolutionTable>(
       n_original_channels, n_deconvolution_channels, channel_index_offset);
   int max_squared_index = -1;
 
@@ -130,7 +132,7 @@ std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
         psf_images_ptr = &psf_images;
       }
 
-      std::unique_ptr<DeconvolutionTableEntry> real_entry =
+      std::unique_ptr<radler::DeconvolutionTableEntry> real_entry =
           entry_ptr->CreateDeconvolutionEntry(channel_index_offset,
                                               psf_images_ptr, model_images,
                                               residual_images, false);
@@ -138,7 +140,7 @@ std::unique_ptr<DeconvolutionTable> ImagingTable::CreateDeconvolutionTable(
     }
 
     if (entry_ptr->imageCount == 2) {
-      std::unique_ptr<DeconvolutionTableEntry> imaginary_entry =
+      std::unique_ptr<radler::DeconvolutionTableEntry> imaginary_entry =
           entry_ptr->CreateDeconvolutionEntry(channel_index_offset, nullptr,
                                               model_images, residual_images,
                                               true);

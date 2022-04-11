@@ -8,13 +8,12 @@
 
 #include "../structures/msselection.h"
 
-#include "../deconvolution/deconvolutionalgorithm.h"
-#include "../deconvolution/deconvolutionsettings.h"
-#include "../multiscale/multiscaletransforms.h"
-
 #include <aocommon/system.h>
 
 #include <schaapcommon/fitters/spectralfitter.h>
+
+#include <radler/deconvolution_settings.h>
+#include <radler/algorithms/multiscale/multiscale_transforms.h>
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
 
@@ -123,7 +122,7 @@ class Settings {
   bool autoDeconvolutionThreshold, autoMask;
   double autoDeconvolutionThresholdSigma, autoMaskSigma;
   double localRMSWindow;
-  LocalRmsMethod localRMSMethod;
+  radler::LocalRmsMethod localRMSMethod;
   bool saveSourceList;
   size_t deconvolutionIterationCount, majorIterationCount;
   bool allowNegativeComponents, stopOnNegativeComponents;
@@ -135,7 +134,7 @@ class Settings {
   size_t multiscaleMaxScales;
   double multiscaleConvolutionPadding;
   aocommon::UVector<double> multiscaleScaleList;
-  MultiScaleTransforms::Shape multiscaleShapeFunction;
+  radler::algorithms::multiscale::Shape multiscaleShapeFunction;
 
   double deconvolutionBorderRatio;
   std::string fitsDeconvolutionMask, casaDeconvolutionMask;
@@ -165,7 +164,7 @@ class Settings {
    * Currently, it duplicates the existing settings into a DeconvolutionSettings
    * object.
    */
-  DeconvolutionSettings GetDeconvolutionSettings() const;
+  radler::DeconvolutionSettings GetDeconvolutionSettings() const;
 
   MSSelection GetMSSelection() const {
     MSSelection selection;
@@ -322,7 +321,7 @@ inline Settings::Settings()
       autoDeconvolutionThresholdSigma(0.0),
       autoMaskSigma(0.0),
       localRMSWindow(25.0),
-      localRMSMethod(LocalRmsMethod::kNone),
+      localRMSMethod(radler::LocalRmsMethod::kNone),
       saveSourceList(false),
       deconvolutionIterationCount(0),
       majorIterationCount(20),
@@ -339,7 +338,8 @@ inline Settings::Settings()
       multiscaleMaxScales(0),
       multiscaleConvolutionPadding(1.1),
       multiscaleScaleList(),
-      multiscaleShapeFunction(MultiScaleTransforms::TaperedQuadraticShape),
+      multiscaleShapeFunction(
+          radler::algorithms::multiscale::Shape::TaperedQuadraticShape),
       deconvolutionBorderRatio(0.0),
       fitsDeconvolutionMask(),
       casaDeconvolutionMask(),
