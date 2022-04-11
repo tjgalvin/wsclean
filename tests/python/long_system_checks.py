@@ -1,6 +1,5 @@
 import pytest
 import os, glob
-import warnings
 import sys
 from utils import validate_call
 
@@ -24,7 +23,11 @@ def name(name: str):
 
 
 @pytest.mark.usefixtures("prepare_large_ms")
-class TestCommandCatalogue:
+class TestLongSystem:
+    """
+    Collection of long system tests.
+    """
+
     def test_dirty_image(self):
         # Make dirty image
         s = f"{tcf.WSCLEAN} -name {name('test-dirty')} {tcf.DIMS_LARGE} {tcf.MWA_MS}"
@@ -322,17 +325,17 @@ class TestCommandCatalogue:
         s = f"{tcf.WSCLEAN} -name {name('test-caught-bad-selection')} -channels-out 256 -channel-range 0 255 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         with pytest.raises(Exception):
             validate_call(s.split())
-            
+
     def test_catch_invalid_channel_selection_with_gaps(self):
         s = f"{tcf.WSCLEAN} -name {name('test-caught-bad-selection')} -gap-channel-division -channels-out 256 -channel-range 0 255 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         with pytest.raises(Exception):
             validate_call(s.split())
-            
+
     def test_catch_invalid_channel_selection_with_division(self):
         s = f"{tcf.WSCLEAN} -name {name('test-caught-bad-selection')} -channel-division-frequencies 145e6 -channels-out 256 -channel-range 0 255 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         with pytest.raises(Exception):
             validate_call(s.split())
-            
+
     def test_multiband_no_mf_weighting(self):
         # Tests issue #105: Segmentation fault (core dumped), when grouping spectral windows + no-mf-weighting Master Branch
         # The issue was caused by invalid indexing into the BandData object.
