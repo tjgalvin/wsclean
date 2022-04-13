@@ -41,6 +41,9 @@ RUN cd /external && git clone https://git.astron.nl/RD/idg.git && \
 ADD . /src
 WORKDIR /src
 
+# Point to the casacore where Dysco is installed
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+
 RUN \
   mkdir /build && \
   cd /build && \
