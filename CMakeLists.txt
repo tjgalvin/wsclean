@@ -228,10 +228,12 @@ add_definitions(-DHAVE_GSL)
 
 # Radler
 set(RADLER_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/external/radler)
+set(RADLER_LIB ${RADLER_INSTALL_PREFIX}/lib/libradler.so)
 ExternalProject_Add(
   radler-module
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/radler
   BINARY_DIR ${CMAKE_BINARY_DIR}/external/radler/build
+  BUILD_BYPRODUCTS ${RADLER_LIB}
   CMAKE_ARGS
     -DCOMPILE_AS_EXTERNAL_PROJECT=On
     -DPORTABLE=${PORTABLE}
@@ -244,7 +246,6 @@ ExternalProject_Add(
     -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX})
 
 set(RADLER_INCLUDE_DIR ${RADLER_INSTALL_PREFIX}/include)
-set(RADLER_LIB ${RADLER_INSTALL_PREFIX}/lib/libradler.so)
 include_directories(${RADLER_INCLUDE_DIR})
 
 # The following section will set the "rpath" correctly, so that
