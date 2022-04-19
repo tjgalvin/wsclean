@@ -45,6 +45,14 @@ using aocommon::Logger;
 using schaapcommon::h5parm::JonesParameters;
 
 namespace {
+void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
+  for (std::complex<float>& v : values) {
+    if (!std::isfinite(v.real()) || !std::isfinite(v.imag())) {
+      v = 0.0;
+    }
+  }
+}
+
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
@@ -516,9 +524,11 @@ void MSGridderBase::CacheParmResponse(
         _h5SolTabs[_msIndex].first, _h5SolTabs[_msIndex].second, false, 0.0f,
         0u, JonesParameters::MissingAntennaBehavior::kUnit);
     // parms (Casacore::Cube) is column major
-    const auto parms = jonesParameters.GetParms();
+    const casacore::Cube<std::complex<float>>& parms =
+        jonesParameters.GetParms();
     _cachedParmResponse[_msIndex].assign(&parms(0, 0, 0),
                                          &parms(0, 0, 0) + responseSize);
+    setNonFiniteToZero(_cachedParmResponse[_msIndex]);
   }
 
   auto it = std::find(_cachedMSTimes[_msIndex].begin() + _timeOffset[_msIndex],
