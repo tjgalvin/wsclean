@@ -12,8 +12,7 @@
 
 #include <schaapcommon/fitters/spectralfitter.h>
 
-#include <radler/deconvolution_settings.h>
-#include <radler/algorithms/multiscale/multiscale_transforms.h>
+#include <radler/settings.h>
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
 
@@ -126,7 +125,7 @@ class Settings {
   bool saveSourceList;
   size_t deconvolutionIterationCount, majorIterationCount;
   bool allowNegativeComponents, stopOnNegativeComponents;
-  bool useMultiscale, useSubMinorOptimization, squaredJoins;
+  bool useSubMinorOptimization, squaredJoins;
   double spectralCorrectionFrequency;
   std::vector<float> spectralCorrection;
   bool multiscaleFastSubMinorLoop;
@@ -134,7 +133,7 @@ class Settings {
   size_t multiscaleMaxScales;
   double multiscaleConvolutionPadding;
   aocommon::UVector<double> multiscaleScaleList;
-  radler::algorithms::multiscale::Shape multiscaleShapeFunction;
+  radler::MultiscaleShape multiscaleShapeFunction;
 
   double deconvolutionBorderRatio;
   std::string fitsDeconvolutionMask, casaDeconvolutionMask;
@@ -142,7 +141,7 @@ class Settings {
   double horizonMaskDistance;
   std::string localRMSImage;
   std::string pythonDeconvolutionFilename;
-  bool useMoreSaneDeconvolution, useIUWTDeconvolution, iuwtSNRTest;
+  bool iuwtSNRTest;
   std::string moreSaneLocation, moreSaneArgs;
   aocommon::UVector<double> moreSaneSigmaLevels;
   schaapcommon::fitters::SpectralFittingMode spectralFittingMode;
@@ -155,6 +154,11 @@ class Settings {
    * It is 0 when all channels should be used.
    */
   size_t deconvolutionChannelCount;
+
+  /**
+   * Type of deconvolution algorithm.
+   */
+  radler::AlgorithmType algorithmType;
   /**
    * @}
    */
@@ -164,7 +168,7 @@ class Settings {
    * Currently, it duplicates the existing settings into a DeconvolutionSettings
    * object.
    */
-  radler::DeconvolutionSettings GetDeconvolutionSettings() const;
+  radler::Settings GetRadlerSettings() const;
 
   MSSelection GetMSSelection() const {
     MSSelection selection;
@@ -327,7 +331,6 @@ inline Settings::Settings()
       majorIterationCount(20),
       allowNegativeComponents(true),
       stopOnNegativeComponents(false),
-      useMultiscale(false),
       useSubMinorOptimization(true),
       squaredJoins(false),
       spectralCorrectionFrequency(0.0),
@@ -338,16 +341,13 @@ inline Settings::Settings()
       multiscaleMaxScales(0),
       multiscaleConvolutionPadding(1.1),
       multiscaleScaleList(),
-      multiscaleShapeFunction(
-          radler::algorithms::multiscale::Shape::TaperedQuadraticShape),
+      multiscaleShapeFunction(radler::MultiscaleShape::TaperedQuadraticShape),
       deconvolutionBorderRatio(0.0),
       fitsDeconvolutionMask(),
       casaDeconvolutionMask(),
       horizonMask(false),
       horizonMaskDistance(0.0),
       pythonDeconvolutionFilename(),
-      useMoreSaneDeconvolution(false),
-      useIUWTDeconvolution(false),
       iuwtSNRTest(false),
       moreSaneLocation(),
       moreSaneArgs(),
@@ -355,6 +355,7 @@ inline Settings::Settings()
           schaapcommon::fitters::SpectralFittingMode::NoFitting),
       spectralFittingTerms(0),
       forcedSpectrumFilename(),
-      deconvolutionChannelCount(0) {}
+      deconvolutionChannelCount(0),
+      algorithmType(radler::AlgorithmType::kGenericClean) {}
 
 #endif

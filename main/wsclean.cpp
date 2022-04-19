@@ -670,7 +670,7 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
-  _deconvolution.emplace(_settings.GetDeconvolutionSettings());
+  _deconvolution.emplace(_settings.GetRadlerSettings());
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 

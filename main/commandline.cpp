@@ -953,11 +953,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       if (param == "stopnegative") deprecated(isSlave, param, "stop-negative");
     } else if (param == "python-deconvolution") {
       ++argi;
+      settings.algorithmType = radler::AlgorithmType::kPython;
       settings.pythonDeconvolutionFilename = argv[argi];
       settings.deconvolutionIterationCount =
           std::max(size_t{1}, settings.deconvolutionIterationCount);
     } else if (param == "iuwt") {
-      settings.useIUWTDeconvolution = true;
+      settings.algorithmType = radler::AlgorithmType::kIuwt;
       // Currently (WSClean 1.9, 2015-08-19) IUWT deconvolution
       // seems not to work when allowing negative components. The algorithm
       // becomes unstable. Hence, turn negative components off.
@@ -968,7 +969,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.iuwtSNRTest = false;
     } else if (param == "moresane-ext") {
       ++argi;
-      settings.useMoreSaneDeconvolution = true;
+      settings.algorithmType = radler::AlgorithmType::kMoreSane;
       settings.moreSaneLocation = argv[argi];
     } else if (param == "moresane-arg") {
       ++argi;
@@ -1107,7 +1108,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "no-fast-subminor") {
       settings.useSubMinorOptimization = false;
     } else if (param == "multiscale") {
-      settings.useMultiscale = true;
+      settings.algorithmType = radler::AlgorithmType::kMultiscale;
     } else if (param == "multiscale-gain") {
       ++argi;
       settings.multiscaleGain =
@@ -1128,10 +1129,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       std::string shape = argv[argi];
       if (shape == "tapered-quadratic")
         settings.multiscaleShapeFunction =
-            radler::algorithms::multiscale::Shape::TaperedQuadraticShape;
+            radler::MultiscaleShape::TaperedQuadraticShape;
       else if (shape == "gaussian")
         settings.multiscaleShapeFunction =
-            radler::algorithms::multiscale::Shape::GaussianShape;
+            radler::MultiscaleShape::GaussianShape;
       else
         throw std::runtime_error("Unknown multiscale shape function given");
     } else if (param == "multiscale-convolution-padding") {
@@ -1150,8 +1151,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           parse_size_t(argv[argi], "weighting-rank-filter-size");
     } else if (param == "save-source-list") {
       settings.saveSourceList = true;
-      settings.multiscaleShapeFunction =
-          radler::algorithms::multiscale::Shape::GaussianShape;
+      settings.multiscaleShapeFunction = radler::MultiscaleShape::GaussianShape;
     } else if (param == "clean-border" || param == "cleanborder") {
       ++argi;
       settings.deconvolutionBorderRatio =
