@@ -670,7 +670,6 @@ void WSClean::performReordering(bool isPredictMode) {
 }
 
 void WSClean::RunClean() {
-  _deconvolution.emplace(_settings.GetRadlerSettings());
   _observationInfo = getObservationInfo();
   _facets = FacetReader::ReadFacets(_settings.facetRegionFilename);
 
@@ -1524,9 +1523,9 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           _settings.deconvolutionChannelCount, _psfImages, _modelImages,
           _residualImages);
 
-  _deconvolution->InitializeDeconvolutionAlgorithm(
-      std::move(deconvolution_table), minTheoreticalBeamSize(groupTable),
-      _settings.threadCount);
+  _deconvolution.emplace(
+      _settings.GetRadlerSettings(), std::move(deconvolution_table),
+      minTheoreticalBeamSize(groupTable), _settings.threadCount);
 
   if (_settings.deconvolutionIterationCount > 0) {
     // Start major cleaning loop
