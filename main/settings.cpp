@@ -368,44 +368,46 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
 radler::Settings Settings::GetRadlerSettings() const {
   radler::Settings radler_settings;
 
-  radler_settings.trimmedImageWidth = trimmedImageWidth;
-  radler_settings.trimmedImageHeight = trimmedImageHeight;
-  radler_settings.channelsOut = channelsOut;
+  radler_settings.trimmed_image_width = trimmedImageWidth;
+  radler_settings.trimmed_image_height = trimmedImageHeight;
+  radler_settings.channels_out = channelsOut;
   radler_settings.pixel_scale.x = pixelScaleX;
   radler_settings.pixel_scale.y = pixelScaleY;
-  radler_settings.threadCount = threadCount;
-  radler_settings.prefixName = prefixName;
-  radler_settings.linkedPolarizations = linkedPolarizations;
+  radler_settings.thread_count = threadCount;
+  radler_settings.prefix_name = prefixName;
+  radler_settings.linked_polarizations = linkedPolarizations;
   radler_settings.parallel.max_size = parallelDeconvolutionMaxSize;
   radler_settings.parallel.max_threads = parallelDeconvolutionMaxThreads;
   radler_settings.threshold = deconvolutionThreshold;
   radler_settings.minor_loop_gain = deconvolutionGain;
   radler_settings.major_loop_gain = deconvolutionMGain;
-  radler_settings.autoDeconvolutionThreshold = autoDeconvolutionThreshold;
-  radler_settings.autoMask = autoMask;
-  radler_settings.autoDeconvolutionThresholdSigma =
-      autoDeconvolutionThresholdSigma;
-  radler_settings.autoMaskSigma = autoMaskSigma;
+  if (autoDeconvolutionThreshold) {
+    radler_settings.auto_threshold_sigma = autoDeconvolutionThresholdSigma;
+  }
+  if (autoMask) {
+    radler_settings.auto_mask_sigma = autoMaskSigma;
+  }
   radler_settings.local_rms.method = localRMSMethod;
   radler_settings.local_rms.window = localRMSWindow;
   radler_settings.local_rms.image = localRMSImage;
-  radler_settings.saveSourceList = saveSourceList;
-  radler_settings.deconvolutionIterationCount = deconvolutionIterationCount;
-  radler_settings.majorIterationCount = majorIterationCount;
-  radler_settings.allowNegativeComponents = allowNegativeComponents;
-  radler_settings.stopOnNegativeComponents = stopOnNegativeComponents;
-  radler_settings.squaredJoins = squaredJoins;
-  radler_settings.spectralCorrectionFrequency = spectralCorrectionFrequency;
-  radler_settings.spectralCorrection = spectralCorrection;
-  radler_settings.deconvolutionBorderRatio = deconvolutionBorderRatio;
-  radler_settings.fitsDeconvolutionMask = fitsDeconvolutionMask;
-  radler_settings.casaDeconvolutionMask = casaDeconvolutionMask;
-  radler_settings.horizonMask = horizonMask;
-  radler_settings.horizonMaskDistance = horizonMaskDistance;
+  radler_settings.save_source_list = saveSourceList;
+  radler_settings.minor_iteration_count = deconvolutionIterationCount;
+  radler_settings.major_iteration_count = majorIterationCount;
+  radler_settings.allow_negative_components = allowNegativeComponents;
+  radler_settings.stop_on_negative_components = stopOnNegativeComponents;
+  radler_settings.squared_joins = squaredJoins;
+  radler_settings.spectral_correction_frequency = spectralCorrectionFrequency;
+  radler_settings.spectral_correction = spectralCorrection;
+  radler_settings.border_ratio = deconvolutionBorderRatio;
+  radler_settings.fits_mask = fitsDeconvolutionMask;
+  radler_settings.casa_mask = casaDeconvolutionMask;
+  if (horizonMask) {
+    radler_settings.horizon_mask_distance = horizonMaskDistance;
+  }
   radler_settings.spectral_fitting.mode = spectralFittingMode;
   radler_settings.spectral_fitting.terms = spectralFittingTerms;
   radler_settings.spectral_fitting.forced_filename = forcedSpectrumFilename;
-  radler_settings.deconvolutionChannelCount = deconvolutionChannelCount;
+  radler_settings.deconvolution_channel_count = deconvolutionChannelCount;
   radler_settings.algorithm_type = algorithmType;
 
   switch (algorithmType) {
