@@ -1,6 +1,42 @@
-/*
- *  This file is part of the MR utility library.
+/** \file ducc0/infra/simd.h
+ *  Functionality which approximates future standard C++ SIMD classes.
  *
+ *  For details see section 9 of https://wg21.link/N4808
+ * 
+ *  \copyright Copyright (C) 2019-2021 Max-Planck-Society
+ *  \author Martin Reinecke
+ */
+
+/* SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-or-later */
+
+/*
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this
+  list of conditions and the following disclaimer in the documentation and/or
+  other materials provided with the distribution.
+* Neither the name of the copyright holder nor the names of its contributors may
+  be used to endorse or promote products derived from this software without
+  specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*
  *  This code is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -14,15 +50,6 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this code; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- */
-
-/** \file ducc0/infra/simd.h
- *  Functionality which approximates future standard C++ SIMD classes.
- *
- *  For details see section 9 of https://wg21.link/N4808
- * 
- *  \copyright Copyright (C) 2019-2021 Max-Planck-Society
- *  \author Martin Reinecke
  */
 
 #ifndef DUCC0_SIMD_H
@@ -104,10 +131,31 @@ using detail_simd::vectorizable;
 #include <cstddef>
 #include <cmath>
 #include <algorithm>
+
 #ifndef DUCC0_NO_SIMD
 #if defined(__SSE2__)  // we are on an x86 platform and we have vector types
 #include <x86intrin.h>
 #endif
+
+#if defined(__aarch64__)  // let's check for SVE and Neon
+#if defined(__ARM_FEATURE_SVE) && defined(__ARM_FEATURE_SVE_BITS)
+#if __ARM_FEATURE_SVE_BITS>0
+// OK, we can use SVE
+#warning Using SVE
+#define DUCC0_USE_SVE
+#include <arm_sve.h>
+#endif
+#endif
+#ifndef DUCC0_USE_SVE
+// see if we can use Neon
+#if defined(__ARM_NEON)
+#warning Using NEON
+#define DUCC0_USE_NEON
+#include <arm_neon.h>
+#endif
+#endif
+#endif
+
 #endif
 
 namespace ducc0 {
@@ -117,7 +165,7 @@ namespace detail_simd {
 /// true iff SIMD support is provided for \a T.
 template<typename T> constexpr inline bool vectorizable = false;
 #if (!defined(DUCC0_NO_SIMD))
-#if defined(__SSE2__)
+#if defined(__SSE2__) || defined (DUCC0_USE_SVE) || defined (DUCC0_USE_NEON)
 template<> constexpr inline bool vectorizable<float> = true;
 template<> constexpr inline bool vectorizable<double> = true;
 #endif
@@ -150,7 +198,9 @@ template<typename T, size_t len> struct vmask_
 #endif
     vmask_(Tm v_): v(v_) {}
     operator Tm() const  { return v; }
-    size_t bits() const { return hlp::maskbits(v); }
+    bool none() const { return hlp::mask_none(v); }
+    bool any() const { return hlp::mask_any(v); }
+    bool all() const { return hlp::mask_all(v); }
     vmask_ operator& (const vmask_ &other) const { return hlp::mask_and(v,other.v); }
     vmask_ operator| (const vmask_ &other) const { return hlp::mask_or(v,other.v); }
   };
@@ -264,12 +314,12 @@ template<typename T, size_t len> vtp<T, len> max(vtp<T, len> a, vtp<T, len> b)
   { return a.max(b); }
 template<typename T, size_t len> vtp<T, len> sqrt(vtp<T, len> v)
   { return v.sqrt(); }
-template<typename T, size_t len> inline bool any_of(const vmask_<T, len> &mask)
-  { return mask.bits()!=0; }
 template<typename T, size_t len> inline bool none_of(const vmask_<T, len> &mask)
-  { return mask.bits()==0; }
+  { return mask.none(); }
+template<typename T, size_t len> inline bool any_of(const vmask_<T, len> &mask)
+  { return mask.any(); }
 template<typename T, size_t len> inline bool all_of(const vmask_<T, len> &mask)
-  { return mask.bits()==(size_t(1)<<len)-1; }
+  { return mask.all(); }
 template<typename T, size_t len> inline vtp<T,len> blend (const vmask_<T, len> &mask, const vtp<T,len> &a, const vtp<T,len> &b)
   { return vtp<T,len>::blend(mask, a, b); }
 template<typename Op, typename T, size_t len> T reduce(const vtp<T, len> &v, Op op)
@@ -329,6 +379,7 @@ template<typename T> class pseudoscalar
     const T &operator[] (size_t /*i*/) const { return v; }
     T &operator[](size_t /*i*/) { return v; }
   };
+
 template<typename T> class helper_<T,1>
   {
   private:
@@ -352,6 +403,9 @@ template<typename T> class helper_<T,1>
     static Tm mask_and (Tm v1, Tm v2) { return v1&&v2; }
     static Tm mask_or (Tm v1, Tm v2) { return v1||v2; }
     static size_t maskbits(Tm v) { return v; }
+    static bool mask_none(Tm v) { return !v; }
+    static bool mask_any(Tm v) { return v; }
+    static bool mask_all(Tm v) { return v; }
   };
 
 #ifndef DUCC0_NO_SIMD
@@ -381,7 +435,13 @@ template<> class helper_<double,8>
     static Tm ne (Tv v1, Tv v2) { return _mm512_cmp_pd_mask(v1,v2,_CMP_NEQ_OQ); }
     static Tm mask_and (Tm v1, Tm v2) { return v1&v2; }
     static Tm mask_or (Tm v1, Tm v2) { return v1|v2; }
-    static size_t maskbits(Tm v) { return v; }
+    static bool mask_none(Tm v) { return v==0; }
+    static bool mask_any(Tm v) { return v!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = Tm((size_t(1)<<len)-1);
+      return v==fullmask;
+      }
   };
 template<> constexpr inline bool simd_exists<float,16> = true;
 template<> class helper_<float,16>
@@ -407,7 +467,13 @@ template<> class helper_<float,16>
     static Tm ne (Tv v1, Tv v2) { return _mm512_cmp_ps_mask(v1,v2,_CMP_NEQ_OQ); }
     static Tm mask_and (Tm v1, Tm v2) { return v1&v2; }
     static Tm mask_or (Tm v1, Tm v2) { return v1|v2; }
-    static size_t maskbits(Tm v) { return v; }
+    static bool mask_none(Tm v) { return v==0; }
+    static bool mask_any(Tm v) { return v!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = Tm((size_t(1)<<len)-1);
+      return v==fullmask;
+      }
   };
 #endif
 #if defined(__AVX__)
@@ -436,6 +502,13 @@ template<> class helper_<double,4>
     static Tm mask_and (Tm v1, Tm v2) { return _mm256_and_pd(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm256_or_pd(v1,v2); }
     static size_t maskbits(Tm v) { return size_t(_mm256_movemask_pd(v)); }
+    static bool mask_none(Tm v) { return maskbits(v)==0; }
+    static bool mask_any(Tm v) { return maskbits(v)!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = (size_t(1)<<len)-1;
+      return maskbits(v)==fullmask;
+      }
   };
 template<> constexpr inline bool simd_exists<float,8> = true;
 template<> class helper_<float,8>
@@ -462,6 +535,13 @@ template<> class helper_<float,8>
     static Tm mask_and (Tm v1, Tm v2) { return _mm256_and_ps(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm256_or_ps(v1,v2); }
     static size_t maskbits(Tm v) { return size_t(_mm256_movemask_ps(v)); }
+    static bool mask_none(Tm v) { return maskbits(v)==0; }
+    static bool mask_any(Tm v) { return maskbits(v)!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = (size_t(1)<<len)-1;
+      return maskbits(v)==fullmask;
+      }
   };
 #endif
 #if defined(__SSE2__)
@@ -497,6 +577,13 @@ template<> class helper_<double,2>
     static Tm mask_and (Tm v1, Tm v2) { return _mm_and_pd(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm_or_pd(v1,v2); }
     static size_t maskbits(Tm v) { return size_t(_mm_movemask_pd(v)); }
+    static bool mask_none(Tm v) { return maskbits(v)==0; }
+    static bool mask_any(Tm v) { return maskbits(v)!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = (size_t(1)<<len)-1;
+      return maskbits(v)==fullmask;
+      }
   };
 template<> constexpr inline bool simd_exists<float,4> = true;
 template<> class helper_<float,4>
@@ -530,6 +617,162 @@ template<> class helper_<float,4>
     static Tm mask_and (Tm v1, Tm v2) { return _mm_and_ps(v1,v2); }
     static Tm mask_or (Tm v1, Tm v2) { return _mm_or_ps(v1,v2); }
     static size_t maskbits(Tm v) { return size_t(_mm_movemask_ps(v)); }
+    static bool mask_none(Tm v) { return maskbits(v)==0; }
+    static bool mask_any(Tm v) { return maskbits(v)!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = (size_t(1)<<len)-1;
+      return maskbits(v)==fullmask;
+      }
+  };
+#endif
+
+#if defined(DUCC0_USE_SVE)
+template<typename T, size_t len> class gnuvec_helper
+  {
+  public:
+    using Tv __attribute__ ((vector_size (len*sizeof(T)))) = T;
+    using Tm = decltype(Tv()<Tv());
+
+    static Tv loadu(const T *ptr)
+      {
+      Tv res;
+      for (size_t i=0; i<len; ++i) res[i] = ptr[i];
+      return res;
+      }
+    static void storeu(T *ptr, Tv v)
+      { for (size_t i=0; i<len; ++i) ptr[i] = v[i]; }
+
+    static Tv from_scalar(T v)
+      {
+      Tv res;
+      for (size_t i=0; i<len; ++i) res[i] = v;
+      return res;
+      }
+    static Tv abs(Tv v)
+      {
+      Tv res;
+      for (size_t i=0; i<len; ++i) res[i] = std::abs(v[i]);
+      return res;
+      }
+    static Tv max(Tv v1, Tv v2)
+      {
+      Tv res;
+      for (size_t i=0; i<len; ++i) res[i] = std::max(v1[i], v2[i]);
+      return res;
+      }
+    static Tv blend(Tm m, Tv v1, Tv v2)
+      { return m ? v1 : v2; }
+    static Tv sqrt(Tv v)
+      {
+      Tv res;
+      for (size_t i=0; i<len; ++i) res[i] = std::sqrt(v[i]);
+      return res;
+      }
+    static Tm gt (Tv v1, Tv v2) { return v1>v2; }
+    static Tm ge (Tv v1, Tv v2) { return v1>=v2; }
+    static Tm lt (Tv v1, Tv v2) { return v1<v2; }
+    static Tm ne (Tv v1, Tv v2) { return v1!=v2; }
+    static Tm mask_and (Tm v1, Tm v2) { return v1&&v2; }
+    static Tm mask_or (Tm v1, Tm v2) { return v1||v2; }
+    static size_t maskbits(Tm v)
+      {
+      size_t res=0;
+      for (size_t i=0; i<len; ++i) res += (v[i]!=0)<<i;
+      return res;
+      }
+    static bool mask_none(Tm v) { return maskbits(v)==0; }
+    static bool mask_any(Tm v) { return maskbits(v)!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = (size_t(1)<<len)-1;
+      return maskbits(v)==fullmask;
+      }
+  };
+template<> constexpr inline bool simd_exists<double,__ARM_FEATURE_SVE_BITS/64> = true;
+template<> class helper_<double,__ARM_FEATURE_SVE_BITS/64>: public gnuvec_helper<double, __ARM_FEATURE_SVE_BITS/64> {};
+template<> constexpr inline bool simd_exists<float,__ARM_FEATURE_SVE_BITS/32> = true;
+template<> class helper_<float,__ARM_FEATURE_SVE_BITS/32>: public gnuvec_helper<float, __ARM_FEATURE_SVE_BITS/32> {};
+#endif
+
+#if defined(DUCC0_USE_NEON)
+template<> constexpr inline bool simd_exists<double,2> = true;
+template<> class helper_<double,2>
+  {
+  private:
+    using T = double;
+    static constexpr size_t len = 2;
+  public:
+    using Tv = float64x2_t;
+    using Tm = uint64x2_t;
+
+    static Tv loadu(const T *ptr) { return vld1q_f64(ptr); }
+    static void storeu(T *ptr, Tv v) { vst1q_f64(ptr, v); }
+
+    static Tv from_scalar(T v) { return vdupq_n_f64(v); }
+    static Tv abs(Tv v) { return vabsq_f64(v); }
+    static Tv max(Tv v1, Tv v2) { return vmaxq_f64(v1, v2); }
+    static Tv blend(Tm m, Tv v1, Tv v2)
+      { return vbslq_f64(m, v1, v2); }
+    static Tv sqrt(Tv v) { return vsqrtq_f64(v); }
+    static Tm gt (Tv v1, Tv v2) { return vcgtq_f64(v1,v2); }
+    static Tm ge (Tv v1, Tv v2) { return vcgeq_f64(v1,v2); }
+    static Tm lt (Tv v1, Tv v2) { return vcltq_f64(v1,v2); }
+    static Tm ne (Tv v1, Tv v2)
+      { return vreinterpretq_u64_u32(vmvnq_u32(vreinterpretq_u32_u64(vceqq_f64(v1,v2)))); }
+    static Tm mask_and (Tm v1, Tm v2) { return vandq_u64(v1,v2); }
+    static Tm mask_or (Tm v1, Tm v2) { return vorrq_u64(v1,v2); }
+    static size_t maskbits(Tm v)
+      {
+      auto high_bits = vshrq_n_u64(v, 63);
+      return vgetq_lane_u64(high_bits, 0) | ((vgetq_lane_u64(high_bits, 1)<<1));
+      }
+    static bool mask_none(Tm v) { return maskbits(v)==0; }
+    static bool mask_any(Tm v) { return maskbits(v)!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = (size_t(1)<<len)-1;
+      return maskbits(v)==fullmask;
+      }
+  };
+
+template<> constexpr inline bool simd_exists<float,4> = true;
+template<> class helper_<float,4>
+  {
+  private:
+    using T = float;
+    static constexpr size_t len = 4;
+  public:
+    using Tv = float32x4_t;
+    using Tm = uint32x4_t;
+
+    static Tv loadu(const T *ptr) { return vld1q_f32(ptr); }
+    static void storeu(T *ptr, Tv v) { vst1q_f32(ptr, v); }
+
+    static Tv from_scalar(T v) { return vdupq_n_f32(v); }
+    static Tv abs(Tv v) { return vabsq_f32(v); }
+    static Tv max(Tv v1, Tv v2) { return vmaxq_f32(v1, v2); }
+    static Tv blend(Tm m, Tv v1, Tv v2) { return vbslq_f32(m, v1, v2); }
+    static Tv sqrt(Tv v) { return vsqrtq_f32(v); }
+    static Tm gt (Tv v1, Tv v2) { return vcgtq_f32(v1,v2); }
+    static Tm ge (Tv v1, Tv v2) { return vcgeq_f32(v1,v2); }
+    static Tm lt (Tv v1, Tv v2) { return vcltq_f32(v1,v2); }
+    static Tm ne (Tv v1, Tv v2) { return vmvnq_u32(vceqq_f32(v1,v2)); }
+    static Tm mask_and (Tm v1, Tm v2) { return vandq_u32(v1,v2); }
+    static Tm mask_or (Tm v1, Tm v2) { return vorrq_u32(v1,v2); }
+    static size_t maskbits(Tm v)
+      {
+      static constexpr int32x4_t shift = {0, 1, 2, 3};
+      auto tmp = vshrq_n_u32(v, 31);
+      return vaddvq_u32(vshlq_u32(tmp, shift));
+      }
+    static bool mask_none(Tm v) { return maskbits(v)==0; }
+    static bool mask_any(Tm v) { return maskbits(v)!=0; }
+    static bool mask_all(Tm v)
+      {
+      static constexpr auto fullmask = (size_t(1)<<len)-1;
+      return maskbits(v)==fullmask;
+      }
   };
 #endif
 
@@ -538,6 +781,10 @@ template<typename T> using native_simd = vtp<T,vectorlen<T,64>>;
 #elif defined(__AVX__)
 template<typename T> using native_simd = vtp<T,vectorlen<T,32>>;
 #elif defined(__SSE2__)
+template<typename T> using native_simd = vtp<T,vectorlen<T,16>>;
+#elif defined(DUCC0_USE_SVE)
+template<typename T> using native_simd = vtp<T,vectorlen<T,__ARM_FEATURE_SVE_BITS/8>>;
+#elif defined(DUCC0_USE_NEON)
 template<typename T> using native_simd = vtp<T,vectorlen<T,16>>;
 #else
 template<typename T> using native_simd = vtp<T,1>;

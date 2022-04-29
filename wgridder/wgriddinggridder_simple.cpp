@@ -42,16 +42,16 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
                                                const double *uvw,
                                                const double *freq,
                                                const std::complex<float> *vis) {
-  mav<double, 2> uvw2(uvw, {nrows, 3});
-  mav<double, 1> freq2(freq, {nchan});
-  mav<std::complex<float>, 2> ms(vis, {nrows, nchan});
-  mav<float, 2> tdirty({width_t_, height_t_});
-  mav<float, 2> twgt(nullptr, {0, 0}, false);
-  mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
+  cmav<double, 2> uvw2(uvw, {nrows, 3});
+  cmav<double, 1> freq2(freq, {nchan});
+  cmav<std::complex<float>, 2> ms(vis, {nrows, nchan});
+  vmav<float, 2> tdirty({width_t_, height_t_});
+  cmav<float, 2> twgt(nullptr, {0, 0});
+  cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
   ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_,
                          epsilon_, true, nthreads_, tdirty, verbosity_, true,
                          false, sigma_min, sigma_max, -shiftL_, -shiftM_);
-  for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.craw(i);
+  for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.raw(i);
 }
 
 void WGriddingGridder_Simple::FinalizeImage(double multiplicationFactor) {
@@ -81,12 +81,12 @@ void WGriddingGridder_Simple::InitializePrediction(const float *image_data) {
 void WGriddingGridder_Simple::PredictVisibilities(
     size_t nrows, size_t nchan, const double *uvw, const double *freq,
     std::complex<float> *vis) const {
-  mav<double, 2> uvw2(uvw, {nrows, 3});
-  mav<double, 1> freq2(freq, {nchan});
-  mav<std::complex<float>, 2> ms(vis, {nrows, nchan}, true);
-  mav<float, 2> tdirty(img.data(), {width_t_, height_t_});
-  mav<float, 2> twgt(nullptr, {0, 0}, false);
-  mav<std::uint8_t, 2> tmask(nullptr, {0, 0}, false);
+  cmav<double, 2> uvw2(uvw, {nrows, 3});
+  cmav<double, 1> freq2(freq, {nchan});
+  vmav<std::complex<float>, 2> ms(vis, {nrows, nchan});
+  cmav<float, 2> tdirty(img.data(), {width_t_, height_t_});
+  cmav<float, 2> twgt(nullptr, {0, 0});
+  cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
   dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
                          pixelSizeY_, epsilon_, true, nthreads_, ms, verbosity_,
                          true, false, sigma_min, sigma_max, -shiftL_, -shiftM_);

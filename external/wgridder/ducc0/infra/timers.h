@@ -192,6 +192,11 @@ class TimerHierarchy
       curnode=&(it->second);
       }
 
+    TimerHierarchy(const TimerHierarchy &) = delete;
+    TimerHierarchy(TimerHierarchy &&) = delete;
+    TimerHierarchy& operator=(const TimerHierarchy &) = delete;
+    TimerHierarchy&operator=(TimerHierarchy &&) = delete;
+
   public:
     TimerHierarchy(const string &name="<root>")
       : last_time(clock::now()), root(name, nullptr), curnode(&root) {}
@@ -216,6 +221,30 @@ class TimerHierarchy
       pop();
       push_internal(name);
       }
+
+    void reset(const string &name="<root>")
+      {
+      last_time=clock::now();
+      root = tstack_node(name, nullptr);
+      curnode=&root;
+      }
+
+    class ScopeTimer
+      {
+      private:
+        TimerHierarchy &hierarchy;
+
+      public:
+        ScopeTimer() = delete;
+        ScopeTimer(const ScopeTimer &) = delete;
+        ScopeTimer &operator=(const ScopeTimer &) const = delete;
+        ScopeTimer(const string &name, TimerHierarchy &hierarchy_)
+          : hierarchy(hierarchy_) { hierarchy.push(name); }
+        ~ScopeTimer() { hierarchy.pop(); }
+      };
+    ScopeTimer scopeTimer(const string &name)
+      { return ScopeTimer(name, *this); }
+
     /// Returns a dictionary containing all used categories and their
     /// accumulated time.
     map<string, double> get_timings()

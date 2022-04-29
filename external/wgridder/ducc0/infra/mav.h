@@ -1,6 +1,40 @@
-/*
- *  This file is part of the MR utility library.
+/*! \file ducc0/infra/mav.h
+ *  Classes for dealing with multidimensional arrays
  *
+ *  \copyright Copyright (C) 2019-2022 Max-Planck-Society
+ *  \author Martin Reinecke
+ *  */
+
+/* SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-or-later */
+
+/*
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this
+  list of conditions and the following disclaimer in the documentation and/or
+  other materials provided with the distribution.
+* Neither the name of the copyright holder nor the names of its contributors may
+  be used to endorse or promote products derived from this software without
+  specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/*
  *  This code is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -16,13 +50,6 @@
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-/*! \file ducc0/infra/mav.h
- *  Classes for dealing with multidimensional arrays
- *
- *  \copyright Copyright (C) 2019-2021 Max-Planck-Society
- *  \author Martin Reinecke
- *  */
-
 #ifndef DUCC0_MAV_H
 #define DUCC0_MAV_H
 
@@ -36,6 +63,7 @@
 #include "ducc0/infra/error_handling.h"
 #include "ducc0/infra/aligned_array.h"
 #include "ducc0/infra/misc_utils.h"
+#include "ducc0/infra/threading.h"
 
 namespace ducc0 {
 
@@ -43,87 +71,75 @@ namespace detail_mav {
 
 using namespace std;
 
+// the next line is necessary to address some sloppy name choices in hipSYCL
+using std::min, std::max;
+
 struct uninitialized_dummy {};
 constexpr uninitialized_dummy UNINITIALIZED;
 
-template<typename T> class membuf
+template<typename T> class cmembuf
   {
   protected:
     shared_ptr<vector<T>> ptr;
-    shared_ptr<aligned_array<T>> rawptr;
+    shared_ptr<quick_array<T>> rawptr;
     const T *d;
-    bool rw;
 
-    membuf(const T *d_, membuf &other)
-      : ptr(other.ptr), rawptr(other.rawptr), d(d_), rw(other.rw) {}
-    membuf(const T *d_, const membuf &other)
-      : ptr(other.ptr), rawptr(other.rawptr), d(d_), rw(false) {}
+    cmembuf(const T *d_, const cmembuf &other)
+      : ptr(other.ptr), rawptr(other.rawptr), d(d_) {}
 
     // externally owned data pointer
-    membuf(T *d_, bool rw_=false)
-      : d(d_), rw(rw_) {}
-    // externally owned data pointer, nonmodifiable
-    membuf(const T *d_)
-      : d(d_), rw(false) {}
+    cmembuf(const T *d_)
+      : d(d_) {}
     // share another memory buffer, but read-only
-    membuf(const membuf &other)
-      : ptr(other.ptr), d(other.d), rw(false) {}
-#if defined(_MSC_VER)
-    // MSVC is broken
-    membuf(membuf &other)
-      : ptr(other.ptr), d(other.d), rw(other.rw) {}
-    membuf(membuf &&other)
-      : ptr(move(other.ptr)), d(move(other.d)), rw(move(other.rw)) {}
-#else
-    // share another memory buffer, using the same read/write permissions
-    membuf(membuf &other) = default;
+    cmembuf(const cmembuf &other)
+      : ptr(other.ptr), rawptr(other.rawptr), d(other.d) {}
+    cmembuf(size_t sz)
+      : ptr(make_shared<vector<T>>(sz)), d(ptr->data()) {}
+    cmembuf(size_t sz, uninitialized_dummy)
+      : rawptr(make_shared<quick_array<T>>(sz)), d(rawptr->data()) {}
     // take over another memory buffer
-    membuf(membuf &&other) = default;
-#endif
+    cmembuf(cmembuf &&other) = default;
 
   public:
-    // allocate own memory
-    membuf() : d(nullptr), rw(false) {}
-    membuf(size_t sz)
-      : ptr(make_shared<vector<T>>(sz)), d(ptr->data()), rw(true) {}
-    membuf(size_t sz, uninitialized_dummy)
-      : rawptr(make_shared<aligned_array<T>>(sz)), d(rawptr->data()), rw(true) {}
-    void assign(membuf &other)
+    cmembuf(): d(nullptr) {}
+    void assign(const cmembuf &other)
       {
       ptr = other.ptr;
       rawptr = other.rawptr;
       d = other.d;
-      rw = other.rw;
-      }
-    void assign(const membuf &other)
-      {
-      ptr = other.ptr;
-      rawptr = other.rawptr;
-      d = other.d;
-      rw = false;
-      }
-    // read/write access to element #i
-    template<typename I> T &vraw(I i)
-      {
-      MR_assert(rw, "array is not writable");
-      return const_cast<T *>(d)[i];
       }
     // read access to element #i
-    template<typename I> const T &craw(I i) const
+    template<typename I> const T &raw(I i) const
       { return d[i]; }
-    // read/write access to data area
-    const T *cdata() const
-      { return d; }
     // read access to data area
-    T *vdata()
-      {
-      MR_assert(rw, "array is not writable");
-      return const_cast<T *>(d);
-      }
-    bool writable() const { return rw; }
+    const T *data() const
+      { return d; }
   };
 
 constexpr size_t MAXIDX=~(size_t(0));
+
+struct slice
+  {
+  size_t beg, end;
+  ptrdiff_t step;
+  slice() : beg(0), end(MAXIDX), step(1) {}
+  slice(size_t idx) : beg(idx), end(idx), step(1) {}
+  slice(size_t beg_, size_t end_, ptrdiff_t step_=1)
+    : beg(beg_), end(end_), step(step_)
+    {
+// FIXME: add sanity checks here
+    }
+
+  size_t size(size_t shp) const
+    {
+    if (beg==end) return 0;
+    if (step>0) return (min(shp,end)-beg+step-1)/step;
+    // negative step
+    if (end==MAXIDX)
+      return (beg-step)/(-step);
+    return (beg-end-step-1)/(-step);
+    }
+  };
 
 /// Helper class containing shape and stride information of an `fmav` object
 class fmav_info
@@ -143,6 +159,7 @@ class fmav_info
       {
       auto ndim = shp.size();
       stride_t res(ndim);
+      if (ndim==0) return res;
       res[ndim-1]=1;
       for (size_t i=2; i<=ndim; ++i)
         res[ndim-i] = res[ndim-i+1]*ptrdiff_t(shp[ndim-i+1]);
@@ -152,15 +169,17 @@ class fmav_info
       { return str[dim]*ptrdiff_t(n) + getIdx(dim+1, ns...); }
     ptrdiff_t getIdx(size_t dim, size_t n) const
       { return str[dim]*ptrdiff_t(n); }
+    ptrdiff_t getIdx(size_t /*dim*/) const
+      { return 0; }
 
   public:
     /// Constructs a 1D object with all extents and strides set to zero.
     fmav_info() : shp(1,0), str(1,0), sz(0) {}
     /// Constructs an object with the given shape and stride.
     fmav_info(const shape_t &shape_, const stride_t &stride_)
-      : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>()))
+      : shp(shape_), str(stride_),
+        sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>()))
       {
-      MR_assert(shp.size()>0, "at least 1D required");
       MR_assert(shp.size()==str.size(), "dimensions mismatch");
       }
     /// Constructs an object with the given shape and computes the strides
@@ -188,7 +207,7 @@ class fmav_info
     /// Returns true iff the last dimension has stride 1.
     /**  Typically used for optimization purposes. */
     bool last_contiguous() const
-      { return (str.back()==1); }
+      { return ((ndim()==0) || (str.back()==1)); }
     /** Returns true iff the object is C-contiguous, i.e. if the stride of the
      *  last dimension is 1, the stride for the next-to-last dimension is the
      *  shape of the last dimension etc. */
@@ -213,14 +232,118 @@ class fmav_info
       MR_assert(ndim()==sizeof...(ns), "incorrect number of indices");
       return getIdx(0, ns...);
       }
+    ptrdiff_t idx(const shape_t &ns) const
+      {
+      MR_assert(ndim()==ns.size(), "incorrect number of indices");
+      size_t res = 0;
+      for (size_t i=0; i<ndim(); ++i) res += str[i]*ns[i];
+      return res;
+      }
+    template<typename RAiter> ptrdiff_t idxval(RAiter beg, RAiter end) const
+      {
+      MR_assert(ndim()==size_t(end-beg), "incorrect number of indices");
+      size_t res = 0;
+      for (size_t i=0; i<ndim(); ++i, ++beg) res += str[i]* (*beg);
+      return res;
+      }
+    /// Returns the common broadcast shape of *this and \a shp2
+    shape_t bcast_shape(const shape_t &shp2) const
+      {
+      shape_t res(max(shp.size(), shp2.size()), 1);
+      for (size_t i=0; i<shp.size(); ++i)
+        res[i+res.size()-shp.size()] = shp[i];
+      for (size_t i=0; i<shp2.size(); ++i)
+        {
+        size_t i2 = i+res.size()-shp2.size();
+        if (res[i2]==1)
+          res[i2] = shp2[i];
+        else
+          MR_assert((res[i2]==shp2[i])||(shp2[i]==1),
+            "arrays cannot be broadcast together");
+        }
+      return res;
+      }
+    void bcast_to_shape(const shape_t &shp2)
+      {
+      MR_assert(shp2.size()>=shp.size(), "cannot reduce dimensionality");
+      stride_t newstr(shp2.size(), 0);
+      for (size_t i=0; i<shp.size(); ++i)
+        {
+        size_t i2 = i+shp2.size()-shp.size();
+        if (shp[i]!=1)
+          {
+          MR_assert(shp[i]==shp2[i2], "arrays cannot be broadcast together");
+          newstr[i2] = str[i];
+          }
+        }
+      shp = shp2;
+      str = newstr;
+      }
+
+    void swap_axes(size_t ax0, size_t ax1)
+      {
+      MR_assert(ax0<=ndim() && ax1<=ndim(), "bad axes");
+      if (ax0==ax1) return;
+      swap(shp[ax0], shp[ax1]);
+      swap(str[ax0], str[ax1]);
+      }
+
+    fmav_info extend_and_broadcast(const shape_t &new_shape,
+      const shape_t &axpos) const
+      {
+      MR_assert(new_shape.size()>=ndim(),
+        "new shape smaller than original one");
+      MR_assert(axpos.size()==ndim(), "bad axpos size");
+      stride_t new_stride(new_shape.size(), 0);
+      vector<uint8_t> used(new_shape.size(),0);
+      for (size_t i=0; i<ndim(); ++i)
+        {
+        MR_assert(axpos[i]<new_shape.size(), "bad axis number");
+        MR_assert(shp[i]==new_shape[axpos[i]], "axis length nismatch");
+        MR_assert(used[axpos[i]]==0, "repeated axis position");
+        used[axpos[i]]=1;
+        new_stride[axpos[i]] = str[i];
+        }
+      return fmav_info(new_shape, new_stride);
+      }
+    fmav_info extend_and_broadcast(const shape_t &new_shape,
+      size_t firstaxis) const
+      {
+      shape_t axpos(ndim());
+      std::iota(axpos.begin(), axpos.end(), firstaxis);
+      return extend_and_broadcast(new_shape, axpos);
+      }
+  protected:
+    auto subdata(const vector<slice> &slices) const
+      {
+      auto ndim = shp.size();
+      shape_t nshp(ndim);
+      stride_t nstr(ndim);
+      MR_assert(slices.size()==ndim, "incorrect number of slices");
+      size_t n0=0;
+      for (auto x:slices) if (x.beg==x.end) ++n0;
+      ptrdiff_t nofs=0;
+      nshp.resize(ndim-n0);
+      nstr.resize(ndim-n0);
+      for (size_t i=0, i2=0; i<ndim; ++i)
+        {
+        MR_assert(slices[i].beg<shp[i], "bad subset");
+        nofs+=slices[i].beg*str[i];
+        if (slices[i].beg!=slices[i].end)
+          {
+          auto ext = slices[i].size(shp[i]);
+          MR_assert(slices[i].beg+(ext-1)*slices[i].step<shp[i], "bad subset");
+          nshp[i2]=ext; nstr[i2]=slices[i].step*str[i];
+          ++i2;
+          }
+        }
+      return make_tuple(fmav_info(nshp, nstr), nofs);
+      }
   };
 
 /// Helper class containing shape and stride information of a `mav` object
 template<size_t ndim> class mav_info
   {
-  protected:
-    static_assert(ndim>0, "at least 1D required");
-
   public:
     /// Fixed-size array of nonnegative integers for storing the array shape
     using shape_t = array<size_t, ndim>;
@@ -235,6 +358,7 @@ template<size_t ndim> class mav_info
     static stride_t shape2stride(const shape_t &shp)
       {
       stride_t res;
+      if (ndim==0) return res;
       res[ndim-1]=1;
       for (size_t i=2; i<=ndim; ++i)
         res[ndim-i] = res[ndim-i+1]*ptrdiff_t(shp[ndim-i+1]);
@@ -244,6 +368,8 @@ template<size_t ndim> class mav_info
       { return str[dim]*n + getIdx(dim+1, ns...); }
     ptrdiff_t getIdx(size_t dim, size_t n) const
       { return str[dim]*n; }
+    ptrdiff_t getIdx(size_t /*dim*/) const
+      { return 0; }
 
   public:
     /// Constructs an object with all extents and strides set to zero.
@@ -254,11 +380,23 @@ template<size_t ndim> class mav_info
       }
     /// Constructs an object with the given shape and stride.
     mav_info(const shape_t &shape_, const stride_t &stride_)
-      : shp(shape_), str(stride_), sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>())) {}
+      : shp(shape_), str(stride_),
+        sz(accumulate(shp.begin(),shp.end(),size_t(1),multiplies<>())) {}
     /// Constructs an object with the given shape and computes the strides
     /// automatically, assuming a C-contiguous memory layout.
     mav_info(const shape_t &shape_)
       : mav_info(shape_, shape2stride(shape_)) {}
+    mav_info(const fmav_info &inp)
+      {
+      MR_assert(inp.ndim()==ndim, "dimensionality mismatch");
+      sz=1;
+      for (size_t i=0; i<ndim; ++i)
+        {
+        shp[i] = inp.shape(i);
+        sz *= shp[i];
+        str[i] = inp.stride(i);
+        }
+      }
     void assign(const mav_info &other)
       {
       shp = other.shp;
@@ -278,7 +416,7 @@ template<size_t ndim> class mav_info
     /// Returns true iff the last dimension has stride 1.
     /**  Typically used for optimization purposes. */
     bool last_contiguous() const
-      { return (str.back()==1); }
+      { return ((ndim==0) || (str.back()==1)); }
     /** Returns true iff the object is C-contiguous, i.e. if the stride of the
      *  last dimension is 1, the stride for the next-to-last dimension is the
      *  shape of the last dimension etc. */
@@ -305,183 +443,56 @@ template<size_t ndim> class mav_info
       static_assert(ndim==sizeof...(ns), "incorrect number of indices");
       return getIdx(0, ns...);
       }
-  };
 
-
-class FmavIter
-  {
-  private:
-    fmav_info::shape_t pos;
-    fmav_info arr;
-    ptrdiff_t p;
-    size_t rem;
-
-  public:
-    FmavIter(const fmav_info &arr_)
-      : pos(arr_.ndim(), 0), arr(arr_), p(0), rem(arr_.size()) {}
-    void advance()
+  protected:
+    template<size_t nd2> auto subdata(const vector<slice> &slices) const
       {
-      --rem;
-      for (int i_=int(pos.size())-1; i_>=0; --i_)
+      MR_assert(slices.size()==ndim, "bad number of slices");
+      array<size_t, nd2> nshp;
+      array<ptrdiff_t, nd2> nstr;
+
+      // unnecessary, but gcc warns otherwise
+      for (size_t i=0; i<nd2; ++i) nshp[i]=nstr[i]=0;
+
+      size_t n0=0;
+      for (auto x:slices) if (x.beg==x.end) ++n0;
+      MR_assert(n0+nd2==ndim, "bad extent");
+      ptrdiff_t nofs=0;
+      for (size_t i=0, i2=0; i<ndim; ++i)
         {
-        auto i = size_t(i_);
-        p += arr.stride(i);
-        if (++pos[i] < arr.shape(i))
-          return;
-        pos[i] = 0;
-        p -= ptrdiff_t(arr.shape(i))*arr.stride(i);
+        MR_assert(slices[i].beg<shp[i], "bad subset");
+        nofs+=slices[i].beg*str[i];
+        if (slices[i].beg!=slices[i].end)
+          {
+          auto ext = slices[i].size(shp[i]);
+          MR_assert(slices[i].beg+(ext-1)*slices[i].step<shp[i], "bad subset");
+          nshp[i2]=ext; nstr[i2]=slices[i].step*str[i];
+          ++i2;
+          }
         }
+      return make_tuple(mav_info<nd2>(nshp, nstr), nofs);
       }
-    ptrdiff_t ofs() const { return p; }
-    size_t remaining() const { return rem; }
   };
 
-
-/// Class for storing (or referring to) multi-dimensional arrays with a
-/// dimensionality that is not known at compile time.
-/** "fmav" stands for "flexible multidimensional array view".
- *  The shape must consist of non-negative integers (zeros are allowed).
- *  Strides may be positive or negative; stride values of zero are accepted and
- *  may be useful in specific circumstances (e.g. read-only arrays with the same
- *  value everywhere.
- *
- *  An fmav may "own" or "not own" the memory holding its array data. If it does
- *  not own the memory, it will not be deallocated when the mav is destroyed.
- *  If it owns the memory, this "ownership" may be shared with other fmav objects.
- *  Memory is only deallocated if the last fmav object owning it is destroyed. */
-template<typename T> class fmav: public fmav_info, public membuf<T>
+template<typename T> class cfmav: public fmav_info, public cmembuf<T>
   {
   protected:
-    using tbuf = membuf<T>;
+    using tbuf = cmembuf<T>;
     using tinfo = fmav_info;
+    using fmav_info::idx;
 
   public:
     using typename tinfo::shape_t;
     using typename tinfo::stride_t;
+    using tbuf::raw, tbuf::data;
+
 
   protected:
-    template<typename Func, typename T2> void applyHelper(size_t idim,
-      ptrdiff_t idx, ptrdiff_t idx2, const fmav<T2> &other, Func func)
-      {
-      auto ndim = tinfo::ndim();
-      if (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<Func>(idim+1, idx+i*str[idim], idx2+i*other.stride(idim), other, func);
-      else
-        {
-        T *d1 = vdata();
-        const T2 *d2 = other.cdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d1[idx+i*str[idim]], d2[idx2+i*other.stride(idim)]);
-        }
-      }
-    template<typename Func, typename T2> void applyHelper(size_t idim,
-      ptrdiff_t idx, ptrdiff_t idx2, const fmav<T2> &other, Func func) const
-      {
-      auto ndim = tinfo::ndim();
-      if (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<Func>(idim+1, idx+i*str[idim], idx2+i*other.stride(idim), other, func);
-      else
-        {
-        const T *d1 = cdata();
-        const T2 *d2 = other.cdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d1[idx+i*str[idim]], d2[idx2+i*other.stride(idim)]);
-        }
-      }
-    template<typename Func> void applyHelper(size_t idim, ptrdiff_t idx, Func func)
-      {
-      auto ndim = tinfo::ndim();
-      if (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<Func>(idim+1, idx+i*str[idim], func);
-      else
-        {
-        T *d2 = vdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]]);
-        }
-      }
-    template<typename Func> void applyHelper(size_t idim, ptrdiff_t idx, Func func) const
-      {
-      auto ndim = tinfo::ndim();
-      if (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<Func>(idim+1, idx+i*str[idim], func);
-      else
-        {
-        const T *d2 = cdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]]);
-        }
-      }
-
-    auto subdata(const shape_t &i0, const shape_t &extent) const
-      {
-      auto ndim = tinfo::ndim();
-      shape_t nshp(ndim);
-      stride_t nstr(ndim);
-      ptrdiff_t nofs;
-      MR_assert(i0.size()==ndim, "bad dimensionality");
-      MR_assert(extent.size()==ndim, "bad dimensionality");
-      size_t n0=0;
-      for (auto x:extent) if (x==0) ++n0;
-      nofs=0;
-      nshp.resize(ndim-n0);
-      nstr.resize(ndim-n0);
-      for (size_t i=0, i2=0; i<ndim; ++i)
-        {
-        MR_assert(i0[i]<shp[i], "bad subset");
-        nofs+=i0[i]*str[i];
-        if (extent[i]!=0)
-          {
-          auto ext = extent[i];
-          if (ext==MAXIDX)
-            ext = shp[i]-i0[i];
-          MR_assert(i0[i]+ext<=shp[i], "bad subset");
-          nshp[i2]=ext; nstr[i2]=str[i];
-          ++i2;
-          }
-        }
-      return make_tuple(nshp, nstr, nofs);
-      }
-
-  public:
-    using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
-    /// Constructs a 1D fmav with size and stride zero and no data content.
-    fmav() {}
-    /** Constructs a read-only fmav with its first data entry at \a d
-     *  and the given shape and strides. The fmav does not own the memory. */
-    fmav(const T *d_, const shape_t &shp_, const stride_t &str_)
-      : tinfo(shp_, str_), tbuf(d_) {}
-    /** Constructs a read-only fmav with its first data entry at \a d
-     *  and the given shape. The array is assumed to be C-contiguous.
-     *  The fmav does not own the memory. */
-    fmav(const T *d_, const shape_t &shp_)
-      : tinfo(shp_), tbuf(d_) {}
-    /** Constructs an fmav with its first data entry at \a d
-     *  and the given shape and strides. The fmav does not own the memory.
-     *  Iff \a rw_ is true, write accesses to the array are allowed. */
-    fmav(T *d_, const shape_t &shp_, const stride_t &str_, bool rw_)
-      : tinfo(shp_, str_), tbuf(d_,rw_) {}
-    /** Constructs an fmav with its first data entry at \a d and the given shape.
-     *  The array is assumed to be C-contiguous.
-     *  The fmav does not own the memory.
-     *  Iff \a rw_ is true, write accesses to the array are allowed. */
-    fmav(T *d_, const shape_t &shp_, bool rw_)
-      : tinfo(shp_), tbuf(d_,rw_) {}
-    /** Constructs a C-contiguous read/write fmav with the given shape.
-     *  The array contents are default-initialized.
-     *  The fmav owns the array memory. */
-    fmav(const shape_t &shp_)
+    cfmav(const shape_t &shp_)
       : tinfo(shp_), tbuf(size()) {}
-    /** Constructs a C-contiguous read/write fmav with the given shape.
-     *  The array contents are not initialized.
-     *  The fmav owns the array memory. */
-    fmav(const shape_t &shp_, uninitialized_dummy)
+    cfmav(const shape_t &shp_, uninitialized_dummy)
       : tinfo(shp_), tbuf(size(), UNINITIALIZED) {}
-    fmav(const shape_t &shp_, const stride_t &str_, uninitialized_dummy)
+    cfmav(const shape_t &shp_, const stride_t &str_, uninitialized_dummy)
       : tinfo(shp_, str_), tbuf(size(), UNINITIALIZED)
       {
       ptrdiff_t ofs=0;
@@ -489,532 +500,817 @@ template<typename T> class fmav: public fmav_info, public membuf<T>
         ofs += (ptrdiff_t(shp[i])-1)*str[i];
       MR_assert(ofs+1==ptrdiff_t(size()), "array is not compact");
       }
-    fmav(const shape_t &shp_, const stride_t &str_)
-      : tinfo(shp_, str_), tbuf(size())
+    cfmav(const fmav_info &info, const tbuf &buf)
+      : tinfo(info), tbuf(buf) {}
+    cfmav(const fmav_info &info, const T *d_, const tbuf &buf)
+      : tinfo(info), tbuf(d_, buf) {}
+
+  public:
+    cfmav() {}
+    cfmav(const T *d_, const shape_t &shp_, const stride_t &str_)
+      : tinfo(shp_, str_), tbuf(d_) {}
+    cfmav(const T *d_, const shape_t &shp_)
+      : tinfo(shp_), tbuf(d_) {}
+    cfmav(const T* d_, const tinfo &info)
+      : tinfo(info), tbuf(d_) {}
+
+    cfmav(const tbuf &buf, const shape_t &shp_, const stride_t &str_)
+      : tinfo(shp_, str_), tbuf(buf) {}
+
+    // no-op. Needed for template tricks.
+    cfmav to_fmav() const { return *this; }
+
+    void assign(const cfmav &other)
+      {
+      tinfo::assign(other);
+      tbuf::assign(other);
+      }
+
+    /// Returns the data entry at the given set of indices.
+    template<typename... Ns> const T &operator()(Ns... ns) const
+      { return raw(idx(ns...)); }
+    const T &operator()(const shape_t &ns) const
+      { return raw(idx(ns)); }
+    template<typename RAiter> const T& val(RAiter beg, RAiter end) const
+      { return raw(idxval(beg, end)); }
+
+    cfmav subarray(const vector<slice> &slices) const
+      {
+      auto [ninfo, nofs] = subdata(slices);
+      return cfmav(ninfo, tbuf::d+nofs, *this);
+      }
+    cfmav extend_and_broadcast(const shape_t &new_shape, const shape_t &axpos) const
+      {
+      return cfmav(fmav_info::extend_and_broadcast(new_shape, axpos), *this);
+      }
+    cfmav extend_and_broadcast(const shape_t &new_shape, size_t firstaxis) const
+      {
+      return cfmav(fmav_info::extend_and_broadcast(new_shape, firstaxis), *this);
+      }
+  };
+
+template<typename T> cfmav<T> subarray
+  (const cfmav<T> &arr, const vector<slice> &slices)  
+  { return arr.subarray(slices); }
+
+template<typename T> class vfmav: public cfmav<T>
+  {
+  protected:
+    using tbuf = cmembuf<T>;
+    using tinfo = fmav_info;
+    using tinfo::shp, tinfo::str;
+    using fmav_info::idx;
+
+  public:
+    using typename tinfo::shape_t;
+    using typename tinfo::stride_t;
+    using tinfo::size, tinfo::shape, tinfo::stride;
+
+  protected:
+    vfmav(const fmav_info &info, tbuf &buf)
+      : cfmav<T>(info, buf) {}
+    vfmav(const fmav_info &info, T *d_, tbuf &buf)
+      : cfmav<T>(info, d_, buf) {}
+
+  public:
+    using tbuf::raw, tbuf::data, tinfo::ndim;
+    vfmav() {}
+    vfmav(T *d_, const fmav_info &info)
+      : cfmav<T>(d_, info) {}
+    vfmav(T *d_, const shape_t &shp_, const stride_t &str_)
+      : cfmav<T>(d_, shp_, str_) {}
+    vfmav(T *d_, const shape_t &shp_)
+      : cfmav<T>(d_, shp_) {}
+    vfmav(const shape_t &shp_)
+      : cfmav<T>(shp_) {}
+    vfmav(const shape_t &shp_, uninitialized_dummy)
+      : cfmav<T>(shp_, UNINITIALIZED) {}
+    vfmav(const shape_t &shp_, const stride_t &str_, uninitialized_dummy)
+      : cfmav<T>(shp_, str_, UNINITIALIZED)
       {
       ptrdiff_t ofs=0;
       for (size_t i=0; i<ndim(); ++i)
         ofs += (ptrdiff_t(shp[i])-1)*str[i];
       MR_assert(ofs+1==ptrdiff_t(size()), "array is not compact");
       }
-    fmav(const T* d_, const tinfo &info)
-      : tinfo(info), tbuf(d_) {}
-    fmav(T* d_, const tinfo &info, bool rw_=false)
-      : tinfo(info), tbuf(d_, rw_) {}
-#if defined(_MSC_VER)
-    // MSVC is broken
-    fmav(const fmav &other) : tinfo(other), tbuf(other) {}
-    fmav(fmav &other) : tinfo(other), tbuf(other) {}
-    fmav(fmav &&other) : tinfo(other), tbuf(other) {}
-#else
-    /** Constructs a read-only fmav with the same shape and strides as \a other,
-     *  pointing to the same memory. Ownership is shared. */
-    fmav(const fmav &other) = default;
-    /** Constructs an fmav with the same read-write status, shape and strides
-     *  as \a other, pointing to the same memory. Ownership is shared. */
-    fmav(fmav &other) = default;
-    fmav(fmav &&other) = default;
-#endif
-    fmav(tbuf &buf, const shape_t &shp_, const stride_t &str_)
-      : tinfo(shp_, str_), tbuf(buf) {}
-    fmav(const tbuf &buf, const shape_t &shp_, const stride_t &str_)
-      : tinfo(shp_, str_), tbuf(buf) {}
-    fmav(const shape_t &shp_, const stride_t &str_, const T *d_, tbuf &buf)
-      : tinfo(shp_, str_), tbuf(d_, buf) {}
-    fmav(const shape_t &shp_, const stride_t &str_, const T *d_, const tbuf &buf)
-      : tinfo(shp_, str_), tbuf(d_, buf) {}
+    vfmav(tbuf &buf, const shape_t &shp_, const stride_t &str_)
+      : cfmav<T>(buf, shp_, str_) {}
 
-    void assign(fmav &other)
+    using cfmav<T>::data;
+    T *data()
+     { return const_cast<T *>(tbuf::d); }
+    using cfmav<T>::raw;
+    template<typename I> T &raw(I i)
+      { return data()[i]; }
+
+    // no-op. Needed for template tricks.
+    using cfmav<T>::to_fmav;
+    vfmav to_fmav() { return *this; }
+
+    void assign(const vfmav &other)
       {
       fmav_info::assign(other);
-      membuf<T>::assign(other);
-      }
-    void assign(const fmav &other)
-      {
-      fmav_info::assign(other);
-      membuf<T>::assign(other);
+      cmembuf<T>::assign(other);
       }
 
-    /// Returns the data entry at the given set of indices.
-    template<typename... Ns> const T &operator()(Ns... ns) const
-      { return craw(idx(ns...)); }
-    /// Returns the data entry at the given set of indices.
-    template<typename... Ns> const T &c(Ns... ns) const
-      { return craw(idx(ns...)); }
-    /** Returns a writable reference to the data entry at the given set of
-     *  indices. This call will throw an exception if the fmav is read-only. */
-    template<typename... Ns> T &v(Ns... ns)
-      { return vraw(idx(ns...)); }
+    using cfmav<T>::operator();
+    template<typename... Ns> T &operator()(Ns... ns)
+      { return raw(idx(ns...)); }
+    T &operator()(const shape_t &ns)
+      { return raw(idx(ns)); }
+    using cfmav<T>::val;
+    template<typename RAiter> T& val(RAiter beg, RAiter end)
+      { return raw(idxval(beg, end)); }
 
-    /** Returns an fmav (of the same or smaller dimensionality) representing a
-     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
-     *  the number of entries along this dimension. If any extent is 0, this
-     *  dimension will be omitted in the output array.
-     *  Specifying an extent of MAXIDX will make the extent as large as possible.
-     *  if *this is writable, the returned fmav will also be writable. */
-    fmav subarray(const shape_t &i0, const shape_t &extent)
+    vfmav subarray(const vector<slice> &slices)
       {
-      auto [nshp, nstr, nofs] = subdata(i0, extent);
-      return fmav(nshp, nstr, tbuf::d+nofs, *this);
+      auto [ninfo, nofs] = tinfo::subdata(slices);
+      return vfmav(ninfo, data()+nofs, *this);
       }
-    /** Returns an fmav (of the same or smaller dimensionality) representing a
-     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
-     *  the number of entries along this dimension. If any extent is 0, this
-     *  dimension will be omitted in the output array.
-     *  Specifying an extent of MAXIDX will make the extent as large as possible.
-     *  The returned fmav is read-only. */
-    fmav subarray(const shape_t &i0, const shape_t &extent) const
+    /** Returns a writable fmav with the specified shape.
+     *  The strides are chosen in such a way that critical strides (multiples
+     *  of 4096 bytes) along any dimension are avoided, by enlarging the
+     *  allocated memory slightly if necessary.
+     *  The array data is default-initialized. */
+    static vfmav build_noncritical(const shape_t &shape)
       {
-      auto [nshp, nstr, nofs] = subdata(i0, extent);
-      return fmav(nshp, nstr, tbuf::d+nofs, *this);
+      auto ndim = shape.size();
+      auto shape2 = noncritical_shape(shape, sizeof(T));
+      vfmav tmp(shape2);
+      vector<slice> slc(ndim);
+      for (size_t i=0; i<ndim; ++i) slc[i] = slice(0, shape[i]);
+      return tmp.subarray(slc);
       }
-    /** Calls \a func for every entry in the array, passing a reference to it. */
-    template<typename Func> void apply(Func func)
+    /** Returns a writable fmav with the specified shape.
+     *  The strides are chosen in such a way that critical strides (multiples
+     *  of 4096 bytes) along any dimension are avoided, by enlarging the
+     *  allocated memory slightly if necessary.
+     *  The array data is not initialized. */
+    static vfmav build_noncritical(const shape_t &shape, uninitialized_dummy)
       {
-      if (contiguous())
-        {
-        T *d2 = vdata();
-        for (auto v=d2; v!=d2+size(); ++v)
-          func(*v);
-        return;
-        }
-      applyHelper<Func>(0, 0, func);
+      auto ndim = shape.size();
+      if (ndim<=1) return vfmav(shape, UNINITIALIZED);
+      auto shape2 = noncritical_shape(shape, sizeof(T));
+      vfmav tmp(shape2, UNINITIALIZED);
+      vector<slice> slc(ndim);
+      for (size_t i=0; i<ndim; ++i) slc[i] = slice(0, shape[i]);
+      return tmp.subarray(slc);
       }
-    /** Calls \a func for every entry in the array, passing a constant
-     *  reference to it. */
-    template<typename Func> void apply(Func func) const
+    vfmav extend_and_broadcast(const shape_t &new_shape, const shape_t &axpos)
       {
-      if (contiguous())
-        {
-        const T *d2 = cdata();
-        for (auto v=d2; v!=d2+size(); ++v)
-          func(*v);
-        return;
-        }
-      applyHelper<Func>(0, 0, func);
+      return vfmav(fmav_info::extend_and_broadcast(new_shape, axpos), *this);
       }
-    /** Calls \a func for every entry in the array and the corresponding entry
-     *  in \a other, passing constant references. */
-    template<typename Func, typename T2> void apply(const fmav<T2> &other, Func func)
+    vfmav extend_and_broadcast(const shape_t &new_shape, size_t firstaxis)
       {
-      MR_assert(conformable(other), "fmavs are not conformable");
-      applyHelper<Func>(0, 0, 0, other, func);
-      }
-    /** Calls \a func for every entry in the array and the corresponding entry
-     *  in \a other, passing a nonconstant reference to the entry in this array
-     *  and a constant one for the entry in \a other. */
-    template<typename Func, typename T2> void apply(const fmav<T2> &other, Func func) const
-      {
-      MR_assert(conformable(other), "fmavs are not conformable");
-      applyHelper<Func>(0, 0, 0, other, func);
-      }
-    vector<T> dump() const
-      {
-      vector<T> res(sz);
-      size_t ii=0;
-      apply([&](const T&v){res[ii++]=v;});
-      return res;
-      }
-    void load (const vector<T> &v)
-      {
-      MR_assert(v.size()==sz, "bad input data size");
-      size_t ii=0;
-      apply([&](T &val){val=v[ii++];});
+      return vfmav(fmav_info::extend_and_broadcast(new_shape, firstaxis), *this);
       }
   };
 
-template<typename T> fmav<T> subarray
-  (fmav<T> &arr, const typename fmav<T>::shape_t &i0, const typename fmav<T>::shape_t &extent)  
-  { return arr.subarray(i0, extent); }
+template<typename T> vfmav<T> subarray
+  (vfmav<T> &arr, const vector<slice> &slices)  
+  { return arr.subarray(slices); }
 
-template<typename T> fmav<T> subarray
-  (const fmav<T> &arr, const typename fmav<T>::shape_t &i0, const typename fmav<T>::shape_t &extent)  
-  { return arr.subarray(i0, extent); }
-
-
-// template<typename Func, typename T0, typename Ts...> void fmav_pointwise_op(Func func, T0 & arg0, Ts&... args)
-//   {
-//   MR_assert(multiequal(arg0.shape()==args.shape()...), "fmav shape mismatch");
-//   if (multiequal(true, arg0.stride()==args.stride()...)) // equal strides, we can make simplifications
-//     {
-//     if (arg0.compact()) // even better, we can go through everything in a single loop
-//       {
-//       for (size_t i=0; i<arg0.size(); ++i)
-//         func(arg0.ptr[i], args.ptr[i]...);
-//       }
-//     else
-//   }
-
-/// Class for storing (or referring to) multi-dimensional arrays with a
-/// dimensionality known at compile time.
-/** "mav" stands for "multidimensional array view".
- *  The shape must consist of non-negative integers (zeros are allowed).
- *  Strides may be positive or negative; stride values of zero are accepted and
- *  may be useful in specific circumstances (e.g. read-only arrays with the same
- *  value everywhere.
- *
- *  A mav may "own" or "not own" the memory holding its array data. If it does
- *  not own the memory, it will not be deallocated when the mav is destroyed.
- *  If it owns the memory, this "ownership" may be shared with other mav objects.
- *  Memory is only deallocated if the last mav object owning it is destroyed. */
-template<typename T, size_t ndim> class mav: public mav_info<ndim>, public membuf<T>
+template<typename T, size_t ndim> class cmav: public mav_info<ndim>, public cmembuf<T>
   {
   protected:
+    template<typename T2, size_t nd2> friend class cmav;
+    template<typename T2, size_t nd2> friend class vmav;
+
     using tinfo = mav_info<ndim>;
-    using tbuf = membuf<T>;
+    using tbuf = cmembuf<T>;
     using tinfo::shp, tinfo::str;
 
   public:
     using typename tinfo::shape_t;
     using typename tinfo::stride_t;
-
-  protected:
-    template<size_t idim, typename Func> void applyHelper(ptrdiff_t idx, Func func)
-      {
-      if constexpr (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<idim+1, Func>(idx+i*str[idim], func);
-      else
-        {
-        T *d2 = vdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]]);
-        }
-      }
-    template<size_t idim, typename Func> void applyHelper(ptrdiff_t idx, Func func) const
-      {
-      if constexpr (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<idim+1, Func>(idx+i*str[idim], func);
-      else
-        {
-        const T *d2 = cdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]]);
-        }
-      }
-    template<size_t idim, typename T2, typename Func>
-      void applyHelper(ptrdiff_t idx, ptrdiff_t idx2,
-                       const mav<T2,ndim> &other, Func func)
-      {
-      if constexpr (idim==0)
-        MR_assert(conformable(other), "dimension mismatch");
-      if constexpr (idim+1<ndim)
-        for (size_t i=0; i<shp[idim]; ++i)
-          applyHelper<idim+1, T2, Func>(idx+i*str[idim],
-                                        idx2+i*other.stride(idim), other, func);
-      else
-        {
-        T *d2 = vdata();
-        const T2 *d3 = other.cdata();
-        for (size_t i=0; i<shp[idim]; ++i)
-          func(d2[idx+i*str[idim]],d3[idx2+i*other.stride(idim)]);
-        }
-      }
-
-    template<size_t nd2> auto subdata(const shape_t &i0, const shape_t &extent) const
-      {
-      array<size_t, nd2> nshp;
-      array<ptrdiff_t, nd2> nstr;
-      size_t n0=0;
-      for (auto x:extent) if (x==0) ++n0;
-      MR_assert(n0+nd2==ndim, "bad extent");
-      ptrdiff_t nofs=0;
-      for (size_t i=0, i2=0; i<ndim; ++i)
-        {
-        MR_assert(i0[i]<shp[i], "bad subset");
-        nofs+=i0[i]*str[i];
-        if (extent[i]!=0)
-          {
-          auto ext = extent[i];
-          if (ext==MAXIDX)
-            ext = shp[i]-i0[i];
-          MR_assert(i0[i]+ext<=shp[i], "bad subset");
-          nshp[i2]=ext; nstr[i2]=str[i];
-          ++i2;
-          }
-        }
-      return make_tuple(nshp, nstr, nofs);
-      }
-
-  public:
-    using tbuf::vraw, tbuf::craw, tbuf::vdata, tbuf::cdata;
+    using tbuf::raw, tbuf::data;
     using tinfo::contiguous, tinfo::size, tinfo::idx, tinfo::conformable;
 
-    /// Constructs a mav with size and stride zero in all dimensions and no
-    /// data content.
-    mav() {}
-    /** Constructs a read-only mav with its first data entry at \a d
-     *  and the given shape and strides. The mav does not own the memory. */
-    mav(const T *d_, const shape_t &shp_, const stride_t &str_)
-      : tinfo(shp_, str_), tbuf(d_) {}
-    /** Constructs a mav with its first data entry at \a d
-     *  and the given shape and strides. The mav does not own the memory.
-     *  Iff \a rw_ is true, write accesses to the array are allowed. */
-    mav(T *d_, const shape_t &shp_, const stride_t &str_, bool rw_=false)
-      : tinfo(shp_, str_), tbuf(d_, rw_) {}
-    /** Constructs a read-only mav with its first data entry at \a d
-     *  and the given shape. The array is assumed to be C-contiguous.
-     *  The mav does not own the memory. */
-    mav(const T *d_, const shape_t &shp_)
-      : tinfo(shp_), tbuf(d_) {}
-    /** Constructs a mav with its first data entry at \a d and the given shape.
-     *  The array is assumed to be C-contiguous.
-     *  The mav does not own the memory.
-     *  Iff \a rw_ is true, write accesses to the array are allowed. */
-    mav(T *d_, const shape_t &shp_, bool rw_=false)
-      : tinfo(shp_), tbuf(d_, rw_) {}
-    /** Constructs a C-contiguous read/write mav with the given shape.
-     *  The array contents are default-initialized.
-     *  The mav owns the array memory. */
-    mav(const shape_t &shp_)
-      : tinfo(shp_), tbuf(size()) {}
-    /** Constructs a C-contiguous read/write mav with the given shape.
-     *  The array contents are not initialized.
-     *  The mav owns the array memory. */
-    mav(const shape_t &shp_, uninitialized_dummy)
+  protected:
+    cmav() {}
+    cmav(const shape_t &shp_, uninitialized_dummy)
       : tinfo(shp_), tbuf(size(), UNINITIALIZED) {}
-#if defined(_MSC_VER)
-    // MSVC is broken
-    mav(const mav &other) : tinfo(other), tbuf(other) {}
-    mav(mav &other): tinfo(other), tbuf(other) {}
-    mav(mav &&other): tinfo(other), tbuf(other) {}
-#else
-    /** Constructs a read-only mav with the same shape and strides as \a other,
-     *  pointing to the same memory. Ownership is shared. */
-    mav(const mav &other) = default;
-    /** Constructs a mav with the same read-write status, shape and strides
-     *  as \a other, pointing to the same memory. Ownership is shared. */
-    mav(mav &other) = default;
-    mav(mav &&other) = default;
-#endif
-    void assign(mav &other)
+    cmav(const shape_t &shp_)
+      : tinfo(shp_), tbuf(size()) {}
+    cmav(const tbuf &buf, const shape_t &shp_, const stride_t &str_)
+      : tinfo(shp_, str_), tbuf(buf) {}
+    cmav(const tinfo &info, const T *d_, const tbuf &buf)
+      : tinfo(info), tbuf(d_, buf) {}
+
+  public:
+    cmav(const T *d_, const shape_t &shp_, const stride_t &str_)
+      : tinfo(shp_, str_), tbuf(d_) {}
+    cmav(const T *d_, const shape_t &shp_)
+      : tinfo(shp_), tbuf(d_) {}
+    cmav(const cfmav<T> &inp)
+      : tinfo(inp), tbuf(inp) {}
+    void assign(const cmav &other)
       {
       mav_info<ndim>::assign(other);
-      membuf<T>::assign(other);
+      cmembuf<T>::assign(other);
       }
-    void assign(const mav &other)
+    operator cfmav<T>() const
       {
-      mav_info<ndim>::assign(other);
-      membuf<T>::assign(other);
+      return cfmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
       }
-    mav(const shape_t &shp_, const stride_t &str_, const T *d_, membuf<T> &mb)
-      : mav_info<ndim>(shp_, str_), membuf<T>(d_, mb) {}
-    mav(const shape_t &shp_, const stride_t &str_, const T *d_, const membuf<T> &mb)
-      : mav_info<ndim>(shp_, str_), membuf<T>(d_, mb) {}
-    operator fmav<T>() const
-      {
-      return fmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
-      }
-    operator fmav<T>()
-      {
-      return fmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
-      }
-    /// Returns the data entry at the given set of indices.
+    // Needed for template tricks.
+    cfmav<T> to_fmav() const { return operator cfmav<T>(); }
+
     template<typename... Ns> const T &operator()(Ns... ns) const
-      { return craw(idx(ns...)); }
-    /// Returns the data entry at the given set of indices.
-    template<typename... Ns> const T &c(Ns... ns) const
-      { return craw(idx(ns...)); }
-    /** Returns a writable reference to the data entry at the given set of
-     *  indices. This call will throw an exception if the mav is read-only. */
-    template<typename... Ns> T &v(Ns... ns)
-      { return vraw(idx(ns...)); }
-    /** Calls \a func for every entry in the array, passing a reference to it. */
-    template<typename Func> void apply(Func func)
+      { return raw(idx(ns...)); }
+    template<size_t nd2> cmav<T,nd2> subarray(const vector<slice> &slices) const
       {
-      if (contiguous())
-        {
-        T *d2 = vdata();
-        for (auto v=d2; v!=d2+size(); ++v)
-          func(*v);
-        return;
-        }
-      applyHelper<0,Func>(0,func);
-      }
-    /** Calls \a func for every entry in the array, passing a constant
-     *  reference to it. */
-    template<typename Func> void apply(Func func) const
-      {
-      if (contiguous())
-        {
-        const T *d2 = cdata();
-        for (auto v=d2; v!=d2+size(); ++v)
-          func(*v);
-        return;
-        }
-      applyHelper<0,Func>(0,func);
-      }
-    /** Calls \a func for every entry in the array and the corresponding entry
-     *  in \a other, passing a nonconstant reference to the entry in this array
-     *  and a constant one for the entry in \a other. */
-    template<typename T2, typename Func> void apply
-      (const mav<T2, ndim> &other,Func func)
-      { applyHelper<0,T2,Func>(0,0,other,func); }
-    /// Sets every entry of the array to \a val.
-    void fill(const T &val)
-      { apply([val](T &v){v=val;}); }
-    /** Returns a mav (of the same or smaller dimensionality) representing a
-     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
-     *  the number of entries along this dimension. If any extent is 0, this
-     *  dimension will be omitted in the output array.
-     *  Specifying an extent of MAXIDX will make the extent as large as possible.
-     *  if *this is writable, the returned mav will also be writable. */
-    template<size_t nd2> mav<T,nd2> subarray(const shape_t &i0, const shape_t &extent)
-      {
-      auto [nshp, nstr, nofs] = subdata<nd2> (i0, extent);
-      return mav<T,nd2> (nshp, nstr, tbuf::d+nofs, *this);
-      }
-    /** Returns a mav (of the same or smaller dimensionality) representing a
-     *  sub-array of *this. \a i0 indicates the starting indices, and \a extent
-     *  the number of entries along this dimension. If any extent is 0, this
-     *  dimension will be omitted in the output array.
-     *  Specifying an extent of MAXIDX will make the extent as large as possible.
-     *  The returned mav is read-only. */
-    template<size_t nd2> mav<T,nd2> subarray(const shape_t &i0, const shape_t &extent) const
-      {
-      auto [nshp, nstr, nofs] = subdata<nd2> (i0, extent);
-      return mav<T,nd2> (nshp, nstr, tbuf::d+nofs, *this);
+      auto [ninfo, nofs] = tinfo::template subdata<nd2> (slices);
+      return cmav<T,nd2> (ninfo, tbuf::d+nofs, *this);
       }
 
-    /// Returns a zero-extent mav with no associatd data.
-    static mav build_empty()
+    static cmav build_uniform(const shape_t &shape, const T &value)
+      {
+      // Don't do this at home!
+      shape_t tshp;
+      tshp.fill(1);
+      cmav tmp(tshp);
+      const_cast<T &>(tmp.raw(0)) = value;
+      stride_t nstr;
+      nstr.fill(0);
+      return cmav(tmp, shape, nstr);
+      }
+  };
+template<size_t nd2, typename T, size_t ndim> cmav<T,nd2> subarray
+  (const cmav<T, ndim> &arr, const vector<slice> &slices)  
+  { return arr.template subarray<nd2>(slices); }
+
+template<typename T, size_t ndim> class vmav: public cmav<T, ndim>
+  {
+  protected:
+    template<typename T2, size_t nd2> friend class vmav;
+
+    using parent = cmav<T, ndim>;
+    using tinfo = mav_info<ndim>;
+    using tbuf = cmembuf<T>;
+    using tinfo::shp, tinfo::str;
+
+  public:
+    using typename tinfo::shape_t;
+    using typename tinfo::stride_t;
+    using tbuf::raw, tbuf::data;
+    using tinfo::contiguous, tinfo::size, tinfo::idx, tinfo::conformable;
+
+  protected:
+    vmav(const tinfo &info, T *d_, tbuf &buf)
+      : parent(info, d_, buf) {}
+    vmav(const tbuf &buf, const shape_t &shp_, const stride_t &str_)
+      : parent(buf, shp_, str_){}
+
+  public:
+    vmav() {}
+    vmav(T *d_, const shape_t &shp_, const stride_t &str_)
+      : parent(d_, shp_, str_) {}
+    vmav(T *d_, const shape_t &shp_)
+      : parent(d_, shp_) {}
+    vmav(const shape_t &shp_)
+      : parent(shp_) {}
+    vmav(const shape_t &shp_, uninitialized_dummy)
+      : parent(shp_, UNINITIALIZED) {}
+    vmav(vfmav<T> &inp)
+      : parent(inp) {}
+      
+    void assign(vmav &other)
+      { parent::assign(other); }
+    void dealloc()
+      {
+      vmav empty;
+      assign(empty);
+      }
+    operator vfmav<T>()
+      {
+      return vfmav<T>(*this, {shp.begin(), shp.end()}, {str.begin(), str.end()});
+      }
+    // Needed for template tricks.
+    using cmav<T, ndim>::to_fmav;
+    vfmav<T> to_fmav() { return operator vfmav<T>(); }
+
+    using parent::operator();
+    template<typename... Ns> T &operator()(Ns... ns)
+      { return const_cast<T &>(parent::operator()(ns...)); }
+
+    template<size_t nd2> vmav<T,nd2> subarray(const vector<slice> &slices)
+      {
+      auto [ninfo, nofs] = tinfo::template subdata<nd2> (slices);
+      return vmav<T,nd2> (ninfo, data()+nofs, *this);
+      }
+
+    using parent::data;
+    T *data()
+     { return const_cast<T *>(tbuf::d); }
+    // read access to element #i
+    using parent::raw;
+    template<typename I> T &raw(I i)
+      { return data()[i]; }
+
+    static vmav build_empty()
       {
       shape_t nshp;
       nshp.fill(0);
-      return mav(static_cast<const T *>(nullptr), nshp);
+      return vmav(static_cast<T *>(nullptr), nshp);
       }
 
-    /** Returns a read-only mav with the specified shape, filled with \a value.
-     *  This is stored as a single value (by using strides of 0) and is
-     *  therefore very memory efficient. */
-    static mav build_uniform(const shape_t &shape, const T &value)
-      {
-      membuf<T> buf(1);
-      buf.vraw(0) = value;
-      stride_t nstr;
-      nstr.fill(0);
-      return mav(shape, nstr, buf.cdata(), buf);
-      }
-
-    /** Returns a writable mav with the specified shape.
-     *  The strides are chosen in such a way that critical strides (multiples
-     *  of 4096 bytes) along any dimension are avoided, by enlarging the
-     *  allocated memory slightly if necessary.
-     *  The array data is default-initialized. */
-    static mav build_noncritical(const shape_t &shape)
+    static vmav build_noncritical(const shape_t &shape)
       {
       auto shape2 = noncritical_shape(shape, sizeof(T));
-      mav tmp(shape2);
-      return tmp.subarray<ndim>(shape_t(), shape);
+      vmav tmp(shape2);
+      vector<slice> slc(ndim);
+      for (size_t i=0; i<ndim; ++i) slc[i] = slice(0, shape[i]);
+      return tmp.subarray<ndim>(slc);
       }
-    /** Returns a writable mav with the specified shape.
-     *  The strides are chosen in such a way that critical strides (multiples
-     *  of 4096 bytes) along any dimension are avoided, by enlarging the
-     *  allocated memory slightly if necessary.
-     *  The array data is not initialized. */
-    static mav build_noncritical(const shape_t &shape, uninitialized_dummy)
+    static vmav build_noncritical(const shape_t &shape, uninitialized_dummy)
       {
-      if (ndim==1) return mav(shape, UNINITIALIZED);
+      if (ndim<=1) return vmav(shape, UNINITIALIZED);
       auto shape2 = noncritical_shape(shape, sizeof(T));
-      mav tmp(shape2, UNINITIALIZED);
-      return tmp.subarray<ndim>(shape_t(), shape);
+      vmav tmp(shape2, UNINITIALIZED);
+      vector<slice> slc(ndim);
+      for (size_t i=0; i<ndim; ++i) slc[i] = slice(0, shape[i]);
+      return tmp.subarray<ndim>(slc);
       }
   };
 
-/** Returns a mav (of the same or smaller dimensionality) representing a
- *  sub-array of \a arr. \a i0 indicates the starting indices, and \a extent
- *  the number of entries along this dimension. If any extent is 0, this
- *  dimension will be omitted in the output array.
- *  Specifying an extent of MAXIDX will make the extent as large as possible.
- *  if *thi is writable, the returned mav will also be writable. */
-template<size_t nd2, typename T, size_t ndim> mav<T,nd2> subarray
-  (mav<T, ndim> &arr, const typename mav<T, ndim>::shape_t &i0, const typename mav<T, ndim>::shape_t &extent)  
-  { return arr.template subarray<nd2>(i0, extent); }
+template<size_t nd2, typename T, size_t ndim> vmav<T,nd2> subarray
+  (vmav<T, ndim> &arr, const vector<slice> &slices)  
+  { return arr.template subarray<nd2>(slices); }
 
-/** Returns a mav (of the same or smaller dimensionality) representing a
- *  sub-array of \a arr. \a i0 indicates the starting indices, and \a extent
- *  the number of entries along this dimension. If any extent is 0, this
- *  dimension will be omitted in the output array.
- *  Specifying an extent of MAXIDX will make the extent as large as possible.
- *  The returned mav is read-only. */
-template<size_t nd2, typename T, size_t ndim> mav<T,nd2> subarray
-  (const mav<T, ndim> &arr, const typename mav<T, ndim>::shape_t &i0, const typename mav<T, ndim>::shape_t &extent)  
-  { return arr.template subarray<nd2>(i0, extent); }
+// various operations involving fmav objects of the same shape -- experimental
 
-template<typename T, size_t ndim> class MavIter
+DUCC0_NOINLINE void opt_shp_str(fmav_info::shape_t &shp, vector<fmav_info::stride_t> &str)
   {
-  protected:
-    fmav<T> mav;
-    array<size_t, ndim> shp;
-    array<ptrdiff_t, ndim> str;
-    fmav_info::shape_t pos;
-    ptrdiff_t idx_;
-    bool done_;
+  if (shp.size()>1)
+    {
+    // sort dimensions in order of descending stride, as far as possible
+    vector<size_t> strcrit(shp.size(),~size_t(0));
+    for (const auto &curstr: str)
+      for (size_t i=0; i<curstr.size(); ++i)
+        strcrit[i] = min(strcrit[i],size_t(abs(curstr[i])));
 
-    template<typename... Ns> ptrdiff_t getIdx(size_t dim, size_t n, Ns... ns) const
-      { return str[dim]*n + getIdx(dim+1, ns...); }
-    ptrdiff_t getIdx(size_t dim, size_t n) const
-      { return str[dim]*n; }
+    for (size_t lastdim=shp.size(); lastdim>1; --lastdim)
+      {
+      auto dim = size_t(min_element(strcrit.begin(),strcrit.begin()+lastdim)
+                        -strcrit.begin());
+      if ((dim+1!=lastdim) && (strcrit[dim]<strcrit[lastdim-1]))
+        {
+        swap(strcrit[dim], strcrit[lastdim-1]);
+        swap(shp[dim], shp[lastdim-1]);
+        for (auto &curstr: str)
+          swap(curstr[dim], curstr[lastdim-1]);
+        }
+      }
+    // try merging dimensions
+    size_t ndim = shp.size();
+    if (ndim>1)
+      for (size_t d0=ndim-2; d0+1>0; --d0)
+        {
+        bool can_merge = true;
+        for (const auto &curstr: str)
+          can_merge &= curstr[d0] == ptrdiff_t(shp[d0+1])*curstr[d0+1];
+        if (can_merge)
+          {
+          for (auto &curstr: str)
+            curstr.erase(curstr.begin()+d0);
+          shp[d0+1] *= shp[d0];
+          shp.erase(shp.begin()+d0);
+          }
+        }
+    }
+  }
+
+DUCC0_NOINLINE auto multiprep(const vector<fmav_info> &info)
+  {
+  auto narr = info.size();
+  MR_assert(narr>=1, "need at least one array");
+  for (size_t i=1; i<narr; ++i)
+    MR_assert(info[i].shape()==info[0].shape(), "shape mismatch");
+  fmav_info::shape_t shp;
+  vector<fmav_info::stride_t> str(narr);
+  for (size_t i=0; i<info[0].ndim(); ++i)
+    if (info[0].shape(i)!=1) // remove axes of length 1
+      {
+      shp.push_back(info[0].shape(i));
+      for (size_t j=0; j<narr; ++j)
+        str[j].push_back(info[j].stride(i));
+      }
+  opt_shp_str(shp, str);
+  return make_tuple(shp, str);
+  }
+
+template<typename Ttuple> constexpr inline size_t tuplelike_size()
+  { return tuple_size_v<remove_reference_t<Ttuple>>; }
+
+template <typename Func, typename Ttuple, size_t... I>
+inline void call_with_tuple_impl(Func &&func, const Ttuple& tuple,
+  index_sequence<I...>)
+  { func(forward<typename tuple_element<I, Ttuple>::type>(get<I>(tuple))...); }
+template<typename Func, typename Ttuple> inline void call_with_tuple
+  (Func &&func, Ttuple &&tuple)
+  {
+  call_with_tuple_impl(forward<Func>(func), tuple,
+                       make_index_sequence<tuplelike_size<Ttuple>()>());
+  }
+template <typename Func, typename Ttuple, size_t... I>
+inline void call_with_tuple2_impl(Func &&func, const Ttuple& tuple,
+  index_sequence<I...>)
+  { func(get<I>(tuple)...); }
+template<typename Func, typename Ttuple> inline void call_with_tuple2
+  (Func &&func, Ttuple &&tuple)
+  {
+  call_with_tuple2_impl(forward<Func>(func), tuple,
+                        make_index_sequence<tuplelike_size<Ttuple>()>());
+  }
+
+template<typename...Ts, typename Func, size_t... Is>
+inline auto tuple_transform_impl(tuple<Ts...> const& inputs, Func &&func,
+  index_sequence<Is...>)
+  { return tuple<result_of_t<Func(Ts)>...>{func(get<Is>(inputs))...}; }
+template<typename... Ts, typename Func>
+inline auto tuple_transform(tuple<Ts...> const& inputs, Func &&func)
+  {
+  return tuple_transform_impl(inputs, forward<Func>(func),
+                              make_index_sequence<sizeof...(Ts)>{});
+  }
+template<typename...Ts, typename Func, size_t... Is>
+inline void tuple_for_each_impl(tuple<Ts...> &tpl, Func &&func,
+  index_sequence<Is...>)
+  { (func(get<Is>(tpl)), ...); }
+template<typename... Ts, typename Func>
+inline void tuple_for_each(tuple<Ts...> &tpl, Func &&func)
+  {
+  tuple_for_each_impl(tpl, forward<Func>(func), make_index_sequence<sizeof...(Ts)>{});
+  }
+template<typename...Ts, typename Func, size_t... Is>
+inline void tuple_for_each_impl(const tuple<Ts...> &tpl, Func &&func,
+  index_sequence<Is...>)
+  { (func(get<Is>(tpl)), ...); }
+template<typename... Ts, typename Func>
+inline void tuple_for_each(const tuple<Ts...> &tpl, Func &&func)
+  {
+  tuple_for_each_impl(tpl, forward<Func>(func), make_index_sequence<sizeof...(Ts)>{});
+  }
+
+template<typename...Ts, typename Func, size_t... Is>
+inline auto tuple_transform_idx_impl(const tuple<Ts...> &inputs,
+   Func &&func, index_sequence<Is...>)
+  {
+  return tuple<result_of_t<Func(Ts, int)>...>
+    {func(get<Is>(inputs), Is)...};
+  }
+
+template<typename... Ts, typename Func>
+inline auto tuple_transform_idx(const tuple<Ts...> &inputs, Func &&func)
+  {
+  return tuple_transform_idx_impl(inputs, forward<Func>(func),
+                                  make_index_sequence<sizeof...(Ts)>{});
+  }
+template<typename...Ts, typename Func, size_t... Is>
+inline void tuple_for_each_idx_impl(tuple<Ts...> &tpl, Func &&func,
+  index_sequence<Is...>)
+  { (func(get<Is>(tpl), Is), ...); }
+template<typename... Ts, typename Func>
+inline void tuple_for_each_idx(tuple<Ts...> &tpl, Func &&func)
+  {
+  tuple_for_each_idx_impl(tpl, forward<Func>(func), make_index_sequence<sizeof...(Ts)>{});
+  }
+
+template<typename Ttuple> inline auto to_ref (const Ttuple &tuple)
+  {
+  return tuple_transform(tuple,[](auto &&ptr) -> typename std::add_lvalue_reference_t<decltype(*ptr)>{ return *ptr; });
+  }
+
+template<typename Ttuple> inline Ttuple update_pointers (const Ttuple &ptrs,
+  const vector<vector<ptrdiff_t>> &str, size_t idim, size_t i)
+  {
+  return tuple_transform_idx(ptrs, [i,idim,&str](auto &&ptr, size_t idx)
+                             { return ptr + i*str[idx][idim]; });
+  }
+
+template<typename Ttuple> inline Ttuple update_pointers_contiguous (const Ttuple &ptrs,
+  size_t i)
+  {
+  return tuple_transform(ptrs, [i](auto &&ptr) { return ptr+i; });
+  }
+template<typename Ttuple> inline void advance_contiguous (Ttuple &ptrs)
+  { tuple_for_each(ptrs, [](auto &&ptr) { ++ptr; }); }
+template<typename Ttuple> inline void advance (Ttuple &ptrs,
+  const vector<vector<ptrdiff_t>> &str, size_t idim)
+  {
+  tuple_for_each_idx(ptrs, [idim,&str](auto &&ptr, size_t idx)
+                     { ptr += str[idx][idim]; });
+  }
+
+template<typename Ttuple, typename Func>
+  DUCC0_NOINLINE void applyHelper(size_t idim, const vector<size_t> &shp,
+    const vector<vector<ptrdiff_t>> &str, const Ttuple &ptrs, Func &&func,
+    bool last_contiguous)
+  {
+  auto len = shp[idim];
+  if (idim+1<shp.size())
+    for (size_t i=0; i<len; ++i)
+      applyHelper(idim+1, shp, str, update_pointers(ptrs, str, idim, i),
+        func, last_contiguous);
+  else
+    {
+    auto locptrs(ptrs);
+    if (last_contiguous)
+      for (size_t i=0; i<len; ++i, advance_contiguous(locptrs))
+        call_with_tuple(func, to_ref(locptrs));
+    else
+      for (size_t i=0; i<len; ++i, advance(locptrs, str, idim))
+        call_with_tuple(func, to_ref(locptrs));
+    }
+  }
+template<typename Func, typename Ttuple>
+  inline void applyHelper(const vector<size_t> &shp,
+    const vector<vector<ptrdiff_t>> &str, const Ttuple &ptrs, Func &&func,
+    size_t nthreads, bool last_contiguous)
+  {
+  if (shp.size()==0)
+    call_with_tuple(forward<Func>(func), to_ref(ptrs));
+  else if (nthreads==1)
+    applyHelper(0, shp, str, ptrs, forward<Func>(func), last_contiguous);
+  else
+    execParallel(shp[0], nthreads, [&](size_t lo, size_t hi)
+      {
+      auto locptrs = update_pointers(ptrs, str, 0, lo);
+      auto locshp(shp);
+      locshp[0] = hi-lo;
+      applyHelper(0, locshp, str, locptrs, func, last_contiguous);
+      });
+  }
+
+template<typename Func, typename... Targs>
+  void mav_apply(Func &&func, int nthreads, Targs... args)
+  {
+  vector<fmav_info> infos;
+  (infos.push_back(args), ...);
+  auto [shp, str] = multiprep(infos);
+  bool last_contiguous = true;
+  if (shp.size()>0)
+    for (const auto &s:str)
+      last_contiguous &= (s.back()==1);
+
+  auto ptrs = tuple_transform(forward_as_tuple(args...),
+    [](auto &&arg){return arg.data();});
+  applyHelper(shp, str, ptrs, forward<Func>(func), nthreads, last_contiguous);
+  }
+
+DUCC0_NOINLINE auto multiprep_noopt(const vector<fmav_info> &info)
+  {
+  auto narr = info.size();
+  MR_assert(narr>=1, "need at least one array");
+  for (size_t i=1; i<narr; ++i)
+    MR_assert(info[i].shape()==info[0].shape(), "shape mismatch");
+  fmav_info::shape_t shp;
+  vector<fmav_info::stride_t> str(narr);
+  for (size_t i=0; i<info[0].ndim(); ++i)
+    {
+    shp.push_back(info[0].shape(i));
+    for (size_t j=0; j<narr; ++j)
+      str[j].push_back(info[j].stride(i));
+    }
+  return make_tuple(shp, str);
+  }
+
+template <typename Func, typename Arg, typename Ttuple, size_t... I>
+inline void call_with_tuple_arg_impl(Func &&func, Arg &&arg, const Ttuple& tuple,
+  index_sequence<I...>)
+  { func(forward<typename tuple_element<I, Ttuple>::type>(get<I>(tuple))..., arg); }
+template<typename Func, typename Arg, typename Ttuple> inline void call_with_tuple_arg
+  (Func &&func, Arg &&arg, Ttuple &&tuple)
+  {
+  call_with_tuple_arg_impl(forward<Func>(func), arg, tuple,
+                       make_index_sequence<tuplelike_size<Ttuple>()>());
+  }
+template<typename Ttuple, typename Func>
+  DUCC0_NOINLINE void applyHelper_with_index(size_t idim, const vector<size_t> &shp,
+    const vector<vector<ptrdiff_t>> &str, const Ttuple &ptrs, Func &&func,
+    vector<size_t> &index)
+  {
+  auto len = shp[idim];
+  if (idim+1<shp.size())
+    {
+    auto idxbak = index[idim];
+    for (size_t i=0; i<len; ++i, ++index[idim])
+      applyHelper_with_index(idim+1, shp, str, update_pointers(ptrs, str, idim, i),
+        func, index);
+    index[idim] = idxbak;
+    }
+  else
+    {
+    auto locptrs(ptrs);
+    auto idxbak = index[idim];
+    for (size_t i=0; i<len; ++i, ++index[idim], advance(locptrs, str, idim))
+      call_with_tuple_arg(func, const_cast<const vector<size_t> &>(index), to_ref(locptrs));
+    index[idim] = idxbak;
+    }
+  }
+template<typename Func, typename Ttuple>
+  inline void applyHelper_with_index(const vector<size_t> &shp,
+    const vector<vector<ptrdiff_t>> &str, const Ttuple &ptrs, Func &&func,
+    size_t nthreads, vector<size_t> &index)
+  {
+  if (shp.size()==0)
+    call_with_tuple_arg(forward<Func>(func), const_cast<const vector<size_t> &>(index), to_ref(ptrs));
+  else if (nthreads==1)
+    applyHelper_with_index(0, shp, str, ptrs, forward<Func>(func), index);
+  else
+    execParallel(shp[0], nthreads, [&](size_t lo, size_t hi)
+      {
+      auto locptrs = update_pointers(ptrs, str, 0, lo);
+      auto locshp(shp);
+      locshp[0] = hi-lo;
+      auto locidx(index);
+      locidx[0]=lo;
+      applyHelper_with_index(0, locshp, str, locptrs, func, locidx);
+      });
+  }
+template<typename Func, typename... Targs>
+  void mav_apply_with_index(Func &&func, int nthreads, Targs... args)
+  {
+  vector<fmav_info> infos;
+  (infos.push_back(args), ...);
+  auto [shp, str] = multiprep_noopt(infos);
+  vector<size_t> index(shp.size(), 0);
+
+  auto ptrs = tuple_transform(forward_as_tuple(args...),
+    [](auto &&arg){return arg.data();});
+  applyHelper_with_index(shp, str, ptrs, forward<Func>(func), nthreads, index);
+  }
+
+
+template<typename T, size_t ndim> class mavref
+  {
+  private:
+    const mav_info<ndim> &info;
+    T *d;
 
   public:
-    MavIter(const fmav<T> &mav_)
-      : mav(mav_), pos(mav.ndim()-ndim,0), idx_(0), done_(false)
-      {
-      for (size_t i=0; i<ndim; ++i)
-        {
-        shp[i] = mav.shape(mav.ndim()-ndim+i);
-        str[i] = mav.stride(mav.ndim()-ndim+i);
-        }
-      }
-    MavIter(fmav<T> &mav_)
-      : mav(mav_), pos(mav.ndim()-ndim,0), idx_(0), done_(false)
-      {
-      for (size_t i=0; i<ndim; ++i)
-        {
-        shp[i] = mav.shape(mav.ndim()-ndim+i);
-        str[i] = mav.stride(mav.ndim()-ndim+i);
-        }
-      }
-    bool done() const
-      { return done_; }
-    void inc()
-      {
-      for (ptrdiff_t i=mav.ndim()-ndim-1; i>=0; --i)
-        {
-        idx_+=mav.stride(i);
-        if (++pos[i]<mav.shape(i)) return;
-        pos[i]=0;
-        idx_-=mav.shape(i)*mav.stride(i);
-        }
-      done_=true;
-      }
-    size_t shape(size_t i) const { return shp[i]; }
-    template<typename... Ns> ptrdiff_t idx(Ns... ns) const
-      {
-      static_assert(ndim==sizeof...(ns), "incorrect number of indices");
-      return idx_ + getIdx(0, ns...);
-      }
-    template<typename... Ns> const T &operator()(Ns... ns) const
-      { return mav.craw(idx(ns...)); }
-    template<typename... Ns> const T &c(Ns... ns) const
-      { return mav.craw(idx(ns...)); }
-    template<typename... Ns> T &v(Ns... ns)
-      { return mav.vraw(idx(ns...)); }
+    using shape_t = typename mav_info<ndim>::shape_t;
+    using stride_t = typename mav_info<ndim>::stride_t;
+    mavref(const mav_info<ndim> &info_, T *d_) : info(info_), d(d_) {}
+    template<typename... Ns> T &operator()(Ns... ns) const
+      { return d[info.idx(ns...)]; }
+    /// Returns the total number of entries in the object.
+    size_t size() const { return info.size(); }
+    /// Returns the shape of the object.
+    const shape_t &shape() const { return info.shape(); }
+    /// Returns the length along dimension \a i.
+    size_t shape(size_t i) const { return info.shape(i); }
+    /// Returns the strides of the object.
+    const stride_t &stride() const { return info.stride(); }
+    /// Returns the stride along dimension \a i.
+    const ptrdiff_t &stride(size_t i) const { return info.stride(i); }
+    /// Returns true iff the last dimension has stride 1.
+    /**  Typically used for optimization purposes. */
+    bool last_contiguous() const
+      { return info.last_contiguous(); }
+    /** Returns true iff the object is C-contiguous, i.e. if the stride of the
+     *  last dimension is 1, the stride for the next-to-last dimension is the
+     *  shape of the last dimension etc. */
+    bool contiguous() const
+      { return info.contiguous(); }
+    /// Returns true iff this->shape and \a other.shape match.
+    bool conformable(const mavref &other) const
+      { return shape()==other.shape(); }
   };
+
+template<typename T, size_t ndim>
+  mavref<T, ndim> make_mavref(const mav_info<ndim> &info_, T *d_)
+  { return mavref<T, ndim>(info_, d_); }
+
+template<typename...Ts, typename ...Qs, typename Func, size_t... Is>
+inline auto tuple_transform2_impl(const tuple<Ts...> &i1, const tuple<Qs...> &i2,
+  Func &&func, index_sequence<Is...>)
+  { return tuple<result_of_t<Func(Ts, Qs)>...>{func(get<Is>(i1),get<Is>(i2))...}; }
+template<typename... Ts, typename ...Qs, typename Func>
+inline auto tuple_transform2(const tuple<Ts...> &i1, const tuple<Qs...> &i2,
+  Func &&func)
+  {
+  return tuple_transform2_impl(i1, i2, forward<Func>(func),
+                               make_index_sequence<sizeof...(Ts)>{});
+  }
+template<typename Tptrs, typename Tinfos>
+  auto make_mavrefs(const Tptrs &ptrs, const Tinfos &infos)
+  {
+  return tuple_transform2(ptrs, infos, [](auto &&ptr, auto &&info)
+    { return make_mavref(info, ptr); });
+  }
+
+template<size_t ndim> auto make_infos(const fmav_info &info)
+  {
+  if constexpr(ndim>0)
+    MR_assert(ndim<=info.ndim(), "bad dimensionality");
+  auto iterdim = info.ndim()-ndim;
+  fmav_info fout({info.shape().begin(),info.shape().begin()+iterdim},
+                 {info.stride().begin(),info.stride().begin()+iterdim});
+
+  typename mav_info<ndim>::shape_t shp;
+  typename mav_info<ndim>::stride_t str;
+  if constexpr (ndim>0)  // just to silence compiler warnings
+    for (size_t i=0; i<ndim; ++i)
+      {
+      shp[i] = info.shape(iterdim+i);
+      str[i] = info.stride(iterdim+i);
+      }
+  mav_info<ndim> iout(shp, str);
+  return make_tuple(fout, iout);
+  }
+
+template<typename Tptrs, typename Tinfos, typename Func>
+  DUCC0_NOINLINE void flexible_mav_applyHelper(size_t idim, const vector<size_t> &shp,
+    const vector<vector<ptrdiff_t>> &str, const Tptrs &ptrs,
+    const Tinfos &infos, Func &&func)
+  {
+  auto len = shp[idim];
+  auto locptrs(ptrs);
+  if (idim+1<shp.size())
+    for (size_t i=0; i<len; ++i, advance(locptrs, str, idim))
+      flexible_mav_applyHelper(idim+1, shp, str, locptrs, infos, func);
+  else
+    for (size_t i=0; i<len; ++i, advance(locptrs, str, idim))
+      call_with_tuple2(func, make_mavrefs(locptrs, infos));
+  }
+template<typename Tptrs, typename Tinfos, typename Func>
+  DUCC0_NOINLINE void flexible_mav_applyHelper(const vector<size_t> &shp,
+    const vector<vector<ptrdiff_t>> &str, const Tptrs &ptrs,
+    const Tinfos &infos, Func &&func, size_t nthreads)
+  {
+  if (shp.size()==0)
+    call_with_tuple2(func, make_mavrefs(ptrs, infos));
+  else if (nthreads==1)
+    flexible_mav_applyHelper(0, shp, str, ptrs, infos, forward<Func>(func));
+  else
+    execParallel(shp[0], nthreads, [&](size_t lo, size_t hi)
+      {
+      auto locptrs = update_pointers(ptrs, str, 0, lo);
+      auto locshp(shp);
+      locshp[0] = hi-lo;
+      flexible_mav_applyHelper(0, locshp, str, locptrs, infos, func);
+      });
+  }
+
+template<size_t ndim> struct Xdim { static constexpr size_t dim=ndim; };
+
+template<typename Ttuple, typename Tdim, typename Func>
+  void xflexible_mav_apply(const Ttuple &tuple, const Tdim &dim, Func &&func, size_t nthreads)
+  {
+  auto fullinfos = tuple_transform2(tuple, dim, [](const auto &arg, const auto &dim)
+                                    { return make_infos<remove_reference_t<decltype(dim)>::dim>(fmav_info(arg)); });
+  vector<fmav_info> iter_infos;
+  tuple_for_each(fullinfos,[&iter_infos](const auto &entry){iter_infos.push_back(get<0>(entry));});
+  auto [shp, str] = multiprep(iter_infos);
+
+  auto infos2 = tuple_transform(fullinfos, [](const auto &arg)
+                                { return get<1>(arg); });
+  auto ptrs = tuple_transform(tuple, [](auto &&arg){return arg.data();});
+  flexible_mav_applyHelper(shp, str, ptrs, infos2, forward<Func>(func), nthreads);
+  }
+
+template<size_t nd0, typename T0, typename Func>
+  void flexible_mav_apply(Func &&func, size_t nthreads, T0 &&m0)
+  {
+  xflexible_mav_apply(forward_as_tuple(m0),
+                      forward_as_tuple(Xdim<nd0>()),
+                      forward<Func>(func), nthreads); 
+  }
+
+template<size_t nd0, size_t nd1, typename T0, typename T1, typename Func>
+  void flexible_mav_apply(Func &&func, size_t nthreads, T0 &&m0, T1 &&m1)
+  {
+  xflexible_mav_apply(forward_as_tuple(m0, m1),
+                      forward_as_tuple(Xdim<nd0>(), Xdim<nd1>()),
+                      forward<Func>(func), nthreads); 
+  }
+
+template<size_t nd0, size_t nd1, size_t nd2,
+         typename T0, typename T1, typename T2, typename Func>
+  void flexible_mav_apply(Func &&func, size_t nthreads, T0 &&m0, T1 &&m1, T2 &&m2)
+  {
+  xflexible_mav_apply(forward_as_tuple(m0, m1, m2),
+                      forward_as_tuple(Xdim<nd0>(), Xdim<nd1>(), Xdim<nd2>()),
+                      forward<Func>(func), nthreads); 
+  }
 
 }
 
 using detail_mav::UNINITIALIZED;
 using detail_mav::fmav_info;
-using detail_mav::fmav;
 using detail_mav::mav_info;
-using detail_mav::mav;
-using detail_mav::FmavIter;
-using detail_mav::MavIter;
+using detail_mav::slice;
 using detail_mav::MAXIDX;
+using detail_mav::cfmav;
+using detail_mav::vfmav;
+using detail_mav::cmav;
+using detail_mav::vmav;
 using detail_mav::subarray;
-
+using detail_mav::mav_apply;
+using detail_mav::mav_apply_with_index;
+using detail_mav::flexible_mav_apply;
 }
 
 #endif
