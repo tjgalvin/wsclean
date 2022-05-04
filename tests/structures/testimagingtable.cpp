@@ -1,5 +1,7 @@
 #include "../../structures/imagingtable.h"
 
+#include <radler/work_table.h>
+
 #include <array>
 
 #include <boost/test/unit_test.hpp>
@@ -262,7 +264,7 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   CachedImageSet psf_images;
   CachedImageSet model_images;
   CachedImageSet residual_images;
-  std::unique_ptr<radler::DeconvolutionTable> deconvolution_table =
+  std::unique_ptr<radler::WorkTable> deconvolution_table =
       table.CreateDeconvolutionTable(1, psf_images, model_images,
                                      residual_images);
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() == 1u);
@@ -276,7 +278,7 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   BOOST_TEST_REQUIRE(deconvolution_table->Size() == entry->imageCount);
 
   size_t index = 0;
-  for (const radler::DeconvolutionTableEntry& deconvolution_entry :
+  for (const radler::WorkTableEntry& deconvolution_entry :
        *deconvolution_table) {
     BOOST_TEST(&deconvolution_entry ==
                deconvolution_table->OriginalGroups()[0][index]);
@@ -338,7 +340,7 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
   }
 
   CachedImageSet images;
-  std::unique_ptr<radler::DeconvolutionTable> deconvolution_table =
+  std::unique_ptr<radler::WorkTable> deconvolution_table =
       table.CreateDeconvolutionTable(entries.size(), images, images, images);
 
   BOOST_TEST_REQUIRE(deconvolution_table->Size() == entries.size());
@@ -347,19 +349,18 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
   BOOST_TEST_REQUIRE(deconvolution_table->DeconvolutionGroups().size() ==
                      entries.size());
 
-  auto entry_iterator = deconvolution_table->begin();
+  auto entry_iterator = deconvolution_table->Begin();
   for (int index = 0; index < int(entries.size()); ++index, ++entry_iterator) {
-    BOOST_TEST((entry_iterator != deconvolution_table->end()));
+    BOOST_TEST((entry_iterator != deconvolution_table->End()));
 
-    const radler::DeconvolutionTableEntry& deconvolution_entry =
-        *entry_iterator;
+    const radler::WorkTableEntry& deconvolution_entry = *entry_iterator;
     BOOST_TEST(deconvolution_entry.original_channel_index ==
                entries[index]->outputChannelIndex);
     // Only use image_weight for checking if the entry is the correct entry.
     // The single entry test above checks if the other fields are copied.
     BOOST_TEST(deconvolution_entry.image_weight == entries[index]->imageWeight);
 
-    const radler::DeconvolutionTable::Group& group =
+    const radler::WorkTable::Group& group =
         deconvolution_table->OriginalGroups()[index];
     BOOST_TEST_REQUIRE(group.size() == 1);
     BOOST_TEST(group[0] == &deconvolution_entry);
@@ -367,7 +368,7 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
     BOOST_TEST(deconvolution_table->DeconvolutionGroups()[index] ==
                std::vector<int>(1, index));
   }
-  BOOST_TEST((entry_iterator == deconvolution_table->end()));
+  BOOST_TEST((entry_iterator == deconvolution_table->End()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

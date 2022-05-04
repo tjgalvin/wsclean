@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-#include <radler/deconvolution_table.h>
+#include <radler/work_table.h>
 
 /**
  * The ImagingTable contains ImagingTableEntry's and supports creating subtables
@@ -142,7 +142,7 @@ class ImagingTable {
    */
   void AssignGridDataFromPolarization(aocommon::PolarizationEnum polarization);
 
-  std::unique_ptr<radler::DeconvolutionTable> CreateDeconvolutionTable(
+  std::unique_ptr<radler::WorkTable> CreateDeconvolutionTable(
       int n_deconvolution_channels, CachedImageSet& psf_images,
       CachedImageSet& model_images, CachedImageSet& residual_images) const;
 

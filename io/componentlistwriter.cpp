@@ -30,7 +30,7 @@ void ComponentListWriter::SavePbCorrectedSourceList(
       settings_.deconvolutionChannelCount ==
           deconvolution_table_->OriginalGroups().size()) {
     // No beam averaging is required
-    for (const radler::DeconvolutionTable::Group& channel_group :
+    for (const radler::WorkTable::Group& channel_group :
          deconvolution_table_->OriginalGroups()) {
       CorrectChannelForPrimaryBeam(list, *channel_group.front());
     }
@@ -48,8 +48,7 @@ void ComponentListWriter::SavePbCorrectedSourceList(
 }
 
 void ComponentListWriter::CorrectChannelForPrimaryBeam(
-    radler::ComponentList& list,
-    const radler::DeconvolutionTableEntry& entry) const {
+    radler::ComponentList& list, const radler::WorkTableEntry& entry) const {
   Logger::Debug << "Correcting source list of channel "
                 << entry.original_channel_index << " for beam\n";
   ImageFilename filename(entry.original_channel_index,
@@ -74,15 +73,14 @@ PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
   /// TODO : use real weights of images
   size_t count = 0;
   PrimaryBeam beam(settings_);
-  const std::vector<radler::DeconvolutionTable::Group>& channel_groups =
+  const std::vector<radler::WorkTable::Group>& channel_groups =
       deconvolution_table_->OriginalGroups();
   for (size_t channel_index = 0; channel_index != channel_groups.size();
        ++channel_index) {
     size_t current_image_index =
         (channel_index * deconvolution_channels) / channel_groups.size();
     if (current_image_index == image_index) {
-      const radler::DeconvolutionTableEntry& e =
-          *channel_groups[channel_index].front();
+      const radler::WorkTableEntry& e = *channel_groups[channel_index].front();
       Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6
                     << " MHz\n";
       ImageFilename filename(e.original_channel_index,

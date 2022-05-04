@@ -2,8 +2,8 @@
 #define WSCLEAN_IO_COMPONENT_LIST_WRITER_H_
 
 #include <radler/radler.h>
-#include <radler/deconvolution_table.h>
-#include <radler/deconvolution_table_entry.h>
+#include <radler/work_table.h>
+#include <radler/work_table_entry.h>
 
 #include "../structures/primarybeamimageset.h"
 
@@ -17,7 +17,7 @@ class Settings;
 class ComponentListWriter {
  public:
   ComponentListWriter(const Settings& settings,
-                      std::unique_ptr<radler::DeconvolutionTable> table)
+                      std::unique_ptr<radler::WorkTable> table)
       : settings_(settings), deconvolution_table_(std::move(table)) {}
 
   /**
@@ -35,14 +35,13 @@ class ComponentListWriter {
                                  long double phase_centre_dec) const;
 
  private:
-  void CorrectChannelForPrimaryBeam(
-      radler::ComponentList& list,
-      const radler::DeconvolutionTableEntry& entry) const;
+  void CorrectChannelForPrimaryBeam(radler::ComponentList& list,
+                                    const radler::WorkTableEntry& entry) const;
 
   PrimaryBeamImageSet LoadAveragePrimaryBeam(size_t image_index) const;
 
   const Settings& settings_;
-  std::unique_ptr<radler::DeconvolutionTable> deconvolution_table_;
+  std::unique_ptr<radler::WorkTable> deconvolution_table_;
 };
 
 #endif

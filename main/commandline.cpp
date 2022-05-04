@@ -1129,10 +1129,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       std::string shape = argv[argi];
       if (shape == "tapered-quadratic")
         settings.multiscaleShapeFunction =
-            radler::MultiscaleShape::TaperedQuadraticShape;
+            radler::MultiscaleShape::kTaperedQuadraticShape;
       else if (shape == "gaussian")
         settings.multiscaleShapeFunction =
-            radler::MultiscaleShape::GaussianShape;
+            radler::MultiscaleShape::kGaussianShape;
       else
         throw std::runtime_error("Unknown multiscale shape function given");
     } else if (param == "multiscale-convolution-padding") {
@@ -1151,7 +1151,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           parse_size_t(argv[argi], "weighting-rank-filter-size");
     } else if (param == "save-source-list") {
       settings.saveSourceList = true;
-      settings.multiscaleShapeFunction = radler::MultiscaleShape::GaussianShape;
+      settings.multiscaleShapeFunction =
+          radler::MultiscaleShape::kGaussianShape;
     } else if (param == "clean-border" || param == "cleanborder") {
       ++argi;
       settings.deconvolutionBorderRatio =

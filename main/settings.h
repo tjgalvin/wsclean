@@ -341,7 +341,7 @@ inline Settings::Settings()
       multiscaleMaxScales(0),
       multiscaleConvolutionPadding(1.1),
       multiscaleScaleList(),
-      multiscaleShapeFunction(radler::MultiscaleShape::TaperedQuadraticShape),
+      multiscaleShapeFunction(radler::MultiscaleShape::kTaperedQuadraticShape),
       deconvolutionBorderRatio(0.0),
       fitsDeconvolutionMask(),
       casaDeconvolutionMask(),

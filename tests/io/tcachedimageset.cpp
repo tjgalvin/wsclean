@@ -39,13 +39,13 @@ struct ImageSetFixtureBase {
   ImageSetFixtureBase() {}
 
   void initTable(size_t n_original_channels, size_t n_deconvolution_channels) {
-    table = std::make_unique<radler::DeconvolutionTable>(
-        n_original_channels, n_deconvolution_channels);
+    table = std::make_unique<radler::WorkTable>(n_original_channels,
+                                                n_deconvolution_channels);
   }
 
   void addToImageSet(size_t outChannel, PolarizationEnum pol,
                      size_t frequencyMHz, double imageWeight = 1.0) {
-    auto e = std::make_unique<radler::DeconvolutionTableEntry>();
+    auto e = std::make_unique<radler::WorkTableEntry>();
     e->original_channel_index = outChannel;
     e->polarization = pol;
     e->band_start_frequency = frequencyMHz;
@@ -58,7 +58,7 @@ struct ImageSetFixtureBase {
     table->AddEntry(std::move(e));
   }
 
-  std::unique_ptr<radler::DeconvolutionTable> table;
+  std::unique_ptr<radler::WorkTable> table;
   CachedImageSet cSet;
 };
 

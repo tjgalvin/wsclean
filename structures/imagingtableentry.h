@@ -3,6 +3,8 @@
 
 #include <aocommon/polarization.h>
 
+#include <radler/work_table.h>
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -51,7 +53,7 @@ struct ImagingTableEntry {
    * imaginary values.
    * @return A new DeconvolutionTableEntry.
    */
-  std::unique_ptr<radler::DeconvolutionTableEntry> CreateDeconvolutionEntry(
+  std::unique_ptr<radler::WorkTableEntry> CreateDeconvolutionEntry(
       size_t channel_index_offset, CachedImageSet* psf_images,
       CachedImageSet& model_images, CachedImageSet& residual_images,
       bool is_imaginary) const;
