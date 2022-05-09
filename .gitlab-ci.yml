@@ -73,7 +73,9 @@ build-without-everybeam:
     - gcovr --add-tracefile run-unit.json
   artifacts:
     reports:
-      cobertura: build/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
 
 build-with-everybeam:
   stage: build
