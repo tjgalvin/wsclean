@@ -191,8 +191,7 @@ endif(${EVERYBEAM_FOUND})
 find_package(IDGAPI NO_MODULE QUIET)
 
 if(IDGAPI_FOUND)
-  if(${IDGAPI_VERSION} VERSION_LESS "0.8.1" OR ${EVERYBEAM_VERSION}
-                                               VERSION_GREATER_EQUAL "0.9")
+  if(${IDGAPI_VERSION} VERSION_LESS "0.8.1")
     message(STATUS "IDG version is incompatible")
     message(
       FATAL_ERROR
