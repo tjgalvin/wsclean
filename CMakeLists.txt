@@ -5,10 +5,6 @@ project(wsclean)
 include(ExternalProject)
 include(CMakeVersionInfo.txt)
 
-#if(NOT CMAKE_BUILD_TYPE)
-#  set(CMAKE_BUILD_TYPE "Release")
-#endif()
-
 add_compile_options(-O3 -Wall -Wzero-as-null-pointer-constant)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -184,8 +180,8 @@ else(${EVERYBEAM_FOUND})
   message(
     STATUS
       "EveryBeam library not found: Functionality for calculating beams for telescopes such as LOFAR will not be available."
-      set
-      (EVERYBEAM_LIB ""))
+  )
+  set(EVERYBEAM_LIB "")
 endif(${EVERYBEAM_FOUND})
 
 find_package(IDGAPI NO_MODULE QUIET)
