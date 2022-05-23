@@ -119,7 +119,7 @@ void WSClean::loadExistingPSF(ImagingTableEntry& entry) {
   Logger::Info << "Loading existing PSF from disk...\n";
   GriddingResult result = loadExistingImage(entry, true);
 
-  if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+  if (griddingUsesATerms()) {
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
 
@@ -210,8 +210,7 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
                         *_settings.polarizations.begin(), channelIndex,
                         entry.facetIndex, entry.facet, false);
 
-  if (writeBeamImage &&
-      (_settings.gridWithBeam || !_settings.atermConfigFilename.empty())) {
+  if (writeBeamImage && griddingUsesATerms()) {
     Logger::Info << "Writing IDG beam image...\n";
     ImageFilename imageName(entry.outputChannelIndex,
                             entry.outputIntervalIndex);
@@ -737,101 +736,103 @@ void WSClean::RunClean() {
     _griddingTaskManager.reset();
 
     if (_settings.channelsOut > 1) {
-      for (std::set<PolarizationEnum>::const_iterator pol =
-               _settings.polarizations.begin();
-           pol != _settings.polarizations.end(); ++pol) {
+      for (PolarizationEnum pol : _settings.polarizations) {
         bool psfWasMade = (_settings.deconvolutionIterationCount > 0 ||
                            _settings.makePSF || _settings.makePSFOnly) &&
-                          pol == _settings.polarizations.begin();
+                          pol == *_settings.polarizations.begin();
 
         if (psfWasMade) {
           ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
-                                        "psf.fits", intervalIndex, *pol, false,
+                                        "psf.fits", intervalIndex, pol, false,
                                         true);
           if (_settings.savePsfPb)
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "psf-pb.fits",
-                                          intervalIndex, *pol, false, true);
+                                          intervalIndex, pol, false, true);
+        }
+        if (griddingUsesATerms()) {
+          ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
+                                        "beam.fits", intervalIndex, pol, false,
+                                        false);
+        } else if (usesBeam()) {
+          // The (complex valued but Hermitian) Mueller matrices are stored with
+          // 16 elements:
+          constexpr size_t n_matrix_elements = 16;
+          for (size_t beam_index = 0; beam_index != n_matrix_elements;
+               ++beam_index) {
+            ImageOperations::MakeMFSImage(
+                _settings, _infoPerChannel, _infoForMFS,
+                "beam-" + std::to_string(beam_index) + ".fits", intervalIndex,
+                pol, false, false);
+          }
         }
 
-        if (!(*pol == Polarization::YX &&
+        if (!(pol == Polarization::YX &&
               _settings.polarizations.count(Polarization::XY) != 0) &&
             !_settings.makePSFOnly) {
           if (_settings.isDirtySaved)
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "dirty.fits",
-                                          intervalIndex, *pol, false);
+                                          intervalIndex, pol, false);
           if (_settings.deconvolutionIterationCount == 0) {
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "image.fits",
-                                          intervalIndex, *pol, false);
-            if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                !_settings.facetSolutionFiles.empty() ||
-                (_settings.gridWithBeam ||
-                 !_settings.atermConfigFilename.empty()))
+                                          intervalIndex, pol, false);
+            if (usesBeam())
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "image-pb.fits",
-                                            intervalIndex, *pol, false);
+                                            intervalIndex, pol, false);
           } else {
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "residual.fits",
-                                          intervalIndex, *pol, false);
+                                          intervalIndex, pol, false);
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                           _infoForMFS, "model.fits",
-                                          intervalIndex, *pol, false);
+                                          intervalIndex, pol, false);
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
-                                            intervalIndex, *pol, false, false);
-            if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                !_settings.facetSolutionFiles.empty() ||
-                (_settings.gridWithBeam ||
-                 !_settings.atermConfigFilename.empty())) {
+                                            intervalIndex, pol, false, false);
+            if (usesBeam()) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "residual-pb.fits",
-                                            intervalIndex, *pol, false);
+                                            intervalIndex, pol, false);
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "model-pb.fits",
-                                            intervalIndex, *pol, false);
+                                            intervalIndex, pol, false);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
-                                              intervalIndex, *pol, false, true);
+                                              intervalIndex, pol, false, true);
             }
           }
-          if (Polarization::IsComplex(*pol)) {
+          if (Polarization::IsComplex(pol)) {
             if (_settings.isDirtySaved)
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "dirty.fits",
-                                            intervalIndex, *pol, true);
+                                            intervalIndex, pol, true);
             if (_settings.deconvolutionIterationCount == 0) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "image.fits",
-                                            intervalIndex, *pol, true);
-              if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                  !_settings.facetSolutionFiles.empty() ||
-                  (_settings.gridWithBeam ||
-                   !_settings.atermConfigFilename.empty()))
+                                            intervalIndex, pol, true);
+              if (usesBeam())
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "image-pb.fits",
-                                              intervalIndex, *pol, true);
+                                              intervalIndex, pol, true);
             } else {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "residual.fits",
-                                            intervalIndex, *pol, true);
+                                            intervalIndex, pol, true);
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                             _infoForMFS, "model.fits",
-                                            intervalIndex, *pol, true);
+                                            intervalIndex, pol, true);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
-                                              intervalIndex, *pol, true, false);
-              if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-                  !_settings.facetSolutionFiles.empty() ||
-                  (_settings.gridWithBeam ||
-                   !_settings.atermConfigFilename.empty())) {
+                                              intervalIndex, pol, true, false);
+              if (usesBeam()) {
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "residual-pb.fits",
-                                              intervalIndex, *pol, true);
+                                              intervalIndex, pol, true);
                 ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
                                               _infoForMFS, "model-pb.fits",
-                                              intervalIndex, *pol, true);
-                ImageOperations::RenderMFSImage(
-                    _settings, _infoForMFS, intervalIndex, *pol, true, true);
+                                              intervalIndex, pol, true);
+                ImageOperations::RenderMFSImage(_settings, _infoForMFS,
+                                                intervalIndex, pol, true, true);
               }
             }
           }
@@ -1067,7 +1068,7 @@ void WSClean::saveRestoredImagesForGroup(
     // This conditional ensures that the images are available before applying
     // the primarybeam
     if (curPol == *_settings.polarizations.rbegin()) {
-      if (_settings.gridWithBeam || !_settings.atermConfigFilename.empty()) {
+      if (griddingUsesATerms()) {
         IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image",
                                             _settings);
         if (_settings.savePsfPb)
@@ -1230,7 +1231,7 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
 
     const std::string suffix =
         (_settings.applyFacetBeam || !_settings.facetSolutionFiles.empty() ||
-         _settings.gridWithBeam || !_settings.atermConfigFilename.empty())
+         griddingUsesATerms())
             ? "-model-pb.fits"
             : "-model.fits";
     aocommon::FitsReader reader(prefix + suffix);
@@ -1655,9 +1656,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     componentListWriter.SaveSourceList(*_deconvolution,
                                        _observationInfo.phaseCentreRA,
                                        _observationInfo.phaseCentreDec);
-    if (_settings.applyPrimaryBeam || _settings.applyFacetBeam ||
-        !_settings.facetSolutionFiles.empty() || _settings.gridWithBeam ||
-        !_settings.atermConfigFilename.empty()) {
+    if (usesBeam()) {
       componentListWriter.SavePbCorrectedSourceList(
           *_deconvolution, _observationInfo.phaseCentreRA,
           _observationInfo.phaseCentreDec);

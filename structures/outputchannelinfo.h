@@ -1,7 +1,9 @@
 #ifndef OUTPUT_CHANNEL_INFO_H
 #define OUTPUT_CHANNEL_INFO_H
 
+#include <cmath>
 #include <cstring>
+#include <vector>
 
 struct OutputChannelInfo {
   OutputChannelInfo()
@@ -26,5 +28,25 @@ struct OutputChannelInfo {
   double beamSizeEstimate;
   double theoreticBeamSize, psfNormalizationFactor;
 };
+
+/**
+ * Calculate the smallest "theoretic" beam size in a vector of channels.
+ * Non-finite/NaN values are skipped. If no finite values are present,
+ * NaN is returned.
+ */
+inline double SmallestTheoreticBeamSize(
+    const std::vector<OutputChannelInfo>& channels) {
+  double smallest_theoretic_beam_size = std::numeric_limits<double>::max();
+  for (const OutputChannelInfo& channel : channels) {
+    const double value = channel.theoreticBeamSize;
+    if (std::isfinite(value)) {
+      smallest_theoretic_beam_size =
+          std::min(smallest_theoretic_beam_size, value);
+    }
+  }
+  return (smallest_theoretic_beam_size == std::numeric_limits<double>::max())
+             ? std::numeric_limits<double>::quiet_NaN()
+             : smallest_theoretic_beam_size;
+}
 
 #endif

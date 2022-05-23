@@ -108,12 +108,7 @@ void ImageOperations::MakeMFSImage(
       highestFreq =
           std::max(highestFreq, reader.Frequency() + reader.Bandwidth() * 0.5);
     }
-    double weight;
-    if (!reader.ReadDoubleKeyIfExists("WSCIMGWG", weight)) {
-      Logger::Error << "Error: image " << name
-                    << " did not have the WSCIMGWG keyword.\n";
-      weight = 0.0;
-    }
+    const double weight = infoPerChannel[ch].weight;
     weightSum += weight;
     reader.Read(addedImage.data());
     for (size_t i = 0; i != size; ++i) {
@@ -126,18 +121,10 @@ void ImageOperations::MakeMFSImage(
   for (size_t i = 0; i != size; ++i) mfsImage[i] /= weightImage[i];
 
   if (isPSF) {
-    double smallestTheoreticBeamSize = 0.0;
-    for (std::vector<OutputChannelInfo>::const_reverse_iterator r =
-             infoPerChannel.rbegin();
-         r != infoPerChannel.rend(); ++r) {
-      if (std::isfinite(r->theoreticBeamSize)) {
-        smallestTheoreticBeamSize = r->theoreticBeamSize;
-        break;
-      }
-    }
-    double pixelScale = std::min(settings.pixelScaleX, settings.pixelScaleY);
-    if (smallestTheoreticBeamSize < pixelScale)
-      smallestTheoreticBeamSize = pixelScale;
+    const double pixelScale =
+        std::min(settings.pixelScaleX, settings.pixelScaleY);
+    const double smallestTheoreticBeamSize =
+        std::max(SmallestTheoreticBeamSize(infoPerChannel), pixelScale);
 
     ImageOperations::DetermineBeamSize(
         settings, mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA,

@@ -81,6 +81,25 @@ class WSClean {
 
   void performReordering(bool isPredictMode);
 
+  /**
+   * Returns true when gridding is done with a-terms. This can either
+   * be enabled by setting the gridWithBeam setting to true or by providing
+   * an aterm config file. */
+  bool griddingUsesATerms() const {
+    return _settings.gridWithBeam || !_settings.atermConfigFilename.empty();
+  }
+
+  /**
+   * True when the imaging uses any of the methods to apply a beam.
+   * A beam can be applied through facetting (with solutions or beam),
+   * through gridding with the beam using IDG or by correcting for the beam
+   * in image space after imaging.
+   */
+  bool usesBeam() const {
+    return _settings.applyPrimaryBeam || _settings.applyFacetBeam ||
+           !_settings.facetSolutionFiles.empty() || griddingUsesATerms();
+  }
+
   ObservationInfo getObservationInfo() const;
   /**
    * Add the phase shift of a facet to an ObservationInfo object.
