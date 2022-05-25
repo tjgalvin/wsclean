@@ -245,9 +245,7 @@ void WSClean::processFullPSF(Image& image, const ImagingTableEntry& entry) {
   image *= normFactor * entry.siCorrection;
   Logger::Debug << "Normalized PSF by factor of " << normFactor << ".\n";
 
-  radler::RemoveNansInPsf(image.Data(), _settings.trimmedImageWidth,
-                          _settings.trimmedImageHeight);
-
+  image.RemoveNans();
   double minPixelScale = std::min(_settings.pixelScaleX, _settings.pixelScaleY);
   double initialFitSize =
       std::max(_infoPerChannel[channelIndex].beamSizeEstimate, minPixelScale);

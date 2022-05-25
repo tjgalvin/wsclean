@@ -270,10 +270,10 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() == 1u);
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups()[0].size() == 2u);
 
-  const std::vector<std::vector<int>>& deconvolution_groups =
+  const std::vector<std::vector<size_t>>& deconvolution_groups =
       deconvolution_table->DeconvolutionGroups();
   BOOST_TEST_REQUIRE(deconvolution_groups.size() == 1);
-  BOOST_TEST_REQUIRE(deconvolution_groups.front() == std::vector<int>(1, 0));
+  BOOST_TEST_REQUIRE(deconvolution_groups.front() == std::vector<size_t>(1, 0));
 
   BOOST_TEST_REQUIRE(deconvolution_table->Size() == entry->imageCount);
 
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
     BOOST_TEST(group[0] == &deconvolution_entry);
 
     BOOST_TEST(deconvolution_table->DeconvolutionGroups()[index] ==
-               std::vector<int>(1, index));
+               std::vector<size_t>(1, index));
   }
   BOOST_TEST((entry_iterator == deconvolution_table->End()));
 }

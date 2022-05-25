@@ -424,7 +424,7 @@ radler::Settings Settings::GetRadlerSettings() const {
       radler_settings.multiscale.shape = multiscaleShapeFunction;
       break;
     case radler::AlgorithmType::kIuwt:
-      radler_settings.iuwt.snr_test = iuwtSNRTest;
+      // IUWT has no algorithm-specific settings
       break;
     case radler::AlgorithmType::kMoreSane:
       radler_settings.more_sane.location = moreSaneLocation;
