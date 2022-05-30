@@ -1,18 +1,16 @@
 /*
- *  This file is part of nifty_gridder.
- *
- *  nifty_gridder is free software; you can redistribute it and/or modify
+ *  This code is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
  *  (at your option) any later version.
  *
- *  nifty_gridder is distributed in the hope that it will be useful,
+ *  This code is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with nifty_gridder; if not, write to the Free Software
+ *  along with this code; if not, write to the Free Software
  *  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
@@ -261,6 +259,7 @@ class RowchanRange
 
     RowchanRange() = default;
     RowchanRange(const RowchanRange &) = default;
+    RowchanRange &operator=(const RowchanRange &) = default;
     RowchanRange(uint32_t row_, uint16_t ch_begin_, uint16_t ch_end_)
       : row(row_), ch_begin(ch_begin_), ch_end(ch_end_) {}
     uint16_t nchan() const { return ch_end-ch_begin; }
@@ -568,8 +567,8 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> class Param
       size_t nxd = lmshift ? nxdirty : (nxdirty/2+1);
       execParallel(nxd, nthreads, [&](size_t lo, size_t hi)
         {
-        vector<complex<Tcalc>> phases(lmshift ? nydirty : (nydirty/2+1)); 
-        vector<Tcalc> buf(lmshift ? nydirty : (nydirty/2+1)); 
+        vector<complex<Tcalc>> phases(lmshift ? nydirty : (nydirty/2+1));
+        vector<Tcalc> buf(lmshift ? nydirty : (nydirty/2+1));
         for(auto i=lo; i<hi; ++i)
           {
           double fx = sqr(x0+i*pixsize_x);
@@ -1702,7 +1701,7 @@ template<typename Tcalc, typename Tacc, typename Tms, typename Timg> void ms2dir
   auto dirty_in(vmav<Timg,2>::build_empty());
   auto wgt(wgt_.size()!=0 ? wgt_ : wgt_.build_uniform(ms.shape(), 1.));
   auto mask(mask_.size()!=0 ? mask_ : mask_.build_uniform(ms.shape(), 1));
-  Params<Tcalc, Tacc, Tms, Timg> par(uvw, freq, ms, ms_out, dirty_in, dirty, wgt, mask, pixsize_x, 
+  Params<Tcalc, Tacc, Tms, Timg> par(uvw, freq, ms, ms_out, dirty_in, dirty, wgt, mask, pixsize_x,
     pixsize_y, epsilon, do_wgridding, nthreads, verbosity, negate_v,
     divide_by_n, sigma_min, sigma_max, center_x, center_y, allow_nshift);
   }

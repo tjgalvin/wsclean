@@ -1,6 +1,4 @@
 /*
- *  This file is part of the MR utility library.
- *
  *  This code is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -203,7 +201,7 @@ template<size_t W, typename Tsimd> class TemplateKernel
     std::array<Tsimd,(D+1)*nvec> coeff;
     const T *scoeff;
     static constexpr auto sstride = nvec*vlen;
- 
+
     void transferCoeffs(const vector<double> &input, size_t d_input)
       {
       auto ofs = D-d_input;
