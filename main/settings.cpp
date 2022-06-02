@@ -294,11 +294,6 @@ void Settings::checkPolarizations() const {
         "output of imaging both polarizations will be the XY and imaginary XY "
         "images).");
   if (IsSpectralFittingEnabled()) {
-    if (joinedPolarizationDeconvolution)
-      throw std::runtime_error(
-          "You have requested spectral fitting, but you are joining multiple "
-          "polarizations. This is not supported. You probably want to turn off "
-          "the joining of polarizations (leave out -join-polarizations).");
     if (!joinedFrequencyDeconvolution)
       throw std::runtime_error(
           "You have requested spectral fitting, but you are not joining "

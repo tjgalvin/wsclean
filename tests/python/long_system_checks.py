@@ -343,3 +343,7 @@ class TestLongSystem:
         validate_call(s.split())
         for f in glob.glob(f"{name('vla-multiband-no-mf')}*.fits"):
             os.remove(f)
+
+    def test_spectrally_fitted_with_joined_polarizations(self):
+        s = f"{tcf.WSCLEAN} -name {name('iv-jointly-fitted')} {tcf.DIMS_LARGE} -parallel-gridding 4 -channels-out 4 -join-channels -fit-spectral-pol 2 -pol i,v -join-polarizations -niter 1000 -auto-threshold 5 -multiscale -mgain 0.8 {tcf.MWA_MS}"
+        validate_call(s.split())

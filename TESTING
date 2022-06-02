@@ -1,0 +1,21 @@
+Unit, integration and system checks
+
+To build the tests during compilation, "-DBUILD_TESTING=True" should be added to your cmake command, e.g. from your wsclean directory:
+
+mkdir -p build && cd build
+cmake ../ -DBUILD_TESTING=True
+
+To run the unit test and the fast integration tests, run the following from the build directory:
+
+make check
+
+To perform the system tests that might take a considerable amount of time:
+
+make longsystemchecks
+
+System checks perform basic run tests that produce a number of FITS files that can be manually checked for quality. These are stored in the directory build/test_data/test_results.
+
+Individual unit tests can be run with "./unittest -t <testname>". The testname can be a test group, such as "commandline", or a single specific test, such as "commandline/pb_grid_size".
+
+Individual python ("system") tests can be performed by going to build/tests/python and running: python3 -m pytest source/long_system_checks.py -k <name>
+
