@@ -674,7 +674,7 @@ void WSClean::RunClean() {
   schaapcommon::facets::Pixel centerPixel(_settings.trimmedImageWidth / 2,
                                           _settings.trimmedImageHeight / 2);
   for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
-    const size_t alignment = 4;
+    const size_t alignment = 2;
     facet->CalculatePixels(
         _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
         _settings.pixelScaleX, _settings.pixelScaleY,
@@ -894,7 +894,7 @@ void WSClean::RunPredict() {
       overrideImageSettings(reader);
 
       for (std::shared_ptr<schaapcommon::facets::Facet>& facet : _facets) {
-        const size_t alignment = 4;
+        const size_t alignment = 2;
         facet->CalculatePixels(
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
             _settings.pixelScaleX, _settings.pixelScaleY,
