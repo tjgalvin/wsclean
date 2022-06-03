@@ -228,6 +228,7 @@ ExternalProject_Add(
   radler-module
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/radler
   BINARY_DIR ${CMAKE_BINARY_DIR}/external/radler/build
+  BUILD_ALWAYS TRUE
   BUILD_BYPRODUCTS ${RADLER_LIB}
   CMAKE_ARGS
     -DCOMPILE_AS_EXTERNAL_PROJECT=On
@@ -340,7 +341,6 @@ set_source_files_properties(
 
 # Add radler-module dependency to wsclean-object to ensure all
 # wsclean targets can link against ${RADLER_LIB}
-# add_dependencies(wsclean-object install-radler)
 add_dependencies(wsclean-object radler-module)
 
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
