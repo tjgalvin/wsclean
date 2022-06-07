@@ -45,9 +45,15 @@ class MappedFile {
     if (file_descriptor_ == -1)
       throw std::runtime_error("Error opening file '" + filename + "'");
     if (reserved_size_ != 0) {
+#ifdef MAP_NORESERVE
       memory_map_ = reinterpret_cast<char*>(
           mmap(nullptr, reserved_size_, PROT_READ | PROT_WRITE,
                MAP_SHARED | MAP_NORESERVE, file_descriptor_, 0));
+#else
+      memory_map_ = reinterpret_cast<char*>(
+          mmap(nullptr, reserved_size_, PROT_READ | PROT_WRITE, MAP_SHARED,
+               file_descriptor_, 0));
+#endif
       if (memory_map_ == MAP_FAILED) {
         memory_map_ = nullptr;
         close(file_descriptor_);
