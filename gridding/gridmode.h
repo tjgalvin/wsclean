@@ -3,10 +3,10 @@
 
 /** Gridding modes that are supported for interpolating samples on the uv-grid.
  */
-enum class GridMode {
+enum class GriddingKernelMode {
 
   /** Simple method that places/samples a visibility on the nearest uv-cell. */
-  NearestNeighbourGridding,
+  NearestNeighbour,
 
   /** Interpolate with a Kaiser-Bessel kernel. This attenuates aliasing. The
    * Kaiser-Bessel window is very similar to the prolate spheroidal kernel,
@@ -14,7 +14,7 @@ enum class GridMode {
    * When this mode is selected, the kernel size and oversampling factor can be
    * specified. This is the recommended and default mode.
    */
-  KaiserBesselKernel,
+  KaiserBessel,
 
   /** Like KB, but it is not multiplied with a low-pass filtering sinc function.
    */
@@ -26,21 +26,21 @@ enum class GridMode {
    * as much attenuated compared to the KB window, which has much deeper
    * sidelobes further out.
    */
-  RectangularKernel,
+  Rectangular,
 
   /** Window the low-pass filter with a Gaussian trimmed at 3 sigma.
    */
-  GaussianKernel,
-  GaussianKernelWithoutSinc,
+  Gaussian,
+  GaussianWithoutSinc,
 
   /** Blackman-nutall window.
    */
-  BlackmanNuttallKernel,
-  BlackmanNuttallKernelWithoutSinc,
+  BlackmanNuttall,
+  BlackmanNuttallWithoutSinc,
 
   /** Blackman-Harris window.
    */
-  BlackmanHarrisKernel
+  BlackmanHarris
 };
 
 #endif

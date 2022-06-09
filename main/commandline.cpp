@@ -253,6 +253,8 @@ void CommandLine::printHelp() {
          "   Subtract the model from the data column in the first iteration. "
          "This can be used to reimage\n"
          "   an already cleaned image, e.g. at a different resolution.\n"
+         "-gridder <type>\n"
+         "   Set gridder type: direct-ft, idg, wgridder or wstacking.\n"
          "-channels-out <count>\n"
          "   Splits the bandwidth and makes count nr. of images. Default: 1.\n"
          "-shift <ra> <dec>\n"
@@ -324,12 +326,6 @@ void CommandLine::printHelp() {
          "in a text file\n"
          "   with antenna1 and antenna2 indices and the stddev per line, "
          "separated by spaces, e.g. \"0 1 3.14\".\n"
-         "-direct-ft\n"
-         "   Do not grid the visibilities on the uv grid, but instead perform "
-         "a fully accurate direct Fourier transform (slow!).\n"
-         "-use-idg\n"
-         "   Use the 'image-domain gridder' (Van der Tol et al.) to do the "
-         "inversions and predictions.\n"
          "-idg-mode [cpu/gpu/hybrid]\n"
          "   Sets the IDG mode. Default: cpu. Hybrid is recommended when a GPU "
          "is available.\n"
@@ -990,19 +986,19 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       boost::to_lower(gridModeStr);
       if (gridModeStr == "kb" || gridModeStr == "kaiserbessel" ||
           gridModeStr == "kaiser-bessel")
-        settings.gridMode = GridMode::KaiserBesselKernel;
+        settings.gridMode = GriddingKernelMode::KaiserBessel;
       else if (gridModeStr == "bn")
-        settings.gridMode = GridMode::BlackmanNuttallKernel;
+        settings.gridMode = GriddingKernelMode::BlackmanNuttall;
       else if (gridModeStr == "bh")
-        settings.gridMode = GridMode::BlackmanHarrisKernel;
+        settings.gridMode = GriddingKernelMode::BlackmanHarris;
       else if (gridModeStr == "gaus")
-        settings.gridMode = GridMode::GaussianKernel;
+        settings.gridMode = GriddingKernelMode::Gaussian;
       else if (gridModeStr == "rect")
-        settings.gridMode = GridMode::RectangularKernel;
+        settings.gridMode = GriddingKernelMode::Rectangular;
       else if (gridModeStr == "kb-no-sinc")
-        settings.gridMode = GridMode::KaiserBesselWithoutSinc;
+        settings.gridMode = GriddingKernelMode::KaiserBesselWithoutSinc;
       else if (gridModeStr == "nn" || gridModeStr == "nearestneighbour")
-        settings.gridMode = GridMode::NearestNeighbourGridding;
+        settings.gridMode = GriddingKernelMode::NearestNeighbour;
       else
         throw std::runtime_error(
             "Invalid gridding mode: should be either kb (Kaiser-Bessel), nn "
@@ -1395,7 +1391,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else
         throw std::runtime_error("Unknown weighting mode: " + modeStr);
     } else if (param == "direct-ft") {
-      settings.directFT = true;
+      deprecated(isSlave, param, "gridder");
+      settings.gridderType = GridderType::DirectFT;
       settings.imagePadding = 1.0;
       settings.smallInversion = false;
     } else if (param == "direct-ft-precision") {
@@ -1411,13 +1408,34 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         throw std::runtime_error(
             "Invalid direct ft precision specified. Allowed options: float, "
             "double and ldouble.");
+    } else if (param == "gridder") {
+      ++argi;
+      const std::string gridder_str = argv[argi];
+      if (gridder_str == "idg") {
+#if !defined(HAVE_IDG)
+        throw std::runtime_error(
+            "WSClean was not compiled with IDG: to use it, install IDG and "
+            "recompile WSClean");
+#endif
+        settings.gridderType = GridderType::IDG;
+        settings.smallInversion = false;
+      } else if (gridder_str == "wgridder") {
+        settings.gridderType = GridderType::WGridder;
+      } else if (gridder_str == "wstacking") {
+        settings.gridderType = GridderType::WStacking;
+      } else if (gridder_str == "direct-ft") {
+        settings.gridderType = GridderType::DirectFT;
+      } else
+        throw std::runtime_error("Invalid gridder requested: '" + gridder_str +
+                                 "'");
     } else if (param == "use-idg") {
+      deprecated(isSlave, param, "gridder");
 #if !defined(HAVE_IDG)
       throw std::runtime_error(
           "WSClean was not compiled with IDG: to use it, install IDG and "
           "recompile WSClean");
 #endif
-      settings.useIDG = true;
+      settings.gridderType = GridderType::IDG;
       settings.smallInversion = false;
     } else if (param == "idg-mode") {
       ++argi;
@@ -1432,7 +1450,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else
         throw std::runtime_error("Unknown IDG mode: " + mode);
     } else if (param == "use-wgridder") {
-      settings.useWGridder = true;
+      deprecated(isSlave, param, "gridder");
+      settings.gridderType = GridderType::WGridder;
     } else if (param == "wgridder-accuracy") {
       ++argi;
       settings.wgridderAccuracy =

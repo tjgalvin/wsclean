@@ -30,7 +30,7 @@ WStackingGridder<T>::WStackingGridder(size_t width, size_t height,
       _phaseCentreDM(0.0),
       _isComplex(false),
       _imageConjugatePart(false),
-      _gridMode(GridMode::KaiserBesselKernel),
+      _gridMode(GriddingKernelMode::KaiserBessel),
       _overSamplingFactor(overSamplingFactor),
       _kernelSize(kernelSize),
       _imageData(fftThreadCount),
@@ -342,29 +342,29 @@ void WStackingGridder<T>::makeKernels() {
   const double alpha = 8.6;
 
   switch (_gridMode) {
-    case GridMode::NearestNeighbourGridding:
-    case GridMode::KaiserBesselKernel:
+    case GriddingKernelMode::NearestNeighbour:
+    case GriddingKernelMode::KaiserBessel:
       makeKaiserBesselKernel(_1dKernel, alpha, _overSamplingFactor, true);
       break;
-    case GridMode::KaiserBesselWithoutSinc:
+    case GriddingKernelMode::KaiserBesselWithoutSinc:
       makeKaiserBesselKernel(_1dKernel, alpha, _overSamplingFactor, false);
       break;
-    case GridMode::RectangularKernel:
+    case GriddingKernelMode::Rectangular:
       makeRectangularKernel(_1dKernel, _overSamplingFactor);
       break;
-    case GridMode::GaussianKernel:
+    case GriddingKernelMode::Gaussian:
       makeGaussianKernel(_1dKernel, _overSamplingFactor, true);
       break;
-    case GridMode::GaussianKernelWithoutSinc:
+    case GriddingKernelMode::GaussianWithoutSinc:
       makeGaussianKernel(_1dKernel, _overSamplingFactor, false);
       break;
-    case GridMode::BlackmanNuttallKernel:
+    case GriddingKernelMode::BlackmanNuttall:
       makeBlackmanNutallKernel(_1dKernel, _overSamplingFactor, true);
       break;
-    case GridMode::BlackmanNuttallKernelWithoutSinc:
+    case GriddingKernelMode::BlackmanNuttallWithoutSinc:
       makeBlackmanNutallKernel(_1dKernel, _overSamplingFactor, false);
       break;
-    case GridMode::BlackmanHarrisKernel:
+    case GriddingKernelMode::BlackmanHarris:
       throw std::runtime_error(
           "Blackman-Harris kernel not supported by W-Stacking gridder");
   }
@@ -385,36 +385,37 @@ void WStackingGridder<T>::makeKernels() {
 }
 
 template <typename T>
-void WStackingGridder<T>::GetKernel(enum GridMode gridMode, double *kernel,
-                                    size_t oversampling, size_t size) {
+void WStackingGridder<T>::GetKernel(enum GriddingKernelMode gridMode,
+                                    double *kernel, size_t oversampling,
+                                    size_t size) {
   double alpha = 8.6;
   std::vector<double> v(oversampling * size);
   switch (gridMode) {
-    case GridMode::KaiserBesselKernel:
+    case GriddingKernelMode::KaiserBessel:
       makeKaiserBesselKernel(v, alpha, oversampling, true);
       break;
-    case GridMode::KaiserBesselWithoutSinc:
+    case GriddingKernelMode::KaiserBesselWithoutSinc:
       makeKaiserBesselKernel(v, alpha, oversampling, false);
       break;
-    case GridMode::GaussianKernel:
+    case GriddingKernelMode::Gaussian:
       makeGaussianKernel(v, oversampling, true);
       break;
-    case GridMode::GaussianKernelWithoutSinc:
+    case GriddingKernelMode::GaussianWithoutSinc:
       makeGaussianKernel(v, oversampling, false);
       break;
-    case GridMode::RectangularKernel:
+    case GriddingKernelMode::Rectangular:
       makeRectangularKernel(v, oversampling);
       break;
-    case GridMode::NearestNeighbourGridding:
+    case GriddingKernelMode::NearestNeighbour:
       v[oversampling * size / 2] = 1.0;
       break;
-    case GridMode::BlackmanNuttallKernel:
+    case GriddingKernelMode::BlackmanNuttall:
       makeBlackmanNutallKernel(v, oversampling, true);
       break;
-    case GridMode::BlackmanNuttallKernelWithoutSinc:
+    case GriddingKernelMode::BlackmanNuttallWithoutSinc:
       makeBlackmanNutallKernel(v, oversampling, false);
       break;
-    case GridMode::BlackmanHarrisKernel:
+    case GriddingKernelMode::BlackmanHarris:
       throw std::runtime_error(
           "Blackman-Harris kernel not supported by W-Stacking gridder");
   }
@@ -534,7 +535,7 @@ void WStackingGridder<T>::AddDataSample(std::complex<float> sample,
   if (wLayer >= layerOffset && wLayer < layerRangeEnd) {
     size_t layerIndex = wLayer - layerOffset;
     std::complex<num_t> *uvData = _layeredUVData[layerIndex].Data();
-    if (_gridMode == GridMode::NearestNeighbourGridding) {
+    if (_gridMode == GriddingKernelMode::NearestNeighbour) {
       int x = int(std::round(uInLambda * _pixelSizeX * _width)),
           y = int(std::round(vInLambda * _pixelSizeY * _height));
       if (x > -int(_width) / 2 && y > -int(_height) / 2 &&
@@ -613,7 +614,7 @@ void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
     size_t layerIndex = wLayer - layerOffset;
     std::complex<num_t> *uvData = _layeredUVData[layerIndex].Data();
     std::complex<float> sample;
-    if (_gridMode == GridMode::NearestNeighbourGridding) {
+    if (_gridMode == GriddingKernelMode::NearestNeighbour) {
       int x = int(std::round(uInLambda * _pixelSizeX * _width)),
           y = int(std::round(vInLambda * _pixelSizeY * _height));
       if (x > -int(_width) / 2 && y > -int(_height) / 2 &&
@@ -709,7 +710,7 @@ void WStackingGridder<T>::finalizeImage(
     value *= multiplicationFactor;
   }
 
-  if (_gridMode != GridMode::NearestNeighbourGridding)
+  if (_gridMode != GriddingKernelMode::NearestNeighbour)
     correctImageForKernel<false>(dataArray[0].Data());
 }
 
@@ -842,7 +843,7 @@ void WStackingGridder<T>::initializePrediction(
       ++inPtr;
     }
   }
-  if (_gridMode != GridMode::NearestNeighbourGridding) {
+  if (_gridMode != GriddingKernelMode::NearestNeighbour) {
     correctImageForKernel<false>(dataArray[0].Data());
   }
 }

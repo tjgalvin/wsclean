@@ -264,7 +264,7 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _weighting(settings.weightMode),
       _isFirstIteration(false),
       _visibilityWeightingMode(settings.visibilityWeightingMode),
-      _gridMode(GridMode::KaiserBesselKernel),
+      _gridMode(GriddingKernelMode::KaiserBessel),
       _storeImagingWeights(false),
       _theoreticalBeamSize(0.0),
       _hasFrequencies(false),

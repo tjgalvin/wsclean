@@ -128,28 +128,28 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
 }
 
 std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
-  if (_settings.useIDG) {
-    return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
-  } else if (_settings.useWGridder) {
-    return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
-  } else if (_settings.directFT) {
-    switch (_settings.directFTPrecision) {
-      case DirectFTPrecision::Float:
-        return std::unique_ptr<MSGridderBase>(
-            new DirectMSGridder<float>(_settings));
-        break;
-      default:
-      case DirectFTPrecision::Double:
-        return std::unique_ptr<MSGridderBase>(
-            new DirectMSGridder<double>(_settings));
-        break;
-      case DirectFTPrecision::LongDouble:
-        return std::unique_ptr<MSGridderBase>(
-            new DirectMSGridder<long double>(_settings));
-        break;
-    }
-  } else
-    return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings));
+  switch (_settings.gridderType) {
+    case GridderType::IDG:
+      return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
+    case GridderType::WGridder:
+      return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
+    case GridderType::DirectFT:
+      switch (_settings.directFTPrecision) {
+        case DirectFTPrecision::Float:
+          return std::unique_ptr<MSGridderBase>(
+              new DirectMSGridder<float>(_settings));
+        case DirectFTPrecision::Double:
+          return std::unique_ptr<MSGridderBase>(
+              new DirectMSGridder<double>(_settings));
+        case DirectFTPrecision::LongDouble:
+          return std::unique_ptr<MSGridderBase>(
+              new DirectMSGridder<long double>(_settings));
+      }
+      break;
+    case GridderType::WStacking:
+      return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings));
+  }
+  return {};
 }
 
 std::unique_ptr<MSGridderBase> GriddingTaskManager::makeGridder() const {

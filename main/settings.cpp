@@ -106,7 +106,7 @@ void Settings::Validate() const {
     }
   }
 
-  if (useIDG) {
+  if (gridderType == GridderType::IDG) {
     const bool stokesIOnly =
         polarizations.size() == 1 &&
         *polarizations.begin() == aocommon::Polarization::StokesI;
@@ -166,7 +166,7 @@ void Settings::Validate() const {
     }
   }
 
-  if (gridWithBeam && !useIDG)
+  if (gridWithBeam && gridderType != GridderType::IDG)
     throw std::runtime_error(
         "Can't grid with the beam without IDG: specify '-use-idg' to use IDG.");
   if (gridWithBeam && applyPrimaryBeam)
@@ -178,7 +178,7 @@ void Settings::Validate() const {
         "Use of an aterm config file can't be combined with -grid-with-beam: "
         "add the beam to your aterm config and remove -grid-with-beam from the "
         "command line");
-  if (!useIDG && !atermConfigFilename.empty())
+  if (gridderType != GridderType::IDG && !atermConfigFilename.empty())
     throw std::runtime_error(
         "Use of an aterm config file required IDG enabled: add -use-idg");
 
@@ -330,12 +330,13 @@ void Settings::Propagate(bool verbose) {
 
   // When using IDG with aterms, a PSF must be made, because the beam
   // image is created during the PSF imaging stage.
-  if (useIDG && (!atermConfigFilename.empty() || gridWithBeam)) {
+  if (gridderType == GridderType::IDG &&
+      (!atermConfigFilename.empty() || gridWithBeam)) {
     makePSF = true;
   }
 
   // When using IDG, polarizations should always be joined
-  if (useIDG) {
+  if (gridderType == GridderType::IDG) {
     joinedPolarizationDeconvolution = true;
   }
 

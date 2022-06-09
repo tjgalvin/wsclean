@@ -218,7 +218,7 @@ void PrimaryBeam::CorrectImages(
 
 PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
                                       const Settings& settings) {
-  if (settings.useIDG) {
+  if (settings.gridderType == GridderType::IDG) {
     PrimaryBeamImageSet beamImages(settings.trimmedImageWidth,
                                    settings.trimmedImageHeight);
     beamImages.SetToZero();

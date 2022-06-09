@@ -185,7 +185,7 @@ PartitionedMS::Handle PartitionedMS::Partition(
     bool initialModelRequired, const Settings& settings) {
   const bool modelUpdateRequired = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> polsOut;
-  if (settings.useIDG) {
+  if (settings.gridderType == GridderType::IDG) {
     if (settings.polarizations.size() == 1) {
       polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
     } else {

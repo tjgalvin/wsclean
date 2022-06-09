@@ -57,7 +57,7 @@ IdgMsGridder::IdgMsGridder(const Settings& settings)
   if (settings.gridWithBeam || !settings.atermConfigFilename.empty())
     _options["a_term_kernel_size"] = float(_settings.atermKernelSize);
   _options["max_threads"] = int(settings.threadCount);
-  if (settings.gridMode == GridMode::BlackmanHarrisKernel)
+  if (settings.gridMode == GriddingKernelMode::BlackmanHarris)
     _options["taper"] = std::string("blackman-harris");
 }
 

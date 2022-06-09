@@ -280,7 +280,8 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   GriddingTask task;
   task.operation = GriddingTask::Invert;
   task.imagePSF = false;
-  if (_settings.useIDG && _settings.polarizations.size() != 1)
+  if (_settings.gridderType == GridderType::IDG &&
+      _settings.polarizations.size() != 1)
     task.polarization = Polarization::FullStokes;
   else
     task.polarization = entry.polarization;
@@ -349,7 +350,8 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
 
   using PolImagesPair = std::pair<const PolarizationEnum, std::vector<Image>>;
   std::vector<PolImagesPair> imageList;
-  if (_settings.useIDG && _settings.polarizations.size() != 1) {
+  if (_settings.gridderType == GridderType::IDG &&
+      _settings.polarizations.size() != 1) {
     assert(result.images.size() == _settings.polarizations.size());
     imageList.reserve(result.images.size());
     auto polIter = _settings.polarizations.begin();
@@ -368,10 +370,11 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
       // IDG performs normalization on the dirty images, so only normalize if
       // not using IDG
       const double psfFactor =
-          _settings.useIDG
+          _settings.gridderType == GridderType::IDG
               ? 1.0
               : _infoPerChannel[joinedChannelIndex].psfNormalizationFactor;
-      if (!_settings.useIDG) images[i] *= psfFactor * entry.siCorrection;
+      if (_settings.gridderType != GridderType::IDG)
+        images[i] *= psfFactor * entry.siCorrection;
       const bool isImaginary = i == 1;
       storeAndCombineXYandYX(_residualImages, joinedChannelIndex, entry,
                              polarization, isImaginary, images[i].Data());
@@ -455,8 +458,8 @@ void WSClean::predict(const ImagingTableEntry& entry) {
     width = _settings.trimmedImageWidth;
     height = _settings.trimmedImageHeight;
   }
-  const bool isFullStokes =
-      _settings.useIDG && _settings.polarizations.size() != 1;
+  const bool isFullStokes = _settings.gridderType == GridderType::IDG &&
+                            _settings.polarizations.size() != 1;
   std::vector<PolarizationEnum> polarizations;
   if (isFullStokes)
     polarizations.assign(_settings.polarizations.begin(),
@@ -566,7 +569,8 @@ void WSClean::initializeMFSImageWeights() {
               _msBands[msIndex], dataDescId, entry);
           if (hasSelection) {
             const PolarizationEnum pol =
-                _settings.useIDG ? getIdgPolarization() : entry.polarization;
+                _settings.gridderType == GridderType::IDG ? getIdgPolarization()
+                                                          : entry.polarization;
             PartitionedMS msProvider(_partitionedMSHandles[msIndex],
                                      ms.bands[dataDescId].partIndex, pol,
                                      dataDescId);
@@ -584,7 +588,7 @@ void WSClean::initializeMFSImageWeights() {
   } else {
     for (size_t i = 0; i != _settings.filenames.size(); ++i) {
       for (size_t d = 0; d != _msBands[i].DataDescCount(); ++d) {
-        const PolarizationEnum pol = _settings.useIDG
+        const PolarizationEnum pol = _settings.gridderType == GridderType::IDG
                                          ? getIdgPolarization()
                                          : *_settings.polarizations.begin();
         ContiguousMS msProvider(_settings.filenames[i],
@@ -680,7 +684,8 @@ void WSClean::RunClean() {
         _settings.pixelScaleX, _settings.pixelScaleY,
         _settings.trimmedImageWidth, _settings.trimmedImageHeight,
         _observationInfo.shiftL, _observationInfo.shiftM,
-        _settings.imagePadding, alignment, _settings.useIDG);
+        _settings.imagePadding, alignment,
+        _settings.gridderType == GridderType::IDG);
 
     const schaapcommon::facets::BoundingBox bbox =
         facet->GetTrimmedBoundingBox();
@@ -900,7 +905,8 @@ void WSClean::RunPredict() {
             _settings.pixelScaleX, _settings.pixelScaleY,
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
             _observationInfo.shiftL, _observationInfo.shiftM,
-            _settings.imagePadding, alignment, _settings.useIDG);
+            _settings.imagePadding, alignment,
+            _settings.gridderType == GridderType::IDG);
       }
 
       // FIXME: raise warning if facets do not cover the entire image, see
@@ -957,7 +963,8 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
   // In the case of IDG we have to directly ask for all four polarizations.
   const bool requestPolarizationsAtOnce =
-      _settings.useIDG && _settings.polarizations.size() > 1;
+      _settings.gridderType == GridderType::IDG &&
+      _settings.polarizations.size() > 1;
 
   // In case XY/YX polarizations are requested, we should not parallelize over
   // those since they need to be combined after imaging, and this currently
@@ -1333,7 +1340,8 @@ bool WSClean::overrideImageSettings(const aocommon::FitsReader& reader) {
 
 void WSClean::predictGroup(const ImagingTable& groupTable) {
   const bool gridPolarizationsAtOnce =
-      _settings.useIDG && _settings.polarizations.size() != 1;
+      _settings.gridderType == GridderType::IDG &&
+      _settings.polarizations.size() != 1;
 
   resetModelColumns(groupTable);
   _predictingWatch.Start();
@@ -1393,8 +1401,9 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 void WSClean::initializeMSList(
     const ImagingTableEntry& entry,
     std::vector<std::unique_ptr<MSDataDescription>>& msList) {
-  const PolarizationEnum pol =
-      _settings.useIDG ? getIdgPolarization() : entry.polarization;
+  const PolarizationEnum pol = _settings.gridderType == GridderType::IDG
+                                   ? getIdgPolarization()
+                                   : entry.polarization;
 
   msList.clear();
   for (size_t msIndex = 0; msIndex != _settings.filenames.size(); ++msIndex) {

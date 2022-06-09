@@ -178,8 +178,8 @@ class MSGridderBase {
    */
   virtual void FreeImagingData() {}
 
-  GridMode GetGridMode() const { return _gridMode; }
-  void SetGridMode(GridMode gridMode) { _gridMode = gridMode; }
+  GriddingKernelMode GetGridMode() const { return _gridMode; }
+  void SetGridMode(GriddingKernelMode gridMode) { _gridMode = gridMode; }
 
   size_t TrimWidth() const { return _trimWidth; }
   size_t TrimHeight() const { return _trimHeight; }
@@ -467,7 +467,7 @@ class MSGridderBase {
   bool _isFirstIteration;
   std::vector<MSSelection> _selections;
   VisibilityWeightingMode _visibilityWeightingMode;
-  GridMode _gridMode;
+  GriddingKernelMode _gridMode;
   bool _storeImagingWeights;
   double _theoreticalBeamSize;
 

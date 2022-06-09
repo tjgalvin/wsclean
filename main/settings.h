@@ -15,6 +15,7 @@
 #include <radler/settings.h>
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
+enum class GridderType { WStacking, WGridder, DirectFT, IDG };
 
 /**
  * This class describes all settings for a single WSClean run.
@@ -32,6 +33,7 @@ class Settings {
 
   std::vector<std::string> filenames;
   enum Mode { ImagingMode, PredictMode, RestoreMode, RestoreListMode } mode;
+  GridderType gridderType = GridderType::WStacking;
   size_t paddedImageWidth, paddedImageHeight;
   size_t trimmedImageWidth, trimmedImageHeight;
   bool hasShift;
@@ -88,9 +90,7 @@ class Settings {
   double primaryBeamLimit;
   std::string mwaPath;
   size_t primaryBeamGridSize, primaryBeamUpdateTime;
-  bool directFT;
   DirectFTPrecision directFTPrecision;
-  bool useIDG, useWGridder;
   double wgridderAccuracy;
   std::string atermConfigFilename;
   double atermKernelSize;
@@ -102,7 +102,7 @@ class Settings {
   double facetBeamUpdateTime;  // in seconds.
   bool saveATerms;
   enum IDGMode { IDG_DEFAULT, IDG_GPU, IDG_CPU, IDG_HYBRID } idgMode;
-  enum GridMode gridMode;
+  enum GriddingKernelMode gridMode;
   enum VisibilityWeightingMode visibilityWeightingMode;
   double baselineDependentAveragingInWavelengths;
   bool simulateNoise;
@@ -291,10 +291,7 @@ inline Settings::Settings()
       primaryBeamLimit(0.005),
       primaryBeamGridSize(32),
       primaryBeamUpdateTime(1800),
-      directFT(false),
       directFTPrecision(DirectFTPrecision::Double),
-      useIDG(false),
-      useWGridder(false),
       wgridderAccuracy(1e-4),
       atermConfigFilename(),
       atermKernelSize(5.0),
@@ -306,7 +303,7 @@ inline Settings::Settings()
       facetBeamUpdateTime(120.0),
       saveATerms(false),
       idgMode(IDG_DEFAULT),
-      gridMode(GridMode::KaiserBesselKernel),
+      gridMode(GriddingKernelMode::KaiserBessel),
       visibilityWeightingMode(
           VisibilityWeightingMode::NormalVisibilityWeighting),
       baselineDependentAveragingInWavelengths(0.0),
