@@ -169,4 +169,14 @@ BOOST_AUTO_TEST_CASE(idg_bda_mset) {
                     std::runtime_error);
 }
 
+BOOST_AUTO_TEST_CASE(incomplete_commandline) {
+  WSClean wsclean;
+  CommandLine commandLine;
+
+  std::vector<const char*> args{"wsclean", "-name"};
+
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+                    std::runtime_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

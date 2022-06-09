@@ -57,6 +57,7 @@ class MappedFile {
       if (memory_map_ == MAP_FAILED) {
         memory_map_ = nullptr;
         close(file_descriptor_);
+        file_descriptor_ = -1;
         const std::string msg = aocommon::system::GetErrorString(errno);
         throw std::runtime_error(
             std::string("Error creating memory map for file '" + filename +

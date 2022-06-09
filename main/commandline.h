@@ -35,17 +35,6 @@ class CommandLine {
   static void Validate(class WSClean& wsclean);
 
   static void Run(class WSClean& wsclean);
-
- private:
-  static void deprecated(bool isSlave, const std::string& param,
-                         const std::string& replacement);
-  static void printHeader();
-  static void printHelp();
-  static std::vector<std::string> parseStringList(const char* param);
-  static size_t parse_size_t(const char* param, const char* name);
-  static double parse_double(const char* param, double lowerLimit,
-                             const char* name, bool inclusive = true);
-  static double parse_double(const char* param, const char* name);
 };
 
 #endif
