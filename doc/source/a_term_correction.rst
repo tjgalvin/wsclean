@@ -149,6 +149,11 @@ Fourier fitting
 The solutions of a calibration step are given via the "solutions" parameter in h5 format. From the solutions file, only the phases are used.
 The discrete set of solutions are fit to a screen using a Fourier based fitting technique. 
 
+.. warning::
+
+    This is an experimental feature as of May 2022. 
+    It has not been tested on real data, hence it is not sufficiently robust to outliers / NaNs that may be encountered there. 
+
 Karhunen-Loève fitting
 ------------------------
 
