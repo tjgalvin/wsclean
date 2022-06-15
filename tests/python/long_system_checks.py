@@ -176,9 +176,7 @@ class TestLongSystem:
     def test_facet_h5solution(self, npol):
         # Test facet-based imaging and applying h5 solutions
         # where the polarization axis in the h5 file has size npol
-        h5download = (
-            f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_{npol}pol.h5"
-        )
+        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_{npol}pol.h5"
         validate_call(h5download.split())
 
         name = f"facet-h5-{npol}pol"

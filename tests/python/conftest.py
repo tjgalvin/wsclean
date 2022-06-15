@@ -20,7 +20,7 @@ def prepare():
 
     # Download and untar beam pattern file
     if not os.path.isfile(tcf.MWA_COEFF_FILE):
-        check_call(["wget", "-q", tcf.EVERYBEAM_BASE_URL + tcf.MWA_COEFF_ARCHIVE])
+        check_call(["wget", "-q", os.path.join(tcf.EVERYBEAM_DATA_URL, tcf.MWA_COEFF_ARCHIVE)])
         check_call(["tar", "xf", tcf.MWA_COEFF_ARCHIVE])
 
 
@@ -31,9 +31,7 @@ def prepare_large_ms():
             [
                 "wget",
                 "-q",
-                os.path.join(
-                    "https://www.astron.nl/citt/ci_data/EveryBeam/", f"{tcf.MWA_MS}.tgz"
-                ),
+                os.path.join(tcf.IDG_DATA_URL, f"{tcf.MWA_MS}.tgz"),
             ]
         )
         check_call(["tar", "-xf", f"{tcf.MWA_MS}.tgz"])
@@ -51,7 +49,7 @@ def prepare_mock_ms():
             [
                 "wget",
                 "-q",
-                os.path.join(tcf.EVERYBEAM_BASE_URL, "MWA-single-timeslot.tar.bz2"),
+                os.path.join(tcf.EVERYBEAM_DATA_URL, "MWA-single-timeslot.tar.bz2"),
                 "-O",
                 tcf.MWA_MOCK_ARCHIVE,
             ]
@@ -71,7 +69,7 @@ def prepare_mock_ms():
 @pytest.fixture(scope="class")
 def prepare_model_image():
     if not os.path.isfile(tcf.MODEL_IMAGE):
-        wget = f"wget -q https://www.astron.nl/citt/ci_data/wsclean/{tcf.MODEL_IMAGE}"
+        wget = f"wget -q {os.path.join(tcf.WSCLEAN_DATA_URL, tcf.MODEL_IMAGE)}"
         check_call(wget.split())
 
 

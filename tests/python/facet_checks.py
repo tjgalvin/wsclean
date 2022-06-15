@@ -187,9 +187,7 @@ class TestFacets:
         # Compare serial, threaded and mpi run for facet based imaging
         # with h5 corrections. Number of used threads/processes is
         # deliberately chosen smaller than the number of facets.
-        h5download = (
-            f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
-        )
+        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
         validate_call(h5download.split())
 
         names = ["facets-h5-serial", "facets-h5-threaded", "facets-h5-mpi"]
@@ -224,9 +222,7 @@ class TestFacets:
         files are provided compared to imaging one MSet
         """
 
-        h5download = (
-            f"wget -N -q www.astron.nl/citt/ci_data/wsclean/mock_soltab_2pol.h5"
-        )
+        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
         validate_call(h5download.split())
 
         # Make a new copy of tcf.MWA_MOCK_MS into two MSets

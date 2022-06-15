@@ -3,13 +3,12 @@ Script collecting test variables.
 """
 
 WORKING_DIR = "@CMAKE_BINARY_DIR@/test_data"
-# LOCAL TESTING ONLY
-# WORKING_DIR = "/var/scratch/maljaars/data/test"
-# END
 RESULTS_DIR = "test_results"
 
-# Base URL for downloading CI data
-EVERYBEAM_BASE_URL = "https://www.astron.nl/citt/EveryBeam/"
+# Base URLs for downloading CI data
+EVERYBEAM_DATA_URL = "https://support.astron.nl/software/ci_data/EveryBeam"
+IDG_DATA_URL = "https://support.astron.nl/software/ci_data/IDG"
+WSCLEAN_DATA_URL = "@WSCLEAN_DATA_URL@"
 
 # WSClean executables
 WSCLEAN = "@CMAKE_BINARY_DIR@/wsclean"
@@ -23,7 +22,7 @@ FACETFILE_2FACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_2facets.reg"
 FACETFILE_4FACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_4facets.reg"
 FACETFILE_NFACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_nfacets.reg"
 
-# MWA beam coefficient file and dummy MODEL_IMAGe
+# MWA beam coefficient file and dummy MODEL_IMAGE
 MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
 MWA_COEFF_FILE = "mwa_full_embedded_element_pattern.h5"
 MODEL_IMAGE = "point-source-model.fits"

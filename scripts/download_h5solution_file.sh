@@ -10,5 +10,5 @@ cd test_data/
 H5_SOLUTION_FILE=mock_soltab_2pol.h5
 
 if [ ! -f ${H5_SOLUTION_FILE} ] ; then
-    wget -N -q www.astron.nl/citt/ci_data/wsclean/${H5_SOLUTION_FILE}
+    wget -N -q https://support.astron.nl/software/ci_data/wsclean/${H5_SOLUTION_FILE}
 fi

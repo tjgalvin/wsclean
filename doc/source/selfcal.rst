@@ -19,7 +19,7 @@ Filling the ``MODEL_DATA`` requires a setting of mgain < 1, e.g. an mgain of 0.9
 Self-calibration from existing image
 ------------------------------------
 
-The '``-predict``' option can be used to fill the ``MODEL_DATA`` column with a prediction from a pre-existing image (see :doc:`prediction <prediction>`). After having predicted model visibilities, these visibilities can be used to calibrate the data (e.g. with `DP3 <https://www.astron.nl/citt/DP3/>`_).
+The '``-predict``' option can be used to fill the ``MODEL_DATA`` column with a prediction from a pre-existing image (see :doc:`prediction <prediction>`). After having predicted model visibilities, these visibilities can be used to calibrate the data (e.g. with `DP3 <https://dp3.readthedocs.io/>`_).
 
 Polarized imaging & calibration
 -------------------------------

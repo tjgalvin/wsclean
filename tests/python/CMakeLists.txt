@@ -6,8 +6,7 @@ execute_process(
   COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}
           ${CMAKE_CURRENT_BINARY_DIR}/source)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config_vars.py.in
-               ${CMAKE_CURRENT_BINARY_DIR}/config_vars.py)
+configure_file(config_vars.py.in config_vars.py)
 
 add_custom_target(
   integrationchecks

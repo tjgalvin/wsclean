@@ -32,6 +32,8 @@ add_custom_target(
   COMMAND ${CMAKE_SOURCE_DIR}/scripts/download_h5solution_file.sh
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
+set(WSCLEAN_DATA_URL https://support.astron.nl/software/ci_data/wsclean)
+
 # A dataset generated using the following command:
 # DP3 msin=MWA-1052736496-averaged.ms msin.ntimes=4 msin.nchan=1 \
 #   msin.baseline="1,2,126,217" msout=MWA_BDA_MOCK.ms msout.overwrite=True \
@@ -39,7 +41,7 @@ add_custom_target(
 #   bdaaverager.timebase=5000
 ExternalProject_Add(
   mwa_bda_mock_ms
-  URL http://astron.nl/citt/ci_data/wsclean/MWA_BDA_MOCK.ms.tar.bz2
+  URL ${WSCLEAN_DATA_URL}/MWA_BDA_MOCK.ms.tar.bz2
   URL_HASH
     SHA256=cc249aa62771d14d163e2a5d90fbb6110c57c13bba07b762acad875a64a15f41
   SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/MWA_BDA_MOCK.ms
@@ -49,7 +51,7 @@ ExternalProject_Add(
 
 ExternalProject_Add(
   jvla_test_ms
-  URL http://astron.nl/citt/ci_data/wsclean/JVLA-MultiBand-S1_C5-minimal.ms.tar.bz2
+  URL ${WSCLEAN_DATA_URL}/JVLA-MultiBand-S1_C5-minimal.ms.tar.bz2
   URL_HASH
     SHA256=7c8d41b5ff59c8736b1223e6b855a96e410f27fb4be05d179c8292fdb78cdc7e
   SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/JVLA-MultiBand-S1_C5-minimal.ms
