@@ -167,6 +167,10 @@ void PrintHelp() {
          "to: \n\n"
          "   max(width, height) / min(width, height) * pb-grid-size**2. \n\n"
          "   Default: 32.\n"
+         "-psf-grid-size\n"
+         "   This parameter enables direction-dependent psfs.\n   Select the "
+         "grid size (in the order width and height).\n"
+         "   Default: 1 1 (no direction-dependent psfs).\n"
          "-beam-model\n"
          "   Specify the beam model, only relevant for SKA and LOFAR. "
          "Available "
@@ -944,6 +948,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "pb-grid-size") {
       IncArgi(argi, argc);
       settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
+    } else if (param == "psf-grid-size") {
+      size_t width = ParseSizeT(argv[argi + 1], "psf-grid-size"),
+             height = ParseSizeT(argv[argi + 2], "psf-grid-size");
+      settings.psfsGridWidth = width;
+      settings.psfsGridHeight = height;
+      argi += 2;
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;
     } else if (param == "no-negative") {
