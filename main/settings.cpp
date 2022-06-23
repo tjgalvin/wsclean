@@ -423,7 +423,6 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.spectral_fitting.mode = spectralFittingMode;
   radler_settings.spectral_fitting.terms = spectralFittingTerms;
   radler_settings.spectral_fitting.forced_filename = forcedSpectrumFilename;
-  radler_settings.deconvolution_channel_count = deconvolutionChannelCount;
   radler_settings.algorithm_type = algorithmType;
 
   switch (algorithmType) {
