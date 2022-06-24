@@ -1,4 +1,4 @@
-image: ubuntu:20.04
+image: ubuntu:22.04
 
 stages:
  - format
@@ -20,6 +20,7 @@ workflow:
       casacore-data casacore-dev casacore-tools
       cmake
       g++
+      g++-12
       git
       libblas-dev liblapack-dev
       libboost-filesystem-dev libboost-system-dev libboost-date-time-dev
@@ -77,7 +78,7 @@ build-without-everybeam:
         coverage_format: cobertura
         path: coverage/cobertura-coverage.xml
 
-build-with-everybeam:
+build-with-everybeam-gcc12:
   stage: build
   extends: .dependencies
   script:
@@ -86,7 +87,7 @@ build-with-everybeam:
     - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/
     - make -j`nproc` install
     - cd $CI_PROJECT_DIR && mkdir build && cd build
-    - cmake -DBUILD_TESTING=ON -DCMAKE_PREFIX_PATH='/opt/everybeam' ../
+    - cmake -DBUILD_TESTING=ON -DCMAKE_PREFIX_PATH='/opt/everybeam' -DCMAKE_C_COMPILER=/usr/bin/gcc-12 -DCMAKE_CXX_COMPILER=/usr/bin/g++-12 ../
     - make -j`nproc` install
     # For a push pipeline, run unittests only, otherwise run both unit and integration tests
     - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make unitchecks; else make check; fi
