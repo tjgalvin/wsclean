@@ -505,18 +505,10 @@ void WSMSGridder::Invert() {
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight()
                   << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
-    // Perform trimming
-
-    Image trimmed(TrimWidth(), TrimHeight());
-    Image::Trim(trimmed.Data(), TrimWidth(), TrimHeight(), _realImage.Data(),
-                ImageWidth(), ImageHeight());
-    _realImage = std::move(trimmed);
+    _realImage = _realImage.Trim(TrimWidth(), TrimHeight());
 
     if (IsComplex()) {
-      Image trimmedImag(TrimWidth(), TrimHeight());
-      Image::Trim(trimmedImag.Data(), TrimWidth(), TrimHeight(),
-                  _imaginaryImage.Data(), ImageWidth(), ImageHeight());
-      _imaginaryImage = std::move(trimmedImag);
+      _imaginaryImage = _imaginaryImage.Trim(TrimWidth(), TrimHeight());
     }
   }
   Logger::Debug << "Inversion finished.\n";

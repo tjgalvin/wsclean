@@ -260,10 +260,7 @@ void WGriddingMSGridder::Invert() {
     Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight()
                   << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
 
-    Image trimmed(TrimWidth(), TrimHeight());
-    Image::Trim(trimmed.Data(), TrimWidth(), TrimHeight(), _image.Data(),
-                ImageWidth(), ImageHeight());
-    _image = std::move(trimmed);
+    _image = _image.Trim(TrimWidth(), TrimHeight());
   }
 }
 
