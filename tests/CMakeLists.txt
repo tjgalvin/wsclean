@@ -10,7 +10,6 @@ add_executable(
   testserialization.cpp
   idg/taveragebeam.cpp
   io/tcachedimageset.cpp
-  math/tpolynomialchannelfitter.cpp
   math/trenderer.cpp
   msproviders/tnoisemsrowprovider.cpp
   msproviders/tbdamsrowproviderdata.cpp

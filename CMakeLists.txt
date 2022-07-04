@@ -294,7 +294,6 @@ add_library(
   io/wscfitswriter.cpp
   math/imageoperations.cpp
   math/renderer.cpp
-  math/polynomialchannelfitter.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp
   msproviders/mscolumns.cpp
