@@ -288,6 +288,8 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::size_t _facetCount;  // 0 means facets are not used.
+  /// Direction Dependent Point Spread Functions
+  std::vector<schaapcommon::facets::Facet> _dd_psfs;
   double _lastStartTime;
 };
 
