@@ -90,8 +90,7 @@ void Settings::Validate() const {
             "input measurement sets.");
       }
 
-      const std::size_t nfacets =
-          FacetReader::ReadFacets(facetRegionFilename).size();
+      const std::size_t nfacets = FacetReader::CountFacets(facetRegionFilename);
       for (const std::string& facetSolutionFile : facetSolutionFiles) {
         schaapcommon::h5parm::H5Parm h5parm =
             schaapcommon::h5parm::H5Parm(facetSolutionFile);
@@ -216,7 +215,7 @@ void Settings::Validate() const {
   if (deconvolutionChannelCount != 0 &&
       deconvolutionChannelCount != channelsOut &&
       spectralFittingMode ==
-          schaapcommon::fitters::SpectralFittingMode::NoFitting)
+          schaapcommon::fitters::SpectralFittingMode::kNoFitting)
     throw std::runtime_error(
         "You have requested to deconvolve with a decreased number of channels "
         "(-deconvolution-channels), but you have not enabled spectral fitting. "
@@ -242,7 +241,7 @@ void Settings::Validate() const {
 
   if (!forcedSpectrumFilename.empty() &&
       (spectralFittingMode !=
-           schaapcommon::fitters::SpectralFittingMode::LogPolynomial ||
+           schaapcommon::fitters::SpectralFittingMode::kLogPolynomial ||
        spectralFittingTerms != 2))
     throw std::runtime_error(
         "When using forced spectrum mode, currently it is required to fit "

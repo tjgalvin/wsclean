@@ -110,7 +110,7 @@ BOOST_FIXTURE_TEST_CASE(loadAndAverage, ImageSetFixture<1>) {
 BOOST_FIXTURE_TEST_CASE(interpolateAndStore, ImageSetFixture<2>) {
   ImageSet dset(*table, false, {}, 2, 2);
   schaapcommon::fitters::SpectralFitter fitter(
-      schaapcommon::fitters::SpectralFittingMode::NoFitting, 2);
+      schaapcommon::fitters::SpectralFittingMode::kNoFitting, 2);
   dset.LoadAndAverage(false);
   dset.InterpolateAndStoreModel(fitter, 1);
   BOOST_CHECK_CLOSE_FRACTION(dset[0][0], 2.0, 1e-8);

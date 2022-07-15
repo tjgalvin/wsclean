@@ -131,8 +131,10 @@ class WSClean {
       const std::vector<aocommon::ChannelInfo>& channels,
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
-  void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
   void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
+  void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
+  void updateFacetsInImagingTable(
+      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets);
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 
   void multiplyImage(double factor, double* image) const;
@@ -285,7 +287,7 @@ class WSClean {
   std::optional<radler::Radler> _deconvolution;
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
-  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> _facets;
+  std::size_t _facetCount;  // 0 means facets are not used.
   double _lastStartTime;
 };
 

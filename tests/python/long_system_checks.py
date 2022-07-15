@@ -10,11 +10,11 @@ sys.path.append(".")
 import config_vars as tcf
 
 """
-Test script containing a collection of wsclean commands, tested on an MWA measurement set. Tests contained in this
-file can be invoked via various routes:
+Test script containing a collection of wsclean commands, tested on an MWA
+measurement set. Tests contained in this file can be invoked via various routes:
 
 - execute "make longsystemcheck"  in your build directory
-- execute "[python3 -m] pytest [OPTIONS] source/<test_name.py>" in your build/tests directory
+- execute "[python3 -m] pytest [OPTIONS] source/<test_name.py>" in your build/tests/python directory
 """
 
 
@@ -47,13 +47,25 @@ class TestLongSystem:
 
     def test_multiple_intervals(self):
         # Multiple intervals
-        s = f"{tcf.WSCLEAN} -name {name('intervals')} -intervals-out 3 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('intervals')} -intervals-out 3 \
+            {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_multiple_intervals_and_channels(self):
         # Multiple intervals + multiple channels with some cleaning
         s = f"{tcf.WSCLEAN} -name {name('intervals-and-channels')} -intervals-out 3 \
             -channels-out 2 -niter 1000 -mgain 0.8 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        validate_call(s.split())
+
+    def test_multiple_intervals_and_facets(self):
+        # Multiple intervals + multiple facets with some cleaning
+        s_base = f"{tcf.WSCLEAN} -name {name('intervals-and-facets')} -intervals-out 3 \
+            -facet-regions {tcf.FACETFILE_4FACETS}"
+        s = f"{s_base} -niter 1000 -mgain 0.8 {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        validate_call(s.split())
+
+        # Run predict, using the model generated above.
+        s = f"{s_base} -predict {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_multifrequency_hogbom(self):

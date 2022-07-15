@@ -183,7 +183,7 @@ class Settings {
 
   bool IsSpectralFittingEnabled() const {
     return spectralFittingMode !=
-           schaapcommon::fitters::SpectralFittingMode::NoFitting;
+           schaapcommon::fitters::SpectralFittingMode::kNoFitting;
   }
 
  private:
@@ -352,7 +352,7 @@ inline Settings::Settings()
       moreSaneLocation(),
       moreSaneArgs(),
       spectralFittingMode(
-          schaapcommon::fitters::SpectralFittingMode::NoFitting),
+          schaapcommon::fitters::SpectralFittingMode::kNoFitting),
       spectralFittingTerms(0),
       forcedSpectrumFilename(),
       deconvolutionChannelCount(0),

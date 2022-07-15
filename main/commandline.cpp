@@ -1160,13 +1160,13 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "fit-spectral-pol") {
       IncArgi(argi, argc);
       settings.spectralFittingMode =
-          schaapcommon::fitters::SpectralFittingMode::Polynomial;
+          schaapcommon::fitters::SpectralFittingMode::kPolynomial;
       settings.spectralFittingTerms =
           ParseSizeT(argv[argi], "fit-spectral-pol");
     } else if (param == "fit-spectral-log-pol") {
       IncArgi(argi, argc);
       settings.spectralFittingMode =
-          schaapcommon::fitters::SpectralFittingMode::LogPolynomial;
+          schaapcommon::fitters::SpectralFittingMode::kLogPolynomial;
       settings.spectralFittingTerms =
           ParseSizeT(argv[argi], "fit-spectral-log-pol");
     } else if (param == "force-spectrum") {
