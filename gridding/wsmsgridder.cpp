@@ -22,17 +22,15 @@
 using aocommon::Image;
 using aocommon::Logger;
 
-WSMSGridder::WSMSGridder(const Settings& settings)
+WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources)
     : MSGridderBase(settings),
       _nwWidth(settings.widthForNWCalculation),
       _nwHeight(settings.heightForNWCalculation),
       _nwFactor(settings.nWLayersFactor),
       _antialiasingKernelSize(settings.antialiasingKernelSize),
       _overSamplingFactor(settings.overSamplingFactor),
-      _cpuCount(_settings.threadCount),
-      _laneBufferSize(std::max<size_t>(_cpuCount * 2, 1024)) {
-  _memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
-
+      _resources(resources),
+      _laneBufferSize(std::max<size_t>(_resources.NCpus() * 2, 1024)) {
   // We do this once here. WStackingGridder does this too, but by default only
   // for the float variant of fftw. schaapcommon::fft::Resampler does double
   // fft's multithreaded, hence this needs to be done here too.
@@ -91,28 +89,28 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
     radiansForAllLayers = 2 * M_PI * (_maxW - cMinW);
   size_t suggestedGridSize = size_t(ceil(radiansForAllLayers * NWFactor()));
   if (suggestedGridSize == 0) suggestedGridSize = 1;
-  if (suggestedGridSize < _cpuCount) {
+  if (suggestedGridSize < _resources.NCpus()) {
     // When nwlayers is lower than the nr of cores, we cannot parallellize well.
     // However, we don't want extra w-layers if we are low on mem, as that might
     // slow down the process
     double memoryRequired =
-        double(_cpuCount) * double(sizeof(GridderType::num_t)) *
+        double(_resources.NCpus()) * double(sizeof(GridderType::num_t)) *
         double(ActualInversionWidth() * ActualInversionHeight());
-    if (4.0 * memoryRequired < double(_memSize)) {
+    if (4.0 * memoryRequired < double(_resources.Memory())) {
       Logger::Info << "The theoretically suggested number of w-layers ("
                    << suggestedGridSize
                    << ") is less than the number of availables\n"
                       "cores ("
-                   << _cpuCount
+                   << _resources.NCpus()
                    << "). Changing suggested number of w-layers to "
-                   << _cpuCount << ".\n";
-      suggestedGridSize = _cpuCount;
+                   << _resources.NCpus() << ".\n";
+      suggestedGridSize = _resources.NCpus();
     } else {
       Logger::Info << "The theoretically suggested number of w-layers ("
                    << suggestedGridSize
                    << ") is less than the number of availables\n"
                       "cores ("
-                   << _cpuCount
+                   << _resources.NCpus()
                    << "), but there is not enough memory available to increase "
                       "the number of w-layers.\n"
                       "Not all cores can be used efficiently.\n";
@@ -139,12 +137,13 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
   // to a lane is reasonably slow; it requires holding a mutex. Without
   // these buffers, writing the lane was a bottleneck and multithreading
   // did not help. I think.
-  std::vector<lane_write_buffer<InversionWorkSample>> bufferedLanes(_cpuCount);
+  std::vector<lane_write_buffer<InversionWorkSample>> bufferedLanes(
+      _resources.NCpus());
   size_t bufferSize =
       std::max<size_t>(8u, _inversionCPULanes[0].capacity() / 8);
   bufferSize = std::min<size_t>(
       128, std::min(bufferSize, _inversionCPULanes[0].capacity()));
-  for (size_t i = 0; i != _cpuCount; ++i) {
+  for (size_t i = 0; i != _resources.NCpus(); ++i) {
     bufferedLanes[i].reset(&_inversionCPULanes[i], bufferSize);
   }
 
@@ -192,7 +191,8 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
           sampleData.uInLambda = newItem.uvw[0] / wavelength;
           sampleData.vInLambda = newItem.uvw[1] / wavelength;
           sampleData.wInLambda = newItem.uvw[2] / wavelength;
-          size_t cpu = _gridder->WToLayer(sampleData.wInLambda) % _cpuCount;
+          size_t cpu =
+              _gridder->WToLayer(sampleData.wInLambda) % _resources.NCpus();
           bufferedLanes[cpu].write(sampleData);
         }
 
@@ -224,9 +224,9 @@ template void WSMSGridder::gridMeasurementSet<DDGainMatrix::kTrace>(
     MSData& msData);
 
 void WSMSGridder::startInversionWorkThreads(size_t maxChannelCount) {
-  _inversionCPULanes.resize(_cpuCount);
+  _inversionCPULanes.resize(_resources.NCpus());
   _threadGroup.clear();
-  for (size_t i = 0; i != _cpuCount; ++i) {
+  for (size_t i = 0; i != _resources.NCpus(); ++i) {
     _inversionCPULanes[i].resize(maxChannelCount * _laneBufferSize);
     set_lane_debug_name(
         _inversionCPULanes[i],
@@ -266,7 +266,8 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
 
   size_t rowsProcessed = 0;
 
-  aocommon::Lane<PredictionWorkItem> calcLane(_laneBufferSize + _cpuCount),
+  aocommon::Lane<PredictionWorkItem> calcLane(_laneBufferSize +
+                                              _resources.NCpus()),
       writeLane(_laneBufferSize);
   set_lane_debug_name(
       calcLane,
@@ -278,7 +279,7 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   std::thread writeThread(&WSMSGridder::predictWriteThread<GainEntry>, this,
                           &writeLane, &msData, &selectedBandData);
   std::vector<std::thread> calcThreads;
-  for (size_t i = 0; i != _cpuCount; ++i)
+  for (size_t i = 0; i != _resources.NCpus(); ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
                              &writeLane, &selectedBandData);
 
@@ -391,18 +392,19 @@ void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
-  _gridder.reset(
-      new GridderType(ActualInversionWidth(), ActualInversionHeight(),
-                      ActualPixelSizeX(), ActualPixelSizeY(), _cpuCount,
-                      AntialiasingKernelSize(), OverSamplingFactor()));
+  _gridder.reset(new GridderType(
+      ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
+      ActualPixelSizeY(), _resources.NCpus(), AntialiasingKernelSize(),
+      OverSamplingFactor()));
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
     _gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
   _gridder->SetIsComplex(IsComplex());
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());
-  _gridder->PrepareWLayers(ActualWGridSize(), double(_memSize) * (6.0 / 10.0),
-                           _minW, _maxW);
+  _gridder->PrepareWLayers(ActualWGridSize(),
+                           double(_resources.Memory()) * (6.0 / 10.0), _minW,
+                           _maxW);
   if (IsFirstIteration()) {
     Logger::Info << "Will process "
                  << (_gridder->NWLayers() / _gridder->NPasses()) << "/"
@@ -484,7 +486,7 @@ void WSMSGridder::Invert() {
     // The input is of size ActualInversionWidth() x ActualInversionHeight()
     schaapcommon::fft::Resampler resampler(
         ActualInversionWidth(), ActualInversionHeight(), ImageWidth(),
-        ImageHeight(), _cpuCount);
+        ImageHeight(), _resources.NCpus());
 
     if (IsComplex()) {
       Image resizedReal(ImageWidth(), ImageHeight());
@@ -523,18 +525,19 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
   std::vector<MSData> msDataVector;
   initializeMSDataVector(msDataVector);
 
-  _gridder = std::unique_ptr<GridderType>(
-      new GridderType(ActualInversionWidth(), ActualInversionHeight(),
-                      ActualPixelSizeX(), ActualPixelSizeY(), _cpuCount,
-                      AntialiasingKernelSize(), OverSamplingFactor()));
+  _gridder = std::unique_ptr<GridderType>(new GridderType(
+      ActualInversionWidth(), ActualInversionHeight(), ActualPixelSizeX(),
+      ActualPixelSizeY(), _resources.NCpus(), AntialiasingKernelSize(),
+      OverSamplingFactor()));
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
     _gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
   _gridder->SetIsComplex(IsComplex());
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());
-  _gridder->PrepareWLayers(ActualWGridSize(), double(_memSize) * (6.0 / 10.0),
-                           _minW, _maxW);
+  _gridder->PrepareWLayers(ActualWGridSize(),
+                           double(_resources.Memory()) * (6.0 / 10.0), _minW,
+                           _maxW);
 
   if (IsFirstIteration()) {
     for (size_t i = 0; i != MeasurementSetCount(); ++i)
@@ -556,9 +559,9 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
       ImageHeight() != ActualInversionHeight()) {
     // Decimate the image
     // Input is ImageWidth() x ImageHeight()
-    schaapcommon::fft::Resampler resampler(ImageWidth(), ImageHeight(),
-                                           ActualInversionWidth(),
-                                           ActualInversionHeight(), _cpuCount);
+    schaapcommon::fft::Resampler resampler(
+        ImageWidth(), ImageHeight(), ActualInversionWidth(),
+        ActualInversionHeight(), _resources.NCpus());
 
     if (images.size() == 1) {
       Image resampled(ImageWidth(), ImageHeight());

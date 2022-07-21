@@ -38,6 +38,12 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
   }
 }
 
+Resources GriddingTaskManager::GetResources() const {
+  return Resources(
+      _settings.threadCount,
+      GetAvailableMemory(_settings.memFraction, _settings.absMemLimit));
+}
+
 void GriddingTaskManager::Run(
     GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
   GriddingResult result = RunDirect(std::move(task));
@@ -45,7 +51,7 @@ void GriddingTaskManager::Run(
 }
 
 GriddingResult GriddingTaskManager::RunDirect(GriddingTask&& task) {
-  std::unique_ptr<MSGridderBase> gridder(makeGridder());
+  std::unique_ptr<MSGridderBase> gridder(makeGridder(GetResources()));
   return runDirect(std::move(task), *gridder);
 }
 
@@ -127,33 +133,34 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   return result;
 }
 
-std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder() const {
+std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder(
+    const Resources& resources) const {
   switch (_settings.gridderType) {
     case GridderType::IDG:
-      return std::unique_ptr<MSGridderBase>(new IdgMsGridder(_settings));
+      return std::make_unique<IdgMsGridder>(_settings, resources);
     case GridderType::WGridder:
-      return std::unique_ptr<MSGridderBase>(new WGriddingMSGridder(_settings));
+      return std::make_unique<WGriddingMSGridder>(_settings, resources);
     case GridderType::DirectFT:
       switch (_settings.directFTPrecision) {
         case DirectFTPrecision::Float:
-          return std::unique_ptr<MSGridderBase>(
-              new DirectMSGridder<float>(_settings));
+          return std::make_unique<DirectMSGridder<float>>(_settings, resources);
         case DirectFTPrecision::Double:
-          return std::unique_ptr<MSGridderBase>(
-              new DirectMSGridder<double>(_settings));
+          return std::make_unique<DirectMSGridder<double>>(_settings,
+                                                           resources);
         case DirectFTPrecision::LongDouble:
-          return std::unique_ptr<MSGridderBase>(
-              new DirectMSGridder<long double>(_settings));
+          return std::make_unique<DirectMSGridder<long double>>(_settings,
+                                                                resources);
       }
       break;
     case GridderType::WStacking:
-      return std::unique_ptr<MSGridderBase>(new WSMSGridder(_settings));
+      return std::make_unique<WSMSGridder>(_settings, resources);
   }
   return {};
 }
 
-std::unique_ptr<MSGridderBase> GriddingTaskManager::makeGridder() const {
-  std::unique_ptr<MSGridderBase> gridder(constructGridder());
+std::unique_ptr<MSGridderBase> GriddingTaskManager::makeGridder(
+    const Resources& resources) const {
+  std::unique_ptr<MSGridderBase> gridder(constructGridder(resources));
   gridder->SetGridMode(_settings.gridMode);
   return gridder;
 }

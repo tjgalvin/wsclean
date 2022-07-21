@@ -3,64 +3,66 @@
 
 #include "../main/settings.h"
 
-ThreadedScheduler::ThreadedScheduler(const class Settings& settings)
-    : GriddingTaskManager(settings), _taskList(settings.parallelGridding) {}
+ThreadedScheduler::ThreadedScheduler(const Settings& settings)
+    : GriddingTaskManager(settings),
+      task_list_(settings.parallelGridding),
+      resources_per_task_(GetResources().GetPart(settings.parallelGridding)) {}
 
 ThreadedScheduler::~ThreadedScheduler() {
-  if (!_threadList.empty()) Finish();
+  if (!thread_list_.empty()) Finish();
 }
 
 void ThreadedScheduler::Run(
     GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
   // Start an extra thread if not maxed out already
-  if (_threadList.size() < _settings.parallelGridding)
-    _threadList.emplace_back(&ThreadedScheduler::processQueue, this);
+  if (thread_list_.size() < _settings.parallelGridding)
+    thread_list_.emplace_back(&ThreadedScheduler::processQueue, this);
   else
-    _taskList
+    task_list_
         .wait_for_empty();  // if all threads are busy, block until one
                             // available (in order not to stack too many tasks)
 
-  std::lock_guard<std::mutex> lock(_mutex);
-  while (!_readyList.empty()) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  while (!ready_list_.empty()) {
     // Call callbacks for any finished tasks
-    _readyList.back().second(_readyList.back().first);
-    _readyList.pop_back();
+    ready_list_.back().second(ready_list_.back().first);
+    ready_list_.pop_back();
   }
 
-  _taskList.emplace(std::move(task), std::move(finishCallback));
+  task_list_.emplace(std::move(task), std::move(finishCallback));
 }
 
 void ThreadedScheduler::processQueue() {
   std::pair<GriddingTask, std::function<void(GriddingResult&)>> taskPair;
-  while (_taskList.read(taskPair)) {
-    std::unique_ptr<MSGridderBase> gridder(makeGridder());
+  while (task_list_.read(taskPair)) {
+    std::unique_ptr<MSGridderBase> gridder(makeGridder(resources_per_task_));
     GriddingResult result = runDirect(std::move(taskPair.first), *gridder);
 
-    std::lock_guard<std::mutex> lock(_mutex);
-    _readyList.emplace_back(std::move(result), taskPair.second);
+    std::lock_guard<std::mutex> lock(mutex_);
+    ready_list_.emplace_back(std::move(result), taskPair.second);
   }
 }
 
 void ThreadedScheduler::Start(size_t nWriterGroups) {
   GriddingTaskManager::Start(nWriterGroups);
 
-  if (_writerGroupLocks.size() < nWriterGroups)
-    _writerGroupLocks = std::vector<ThreadedWriterLock>(nWriterGroups);
+  if (writer_group_locks_.size() < nWriterGroups)
+    writer_group_locks_ = std::vector<ThreadedWriterLock>(nWriterGroups);
 }
 
 WriterLockManager::LockGuard ThreadedScheduler::GetLock(
     size_t writerGroupIndex) {
-  return LockGuard(_writerGroupLocks[writerGroupIndex]);
+  return LockGuard(writer_group_locks_[writerGroupIndex]);
 }
 
 void ThreadedScheduler::Finish() {
-  _taskList.write_end();
-  for (std::thread& t : _threadList) t.join();
-  _threadList.clear();
-  _taskList.clear();
-  while (!_readyList.empty()) {
+  task_list_.write_end();
+  for (std::thread& t : thread_list_) t.join();
+  thread_list_.clear();
+  task_list_.clear();
+  while (!ready_list_.empty()) {
     // Call callbacks for any finished tasks
-    _readyList.back().second(_readyList.back().first);
-    _readyList.pop_back();
+    ready_list_.back().second(ready_list_.back().first);
+    ready_list_.pop_back();
   }
 }

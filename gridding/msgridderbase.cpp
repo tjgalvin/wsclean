@@ -39,8 +39,6 @@
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/TableRecord.h>
 
-#include <atomic>
-
 using aocommon::Logger;
 using schaapcommon::h5parm::JonesParameters;
 
@@ -302,40 +300,6 @@ std::vector<std::string> MSGridderBase::getAntennaNames(
     antennaNames.push_back(antennaNameColumn(i));
   }
   return antennaNames;
-}
-
-int64_t MSGridderBase::getAvailableMemory(double memFraction,
-                                          double absMemLimit) {
-  static std::atomic<bool> isFirst(true);
-  bool printOutput = isFirst.exchange(false);
-  long int pageCount = sysconf(_SC_PHYS_PAGES),
-           pageSize = sysconf(_SC_PAGE_SIZE);
-  int64_t memory = (int64_t)pageCount * (int64_t)pageSize;
-  double memSizeInGB = (double)memory / (1024.0 * 1024.0 * 1024.0);
-  if (memFraction == 1.0 && absMemLimit == 0.0 && printOutput) {
-    Logger::Info << "Detected " << round(memSizeInGB * 10.0) / 10.0
-                 << " GB of system memory, usage not limited.\n";
-  } else {
-    double limitInGB = memSizeInGB * memFraction;
-    if (absMemLimit != 0.0 && limitInGB > absMemLimit) limitInGB = absMemLimit;
-    if (printOutput) {
-      Logger::Info << "Detected " << round(memSizeInGB * 10.0) / 10.0
-                   << " GB of system memory, usage limited to "
-                   << round(limitInGB * 10.0) / 10.0
-                   << " GB (frac=" << round(memFraction * 1000.0) / 10.0
-                   << "%, ";
-      if (absMemLimit == 0.0)
-        Logger::Info << "no limit)\n";
-      else
-        Logger::Info << "limit=" << round(absMemLimit * 10.0) / 10.0 << "GB)\n";
-    }
-
-    memory = int64_t((double)pageCount * (double)pageSize * memFraction);
-    if (absMemLimit != 0.0 &&
-        double(memory) > double(1024.0 * 1024.0 * 1024.0) * absMemLimit)
-      memory = int64_t(double(absMemLimit) * double(1024.0 * 1024.0 * 1024.0));
-  }
-  return memory;
 }
 
 void MSGridderBase::initializePointResponse(

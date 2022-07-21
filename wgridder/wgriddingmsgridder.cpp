@@ -21,32 +21,37 @@
 using aocommon::Image;
 using aocommon::Logger;
 
-WGriddingMSGridder::WGriddingMSGridder(const Settings& settings)
+WGriddingMSGridder::WGriddingMSGridder(const Settings& settings,
+                                       const Resources& resources)
     : MSGridderBase(settings),
-      _cpuCount(_settings.threadCount),
+      _resources(resources),
       _accuracy(_settings.wgridderAccuracy) {
-  _memSize = getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
   // It may happen that several schaapcommon::fft::Resamplers are created
   // concurrently, so we must make sure that the FFTW planner can deal with
   // this.
   fftwf_make_planner_thread_safe();
 }
 
+WGriddingMSGridder::~WGriddingMSGridder() = default;
+
 size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
     size_t channelCount) const {
-  size_t constantMem, perVisMem;
+  size_t constantMem;
+  size_t perVisMem;
   _gridder->memUsage(constantMem, perVisMem);
-  if (int64_t(constantMem) >= _memSize) {
-    constantMem = _memSize / 2;
+  if (int64_t(constantMem) >= _resources.Memory()) {
+    // Assume that half the memory is necessary for the constant parts (like
+    // image grid), and the other half remains available for the dynamic buffers
+    constantMem = _resources.Memory() / 2;
     Logger::Warn << "Not enough memory available for doing the gridding:\n"
                     "swapping might occur!\n";
   }
-  uint64_t memForBuffers = _memSize - constantMem;
+  const uint64_t memForBuffers = _resources.Memory() - constantMem;
 
-  uint64_t memPerRow = (perVisMem + sizeof(std::complex<float>)) *
-                           channelCount       // vis themselves
-                       + sizeof(double) * 3;  // uvw
-  size_t maxNRows = std::max(memForBuffers / memPerRow, uint64_t(100));
+  const uint64_t memPerRow = (perVisMem + sizeof(std::complex<float>)) *
+                                 channelCount       // vis themselves
+                             + sizeof(double) * 3;  // uvw
+  const size_t maxNRows = std::max(memForBuffers / memPerRow, uint64_t(100));
   if (maxNRows < 1000) {
     Logger::Warn << "Less than 1000 data rows fit in memory: this probably "
                     "means performance is going to be very poor!\n";
@@ -212,7 +217,7 @@ void WGriddingMSGridder::Invert() {
   _gridder.reset(new WGriddingGridder_Simple(
       ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
       trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), PhaseCentreDL(),
-      PhaseCentreDM(), _cpuCount, _accuracy));
+      PhaseCentreDM(), _resources.NCpus(), _accuracy));
   _gridder->InitializeInversion();
 
   resetVisibilityCounters();
@@ -249,7 +254,7 @@ void WGriddingMSGridder::Invert() {
     // The input is of size ActualInversionWidth() x ActualInversionHeight()
     schaapcommon::fft::Resampler resampler(
         ActualInversionWidth(), ActualInversionHeight(), ImageWidth(),
-        ImageHeight(), _cpuCount);
+        ImageHeight(), _resources.NCpus());
 
     Image resized(ImageWidth(), ImageHeight());
     resampler.Resample(_image.Data(), resized.Data());
@@ -274,7 +279,7 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   _gridder.reset(new WGriddingGridder_Simple(
       ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
       trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), PhaseCentreDL(),
-      PhaseCentreDM(), _cpuCount, _accuracy));
+      PhaseCentreDM(), _resources.NCpus(), _accuracy));
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Image untrimmedImage(ImageWidth(), ImageHeight());
@@ -288,9 +293,9 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   if (ImageWidth() != ActualInversionWidth() ||
       ImageHeight() != ActualInversionHeight()) {
     Image resampledImage(ImageWidth(), ImageHeight());
-    schaapcommon::fft::Resampler resampler(ImageWidth(), ImageHeight(),
-                                           ActualInversionWidth(),
-                                           ActualInversionHeight(), _cpuCount);
+    schaapcommon::fft::Resampler resampler(
+        ImageWidth(), ImageHeight(), ActualInversionWidth(),
+        ActualInversionHeight(), _resources.NCpus());
 
     resampler.Resample(images[0].Data(), resampledImage.Data());
     images[0] = std::move(resampledImage);

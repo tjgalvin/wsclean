@@ -2,14 +2,18 @@
 #define WGRIDDING_MS_GRIDDER_H
 
 #include "../gridding/msgridderbase.h"
+#include "../structures/resources.h"
 
 #include <aocommon/image.h>
 
 #include <memory>
 
+class WGriddingGridder_Simple;
+
 class WGriddingMSGridder final : public MSGridderBase {
  public:
-  WGriddingMSGridder(const Settings& settings);
+  WGriddingMSGridder(const Settings& settings, const Resources& resources);
+  ~WGriddingMSGridder();
 
   virtual void Invert() override;
 
@@ -36,10 +40,9 @@ class WGriddingMSGridder final : public MSGridderBase {
 
   void getActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
 
-  size_t _cpuCount;
-  int64_t _memSize;
+  const Resources _resources;
   double _accuracy;
-  std::unique_ptr<class WGriddingGridder_Simple> _gridder;
+  std::unique_ptr<WGriddingGridder_Simple> _gridder;
 };
 
 #endif

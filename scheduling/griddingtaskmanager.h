@@ -20,6 +20,8 @@
 #include <vector>
 
 class MSGridderBase;
+class Resources;
+class Settings;
 
 class GriddingTaskManager : protected WriterLockManager {
  public:
@@ -68,11 +70,12 @@ class GriddingTaskManager : protected WriterLockManager {
       const class Settings& settings);
 
  protected:
-  GriddingTaskManager(const class Settings& settings);
+  GriddingTaskManager(const Settings& settings);
+  Resources GetResources() const;
 
-  const class Settings& _settings;
+  const Settings& _settings;
 
-  std::unique_ptr<MSGridderBase> makeGridder() const;
+  std::unique_ptr<MSGridderBase> makeGridder(const Resources& resources) const;
 
   /**
    * Run the provided task with the specified gridder.
@@ -86,7 +89,8 @@ class GriddingTaskManager : protected WriterLockManager {
     void unlock() override {}
   };
 
-  std::unique_ptr<MSGridderBase> constructGridder() const;
+  std::unique_ptr<MSGridderBase> constructGridder(
+      const Resources& resources) const;
 };
 
 #endif

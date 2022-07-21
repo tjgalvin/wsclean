@@ -18,6 +18,7 @@ add_executable(
   structures/testimagingtable.cpp
   structures/tfacetutil.cpp
   structures/toutputchannelinfo.cpp
+  structures/tresources.cpp
   system/tmappedfile.cpp
   ${WSCLEANFILES})
 

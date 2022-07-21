@@ -9,8 +9,9 @@
 #include <vector>
 
 template <typename num_t>
-DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings)
-    : MSGridderBase(settings), _nThreads(_settings.threadCount) {}
+DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings,
+                                        const Resources& resources)
+    : MSGridderBase(settings), _resources(resources) {}
 
 template <typename num_t>
 void DirectMSGridder<num_t>::Invert() {
@@ -23,11 +24,11 @@ void DirectMSGridder<num_t>::Invert() {
 
   ProgressBar progress("Performing direct Fourier transform");
 
-  _inversionLane.resize(_nThreads * 1024);
+  _inversionLane.resize(_resources.NCpus() * 1024);
 
   std::vector<std::thread> threads;
-  threads.reserve(_nThreads);
-  for (size_t t = 0; t != _nThreads; ++t) {
+  threads.reserve(_resources.NCpus());
+  for (size_t t = 0; t != _resources.NCpus(); ++t) {
     _layers.emplace_back(allocate());
     std::fill(_layers[t], _layers[t] + width * height, num_t(0.0));
     threads.emplace_back(

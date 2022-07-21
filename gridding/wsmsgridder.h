@@ -4,6 +4,8 @@
 #include "msgridderbase.h"
 #include "wstackinggridder.h"
 
+#include "../structures/resources.h"
+
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
@@ -19,7 +21,7 @@ class WSMSGridder final : public MSGridderBase {
  public:
   typedef WStackingGridder<float> GridderType;
 
-  WSMSGridder(const Settings& settings);
+  WSMSGridder(const Settings& settings, const Resources& resources);
   ~WSMSGridder() noexcept;
 
   virtual void Invert() override;
@@ -91,8 +93,8 @@ class WSMSGridder final : public MSGridderBase {
   size_t _currentDataDescId;
   double _nwFactor;
   size_t _antialiasingKernelSize, _overSamplingFactor;
-  size_t _cpuCount, _laneBufferSize;
-  int64_t _memSize;
+  const Resources _resources;
+  size_t _laneBufferSize;
   aocommon::Image _realImage;
   aocommon::Image _imaginaryImage;
 };

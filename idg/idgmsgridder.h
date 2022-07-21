@@ -4,6 +4,7 @@
 #ifdef HAVE_IDG
 
 #include "../gridding/msgridderbase.h"
+#include "../structures/resources.h"
 
 #include <idg-api.h>
 
@@ -16,16 +17,15 @@
 #include <EveryBeam/aterms/atermbase.h>
 #endif  // HAVE_EVERYBEAM
 
-#include <boost/thread/mutex.hpp>
-
 #include "../main/stopwatch.h"
 
 struct ImagingTableEntry;
 class ImageFilename;
+class Settings;
 
 class IdgMsGridder final : public MSGridderBase {
  public:
-  IdgMsGridder(const class Settings& settings);
+  IdgMsGridder(const Settings& settings, const Resources& resources);
 
   virtual ~IdgMsGridder() final override;
 
@@ -102,6 +102,7 @@ class IdgMsGridder final : public MSGridderBase {
   idg::api::options_type _options;
   Stopwatch _griddingWatch;
   Stopwatch _degriddingWatch;
+  const Resources _resources;
 };
 
 void init_optimal_taper_1D(int subgridsize, int gridsize, float kernelsize,

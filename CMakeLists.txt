@@ -324,6 +324,7 @@ add_library(
   structures/msselection.cpp
   structures/observationinfo.cpp
   structures/primarybeam.cpp
+  structures/resources.cpp
   system/pythonfilepath.cpp
   wgridder/wgriddingmsgridder.cpp
   wgridder/wgriddinggridder_simple.cpp

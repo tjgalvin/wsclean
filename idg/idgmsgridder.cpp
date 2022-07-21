@@ -44,19 +44,20 @@ namespace {
 constexpr const size_t kGridderIndex = 0;
 }
 
-IdgMsGridder::IdgMsGridder(const Settings& settings)
+IdgMsGridder::IdgMsGridder(const Settings& settings, const Resources& resources)
     : MSGridderBase(settings),
       _averageBeam(nullptr),
       _outputProvider(nullptr),
       _proxyType(idg::api::Type::CPU_OPTIMIZED),
-      _buffersize(0) {
+      _buffersize(0),
+      _resources(resources) {
   IdgConfiguration::Read(_proxyType, _buffersize, _options);
   setIdgType();
   _bufferset = std::unique_ptr<idg::api::BufferSet>(
       idg::api::BufferSet::create(_proxyType));
   if (settings.gridWithBeam || !settings.atermConfigFilename.empty())
     _options["a_term_kernel_size"] = float(_settings.atermKernelSize);
-  _options["max_threads"] = int(settings.threadCount);
+  _options["max_threads"] = int(resources.NCpus());
   if (settings.gridMode == GriddingKernelMode::BlackmanHarris)
     _options["taper"] = std::string("blackman-harris");
 }
@@ -562,13 +563,11 @@ bool IdgMsGridder::prepareForMeasurementSet(
   bands.emplace_back(_selectedBand.begin(), _selectedBand.end());
   const size_t nChannels = _selectedBand.ChannelCount();
 
-  uint64_t memSize =
-      getAvailableMemory(_settings.memFraction, _settings.absMemLimit);
   // Only one-third of the mem is allocated to the buffers, so that memory
   // remains available for the images and other things done by IDG.
-  memSize = memSize / 3;
   // Never use more than 16 GB
-  memSize = std::min<uint64_t>(16ul * 1024ul * 1024ul * 1024ul, memSize);
+  const size_t memSize = std::min<uint64_t>(16ul * 1024ul * 1024ul * 1024ul,
+                                            _resources.Memory() / 3);
   uint64_t memPerTimestep =
       idg::api::BufferSet::get_memory_per_timestep(nStations, nChannels);
 #ifdef HAVE_EVERYBEAM

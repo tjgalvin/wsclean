@@ -234,8 +234,6 @@ class MSGridderBase {
   double ActualPixelSizeX() const { return _actualPixelSizeX; }
   double ActualPixelSizeY() const { return _actualPixelSizeY; }
 
-  int64_t getAvailableMemory(double memFraction, double absMemLimit);
-
   struct MSData {
    public:
     MSData();

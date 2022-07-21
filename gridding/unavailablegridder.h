@@ -2,6 +2,7 @@
 #define NOT_IMPLEMENTED_GRIDDER_H
 
 #include "msgridderbase.h"
+#include "../structures/resources.h"
 
 #include <aocommon/image.h>
 #include <aocommon/fits/fitswriter.h>
@@ -11,7 +12,8 @@
 
 class UnavailableGridder final : public MSGridderBase {
  public:
-  UnavailableGridder(const class Settings& settings) : MSGridderBase(settings) {
+  UnavailableGridder(const class Settings& settings, const Resources& resources)
+      : MSGridderBase(settings) {
     doThrow();
   }
 

@@ -3,6 +3,8 @@
 
 #include "griddingtaskmanager.h"
 
+#include "../structures/resources.h"
+
 #include <mutex>
 #include <thread>
 
@@ -31,13 +33,15 @@ class ThreadedScheduler final : public GriddingTaskManager {
 
   void processQueue();
 
-  std::mutex _mutex;
-  std::vector<std::thread> _threadList;
+  std::mutex mutex_;
+  std::vector<std::thread> thread_list_;
   aocommon::Lane<std::pair<GriddingTask, std::function<void(GriddingResult&)>>>
-      _taskList;
+      task_list_;
   std::vector<std::pair<GriddingResult, std::function<void(GriddingResult&)>>>
-      _readyList;
-  std::vector<ThreadedWriterLock> _writerGroupLocks;
+      ready_list_;
+  std::vector<ThreadedWriterLock> writer_group_locks_;
+
+  const Resources resources_per_task_;
 };
 
 #endif
