@@ -10,9 +10,6 @@
 struct ObservationInfo {
   double phaseCentreRA = 0.0;
   double phaseCentreDec = 0.0;
-  bool hasShiftedPhaseCentre = false;
-  double shiftL = 0.0;
-  double shiftM = 0.0;
   std::string telescopeName;
   std::string observer;
   std::string fieldName;

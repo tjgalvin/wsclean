@@ -5,23 +5,24 @@
 using schaapcommon::facets::Facet;
 
 Facet::InitializationData CreateFacetInitializationData(
-    const Settings& settings, const ObservationInfo& observation_info) {
-  Facet::InitializationData data(settings.pixelScaleX, settings.pixelScaleY,
-                                 settings.trimmedImageWidth,
-                                 settings.trimmedImageHeight);
-  data.phase_centre.ra = observation_info.phaseCentreRA;
-  data.phase_centre.dec = observation_info.phaseCentreDec;
-  data.shift_l = observation_info.shiftL;
-  data.shift_m = observation_info.shiftM;
-  data.padding = settings.imagePadding;
+    double width, double height, double pixelScaleX, double pixelScaleY,
+    double phaseCentreRA, double phaseCentreDec, double shiftL, double shiftM,
+    double imagePadding, bool make_square) {
+  Facet::InitializationData data(pixelScaleX, pixelScaleY, width, height);
+  data.phase_centre.ra = phaseCentreRA;
+  data.phase_centre.dec = phaseCentreDec;
+  data.shift_l = shiftL;
+  data.shift_m = shiftM;
+  data.padding = imagePadding;
   data.align = 2;
-  data.make_square = settings.gridderType == GridderType::IDG;
+  data.make_square = make_square;
   return data;
 }
 
-std::vector<Facet> CreateFacetGrid(const Facet::InitializationData& facet_data,
-                                   size_t grid_width, size_t grid_height) {
-  std::vector<Facet> facets;
+std::vector<std::shared_ptr<Facet>> CreateFacetGrid(
+    const Facet::InitializationData& facet_data, size_t grid_width,
+    size_t grid_height) {
+  std::vector<std::shared_ptr<Facet>> facets;
   facets.reserve(grid_height * grid_width);
 
   for (int grid_y = 0; grid_y < static_cast<int>(grid_height); ++grid_y) {
@@ -36,10 +37,10 @@ std::vector<Facet> CreateFacetGrid(const Facet::InitializationData& facet_data,
       const schaapcommon::facets::BoundingBox box(
           {{facet_start_x, facet_start_y}, {facet_end_x, facet_end_y}});
 
-      facets.emplace_back(facet_data, box);
+      facets.emplace_back(std::make_shared<Facet>(facet_data, box));
       // add a name label for this box
-      facets.back().SetDirectionLabel(std::to_string(grid_x) + ", " +
-                                      std::to_string(grid_y));
+      facets.back()->SetDirectionLabel(std::to_string(grid_x) + ", " +
+                                       std::to_string(grid_y));
     }
   }
 

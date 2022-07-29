@@ -57,6 +57,9 @@ class ImagingTable {
 
   ImagingTable() = default;
 
+  ImagingTable(const ImagingTable& other,
+               std::function<bool(const ImagingTableEntry&)> isSelected);
+
   size_t IndependentGroupCount() const { return _independentGroups.size(); }
 
   ImagingTable GetIndependentGroup(size_t index) const {
@@ -122,10 +125,13 @@ class ImagingTable {
   void Update() {
     updateGroups(_independentGroups,
                  [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
-    updateGroups(_facetGroups,
-                 [](const ImagingTableEntry& e) { return e.facetGroupIndex; });
-    updateGroups(_facets,
-                 [](const ImagingTableEntry& e) { return e.facetIndex; });
+    updateGroups(
+        _facetGroups,
+        [](const ImagingTableEntry& e) { return e.facetGroupIndex; },
+        [](const ImagingTableEntry& e) { return !e.isDdPsf; });
+    updateGroups(
+        _facets, [](const ImagingTableEntry& e) { return e.facetIndex; },
+        [](const ImagingTableEntry& e) { return !e.isDdPsf; });
     updateGroups(_squaredGroups, [](const ImagingTableEntry& e) {
       return e.squaredDeconvolutionIndex;
     });
@@ -151,8 +157,9 @@ class ImagingTable {
 
   static void PrintEntry(const ImagingTableEntry& entry);
   void updateGroups(
-      Groups& groups,
-      std::function<size_t(const ImagingTableEntry&)> getIndex) const;
+      Groups& groups, std::function<size_t(const ImagingTableEntry&)> getIndex,
+      std::function<bool(const ImagingTableEntry&)> isSelected =
+          [](const ImagingTableEntry&) { return true; }) const;
 
   Group _entries;
 

@@ -15,7 +15,9 @@ class FacetReader {
   // Reading facets requires the scale and size so do it after those settings
   // are validated, and validate the facet settings here.
   static std::vector<std::shared_ptr<schaapcommon::facets::Facet>> ReadFacets(
-      const Settings& settings, const ObservationInfo& observation_info);
+      std::string filename, double width, double height, double pixelScaleX,
+      double pixelScaleY, double phaseCentreRA, double phaseCentreDec,
+      double shiftL, double shiftM, double imagePadding, bool make_square);
 
   static std::size_t CountFacets(const std::string& facet_region_filename);
 };

@@ -89,8 +89,8 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   gridder.SetImagePadding(_settings.imagePadding);
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
-  gridder.SetPhaseCentreDM(task.observationInfo.shiftM);
-  gridder.SetPhaseCentreDL(task.observationInfo.shiftL);
+  gridder.SetPhaseCentreDM(task.shiftM);
+  gridder.SetPhaseCentreDL(task.shiftL);
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);

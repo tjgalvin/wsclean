@@ -102,12 +102,16 @@ class WSClean {
 
   ObservationInfo getObservationInfo() const;
   /**
-   * Add the phase shift of a facet to an ObservationInfo object.
+   * Add the phase shift of a facet
    * @param entry entry. If its facet is null, nothing happens.
-   * @param observationInfo shiftL and shiftM of this object are updated.
+   * @param shiftL is updated.
+   * @param shiftM is updated.
    */
-  void applyFacetPhaseShift(const ImagingTableEntry& entry,
-                            ObservationInfo& observationInfo) const;
+
+  std::pair<double, double> getLMShift() const;
+
+  void applyFacetPhaseShift(const ImagingTableEntry& entry, double& shiftL,
+                            double& shiftM) const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<class MSDataDescription>>& msList);
@@ -120,7 +124,7 @@ class WSClean {
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
                               aocommon::PolarizationEnum polarization,
-                              bool isImaginary, const float* image);
+                              bool isImaginary, const aocommon::Image& image);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
 
   void makeImagingTable(size_t outputIntervalIndex);
@@ -132,9 +136,11 @@ class WSClean {
       size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
       ImagingTableEntry& entry);
   void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
-  void addFacetsToImagingTable(ImagingTableEntry& templateEntry);
+  void addFacetsToImagingTable(ImagingTableEntry& templateEntry,
+                               const size_t facet_count);
   void updateFacetsInImagingTable(
-      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets);
+      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets,
+      bool updateDdPsfs = false);
   std::unique_ptr<class ImageWeightCache> createWeightCache();
 
   void multiplyImage(double factor, double* image) const;
@@ -218,13 +224,11 @@ class WSClean {
   void makeBeam();
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
-                                    bool isImaginary, bool isModel,
-                                    bool isFullImage) const;
+                                    bool isImaginary, bool isModel) const;
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
                                     aocommon::PolarizationEnum polarization,
-                                    bool isImaginary, bool isModel,
-                                    bool isFullImage) const;
+                                    bool isImaginary, bool isModel) const;
   /**
    * @brief Apply the H5 solution to the (restored) image and save as -pb.fits
    * file. Method is only invoked in case no beam corrections are applied.
@@ -288,8 +292,14 @@ class WSClean {
   ImagingTable _imagingTable;
   ObservationInfo _observationInfo;
   std::size_t _facetCount;  // 0 means facets are not used.
-  /// Direction Dependent Point Spread Functions
-  std::vector<schaapcommon::facets::Facet> _dd_psfs;
+  std::size_t _ddPsfCount;  // 0 means dd-psfs are not used.
+  /// These contain the user-requested image shift values converted from ra,dec
+  /// to l,m units
+  /// @{
+  double _shiftL;
+  double _shiftM;
+  /// @}
+
   double _lastStartTime;
 };
 

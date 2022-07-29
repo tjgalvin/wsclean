@@ -9,9 +9,11 @@
 #include "../structures/observationinfo.h"
 
 schaapcommon::facets::Facet::InitializationData CreateFacetInitializationData(
-    const Settings& settings, const ObservationInfo& observation_info);
+    double width, double height, double pixelScaleX, double pixelScaleY,
+    double phaseCentreRA, double phaseCentreDec, double shiftL, double shiftM,
+    double imagePadding, bool make_square);
 
-std::vector<schaapcommon::facets::Facet> CreateFacetGrid(
+std::vector<std::shared_ptr<schaapcommon::facets::Facet>> CreateFacetGrid(
     const schaapcommon::facets::Facet::InitializationData& facet_data,
     size_t grid_width, size_t grid_height);
 

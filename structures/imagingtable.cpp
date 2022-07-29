@@ -19,6 +19,20 @@ ImagingTable::ImagingTable(const std::vector<EntryPtr>& entries)
   Update();
 }
 
+ImagingTable::ImagingTable(
+    const ImagingTable& other,
+    std::function<bool(const ImagingTableEntry&)> isSelected)
+    : _entries(),
+      _independentGroups(),
+      _facetGroups(),
+      _facets(),
+      _squaredGroups() {
+  std::copy_if(other._entries.begin(), other._entries.end(),
+               std::back_inserter(_entries),
+               [&](const EntryPtr& entry) { return isSelected(*entry); });
+  Update();
+}
+
 void ImagingTable::Print() const {
   Logger::Info << "=== IMAGING TABLE ===\n"
                   "       # Pol Ch JG ²G FG FI In Freq(MHz)\n";
@@ -70,12 +84,14 @@ void ImagingTable::PrintEntry(const ImagingTableEntry& entry) {
 }
 
 void ImagingTable::updateGroups(
-    Groups& groups,
-    std::function<size_t(const ImagingTableEntry&)> getIndex) const {
+    Groups& groups, std::function<size_t(const ImagingTableEntry&)> getIndex,
+    std::function<bool(const ImagingTableEntry&)> isSelected) const {
   std::map<size_t, Group> groupMap;
 
   for (const EntryPtr& e : _entries) {
-    groupMap[getIndex(*e)].push_back(e);
+    if (isSelected(*e)) {
+      groupMap[getIndex(*e)].push_back(e);
+    }
   }
 
   groups.clear();

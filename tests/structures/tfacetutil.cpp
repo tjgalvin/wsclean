@@ -12,17 +12,17 @@ BOOST_AUTO_TEST_CASE(create_grid_single_facet) {
   const size_t kImageHeight = 142;
   Facet::InitializationData facet_data(0.01, 0.01, kImageWidth, kImageHeight);
 
-  const std::vector<schaapcommon::facets::Facet> facets =
+  const std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets =
       CreateFacetGrid(facet_data, 1, 1);
 
   BOOST_TEST_REQUIRE(facets.size() == 1);
-  const BoundingBox& box = facets.front().GetTrimmedBoundingBox();
+  const BoundingBox& box = facets.front()->GetTrimmedBoundingBox();
   BOOST_TEST(box.Min().x == 0);
   BOOST_TEST(box.Min().y == 0);
   BOOST_TEST(box.Max().x == kImageWidth);
   BOOST_TEST(box.Max().y == kImageHeight);
 
-  BOOST_TEST(facets.front().DirectionLabel() == "0, 0");
+  BOOST_TEST(facets.front()->DirectionLabel() == "0, 0");
 }
 
 BOOST_AUTO_TEST_CASE(create_grid_multiple_facets) {
@@ -30,14 +30,14 @@ BOOST_AUTO_TEST_CASE(create_grid_multiple_facets) {
   const size_t kGridWidth = 4;
   const size_t kGridHeight = 5;
   Facet::InitializationData facet_data(0.01, kImageSize);
-  const std::vector<schaapcommon::facets::Facet> facets =
+  const std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets =
       CreateFacetGrid(facet_data, kGridWidth, kGridHeight);
 
   BOOST_TEST(facets.size() == kGridWidth * kGridHeight);
 
   std::set<std::pair<int, int>> grid_cells;
-  for (const Facet& facet : facets) {
-    const BoundingBox& box = facet.GetTrimmedBoundingBox();
+  for (const std::shared_ptr<Facet> facet : facets) {
+    const BoundingBox& box = facet->GetTrimmedBoundingBox();
     const int grid_x = box.Centre().x / box.Width();
     const int grid_y = box.Centre().y / box.Height();
     BOOST_TEST(grid_x >= 0);
@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(create_grid_multiple_facets) {
     BOOST_TEST(box.Max().x == (grid_x + 1) * kImageSize / kGridWidth);
     BOOST_TEST(box.Max().y == (grid_y + 1) * kImageSize / kGridHeight);
 
-    BOOST_TEST(facet.DirectionLabel() ==
+    BOOST_TEST(facet->DirectionLabel() ==
                std::to_string(grid_x) + ", " + std::to_string(grid_y));
   }
 

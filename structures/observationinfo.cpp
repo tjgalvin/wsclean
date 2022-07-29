@@ -16,9 +16,6 @@
 void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
-      .Bool(hasShiftedPhaseCentre)
-      .Double(shiftL)
-      .Double(shiftM)
       .String(telescopeName)
       .String(observer)
       .String(fieldName);
@@ -27,9 +24,6 @@ void ObservationInfo::Serialize(aocommon::SerialOStream& stream) const {
 void ObservationInfo::Unserialize(aocommon::SerialIStream& stream) {
   stream.Double(phaseCentreRA)
       .Double(phaseCentreDec)
-      .Bool(hasShiftedPhaseCentre)
-      .Double(shiftL)
-      .Double(shiftM)
       .String(telescopeName)
       .String(observer)
       .String(fieldName);
@@ -74,8 +68,6 @@ ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
         "the shift\n"
         "and use wsclean's -shift parameter.\n");
   }
-  obsInfo.shiftL = 0.0;
-  obsInfo.shiftM = 0.0;
 
   casacore::MSObservation oTable = ms.observation();
   size_t obsCount = oTable.nrow();

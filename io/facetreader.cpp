@@ -9,17 +9,19 @@ using schaapcommon::facets::DS9FacetFile;
 using schaapcommon::facets::Facet;
 
 std::vector<std::shared_ptr<Facet>> FacetReader::ReadFacets(
-    const Settings& settings, const ObservationInfo& observation_info) {
-  const Facet::InitializationData data =
-      CreateFacetInitializationData(settings, observation_info);
+    std::string filename, double width, double height, double pixelScaleX,
+    double pixelScaleY, double phaseCentreRA, double phaseCentreDec,
+    double shiftL, double shiftM, double imagePadding, bool make_square) {
+  const Facet::InitializationData data = CreateFacetInitializationData(
+      width, height, pixelScaleX, pixelScaleY, phaseCentreRA, phaseCentreDec,
+      shiftL, shiftM, imagePadding, make_square);
 
   std::vector<std::shared_ptr<Facet>> facets;
-  if (!settings.facetRegionFilename.empty()) {
-    facets = DS9FacetFile(settings.facetRegionFilename).ReadShared(data);
+  if (!filename.empty()) {
+    facets = DS9FacetFile(filename).ReadShared(data);
 
     if (facets.empty()) {
-      throw std::runtime_error("No facets found in " +
-                               settings.facetRegionFilename);
+      throw std::runtime_error("No facets found in " + filename);
     }
   }
 

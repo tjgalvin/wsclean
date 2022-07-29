@@ -91,6 +91,16 @@ struct ImagingTableEntry {
   std::shared_ptr<schaapcommon::facets::Facet> facet;
 
   /**
+   * Flag which indicates whether this entry is a direction dependent PSF
+   *
+   * Entries for which this flag is true are only processed while making the
+   * PSF. After that they are stripped from the ImagingTable, so they are not
+   * used for dirty/residual or model images.
+   *
+   */
+  bool isDdPsf;
+
+  /**
    * Difference from the centre to the facet centre to the facet centre.
    * Example, if the image centre was 100,100 and the facet centre 50,50, these
    * value will be -50,-50

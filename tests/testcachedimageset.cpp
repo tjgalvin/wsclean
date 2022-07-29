@@ -63,11 +63,13 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
   std::vector<std::shared_ptr<Facet>> facets{
       std::make_shared<Facet>(facet_data, std::move(coords0)),
       std::make_shared<Facet>(facet_data, std::move(coords1))};
-  std::vector<aocommon::UVector<float>> facets_data(facets.size());
+  std::vector<aocommon::Image> facet_images;
+  facet_images.reserve(facets.size());
+
   for (size_t i = 0; i < facets.size(); ++i) {
-    facets_data[i].assign(facets[i]->GetTrimmedBoundingBox().Width() *
+    facet_images.emplace_back(facets[i]->GetTrimmedBoundingBox().Width(),
                               facets[i]->GetTrimmedBoundingBox().Height(),
-                          static_cast<float>(i + 1));
+                              static_cast<float>(i + 1));
   }
 
   CachedImageSet cSet;
@@ -78,7 +80,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
 
   for (const auto& polarization : polarizations) {
     for (size_t facet_idx = 0; facet_idx < facets.size(); ++facet_idx) {
-      cSet.StoreFacet(facets_data[facet_idx].data(), polarization, 1, facet_idx,
+      cSet.StoreFacet(facet_images[facet_idx], polarization, 1, facet_idx,
                       facets[facet_idx], false);
     }
   }
@@ -108,8 +110,7 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
       imageStorage.AddToImage({imageMain.Data()});
       BOOST_CHECK_EQUAL_COLLECTIONS(
           imageStorage.Data(0), imageStorage.Data(0) + num_facet_pixels,
-          facets_data[facet_idx].data(),
-          facets_data[facet_idx].data() + num_facet_pixels);
+          facet_images[facet_idx].begin(), facet_images[facet_idx].end());
     }
 
     // Check whether data in imageMain is correct

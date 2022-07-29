@@ -92,7 +92,7 @@ class Settings {
   double primaryBeamLimit;
   std::string mwaPath;
   size_t primaryBeamGridSize, primaryBeamUpdateTime;
-  size_t psfsGridHeight, psfsGridWidth;
+  size_t ddPsfGridHeight, ddPsfGridWidth;
   DirectFTPrecision directFTPrecision;
   double wgridderAccuracy;
   std::string atermConfigFilename;
@@ -294,8 +294,8 @@ inline Settings::Settings()
       primaryBeamLimit(0.005),
       primaryBeamGridSize(32),
       primaryBeamUpdateTime(1800),
-      psfsGridHeight(1),
-      psfsGridWidth(1),
+      ddPsfGridHeight(1),
+      ddPsfGridWidth(1),
       directFTPrecision(DirectFTPrecision::Double),
       wgridderAccuracy(1e-4),
       atermConfigFilename(),
