@@ -59,9 +59,10 @@ Beam correction works together with :doc:`baseline-dependent averaging <baseline
 Differential beam
 ~~~~~~~~~~~~~~~~~
 
-To correct an image for the beam when the phase-centre beam has been applied to the visibilities, the option '``-use-differential-lofar-beam``' can be added. ("``-apply-primary-beam``" also still needs to be given).
+To make primary-beam corrected images for observations in which the visibilities have already been (scalar) corrected for the beam at the phase-centre, the option '``-use-differential-lofar-beam``' can be added. ("``-apply-primary-beam``" is still required). In normal use-cases, this option should not be used, because WSClean determines itself what the correct beam is, and will make sure to output a correctly normalized image even if a scalar beam was applied previously. The combination "``-apply-primary-beam -use-differential-lofar-beam``" can be used to force application of the differential beam in cases the metadata of the measurement set does not contain the proper keys to force this.
 
-In summary: use "``-apply-primary-beam``" when no beam has been applied yet, and use "``-apply-primary-beam -use-differential-lofar-beam``" to apply the differential beam.
+.. warning::
+    This is an expert option that should rarely be used. Incorrect use of this feature will lead to an incorrect flux density values of the correct image.
 
 The ``REFERENCE_DIR`` column is used for determining what phase centre the beam has been applied to. Mathematically, WSClean then applies the differential beam Di as derived below. The data *V* being imaged have been premultiplied with the central beam *C* for baseline *ij*, and we want to
 return a matrix that corrects the data for the full beam *B*. Given our data *R*:
@@ -98,7 +99,7 @@ Usage of the MWA beam requires having installed the HDF5 file that is installed 
 Time-varying beams
 ------------------
 
-When using image plane beam correction, WSClean calculates the time-integrated beam by summing snapshot beams; a beam is calculated for every 30 min and every *output* channel. Be aware that the beam correction is a single correction, and is not time-dependent. Hence, if the beam changes over time, information might smear out over the polarizations. This is less of an issue when the beam was taken out in the visibilities.
+When using image plane beam correction, WSClean calculates the time-integrated beam by summing snapshot beams; a beam is calculated for every 30 min and every *output* channel. Be aware that the beam correction is a single correction, and is not time-dependent. Hence, if the beam changes over time, information might smear out over the polarizations, leading to poor sensitivity. This is less of an issue when the (central) beam was taken out in the visibilities.
 
 Installation information
 ------------------------

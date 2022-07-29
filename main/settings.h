@@ -65,7 +65,6 @@ class Settings {
   std::vector<size_t> fieldIds;
   size_t startTimestep, endTimestep;
   size_t startChannel, endChannel;
-  size_t predictionChannels;
   std::string dataColumnName;
   std::set<aocommon::PolarizationEnum> polarizations;
   std::string facetRegionFilename;
@@ -86,7 +85,10 @@ class Settings {
   std::string beamModel;
   std::string beamMode;
   std::string beamNormalisationMode;
-  bool applyPrimaryBeam, reusePrimaryBeam, savePsfPb;
+  bool applyPrimaryBeam;
+  bool reusePrimaryBeam;
+  bool savePsfPb;
+  bool useScalarPrimaryBeam;
   double primaryBeamLimit;
   std::string mwaPath;
   size_t primaryBeamGridSize, primaryBeamUpdateTime;
@@ -253,7 +255,6 @@ inline Settings::Settings()
       endTimestep(0),
       startChannel(0),
       endChannel(0),
-      predictionChannels(0),
       dataColumnName(),
       polarizations({aocommon::Polarization::StokesI}),
       facetRegionFilename(),
@@ -289,6 +290,7 @@ inline Settings::Settings()
       applyPrimaryBeam(false),
       reusePrimaryBeam(false),
       savePsfPb(false),
+      useScalarPrimaryBeam(false),
       primaryBeamLimit(0.005),
       primaryBeamGridSize(32),
       primaryBeamUpdateTime(1800),

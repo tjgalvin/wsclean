@@ -894,10 +894,6 @@ void WSClean::RunPredict() {
        ++intervalIndex) {
     makeImagingTable(intervalIndex);
 
-    if (_settings.predictionChannels != 0) {
-      // TODO
-    }
-
     _infoPerChannel.assign(_settings.channelsOut, OutputChannelInfo());
     _msGridderMetaCache.clear();
 

@@ -142,8 +142,10 @@ void PrimaryBeam::CorrectImages(
       aocommon::FitsReader reader(prefix + "-" + filenameKind + ".fits");
       Image image(reader.ImageWidth(), reader.ImageHeight());
       reader.Read(image.Data());
-
-      beamImages.ApplyStokesI(image.Data(), _settings.primaryBeamLimit);
+      if (_settings.useScalarPrimaryBeam)
+        beamImages.ApplyScalarStokesI(image.Data(), _settings.primaryBeamLimit);
+      else
+        beamImages.ApplyStokesI(image.Data(), _settings.primaryBeamLimit);
       writer.Write(prefix + "-" + filenameKind + "-pb.fits", image.Data());
     } else {
       throw std::runtime_error(
