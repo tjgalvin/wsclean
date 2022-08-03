@@ -47,8 +47,8 @@ ImagingTableEntry::CreateDeconvolutionEntry(size_t channel_index_offset,
 
   // A PSF accessor is only needed for the first entry of a squared group.
   if (psf_images) {
-    entry->psf_accessor = std::make_unique<CachedImageAccessor>(
-        *psf_images, polarization, outputChannelIndex, is_imaginary);
+    entry->psfs.emplace_back(std::make_unique<CachedImageAccessor>(
+        *psf_images, polarization, outputChannelIndex, is_imaginary));
   }
   entry->model_accessor = std::make_unique<CachedImageAccessor>(
       model_images, polarization, outputChannelIndex, is_imaginary);

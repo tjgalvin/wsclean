@@ -51,7 +51,6 @@ struct ImageSetFixtureBase {
     e->band_start_frequency = frequencyMHz;
     e->band_end_frequency = frequencyMHz;
     e->image_weight = imageWeight;
-    e->psf_accessor = std::make_unique<DummyImageAccessor>();
     e->model_accessor =
         std::make_unique<CachedImageAccessor>(cSet, pol, outChannel, false);
     e->residual_accessor = std::make_unique<DummyImageAccessor>();
