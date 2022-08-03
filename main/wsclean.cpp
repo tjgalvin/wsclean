@@ -1330,7 +1330,7 @@ bool WSClean::overrideImageSettings(const aocommon::FitsReader& reader) {
   if (_settings.trimmedImageWidth == 0 && _settings.trimmedImageHeight == 0) {
     _settings.trimmedImageWidth = reader.ImageWidth();
     _settings.trimmedImageHeight = reader.ImageHeight();
-    _settings.RecalculatePaddedDimensions();
+    _settings.RecalculateDerivedDimensions();
     resetGridder = true;
   } else if (reader.ImageWidth() != _settings.trimmedImageWidth ||
              reader.ImageHeight() != _settings.trimmedImageHeight) {

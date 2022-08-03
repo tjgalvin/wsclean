@@ -13,6 +13,27 @@
 
 using aocommon::Logger;
 
+namespace {
+/**
+ * Determines the number of images in one dimension of an image grid.
+ * @param image_size Size of the image, in some dimension.
+ * @param max_grid_size Maximum size of a grid cell, in the same dimension.
+ *        Zero indicates using a single grid cell.
+ * @return The number of grid cells.
+ */
+size_t GetNumCells(const size_t image_size, const size_t max_grid_size) {
+  size_t images = 1;
+  if (max_grid_size > 0) {
+    images = (image_size + max_grid_size - 1) / max_grid_size;
+    // Since an image typically has an interesting object at its center,
+    // ensure that the number of grid cells is odd. That object then resides in
+    // one grid cell instead of two.
+    images |= 1;
+  }
+  return images;
+}
+}  // namespace
+
 void Settings::Validate() const {
   if (mode == ImagingMode) {
     if (trimmedImageWidth == 0 && trimmedImageHeight == 0)
@@ -257,8 +278,8 @@ void Settings::Validate() const {
   }
 
   if ((ddPsfGridHeight > 1) || (ddPsfGridWidth > 1)) {
-    Logger::Warn << "WARNING: Direction dependent psfs are not implemented "
-                    "yet. Single psf is used instead.\n";
+    Logger::Warn << "WARNING: Direction dependent PSFs are not implemented "
+                    "yet. Single PSF is used instead.\n";
   }
 
   checkPolarizations();
@@ -345,15 +366,17 @@ void Settings::Propagate(bool verbose) {
   }
 
   if (mode == ImagingMode || mode == PredictMode) {
-    RecalculatePaddedDimensions(verbose);
+    RecalculateDerivedDimensions(verbose);
     doReorder = determineReorder();
     dataColumnName = determineDataColumn(verbose);
   }
 }
 
-void Settings::RecalculatePaddedDimensions(bool verbose) {
-  paddedImageWidth = (size_t)ceil(trimmedImageWidth * imagePadding);
-  paddedImageHeight = (size_t)ceil(trimmedImageHeight * imagePadding);
+void Settings::RecalculateDerivedDimensions(bool verbose) {
+  paddedImageWidth =
+      static_cast<size_t>(ceil(trimmedImageWidth * imagePadding));
+  paddedImageHeight =
+      static_cast<size_t>(ceil(trimmedImageHeight * imagePadding));
   // Make the width and height divisable by four.
   paddedImageWidth += (4 - (paddedImageWidth % 4)) % 4;
   paddedImageHeight += (4 - (paddedImageHeight % 4)) % 4;
@@ -362,6 +385,25 @@ void Settings::RecalculatePaddedDimensions(bool verbose) {
       Logger::Debug << "Using image size of " << trimmedImageWidth << " x "
                     << trimmedImageHeight << ", padded to " << paddedImageWidth
                     << " x " << paddedImageHeight << ".\n";
+
+    parallelDeconvolutionGridWidth =
+        GetNumCells(trimmedImageWidth, parallelDeconvolutionMaxSize);
+    parallelDeconvolutionGridHeight =
+        GetNumCells(trimmedImageHeight, parallelDeconvolutionMaxSize);
+    if (ddPsfGridWidth > parallelDeconvolutionGridWidth ||
+        ddPsfGridHeight > parallelDeconvolutionGridHeight) {
+      Logger::Warn
+          << "Warning: The DD PSF grid (" << ddPsfGridWidth << "x"
+          << ddPsfGridHeight
+          << ") has more cells than parallel deconvolution grid ("
+          << parallelDeconvolutionGridWidth << "x"
+          << parallelDeconvolutionGridHeight
+          << ") in at least one dimension. Reducing the DD PSF grid to ";
+      ddPsfGridWidth = std::min(ddPsfGridWidth, parallelDeconvolutionGridWidth);
+      ddPsfGridHeight =
+          std::min(ddPsfGridHeight, parallelDeconvolutionGridHeight);
+      Logger::Warn << ddPsfGridWidth << "x" << ddPsfGridHeight << ".\n";
+    }
   }
 }
 
@@ -376,7 +418,8 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.thread_count = threadCount;
   radler_settings.prefix_name = prefixName;
   radler_settings.linked_polarizations = linkedPolarizations;
-  radler_settings.parallel.max_size = parallelDeconvolutionMaxSize;
+  radler_settings.parallel.grid_width = parallelDeconvolutionGridWidth;
+  radler_settings.parallel.grid_height = parallelDeconvolutionGridHeight;
   radler_settings.parallel.max_threads = parallelDeconvolutionMaxThreads;
   radler_settings.threshold = deconvolutionThreshold;
   radler_settings.minor_loop_gain = deconvolutionGain;

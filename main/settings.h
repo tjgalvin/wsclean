@@ -29,7 +29,7 @@ class Settings {
 
   void Propagate(bool verbose = true);
 
-  void RecalculatePaddedDimensions(bool verbose = true);
+  void RecalculateDerivedDimensions(bool verbose = true);
 
   std::vector<std::string> filenames;
   enum Mode { ImagingMode, PredictMode, RestoreMode, RestoreListMode } mode;
@@ -117,6 +117,8 @@ class Settings {
    */
   std::set<aocommon::PolarizationEnum> linkedPolarizations;
   size_t parallelDeconvolutionMaxSize;
+  size_t parallelDeconvolutionGridWidth;   // derived setting
+  size_t parallelDeconvolutionGridHeight;  // derived setting
   size_t parallelDeconvolutionMaxThreads;
   double deconvolutionThreshold;
   double deconvolutionGain;
