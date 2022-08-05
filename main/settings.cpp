@@ -186,6 +186,14 @@ void Settings::Validate() const {
     }
   }
 
+  if (useMPI && parallelGridding > 1) {
+    throw std::runtime_error(
+        "MPI can not be combined with the parallel gridding option. When using "
+        "MPI, it is MPI that decides how many tasks to run on each node. "
+        "Multiple gridders can run on a single node by telling MPI (e.g. using "
+        "a hostfile) to run multiple tasks on that node.");
+  }
+
   if (gridWithBeam && gridderType != GridderType::IDG)
     throw std::runtime_error(
         "Can't grid with the beam without IDG: specify '-use-idg' to use IDG.");

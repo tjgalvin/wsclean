@@ -47,9 +47,9 @@ int main(int argc, char* argv[]) {
     shortException = !master && !Logger::IsVerbose();
     check_openblas_multithreading();
     if (parseResult) {
-      CommandLine::Validate(wsclean);
       Settings& settings = wsclean.GetSettings();
       settings.useMPI = true;
+      CommandLine::Validate(wsclean);
       shortException = false;
       if (master) {
         CommandLine::Run(wsclean);
