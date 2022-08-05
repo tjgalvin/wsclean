@@ -90,7 +90,6 @@ class WSMSGridder final : public MSGridderBase {
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;
   std::vector<std::thread> _threadGroup;
   size_t _nwWidth, _nwHeight;
-  size_t _currentDataDescId;
   double _nwFactor;
   size_t _antialiasingKernelSize, _overSamplingFactor;
   const Resources _resources;

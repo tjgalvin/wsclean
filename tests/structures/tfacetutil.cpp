@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(create_grid_multiple_facets) {
   BOOST_TEST(facets.size() == kGridWidth * kGridHeight);
 
   std::set<std::pair<int, int>> grid_cells;
-  for (const std::shared_ptr<Facet> facet : facets) {
+  for (const std::shared_ptr<Facet>& facet : facets) {
     const BoundingBox& box = facet->GetTrimmedBoundingBox();
     const int grid_x = box.Centre().x / box.Width();
     const int grid_y = box.Centre().y / box.Height();

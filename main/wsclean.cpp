@@ -1702,13 +1702,13 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                             _residualImages);
     ComponentListWriter componentListWriter(_settings,
                                             std::move(deconvolution_table));
-    componentListWriter.SaveSourceList(*_deconvolution,
-                                       _observationInfo.phaseCentreRA,
-                                       _observationInfo.phaseCentreDec);
+    componentListWriter.SaveSourceList(
+        *_deconvolution, _observationInfo.phaseCentreRA,
+        _observationInfo.phaseCentreDec, _shiftL, _shiftM);
     if (usesBeam()) {
       componentListWriter.SavePbCorrectedSourceList(
           *_deconvolution, _observationInfo.phaseCentreRA,
-          _observationInfo.phaseCentreDec);
+          _observationInfo.phaseCentreDec, _shiftL, _shiftM);
     }
   }
 

@@ -13,16 +13,20 @@ using aocommon::Logger;
 
 void ComponentListWriter::SaveSourceList(const radler::Radler& deconvolution,
                                          long double phase_centre_ra,
-                                         long double phase_centre_dec) const {
+                                         long double phase_centre_dec,
+                                         long double shift_l,
+                                         long double shift_m) const {
   const std::string filename = settings_.prefixName + "-sources.txt";
   radler::ComponentList list = deconvolution.GetComponentList();
   list.WriteSources(deconvolution, filename, settings_.pixelScaleX,
-                    settings_.pixelScaleY, phase_centre_ra, phase_centre_dec);
+                    settings_.pixelScaleY, phase_centre_ra, phase_centre_dec,
+                    shift_l, shift_m);
 }
 
 void ComponentListWriter::SavePbCorrectedSourceList(
     const radler::Radler& deconvolution, long double phase_centre_ra,
-    long double phase_centre_dec) const {
+    long double phase_centre_dec, long double shift_l,
+    long double shift_m) const {
   const std::string filename = settings_.prefixName + "-sources-pb.txt";
   radler::ComponentList list = deconvolution.GetComponentList();
 
@@ -44,7 +48,8 @@ void ComponentListWriter::SavePbCorrectedSourceList(
   }
 
   list.WriteSources(deconvolution, filename, settings_.pixelScaleX,
-                    settings_.pixelScaleY, phase_centre_ra, phase_centre_dec);
+                    settings_.pixelScaleY, phase_centre_ra, phase_centre_dec,
+                    shift_l, shift_m);
 }
 
 void ComponentListWriter::CorrectChannelForPrimaryBeam(

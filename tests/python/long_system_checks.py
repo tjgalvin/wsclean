@@ -136,6 +136,23 @@ class TestLongSystem:
         s = f"{tcf.WSCLEAN} {gridder} -name {name(test_name)} -mgain 0.8 -auto-threshold 5 -niter 1000000 -make-psf {tcf.DIMS_RECTANGULAR} -shift 08h09m20s -39d06m54s -no-update-model-required {tcf.MWA_MS}"
         validate_call(s.split())
 
+    def test_shifted_source_list(self):
+        # Shift the image and check coordinates in source list
+        s = f"{tcf.WSCLEAN} -name {name('shifted-source-list')} -niter 1 {tcf.DIMS_RECTANGULAR} -shift 08h09m20s -39d06m54s -save-source-list {tcf.MWA_MS}"
+        validate_call(s.split())
+        source_file = f"{name('shifted-source-list')}-sources.txt"
+        assert os.path.isfile(source_file)
+        with open(source_file) as f:
+          lines = f.readlines()
+          # There should be a header line and a single source line in the file
+          assert(len(lines) == 2)
+          # 3rd and 4th column contain ra and dec
+          cols = lines[1].split(',')
+          assert(len(cols) >= 4)
+          ra_str = cols[2]
+          dec_str = cols[3]
+          assert(ra_str[0:5]+" "+dec_str[0:6] == "07:49 -44.12")
+       
     def test_missing_channels_in_deconvolution(self):
         # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
         # by imaging with -channels-out 24, it is tested what happens when an output channel has no data.

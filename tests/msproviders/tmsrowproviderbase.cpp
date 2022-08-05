@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(create_ms_row_proverider_direct_ms) {
                         std::map<size_t, size_t>{{0, 0}}, "DATA", false);
 
   BOOST_REQUIRE(provider);
-  BOOST_CHECK_NO_THROW(dynamic_cast<DirectMSRowProvider&>(*provider));
+  BOOST_CHECK(dynamic_cast<DirectMSRowProvider*>(provider.get()));
 }
 
 BOOST_AUTO_TEST_CASE(create_ms_row_proverider_bda_ms) {
