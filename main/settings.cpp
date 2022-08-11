@@ -394,23 +394,26 @@ void Settings::RecalculateDerivedDimensions(bool verbose) {
                     << trimmedImageHeight << ", padded to " << paddedImageWidth
                     << " x " << paddedImageHeight << ".\n";
 
-    parallelDeconvolutionGridWidth =
-        GetNumCells(trimmedImageWidth, parallelDeconvolutionMaxSize);
-    parallelDeconvolutionGridHeight =
-        GetNumCells(trimmedImageHeight, parallelDeconvolutionMaxSize);
-    if (ddPsfGridWidth > parallelDeconvolutionGridWidth ||
-        ddPsfGridHeight > parallelDeconvolutionGridHeight) {
-      Logger::Warn
-          << "Warning: The DD PSF grid (" << ddPsfGridWidth << "x"
-          << ddPsfGridHeight
-          << ") has more cells than parallel deconvolution grid ("
-          << parallelDeconvolutionGridWidth << "x"
-          << parallelDeconvolutionGridHeight
-          << ") in at least one dimension. Reducing the DD PSF grid to ";
-      ddPsfGridWidth = std::min(ddPsfGridWidth, parallelDeconvolutionGridWidth);
-      ddPsfGridHeight =
-          std::min(ddPsfGridHeight, parallelDeconvolutionGridHeight);
-      Logger::Warn << ddPsfGridWidth << "x" << ddPsfGridHeight << ".\n";
+    if (!makePSFOnly || parallelDeconvolutionMaxSize > 0) {
+      parallelDeconvolutionGridWidth =
+          GetNumCells(trimmedImageWidth, parallelDeconvolutionMaxSize);
+      parallelDeconvolutionGridHeight =
+          GetNumCells(trimmedImageHeight, parallelDeconvolutionMaxSize);
+      if (ddPsfGridWidth > parallelDeconvolutionGridWidth ||
+          ddPsfGridHeight > parallelDeconvolutionGridHeight) {
+        Logger::Warn
+            << "Warning: The DD PSF grid (" << ddPsfGridWidth << "x"
+            << ddPsfGridHeight
+            << ") has more cells than parallel deconvolution grid ("
+            << parallelDeconvolutionGridWidth << "x"
+            << parallelDeconvolutionGridHeight
+            << ") in at least one dimension. Reducing the DD PSF grid to ";
+        ddPsfGridWidth =
+            std::min(ddPsfGridWidth, parallelDeconvolutionGridWidth);
+        ddPsfGridHeight =
+            std::min(ddPsfGridHeight, parallelDeconvolutionGridHeight);
+        Logger::Warn << ddPsfGridWidth << "x" << ddPsfGridHeight << ".\n";
+      }
     }
   }
 }

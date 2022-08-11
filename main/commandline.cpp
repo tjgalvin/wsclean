@@ -141,9 +141,9 @@ Options can be:
    and interpolated, to reduce the time spent in evaluating the beam.
    This parameter controls the resolution of the grid at which to evaluate
    the primary beam. Default: 32.
--dd-psf-grid
+-dd-psf-grid <width> <height>
    This parameter enables direction-dependent psfs.
-   Select the grid size (in the order width and height).
+   Select the grid size (number of cells in both directions).
    Default: 1 1 (no direction-dependent psfs).
 -beam-model
    Specify the beam model, only relevant for SKA and LOFAR. Available models are Hamaker, Lobes, OskarDipole, OskarSphericalWave.
