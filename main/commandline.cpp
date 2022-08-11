@@ -141,7 +141,7 @@ Options can be:
    and interpolated, to reduce the time spent in evaluating the beam.
    This parameter controls the resolution of the grid at which to evaluate
    the primary beam. Default: 32.
--psf-grid-size
+-dd-psf-grid
    This parameter enables direction-dependent psfs.
    Select the grid size (in the order width and height).
    Default: 1 1 (no direction-dependent psfs).
@@ -754,9 +754,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "pb-grid-size") {
       IncArgi(argi, argc);
       settings.primaryBeamGridSize = ParseSizeT(argv[argi], "pb-grid-size");
-    } else if (param == "psf-grid-size") {
-      settings.ddPsfGridWidth = ParseSizeT(argv[argi + 1], "psf-grid-size");
-      settings.ddPsfGridHeight = ParseSizeT(argv[argi + 2], "psf-grid-size");
+    } else if (param == "dd-psf-grid") {
+      settings.ddPsfGridWidth = ParseSizeT(argv[argi + 1], "dd-psf-grid");
+      settings.ddPsfGridHeight = ParseSizeT(argv[argi + 2], "dd-psf-grid");
       argi += 2;
     } else if (param == "negative") {
       settings.allowNegativeComponents = true;

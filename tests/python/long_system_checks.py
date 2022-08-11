@@ -152,7 +152,7 @@ class TestLongSystem:
           ra_str = cols[2]
           dec_str = cols[3]
           assert(ra_str[0:5]+" "+dec_str[0:6] == "07:49 -44.12")
-       
+
     def test_missing_channels_in_deconvolution(self):
         # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
         # by imaging with -channels-out 24, it is tested what happens when an output channel has no data.
@@ -376,5 +376,5 @@ class TestLongSystem:
         validate_call(s.split())
 
     def test_dd_psfs_call(self):
-        s = f"{tcf.WSCLEAN} -size 200 200 -scale 2arcsec -make-psf -psf-grid-size 5 5 {tcf.MWA_MS}"
+        s = f"{tcf.WSCLEAN} -size 200 200 -scale 2arcsec -make-psf -dd-psf-grid 5 5 {tcf.MWA_MS}"
         validate_call(s.split())
