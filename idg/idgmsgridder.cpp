@@ -100,24 +100,16 @@ void IdgMsGridder::Invert() {
   Logger::Debug << "IDG subgrid size: " << _bufferset->get_subgridsize()
                 << '\n';
 
-  if (DoImagePSF()) {
+  if (GetPsfMode() != PsfMode::kNone) {
     // Computing the PSF
-    // For the PSF the aterm is computed but not applied
-    // The aterm is computed so that the average beam can be computed
+    // For the PSF the aterm is not applied
     _bufferset->set_apply_aterm(false);
     _bufferset->unset_matrix_inverse_beam();
-    _bufferset->init_compute_avg_beam(
-        idg::api::compute_flags::compute_and_grid);
     resetVisibilityCounters();
     for (const MSData& msData : msDataVector) {
       // Adds the gridding result to _image member
       gridMeasurementSet(msData);
     }
-    _bufferset->finalize_compute_avg_beam();
-    _averageBeam->SetScalarBeam(_bufferset->get_scalar_beam(), width, height);
-    _averageBeam->SetMatrixInverseBeam(_bufferset->get_matrix_inverse_beam(),
-                                       _bufferset->get_subgridsize(),
-                                       _bufferset->get_subgridsize());
     _image.assign(n_image_polarizations * width * height, 0.0);
     _bufferset->get_image(_image.data());
 
@@ -234,13 +226,33 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     rowData.antenna1 = metaData.antenna1;
     rowData.antenna2 = metaData.antenna2;
     rowData.timeIndex = timeIndex;
-    if (n_vis_polarizations == 2) {
+
+    if (n_vis_polarizations == 1) {
+      readAndWeightVisibilities<1, DDGainMatrix::kTrace>(
+          *msReader, msData.antennaNames, rowData, _selectedBand,
+          weightBuffer.data(), modelBuffer.data(), isSelected.data());
+      // The data is placed in the first quarter of the buffers: reverse copy it
+      // and expand it to 4 polarizations. TODO at a later time, IDG should
+      // be able to directly accept 1 polarization instead of 4.
+      size_t source_index = dataBuffer.size() / 4;
+      for (size_t i = dataBuffer.size(); i != 0; i -= 4) {
+        dataBuffer[i - 1] = dataBuffer[source_index - 1];
+        dataBuffer[i - 2] = 0.0;
+        dataBuffer[i - 3] = 0.0;
+        dataBuffer[i - 4] = dataBuffer[source_index - 1];
+        weightBuffer[i - 1] = weightBuffer[source_index - 1];
+        weightBuffer[i - 2] = weightBuffer[source_index - 1];
+        weightBuffer[i - 3] = weightBuffer[source_index - 1];
+        weightBuffer[i - 4] = weightBuffer[source_index - 1];
+        source_index--;
+      }
+    } else if (n_vis_polarizations == 2) {
       readAndWeightVisibilities<2, DDGainMatrix::kFull>(
           *msReader, msData.antennaNames, rowData, _selectedBand,
           weightBuffer.data(), modelBuffer.data(), isSelected.data());
       // The data is placed in the first half of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
-      // directly accept 2 pols instead of 4.
+      // be able to directly accept 2 pols instead of 4.
       size_t source_index = dataBuffer.size() / 2;
       for (size_t i = dataBuffer.size(); i != 0; i -= 4) {
         rowData.data[i - 1] = rowData.data[source_index - 1];
@@ -437,7 +449,15 @@ void IdgMsGridder::computePredictionBuffer(
   const size_t n_vis_polarizations = _outputProvider->NPolarizations();
   for (std::pair<long unsigned, std::complex<float>*>& row :
        available_row_ids) {
-    if (n_vis_polarizations == 2) {
+    if (n_vis_polarizations == 1) {
+      // Remove the XY/YX pols from the data and place the result in the first
+      // quarter of the array
+      for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
+        row.second[i] = (row.second[i * 4] + row.second[i * 4 + 3]) / 2.0f;
+      }
+      writeVisibilities<1, DDGainMatrix::kTrace>(*_outputProvider, antennaNames,
+                                                 _selectedBand, row.second);
+    } else if (n_vis_polarizations == 2) {
       // Remove the XY/YX pols from the data and place the result in the first
       // half of the array
       for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {

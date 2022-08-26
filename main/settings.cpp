@@ -71,17 +71,21 @@ void Settings::Validate() const {
     throw std::runtime_error(s.str());
   }
 
-  if (facetRegionFilename.empty()) {
+  if (facetRegionFilename.empty() && ddPsfGridWidth == 1 &&
+      ddPsfGridHeight == 1) {
     if (!facetSolutionFiles.empty())
       throw std::runtime_error(
           "A facet solution file can only be specified in conjunction with a "
           "facet regions file. Either remove -apply-facet-solutions from the "
-          "command line, or specify a facet regions file with -facet-regions.");
+          "command line, or specify a facet regions file with -facet-regions,"
+          " or specify a grid of dd-psfs with -dd-psf-grid.");
     if (applyFacetBeam)
       throw std::runtime_error(
-          "A facet beam can only applied if a facet regions file is specified. "
+          "A facet beam can only applied if a facet regions file is specified, "
+          "or if a dd-psf is used. "
           "Either remove -apply-facet-beam from the command line, or specify a "
-          "regions file with -facet-regions.");
+          "regions file with -facet-regions, or specify a grid of dd-psfs with "
+          "-dd-psf-grid.");
   } else {
     if (polarizations.size() > 1) {
       // -join-polarizations required in order to write the pb.fits images
@@ -359,13 +363,6 @@ void Settings::Propagate(bool verbose) {
 
   if (parallelDeconvolutionMaxThreads == 0) {
     parallelDeconvolutionMaxThreads = threadCount;
-  }
-
-  // When using IDG with aterms, a PSF must be made, because the beam
-  // image is created during the PSF imaging stage.
-  if (gridderType == GridderType::IDG &&
-      (!atermConfigFilename.empty() || gridWithBeam)) {
-    makePSF = true;
   }
 
   // When using IDG, polarizations should always be joined

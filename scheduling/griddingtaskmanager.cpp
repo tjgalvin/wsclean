@@ -71,7 +71,7 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   }
 
   gridder.SetFacetGroupIndex(task.facetGroupIndex);
-  gridder.SetAdditivePredict(task.facet != nullptr);
+  gridder.SetIsFacet(task.facet != nullptr);
   if (task.facet != nullptr) {
     gridder.SetFacetIndex(task.facetIndex);
     gridder.SetImageWidth(task.facet->GetUntrimmedBoundingBox().Width());
@@ -91,6 +91,18 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
   gridder.SetPhaseCentreDM(task.shiftM);
   gridder.SetPhaseCentreDL(task.shiftL);
+
+  if (_settings.hasShift) {
+    double main_image_dl = 0.0;
+    double main_image_dm = 0.0;
+    aocommon::ImageCoordinates::RaDecToLM(_settings.shiftRA, _settings.shiftDec,
+                                          task.observationInfo.phaseCentreRA,
+                                          task.observationInfo.phaseCentreDec,
+                                          main_image_dl, main_image_dm);
+    gridder.SetMainImageDL(main_image_dl);
+    gridder.SetMainImageDM(main_image_dm);
+  }
+
   gridder.SetPolarization(task.polarization);
   gridder.SetIsComplex(task.polarization == aocommon::Polarization::XY ||
                        task.polarization == aocommon::Polarization::YX);
@@ -102,7 +114,15 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
         std::unique_ptr<MetaDataCache>(new MetaDataCache()));
   gridder.SetImageWeights(task.imageWeights.get());
   if (task.operation == GriddingTask::Invert) {
-    gridder.SetDoImagePSF(task.imagePSF);
+    if (task.imagePSF) {
+      if (_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) {
+        gridder.SetPsfMode(PsfMode::kDirectionDependent);
+      } else {
+        gridder.SetPsfMode(PsfMode::kSingle);
+      }
+    } else {
+      gridder.SetPsfMode(PsfMode::kNone);
+    }
     gridder.SetDoSubtractModel(task.subtractModel);
     gridder.SetStoreImagingWeights(task.storeImagingWeights);
     gridder.Invert();

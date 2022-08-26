@@ -292,7 +292,7 @@ Options can be:
    Provided file is assumed to be in H5Parm format.
    Filename is followed by a comma separated list of strings specifying which sol tabs from the provided H5Parm file are used.
 -apply-facet-beam
-   Apply beam gains to facet center when gridding facet based images
+   Apply beam gains to facet center when gridding facet based images or direction dependent psfs
 -facet-beam-update <seconds>
    Set the facet beam update time in seconds. The default is every 120 seconds.
 -save-aterms

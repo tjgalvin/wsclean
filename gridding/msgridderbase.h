@@ -47,6 +47,14 @@ class SolTab;
  */
 enum class DDGainMatrix { kXX, kYY, kTrace, kFull };
 
+enum class PsfMode {
+  kNone,    // Not a psf, grid the visibilities in the MS
+  kSingle,  // Grid generated visibilities for a point source at the centre of
+            // the main image
+  kDirectionDependent  // Grid generated visibilities for a point source at the
+                       // centre of the current facet
+};
+
 class MSGridderBase {
  public:
   MSGridderBase(const Settings& settings);
@@ -77,7 +85,8 @@ class MSGridderBase {
   }
 
   const std::string& DataColumnName() const { return _dataColumnName; }
-  bool DoImagePSF() const { return _doImagePSF; }
+  bool IsFacet() const { return _isFacet; }
+  PsfMode GetPsfMode() const { return _psfMode; }
   bool DoSubtractModel() const { return _doSubtractModel; }
   bool SmallInversion() const { return _smallInversion; }
   aocommon::PolarizationEnum Polarization() const { return _polarization; }
@@ -97,17 +106,17 @@ class MSGridderBase {
   /**
    * @brief In case of facet-based imaging, the model data in the @param
    * MSProvider is reset to zeros in every major cycle, and predicted data
-   * should be add-assigned to the model data (_additivePredict = true) rather
+   * should be add-assigned to the model data (_isFacet = true) rather
    * than overwriting it. For "standard" imaging, the model data should
-   * be overwritten (_additivePredict = false).
+   * be overwritten (_isFacet = false).
    */
-  void SetAdditivePredict(bool hasFacets) { _additivePredict = hasFacets; }
+  void SetIsFacet(bool isFacet) { _isFacet = isFacet; }
   void SetImageWidth(size_t imageWidth) { _imageWidth = imageWidth; }
   void SetImageHeight(size_t imageHeight) { _imageHeight = imageHeight; }
   void SetActualWGridSize(size_t actualWGridSize) {
     _actualWGridSize = actualWGridSize;
   }
-  void SetDoImagePSF(bool doImagePSF) { _doImagePSF = doImagePSF; }
+  void SetPsfMode(PsfMode psf_mode) { _psfMode = psf_mode; }
   void SetImagePadding(double imagePadding) { _imagePadding = imagePadding; }
   void SetPolarization(aocommon::PolarizationEnum polarization) {
     _polarization = polarization;
@@ -159,6 +168,13 @@ class MSGridderBase {
     _phaseCentreDM = phaseCentreDM;
   }
 
+  void SetMainImageDL(const double main_image_dl) {
+    _mainImageDL = main_image_dl;
+  }
+  void SetMainImageDM(const double main_image_dm) {
+    _mainImageDM = main_image_dm;
+  }
+
   void SetFacetDirectionRA(double facetDirectionRA) {
     _facetDirectionRA = facetDirectionRA;
   }
@@ -170,6 +186,8 @@ class MSGridderBase {
   double FacetDirectionDec() const { return _facetDirectionDec; }
   double PhaseCentreDL() const { return _phaseCentreDL; }
   double PhaseCentreDM() const { return _phaseCentreDM; }
+  double MainImageDL() const { return _mainImageDL; }
+  double MainImageDM() const { return _mainImageDM; }
 
   /**
    * Deallocate any data that is no longer necessary, but all methods
@@ -413,32 +431,63 @@ class MSGridderBase {
   void initializePointResponse(const MSGridderBase::MSData& msData);
   void initializePredictReader(MSProvider& msProvider);
 
+  /**
+   * @brief Applies both the conjugated h5 parm
+   * solutions to the visibilities and computes the weight corresponding to the
+   * combined effect.
+   *
+   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
+   *                      Used for generating a direction dependent psf, where
+   *                      both the (forward) gain needs to be applied for the
+   *                      predict/degridding step
+   *                      and the conjugate gain for the gridding step
+   */
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedH5Parm(MSReader& msReader,
                              const std::vector<std::string>& antennaNames,
                              InversionRow& rowData,
                              const aocommon::BandData& curBand,
-                             const float* weightBuffer);
+                             const float* weightBuffer,
+                             bool apply_forward = false);
 
 #ifdef HAVE_EVERYBEAM
+  /**
+   * @brief Applies the conjugated facet beam to the visibilities and computes
+   * the weight corresponding to the combined effect.
+   *
+   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
+   *                      Used for generating a direction dependent psf, where
+   *                      both the (forward) gain needs to be applied for the
+   *                      predict/degridding step
+   *                      and the conjugate gain for the gridding step
+   */
+
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
                                 const aocommon::BandData& curBand,
-                                const float* weightBuffer);
+                                const float* weightBuffer,
+                                bool apply_forward = false);
 
   /**
    * @brief Applies both the conjugated facet beam and the conjugated h5 parm
    * solutions to the visibilities and computes the weight corresponding to the
    * combined effect.
+   *
+   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
+   *                      Used for generating a direction dependent psf, where
+   *                      both the (forward) gain needs to be applied for the
+   *                      predict/degridding step
+   *                      and the conjugate gain for the gridding step
    */
   template <size_t PolarizationCount, DDGainMatrix GainEntry>
   void ApplyConjugatedFacetDdEffects(
       MSReader& msReader, const std::vector<std::string>& antennaNames,
       InversionRow& rowData, const aocommon::BandData& curBand,
-      const float* weightBuffer);
+      const float* weightBuffer, bool apply_forward = false);
 #endif  // HAVE_EVERYBEAM
 
   double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
+  double _mainImageDL, _mainImageDM;
   double _facetDirectionRA, _facetDirectionDec;
   size_t _facetIndex;
   /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
@@ -447,8 +496,8 @@ class MSGridderBase {
   /// only relevant for prediction.
   size_t _facetGroupIndex;
   size_t _msIndex;
-  /// @see SetAdditivePredict()
-  bool _additivePredict;
+  /// @see SetIsFacet()
+  bool _isFacet;
   double _imagePadding;
   size_t _imageWidth, _imageHeight;
   size_t _trimWidth, _trimHeight;
@@ -456,7 +505,8 @@ class MSGridderBase {
   size_t _wGridSize, _actualWGridSize;
   std::vector<MSProvider*> _measurementSets;
   std::string _dataColumnName;
-  bool _doImagePSF, _doSubtractModel, _smallInversion;
+  PsfMode _psfMode;
+  bool _doSubtractModel, _smallInversion;
   double _wLimit;
   const class ImageWeights* _precalculatedWeightInfo;
   aocommon::PolarizationEnum _polarization;

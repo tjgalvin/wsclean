@@ -135,8 +135,7 @@ void WSClean::loadExistingPSF(ImagingTableEntry& entry) {
           beamImageName);
     }
   }
-  const bool writeBeamImage = false;
-  imagePSFCallback(entry, result, writeBeamImage);
+  imagePSFCallback(entry, result);
 }
 
 void WSClean::loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo) {
@@ -181,15 +180,14 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   // during PSF imaging, the average beam will never exist, so it is not
   // necessary to set task.averageBeam
 
-  const bool writeBeamImage = true;
   _griddingTaskManager->Run(std::move(task),
                             [this, &entry](GriddingResult& result) {
-                              imagePSFCallback(entry, result, writeBeamImage);
+                              imagePSFCallback(entry, result);
                             });
 }
 
-void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
-                               bool writeBeamImage) {
+void WSClean::imagePSFCallback(ImagingTableEntry& entry,
+                               GriddingResult& result) {
   const size_t channelIndex = entry.outputChannelIndex;
   entry.imageWeight = result.imageWeight;
   entry.normalizationFactor = result.normalizationFactor;
@@ -212,20 +210,6 @@ void WSClean::imagePSFCallback(ImagingTableEntry& entry, GriddingResult& result,
   _psfImages.SetWSCFitsWriter(createWSCFitsWriter(entry, false, false));
   _psfImages.StoreFacet(result.images[0], *_settings.polarizations.begin(),
                         channelIndex, entry.facetIndex, entry.facet, false);
-
-  if (writeBeamImage && griddingUsesATerms()) {
-    Logger::Info << "Writing IDG beam image...\n";
-    ImageFilename imageName(entry.outputChannelIndex,
-                            entry.outputIntervalIndex);
-    if (!result.averageBeam || result.averageBeam->Empty()) {
-      throw std::runtime_error(
-          "Trying to write the IDG beam while the beam has not been computed "
-          "yet.");
-    }
-    IdgMsGridder::SaveBeamImage(
-        entry, imageName, _settings, _observationInfo.phaseCentreRA,
-        _observationInfo.phaseCentreDec, _shiftL, _shiftM, *result.averageBeam);
-  }
 
   _isFirstInversion = false;
 
@@ -310,8 +294,10 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
   task.facetGroupIndex = entry.facetGroupIndex;
-  task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
-                                       entry.outputChannelIndex);
+  if (!isFirstInversion && griddingUsesATerms()) {
+    task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
+                                         entry.outputChannelIndex);
+  }
   task.shiftL = _shiftL;
   task.shiftM = _shiftM;
   applyFacetPhaseShift(entry, task.shiftL, task.shiftM);
@@ -420,6 +406,20 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
   }
 
   storeAverageBeam(entry, result.averageBeam);
+
+  if (isInitialInversion && griddingUsesATerms()) {
+    Logger::Info << "Writing IDG beam image...\n";
+    ImageFilename imageName(entry.outputChannelIndex,
+                            entry.outputIntervalIndex);
+    if (!result.averageBeam || result.averageBeam->Empty()) {
+      throw std::runtime_error(
+          "Trying to write the IDG beam while the beam has not been computed "
+          "yet.");
+    }
+    IdgMsGridder::SaveBeamImage(
+        entry, imageName, _settings, _observationInfo.phaseCentreRA,
+        _observationInfo.phaseCentreDec, _shiftL, _shiftM, *result.averageBeam);
+  }
 }
 
 void WSClean::storeAndCombineXYandYX(CachedImageSet& dest,

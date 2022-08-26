@@ -167,8 +167,8 @@ class WSClean {
   void loadExistingDirty(ImagingTableEntry& entry, bool updateBeamInfo);
 
   void imagePSF(ImagingTableEntry& entry);
-  void imagePSFCallback(ImagingTableEntry& entry, struct GriddingResult& result,
-                        bool writeBeamImage);
+  void imagePSFCallback(ImagingTableEntry& entry,
+                        struct GriddingResult& result);
 
   void imageMain(ImagingTableEntry& entry, bool isFirstInversion,
                  bool updateBeamInfo);
@@ -259,11 +259,17 @@ class WSClean {
    * polarizations.
    */
   aocommon::PolarizationEnum getIdgPolarization() const {
-    return _settings.polarizations ==
-                   std::set<aocommon::PolarizationEnum>{
-                       aocommon::Polarization::StokesI}
-               ? aocommon::Polarization::DiagonalInstrumental
-               : aocommon::Polarization::Instrumental;
+    if (_settings.polarizations ==
+        std::set<aocommon::PolarizationEnum>{aocommon::Polarization::StokesI}) {
+      if ((_settings.ddPsfGridWidth > 1 || _settings.ddPsfGridHeight > 1) &&
+          _settings.gridWithBeam) {
+        return aocommon::Polarization::StokesI;
+      } else {
+        return aocommon::Polarization::DiagonalInstrumental;
+      }
+    } else {
+      return aocommon::Polarization::Instrumental;
+    }
   }
 
   MSSelection _globalSelection;

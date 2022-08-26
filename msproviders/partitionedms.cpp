@@ -187,7 +187,12 @@ PartitionedMS::Handle PartitionedMS::Partition(
   std::set<aocommon::PolarizationEnum> polsOut;
   if (settings.gridderType == GridderType::IDG) {
     if (settings.polarizations.size() == 1) {
-      polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
+      if ((settings.ddPsfGridWidth > 1 || settings.ddPsfGridHeight > 1) &&
+          settings.gridWithBeam) {
+        polsOut.insert(aocommon::Polarization::StokesI);
+      } else {
+        polsOut.insert(aocommon::Polarization::DiagonalInstrumental);
+      }
     } else {
       polsOut.insert(aocommon::Polarization::Instrumental);
     }
