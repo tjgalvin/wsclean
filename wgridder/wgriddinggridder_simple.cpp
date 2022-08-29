@@ -6,7 +6,7 @@ using namespace ducc0;
 WGriddingGridder_Simple::WGriddingGridder_Simple(
     size_t width, size_t height, size_t width_t, size_t height_t,
     double pixelSizeX, double pixelSizeY, double shiftL, double shiftM,
-    size_t nthreads, double epsilon, size_t verbosity)
+    size_t nthreads, double epsilon, size_t verbosity, bool tuning)
     : width_(width),
       height_(height),
       width_t_(width_t),
@@ -17,7 +17,8 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(
       shiftL_(shiftL),
       shiftM_(shiftM),
       epsilon_(epsilon),
-      verbosity_(verbosity) {
+      verbosity_(verbosity),
+      tuning_(tuning) {
   MR_assert(verbosity <= 2, "verbosity must be 0, 1, or 2");
 }
 
@@ -48,9 +49,16 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
   vmav<float, 2> tdirty({width_t_, height_t_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
-  ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_, pixelSizeY_,
-                         epsilon_, true, nthreads_, tdirty, verbosity_, true,
-                         false, sigma_min, sigma_max, -shiftL_, -shiftM_);
+  if (!tuning_)
+    ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_,
+                           pixelSizeY_, epsilon_, true, nthreads_, tdirty,
+                           verbosity_, true, false, sigma_min, sigma_max,
+                           -shiftL_, -shiftM_);
+  else
+    ms2dirty_tuning<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_,
+                                  pixelSizeY_, epsilon_, true, nthreads_,
+                                  tdirty, verbosity_, true, false, sigma_min,
+                                  sigma_max, -shiftL_, -shiftM_);
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.raw(i);
 }
 
@@ -87,7 +95,14 @@ void WGriddingGridder_Simple::PredictVisibilities(
   cmav<float, 2> tdirty(img.data(), {width_t_, height_t_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
-  dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
-                         pixelSizeY_, epsilon_, true, nthreads_, ms, verbosity_,
-                         true, false, sigma_min, sigma_max, -shiftL_, -shiftM_);
+  if (!tuning_)
+    dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
+                           pixelSizeY_, epsilon_, true, nthreads_, ms,
+                           verbosity_, true, false, sigma_min, sigma_max,
+                           -shiftL_, -shiftM_);
+  else
+    dirty2ms_tuning<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
+                                  pixelSizeY_, epsilon_, true, nthreads_, ms,
+                                  verbosity_, true, false, sigma_min, sigma_max,
+                                  -shiftL_, -shiftM_);
 }

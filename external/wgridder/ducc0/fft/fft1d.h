@@ -112,7 +112,7 @@ template<bool fwd, typename T, typename T2> void special_mul (const Cmplx<T> &v1
 template<bool fwd, typename T> void ROTX90(Cmplx<T> &a)
   { auto tmp_= fwd ? -a.r : a.r; a.r = fwd ? a.i : -a.i; a.i=tmp_; }
 
-template<typename T> inline type_index tidx() { return type_index(typeid(T)); }
+template<typename T> inline auto tidx() { return type_index(typeid(T)); }
 
 struct util1d // hack to avoid duplicate symbols
   {
@@ -1207,7 +1207,9 @@ template <typename Tfs> class cfft_multipass: public cfftpass<Tfs>
           using Tcv = Cmplx<Tfv>;
           constexpr size_t vlen = Tfv::size();
           size_t nvtrans = (l1*ido + vlen-1)/vlen;
-          const auto ticv = tidx<Tcv *>();
+          // NOTE: removed "static" here, because it leads to touble with gcc 7
+          // static const type_index ticv = tidx<Tcv *>();
+          const type_index ticv = tidx<Tcv *>();
 
           if (ido==1)
             {
