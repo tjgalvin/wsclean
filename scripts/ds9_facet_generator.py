@@ -104,7 +104,9 @@ def generate_centroids_from_source_catalog(catalog_file, npoints, w):
         Numpy (npoints, 2) array with pixel coordinates of . Dimension:
     """
 
-    catalog = np.genfromtxt(catalog_file, delimiter=",", dtype=str, encoding=None)
+    catalog = np.genfromtxt(
+        catalog_file, delimiter=",", dtype=str, encoding=None
+    )
     source_idx = np.argsort(catalog[:, 2])[: -npoints - 1 : -1]
     catalog = np.char.strip(catalog)
 
@@ -127,7 +129,9 @@ def generate_centroids_from_source_catalog(catalog_file, npoints, w):
     return np.vstack((x.flatten(), y.flatten())).T
 
 
-def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tessellation=True):
+def tessellate(
+    x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tessellation=True
+):
     """
     Returns Voronoi tessellation vertices
 
@@ -219,7 +223,9 @@ def tessellate(x_pix, y_pix, w, dist_pix, bbox, nouter=64, plot_tessellation=Tru
     verts = [verts[i] for i in ind]
 
     ra_point, dec_point = w.wcs_pix2world(x_pix, y_pix, 1)
-    return [Polygon(vert) for vert in verts], np.vstack((ra_point, dec_point)).T
+    return [Polygon(vert) for vert in verts], np.vstack(
+        (ra_point, dec_point)
+    ).T
 
 
 def generate_centroids(
@@ -265,11 +271,15 @@ def generate_centroids(
     X, Y = np.meshgrid(x, y)
 
     xtol = np.diff(x)[0]
-    dX = np.random.uniform(low=-distort_x * xtol, high=distort_x * xtol, size=X.shape)
+    dX = np.random.uniform(
+        low=-distort_x * xtol, high=distort_x * xtol, size=X.shape
+    )
     X = X + dX
 
     ytol = np.diff(y)[0]
-    dY = np.random.uniform(low=-distort_x * ytol, high=distort_y * ytol, size=Y.shape)
+    dY = np.random.uniform(
+        low=-distort_x * ytol, high=distort_y * ytol, size=Y.shape
+    )
     Y = Y + dY
     return X.flatten(), Y.flatten()
 
@@ -321,7 +331,9 @@ def write_ds9(fname, polygons, points=None):
             # Strip trailing comma
             poly_string = poly_string[:-1] + ")"
             if points is not None:
-                poly_string += f"\npoint({points[i, 0]:.5f}, {points[i, 1]:.5f})"
+                poly_string += (
+                    f"\npoint({points[i, 0]:.5f}, {points[i, 1]:.5f})"
+                )
             polygon_strings.append(poly_string)
         f.write("\n".join(polygon_strings))
 
@@ -368,7 +380,12 @@ def main(args):
     elif args.sourcecatalog:
         # Add two points to account for outer points that will be stripped away
         x_background, y_background = generate_centroids(
-            xmin, ymin, xmax, ymax, args.backgroundfacets + 2, args.backgroundfacets + 2
+            xmin,
+            ymin,
+            xmax,
+            ymax,
+            args.backgroundfacets + 2,
+            args.backgroundfacets + 2,
         )
         xy = generate_centroids_from_source_catalog(
             args.sourcecatalog[0], int(args.sourcecatalog[1]), w
@@ -386,7 +403,9 @@ def main(args):
     )
 
     write_ds9(
-        args.outputfile, facets, points=points if args.writevoronoipoints else None
+        args.outputfile,
+        facets,
+        points=points if args.writevoronoipoints else None,
     )
 
 

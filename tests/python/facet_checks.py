@@ -149,11 +149,17 @@ class TestFacets:
         shutil.rmtree(tcf.MWA_MOCK_FACET)
 
         # Copy output to new MS, swap DATA column, and remove MODEL_DATA
-        validate_call(f"cp -r {tcf.MWA_MOCK_FULL} {tcf.MWA_MOCK_FACET}".split())
+        validate_call(
+            f"cp -r {tcf.MWA_MOCK_FULL} {tcf.MWA_MOCK_FACET}".split()
+        )
         assert shutil.which("taql") is not None, "taql executable not found!"
 
         validate_call(
-            ["taql", "-noph", f"UPDATE {tcf.MWA_MOCK_FACET} SET DATA=MODEL_DATA"]
+            [
+                "taql",
+                "-noph",
+                f"UPDATE {tcf.MWA_MOCK_FACET} SET DATA=MODEL_DATA",
+            ]
         )
         validate_call(
             [
@@ -214,7 +220,11 @@ class TestFacets:
     @pytest.mark.parametrize("beam", [False, True])
     @pytest.mark.parametrize(
         "h5file",
-        [None, ["mock_soltab_2pol.h5"], ["mock_soltab_2pol.h5", "mock_soltab_2pol.h5"]],
+        [
+            None,
+            ["mock_soltab_2pol.h5"],
+            ["mock_soltab_2pol.h5", "mock_soltab_2pol.h5"],
+        ],
     )
     def test_multi_ms(self, beam, h5file):
         """
@@ -237,12 +247,14 @@ class TestFacets:
 
         if beam:
             commands = [
-                "-mwa-path . -apply-facet-beam " + command for command in commands
+                "-mwa-path . -apply-facet-beam " + command
+                for command in commands
             ]
 
         if h5file is not None:
             commands[0] = (
-                f"-apply-facet-solutions {h5file[0]} ampl000,phase000 " + commands[0]
+                f"-apply-facet-solutions {h5file[0]} ampl000,phase000 "
+                + commands[0]
             )
             commands[1] = (
                 f"-apply-facet-solutions {','.join(h5file)} ampl000,phase000 "
@@ -256,7 +268,9 @@ class TestFacets:
 
         # Compare images.
         threshold = 1.0e-6
-        compare_rms_fits(f"{names[0]}-image.fits", f"{names[1]}-image.fits", threshold)
+        compare_rms_fits(
+            f"{names[0]}-image.fits", f"{names[1]}-image.fits", threshold
+        )
 
         # Model data columns should be equal
         taql_commands = [

@@ -143,15 +143,15 @@ class TestLongSystem:
         source_file = f"{name('shifted-source-list')}-sources.txt"
         assert os.path.isfile(source_file)
         with open(source_file) as f:
-          lines = f.readlines()
-          # There should be a header line and a single source line in the file
-          assert(len(lines) == 2)
-          # 3rd and 4th column contain ra and dec
-          cols = lines[1].split(',')
-          assert(len(cols) >= 4)
-          ra_str = cols[2]
-          dec_str = cols[3]
-          assert(ra_str[0:5]+" "+dec_str[0:6] == "07:49 -44.12")
+            lines = f.readlines()
+            # There should be a header line and a single source line in the file
+            assert len(lines) == 2
+            # 3rd and 4th column contain ra and dec
+            cols = lines[1].split(",")
+            assert len(cols) >= 4
+            ra_str = cols[2]
+            dec_str = cols[3]
+            assert ra_str[0:5] + " " + dec_str[0:6] == "07:49 -44.12"
 
     def test_missing_channels_in_deconvolution(self):
         # The test set has some missing MWA subbands. One MWA subband is 1/24 of the data (32/768 channels), so
@@ -160,8 +160,7 @@ class TestLongSystem:
         validate_call(s.split())
 
     def test_grid_with_beam(self):
-        """Requires that WSClean is compiled with IDG and EveryBeam
-        """
+        """Requires that WSClean is compiled with IDG and EveryBeam"""
         name = "idg-beam"
 
         # Remove existing component files if present
@@ -205,7 +204,9 @@ class TestLongSystem:
     def test_facet_h5solution(self, npol):
         # Test facet-based imaging and applying h5 solutions
         # where the polarization axis in the h5 file has size npol
-        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_{npol}pol.h5"
+        h5download = (
+            f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_{npol}pol.h5"
+        )
         validate_call(h5download.split())
 
         name = f"facet-h5-{npol}pol"
@@ -325,7 +326,9 @@ class TestLongSystem:
         # Now use this as a mask, and force a Gaussian on the position
         s = f"{tcf.WSCLEAN} -name {name('masked-parallel-deconvolution')} -size 256 256 -scale 1amin -fits-mask {name('masked-parallel-deconvolution-prepare')}-model.fits -interval 10 14 -niter 10 -parallel-deconvolution 128 -multiscale -multiscale-scales 10 {tcf.MWA_MS}"
         validate_call(s.split())
-        for f in glob.glob(f"{name('masked-parallel-deconvolution-prepare')}*.fits"):
+        for f in glob.glob(
+            f"{name('masked-parallel-deconvolution-prepare')}*.fits"
+        ):
             os.remove(f)
 
     @pytest.mark.parametrize("use_beam", (False, True))

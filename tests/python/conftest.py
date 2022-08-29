@@ -20,7 +20,13 @@ def prepare():
 
     # Download and untar beam pattern file
     if not os.path.isfile(tcf.MWA_COEFF_FILE):
-        check_call(["wget", "-q", os.path.join(tcf.EVERYBEAM_DATA_URL, tcf.MWA_COEFF_ARCHIVE)])
+        check_call(
+            [
+                "wget",
+                "-q",
+                os.path.join(tcf.EVERYBEAM_DATA_URL, tcf.MWA_COEFF_ARCHIVE),
+            ]
+        )
         check_call(["tar", "xf", tcf.MWA_COEFF_ARCHIVE])
 
 
@@ -49,7 +55,9 @@ def prepare_mock_ms():
             [
                 "wget",
                 "-q",
-                os.path.join(tcf.EVERYBEAM_DATA_URL, "MWA-single-timeslot.tar.bz2"),
+                os.path.join(
+                    tcf.EVERYBEAM_DATA_URL, "MWA-single-timeslot.tar.bz2"
+                ),
                 "-O",
                 tcf.MWA_MOCK_ARCHIVE,
             ]

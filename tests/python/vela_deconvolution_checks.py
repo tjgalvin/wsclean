@@ -31,7 +31,9 @@ class TestVelaDeconvolution:
         imagenames = ["dirty", "image", "model", "psf", "residual"]
         fpaths = [
             f"{name}-{chan:04d}-{image}.fits"
-            for (chan, image) in itertools.product(list(range(nchannels)), imagenames)
+            for (chan, image) in itertools.product(
+                list(range(nchannels)), imagenames
+            )
         ]
         fpaths += [f"{name}-MFS-{image}.fits" for image in imagenames]
         check_and_remove_files(fpaths, remove=False)
