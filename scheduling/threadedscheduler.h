@@ -31,9 +31,11 @@ class ThreadedScheduler final : public GriddingTaskManager {
     std::mutex _mutex;
   };
 
-  void processQueue();
+  void ProcessQueue();
+  void CheckExceptions();
 
   std::mutex mutex_;
+  std::exception_ptr latest_exception_;
   std::vector<std::thread> thread_list_;
   aocommon::Lane<std::pair<GriddingTask, std::function<void(GriddingResult&)>>>
       task_list_;
