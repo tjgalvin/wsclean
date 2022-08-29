@@ -220,7 +220,7 @@ Options can be:
    Subtract the model from the data column in the first iteration. This can be used to reimage
    an already cleaned image, e.g. at a different resolution.
 -gridder <type>
-   Set gridder type: direct-ft, idg, wgridder or wstacking.
+   Set gridder type: direct-ft, idg, wgridder, tuned-wgridder, or wstacking.
 -channels-out <count>
    Splits the bandwidth and makes count nr. of images. Default: 1.
 -shift <ra> <dec>
@@ -269,8 +269,6 @@ Options can be:
    with antenna1 and antenna2 indices and the stddev per line, separated by spaces, e.g. "0 1 3.14".
 -idg-mode [cpu/gpu/hybrid]
    Sets the IDG mode. Default: cpu. Hybrid is recommended when a GPU is available.
--use-wgridder
-   Use the w-gridding gridder developed by Martin Reinecke.
 -wgridder-accuracy <value>
    Set the w-gridding accuracy. Default: 1e-4
    Useful range: 1e-2 to 1e-6
@@ -1207,6 +1205,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         settings.smallInversion = false;
       } else if (gridder_str == "wgridder") {
         settings.gridderType = GridderType::WGridder;
+      } else if (gridder_str == "tuned-wgridder") {
+        settings.gridderType = GridderType::TunedWGridder;
       } else if (gridder_str == "wstacking") {
         settings.gridderType = GridderType::WStacking;
       } else if (gridder_str == "direct-ft") {

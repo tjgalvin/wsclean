@@ -12,7 +12,8 @@ class WGriddingGridder_Simple;
 
 class WGriddingMSGridder final : public MSGridderBase {
  public:
-  WGriddingMSGridder(const Settings& settings, const Resources& resources);
+  WGriddingMSGridder(const Settings& settings, const Resources& resources,
+                     bool use_tuned_wgridder);
   ~WGriddingMSGridder();
 
   virtual void Invert() override;
@@ -40,9 +41,10 @@ class WGriddingMSGridder final : public MSGridderBase {
 
   void getActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
 
-  const Resources _resources;
-  double _accuracy;
-  std::unique_ptr<WGriddingGridder_Simple> _gridder;
+  const Resources resources_;
+  double accuracy_;
+  bool use_tuned_wgridder_;
+  std::unique_ptr<WGriddingGridder_Simple> gridder_;
 };
 
 #endif

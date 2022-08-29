@@ -159,7 +159,9 @@ std::unique_ptr<MSGridderBase> GriddingTaskManager::constructGridder(
     case GridderType::IDG:
       return std::make_unique<IdgMsGridder>(_settings, resources);
     case GridderType::WGridder:
-      return std::make_unique<WGriddingMSGridder>(_settings, resources);
+      return std::make_unique<WGriddingMSGridder>(_settings, resources, false);
+    case GridderType::TunedWGridder:
+      return std::make_unique<WGriddingMSGridder>(_settings, resources, true);
     case GridderType::DirectFT:
       switch (_settings.directFTPrecision) {
         case DirectFTPrecision::Float:

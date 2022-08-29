@@ -15,7 +15,7 @@
 #include <radler/settings.h>
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
-enum class GridderType { WStacking, WGridder, DirectFT, IDG };
+enum class GridderType { WStacking, WGridder, TunedWGridder, DirectFT, IDG };
 
 /**
  * This class describes all settings for a single WSClean run.
