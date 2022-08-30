@@ -423,41 +423,49 @@ void MSGridderBase::SetH5Parms() {
           _h5parms[i]->GetSolTab(_settings.facetSolutionTables[0]).GetType(),
           _h5parms[i]->GetSolTab(_settings.facetSolutionTables[1]).GetType()};
 
-      auto itrA =
+      const auto amplitude_iter =
           std::find(solTabTypes.begin(), solTabTypes.end(), "amplitude");
-      auto itrP = std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
+      const auto phase_iter =
+          std::find(solTabTypes.begin(), solTabTypes.end(), "phase");
 
-      if (itrA == solTabTypes.end() || itrP == solTabTypes.end()) {
+      if (amplitude_iter == solTabTypes.end() ||
+          phase_iter == solTabTypes.end()) {
         throw std::runtime_error(
-            "WSClean expected solution tables with name 'amplitude' and "
+            "WSClean expects solution tables with name 'amplitude' and "
             "'phase', but received " +
             solTabTypes[0] + " and " + solTabTypes[1]);
       } else {
-        const size_t idxA = std::distance(solTabTypes.begin(), itrA);
-        const size_t idxP = std::distance(solTabTypes.begin(), itrP);
-        _h5SolTabs[i] = std::make_pair(
-            &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxA]),
-            &_h5parms[i]->GetSolTab(_settings.facetSolutionTables[idxP]));
+        const size_t amplitude_index =
+            std::distance(solTabTypes.begin(), amplitude_iter);
+        const size_t phase_index =
+            std::distance(solTabTypes.begin(), phase_iter);
+        _h5SolTabs[i] =
+            std::make_pair(&_h5parms[i]->GetSolTab(
+                               _settings.facetSolutionTables[amplitude_index]),
+                           &_h5parms[i]->GetSolTab(
+                               _settings.facetSolutionTables[phase_index]));
       }
 
-      const size_t npol1 = _h5SolTabs[i].first->HasAxis("pol")
-                               ? _h5SolTabs[i].first->GetAxis("pol").size
-                               : 1;
-      const size_t npol2 = _h5SolTabs[i].second->HasAxis("pol")
-                               ? _h5SolTabs[i].second->GetAxis("pol").size
-                               : 1;
-      if (npol1 == 1 && npol2 == 1) {
+      const size_t n_amplitude_pol =
+          _h5SolTabs[i].first->HasAxis("pol")
+              ? _h5SolTabs[i].first->GetAxis("pol").size
+              : 1;
+      const size_t n_phase_pol = _h5SolTabs[i].second->HasAxis("pol")
+                                     ? _h5SolTabs[i].second->GetAxis("pol").size
+                                     : 1;
+      if (n_amplitude_pol == 1 && n_phase_pol == 1) {
         _correctType[i] = JonesParameters::CorrectType::SCALARGAIN;
-      } else if (npol1 == 2 && npol2 == 2) {
+      } else if (n_amplitude_pol == 2 && n_phase_pol == 2) {
         _correctType[i] = JonesParameters::CorrectType::GAIN;
-      } else if (npol1 == 4 && npol2 == 4) {
+      } else if (n_amplitude_pol == 4 && n_phase_pol == 4) {
         _correctType[i] = JonesParameters::CorrectType::FULLJONES;
       } else {
         throw std::runtime_error(
             "Incorrect or mismatching number of polarizations in the "
-            "provided soltabs. Number of polarizations should be either "
-            "all 1, 2 or 4, but received " +
-            std::to_string(npol1) + " and " + std::to_string(npol2));
+            "provided amplitude and phase soltabs. The number of polarizations "
+            "should both be either 1, 2 or 4, but received " +
+            std::to_string(n_amplitude_pol) + " for amplitude and " +
+            std::to_string(n_phase_pol) + " for phase");
       }
     } else {
       throw std::runtime_error(
