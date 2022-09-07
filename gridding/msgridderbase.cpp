@@ -776,7 +776,7 @@ void MSGridderBase::writeVisibilities(
     _predictReader->ReadMeta(metaData);
     // When the facet beam is applied, the row will be incremented later in this
     // function
-    if (!(_settings.applyFacetBeam || _settings.gridWithBeam)) {
+    if (!_settings.applyFacetBeam) {
       _predictReader->NextInputRow();
     }
 
@@ -819,7 +819,7 @@ void MSGridderBase::writeVisibilities(
   }
 
 #ifdef HAVE_EVERYBEAM
-  if (_settings.applyFacetBeam || _settings.gridWithBeam) {
+  if (_settings.applyFacetBeam) {
     assert(!_settings.facetRegionFilename.empty());
     MSProvider::MetaData metaData;
     _predictReader->ReadMeta(metaData);

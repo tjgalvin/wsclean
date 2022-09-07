@@ -56,6 +56,8 @@ struct ImagingTableEntry {
   std::unique_ptr<radler::WorkTableEntry> CreateDeconvolutionEntry(
       size_t channel_index_offset, CachedImageSet* psf_images,
       CachedImageSet& model_images, CachedImageSet& residual_images,
+      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>&
+          psf_facets,
       bool is_imaginary) const;
 
   /**

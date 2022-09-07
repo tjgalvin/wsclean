@@ -24,23 +24,35 @@ class DummyImageAccessor : public aocommon::ImageAccessor {
   DummyImageAccessor() {}
   ~DummyImageAccessor() override {}
 
-  void Load(Image&) const override {
+  void Load(float*) const override {
     BOOST_FAIL("Unexpected ImageAccessor::Load() call");
   }
 
-  void Store(const Image&) override {
+  void Store(const float*) override {
     BOOST_FAIL("Unexpected ImageAccessor::Store() call");
+  }
+
+  std::size_t Width() const override {
+    BOOST_FAIL("Unexpected ImageAccessor::Width() call");
+    return 0;
+  }
+
+  std::size_t Height() const override {
+    BOOST_FAIL("Unexpected ImageAccessor::Height() call");
+    return 0;
   }
 };
 
 }  // namespace
 
-struct ImageSetFixtureBase {
+class ImageSetFixtureBase {
+ public:
   ImageSetFixtureBase() {}
 
   void initTable(size_t n_original_channels, size_t n_deconvolution_channels) {
-    table = std::make_unique<radler::WorkTable>(n_original_channels,
-                                                n_deconvolution_channels);
+    std::vector<radler::PsfOffset> psf_offsets;
+    table_ = std::make_unique<radler::WorkTable>(
+        psf_offsets, n_original_channels, n_deconvolution_channels);
   }
 
   void addToImageSet(size_t outChannel, PolarizationEnum pol,
@@ -52,62 +64,62 @@ struct ImageSetFixtureBase {
     e->band_end_frequency = frequencyMHz;
     e->image_weight = imageWeight;
     e->model_accessor =
-        std::make_unique<CachedImageAccessor>(cSet, pol, outChannel, false);
+        std::make_unique<CachedImageAccessor>(cSet_, pol, outChannel, false);
     e->residual_accessor = std::make_unique<DummyImageAccessor>();
-    table->AddEntry(std::move(e));
+    table_->AddEntry(std::move(e));
   }
 
-  std::unique_ptr<radler::WorkTable> table;
-  CachedImageSet cSet;
+  std::unique_ptr<radler::WorkTable> table_;
+  FitsWriter writer_;
+  CachedImageSet cSet_;
 };
 
 template <size_t NDeconvolutionChannels>
-struct ImageSetFixture : public ImageSetFixtureBase {
-  ImageSetFixture() : image(4, 0.0) {
+class ImageSetFixture : public ImageSetFixtureBase {
+ public:
+  ImageSetFixture() : image_(4, 0.0) {
     initTable(2, NDeconvolutionChannels);
+    writer_.SetImageDimensions(2, 2);
+    cSet_.Initialize(writer_, 2, 2, 0, "wsctest");
     addToImageSet(0, aocommon::Polarization::XX, 100);
     addToImageSet(0, aocommon::Polarization::YY, 100);
     addToImageSet(1, aocommon::Polarization::XX, 200);
     addToImageSet(1, aocommon::Polarization::YY, 200);
-
-    writer.SetImageDimensions(2, 2);
-    this->cSet.Initialize(writer, 2, 2, 0, "wsctest");
-    image[0] = 2.0;
-    this->cSet.Store(image.data(), aocommon::Polarization::XX, 0, false);
-    image[0] = -1.0;
-    this->cSet.Store(image.data(), aocommon::Polarization::YY, 0, false);
-    image[0] = 20.0;
-    this->cSet.Store(image.data(), aocommon::Polarization::XX, 1, false);
-    image[0] = -10.0;
-    this->cSet.Store(image.data(), aocommon::Polarization::YY, 1, false);
+    image_[0] = 2.0;
+    cSet_.Store(image_.data(), aocommon::Polarization::XX, 0, false);
+    image_[0] = -1.0;
+    cSet_.Store(image_.data(), aocommon::Polarization::YY, 0, false);
+    image_[0] = 20.0;
+    cSet_.Store(image_.data(), aocommon::Polarization::XX, 1, false);
+    image_[0] = -10.0;
+    cSet_.Store(image_.data(), aocommon::Polarization::YY, 1, false);
   }
 
-  FitsWriter writer;
-  aocommon::UVector<double> image;
+  aocommon::UVector<double> image_;
 };
 
 BOOST_AUTO_TEST_SUITE(imageset)
 
 BOOST_FIXTURE_TEST_CASE(load, ImageSetFixture<1>) {
-  cSet.Load(image.data(), aocommon::Polarization::XX, 1, false);
-  BOOST_CHECK_EQUAL(image[0], 20.0);
-  cSet.Load(image.data(), aocommon::Polarization::YY, 1, false);
-  BOOST_CHECK_EQUAL(image[0], -10.0);
-  cSet.Load(image.data(), aocommon::Polarization::XX, 0, false);
-  BOOST_CHECK_EQUAL(image[0], 2.0);
-  cSet.Load(image.data(), aocommon::Polarization::YY, 0, false);
-  BOOST_CHECK_EQUAL(image[0], -1.0);
+  cSet_.Load(image_.data(), aocommon::Polarization::XX, 1, false);
+  BOOST_CHECK_EQUAL(image_[0], 20.0);
+  cSet_.Load(image_.data(), aocommon::Polarization::YY, 1, false);
+  BOOST_CHECK_EQUAL(image_[0], -10.0);
+  cSet_.Load(image_.data(), aocommon::Polarization::XX, 0, false);
+  BOOST_CHECK_EQUAL(image_[0], 2.0);
+  cSet_.Load(image_.data(), aocommon::Polarization::YY, 0, false);
+  BOOST_CHECK_EQUAL(image_[0], -1.0);
 }
 
 BOOST_FIXTURE_TEST_CASE(loadAndAverage, ImageSetFixture<1>) {
-  ImageSet dset(*table, false, {}, 2, 2);
+  ImageSet dset(*table_, false, {}, 2, 2);
   dset.LoadAndAverage(false);
   BOOST_CHECK_CLOSE_FRACTION(dset[0][0], 0.5 * (2.0 + 20.0), 1e-8);
   BOOST_CHECK_CLOSE_FRACTION(dset[1][0], 0.5 * (-1.0 - 10.0), 1e-8);
 }
 
 BOOST_FIXTURE_TEST_CASE(interpolateAndStore, ImageSetFixture<2>) {
-  ImageSet dset(*table, false, {}, 2, 2);
+  ImageSet dset(*table_, false, {}, 2, 2);
   schaapcommon::fitters::SpectralFitter fitter(
       schaapcommon::fitters::SpectralFittingMode::kNoFitting, 2);
   dset.LoadAndAverage(false);
@@ -125,24 +137,23 @@ BOOST_FIXTURE_TEST_CASE(load_and_average, ImageSetFixtureBase) {
                                        PolarizationEnum::YY};
   const size_t width = 7;
   const size_t height = 9;
-  FitsWriter writer;
-  writer.SetImageDimensions(width, height);
+  writer_.SetImageDimensions(width, height);
   const std::vector<double> weights{4.0, 4.0, 0.0, 0.0, 1.0, 1.0};
-  cSet.Initialize(writer, 4, 6, 0, "imagesettest");
+  cSet_.Initialize(writer_, 4, 6, 0, "imagesettest");
   Image storedImage(width, height);
-  for (size_t ch = 0; ch != table->OriginalGroups().size(); ++ch) {
+  for (size_t ch = 0; ch != table_->OriginalGroups().size(); ++ch) {
     for (size_t p = 0; p != nPol; ++p) {
       size_t index = ch * nPol + p;
       addToImageSet(ch, pols[p], 100 + ch, weights[ch]);
 
       storedImage = (1 << index);  // assign the entire image to 2^index
-      cSet.Store(storedImage.Data(), pols[p], ch, false);
+      cSet_.Store(storedImage.Data(), pols[p], ch, false);
     }
   }
   const std::set<PolarizationEnum> kLinkedPolarizations{
       aocommon::Polarization::XX, aocommon::Polarization::YY};
 
-  ImageSet imageSet(*table, false, kLinkedPolarizations, width, height);
+  ImageSet imageSet(*table_, false, kLinkedPolarizations, width, height);
   imageSet.LoadAndAverage(false);
   // The first image has all values set to 2^0, the second image 2^1, etc...
   // The XX polarizations of deconvolution channel 1 consists of

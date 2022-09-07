@@ -1,6 +1,7 @@
 #include "imagingtable.h"
 
 #include <aocommon/logger.h>
+#include <schaapcommon/facets/facet.h>
 
 #include <algorithm>
 #include <cassert>
@@ -118,6 +119,17 @@ void ImagingTable::AssignGridDataFromPolarization(
 std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
     int n_deconvolution_channels, CachedImageSet& psf_images,
     CachedImageSet& model_images, CachedImageSet& residual_images) const {
+  if (_entries.empty()) {
+    throw std::runtime_error(
+        "Can not create a DeconvolutionTable from an empty ImagingTable.");
+  }
+
+  if (_facets.empty()) {
+    throw std::runtime_error(
+        "Member _facets of ImagingTable is empty. Probably Update() was not "
+        "called after adding entries.");
+  }
+
   // In a DeconvolutionTable the output channel indices range from
   // 0 to (#channels - 1). In an ImagingTable that forms an indepent group,
   // output channel indices may start at a higher index.
@@ -128,11 +140,42 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
   const int n_original_channels =
       _entries.back()->outputChannelIndex + 1 - channel_index_offset;
 
+  // Gather dd-psf info from ImagingTable
+  // The ImagingTable is a fairly free format
+  // The following addional assumptions are needed to create a valid
+  // WorkTable with ddp-psfs
+  //
+  // * The dd-psfs are the same, and in the same order for all images
+  // * the facet_ids of the dd-psfs form a simple sequence 0,1,2,...
+  //
+
+  std::vector<radler::PsfOffset> psf_offsets;
+  std::vector<std::shared_ptr<schaapcommon::facets::Facet>> psf_facets;
+
+  // There could be multiple independent groups so the first
+  // facetGroupIndex is not necessarily zero.
+  // Note that looping over _facetGroups.front() is not possible here, since it
+  // does not contain the DD PSF entries.
+  size_t first_facet_group_index = (*_entries.begin())->facetGroupIndex;
+
+  // Although an ImagingTable may contain entries for multiple polarizations,
+  // there should only be DD PSF entries for the first polarization, since the
+  // DD PSF layout is equal for all polarizations.
+  for (const EntryPtr& entry_ptr : _entries) {
+    if (entry_ptr->facetGroupIndex != first_facet_group_index) break;
+    if (!entry_ptr->isDdPsf) continue;
+    const schaapcommon::facets::Pixel centre =
+        entry_ptr->facet->GetTrimmedBoundingBox().Centre();
+    psf_offsets.emplace_back(centre.x, centre.y);
+    psf_facets.push_back(entry_ptr->facet);
+  }
+
   auto table = std::make_unique<radler::WorkTable>(
-      n_original_channels, n_deconvolution_channels, channel_index_offset);
+      std::move(psf_offsets), n_original_channels, n_deconvolution_channels,
+      channel_index_offset);
   int max_squared_index = -1;
 
-  for (const EntryPtr& entry_ptr : _entries) {
+  for (const EntryPtr& entry_ptr : _facets.front()) {
     assert(entry_ptr);
 
     if (entry_ptr->imageCount >= 1) {
@@ -147,9 +190,9 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
       }
 
       std::unique_ptr<radler::WorkTableEntry> real_entry =
-          entry_ptr->CreateDeconvolutionEntry(channel_index_offset,
-                                              psf_images_ptr, model_images,
-                                              residual_images, false);
+          entry_ptr->CreateDeconvolutionEntry(
+              channel_index_offset, psf_images_ptr, model_images,
+              residual_images, psf_facets, false);
       table->AddEntry(std::move(real_entry));
     }
 
@@ -157,7 +200,7 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
       std::unique_ptr<radler::WorkTableEntry> imaginary_entry =
           entry_ptr->CreateDeconvolutionEntry(channel_index_offset, nullptr,
                                               model_images, residual_images,
-                                              true);
+                                              psf_facets, true);
       table->AddEntry(std::move(imaginary_entry));
     }
   }

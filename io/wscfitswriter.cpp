@@ -196,12 +196,17 @@ void WSCFitsWriter::WriteFullNameImage(
   writer.SetImageDimensions(facetimage.Width(), facetimage.Height(),
                             _writer.RA(), _writer.Dec(), _writer.PixelSizeX(),
                             _writer.PixelSizeY());
-  int centreShiftX =
-      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().x -
-      _writer.Width() / 2;
-  int centreShiftY =
-      facetimage.GetFacet().GetUntrimmedBoundingBox().Centre().y -
-      _writer.Height() / 2;
+
+  if (!facetimage.GetFacet()) {
+    throw std::runtime_error(
+        "WSCFitsWriter::WriteFullNameImage can not write a FacetImage when its "
+        "facet is not set.");
+  }
+  schaapcommon::facets::Pixel centre_pixel =
+      facetimage.GetFacet()->GetUntrimmedBoundingBox().Centre();
+
+  int centreShiftX = centre_pixel.x - _writer.Width() / 2;
+  int centreShiftY = centre_pixel.y - _writer.Height() / 2;
   double shiftL = _writer.PhaseCentreDL() - centreShiftX * _writer.PixelSizeX();
   double shiftM = _writer.PhaseCentreDM() + centreShiftY * _writer.PixelSizeY();
   writer.SetPhaseCentreShift(shiftL, shiftM);

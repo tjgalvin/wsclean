@@ -250,36 +250,6 @@ class TestLongSystem:
         # First make sure input files exist:
         s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
-        os.rename(
-            name("idg-reuse-psf-A") + "-model.fits",
-            name("idg-reuse-psf-B") + "-model.fits",
-        )
-        os.rename(
-            name("idg-reuse-psf-A") + "-beam.fits",
-            name("idg-reuse-psf-B") + "-beam.fits",
-        )
-        # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path . {tcf.MWA_MS}"
-        validate_call(s.split())
-
-    def test_idg_with_reuse_dirty(self):
-        # Test for issue #80: -reuse-dirty option fails (#80)
-        # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
-        validate_call(s.split())
-        os.rename(
-            name("idg-reuse-dirty-A") + "-model.fits",
-            name("idg-reuse-dirty-B") + "-model.fits",
-        )
-        # Now continue:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-dirty {name('idg-reuse-dirty-A')} -mwa-path . {tcf.MWA_MS}"
-        validate_call(s.split())
-
-    def test_idg_with_reuse_psf(self):
-        # Test for issue #81: -reuse-psf gives segmentation fault in IDG
-        # First make sure input files exist:
-        s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
-        validate_call(s.split())
         # Model image A is copied to B-model-pb corrected image, to avoid
         # issues due to NaN values in the A-model-pb.fits file.
         # As such, this test is purely illlustrative.
@@ -295,6 +265,9 @@ class TestLongSystem:
         s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-B')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -continue -reuse-psf {name('idg-reuse-psf-A')} -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
 
+    @pytest.mark.skip(
+        reason="-reuse-dirty and -grid-with-beam options conflict due to average beam computation (AST-995)"
+    )
     def test_idg_with_reuse_dirty(self):
         # Test for issue #80: -reuse-dirty option fails (#80)
         # First make sure input files exist:
