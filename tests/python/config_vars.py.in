@@ -41,3 +41,6 @@ MWA_MOCK_COPY_2 = "MWA_MOCK_COPY_2.ms"
 
 # JVLA multi-band example MS
 JVLA_MS = "JVLA-MultiBand-S1_C5-minimal.ms"
+
+# SKA averaged measurement set with a point source off the phase center
+SKA_MS = "ska-low-sim-averaged.ms"

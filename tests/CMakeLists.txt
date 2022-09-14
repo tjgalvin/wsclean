@@ -36,6 +36,16 @@ add_custom_target(
 
 set(WSCLEAN_DATA_URL https://support.astron.nl/software/ci_data/wsclean)
 
+ExternalProject_Add(
+  jvla_test_ms
+  URL ${WSCLEAN_DATA_URL}/JVLA-MultiBand-S1_C5-minimal.ms.tar.bz2
+  URL_HASH
+    SHA256=7c8d41b5ff59c8736b1223e6b855a96e410f27fb4be05d179c8292fdb78cdc7e
+  SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/JVLA-MultiBand-S1_C5-minimal.ms
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "")
+
 # A dataset generated using the following command:
 # DP3 msin=MWA-1052736496-averaged.ms msin.ntimes=4 msin.nchan=1 \
 #   msin.baseline="1,2,126,217" msout=MWA_BDA_MOCK.ms msout.overwrite=True \
@@ -51,12 +61,16 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
 
+# This is a 9h long SKA-mid simulated measurement set.
+# It contains a point source off the phase center.
+# These conditions ensure a strong variablity of the PSF in different directions.
+# The dataset is heavily averaged to reduce its size.
 ExternalProject_Add(
-  jvla_test_ms
-  URL ${WSCLEAN_DATA_URL}/JVLA-MultiBand-S1_C5-minimal.ms.tar.bz2
+  ska_low_ms
+  URL ${WSCLEAN_DATA_URL}/ska-low-sim-averaged.tar.gz
   URL_HASH
-    SHA256=7c8d41b5ff59c8736b1223e6b855a96e410f27fb4be05d179c8292fdb78cdc7e
-  SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/JVLA-MultiBand-S1_C5-minimal.ms
+    SHA256=79f723f2165456d715e3019893f1a6701ef92cf9e106c4ea251c95be567215c5
+  SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/ska-low-sim-averaged.ms
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
@@ -68,7 +82,7 @@ target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 
 add_custom_target(
   unitchecks
-  DEPENDS unittest download_mocks mwa_bda_mock_ms jvla_test_ms
+  DEPENDS unittest download_mocks jvla_test_ms mwa_bda_mock_ms ska_low_ms
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND unittest)
 
