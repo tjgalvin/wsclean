@@ -768,7 +768,11 @@ void WSClean::RunClean() {
           ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
                                         "beam.fits", intervalIndex, pol, false,
                                         false);
-        } else if (usesBeam()) {
+          // When faceting without beam, no beam images are stored, so skip
+          // making the MFS beams in this case. In all other cases with beam, do
+          // make them:
+        } else if (usesBeam() && (_settings.facetSolutionFiles.empty() ||
+                                  _settings.applyFacetBeam)) {
           // The (complex valued but Hermitian) Mueller matrices are stored with
           // 16 elements:
           constexpr size_t n_matrix_elements = 16;

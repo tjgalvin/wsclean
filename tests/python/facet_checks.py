@@ -189,6 +189,14 @@ class TestFacets:
         basic_image_check("facet-imaging-reorder-psf.fits")
         basic_image_check("facet-imaging-reorder-dirty.fits")
 
+    def test_multi_channel(self):
+        # Test for issue 122. Only test if no crash occurs.
+        h5download = f"wget -N -q {tcf.WSCLEAN_DATA_URL}/mock_soltab_2pol.h5"
+        validate_call(h5download.split())
+
+        s = f"{tcf.WSCLEAN} -parallel-gridding 3 -channels-out 2 -gridder wgridder -name multi-channel-faceting -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
+        validate_call(s.split())
+
     def test_parallel_gridding(self):
         # Compare serial, threaded and mpi run for facet based imaging
         # with h5 corrections. Number of used threads/processes is
@@ -204,7 +212,7 @@ class TestFacets:
         ]
         for name, command in zip(names, wsclean_commands):
             # -j 1 to ensure deterministic iteration over visibilities
-            s = f"{command} -j 1 -use-wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
+            s = f"{command} -j 1 -gridder wgridder -name {name} -apply-facet-solutions mock_soltab_2pol.h5 ampl000,phase000 -pol xx,yy -facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} -join-polarizations -interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 {tcf.MWA_MOCK_MS}"
             validate_call(s.split())
 
         # Compare images, the threshold is chosen relatively large since the difference

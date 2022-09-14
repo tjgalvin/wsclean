@@ -253,7 +253,6 @@ PrimaryBeamImageSet PrimaryBeam::load(const ImageFilename& imageName,
       reader.Read(beamImages[i].Data());
     }
     return beamImages;
-    // }
   }
 }
 
