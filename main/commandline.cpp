@@ -740,8 +740,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.primaryBeamLimit =
           ParseDouble(argv[argi], 0.0, "primary-beam-limit");
-    } else if (param == "scalar-beam") {
-      settings.useScalarPrimaryBeam = true;
     } else if (param == "mwa-path") {
       IncArgi(argi, argc);
       settings.mwaPath = argv[argi];

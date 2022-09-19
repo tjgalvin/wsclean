@@ -5,7 +5,7 @@
 
 BOOST_AUTO_TEST_SUITE(primary_beam_image_set)
 
-BOOST_AUTO_TEST_CASE(apply_scalar_stokes_i) {
+BOOST_AUTO_TEST_CASE(apply_stokes_i) {
   constexpr size_t kWidth = 2;
   constexpr size_t kHeight = 2;
   PrimaryBeamImageSet beams(kWidth, kHeight);
@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(apply_scalar_stokes_i) {
   beams[15][1] = 0.01;
 
   float stokes_i[kWidth * kHeight] = {1.0, 1.0, 1.0, 1.0};
-  beams.ApplyScalarStokesI(stokes_i, 0.1);
+  beams.ApplyStokesI(stokes_i, 0.1);
   const float expected = 2.0 / (beams[0][0] + beams[15][0]);
   BOOST_CHECK_CLOSE_FRACTION(stokes_i[0], expected, 1e-6);
 
