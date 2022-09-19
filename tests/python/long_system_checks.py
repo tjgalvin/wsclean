@@ -76,6 +76,11 @@ class TestLongSystem:
             -mgain 0.8 -niter 1000000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
+    def test_multifrequency_without_joining_pol(self):
+        # Multi-frequency clean, no joining of pols (reproduces bug #128)
+        s = f"{tcf.WSCLEAN} -name {name('mf-no-join-pol')} -pol iv -channels-out 2 -join-channels -niter 1 -interval 10 13 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
+        validate_call(s.split())
+
     def test_multifrequency_hogbom_spectral_fit(self):
         # Multi-frequency Högbom clean with spectral fitting
         s = f"{tcf.WSCLEAN} -name {name('mfhogbom-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \

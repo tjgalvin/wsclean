@@ -208,21 +208,22 @@ class CachedImageSet {
   }
 
   std::string nameTrunk(aocommon::PolarizationEnum polarization,
-                        size_t freqIndex, bool isImaginary) const {
+                        size_t freq_index, bool is_imaginary) const {
+    const std::string pol_string =
+        (_polCount == 1)
+            ? ""
+            : '-' + aocommon::Polarization::TypeToShortString(polarization);
     if (_freqCount == 1) {
-      if (isImaginary)
-        return _prefix + '-' +
-               aocommon::Polarization::TypeToShortString(polarization) + "i";
+      if (is_imaginary)
+        return _prefix + pol_string + "i";
       else
-        return _prefix + '-' +
-               aocommon::Polarization::TypeToShortString(polarization);
+        return _prefix + pol_string;
     } else {
       std::ostringstream str;
-      str << _prefix + '-' +
-                 aocommon::Polarization::TypeToShortString(polarization);
-      if (isImaginary) str << 'i';
+      str << _prefix + pol_string;
+      if (is_imaginary) str << 'i';
       str << '-';
-      str << std::setw(4) << std::setfill('0') << freqIndex;
+      str << std::setw(4) << std::setfill('0') << freq_index;
       return str.str();
     }
   }
