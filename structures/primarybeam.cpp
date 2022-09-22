@@ -24,7 +24,6 @@
 #include <EveryBeam/load.h>
 #include <EveryBeam/aterms/atermconfig.h>
 #include <EveryBeam/griddedresponse/griddedresponse.h>
-#include <EveryBeam/coords/coordutils.h>
 
 using everybeam::ATermSettings;
 using everybeam::aterms::ATermConfig;
@@ -315,14 +314,14 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
         MSProviderInfo(providers.back().get(), &_msList[i]->Selection(), i));
   }
 
-  everybeam::coords::CoordinateSystem coordinateSystem{width,
-                                                       height,
-                                                       _phaseCentreRA,
-                                                       _phaseCentreDec,
-                                                       _settings.pixelScaleX,
-                                                       _settings.pixelScaleY,
-                                                       _phaseCentreDL,
-                                                       _phaseCentreDM};
+  aocommon::CoordinateSystem coordinateSystem{width,
+                                              height,
+                                              _phaseCentreRA,
+                                              _phaseCentreDec,
+                                              _settings.pixelScaleX,
+                                              _settings.pixelScaleY,
+                                              _phaseCentreDL,
+                                              _phaseCentreDM};
 
   aocommon::UVector<float> buffer_total(width * height * beamImages.NImages(),
                                         0);
@@ -372,7 +371,7 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
 double PrimaryBeam::MakeBeamForMS(
     aocommon::UVector<float>& buffer, MSProvider& msProvider,
     const MSSelection& selection, const ImageWeights& imageWeights,
-    const everybeam::coords::CoordinateSystem& coordinateSystem,
+    const aocommon::CoordinateSystem& coordinateSystem,
     double centralFrequency) {
   SynchronizedMS ms = msProvider.MS();
 

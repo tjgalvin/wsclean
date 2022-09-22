@@ -7,6 +7,7 @@
 
 #include <idg-api.h>
 
+#include <aocommon/coordinatesystem.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/logger.h>
 
@@ -28,13 +29,11 @@
 #include <EveryBeam/aterms/atermconfig.h>
 #include <EveryBeam/options.h>
 #include <EveryBeam/load.h>
-#include <EveryBeam/coords/coordutils.h>
 
 using everybeam::ATermSettings;
 using everybeam::aterms::ATermBase;
 using everybeam::aterms::ATermBeam;
 using everybeam::aterms::ATermConfig;
-using everybeam::coords::CoordinateSystem;
 #endif  // HAVE_EVERYBEAM
 
 using aocommon::Image;
@@ -641,15 +640,15 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
   size_t nr_stations = ms->antenna().nrow();
   if (!_settings.atermConfigFilename.empty() || _settings.gridWithBeam) {
     // IDG uses a flipped coordinate system which is moved by half a pixel:
-    everybeam::coords::CoordinateSystem system;
+    aocommon::CoordinateSystem system;
     system.width = _bufferset->get_subgridsize();
     system.height = system.width;
     system.ra = PhaseCentreRA();
     system.dec = PhaseCentreDec();
     system.dl = -_bufferset->get_subgrid_pixelsize();
     system.dm = -_bufferset->get_subgrid_pixelsize();
-    system.phase_centre_dl = PhaseCentreDL() - 0.5 * system.dl;
-    system.phase_centre_dm = PhaseCentreDM() + 0.5 * system.dm;
+    system.l_shift = PhaseCentreDL() - 0.5 * system.dl;
+    system.m_shift = PhaseCentreDM() + 0.5 * system.dm;
 
     everybeam::ATermSettings aterm_settings;
     aterm_settings.save_aterms_prefix = _settings.prefixName;

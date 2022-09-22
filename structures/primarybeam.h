@@ -13,6 +13,7 @@
 
 #include "../scheduling/metadatacache.h"
 
+#include <aocommon/coordinatesystem.h>
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/polarization.h>
@@ -22,12 +23,6 @@
 #include <EveryBeam/beammode.h>
 #include <EveryBeam/beamnormalisationmode.h>
 #endif
-
-namespace everybeam {
-namespace coords {
-struct CoordinateSystem;
-}  // namespace coords
-}  // namespace everybeam
 
 class PrimaryBeam {
  public:
@@ -166,11 +161,11 @@ class PrimaryBeam {
   PrimaryBeamImageSet MakeImage(const ImagingTableEntry& entry,
                                 std::shared_ptr<ImageWeights> imageWeights);
 
-  double MakeBeamForMS(
-      aocommon::UVector<float>& buffer, MSProvider& msProvider,
-      const MSSelection& selection, const ImageWeights& imageWeights,
-      const everybeam::coords::CoordinateSystem& coordinateSystem,
-      double centralFrequency);
+  double MakeBeamForMS(aocommon::UVector<float>& buffer, MSProvider& msProvider,
+                       const MSSelection& selection,
+                       const ImageWeights& imageWeights,
+                       const aocommon::CoordinateSystem& coordinateSystem,
+                       double centralFrequency);
 
   std::tuple<double, double, size_t> GetTimeInfo(MSProvider& msProvider);
 
