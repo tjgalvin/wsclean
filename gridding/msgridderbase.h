@@ -161,12 +161,8 @@ class MSGridderBase {
   }
   double PhaseCentreRA() const { return _phaseCentreRA; }
   double PhaseCentreDec() const { return _phaseCentreDec; }
-  void SetPhaseCentreDL(const double phaseCentreDL) {
-    _phaseCentreDL = phaseCentreDL;
-  }
-  void SetPhaseCentreDM(const double phaseCentreDM) {
-    _phaseCentreDM = phaseCentreDM;
-  }
+  void SetLShift(const double l_shift) { _l_shift = l_shift; }
+  void SetMShift(const double m_shift) { _m_shift = m_shift; }
 
   void SetMainImageDL(const double main_image_dl) {
     _mainImageDL = main_image_dl;
@@ -184,8 +180,8 @@ class MSGridderBase {
 
   double FacetDirectionRA() const { return _facetDirectionRA; }
   double FacetDirectionDec() const { return _facetDirectionDec; }
-  double PhaseCentreDL() const { return _phaseCentreDL; }
-  double PhaseCentreDM() const { return _phaseCentreDM; }
+  double LShift() const { return _l_shift; }
+  double MShift() const { return _m_shift; }
   double MainImageDL() const { return _mainImageDL; }
   double MainImageDM() const { return _mainImageDM; }
 
@@ -209,7 +205,7 @@ class MSGridderBase {
 
   double StartTime() const { return _startTime; }
   bool HasDenormalPhaseCentre() const {
-    return _phaseCentreDL != 0.0 || _phaseCentreDM != 0.0;
+    return _l_shift != 0.0 || _m_shift != 0.0;
   }
   double ImageWeight() const { return _totalWeight; }
   double NormalizationFactor() const { return _totalWeight; }
@@ -486,7 +482,7 @@ class MSGridderBase {
       const float* weightBuffer, bool apply_forward = false);
 #endif  // HAVE_EVERYBEAM
 
-  double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
+  double _phaseCentreRA, _phaseCentreDec, _l_shift, _m_shift;
   double _mainImageDL, _mainImageDM;
   double _facetDirectionRA, _facetDirectionDec;
   size_t _facetIndex;

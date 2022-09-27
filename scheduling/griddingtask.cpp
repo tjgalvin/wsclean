@@ -32,8 +32,8 @@ void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
 
   stream.ObjectVector(modelImages)
       .Object(observationInfo)
-      .Double(shiftL)
-      .Double(shiftM);
+      .Double(l_shift)
+      .Double(m_shift);
 }
 
 void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
@@ -56,6 +56,6 @@ void GriddingTask::Unserialize(aocommon::SerialIStream& stream) {
 
   stream.ObjectVector(modelImages)
       .Object(observationInfo)
-      .Double(shiftL)
-      .Double(shiftM);
+      .Double(l_shift)
+      .Double(m_shift);
 }

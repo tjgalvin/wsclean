@@ -157,9 +157,9 @@ void WSClean::imagePSF(ImagingTableEntry& entry) {
   task.facet = entry.facet;
   task.facetIndex = entry.facetIndex;
   task.facetGroupIndex = entry.facetGroupIndex;
-  task.shiftL = _shiftL;
-  task.shiftM = _shiftM;
-  applyFacetPhaseShift(entry, task.shiftL, task.shiftM);
+  task.l_shift = _l_shift;
+  task.m_shift = _m_shift;
+  applyFacetPhaseShift(entry, task.l_shift, task.m_shift);
   initializeMSList(entry, task.msList);
   task.imageWeights = initializeImageWeights(entry, task.msList);
   // during PSF imaging, the average beam will never exist, so it is not
@@ -281,9 +281,9 @@ void WSClean::imageMain(ImagingTableEntry& entry, bool isFirstInversion,
     task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
                                          entry.outputChannelIndex);
   }
-  task.shiftL = _shiftL;
-  task.shiftM = _shiftM;
-  applyFacetPhaseShift(entry, task.shiftL, task.shiftM);
+  task.l_shift = _l_shift;
+  task.m_shift = _m_shift;
+  applyFacetPhaseShift(entry, task.l_shift, task.m_shift);
 
   _griddingTaskManager->Run(
       std::move(task),
@@ -399,9 +399,10 @@ void WSClean::imageMainCallback(ImagingTableEntry& entry,
           "Trying to write the IDG beam while the beam has not been computed "
           "yet.");
     }
-    IdgMsGridder::SaveBeamImage(
-        entry, imageName, _settings, _observationInfo.phaseCentreRA,
-        _observationInfo.phaseCentreDec, _shiftL, _shiftM, *result.averageBeam);
+    IdgMsGridder::SaveBeamImage(entry, imageName, _settings,
+                                _observationInfo.phaseCentreRA,
+                                _observationInfo.phaseCentreDec, _l_shift,
+                                _m_shift, *result.averageBeam);
   }
 }
 
@@ -498,9 +499,9 @@ void WSClean::predict(const ImagingTableEntry& entry) {
   task.facetGroupIndex = entry.facetGroupIndex;
   task.averageBeam = AverageBeam::Load(_scalarBeamImages, _matrixBeamImages,
                                        entry.outputChannelIndex);
-  task.shiftL = _shiftL;
-  task.shiftM = _shiftM;
-  applyFacetPhaseShift(entry, task.shiftL, task.shiftM);
+  task.l_shift = _l_shift;
+  task.m_shift = _m_shift;
+  applyFacetPhaseShift(entry, task.l_shift, task.m_shift);
   _griddingTaskManager->Run(
       std::move(task), [this, &entry](GriddingResult& result) {
         _msGridderMetaCache[entry.index] = std::move(result.cache);
@@ -515,21 +516,21 @@ ObservationInfo WSClean::getObservationInfo() const {
 }
 
 std::pair<double, double> WSClean::getLMShift() const {
-  double shiftL = 0.0;
-  double shiftM = 0.0;
+  double l_shift = 0.0;
+  double m_shift = 0.0;
   if (_settings.hasShift) {
     aocommon::ImageCoordinates::RaDecToLM(
         _settings.shiftRA, _settings.shiftDec, _observationInfo.phaseCentreRA,
-        _observationInfo.phaseCentreDec, shiftL, shiftM);
+        _observationInfo.phaseCentreDec, l_shift, m_shift);
   }
-  return std::make_pair(shiftL, shiftM);
+  return std::make_pair(l_shift, m_shift);
 }
 
 void WSClean::applyFacetPhaseShift(const ImagingTableEntry& entry,
-                                   double& shiftL, double& shiftM) const {
+                                   double& l_shift, double& m_shift) const {
   if (entry.facet) {
-    shiftL -= entry.centreShiftX * _settings.pixelScaleX;
-    shiftM += entry.centreShiftY * _settings.pixelScaleY;
+    l_shift -= entry.centreShiftX * _settings.pixelScaleX;
+    m_shift += entry.centreShiftY * _settings.pixelScaleY;
   }
 }
 
@@ -670,14 +671,14 @@ void WSClean::performReordering(bool isPredictMode) {
 
 void WSClean::RunClean() {
   _observationInfo = getObservationInfo();
-  std::tie(_shiftL, _shiftM) = getLMShift();
+  std::tie(_l_shift, _m_shift) = getLMShift();
 
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets =
       FacetReader::ReadFacets(
           _settings.facetRegionFilename, _settings.trimmedImageWidth,
           _settings.trimmedImageHeight, _settings.pixelScaleX,
           _settings.pixelScaleY, _observationInfo.phaseCentreRA,
-          _observationInfo.phaseCentreDec, _shiftL, _shiftM,
+          _observationInfo.phaseCentreDec, _l_shift, _m_shift,
           _settings.imagePadding, _settings.gridderType == GridderType::IDG);
   _facetCount = facets.size();
 
@@ -688,7 +689,7 @@ void WSClean::RunClean() {
             _settings.trimmedImageWidth, _settings.trimmedImageHeight,
             _settings.pixelScaleX, _settings.pixelScaleY,
             _observationInfo.phaseCentreRA, _observationInfo.phaseCentreDec,
-            _shiftL, _shiftM, _settings.imagePadding,
+            _l_shift, _m_shift, _settings.imagePadding,
             _settings.gridderType == GridderType::IDG);
     dd_psfs = CreateFacetGrid(facet_data, _settings.ddPsfGridWidth,
                               _settings.ddPsfGridHeight);
@@ -900,7 +901,7 @@ void WSClean::RunPredict() {
   _observationInfo = getObservationInfo();
   std::vector<std::shared_ptr<schaapcommon::facets::Facet>> facets;
   _facetCount = FacetReader::CountFacets(_settings.facetRegionFilename);
-  std::tie(_shiftL, _shiftM) = getLMShift();
+  std::tie(_l_shift, _m_shift) = getLMShift();
 
   _globalSelection = _settings.GetMSSelection();
   MSSelection fullSelection = _globalSelection;
@@ -932,7 +933,7 @@ void WSClean::RunPredict() {
             _settings.facetRegionFilename, _settings.trimmedImageWidth,
             _settings.trimmedImageHeight, _settings.pixelScaleX,
             _settings.pixelScaleY, _observationInfo.phaseCentreRA,
-            _observationInfo.phaseCentreDec, _shiftL, _shiftM,
+            _observationInfo.phaseCentreDec, _l_shift, _m_shift,
             _settings.imagePadding, _settings.gridderType == GridderType::IDG);
 
         // FIXME: raise warning if facets do not cover the entire image, see
@@ -1531,8 +1532,8 @@ void WSClean::runSingleFirstInversion(
       for (std::unique_ptr<MSDataDescription>& description : msList)
         primaryBeam->AddMS(std::move(description));
       primaryBeam->SetPhaseCentre(_observationInfo.phaseCentreRA,
-                                  _observationInfo.phaseCentreDec, _shiftL,
-                                  _shiftM);
+                                  _observationInfo.phaseCentreDec, _l_shift,
+                                  _m_shift);
       // Only generate beam images for facetIndex == 0 in facet group
       if (entry.facetIndex == 0) {
         primaryBeam->MakeBeamImages(imageName, entry, std::move(weights));
@@ -1697,11 +1698,11 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
                                             std::move(deconvolution_table));
     componentListWriter.SaveSourceList(
         *_deconvolution, _observationInfo.phaseCentreRA,
-        _observationInfo.phaseCentreDec, _shiftL, _shiftM);
+        _observationInfo.phaseCentreDec, _l_shift, _m_shift);
     if (usesBeam()) {
       componentListWriter.SavePbCorrectedSourceList(
           *_deconvolution, _observationInfo.phaseCentreRA,
-          _observationInfo.phaseCentreDec, _shiftL, _shiftM);
+          _observationInfo.phaseCentreDec, _l_shift, _m_shift);
     }
   }
 
@@ -2133,7 +2134,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
                                            bool isImaginary,
                                            bool isModel) const {
   return WSCFitsWriter(entry, isImaginary, _settings, _deconvolution,
-                       _observationInfo, _shiftL, _shiftM, _majorIterationNr,
+                       _observationInfo, _l_shift, _m_shift, _majorIterationNr,
                        _commandLine, _infoPerChannel[entry.outputChannelIndex],
                        isModel, _lastStartTime);
 }
@@ -2144,7 +2145,7 @@ WSCFitsWriter WSClean::createWSCFitsWriter(const ImagingTableEntry& entry,
                                            bool isModel) const {
   return WSCFitsWriter(
       entry, polarization, isImaginary, _settings, _deconvolution,
-      _observationInfo, _shiftL, _shiftM, _majorIterationNr, _commandLine,
+      _observationInfo, _l_shift, _m_shift, _majorIterationNr, _commandLine,
       _infoPerChannel[entry.outputChannelIndex], isModel, _lastStartTime);
 }
 

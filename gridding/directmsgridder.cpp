@@ -104,13 +104,13 @@ inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample,
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;
     const num_t m =
-        num_t(((num_t)ySrc - (height / 2)) * PixelSizeY() + PhaseCentreDM());
+        num_t(((num_t)ySrc - (height / 2)) * PixelSizeY() + MShift());
 
     for (size_t x = 0; x != width; ++x) {
       size_t xSrc = x + width / 2;
       if (xSrc >= width) xSrc -= width;
       const num_t l =
-          num_t(((width / 2) - (num_t)xSrc) * PixelSizeX() + PhaseCentreDL());
+          num_t(((width / 2) - (num_t)xSrc) * PixelSizeX() + LShift());
 
       size_t index = yIndex + x;
       num_t angle = minTwoPi * (u * l + v * m + w * _sqrtLMTable[index]);
@@ -187,14 +187,12 @@ void DirectMSGridder<num_t>::initializeSqrtLMLookupTable() {
   for (size_t y = 0; y != height; ++y) {
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;
-    num_t m =
-        num_t(((num_t)ySrc - (height / 2)) * PixelSizeY() + PhaseCentreDM());
+    num_t m = num_t(((num_t)ySrc - (height / 2)) * PixelSizeY() + MShift());
 
     for (size_t x = 0; x != width; ++x) {
       size_t xSrc = x + width / 2;
       if (xSrc >= width) xSrc -= width;
-      num_t l =
-          num_t(((width / 2) - (num_t)xSrc) * PixelSizeX() + PhaseCentreDL());
+      num_t l = num_t(((width / 2) - (num_t)xSrc) * PixelSizeX() + LShift());
 
       if (l * l + m * m < 1.0)
         *iter = std::sqrt(1.0 - l * l - m * m) - 1.0;

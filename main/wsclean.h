@@ -104,14 +104,14 @@ class WSClean {
   /**
    * Add the phase shift of a facet
    * @param entry entry. If its facet is null, nothing happens.
-   * @param shiftL is updated.
-   * @param shiftM is updated.
+   * @param l_shift is updated.
+   * @param m_shift is updated.
    */
 
   std::pair<double, double> getLMShift() const;
 
-  void applyFacetPhaseShift(const ImagingTableEntry& entry, double& shiftL,
-                            double& shiftM) const;
+  void applyFacetPhaseShift(const ImagingTableEntry& entry, double& l_shift,
+                            double& m_shift) const;
   std::shared_ptr<ImageWeights> initializeImageWeights(
       const ImagingTableEntry& entry,
       std::vector<std::unique_ptr<class MSDataDescription>>& msList);
@@ -302,8 +302,8 @@ class WSClean {
   /// These contain the user-requested image shift values converted from ra,dec
   /// to l,m units
   /// @{
-  double _shiftL;
-  double _shiftM;
+  double _l_shift;
+  double _m_shift;
   /// @}
 
   double _lastStartTime;

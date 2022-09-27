@@ -10,7 +10,7 @@
 
 schaapcommon::facets::Facet::InitializationData CreateFacetInitializationData(
     double width, double height, double pixelScaleX, double pixelScaleY,
-    double phaseCentreRA, double phaseCentreDec, double shiftL, double shiftM,
+    double phaseCentreRA, double phaseCentreDec, double l_shift, double m_shift,
     double imagePadding, bool make_square);
 
 std::vector<std::shared_ptr<schaapcommon::facets::Facet>> CreateFacetGrid(

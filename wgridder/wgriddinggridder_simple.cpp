@@ -5,7 +5,7 @@ using namespace ducc0;
 
 WGriddingGridder_Simple::WGriddingGridder_Simple(
     size_t width, size_t height, size_t width_t, size_t height_t,
-    double pixelSizeX, double pixelSizeY, double shiftL, double shiftM,
+    double pixelSizeX, double pixelSizeY, double l_shift, double m_shift,
     size_t nthreads, double epsilon, size_t verbosity, bool tuning)
     : width_(width),
       height_(height),
@@ -14,8 +14,8 @@ WGriddingGridder_Simple::WGriddingGridder_Simple(
       nthreads_(nthreads),
       pixelSizeX_(pixelSizeX),
       pixelSizeY_(pixelSizeY),
-      shiftL_(shiftL),
-      shiftM_(shiftM),
+      l_shift_(l_shift),
+      m_shift_(m_shift),
       epsilon_(epsilon),
       verbosity_(verbosity),
       tuning_(tuning) {
@@ -53,12 +53,12 @@ void WGriddingGridder_Simple::AddInversionData(size_t nrows, size_t nchan,
     ms2dirty<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_,
                            pixelSizeY_, epsilon_, true, nthreads_, tdirty,
                            verbosity_, true, false, sigma_min, sigma_max,
-                           -shiftL_, -shiftM_);
+                           -l_shift_, -m_shift_);
   else
     ms2dirty_tuning<float, float>(uvw2, freq2, ms, twgt, tmask, pixelSizeX_,
                                   pixelSizeY_, epsilon_, true, nthreads_,
                                   tdirty, verbosity_, true, false, sigma_min,
-                                  sigma_max, -shiftL_, -shiftM_);
+                                  sigma_max, -l_shift_, -m_shift_);
   for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.raw(i);
 }
 
@@ -99,10 +99,10 @@ void WGriddingGridder_Simple::PredictVisibilities(
     dirty2ms<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
                            pixelSizeY_, epsilon_, true, nthreads_, ms,
                            verbosity_, true, false, sigma_min, sigma_max,
-                           -shiftL_, -shiftM_);
+                           -l_shift_, -m_shift_);
   else
     dirty2ms_tuning<float, float>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
                                   pixelSizeY_, epsilon_, true, nthreads_, ms,
                                   verbosity_, true, false, sigma_min, sigma_max,
-                                  -shiftL_, -shiftM_);
+                                  -l_shift_, -m_shift_);
 }

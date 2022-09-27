@@ -55,8 +55,8 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
                                        writer.Width(), writer.Height());
   facet_data.phase_centre.ra = writer.RA();
   facet_data.phase_centre.dec = writer.Dec();
-  facet_data.shift_l = writer.PhaseCentreDL();
-  facet_data.shift_m = writer.PhaseCentreDM();
+  facet_data.l_shift = writer.LShift();
+  facet_data.m_shift = writer.MShift();
   // The bounding box is padded such that it is partially outside the main image
   facet_data.padding = 1.5;
 

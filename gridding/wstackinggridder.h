@@ -503,8 +503,8 @@ class WStackingGridder {
    * @param dm shift of image centre in 'm' (North) direction
    */
   void SetDenormalPhaseCentre(double dl, double dm) {
-    _phaseCentreDL = dl;
-    _phaseCentreDM = dm;
+    _l_shift = dl;
+    _m_shift = dm;
   }
 
   /**
@@ -617,7 +617,7 @@ class WStackingGridder {
   const size_t _width, _height;
   const double _pixelSizeX, _pixelSizeY;
   size_t _nWLayers, _nPasses, _curLayerRangeIndex;
-  double _minW, _maxW, _phaseCentreDL, _phaseCentreDM;
+  double _minW, _maxW, _l_shift, _m_shift;
   bool _isComplex, _imageConjugatePart;
 #ifndef AVOID_CASACORE
   aocommon::BandData _bandData;

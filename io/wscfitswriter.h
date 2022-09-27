@@ -40,8 +40,8 @@ class WSCFitsWriter {
   WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
                 const Settings& settings,
                 const std::optional<radler::Radler>& deconvolution,
-                const ObservationInfo& observationInfo, double shiftL,
-                double shiftM, size_t majorIterationNr,
+                const ObservationInfo& observationInfo, double l_shift,
+                double m_shift, size_t majorIterationNr,
                 const std::string& commandLine,
                 const OutputChannelInfo& channelInfo, bool isModel,
                 double startTime);
@@ -50,8 +50,8 @@ class WSCFitsWriter {
                 aocommon::PolarizationEnum polarization, bool isImaginary,
                 const Settings& settings,
                 const std::optional<radler::Radler>& deconvolution,
-                const ObservationInfo& observationInfo, double shiftL,
-                double shiftM, size_t majorIterationNr,
+                const ObservationInfo& observationInfo, double l_shift,
+                double m_shift, size_t majorIterationNr,
                 const std::string& commandLine,
                 const OutputChannelInfo& channelInfo, bool isModel,
                 double startTime);
@@ -97,7 +97,8 @@ class WSCFitsWriter {
 
   void setGridderConfiguration(const Settings& settings,
                                const ObservationInfo& observationInfo,
-                               double shiftL, double shiftM, double startTime);
+                               double l_shift, double m_shift,
+                               double startTime);
 
   void setDeconvolutionKeywords(const Settings& settings);
 

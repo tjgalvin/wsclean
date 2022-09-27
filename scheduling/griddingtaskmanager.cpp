@@ -89,8 +89,8 @@ GriddingResult GriddingTaskManager::runDirect(GriddingTask&& task,
   gridder.SetImagePadding(_settings.imagePadding);
   gridder.SetPhaseCentreDec(task.observationInfo.phaseCentreDec);
   gridder.SetPhaseCentreRA(task.observationInfo.phaseCentreRA);
-  gridder.SetPhaseCentreDM(task.shiftM);
-  gridder.SetPhaseCentreDL(task.shiftL);
+  gridder.SetLShift(task.l_shift);
+  gridder.SetMShift(task.m_shift);
 
   if (_settings.hasShift) {
     double main_image_dl = 0.0;

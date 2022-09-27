@@ -25,7 +25,7 @@ class ComponentListWriter {
    */
   void SaveSourceList(const radler::Radler& deconvolution,
                       long double phase_centre_ra, long double phase_centre_dec,
-                      long double shift_l, long double shift_m) const;
+                      long double l_shift, long double m_shift) const;
 
   /**
    * @brief Save primary beam corrected source components to disk.
@@ -33,8 +33,8 @@ class ComponentListWriter {
   void SavePbCorrectedSourceList(const radler::Radler& deconvolution,
                                  long double phase_centre_ra,
                                  long double phase_centre_dec,
-                                 long double shift_l,
-                                 long double shift_m) const;
+                                 long double l_shift,
+                                 long double m_shift) const;
 
  private:
   void CorrectChannelForPrimaryBeam(radler::ComponentList& list,

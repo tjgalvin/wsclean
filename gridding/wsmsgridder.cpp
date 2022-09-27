@@ -78,8 +78,8 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
     wWidth = TrimWidth();
     wHeight = TrimHeight();
   }
-  double maxL = wWidth * PixelSizeX() * 0.5 + fabs(PhaseCentreDL()),
-         maxM = wHeight * PixelSizeY() * 0.5 + fabs(PhaseCentreDM()),
+  double maxL = wWidth * PixelSizeX() * 0.5 + fabs(LShift()),
+         maxM = wHeight * PixelSizeY() * 0.5 + fabs(MShift()),
          lmSq = maxL * maxL + maxM * maxM;
   double cMinW = IsComplex() ? -_maxW : _minW;
   double radiansForAllLayers;
@@ -178,9 +178,9 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
             weightBuffer.data(), modelBuffer.data(), isSelected.data());
 
         if (HasDenormalPhaseCentre()) {
-          const double shiftFactor = -2.0 * M_PI *
-                                     (newItem.uvw[0] * PhaseCentreDL() +
-                                      newItem.uvw[1] * PhaseCentreDM());
+          const double shiftFactor =
+              -2.0 * M_PI *
+              (newItem.uvw[0] * LShift() + newItem.uvw[1] * MShift());
           rotateVisibilities<1>(curBand, shiftFactor, newItem.data);
         }
 
@@ -338,8 +338,7 @@ void WSMSGridder::predictCalcThread(
                          item.uvw[2]);
     if (HasDenormalPhaseCentre()) {
       const double shiftFactor =
-          2.0 * M_PI *
-          (item.uvw[0] * PhaseCentreDL() + item.uvw[1] * PhaseCentreDM());
+          2.0 * M_PI * (item.uvw[0] * LShift() + item.uvw[1] * MShift());
       rotateVisibilities<1>(*bandData, shiftFactor, item.data.get());
     }
 
@@ -398,7 +397,7 @@ void WSMSGridder::Invert() {
       OverSamplingFactor()));
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
-    _gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
+    _gridder->SetDenormalPhaseCentre(LShift(), MShift());
   _gridder->SetIsComplex(IsComplex());
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());
@@ -531,7 +530,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
       OverSamplingFactor()));
   _gridder->SetGridMode(GetGridMode());
   if (HasDenormalPhaseCentre())
-    _gridder->SetDenormalPhaseCentre(PhaseCentreDL(), PhaseCentreDM());
+    _gridder->SetDenormalPhaseCentre(LShift(), MShift());
   _gridder->SetIsComplex(IsComplex());
   //_imager->SetImageConjugatePart(Polarization() == aocommon::Polarization::YX
   //&& IsComplex());

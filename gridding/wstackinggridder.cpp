@@ -26,8 +26,8 @@ WStackingGridder<T>::WStackingGridder(size_t width, size_t height,
       _curLayerRangeIndex(0),
       _minW(0.0),
       _maxW(0.0),
-      _phaseCentreDL(0.0),
-      _phaseCentreDM(0.0),
+      _l_shift(0.0),
+      _m_shift(0.0),
       _isComplex(false),
       _imageConjugatePart(false),
       _gridMode(GriddingKernelMode::KaiserBessel),
@@ -832,9 +832,9 @@ void WStackingGridder<T>::initializePrediction(
   num_t *dataPtr = dataArray[0].Data();
   const float *inPtr = image.Data();
   for (size_t y = 0; y != _height; ++y) {
-    double m = ((double)y - (_height / 2)) * _pixelSizeY + _phaseCentreDM;
+    double m = ((double)y - (_height / 2)) * _pixelSizeY + _m_shift;
     for (size_t x = 0; x != _width; ++x) {
-      double l = ((_width / 2) - (double)x) * _pixelSizeX + _phaseCentreDL;
+      double l = ((_width / 2) - (double)x) * _pixelSizeX + _l_shift;
       if (std::isfinite(*dataPtr) && l * l + m * m < 1.0)
         *dataPtr = *inPtr;
       else
@@ -855,12 +855,12 @@ void WStackingGridder<T>::initializeSqrtLMLookupTable() {
   for (size_t y = 0; y != _height; ++y) {
     size_t ySrc = (_height - y) + _height / 2;
     if (ySrc >= _height) ySrc -= _height;
-    double m = ((double)ySrc - (_height / 2)) * _pixelSizeY + _phaseCentreDM;
+    double m = ((double)ySrc - (_height / 2)) * _pixelSizeY + _m_shift;
 
     for (size_t x = 0; x != _width; ++x) {
       size_t xSrc = x + _width / 2;
       if (xSrc >= _width) xSrc -= _width;
-      double l = ((_width / 2) - (double)xSrc) * _pixelSizeX + _phaseCentreDL;
+      double l = ((_width / 2) - (double)xSrc) * _pixelSizeX + _l_shift;
 
       if (l * l + m * m < 1.0)
         *iter = std::sqrt(1.0 - l * l - m * m) - 1.0;
@@ -914,13 +914,13 @@ void WStackingGridder<T>::initializeSqrtLMLookupTableForSampling() {
     // size_t yDest = (_height - y) + _height / 2;
     size_t yDest = y + _height / 2;
     if (yDest >= _height) yDest -= _height;
-    double m = ((double)yDest - (_height / 2)) * _pixelSizeY + _phaseCentreDM;
+    double m = ((double)yDest - (_height / 2)) * _pixelSizeY + _m_shift;
 
     for (size_t x = 0; x != _width; ++x) {
       // size_t xDest = x + _width / 2;
       size_t xDest = (_width - x) + _width / 2;
       if (xDest >= _width) xDest -= _width;
-      double l = ((_width / 2) - (double)xDest) * _pixelSizeX + _phaseCentreDL;
+      double l = ((_width / 2) - (double)xDest) * _pixelSizeX + _l_shift;
 
       if (l * l + m * m < 1.0)
         *iter = std::sqrt(1.0 - l * l - m * m) - 1.0;

@@ -29,11 +29,11 @@ class PrimaryBeam {
   PrimaryBeam(const class Settings& settings);
   ~PrimaryBeam();
 
-  void SetPhaseCentre(double ra, double dec, double dl, double dm) {
+  void SetPhaseCentre(double ra, double dec, double l_shift, double m_shift) {
     _phaseCentreRA = ra;
     _phaseCentreDec = dec;
-    _phaseCentreDL = dl;
-    _phaseCentreDM = dm;
+    _l_shift = l_shift;
+    _m_shift = m_shift;
   }
 
   void CorrectImages(const ImageFilename& imageName,
@@ -92,7 +92,7 @@ class PrimaryBeam {
   static size_t computeUndersamplingFactor(const Settings& settings);
 
   const Settings& _settings;
-  double _phaseCentreRA, _phaseCentreDec, _phaseCentreDL, _phaseCentreDM;
+  double _phaseCentreRA, _phaseCentreDec, _l_shift, _m_shift;
   const size_t _undersample;
   const size_t _secondsBeforeBeamUpdate;
 #ifdef HAVE_EVERYBEAM

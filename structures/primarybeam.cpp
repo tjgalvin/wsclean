@@ -39,13 +39,13 @@ void writeBeamImages(const ImageFilename& imageName,
                      const PrimaryBeamImageSet& beamImages,
                      const Settings& settings, const ImagingTableEntry& entry,
                      double phaseCentreRA, double phaseCentreDec,
-                     double phaseCentreDL, double phaseCentreDM) {
+                     double l_shift, double m_shift) {
   // Save the 16 beam images as fits files
   aocommon::FitsWriter writer;
   writer.SetImageDimensions(
       settings.trimmedImageWidth, settings.trimmedImageHeight, phaseCentreRA,
       phaseCentreDec, settings.pixelScaleX, settings.pixelScaleY);
-  writer.SetPhaseCentreShift(phaseCentreDL, phaseCentreDM);
+  writer.SetPhaseCentreShift(l_shift, m_shift);
   writer.SetFrequency(entry.CentralFrequency(),
                       entry.bandEndFrequency - entry.bandStartFrequency);
   for (size_t i = 0; i != beamImages.NImages(); ++i) {
@@ -60,8 +60,8 @@ PrimaryBeam::PrimaryBeam(const Settings& settings)
     : _settings(settings),
       _phaseCentreRA(0.0),
       _phaseCentreDec(0.0),
-      _phaseCentreDL(0.0),
-      _phaseCentreDM(0.0),
+      _l_shift(0.0),
+      _m_shift(0.0),
       _undersample(computeUndersamplingFactor(settings)),
       _secondsBeforeBeamUpdate(settings.primaryBeamUpdateTime)
 #ifdef HAVE_EVERYBEAM
@@ -116,8 +116,7 @@ void PrimaryBeam::CorrectImages(
     // Pass table.Front(), since central frequency and start/end frequency
     // are equal inside a FacetGroup
     writeBeamImages(imageName, beamImages, _settings, table.Front(),
-                    _phaseCentreRA, _phaseCentreDec, _phaseCentreDL,
-                    _phaseCentreDM);
+                    _phaseCentreRA, _phaseCentreDec, _l_shift, _m_shift);
   }
 
   if (_settings.polarizations.size() == 1 || filenameKind == "psf") {
@@ -295,7 +294,7 @@ void PrimaryBeam::MakeBeamImages(const ImageFilename& imageName,
     beamImages = MakeImage(entry, imageWeights);
 
     writeBeamImages(imageName, beamImages, _settings, entry, _phaseCentreRA,
-                    _phaseCentreDec, _phaseCentreDL, _phaseCentreDM);
+                    _phaseCentreDec, _l_shift, _m_shift);
   }
 }
 
@@ -320,8 +319,8 @@ PrimaryBeamImageSet PrimaryBeam::MakeImage(
                                               _phaseCentreDec,
                                               _settings.pixelScaleX,
                                               _settings.pixelScaleY,
-                                              _phaseCentreDL,
-                                              _phaseCentreDM};
+                                              _l_shift,
+                                              _m_shift};
 
   aocommon::UVector<float> buffer_total(width * height * beamImages.NImages(),
                                         0);

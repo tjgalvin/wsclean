@@ -90,8 +90,8 @@ void IdgMsGridder::Invert() {
     max_w = std::max(max_w, msData.maxWWithFlags);
   }
 
-  const double shiftl = PhaseCentreDL();
-  const double shiftm = PhaseCentreDM();
+  const double shiftl = LShift();
+  const double shiftm = MShift();
   const double shiftp =
       std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
   _bufferset->init(width, ActualPixelSizeX(), max_w + 1.0, shiftl, shiftm,
@@ -334,8 +334,8 @@ void IdgMsGridder::Predict(std::vector<Image>&& images) {
     max_w = std::max(max_w, msData.maxWWithFlags);
   }
 
-  const double shiftl = PhaseCentreDL();
-  const double shiftm = PhaseCentreDM();
+  const double shiftl = LShift();
+  const double shiftm = MShift();
   const double shiftp =
       std::sqrt(1.0 - shiftl * shiftl - shiftm * shiftm) - 1.0;
   _bufferset->init(width, ActualPixelSizeX(), max_w + 1.0, shiftl, shiftm,
@@ -647,8 +647,8 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
     system.dec = PhaseCentreDec();
     system.dl = -_bufferset->get_subgrid_pixelsize();
     system.dm = -_bufferset->get_subgrid_pixelsize();
-    system.l_shift = PhaseCentreDL() - 0.5 * system.dl;
-    system.m_shift = PhaseCentreDM() + 0.5 * system.dm;
+    system.l_shift = LShift() - 0.5 * system.dl;
+    system.m_shift = MShift() + 0.5 * system.dm;
 
     everybeam::ATermSettings aterm_settings;
     aterm_settings.save_aterms_prefix = _settings.prefixName;

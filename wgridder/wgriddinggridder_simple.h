@@ -22,7 +22,7 @@ class WGriddingGridder_Simple {
   static constexpr double sigma_max = 2.0;
   size_t width_, height_, width_t_, height_t_, nthreads_;
   double pixelSizeX_, pixelSizeY_;
-  double shiftL_, shiftM_;
+  double l_shift_, m_shift_;
   double epsilon_;
   std::vector<float> img;
   size_t verbosity_;
@@ -47,7 +47,7 @@ class WGriddingGridder_Simple {
    */
   WGriddingGridder_Simple(size_t width, size_t height, size_t width_t,
                           size_t height_t, double pixelSizeX, double pixelSizeY,
-                          double shiftL, double shiftM, size_t nthreads,
+                          double l_shift, double m_shift, size_t nthreads,
                           double epsilon = 1e-4, size_t verbosity = 0,
                           bool tuning_ = false);
 

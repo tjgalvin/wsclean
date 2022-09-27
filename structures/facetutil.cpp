@@ -6,13 +6,13 @@ using schaapcommon::facets::Facet;
 
 Facet::InitializationData CreateFacetInitializationData(
     double width, double height, double pixelScaleX, double pixelScaleY,
-    double phaseCentreRA, double phaseCentreDec, double shiftL, double shiftM,
+    double phaseCentreRA, double phaseCentreDec, double l_shift, double m_shift,
     double imagePadding, bool make_square) {
   Facet::InitializationData data(pixelScaleX, pixelScaleY, width, height);
   data.phase_centre.ra = phaseCentreRA;
   data.phase_centre.dec = phaseCentreDec;
-  data.shift_l = shiftL;
-  data.shift_m = shiftM;
+  data.l_shift = l_shift;
+  data.m_shift = m_shift;
   data.padding = imagePadding;
   data.align = 2;
   data.make_square = make_square;

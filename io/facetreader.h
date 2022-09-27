@@ -17,7 +17,7 @@ class FacetReader {
   static std::vector<std::shared_ptr<schaapcommon::facets::Facet>> ReadFacets(
       std::string filename, double width, double height, double pixelScaleX,
       double pixelScaleY, double phaseCentreRA, double phaseCentreDec,
-      double shiftL, double shiftM, double imagePadding, bool make_square);
+      double l_shift, double m_shift, double imagePadding, bool make_square);
 
   static std::size_t CountFacets(const std::string& facet_region_filename);
 };

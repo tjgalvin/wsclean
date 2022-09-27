@@ -234,8 +234,8 @@ MSGridderBase::MSGridderBase(const Settings& settings)
       _actualPixelSizeY(0),
       _phaseCentreRA(0.0),
       _phaseCentreDec(0.0),
-      _phaseCentreDL(0.0),
-      _phaseCentreDM(0.0),
+      _l_shift(0.0),
+      _m_shift(0.0),
       _mainImageDL(0.0),
       _mainImageDM(0.0),
       _facetDirectionRA(0.0),
@@ -657,8 +657,8 @@ void MSGridderBase::initializeMeasurementSet(MSGridderBase::MSData& msData,
   initializeBandData(*ms, msData);
 
   if (HasDenormalPhaseCentre())
-    Logger::Debug << "Set has denormal phase centre: dl=" << _phaseCentreDL
-                  << ", dm=" << _phaseCentreDM << '\n';
+    Logger::Debug << "Set has denormal phase centre: dl=" << _l_shift
+                  << ", dm=" << _m_shift << '\n';
 
   calculateMSLimits(msData.SelectedBand(), msProvider.StartTime());
 
@@ -1116,8 +1116,8 @@ void MSGridderBase::readAndWeightVisibilities(
       dm = MainImageDM();
     } else {  // GetPsfMode() == PsfMode::kDirectionDependent
       // The point source is shifted to the centre of the current DdPsf position
-      dl = PhaseCentreDL();
-      dm = PhaseCentreDM();
+      dl = LShift();
+      dm = MShift();
     }
     if (dl != 0.0 || dm != 0.0) {
       const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;

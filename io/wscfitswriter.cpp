@@ -17,13 +17,14 @@
 WSCFitsWriter::WSCFitsWriter(
     const ImagingTableEntry& entry, bool isImaginary, const Settings& settings,
     const std::optional<radler::Radler>& deconvolution,
-    const ObservationInfo& observationInfo, double shiftL, double shiftM,
+    const ObservationInfo& observationInfo, double l_shift, double m_shift,
     size_t majorIterationNr, const std::string& commandLine,
     const OutputChannelInfo& channelInfo, bool isModel, double startTime) {
   _filenamePrefix = ImageFilename::GetPrefix(
       settings, entry.polarization, entry.outputChannelIndex,
       entry.outputIntervalIndex, isImaginary);
-  setGridderConfiguration(settings, observationInfo, shiftL, shiftM, startTime);
+  setGridderConfiguration(settings, observationInfo, l_shift, m_shift,
+                          startTime);
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, entry.polarization, channelInfo);
   setDeconvolutionKeywords(settings);
@@ -38,13 +39,14 @@ WSCFitsWriter::WSCFitsWriter(
     const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
     bool isImaginary, const Settings& settings,
     const std::optional<radler::Radler>& deconvolution,
-    const ObservationInfo& observationInfo, double shiftL, double shiftM,
+    const ObservationInfo& observationInfo, double l_shift, double m_shift,
     size_t majorIterationNr, const std::string& commandLine,
     const OutputChannelInfo& channelInfo, bool isModel, double startTime) {
   _filenamePrefix =
       ImageFilename::GetPrefix(settings, polarization, entry.outputChannelIndex,
                                entry.outputIntervalIndex, isImaginary);
-  setGridderConfiguration(settings, observationInfo, shiftL, shiftM, startTime);
+  setGridderConfiguration(settings, observationInfo, l_shift, m_shift,
+                          startTime);
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
@@ -82,13 +84,13 @@ void WSCFitsWriter::setSettingsKeywords(const Settings& settings,
 
 void WSCFitsWriter::setGridderConfiguration(
     const Settings& settings, const ObservationInfo& observationInfo,
-    double shiftL, double shiftM, double startTime) {
+    double l_shift, double m_shift, double startTime) {
   _writer.SetImageDimensions(
       settings.trimmedImageWidth, settings.trimmedImageHeight,
       observationInfo.phaseCentreRA, observationInfo.phaseCentreDec,
       settings.pixelScaleX, settings.pixelScaleY);
   _writer.SetDate(startTime);
-  _writer.SetPhaseCentreShift(shiftL, shiftM);
+  _writer.SetPhaseCentreShift(l_shift, m_shift);
   _writer.SetTelescopeName(observationInfo.telescopeName);
   _writer.SetObserver(observationInfo.observer);
   _writer.SetObjectName(observationInfo.fieldName);
@@ -162,9 +164,8 @@ void WSCFitsWriter::WriteFullNameImage(const std::string& fullname,
     writer.SetImageDimensions(image.Width(), image.Height(), _writer.RA(),
                               _writer.Dec(), _writer.PixelSizeX(),
                               _writer.PixelSizeY());
-    if (_writer.PhaseCentreDL() || _writer.PhaseCentreDM()) {
-      writer.SetPhaseCentreShift(_writer.PhaseCentreDL(),
-                                 _writer.PhaseCentreDM());
+    if (_writer.LShift() || _writer.MShift()) {
+      writer.SetPhaseCentreShift(_writer.LShift(), _writer.MShift());
     }
     writer.Write(fullname, image.Data());
   } else {
@@ -183,9 +184,9 @@ void WSCFitsWriter::WriteFullNameImage(
       facet.GetTrimmedBoundingBox().Centre().x - _writer.Width() / 2;
   int centreShiftY =
       facet.GetTrimmedBoundingBox().Centre().y - _writer.Height() / 2;
-  double shiftL = _writer.PhaseCentreDL() - centreShiftX * _writer.PixelSizeX();
-  double shiftM = _writer.PhaseCentreDM() + centreShiftY * _writer.PixelSizeY();
-  writer.SetPhaseCentreShift(shiftL, shiftM);
+  double l_shift = _writer.LShift() - centreShiftX * _writer.PixelSizeX();
+  double m_shift = _writer.MShift() + centreShiftY * _writer.PixelSizeY();
+  writer.SetPhaseCentreShift(l_shift, m_shift);
   writer.Write(fullname, image.Data());
 }
 
@@ -207,9 +208,9 @@ void WSCFitsWriter::WriteFullNameImage(
 
   int centreShiftX = centre_pixel.x - _writer.Width() / 2;
   int centreShiftY = centre_pixel.y - _writer.Height() / 2;
-  double shiftL = _writer.PhaseCentreDL() - centreShiftX * _writer.PixelSizeX();
-  double shiftM = _writer.PhaseCentreDM() + centreShiftY * _writer.PixelSizeY();
-  writer.SetPhaseCentreShift(shiftL, shiftM);
+  double l_shift = _writer.LShift() - centreShiftX * _writer.PixelSizeX();
+  double m_shift = _writer.MShift() + centreShiftY * _writer.PixelSizeY();
+  writer.SetPhaseCentreShift(l_shift, m_shift);
   writer.Write(fullname, facetimage.Data(0));
 }
 

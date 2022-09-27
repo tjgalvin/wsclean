@@ -29,8 +29,8 @@ struct ImageCoordinateSettings {
         dec(fits_reader.PhaseCentreDec()),
         pixel_scale_l(fits_reader.PixelSizeX()),
         pixel_scale_m(fits_reader.PixelSizeY()),
-        l_shift(fits_reader.PhaseCentreDL()),
-        m_shift(fits_reader.PhaseCentreDM()) {}
+        l_shift(fits_reader.LShift()),
+        m_shift(fits_reader.MShift()) {}
 
   long double ra;
   long double dec;
