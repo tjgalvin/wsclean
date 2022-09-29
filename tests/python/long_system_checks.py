@@ -1,3 +1,4 @@
+from wsgiref import validate
 import pytest
 import os, glob
 import sys
@@ -363,65 +364,122 @@ class TestLongSystem:
         Checks that the PSF generated which lies close to the source point is more similar to the dirty image than the one lying further away.
         """
 
-        def get_subimage(center_point_x, center_point_y, interval, img):
-            """Generates a subimage from x with center in (center_point_x, center_point_y) and width/height = 2 * interval"""
-            return img[
-                center_point_x - interval : center_point_x + interval,
-                center_point_y - interval : center_point_y + interval,
-            ]
+        def get_peak_centered_normalized_subimage(img, subimage_size):
+            """Get a subimage centered at the pixel with the heighest value
+            Image is normalized by the heighest pixel value
+            """
+            # Get coordinates of the peak
+            center_point_x, center_point_y = np.unravel_index(
+                np.argmax(img, axis=None), img.shape
+            )
 
-        # Generate dirty image and 16 direction-dependent PSFs
-        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -scale 6asec -size 4800 4800 -make-psf -gridder idg -grid-with-beam -dd-psf-grid 4 4 -parallel-deconvolution 1200 {tcf.SKA_MS}"
+            return (
+                img[
+                    center_point_x
+                    - subimage_size // 2 : center_point_x
+                    - subimage_size // 2
+                    + subimage_size,
+                    center_point_y
+                    - subimage_size // 2 : center_point_y
+                    - subimage_size // 2
+                    + subimage_size,
+                ]
+                / img[center_point_x, center_point_y]
+            )
+
+        # Make template model image
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -no-reorder -size 4800 4800 -scale 5asec -weight briggs -1 -padding 1.2 -gridder idg -grid-with-beam -beam-mode array_factor -aterm-kernel-size 15 -beam-aterm-update 120 {tcf.SKA_MS}"
         validate_call(s.split())
 
-        dirty = fits.open(f"{name('DD-PSFs-dirty.fits')}")[0].data.squeeze()
-        psf_in_center = fits.open(f"{name('DD-PSFs-d0005-psf.fits')}")[
-            0
-        ].data.squeeze()
-        psf_off_center = fits.open(f"{name('DD-PSFs-d0000-psf.fits')}")[
-            0
-        ].data.squeeze()
-
-        # Get coordinates of the peaks, to ensure good alignment for the subtraction (the source is a point source)
-        index_max_dirty = np.unravel_index(
-            np.argmax(dirty, axis=None), dirty.shape
+        # Fill model images with grid of point sources
+        f_image = fits.open(name("DD-PSFs-image.fits"))
+        f_beam = fits.open(name("DD-PSFs-beam.fits"))
+        image_size = f_image[0].data.shape[-1]
+        PSF_GRID_SIZE_1D = 3
+        point_source_spacing = image_size // PSF_GRID_SIZE_1D
+        position_range_1d = (
+            point_source_spacing // 2
+            + point_source_spacing * np.arange(PSF_GRID_SIZE_1D)
         )
-        index_max_psf_in_center = np.unravel_index(
-            np.argmax(psf_in_center, axis=None), psf_in_center.shape
-        )
-        index_max_psf_off_center = np.unravel_index(
-            np.argmax(psf_off_center, axis=None), psf_off_center.shape
+        f_image[0].data[:] = 0.0
+        for i in position_range_1d:
+            for j in position_range_1d:
+                f_image[0].data[0, 0, i, j] = 1.0 / f_beam[0].data[0, 0, i, j]
+        f_image.writeto(name("DD-PSFs-model-pb.fits"), overwrite=True)
+
+        # Predict visibilites using wsclean
+        # predicted visibiliies are written to the MODEL_DATA column
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -no-reorder -predict -padding 1.2 -gridder idg -grid-with-beam  -beam-mode array_factor  -beam-aterm-update 120 {tcf.SKA_MS}"
+        validate_call(s.split())
+
+        # Location of a python implementation of a "deconvolution algorithm" that does
+        # nothing except storing its input images to disk
+        deconvolution_script = os.path.join(
+            os.path.dirname(__file__), "test_deconvolution_write_input.py"
         )
 
-        interval = 40
+        # Generate dirty image and PSF_GRID_SIZE_1D x PSF_GRID_SIZE_1D direction-dependent PSFs
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -data-column MODEL_DATA -parallel-deconvolution 1600 -no-reorder -size 4800 4800 -scale 5asec -mgain 0.8 -niter 10000000 -threshold 10.0mJy -auto-mask 5.0 -weight briggs -1 -padding 1.2 -gridder idg -grid-with-beam -beam-mode array_factor -aterm-kernel-size 15 -beam-aterm-update 120 -dd-psf-grid 3 3 -nmiter 1 -python-deconvolution {deconvolution_script} {tcf.SKA_MS}"
+        validate_call(s.split())
 
-        diff_image_in_center = get_subimage(
-            index_max_dirty[0], index_max_dirty[1], interval, dirty
-        ) / np.max(
-            get_subimage(
-                index_max_dirty[0], index_max_dirty[1], interval, dirty
+        SUBIMAGE_SIZE = 40
+        dirty = get_peak_centered_normalized_subimage(
+            fits.open(f"{name('DD-PSFs')}-dirty.fits")[0].data.squeeze()[
+                :1600, :1600
+            ],
+            SUBIMAGE_SIZE,
+        )
+        psf_on_source = get_peak_centered_normalized_subimage(
+            fits.open(f"{name('DD-PSFs')}-d0000-psf.fits")[0].data.squeeze(),
+            SUBIMAGE_SIZE,
+        )
+        psf_off_source = get_peak_centered_normalized_subimage(
+            fits.open(f"{name('DD-PSFs')}-d0004-psf.fits")[0].data.squeeze(),
+            SUBIMAGE_SIZE,
+        )
+
+        # Verify that the psf generated at the location of a point source
+        # is indeed a better match then a psf for a diffetent location
+        expected_improvement_factor = 0.3
+        assert np.sqrt(
+            np.mean(np.square(dirty - psf_on_source))
+        ) < expected_improvement_factor * np.sqrt(
+            np.mean(np.square(dirty - psf_off_source))
+        )
+
+        num_psfs = PSF_GRID_SIZE_1D * PSF_GRID_SIZE_1D
+
+        dirty = []
+        psf = []
+
+        # Load the psfs and dirty images that were stored by the dummy deconvolution algorithm
+        for i in range(num_psfs):
+            dirty.append(
+                get_peak_centered_normalized_subimage(
+                    np.load(
+                        f"{name(f'test-deconvolution-write-input-dirty-{i}.npy')}"
+                    )[0][0],
+                    SUBIMAGE_SIZE,
+                )
             )
-        ) - get_subimage(
-            index_max_psf_in_center[0],
-            index_max_psf_in_center[1],
-            interval,
-            psf_in_center,
-        )
-
-        diff_image_off_center = get_subimage(
-            index_max_dirty[0], index_max_dirty[1], interval, dirty
-        ) / np.max(
-            get_subimage(
-                index_max_dirty[0], index_max_dirty[1], interval, dirty
+            psf.append(
+                get_peak_centered_normalized_subimage(
+                    np.load(
+                        f"{name(f'test-deconvolution-write-input-psf-{i}.npy')}"
+                    )[0],
+                    SUBIMAGE_SIZE,
+                )
             )
-        ) - get_subimage(
-            index_max_psf_off_center[0],
-            index_max_psf_off_center[1],
-            interval,
-            psf_off_center,
-        )
 
-        # Assert that the PSF closer to the source is more similar to the source than the PSF lying further away
-        assert np.max(diff_image_off_center) < 0.1 * np.max(
-            diff_image_in_center
-        )
+        # Create a difference matrix of rms differences between all pairs of
+        # dirty images and psfs.
+        # The best match should occur when psf and dirty image index match,
+        # i.e. on the diagonal of the difference matrix
+        diff = np.zeros((num_psf, num_psfs))
+        for i in range(num_psfs):
+            for j in range(num_psfs):
+                diff[i, j] = np.sqrt(np.mean(np.square(dirty[i] - psf[j])))
+
+        # Assert that for each dirty image, the best match is indeed the psf
+        # with the same index
+        assert all(np.argmin(diff, axis=0) == np.arange(num_psfs))
