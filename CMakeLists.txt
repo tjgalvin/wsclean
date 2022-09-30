@@ -223,7 +223,8 @@ add_definitions(-DHAVE_GSL)
 
 # Radler
 set(RADLER_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/external/radler)
-set(RADLER_LIB ${RADLER_INSTALL_PREFIX}/lib/libradler.so)
+set(RADLER_LIB
+    ${RADLER_INSTALL_PREFIX}/lib/libradler${CMAKE_SHARED_LIBRARY_SUFFIX})
 ExternalProject_Add(
   radler-module
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/radler
