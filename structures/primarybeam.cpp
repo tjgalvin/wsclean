@@ -330,6 +330,8 @@ PrimaryBeamImageSet PrimaryBeam::Load(const ImageFilename& imageName,
     ImageFilename polName(imageName);
     polName.SetPolarization(aocommon::Polarization::StokesI);
     aocommon::FitsReader reader(polName.GetBeamPrefix(_settings) + ".fits");
+    beamImages[0] =
+        Image(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
     reader.Read(beamImages[0].Data());
     for (size_t i = 0;
          i != _settings.trimmedImageWidth * _settings.trimmedImageHeight; ++i)
