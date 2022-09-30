@@ -36,6 +36,7 @@ using everybeam::aterms::ATermBeam;
 using everybeam::aterms::ATermConfig;
 #endif  // HAVE_EVERYBEAM
 
+using aocommon::CoordinateSystem;
 using aocommon::Image;
 using aocommon::Logger;
 
@@ -640,7 +641,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
   size_t nr_stations = ms->antenna().nrow();
   if (!_settings.atermConfigFilename.empty() || _settings.gridWithBeam) {
     // IDG uses a flipped coordinate system which is moved by half a pixel:
-    aocommon::CoordinateSystem system;
+    CoordinateSystem system;
     system.width = _bufferset->get_subgridsize();
     system.height = system.width;
     system.ra = PhaseCentreRA();

@@ -6,6 +6,8 @@
 
 #include "../math/renderer.h"
 
+#include <filesystem>
+
 #include <aocommon/logger.h>
 #include <aocommon/fits/fitsreader.h>
 #include <aocommon/fits/fitswriter.h>
@@ -82,20 +84,24 @@ void ImageOperations::DetermineBeamSize(const Settings& settings, double& bMaj,
 void ImageOperations::MakeMFSImage(
     const Settings& settings,
     const std::vector<OutputChannelInfo>& infoPerChannel,
-    OutputChannelInfo& mfsInfo, const string& suffix, size_t intervalIndex,
-    aocommon::PolarizationEnum pol, bool isImaginary, bool isPSF) {
+    OutputChannelInfo& mfsInfo, const std::string& suffix, size_t intervalIndex,
+    aocommon::PolarizationEnum pol, ImageFilenameType image_type) {
   double lowestFreq = 0.0, highestFreq = 0.0;
   const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
   aocommon::UVector<float> mfsImage(size, 0.0);
   aocommon::UVector<double> addedImage(size), weightImage(size, 0.0);
   double weightSum = 0.0;
   aocommon::FitsWriter writer;
+  const std::string suffix_with_extension =
+      suffix.empty() ? ".fits" : '-' + suffix + ".fits";
   for (size_t ch = 0; ch != settings.channelsOut; ++ch) {
-    std::string prefixStr =
-        isPSF ? ImageFilename::GetPSFPrefix(settings, ch, intervalIndex)
-              : ImageFilename::GetPrefix(settings, pol, ch, intervalIndex,
-                                         isImaginary);
-    const std::string name(prefixStr + '-' + suffix);
+    const std::string prefix =
+        ImageFilename::GetPrefix(image_type, settings, pol, ch, intervalIndex);
+    const std::string name = prefix + suffix_with_extension;
+    // In the case of beam images, not all 16 beam images might be present, so
+    // immediately leave in that case.
+    if (image_type == ImageFilenameType::Beam && !std::filesystem::exists(name))
+      return;
     aocommon::FitsReader reader(name);
     if (ch == 0) {
       WSCFitsWriter wscWriter(reader);
@@ -120,7 +126,7 @@ void ImageOperations::MakeMFSImage(
   }
   for (size_t i = 0; i != size; ++i) mfsImage[i] /= weightImage[i];
 
-  if (isPSF) {
+  if (image_type == ImageFilenameType::Psf) {
     const double pixelScale =
         std::min(settings.pixelScaleX, settings.pixelScaleY);
     const double smallestTheoreticBeamSize =
@@ -135,16 +141,16 @@ void ImageOperations::MakeMFSImage(
   else
     writer.SetNoBeamInfo();
 
-  std::string mfsName(ImageFilename::GetMFSPrefix(settings, pol, intervalIndex,
-                                                  isImaginary, isPSF) +
-                      '-' + suffix);
-  Logger::Info << "Writing " << mfsName << "...\n";
+  std::string mfs_name(
+      ImageFilename::GetMFSPrefix(settings, pol, intervalIndex, image_type) +
+      suffix_with_extension);
+  Logger::Info << "Writing " << mfs_name << "...\n";
   writer.SetFrequency((lowestFreq + highestFreq) * 0.5,
                       highestFreq - lowestFreq);
   writer.SetExtraKeyword("WSCIMGWG", weightSum);
   writer.RemoveExtraKeyword("WSCCHANS");
   writer.RemoveExtraKeyword("WSCCHANE");
-  writer.Write(mfsName, mfsImage.data());
+  writer.Write(mfs_name, mfsImage.data());
 }
 
 void ImageOperations::RenderMFSImage(const Settings& settings,
@@ -154,11 +160,13 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
                                      bool isImaginary, bool isPBCorrected) {
   const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
 
-  std::string mfsPrefix(ImageFilename::GetMFSPrefix(
-      settings, pol, intervalIndex, isImaginary, false));
-  std::string postfix = isPBCorrected ? "-pb.fits" : ".fits";
-  aocommon::FitsReader residualReader(mfsPrefix + "-residual" + postfix);
-  aocommon::FitsReader modelReader(mfsPrefix + "-model" + postfix);
+  ImageFilenameType filename_type =
+      isImaginary ? ImageFilenameType::Imaginary : ImageFilenameType::Normal;
+  const std::string mfs_prefix(
+      ImageFilename::GetMFSPrefix(settings, pol, intervalIndex, filename_type));
+  const std::string postfix = isPBCorrected ? "-pb.fits" : ".fits";
+  aocommon::FitsReader residualReader(mfs_prefix + "-residual" + postfix);
+  aocommon::FitsReader modelReader(mfs_prefix + "-model" + postfix);
   aocommon::UVector<float> image(size), modelImage(size);
   residualReader.Read(image.data());
   modelReader.Read(modelImage.data());
@@ -202,7 +210,7 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
       settings.pixelScaleX, settings.pixelScaleY, settings.threadCount);
   Logger::Info << "DONE\n";
 
-  Logger::Info << "Writing " << mfsPrefix << "-image" << postfix << "...\n";
+  Logger::Info << "Writing " << mfs_prefix << "-image" << postfix << "...\n";
   aocommon::FitsWriter imageWriter(residualReader);
-  imageWriter.Write(mfsPrefix + "-image" + postfix, image.data());
+  imageWriter.Write(mfs_prefix + "-image" + postfix, image.data());
 }

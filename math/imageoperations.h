@@ -2,6 +2,7 @@
 #define IMAGE_OPERATIONS_H
 
 #include "../structures/outputchannelinfo.h"
+#include "../io/imagefilename.h"
 
 #include <aocommon/polarization.h>
 
@@ -22,8 +23,8 @@ class ImageOperations {
                            const std::vector<OutputChannelInfo>& infoPerChannel,
                            OutputChannelInfo& mfsInfo,
                            const std::string& suffix, size_t intervalIndex,
-                           aocommon::PolarizationEnum pol, bool isImaginary,
-                           bool isPSF = false);
+                           aocommon::PolarizationEnum pol,
+                           ImageFilenameType image_type);
 
   static void RenderMFSImage(const class Settings& settings,
                              const OutputChannelInfo& mfsInfo,

@@ -60,7 +60,7 @@ void ComponentListWriter::CorrectChannelForPrimaryBeam(
                          entry.original_interval_index);
   filename.SetPolarization(entry.polarization);
   PrimaryBeam beam(settings_);
-  PrimaryBeamImageSet beam_images = beam.Load(filename);
+  PrimaryBeamImageSet beam_images = beam.LoadStokesI(filename);
   beam_images.CorrectComponentList(list, entry.original_channel_index);
 }
 
@@ -92,9 +92,9 @@ PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
                              e.original_interval_index);
 
       if (count == 0) {
-        beam_images = beam.Load(filename);
+        beam_images = beam.LoadStokesI(filename);
       } else {
-        beam_images += beam.Load(filename);
+        beam_images += beam.LoadStokesI(filename);
       }
       count++;
     }

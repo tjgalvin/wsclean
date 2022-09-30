@@ -15,7 +15,7 @@
 
 class PrimaryBeamImageSet {
  public:
-  PrimaryBeamImageSet() : _beamImages(), _width(0), _height(0) {}
+  PrimaryBeamImageSet() : _width(0), _height(0) {}
 
   PrimaryBeamImageSet(size_t width, size_t height)
       : _width(width), _height(height) {
@@ -24,23 +24,13 @@ class PrimaryBeamImageSet {
   }
 
   void SetToZero() {
-    for (aocommon::Image& img : _beamImages)
-      std::fill_n(img.Data(), _width * _height, 0.0);
+    for (aocommon::Image& img : _beamImages) img = 0.0f;
   }
 
-  double GetUnpolarizedCorrectionFactor(size_t x, size_t y) {
-    const size_t j = y * _width + x;
-    aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
-        {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
-         _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
-         _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
-         _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
-         _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
-         _beamImages[15][j]});
-    if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
-    aocommon::Vector4 v{0.5, 0.0, 0.0, 0.5};
-    v = beam * v;
-    return v[0].real() + v[3].real();
+  double GetUnpolarizedCorrectionFactor(size_t x, size_t y) const {
+    const aocommon::HMC4x4 beam = Value(x, y);
+    const double sum = beam.Data(0) + beam.Data(15);
+    return sum != 0.0 ? (2.0 / sum) : 0.0;
   }
 
   const aocommon::Image& operator[](size_t index) const {
@@ -52,17 +42,16 @@ class PrimaryBeamImageSet {
     if (_beamImages.size() != rhs._beamImages.size())
       throw std::runtime_error("Primary beam image sets don't match");
     for (size_t i = 0; i != _beamImages.size(); ++i) {
-      for (size_t j = 0; j != _width * _height; ++j)
-        _beamImages[i][j] += rhs._beamImages[i][j];
+      if (_beamImages[i].Empty())
+        _beamImages[i] = rhs._beamImages[i];
+      else if (!rhs._beamImages[i].Empty())
+        _beamImages[i] += rhs._beamImages[i];
     }
     return *this;
   }
 
   PrimaryBeamImageSet& operator*=(double factor) {
-    for (size_t i = 0; i != _beamImages.size(); ++i) {
-      for (size_t j = 0; j != _width * _height; ++j)
-        _beamImages[i][j] *= factor;
-    }
+    for (aocommon::Image& image : _beamImages) image *= factor;
     return *this;
   }
 
@@ -72,13 +61,7 @@ class PrimaryBeamImageSet {
     beam_limit = beam_limit * beam_limit;
     const size_t size = _width * _height;
     for (size_t j = 0; j != size; ++j) {
-      const aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
-          {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
-           _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
-           _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
-           _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
-           _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
-           _beamImages[15][j]});
+      const aocommon::HMC4x4 beam = Value(j);
       const std::array<double, 4> diagonal = beam.DiagonalValues();
       if (beam.Norm() <= beam_limit || diagonal[0] + diagonal[3] == 0.0) {
         stokes_i[j] = std::numeric_limits<float>::quiet_NaN();
@@ -89,19 +72,13 @@ class PrimaryBeamImageSet {
     }
   }
 
-  void ApplyDiagonal(float* images[2], double beamLimit) {
+  void ApplyDiagonal(float* images[2], double beamLimit) const {
     // The beam will be compared to a squared quantity (matrix norm), so square
     // it:
     beamLimit = beamLimit * beamLimit;
     const size_t size = _width * _height;
     for (size_t j = 0; j != size; ++j) {
-      aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
-          {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
-           _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
-           _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
-           _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
-           _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
-           _beamImages[15][j]});
+      aocommon::HMC4x4 beam = Value(j);
       if (beam.Norm() > beamLimit) {
         if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
         aocommon::Vector4 v{images[0][j], 0., 0., images[1][j]};
@@ -124,13 +101,7 @@ class PrimaryBeamImageSet {
     beamLimit = beamLimit * beamLimit;
     const size_t size = _width * _height;
     for (size_t j = 0; j != size; ++j) {
-      aocommon::HMC4x4 beam = aocommon::HMC4x4::FromData(
-          {_beamImages[0][j], _beamImages[1][j], _beamImages[2][j],
-           _beamImages[3][j], _beamImages[4][j], _beamImages[5][j],
-           _beamImages[6][j], _beamImages[7][j], _beamImages[8][j],
-           _beamImages[9][j], _beamImages[10][j], _beamImages[11][j],
-           _beamImages[12][j], _beamImages[13][j], _beamImages[14][j],
-           _beamImages[15][j]});
+      aocommon::HMC4x4 beam = Value(j);
       if (beam.Norm() > beamLimit) {
         if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
         double stokesVal[4] = {images[0][j], images[1][j], images[2][j],
@@ -167,12 +138,27 @@ class PrimaryBeamImageSet {
     }
   }
 
-  size_t NImages() const { return _beamImages.size(); }
+  static constexpr size_t NImages() { return kNImages; }
   size_t Width() const { return _width; }
   size_t Height() const { return _height; }
 
  private:
-  std::array<aocommon::Image, 16> _beamImages;
+  aocommon::HMC4x4 Value(size_t x, size_t y) const {
+    return Value(x + y * _width);
+  }
+
+  aocommon::HMC4x4 Value(size_t pixel_index) const {
+    aocommon::HMC4x4 beam_values;
+    for (size_t i = 0; i != kNImages; ++i) {
+      if (!_beamImages[i].Empty()) {
+        beam_values.Data(i) = _beamImages[i][pixel_index];
+      }
+    }
+    return beam_values;
+  }
+
+  static constexpr size_t kNImages = 16;
+  std::array<aocommon::Image, kNImages> _beamImages;
   size_t _width, _height;
 };
 

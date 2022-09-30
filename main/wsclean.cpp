@@ -758,17 +758,17 @@ void WSClean::RunClean() {
 
         if (psfWasMade) {
           ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
-                                        "psf.fits", intervalIndex, pol, false,
-                                        true);
+                                        "psf", intervalIndex, pol,
+                                        ImageFilenameType::Psf);
           if (_settings.savePsfPb)
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                          _infoForMFS, "psf-pb.fits",
-                                          intervalIndex, pol, false, true);
+                                          _infoForMFS, "psf-pb", intervalIndex,
+                                          pol, ImageFilenameType::Psf);
         }
         if (griddingUsesATerms()) {
           ImageOperations::MakeMFSImage(_settings, _infoPerChannel, _infoForMFS,
-                                        "beam.fits", intervalIndex, pol, false,
-                                        false);
+                                        "", intervalIndex, pol,
+                                        ImageFilenameType::Beam);
           // When faceting without beam, no beam images are stored, so skip
           // making the MFS beams in this case. In all other cases with beam, do
           // make them:
@@ -781,8 +781,8 @@ void WSClean::RunClean() {
                ++beam_index) {
             ImageOperations::MakeMFSImage(
                 _settings, _infoPerChannel, _infoForMFS,
-                "beam-" + std::to_string(beam_index) + ".fits", intervalIndex,
-                pol, false, false);
+                std::to_string(beam_index), intervalIndex, pol,
+                ImageFilenameType::Beam);
           }
         }
 
@@ -791,32 +791,32 @@ void WSClean::RunClean() {
             !_settings.makePSFOnly) {
           if (_settings.isDirtySaved)
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                          _infoForMFS, "dirty.fits",
-                                          intervalIndex, pol, false);
+                                          _infoForMFS, "dirty", intervalIndex,
+                                          pol, ImageFilenameType::Normal);
           if (_settings.deconvolutionIterationCount == 0) {
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                          _infoForMFS, "image.fits",
-                                          intervalIndex, pol, false);
+                                          _infoForMFS, "image", intervalIndex,
+                                          pol, ImageFilenameType::Normal);
             if (usesBeam())
-              ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                            _infoForMFS, "image-pb.fits",
-                                            intervalIndex, pol, false);
+              ImageOperations::MakeMFSImage(
+                  _settings, _infoPerChannel, _infoForMFS, "image-pb",
+                  intervalIndex, pol, ImageFilenameType::Normal);
           } else {
+            ImageOperations::MakeMFSImage(
+                _settings, _infoPerChannel, _infoForMFS, "residual",
+                intervalIndex, pol, ImageFilenameType::Normal);
             ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                          _infoForMFS, "residual.fits",
-                                          intervalIndex, pol, false);
-            ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                          _infoForMFS, "model.fits",
-                                          intervalIndex, pol, false);
+                                          _infoForMFS, "model", intervalIndex,
+                                          pol, ImageFilenameType::Normal);
             ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                             intervalIndex, pol, false, false);
             if (usesBeam()) {
-              ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                            _infoForMFS, "residual-pb.fits",
-                                            intervalIndex, pol, false);
-              ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                            _infoForMFS, "model-pb.fits",
-                                            intervalIndex, pol, false);
+              ImageOperations::MakeMFSImage(
+                  _settings, _infoPerChannel, _infoForMFS, "residual-pb",
+                  intervalIndex, pol, ImageFilenameType::Normal);
+              ImageOperations::MakeMFSImage(
+                  _settings, _infoPerChannel, _infoForMFS, "model-pb",
+                  intervalIndex, pol, ImageFilenameType::Normal);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                               intervalIndex, pol, false, true);
             }
@@ -824,32 +824,32 @@ void WSClean::RunClean() {
           if (Polarization::IsComplex(pol)) {
             if (_settings.isDirtySaved)
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                            _infoForMFS, "dirty.fits",
-                                            intervalIndex, pol, true);
+                                            _infoForMFS, "dirty", intervalIndex,
+                                            pol, ImageFilenameType::Imaginary);
             if (_settings.deconvolutionIterationCount == 0) {
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                            _infoForMFS, "image.fits",
-                                            intervalIndex, pol, true);
+                                            _infoForMFS, "image", intervalIndex,
+                                            pol, ImageFilenameType::Imaginary);
               if (usesBeam())
-                ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                              _infoForMFS, "image-pb.fits",
-                                              intervalIndex, pol, true);
+                ImageOperations::MakeMFSImage(
+                    _settings, _infoPerChannel, _infoForMFS, "image-pb",
+                    intervalIndex, pol, ImageFilenameType::Imaginary);
             } else {
+              ImageOperations::MakeMFSImage(
+                  _settings, _infoPerChannel, _infoForMFS, "residual",
+                  intervalIndex, pol, ImageFilenameType::Imaginary);
               ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                            _infoForMFS, "residual.fits",
-                                            intervalIndex, pol, true);
-              ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                            _infoForMFS, "model.fits",
-                                            intervalIndex, pol, true);
+                                            _infoForMFS, "model", intervalIndex,
+                                            pol, ImageFilenameType::Imaginary);
               ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                               intervalIndex, pol, true, false);
               if (usesBeam()) {
-                ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                              _infoForMFS, "residual-pb.fits",
-                                              intervalIndex, pol, true);
-                ImageOperations::MakeMFSImage(_settings, _infoPerChannel,
-                                              _infoForMFS, "model-pb.fits",
-                                              intervalIndex, pol, true);
+                ImageOperations::MakeMFSImage(
+                    _settings, _infoPerChannel, _infoForMFS, "residual-pb",
+                    intervalIndex, pol, ImageFilenameType::Imaginary);
+                ImageOperations::MakeMFSImage(
+                    _settings, _infoPerChannel, _infoForMFS, "model-pb",
+                    intervalIndex, pol, ImageFilenameType::Imaginary);
                 ImageOperations::RenderMFSImage(_settings, _infoForMFS,
                                                 intervalIndex, pol, true, true);
               }
@@ -1536,7 +1536,8 @@ void WSClean::runSingleFirstInversion(
                                   _m_shift);
       // Only generate beam images for facetIndex == 0 in facet group
       if (entry.facetIndex == 0) {
-        primaryBeam->MakeBeamImages(imageName, entry, std::move(weights));
+        primaryBeam->MakeOrReuse(imageName, entry, std::move(weights),
+                                 _settings.fieldIds[0]);
       }
     }
   }
