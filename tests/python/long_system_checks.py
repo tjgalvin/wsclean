@@ -475,7 +475,7 @@ class TestLongSystem:
         # dirty images and psfs.
         # The best match should occur when psf and dirty image index match,
         # i.e. on the diagonal of the difference matrix
-        diff = np.zeros((num_psf, num_psfs))
+        diff = np.zeros((num_psfs, num_psfs))
         for i in range(num_psfs):
             for j in range(num_psfs):
                 diff[i, j] = np.sqrt(np.mean(np.square(dirty[i] - psf[j])))
