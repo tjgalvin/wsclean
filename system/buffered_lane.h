@@ -54,7 +54,7 @@ class lane_write_buffer {
   }
 
   void flush() {
-    _lane->move_write(&_buffer[0], _buffer.size());
+    _lane->move_write(_buffer.data(), _buffer.size());
     _buffer.clear();
   }
 
