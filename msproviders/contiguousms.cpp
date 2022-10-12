@@ -51,7 +51,7 @@ void ContiguousMS::open() {
   _flagColumn = casacore::ArrayColumn<bool>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
 
-  _inputPolarizations = GetMSPolarizations(_ms->polarization());
+  _inputPolarizations = GetMSPolarizations(_dataDescId, *_ms);
 
   const casacore::IPosition shape(_dataColumn.shape(0));
   _dataArray = casacore::Array<std::complex<float>>(shape);

@@ -40,9 +40,6 @@ void MSRowProvider::Initialize() {
   _msHasWeights =
       MSProvider::OpenWeightSpectrumColumn(Ms(), _weightSpectrumColumn);
   if (!_msHasWeights) {
-    const size_t nCorrelations = columns.data.shape(0)[0];
-    const casacore::IPosition scalarShape(1, nCorrelations);
-    _scratchWeightScalarArray = casacore::Array<float>(scalarShape);
     _weightScalarColumn.reset(new casacore::ArrayColumn<float>(
         Ms(), casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
   }
@@ -110,7 +107,7 @@ void MSRowProvider::getCurrentWeights(WeightArray& weights,
   if (_msHasWeights)
     _weightSpectrumColumn->get(_currentRow, weights, true);
   else {
-    _weightScalarColumn->get(_currentRow, _scratchWeightScalarArray);
+    _weightScalarColumn->get(_currentRow, _scratchWeightScalarArray, true);
     weights.resize(shape);
     MSProvider::ExpandScalarWeights(_scratchWeightScalarArray, weights);
   }

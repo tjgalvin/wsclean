@@ -141,12 +141,12 @@ class MSProvider {
   virtual const aocommon::BandData& Band() = 0;
 
   /**
-   * Get a list of polarizations in the measurement set.
-   * This will always list the individual polarizations, and not return
-   * one of the special polarization values (like FullJones or Instrumental).
+   * Get a list of polarizations in the measurement set for a given data desc
+   * id. This will always list the individual polarizations, and not return one
+   * of the special polarization values (like FullJones or Instrumental).
    */
   static std::vector<aocommon::PolarizationEnum> GetMSPolarizations(
-      const casacore::MSPolarization& polTable);
+      size_t dataDescId, const casacore::MeasurementSet& ms);
 
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
 

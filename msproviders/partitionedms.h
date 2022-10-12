@@ -155,9 +155,11 @@ class PartitionedMS final : public MSProvider {
  private:
   static void unpartition(const Handle::HandleData& handle);
 
-  static void getDataDescIdMap(
-      std::map<size_t, size_t>& dataDescIds,
-      const std::vector<PartitionedMS::ChannelRange>& channels);
+  /**
+   * Make a map that maps dataDescId to spw (spectral window) index.
+   */
+  static std::map<size_t, size_t> getDataDescIdMap(
+      const std::vector<ChannelRange>& channels);
 
   const Handle _handle;
   const size_t _partIndex;
