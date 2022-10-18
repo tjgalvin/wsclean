@@ -8,7 +8,7 @@
 
 #include <memory>
 
-class WGriddingGridder_Simple;
+class WGriddingGridderBase;
 
 class WGriddingMSGridder final : public MSGridderBase {
  public:
@@ -31,6 +31,9 @@ class WGriddingMSGridder final : public MSGridderBase {
  private:
   aocommon::Image _image;
 
+  std::unique_ptr<WGriddingGridderBase> MakeGridder(size_t width,
+                                                    size_t height) const;
+
   template <DDGainMatrix GainEntry>
   void gridMeasurementSet(MSData& msData);
 
@@ -44,7 +47,7 @@ class WGriddingMSGridder final : public MSGridderBase {
   const Resources resources_;
   double accuracy_;
   bool use_tuned_wgridder_;
-  std::unique_ptr<WGriddingGridder_Simple> gridder_;
+  std::unique_ptr<WGriddingGridderBase> gridder_;
 };
 
 #endif

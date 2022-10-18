@@ -36,11 +36,26 @@ WGriddingMSGridder::WGriddingMSGridder(const Settings& settings,
 
 WGriddingMSGridder::~WGriddingMSGridder() = default;
 
+std::unique_ptr<WGriddingGridderBase> WGriddingMSGridder::MakeGridder(
+    size_t width, size_t height) const {
+  if (accuracy_ <= 1.01e-5) {
+    return std::make_unique<WGriddingGridder_Simple<double>>(
+        ActualInversionWidth(), ActualInversionHeight(), width, height,
+        ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
+        resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
+  } else {
+    return std::make_unique<WGriddingGridder_Simple<float>>(
+        ActualInversionWidth(), ActualInversionHeight(), width, height,
+        ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
+        resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
+  }
+}
+
 size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
     size_t channelCount) const {
   size_t constantMem;
   size_t perVisMem;
-  gridder_->memUsage(constantMem, perVisMem);
+  gridder_->MemoryUsage(constantMem, perVisMem);
   if (int64_t(constantMem) >= resources_.Memory()) {
     // Assume that half the memory is necessary for the constant parts (like
     // image grid), and the other half remains available for the dynamic buffers
@@ -216,10 +231,7 @@ void WGriddingMSGridder::Invert() {
   size_t trimmedWidth, trimmedHeight;
   getActualTrimmedSize(trimmedWidth, trimmedHeight);
 
-  gridder_.reset(new WGriddingGridder_Simple(
-      ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
-      trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-      resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_));
+  gridder_ = MakeGridder(trimmedWidth, trimmedHeight);
   gridder_->InitializeInversion();
 
   resetVisibilityCounters();
@@ -278,10 +290,7 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   size_t trimmedWidth, trimmedHeight;
   getActualTrimmedSize(trimmedWidth, trimmedHeight);
 
-  gridder_.reset(new WGriddingGridder_Simple(
-      ActualInversionWidth(), ActualInversionHeight(), trimmedWidth,
-      trimmedHeight, ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-      resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_));
+  gridder_ = MakeGridder(trimmedWidth, trimmedHeight);
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Image untrimmedImage(ImageWidth(), ImageHeight());
