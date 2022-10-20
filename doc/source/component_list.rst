@@ -41,17 +41,18 @@ The **SpectralIndex** column is an array of numbers surround by square brackets,
 
 .. math::
 
-    S(\nu) = \exp \left( \log S_0 + c_0 \log(\frac{\nu}{\nu_0}) + c_1 \log(\frac{\nu}{\nu_0})^2 + ... \right)
+    \log S(\nu) = \log (S_0) + c_0 \log \left(\frac{\nu}{\nu_0} \right) + c_1 \log \left( \frac{\nu}{\nu_0} \right)^2 + ...
 
-Note that :math:`c_0` represents the spectral index term in this case.
+The logarithms are "base 10" logarithms, such that it is equivalent to say :math:`S(\nu)=10^\left(\log (S_0) + ... \right)`.
+Also note that :math:`c_0` represents the spectral index term.
 
 An ordinary polynomial function is evaluated as
 
 .. math::
 
-    S(\nu) = S_0 + p_0 (\frac{\nu}{\nu_0} - 1) + p_1 (\frac{\nu}{\nu_0} - 1)^2 + ...
+    S(\nu) = S_0 + p_0 \left(\frac{\nu}{\nu_0} - 1\right) + p_1 \left(\frac{\nu}{\nu_0} - 1\right)^2 + ...
 
-Note that -1 is subtracted in the base. This makes sure that :math:`S_0` (the "Stokes I" value) represents the flux density at the reference frequency.
+Note that the value 1 is subtracted in the base. This makes sure that :math:`S_0` (the "Stokes I" value) represents the flux density at the reference frequency.
 
 **LogarithmicSI** is *true* or *false*, denoting that the spectral index column uses logarithmic or ordinary polynomials, respectively. Note that in absense of this column, logarithmic polynomials are used.
 
