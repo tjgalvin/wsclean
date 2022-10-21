@@ -14,4 +14,6 @@ Contents:
     computational_performance
     wstacking_interface
     storing_imaging_weights
-    ds9-facet-file
+    ds9_facet_file
+    primary_beam_component_images
+    

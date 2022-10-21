@@ -20,7 +20,7 @@ To enable facet-based imaging in WSClean, a file containing the facet definition
     -facet-regions <MY_REGIONS_FILE>
 
 in which :code:`[MY_REGIONS_FILE]` is a file containing the facet definitions in the DS9 region file format.
-For a detailed explanation on the expected file format, see the explanation on :doc:`ds9-facet-file`.
+For a detailed explanation on the expected file format, see the explanation on :doc:`ds9_facet_file`.
 
 Enabling the facet beam correction can be done with the option
 
@@ -61,7 +61,7 @@ The syntax for applying the facet solution files on its corresponding measuremen
     To find the matching direction in the solution file for the specified facets,
     the (RA, Dec) pointing of each facet is matched against the direction with
     the smallest (Euclidean) distance in the solution file.
-    For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9-facet-file`.
+    For further information on the (RA, Dec) pointing of a facet, see :doc:`ds9_facet_file`.
 
 
 Example command

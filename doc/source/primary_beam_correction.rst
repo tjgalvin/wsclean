@@ -37,7 +37,9 @@ An example to perform Stokes I imaging and full beam correction:
     wsclean -apply-primary-beam -size 1024 1024 -scale 20asec \
       observation.ms
 
-WSClean outputs the normal uncorrected image (``wsclean-image.fits``), the 8 components of the beam Jones matrix (``wsclean-beam-XX.fits``, ``wsclean-beam-XXi.fits``, ``wsclean-beam-XY.fits``, ...) and the primary beam corrected image (``wsclean-image-pb.fits``). Note that the dirty, residual and model images are not corrected.
+WSClean outputs the normal uncorrected image (``wsclean-image.fits``), the 16 components of the beam Mueller matrix (``wsclean-beam-0.fits``, ``wsclean-beam-1.fits``, ..., ``wsclean-beam-15.fits``) and the primary beam corrected image (``wsclean-image-pb.fits``). Note that the dirty, residual and model images are not corrected.
+
+.. note:: The single component beam images are not easy to interpret by themselves. Together, the 16 images form the complex Hermitian Mueller matrix for each pixel. See the :doc:`technical chapter on primary beam component images <primary_beam_component_images>` for more info.
 
 Example to make beam-corrected Stokes I, Q, U and V images:
 
@@ -48,9 +50,7 @@ Example to make beam-corrected Stokes I, Q, U and V images:
       -pol iquv -size 1024 1024 -scale 20asec \
       observation.ms
 
-WSClean outputs the 4 normal uncorrected images, the 8 components of the beam Jones matrix and the 4 primary beam images (which have ``pb`` in them).
-
-Other combinations of polarizations, such as ``xx,yy`` or ``iq`` are currently not supported and will result in an error. If you need other modes let me know.
+WSClean outputs the 4 normal uncorrected images, the 16 components of the beam Mueller matrix and the 4 primary beam images (which have ``pb`` in them). Other combinations of polarizations, such as ``xx,yy`` or ``iq`` are currently not supported and will result in an error. If you need other modes let me know.
 
 The beam correction can also be applied together with :doc:`multi-frequency output <making_image_cubes>`, :doc:`joined channel mode <wideband_deconvolution>` and/or the :doc:`snapshot mode <snapshot_imaging>`. In those cases, a ``pb`` image is saved for every output image. The channel-integrated "MFS" image is not corrected.
 

@@ -8,13 +8,13 @@ New/changed dependencies:
 * To make use of IDG, WSClean 3.1 requires `IDG version 1.0 <https://git.astron.nl/RD/idg/-/releases/1.0.0>`_ or newer.
 * To make use of EveryBeam, WSClean 3.1 requires `EveryBeam version 0.3.1 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.3.1>`_.
 
-Summary: :doc:`Facet-based imaging <facet_based_imaging>` is significantly improved, and now supports applying per-facet solutions (from H5Parm files) and beam corrections (from EveryBeam). Stokes-I-only imaging with IDG imaging is now significantly faster. WSClean 3.1 also adds experimental support for GMRT primary beam correction.
+Summary: :doc:`Facet-based imaging <../facet_based_imaging>` is significantly improved, and now supports applying per-facet solutions (from H5Parm files) and beam corrections (from EveryBeam). Stokes-I-only imaging with IDG imaging is now significantly faster. WSClean 3.1 also adds experimental support for GMRT primary beam correction.
 
 Major & visible changes
 -----------------------
 
 * Support time-direction :ref:`baseline-dependently averaged data from DP3 <BDA_DP3>`.
-* Reduce disk-access during :ref:`IDG <image_domain_gridding>` Stokes I imaging by not storing XY/YX to disk, and enable the faster IDG Stokes I mode when possible.
+* Reduce disk-access during :doc:`IDG <../image_domain_gridding>` Stokes I imaging by not storing XY/YX to disk, and enable the faster IDG Stokes I mode when possible.
 * Automatically use the primary beam corrected image (``...-pb.fits``) file when predicting with beam correction.
 * Cache average beam to disk in IDG mode to reduce memory usage.
 * Add support for the GMRT beam (scientific validation still in progress).
