@@ -1,0 +1,51 @@
+WSClean version 3.2
+===================
+
+Released 2022-10-21
+
+New/changed dependencies:
+
+* To make use of EveryBeam, WSClean 3.2 requires `EveryBeam version 0.4.0 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.4.0>`_.
+* The requirements on IDG have not been changed; WSClean 3.2 requires `IDG version 1.0 <https://git.astron.nl/RD/idg/-/releases/1.0.0>`_ or newer.
+
+Summary: 
+
+Major & visible changes
+-----------------------
+
+* Add support for direction dependent PSFs in deconvolution (parameter ``-dd-psf-grid``).
+* Support heterogenously polarized measurement sets (`#130 <https://gitlab.com/aroffringa/wsclean/-/issues/130>`_).
+* Make use of the low-memory interface of EveryBeam. This reduces the amount of memory required for large image runs and additionally reduces the disk IO substantially.
+* Include an experimental, potentially faster tuned wgridder implementation.
+* Automatically determine right amount of memory and threads to use in parallel runs.
+* The various ``-use-...-gridder`` are replaced by a single ``-gridder <name>`` option.
+* Support spectral fitting when polarizations are joined.
+* Better automatic determination of number of cores to be used.
+* Fix point-scale auto-masking on data with missing channels (`Radler #114 <https://gitlab.com/aroffringa/wsclean/-/issues/114>`_).
+* Calculate and save the MFS beam when relevant.
+* In facetted imaging, replace NaN solutions by zeros.
+
+Bug fixes
+---------
+
+* Fix a crash when using local rms + multiscale.
+* Fix a flux-scale issue when applying the primary beam on Stokes I imaging runs (see `!465 <https://gitlab.com/aroffringa/wsclean/-/merge_requests/465>`_ and `!441 <https://gitlab.com/aroffringa/wsclean/-/merge_requests/441>`_).
+* Solve crash when compiling with ``_GLIBCXX_ASSERTIONS``.
+* Fix compilation on Macs.
+* Allow custom HDF5 directory.
+* Fix multi-polarization imaging without joining pols (`#128 <https://gitlab.com/aroffringa/wsclean/-/issues/128>`_).
+* Allow facets to be defined outside the FOV, and skip these during imaging.
+* Fix missing FITS file error when faceting without applying beam.
+* Improve some error messages.
+* Make sure exceptions are reported while gridding in parallel.
+* Fix FITS ``LONPOLE`` issue causing incorrect image coordinates at the pole.
+* Output correct source lists when using ``-shift`` (`#98 <https://gitlab.com/aroffringa/wsclean/-/issues/98>`_).
+* Fixes for GCC-12.
+
+Other significant code changes
+------------------------------
+
+* Format python files using black.
+* Documentation improvements.
+* Separate deconvolution code into separate library: `Radler <https://git.astron.nl/RD/radler>`_
+
