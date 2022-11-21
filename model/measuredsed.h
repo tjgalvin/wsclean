@@ -3,8 +3,6 @@
 
 #include <map>
 
-#include <aocommon/uvector.h>
-
 #include <schaapcommon/fitters/nlplfitter.h>
 
 #include "measurement.h"

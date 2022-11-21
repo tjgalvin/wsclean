@@ -47,7 +47,8 @@ class BBSModel {
       const std::function<void(const ModelSource& source)>& processSource,
       const std::string& sourceName = "") {
     std::ifstream inFile(input);
-    if (!inFile) throw BBSParseException("Could not open model file");
+    if (!inFile)
+      throw BBSParseException("Could not open model file '" + input + "'");
     std::string line;
     std::getline(inFile, line);
     if (line.size() >= 3 && line.substr(0, 3) == "# (")

@@ -109,9 +109,9 @@ class PowerLawSED final : public SpectralEnergyDistribution {
     _referenceFrequency = referenceFrequency;
     double refBrightness = brightnessVector[0];
     if (refBrightness <= 0.0) refBrightness = 1.0;
-    _terms.resize(siTerms.size() + 1);
+    _terms.resize(std::size(siTerms) + 1);
     _terms[0] = refBrightness;
-    for (size_t i = 0; i != siTerms.size(); ++i) _terms[i + 1] = siTerms[i];
+    for (size_t i = 0; i != std::size(siTerms); ++i) _terms[i + 1] = siTerms[i];
     for (size_t p = 0; p != 4; ++p)
       _factors[p] = brightnessVector[p] / refBrightness;
   }
@@ -147,7 +147,7 @@ class PowerLawSED final : public SpectralEnergyDistribution {
     for (size_t i = 0; i != _terms.size() - 1; ++i) siTerms[i] = _terms[i + 1];
   }
 
-  double NTerms() const { return _terms.size(); }
+  size_t NTerms() const { return _terms.size(); }
 
   void SetIsLogarithmic(bool isLogarithmic) { _isLogarithmic = isLogarithmic; }
 
