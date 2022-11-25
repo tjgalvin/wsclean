@@ -50,7 +50,7 @@ WSCFitsWriter::WSCFitsWriter(
   setSettingsKeywords(settings, commandLine);
   setChannelKeywords(entry, polarization, channelInfo);
   setDeconvolutionKeywords(settings);
-  if (deconvolution.has_value()) {
+  if (deconvolution.has_value() && deconvolution->IsInitialized()) {
     setDeconvolutionResultKeywords(deconvolution->IterationNumber(),
                                    majorIterationNr);
   }
