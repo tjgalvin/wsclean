@@ -214,8 +214,8 @@ Options can be:
    The input images should have the same name as the model output images would have in normal imaging mode.
 -continue
    Will continue an earlier WSClean run. Earlier model images will be read and model visibilities will be
-   subtracted to create the first dirty residual. CS should have been used in the earlier run, and model data
-   should have been written to the measurement set for this to work. Default: off.
+   subtracted to create the first dirty residual. For this to work, the earlier run should have updated
+   the model data (and thus mgain should not have been set to 1). Default: off.
 -subtract-model
    Subtract the model from the data column in the first iteration. This can be used to reimage
    an already cleaned image, e.g. at a different resolution.
