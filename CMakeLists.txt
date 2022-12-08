@@ -5,7 +5,8 @@ project(wsclean)
 include(ExternalProject)
 include(CMakeVersionInfo.txt)
 
-add_compile_options(-O3 -Wall -Wzero-as-null-pointer-constant)
+add_compile_options(-O3 -Wall -Wnon-virtual-dtor
+                    -Wzero-as-null-pointer-constant)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected: setting linking flag --no-undefined")
