@@ -7,6 +7,7 @@
 
 class WGriddingGridderBase {
  public:
+  virtual ~WGriddingGridderBase() = default;
   virtual void MemoryUsage(size_t &constant, size_t &per_vis) const = 0;
   virtual void InitializeInversion() = 0;
   virtual void AddInversionData(size_t nrows, size_t nchan, const double *uvw,
