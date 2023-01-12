@@ -13,7 +13,7 @@ namespace {
 double RoundOneDecimal(double value) { return std::round(value * 10.0) / 10.0; }
 }  // namespace
 
-const Resources Resources::GetPart(size_t part_size) const {
+Resources Resources::GetPart(size_t part_size) const {
   assert(part_size != 0);
   const size_t n_cpus =
       std::max<size_t>(1, (n_cpus_ + part_size - 1) / part_size);

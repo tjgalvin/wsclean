@@ -10,10 +10,10 @@ class Resources {
   Resources(std::size_t n_cpus, int64_t memory)
       : n_cpus_(n_cpus), memory_(memory) {}
 
-  const size_t NCpus() const { return n_cpus_; }
-  const int64_t Memory() const { return memory_; }
+  size_t NCpus() const { return n_cpus_; }
+  int64_t Memory() const { return memory_; }
 
-  const Resources GetPart(size_t part_size) const;
+  Resources GetPart(size_t part_size) const;
 
  private:
   std::size_t n_cpus_;
