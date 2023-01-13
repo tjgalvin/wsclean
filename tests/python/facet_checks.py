@@ -176,6 +176,20 @@ class TestFacets:
         taql_command = f"select from {tcf.MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
         assert_taql(taql_command)
 
+    def test_read_only_ms(self):
+        chmod = f"chmod a-w -R {tcf.MWA_MOCK_FULL}"
+        validate_call(chmod.split())
+        try:
+            # When "-no-update-model-required" is specified, processing a read-only measurement set should be possible.
+            s = f"{tcf.WSCLEAN} -interval 10 20 -no-update-model-required -name facet-readonly-ms -auto-threshold 0.5 -auto-mask 3 \
+                -mgain 0.95 -nmiter 2 -multiscale -niter 100000 \
+                -facet-regions {tcf.FACETFILE_4FACETS} \
+                {tcf.DIMS_SMALL} {tcf.MWA_MOCK_FULL}"
+            validate_call(s.split())
+        finally:
+            chmod = f"chmod u+w -R {tcf.MWA_MOCK_FULL}"
+            validate_call(chmod.split())
+
     @pytest.mark.parametrize("mpi", [False, True])
     def test_facetbeamimages(self, mpi):
         """

@@ -802,6 +802,7 @@ void MSProvider::GetRowRangeAndIDMap(casacore::MeasurementSet& ms,
 void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms) {
   casacore::ArrayColumn<casacore::Complex> dataColumn(
       ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
+  ms.reopenRW();
   if (ms.isColumn(casacore::MSMainEnums::MODEL_DATA)) {
     casacore::ArrayColumn<casacore::Complex> modelColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
@@ -820,8 +821,7 @@ void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms) {
       for (size_t row = 0; row != ms.nrow(); ++row)
         modelColumn.put(row, zeroArray);
     }
-  } else {  // if(!_ms.isColumn(casacore::MSMainEnums::MODEL_DATA))
-    ms.reopenRW();
+  } else {  // No column named MODEL_DATA
     Logger::Info << "Adding model data column... ";
     Logger::Info.Flush();
     casacore::IPosition shape = dataColumn.shape(0);
@@ -903,8 +903,6 @@ std::vector<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(
 
 void MSProvider::ResetModelColumn() {
   std::unique_ptr<MSReader> msReader = MakeReader();
-  SynchronizedMS ms = MS();
-  ms->reopenRW();
   const std::vector<std::complex<float>> buffer(NChannels() * NPolarizations(),
                                                 {0.0f, 0.0f});
   while (msReader->CurrentRowAvailable()) {

@@ -483,3 +483,15 @@ class TestLongSystem:
         # Assert that for each dirty image, the best match is indeed the psf
         # with the same index
         assert all(np.argmin(diff, axis=0) == np.arange(num_psfs))
+
+    def test_read_only_ms(self):
+        chmod = f"chmod a-w -R {tcf.MWA_MS}"
+        validate_call(chmod.split())
+        try:
+            # When "-no-update-model-required" is specified, processing a read-only measurement set should be possible.
+            s = f"{tcf.WSCLEAN} -interval 10 20 -no-update-model-required -name {name('readonly-ms')} -auto-threshold 0.5 -auto-mask 3 \
+                -mgain 0.95 -nmiter 2 -multiscale -niter 100000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
+            validate_call(s.split())
+        finally:
+            chmod = f"chmod u+w -R {tcf.MWA_MS}"
+            validate_call(chmod.split())
