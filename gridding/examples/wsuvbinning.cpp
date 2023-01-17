@@ -1,4 +1,4 @@
-#include "../binneduvoutput.h"
+#include "../../io/binneduvoutput.h"
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {

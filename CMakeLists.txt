@@ -421,9 +421,8 @@ add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp)
 target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB}
                       ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 
-add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp
-                                            ${WSCLEANFILES})
-target_link_libraries(wsuvbinning ${ALL_LIBRARIES})
+add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp)
+target_link_libraries(wsuvbinning PRIVATE wsclean-lib ${ALL_LIBRARIES})
 
 add_executable(
   wspredictionexample EXCLUDE_FROM_ALL gridding/examples/wspredictionexample.cpp
