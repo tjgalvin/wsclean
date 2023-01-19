@@ -12,20 +12,13 @@
 #include "../structures/msselection.h"
 #include "../structures/weightmode.h"
 
+#include "visibilitymodifier.h"
 #include "visibilityweightingmode.h"
 
 #include "../main/settings.h"
 
 #include "../scheduling/metadatacache.h"
 #include "../scheduling/griddingtaskmanager.h"
-
-#ifdef HAVE_EVERYBEAM
-#include <EveryBeam/beammode.h>
-#include <EveryBeam/beamnormalisationmode.h>
-#include <EveryBeam/pointresponse/pointresponse.h>
-#endif
-
-#include <schaapcommon/h5parm/jonesparameters.h>
 
 #include <aocommon/uvector.h>
 
@@ -39,13 +32,6 @@ class H5Parm;
 class SolTab;
 }  // namespace h5parm
 }  // namespace schaapcommon
-
-/**
- * Enum for selecting the entry or entries from the direction dependent gain
- * matrix that are to be used to correct the visibilities during the reading
- * and/or writing operations.
- */
-enum class DDGainMatrix { kXX, kYY, kTrace, kFull };
 
 enum class PsfMode {
   kNone,    // Not a psf, grid the visibilities in the MS
@@ -171,15 +157,16 @@ class MSGridderBase {
     _mainImageDM = main_image_dm;
   }
 
-  void SetFacetDirectionRA(double facetDirectionRA) {
-    _facetDirectionRA = facetDirectionRA;
-  }
-  void SetFacetDirectionDec(double facetDirectionDec) {
-    _facetDirectionDec = facetDirectionDec;
+  void SetFacetDirection(double ra, double dec) {
+    _visibilityModifier.SetFacetDirection(ra, dec);
   }
 
-  double FacetDirectionRA() const { return _facetDirectionRA; }
-  double FacetDirectionDec() const { return _facetDirectionDec; }
+  double FacetDirectionRA() const {
+    return _visibilityModifier.FacetDirectionRA();
+  }
+  double FacetDirectionDec() const {
+    return _visibilityModifier.FacetDirectionDec();
+  }
   double LShift() const { return _l_shift; }
   double MShift() const { return _m_shift; }
   double MainImageDL() const { return _mainImageDL; }
@@ -283,12 +270,7 @@ class MSGridderBase {
    * EveryBeam is available and the @param _predictReader data member in case
    * @param isPredict is true.
    */
-  void StartMeasurementSet(const MSGridderBase::MSData& msData,
-                           bool isPredict) {
-    initializePointResponse(msData);
-    _msIndex = msData.msIndex;
-    if (isPredict) initializePredictReader(*msData.msProvider);
-  }
+  void StartMeasurementSet(const MSGridderBase::MSData& msData, bool isPredict);
 
   /**
    * Read the visibilities from the msprovider, and apply weights and flags.
@@ -373,25 +355,6 @@ class MSGridderBase {
 
   static std::vector<std::string> getAntennaNames(
       const casacore::MSAntenna& msAntenna);
-
-#ifdef HAVE_EVERYBEAM
-  /**
-   * @brief Compute and cache the beam response if no cached response
-   * present for the provided time.
-   */
-  void CacheBeamResponse(double time, size_t fieldId,
-                         const aocommon::BandData& curBand);
-#endif
-
-  /**
-   * @brief Cache the solutions from a h5 solution file and update the
-   * associated time.
-   */
-  void CacheParmResponse(double time,
-                         const std::vector<std::string>& antennaNames,
-                         const aocommon::BandData& curBand);
-
-  void SetH5Parms();
 
   void resetMetaData() { _hasFrequencies = false; }
 
@@ -484,7 +447,6 @@ class MSGridderBase {
 
   double _phaseCentreRA, _phaseCentreDec, _l_shift, _m_shift;
   double _mainImageDL, _mainImageDM;
-  double _facetDirectionRA, _facetDirectionDec;
   size_t _facetIndex;
   /// @p _facetGroupIndex and @p _msIndex in conjunction with the @p
   /// MeasurementSetCount() determine the index in the _writerGroupLocks vector,
@@ -530,22 +492,7 @@ class MSGridderBase {
   std::unique_ptr<MSReader> _predictReader;
   WriterLockManager* _writerLockManager;
 
-#ifdef HAVE_EVERYBEAM
-  // _telescope attribute needed to keep the telecope in _pointResponse alive
-  std::unique_ptr<everybeam::telescope::Telescope> _telescope;
-  std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
-  aocommon::UVector<std::complex<float>> _cachedBeamResponse;
-  const everybeam::BeamMode _beamMode;
-  const everybeam::BeamNormalisationMode _beamNormalisationMode;
-#endif
-  std::vector<std::vector<std::complex<float>>> _cachedParmResponse;
-  std::vector<std::unique_ptr<schaapcommon::h5parm::H5Parm>> _h5parms;
-  std::vector<
-      std::pair<schaapcommon::h5parm::SolTab*, schaapcommon::h5parm::SolTab*>>
-      _h5SolTabs;
-  std::vector<schaapcommon::h5parm::JonesParameters::CorrectType> _correctType;
-  std::vector<std::vector<double>> _cachedMSTimes;
-  std::vector<size_t> _timeOffset;
+  VisibilityModifier _visibilityModifier;
 };
 
 #endif

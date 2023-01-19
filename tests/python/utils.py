@@ -110,6 +110,7 @@ def compare_rms_fits(fits1, fits2, threshold):
 
 def validate_call(cmdline):
     try:
+        print("Running: " + " ".join(cmdline))
         check_call(cmdline)
     except:
         # To avoid having to work back what the command was, the command is reported:

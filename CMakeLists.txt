@@ -309,6 +309,7 @@ add_library(
   main/settings.cpp
   gridding/directmsgridder.cpp
   gridding/msgridderbase.cpp
+  gridding/visibilitymodifier.cpp
   gridding/wsmsgridder.cpp
   gridding/wstackinggridder.cpp
   idg/averagebeam.cpp
