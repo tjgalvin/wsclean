@@ -35,13 +35,13 @@ std::complex<float> ComputeGain(const aocommon::MC2x2F& gain1,
 template <>
 std::complex<float> ComputeGain<DDGainMatrix::kXX>(
     const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
-  return gain2[0] * conj(gain1[0]);
+  return gain2[0] * std::conj(gain1[0]);
 }
 
 template <>
 std::complex<float> ComputeGain<DDGainMatrix::kYY>(
     const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
-  return gain2[3] * conj(gain1[3]);
+  return gain2[3] * std::conj(gain1[3]);
 }
 
 template <>
@@ -129,14 +129,14 @@ template <>
 void ApplyGain<1, DDGainMatrix::kXX>(std::complex<float>* visibilities,
                                      const aocommon::MC2x2F& gain1,
                                      const aocommon::MC2x2F& gain2) {
-  *visibilities = gain1[0] * (*visibilities) * conj(gain2[0]);
+  *visibilities = gain1[0] * (*visibilities) * std::conj(gain2[0]);
 }
 
 template <>
 void ApplyGain<1, DDGainMatrix::kYY>(std::complex<float>* visibilities,
                                      const aocommon::MC2x2F& gain1,
                                      const aocommon::MC2x2F& gain2) {
-  *visibilities = gain1[3] * (*visibilities) * conj(gain2[3]);
+  *visibilities = gain1[3] * (*visibilities) * std::conj(gain2[3]);
 }
 
 template <>
@@ -651,9 +651,11 @@ VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
 
       const float weight = *weights * image_weights[ch];
       // h5Sum needed for the primary beam correction
-      result.h5Sum += (conj(g_h5) * weight * g_h5).real();
-      result.correctionSum +=
-          (conj(g_h5) * conj(g_b) * weight * g_b * g_h5).real();
+      // This is equivalent to: real(conj(g_h5) * weight * g_h5)
+      result.h5Sum += std::norm(g_h5) * weight;
+      // This is equivalent to: real(conj(g_h5) * conj(g_b) * weight * g_b *
+      // g_h5)
+      result.correctionSum += std::norm(g_h5) * std::norm(g_b) * weight;
 
       // Only admissible PolarizationCount for applying gains from solution
       // file is 1.
@@ -699,9 +701,11 @@ VisibilityModifier::DualResult VisibilityModifier::ApplyConjugatedDual(
       // Compute weight
       const float weight = *weights * image_weights[ch];
       // h5Sum needed for the primary beam correction
-      result.h5Sum += (conj(g_h5) * weight * g_h5).real();
-      result.correctionSum +=
-          (conj(g_h5) * conj(g_b) * weight * g_b * g_h5).real();
+      // This is equivalent to real(conj(g_h5) * weight * g_h5)
+      result.h5Sum += std::norm(g_h5) * weight;
+      // This is equivalent to real(conj(g_h5) * conj(g_b) * weight * g_b *
+      // g_h5)
+      result.correctionSum += std::norm(g_h5) * std::norm(g_b) * weight;
 
       // Only admissible PolarizationCount for applying gains from solution
       // file is 1.

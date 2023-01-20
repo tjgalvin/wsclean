@@ -35,7 +35,7 @@ class VisibilityModifier {
   void SetNoPointResponse() {
 #ifdef HAVE_EVERYBEAM
     _pointResponse = nullptr;
-    _cachedBeamResponse.resize(0);
+    _cachedBeamResponse.clear();
 #endif
   }
 
