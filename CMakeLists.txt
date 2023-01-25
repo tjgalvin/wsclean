@@ -354,7 +354,11 @@ add_library(
   system/pythonfilepath.cpp
   wgridder/wgriddingmsgridder.cpp
   wgridder/wgriddinggridder_simple.cpp
+  external/wgridder/ducc0/math/gridding_kernel.cc
+  external/wgridder/ducc0/math/gl_integrator.cc
   external/wgridder/ducc0/infra/threading.cc
+  external/wgridder/ducc0/infra/mav.cc
+  external/wgridder/ducc0/wgridder/wgridder.cc
   ${IDG_FILES}
   ${MPI_CPP_FILES})
 

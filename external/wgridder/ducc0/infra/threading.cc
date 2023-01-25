@@ -1,6 +1,6 @@
 /** \file ducc0/infra/threading.cc
  *
- *  \copyright Copyright (C) 2019-2021 Peter Bell, Max-Planck-Society
+ *  \copyright Copyright (C) 2019-2022 Peter Bell, Max-Planck-Society
  *  \authors Peter Bell, Martin Reinecke
  */
 
@@ -63,10 +63,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <vector>
 #include <exception>
+#include <errno.h>
+#include <string.h>
 #if __has_include(<pthread.h>)
 #include <pthread.h>
+#if __has_include(<pthread.h>) && defined(__linux__) && defined(_GNU_SOURCE)
+#include <unistd.h>
+#endif
 #endif
 #include "ducc0/infra/misc_utils.h"
+#include "ducc0/infra/error_handling.h"
 #endif
 
 namespace ducc0 {
@@ -75,17 +81,68 @@ namespace detail_threading {
 
 #ifndef DUCC0_NO_THREADING
 
-static const size_t max_threads_ = std::max<size_t>(1, std::thread::hardware_concurrency());
+static long mystrtol(const char *inp)
+  {
+  auto errno_bak = errno;
+  errno=0;
+  auto res = strtol(inp, nullptr, 10);
+  MR_assert(!errno, "error during strtol conversion ", strerror(errno));
+  errno=errno_bak;
+  return res;
+  }
 
-std::atomic<size_t> default_nthreads_(max_threads_);
+static size_t get_max_threads_from_env()
+  {
+#if __has_include(<pthread.h>) && defined(__linux__) && defined(_GNU_SOURCE)
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+  size_t res=0;
+  for (size_t i=0; i<CPU_SETSIZE; ++i)
+    if (CPU_ISSET(i, &cpuset)) ++res;
+#else
+  size_t res = std::max<size_t>(1, std::thread::hardware_concurrency());
+#endif
+  auto evar=getenv("DUCC0_NUM_THREADS");
+  if (!evar)
+    return res;
+  auto res2 = mystrtol(evar);
+  MR_assert(res2>=0, "invalid value in DUCC0_NUM_THREADS");
+  if (res2==0)
+    return res;
+  return std::min<size_t>(res, res2);
+  }
+static int get_pin_info_from_env()
+  {
+  auto evar=getenv("DUCC0_PIN_DISTANCE");
+  if (!evar)
+    return -1; // do nothing at all
+  auto res = mystrtol(evar);
+  return res;
+  }
+static int get_pin_offset_from_env()
+  {
+  auto evar=getenv("DUCC0_PIN_OFFSET");
+  if (!evar)
+    return 0;
+  auto res = mystrtol(evar);
+  return res;
+  }
 
-size_t get_default_nthreads()
-  { return default_nthreads_; }
-
-void set_default_nthreads(size_t new_default_nthreads)
-  { default_nthreads_ = std::max<size_t>(1, new_default_nthreads); }
+static const size_t max_threads_ = get_max_threads_from_env();
+static thread_local bool in_parallel_region = false;
+static const int pin_info = get_pin_info_from_env();
+static const int pin_offset = get_pin_offset_from_env();
 
 size_t max_threads() { return max_threads_; }
+size_t adjust_nthreads(size_t nthreads)
+  {
+  if (in_parallel_region)
+    return 1;
+  if (nthreads==0)
+    return max_threads_;
+  return std::min(max_threads_, nthreads);
+  }
 
 class latch
   {
@@ -144,6 +201,23 @@ template <typename T> class concurrent_queue
     bool empty() const { return size_==0; }
   };
 
+#if __has_include(<pthread.h>) && defined(__linux__) && defined(_GNU_SOURCE)
+static void do_pinning(int ithread)
+  {
+  if (pin_info==-1) return;
+  int num_proc = sysconf(_SC_NPROCESSORS_ONLN);
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  int cpu_wanted = pin_offset + ithread*pin_info;
+  MR_assert((cpu_wanted>=0)&&(cpu_wanted<num_proc), "bad CPU number requested");
+  CPU_SET(cpu_wanted, &cpuset);
+  pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+  }
+#else
+static void do_pinning(int /*ithread*/)
+  { return; }
+#endif
+
 class thread_pool
   {
   private:
@@ -160,8 +234,10 @@ class thread_pool
       void worker_main(
         std::atomic<bool> &shutdown_flag,
         std::atomic<size_t> &unscheduled_tasks,
-        concurrent_queue<std::function<void()>> &overflow_work)
+        concurrent_queue<std::function<void()>> &overflow_work, size_t ithread)
         {
+        in_parallel_region = true;
+        do_pinning(ithread);
         using lock_t = std::unique_lock<std::mutex>;
         bool expect_work = true;
         while (!shutdown_flag || expect_work)
@@ -223,7 +299,7 @@ class thread_pool
           worker->busy_flag.clear();
           worker->work = nullptr;
           worker->thread = std::thread(
-            [worker, this]{ worker->worker_main(shutdown_, unscheduled_tasks_, overflow_work_); });
+            [worker, this, i]{ worker->worker_main(shutdown_, unscheduled_tasks_, overflow_work_, i); });
           }
         catch (...)
           {
@@ -335,63 +411,63 @@ class Distribution
       single_done = false;
       nwork_ = nwork;
       nthreads_ = 1;
-      thread_map(move(f));
+      thread_map(std::move(f));
       }
     void execStatic(size_t nwork, size_t nthreads, size_t chunksize,
       std::function<void(Scheduler &)> f)
       {
       mode = STATIC;
-      nthreads_ = (nthreads==0) ? get_default_nthreads() : nthreads;
+      nthreads_ = adjust_nthreads(nthreads);
       if (nthreads_ == 1)
-        return execSingle(nwork, move(f));
+        return execSingle(nwork, std::move(f));
       nwork_ = nwork;
       chunksize_ = (chunksize<1) ? (nwork_+nthreads_-1)/nthreads_
                                  : chunksize;
       if (chunksize_>=nwork_)
-        return execSingle(nwork_, move(f));
+        return execSingle(nwork_, std::move(f));
       nextstart.resize(nthreads_);
       for (size_t i=0; i<nextstart.size(); ++i)
         nextstart[i] = i*chunksize_;
-      thread_map(move(f));
+      thread_map(std::move(f));
       }
     void execDynamic(size_t nwork, size_t nthreads, size_t chunksize,
       std::function<void(Scheduler &)> f)
       {
       mode = DYNAMIC;
-      nthreads_ = (nthreads==0) ? get_default_nthreads() : nthreads;
+      nthreads_ = adjust_nthreads(nthreads);
       if (nthreads_ == 1)
-        return execSingle(nwork, move(f));
+        return execSingle(nwork, std::move(f));
       nwork_ = nwork;
       chunksize_ = (chunksize<1) ? 1 : chunksize;
       if (chunksize_ >= nwork)
-        return execSingle(nwork, move(f));
+        return execSingle(nwork, std::move(f));
       if (chunksize_*nthreads_>=nwork_)
-        return execStatic(nwork, nthreads, 0, move(f));
+        return execStatic(nwork, nthreads, 0, std::move(f));
       cur_dynamic_ = 0;
-      thread_map(move(f));
+      thread_map(std::move(f));
       }
     void execGuided(size_t nwork, size_t nthreads, size_t chunksize_min,
       double fact_max, std::function<void(Scheduler &)> f)
       {
       mode = GUIDED;
-      nthreads_ = (nthreads==0) ? get_default_nthreads() : nthreads;
+      nthreads_ = adjust_nthreads(nthreads);
       if (nthreads_ == 1)
-        return execSingle(nwork, move(f));
+        return execSingle(nwork, std::move(f));
       nwork_ = nwork;
       chunksize_ = (chunksize_min<1) ? 1 : chunksize_min;
       if (chunksize_*nthreads_>=nwork_)
-        return execStatic(nwork, nthreads, 0, move(f));
+        return execStatic(nwork, nthreads, 0, std::move(f));
       fact_max_ = fact_max;
       cur_ = 0;
-      thread_map(move(f));
+      thread_map(std::move(f));
       }
     void execParallel(size_t nthreads, std::function<void(Scheduler &)> f)
       {
       mode = STATIC;
-      nthreads_ = (nthreads==0) ? get_default_nthreads() : nthreads;
+      nthreads_ = adjust_nthreads(nthreads);
       nwork_ = nthreads_;
       chunksize_ = 1;
-      thread_map(move(f));
+      thread_map(std::move(f));
       }
     Range getNext(size_t thread_id)
       {
@@ -486,35 +562,35 @@ void Distribution::thread_map(std::function<void(Scheduler &)> f)
 void execSingle(size_t nwork, std::function<void(Scheduler &)> func)
   {
   Distribution dist;
-  dist.execSingle(nwork, move(func));
+  dist.execSingle(nwork, std::move(func));
   }
 void execStatic(size_t nwork, size_t nthreads, size_t chunksize,
   std::function<void(Scheduler &)> func)
   {
   Distribution dist;
-  dist.execStatic(nwork, nthreads, chunksize, move(func));
+  dist.execStatic(nwork, nthreads, chunksize, std::move(func));
   }
 void execDynamic(size_t nwork, size_t nthreads, size_t chunksize,
   std::function<void(Scheduler &)> func)
   {
   Distribution dist;
-  dist.execDynamic(nwork, nthreads, chunksize, move(func));
+  dist.execDynamic(nwork, nthreads, chunksize, std::move(func));
   }
 void execGuided(size_t nwork, size_t nthreads, size_t chunksize_min,
   double fact_max, std::function<void(Scheduler &)> func)
   {
   Distribution dist;
-  dist.execGuided(nwork, nthreads, chunksize_min, fact_max, move(func));
+  dist.execGuided(nwork, nthreads, chunksize_min, fact_max, std::move(func));
   }
 void execParallel(size_t nthreads, std::function<void(Scheduler &)> func)
   {
   Distribution dist;
-  dist.execParallel(nthreads, move(func));
+  dist.execParallel(nthreads, std::move(func));
   }
 void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
   std::function<void(size_t, size_t)> func)
   {
-  nthreads = (nthreads==0) ? get_default_nthreads() : nthreads;
+  nthreads = adjust_nthreads(nthreads);
   execParallel(nthreads, [&](Scheduler &sched)
     {
     auto tid = sched.thread_num();
@@ -525,7 +601,7 @@ void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
 void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
   std::function<void(size_t, size_t, size_t)> func)
   {
-  nthreads = (nthreads==0) ? get_default_nthreads() : nthreads;
+  nthreads = adjust_nthreads(nthreads);
   execParallel(nthreads, [&](Scheduler &sched)
     {
     auto tid = sched.thread_num();
@@ -536,9 +612,8 @@ void execParallel(size_t work_lo, size_t work_hi, size_t nthreads,
 
 #else
 
-size_t get_default_nthreads() { return 1; }
-void set_default_nthreads(size_t /* new_default_nthreads */) {}
 size_t max_threads() { return 1; }
+size_t adjust_nthreads(size_t /*nthreads*/) { return 1; }
 
 class MyScheduler: public Scheduler
   {

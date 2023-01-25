@@ -91,11 +91,11 @@ class Scheduler
     virtual Range getNext() = 0;
   };
 
-/// Returns the maximum number of threads that are supported by the hardware.
-/** More threads can be used, but this will probably hurt performance. */
+/** Returns the maximum number of threads that are supported by the hardware,
+ *  or the value of the environment variable DUCC0_NUM_THREADS,
+ *  whichever is lower. */
 size_t max_threads();
-void set_default_nthreads(size_t new_default_nthreads);
-size_t get_default_nthreads();
+size_t adjust_nthreads(size_t nthreads);
 
 /// Execute \a func over \a nwork work items, on a single thread.
 void execSingle(size_t nwork,
@@ -204,8 +204,7 @@ template<typename T, typename Func> auto execWorklist
 } // end of namespace detail_threading
 
 using detail_threading::max_threads;
-using detail_threading::get_default_nthreads;
-using detail_threading::set_default_nthreads;
+using detail_threading::adjust_nthreads;
 using detail_threading::Scheduler;
 using detail_threading::execSingle;
 using detail_threading::execStatic;
