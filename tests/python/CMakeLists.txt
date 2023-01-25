@@ -13,7 +13,8 @@ add_custom_target(
   COMMAND
     python3 -B -m pytest --exitfirst -v
     --junitxml=${CMAKE_BINARY_DIR}/check_integration.xml
-    ${CMAKE_CURRENT_SOURCE_DIR}/basic_checks.py)
+    ${CMAKE_CURRENT_SOURCE_DIR}/basic_checks.py
+    ${CMAKE_CURRENT_SOURCE_DIR}/spectral_imaging_checks.py)
 
 add_custom_target(
   facetchecks

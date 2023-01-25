@@ -41,6 +41,7 @@ ImagingTableEntry::CreateDeconvolutionEntry(
   entry->band_start_frequency = bandStartFrequency;
   entry->band_end_frequency = bandEndFrequency;
   entry->polarization = polarization;
+  entry->mask_channel_index = outputChannelIndex;
   entry->original_channel_index = outputChannelIndex - channel_index_offset;
   entry->original_interval_index = outputIntervalIndex;
   entry->image_weight = imageWeight;
