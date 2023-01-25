@@ -77,8 +77,8 @@ size_t WGriddingMSGridder::calculateMaxNRowsInMemory(
   return maxNRows;
 }
 
-template <DDGainMatrix GainEntry>
-void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
+void WGriddingMSGridder::gridMeasurementSet(MSData& msData,
+                                            GainMode gain_mode) {
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, false);
 
@@ -118,9 +118,10 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
       newRowData.uvw[0] = uInMeters;
       newRowData.uvw[1] = vInMeters;
       newRowData.uvw[2] = wInMeters;
-      readAndWeightVisibilities<1, GainEntry>(
-          *msReader, msData.antennaNames, newRowData, selectedBand,
-          weightBuffer.data(), modelBuffer.data(), isSelected.data());
+      readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newRowData,
+                                   selectedBand, weightBuffer.data(),
+                                   modelBuffer.data(), isSelected.data(),
+                                   gain_mode);
 
       std::copy_n(newRowData.data, selectedBand.ChannelCount(),
                   &visBuffer[nRows * selectedBand.ChannelCount()]);
@@ -141,15 +142,8 @@ void WGriddingMSGridder::gridMeasurementSet(MSData& msData) {
   msData.totalRowsProcessed += totalNRows;
 }
 
-template void WGriddingMSGridder::gridMeasurementSet<DDGainMatrix::kXX>(
-    MSData& msData);
-template void WGriddingMSGridder::gridMeasurementSet<DDGainMatrix::kYY>(
-    MSData& msData);
-template void WGriddingMSGridder::gridMeasurementSet<DDGainMatrix::kTrace>(
-    MSData& msData);
-
-template <DDGainMatrix GainEntry>
-void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
+void WGriddingMSGridder::predictMeasurementSet(MSData& msData,
+                                               GainMode gain_mode) {
   msData.msProvider->ReopenRW();
   const aocommon::BandData selectedBand(msData.SelectedBand());
   StartMeasurementSet(msData, true);
@@ -188,22 +182,15 @@ void WGriddingMSGridder::predictMeasurementSet(MSData& msData) {
 
     Logger::Info << "Writing...\n";
     for (size_t row = 0; row != nRows; ++row) {
-      writeVisibilities<1, GainEntry>(
+      writeVisibilities<1>(
           *msData.msProvider, msData.antennaNames, selectedBand,
-          &visBuffer[row * selectedBand.ChannelCount()]);
+          &visBuffer[row * selectedBand.ChannelCount()], gain_mode);
     }
     totalNRows += nRows;
   }  // end of chunk
 
   msData.totalRowsProcessed += totalNRows;
 }
-
-template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kXX>(
-    MSData& msData);
-template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kYY>(
-    MSData& msData);
-template void WGriddingMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
-    MSData& msData);
 
 void WGriddingMSGridder::getActualTrimmedSize(size_t& trimmedWidth,
                                               size_t& trimmedHeight) const {
@@ -238,13 +225,7 @@ void WGriddingMSGridder::Invert() {
 
   for (size_t i = 0; i != MeasurementSetCount(); ++i) {
     MSData& msData = msDataVector[i];
-    if (Polarization() == aocommon::Polarization::XX) {
-      gridMeasurementSet<DDGainMatrix::kXX>(msData);
-    } else if (Polarization() == aocommon::Polarization::YY) {
-      gridMeasurementSet<DDGainMatrix::kYY>(msData);
-    } else {
-      gridMeasurementSet<DDGainMatrix::kTrace>(msData);
-    }
+    gridMeasurementSet(msData, GetGainMode(Polarization(), 1));
   }
 
   gridder_->FinalizeImage(1.0 / totalWeight());
@@ -316,12 +297,6 @@ void WGriddingMSGridder::Predict(std::vector<Image>&& images) {
   images[0].Reset();
 
   for (MSData& msData : msDataVector) {
-    if (Polarization() == aocommon::Polarization::XX) {
-      predictMeasurementSet<DDGainMatrix::kXX>(msData);
-    } else if (Polarization() == aocommon::Polarization::YY) {
-      predictMeasurementSet<DDGainMatrix::kYY>(msData);
-    } else {
-      predictMeasurementSet<DDGainMatrix::kTrace>(msData);
-    }
+    predictMeasurementSet(msData, GetGainMode(Polarization(), 1));
   }
 }

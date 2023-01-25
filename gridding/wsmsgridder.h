@@ -55,23 +55,12 @@ class WSMSGridder final : public MSGridderBase {
     size_t rowId;
   };
 
-  template <DDGainMatrix GainEntry>
-  void gridMeasurementSet(MSData& msData);
+  void gridMeasurementSet(MSData& msData, GainMode gain_mode);
 
   void countSamplesPerLayer(MSData& msData);
   virtual size_t getSuggestedWGridSize() const override;
 
-  template <DDGainMatrix GainEntry>
-  void predictMeasurementSet(MSData& msData);
-
-  /*void workThread(aocommon::Lane<InversionRow>* workLane) {
-    InversionRow workItem;
-    while (workLane->read(workItem)) {
-      _gridder->AddData(workItem.data, DataDescId(), workItem.uvw[0],
-                        workItem.uvw[1], workItem.uvw[2]);
-      delete[] workItem.data;
-    }
-  }*/
+  void predictMeasurementSet(MSData& msData, GainMode gain_mode);
 
   void startInversionWorkThreads(size_t maxChannelCount);
   void finishInversionWorkThreads();
@@ -81,10 +70,10 @@ class WSMSGridder final : public MSGridderBase {
                          aocommon::Lane<PredictionWorkItem>* outputLane,
                          const aocommon::BandData* bandData);
 
-  template <DDGainMatrix GainEntry>
   void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
                           const MSData* msData,
-                          const aocommon::BandData* bandData);
+                          const aocommon::BandData* bandData,
+                          GainMode gain_mode);
 
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;

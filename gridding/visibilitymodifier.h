@@ -1,6 +1,8 @@
 #ifndef GRIDDING_VISIBILITY_MODIFIER_H_
 #define GRIDDING_VISIBILITY_MODIFIER_H_
 
+#include <stdexcept>
+
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/beammode.h>
 #include <EveryBeam/beamnormalisationmode.h>
@@ -10,6 +12,7 @@
 #include <schaapcommon/h5parm/jonesparameters.h>
 
 #include <aocommon/banddata.h>
+#include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
 class SynchronizedMS;
@@ -19,7 +22,36 @@ class SynchronizedMS;
  * matrix that are to be used to correct the visibilities during the reading
  * and/or writing operations.
  */
-enum class DDGainMatrix { kXX, kYY, kTrace, kFull };
+enum class GainMode {
+  /// Correct visibilities only with the X solution.
+  kXX,
+  /// Correct visibilities only with the Y solution.
+  kYY,
+  /// Correct visibilities with the X and Y solutions, but not with the
+  /// cross-terms (XY/YX).
+  /// When the input is Stokes I visibilities, the trace of the gain is taken
+  /// and applied. When the input contains both XX and YY or all four
+  /// polarizations, the X/Y gains are separately applied.
+  kDiagonal,
+  /// Correct visibilities with the full 2x2 complex matrix.
+  kFull
+};
+
+inline GainMode GetGainMode(aocommon::PolarizationEnum polarization,
+                            size_t n_visibility_polarizations) {
+  if (n_visibility_polarizations == 1) {
+    switch (polarization) {
+      case aocommon::Polarization::XX:
+        return GainMode::kXX;
+      case aocommon::Polarization::YY:
+        return GainMode::kYY;
+      default:
+        return GainMode::kDiagonal;
+    }
+  } else {
+    throw std::runtime_error("Not yet implemented");
+  }
+}
 
 class VisibilityModifier {
  public:
@@ -66,12 +98,12 @@ class VisibilityModifier {
                          const std::vector<std::string>& antennaNames,
                          const aocommon::BandData& band, size_t ms_index);
 
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   void CorrectParmResponse(std::complex<float>* data, size_t ms_index,
                            const aocommon::BandData& band, size_t n_antennas,
                            size_t antenna1, size_t antenna2);
 
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   float CorrectConjugatedParmResponse(std::complex<float>* data,
                                       const float* weights,
                                       const float* image_weights,
@@ -99,12 +131,12 @@ class VisibilityModifier {
   void CacheBeamResponse(double time, size_t fieldId,
                          const aocommon::BandData& band);
 
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyBeamResponse(std::complex<float>* data,
                          const aocommon::BandData& band, size_t antenna1,
                          size_t antenna2);
 
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   float ApplyConjugatedBeamResponse(std::complex<float>* data,
                                     const float* weights,
                                     const float* image_weights,
@@ -116,7 +148,7 @@ class VisibilityModifier {
    * Correct the data for both the conjugated beam and the
    * conjugated h5parm solutions.
    */
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   DualResult ApplyConjugatedDual(std::complex<float>* data,
                                  const float* weights,
                                  const float* image_weights,

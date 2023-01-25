@@ -228,9 +228,10 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
     rowData.timeIndex = timeIndex;
 
     if (n_vis_polarizations == 1) {
-      readAndWeightVisibilities<1, DDGainMatrix::kTrace>(
-          *msReader, msData.antennaNames, rowData, _selectedBand,
-          weightBuffer.data(), modelBuffer.data(), isSelected.data());
+      readAndWeightVisibilities<1>(*msReader, msData.antennaNames, rowData,
+                                   _selectedBand, weightBuffer.data(),
+                                   modelBuffer.data(), isSelected.data(),
+                                   GainMode::kDiagonal);
       // The data is placed in the first quarter of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
       // be able to directly accept 1 polarization instead of 4.
@@ -247,9 +248,10 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
         source_index--;
       }
     } else if (n_vis_polarizations == 2) {
-      readAndWeightVisibilities<2, DDGainMatrix::kFull>(
-          *msReader, msData.antennaNames, rowData, _selectedBand,
-          weightBuffer.data(), modelBuffer.data(), isSelected.data());
+      readAndWeightVisibilities<2>(*msReader, msData.antennaNames, rowData,
+                                   _selectedBand, weightBuffer.data(),
+                                   modelBuffer.data(), isSelected.data(),
+                                   GainMode::kFull);
       // The data is placed in the first half of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
       // be able to directly accept 2 pols instead of 4.
@@ -267,9 +269,10 @@ void IdgMsGridder::gridMeasurementSet(const MSGridderBase::MSData& msData) {
       }
     } else {
       assert(n_vis_polarizations == 4);
-      readAndWeightVisibilities<4, DDGainMatrix::kFull>(
-          *msReader, msData.antennaNames, rowData, _selectedBand,
-          weightBuffer.data(), modelBuffer.data(), isSelected.data());
+      readAndWeightVisibilities<4>(*msReader, msData.antennaNames, rowData,
+                                   _selectedBand, weightBuffer.data(),
+                                   modelBuffer.data(), isSelected.data(),
+                                   GainMode::kFull);
     }
 
     rowData.uvw[1] = -metaData.vInM;  // DEBUG vdtol, flip axis
@@ -455,8 +458,8 @@ void IdgMsGridder::computePredictionBuffer(
       for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
         row.second[i] = (row.second[i * 4] + row.second[i * 4 + 3]) / 2.0f;
       }
-      writeVisibilities<1, DDGainMatrix::kTrace>(*_outputProvider, antennaNames,
-                                                 _selectedBand, row.second);
+      writeVisibilities<1>(*_outputProvider, antennaNames, _selectedBand,
+                           row.second, GainMode::kDiagonal);
     } else if (n_vis_polarizations == 2) {
       // Remove the XY/YX pols from the data and place the result in the first
       // half of the array
@@ -464,12 +467,12 @@ void IdgMsGridder::computePredictionBuffer(
         row.second[i * 2] = row.second[i * 4];
         row.second[i * 2 + 1] = row.second[i * 4 + 3];
       }
-      writeVisibilities<2, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
-                                                _selectedBand, row.second);
+      writeVisibilities<2>(*_outputProvider, antennaNames, _selectedBand,
+                           row.second, GainMode::kFull);
     } else {
       assert(n_vis_polarizations == 4);
-      writeVisibilities<4, DDGainMatrix::kFull>(*_outputProvider, antennaNames,
-                                                _selectedBand, row.second);
+      writeVisibilities<4>(*_outputProvider, antennaNames, _selectedBand,
+                           row.second, GainMode::kFull);
     }
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();

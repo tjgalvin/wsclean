@@ -285,11 +285,6 @@ class MSGridderBase {
    * @tparam PolarizationCount Normally set to one when imaging a single
    * polarization, but set to 2 or 4 for IDG as it images multiple polarizations
    * at once.
-   * @tparam DDGainMatrix Selects which entry or entries in the gain matrix
-   * (provided by EveryBeam and/or an h5 solution) file to use for correcting
-   * the visibilities. Can be kXX for the XX-entry, kYY for the YY-entry, kTrace
-   * for the trace of the gain matrix and kFull to take all entries into
-   * account.
    * @param msProvider The measurement set provider
    * @param rowData The resulting weighted data
    * @param curBand The spectral band currently being imaged
@@ -300,28 +295,31 @@ class MSGridderBase {
    * @param isSelected Per visibility whether that visibility will be gridded in
    * this pass. When the visibility is not gridded, its weight will not be added
    * to the relevant sums (visibility count, weight sum, etc.).
+   * @param gain_mode Selects which entry or entries in the gain matrix
+   * (provided by EveryBeam and/or an h5 solution) file to use for correcting
+   * the visibilities.
    */
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount>
   void readAndWeightVisibilities(MSReader& msReader,
                                  const std::vector<std::string>& antennaNames,
                                  InversionRow& rowData,
                                  const aocommon::BandData& curBand,
                                  float* weightBuffer,
                                  std::complex<float>* modelBuffer,
-                                 const bool* isSelected);
+                                 const bool* isSelected, GainMode gain_mode);
 
   /**
    * @brief Write (modelled) visibilities to MS, provides an interface to
    * MSProvider::WriteModel(). Method can be templated on the number of
-   * polarizations (1, 2 or 4), and the DDGainMatrix which can be used to
+   * polarizations (1, 2 or 4). The gain_mode can be used to
    * select an entry or entries from the gain matrix that should be used for the
-   * correction (XX-pol: kXX, YY-pol: kYY, Trace: kTrace, Full Jones: kFull)
+   * correction.
    */
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount>
   void writeVisibilities(MSProvider& msProvider,
                          const std::vector<std::string>& antennaNames,
                          const aocommon::BandData& curBand,
-                         std::complex<float>* buffer);
+                         std::complex<float>* buffer, GainMode gain_mode);
 
   double _maxW, _minW;
 
@@ -348,11 +346,6 @@ class MSGridderBase {
   const Settings& _settings;
 
  private:
-  size_t _actualInversionWidth;
-  size_t _actualInversionHeight;
-  double _actualPixelSizeX;
-  double _actualPixelSizeY;
-
   static std::vector<std::string> getAntennaNames(
       const casacore::MSAntenna& msAntenna);
 
@@ -390,6 +383,21 @@ class MSGridderBase {
   void initializePointResponse(const MSGridderBase::MSData& msData);
   void initializePredictReader(MSProvider& msProvider);
 
+  template <size_t PolarizationCount, GainMode GainEntry>
+  void readAndWeightVisibilities(MSReader& msReader,
+                                 const std::vector<std::string>& antennaNames,
+                                 InversionRow& rowData,
+                                 const aocommon::BandData& curBand,
+                                 float* weightBuffer,
+                                 std::complex<float>* modelBuffer,
+                                 const bool* isSelected);
+
+  template <size_t PolarizationCount, GainMode GainEntry>
+  void writeVisibilities(MSProvider& msProvider,
+                         const std::vector<std::string>& antennaNames,
+                         const aocommon::BandData& curBand,
+                         std::complex<float>* buffer);
+
   /**
    * @brief Applies both the conjugated h5 parm
    * solutions to the visibilities and computes the weight corresponding to the
@@ -401,7 +409,7 @@ class MSGridderBase {
    *                      predict/degridding step
    *                      and the conjugate gain for the gridding step
    */
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyConjugatedH5Parm(MSReader& msReader,
                              const std::vector<std::string>& antennaNames,
                              InversionRow& rowData,
@@ -421,7 +429,7 @@ class MSGridderBase {
    *                      and the conjugate gain for the gridding step
    */
 
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyConjugatedFacetBeam(MSReader& msReader, InversionRow& rowData,
                                 const aocommon::BandData& curBand,
                                 const float* weightBuffer,
@@ -438,13 +446,17 @@ class MSGridderBase {
    *                      predict/degridding step
    *                      and the conjugate gain for the gridding step
    */
-  template <size_t PolarizationCount, DDGainMatrix GainEntry>
+  template <size_t PolarizationCount, GainMode GainEntry>
   void ApplyConjugatedFacetDdEffects(
       MSReader& msReader, const std::vector<std::string>& antennaNames,
       InversionRow& rowData, const aocommon::BandData& curBand,
       const float* weightBuffer, bool apply_forward = false);
 #endif  // HAVE_EVERYBEAM
 
+  size_t _actualInversionWidth;
+  size_t _actualInversionHeight;
+  double _actualPixelSizeX;
+  double _actualPixelSizeY;
   double _phaseCentreRA, _phaseCentreDec, _l_shift, _m_shift;
   double _mainImageDL, _mainImageDM;
   size_t _facetIndex;
@@ -494,5 +506,68 @@ class MSGridderBase {
 
   VisibilityModifier _visibilityModifier;
 };
+
+template <size_t PolarizationCount>
+inline void MSGridderBase::readAndWeightVisibilities(
+    MSReader& msReader, const std::vector<std::string>& antennaNames,
+    InversionRow& rowData, const aocommon::BandData& curBand,
+    float* weightBuffer, std::complex<float>* modelBuffer,
+    const bool* isSelected, GainMode gain_mode) {
+  switch (gain_mode) {
+    case GainMode::kXX:
+      readAndWeightVisibilities<PolarizationCount, GainMode::kXX>(
+          msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+          isSelected);
+      break;
+    case GainMode::kYY:
+      readAndWeightVisibilities<PolarizationCount, GainMode::kYY>(
+          msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+          isSelected);
+      break;
+    case GainMode::kDiagonal:
+      readAndWeightVisibilities<PolarizationCount, GainMode::kDiagonal>(
+          msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+          isSelected);
+      break;
+    case GainMode::kFull:
+      if constexpr (PolarizationCount == 2 || PolarizationCount == 4)
+        readAndWeightVisibilities<PolarizationCount, GainMode::kFull>(
+            msReader, antennaNames, rowData, curBand, weightBuffer, modelBuffer,
+            isSelected);
+      else
+        throw std::runtime_error(
+            "Invalid combination of visibility polarizations and gain mode");
+      break;
+  }
+}
+
+template <size_t PolarizationCount>
+inline void MSGridderBase::writeVisibilities(
+    MSProvider& msProvider, const std::vector<std::string>& antennaNames,
+    const aocommon::BandData& curBand, std::complex<float>* buffer,
+    GainMode gain_mode) {
+  switch (gain_mode) {
+    case GainMode::kXX:
+      writeVisibilities<PolarizationCount, GainMode::kXX>(
+          msProvider, antennaNames, curBand, buffer);
+      break;
+    case GainMode::kYY:
+      writeVisibilities<PolarizationCount, GainMode::kYY>(
+          msProvider, antennaNames, curBand, buffer);
+      break;
+    case GainMode::kDiagonal:
+      writeVisibilities<PolarizationCount, GainMode::kDiagonal>(
+          msProvider, antennaNames, curBand, buffer);
+      break;
+    case GainMode::kFull:
+      if constexpr (PolarizationCount == 2 || PolarizationCount == 4)
+        writeVisibilities<PolarizationCount, GainMode::kFull>(
+            msProvider, antennaNames, curBand, buffer);
+      else
+        throw std::runtime_error(
+            "Invalid combination of visibility polarizations and gain mode");
+      break;
+  }
+}
 
 #endif

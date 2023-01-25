@@ -8,6 +8,8 @@
 
 #include "../structures/resources.h"
 
+class ProgressBar;
+
 template <typename num_t>
 class DirectMSGridder final : public MSGridderBase {
  public:
@@ -36,9 +38,8 @@ class DirectMSGridder final : public MSGridderBase {
   std::vector<num_t*> _layers;
   aocommon::Lane<InversionSample> _inversionLane;
 
-  template <DDGainMatrix GainEntry>
-  void invertMeasurementSet(const MSData& msData, class ProgressBar& progress,
-                            size_t msIndex);
+  void invertMeasurementSet(const MSData& msData, ProgressBar& progress,
+                            size_t msIndex, GainMode gain_mode);
   void inversionWorker(size_t layer);
   void gridSample(const InversionSample& sample, size_t layer);
   void initializeSqrtLMLookupTable();

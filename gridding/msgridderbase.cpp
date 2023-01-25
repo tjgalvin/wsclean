@@ -445,7 +445,7 @@ void MSGridderBase::calculateOverallMetaData(const MSData* msDataVector) {
   _actualWGridSize = hasWGridSize() ? _wGridSize : suggestedGridSize;
 }
 
-template <size_t PolarizationCount, DDGainMatrix GainEntry>
+template <size_t PolarizationCount, GainMode GainEntry>
 void MSGridderBase::writeVisibilities(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer) {
@@ -492,27 +492,27 @@ void MSGridderBase::writeVisibilities(
   msProvider.NextOutputRow();
 }
 
-template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kXX>(
+template void MSGridderBase::writeVisibilities<1, GainMode::kXX>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kYY>(
+template void MSGridderBase::writeVisibilities<1, GainMode::kYY>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<1, DDGainMatrix::kTrace>(
+template void MSGridderBase::writeVisibilities<1, GainMode::kDiagonal>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<2, DDGainMatrix::kFull>(
+template void MSGridderBase::writeVisibilities<2, GainMode::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template void MSGridderBase::writeVisibilities<4, DDGainMatrix::kFull>(
+template void MSGridderBase::writeVisibilities<4, GainMode::kFull>(
     MSProvider& msProvider, const std::vector<std::string>& antennaNames,
     const aocommon::BandData& curBand, std::complex<float>* buffer);
 
-template <size_t PolarizationCount, DDGainMatrix GainEntry>
+template <size_t PolarizationCount, GainMode GainEntry>
 void MSGridderBase::readAndWeightVisibilities(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& rowData, const aocommon::BandData& curBand,
@@ -659,31 +659,31 @@ void MSGridderBase::readAndWeightVisibilities(
   }
 }
 
-template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kXX>(
+template void MSGridderBase::readAndWeightVisibilities<1, GainMode::kXX>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kYY>(
+template void MSGridderBase::readAndWeightVisibilities<1, GainMode::kYY>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<1, DDGainMatrix::kTrace>(
+template void MSGridderBase::readAndWeightVisibilities<1, GainMode::kDiagonal>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<2, DDGainMatrix::kFull>(
+template void MSGridderBase::readAndWeightVisibilities<2, GainMode::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,
     const bool* isSelected);
 
-template void MSGridderBase::readAndWeightVisibilities<4, DDGainMatrix::kFull>(
+template void MSGridderBase::readAndWeightVisibilities<4, GainMode::kFull>(
     MSReader& msReader, const std::vector<std::string>& antennaNames,
     InversionRow& newItem, const aocommon::BandData& curBand,
     float* weightBuffer, std::complex<float>* modelBuffer,

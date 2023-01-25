@@ -122,8 +122,7 @@ size_t WSMSGridder::getSuggestedWGridSize() const {
   return suggestedGridSize;
 }
 
-template <DDGainMatrix GainEntry>
-void WSMSGridder::gridMeasurementSet(MSData& msData) {
+void WSMSGridder::gridMeasurementSet(MSData& msData, GainMode gain_mode) {
   const aocommon::BandData selectedBand = msData.SelectedBand();
   StartMeasurementSet(msData, false);
   _gridder->PrepareBand(selectedBand);
@@ -173,9 +172,10 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
           isSelected[ch] = _gridder->IsInLayerRange(w);
         }
 
-        readAndWeightVisibilities<1, GainEntry>(
-            *msReader, msData.antennaNames, newItem, curBand,
-            weightBuffer.data(), modelBuffer.data(), isSelected.data());
+        readAndWeightVisibilities<1>(*msReader, msData.antennaNames, newItem,
+                                     curBand, weightBuffer.data(),
+                                     modelBuffer.data(), isSelected.data(),
+                                     gain_mode);
 
         if (HasDenormalPhaseCentre()) {
           const double shiftFactor =
@@ -215,14 +215,6 @@ void WSMSGridder::gridMeasurementSet(MSData& msData) {
     throw;
   }
 }
-
-template void WSMSGridder::gridMeasurementSet<DDGainMatrix::kXX>(
-    MSData& msData);
-template void WSMSGridder::gridMeasurementSet<DDGainMatrix::kYY>(
-    MSData& msData);
-template void WSMSGridder::gridMeasurementSet<DDGainMatrix::kTrace>(
-    MSData& msData);
-
 void WSMSGridder::startInversionWorkThreads(size_t maxChannelCount) {
   _inversionCPULanes.resize(_resources.NCpus());
   _threadGroup.clear();
@@ -255,8 +247,7 @@ void WSMSGridder::workThreadPerSample(
   }
 }
 
-template <DDGainMatrix GainEntry>
-void WSMSGridder::predictMeasurementSet(MSData& msData) {
+void WSMSGridder::predictMeasurementSet(MSData& msData, GainMode gain_mode) {
   msData.msProvider->ReopenRW();
   msData.msProvider->ResetWritePosition();
   const aocommon::BandData selectedBandData(msData.SelectedBand());
@@ -276,8 +267,8 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
                       "Prediction write lane containing full row data");
   lane_write_buffer<PredictionWorkItem> bufferedCalcLane(&calcLane,
                                                          _laneBufferSize);
-  std::thread writeThread(&WSMSGridder::predictWriteThread<GainEntry>, this,
-                          &writeLane, &msData, &selectedBandData);
+  std::thread writeThread(&WSMSGridder::predictWriteThread, this, &writeLane,
+                          &msData, &selectedBandData, gain_mode);
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _resources.NCpus(); ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &calcLane,
@@ -318,13 +309,6 @@ void WSMSGridder::predictMeasurementSet(MSData& msData) {
   writeThread.join();
 }
 
-template void WSMSGridder::predictMeasurementSet<DDGainMatrix::kXX>(
-    MSData& msData);
-template void WSMSGridder::predictMeasurementSet<DDGainMatrix::kYY>(
-    MSData& msData);
-template void WSMSGridder::predictMeasurementSet<DDGainMatrix::kTrace>(
-    MSData& msData);
-
 void WSMSGridder::predictCalcThread(
     aocommon::Lane<PredictionWorkItem>* inputLane,
     aocommon::Lane<PredictionWorkItem>* outputLane,
@@ -346,10 +330,10 @@ void WSMSGridder::predictCalcThread(
   }
 }
 
-template <DDGainMatrix GainEntry>
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const aocommon::BandData* bandData) {
+    const MSData* msData, const aocommon::BandData* bandData,
+    GainMode gain_mode) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -365,8 +349,8 @@ void WSMSGridder::predictWriteThread(
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
     while (!queue.empty() && queue.top().rowId == nextRowId) {
-      writeVisibilities<1, GainEntry>(*msData->msProvider, msData->antennaNames,
-                                      *bandData, queue.top().data.get());
+      writeVisibilities<1>(*msData->msProvider, msData->antennaNames, *bandData,
+                           queue.top().data.get(), gain_mode);
 
       queue.pop();
       ++nextRowId;
@@ -374,18 +358,6 @@ void WSMSGridder::predictWriteThread(
   }
   assert(queue.empty());
 }
-
-template void WSMSGridder::predictWriteThread<DDGainMatrix::kXX>(
-    aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const aocommon::BandData* bandData);
-
-template void WSMSGridder::predictWriteThread<DDGainMatrix::kYY>(
-    aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const aocommon::BandData* bandData);
-
-template void WSMSGridder::predictWriteThread<DDGainMatrix::kTrace>(
-    aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MSData* msData, const aocommon::BandData* bandData);
 
 void WSMSGridder::Invert() {
   std::vector<MSData> msDataVector;
@@ -431,14 +403,7 @@ void WSMSGridder::Invert() {
       const aocommon::BandData selectedBand(msData.SelectedBand());
 
       startInversionWorkThreads(selectedBand.ChannelCount());
-
-      if (Polarization() == aocommon::Polarization::XX) {
-        gridMeasurementSet<DDGainMatrix::kXX>(msData);
-      } else if (Polarization() == aocommon::Polarization::YY) {
-        gridMeasurementSet<DDGainMatrix::kYY>(msData);
-      } else {
-        gridMeasurementSet<DDGainMatrix::kTrace>(msData);
-      }
+      gridMeasurementSet(msData, GetGainMode(Polarization(), 1));
       finishInversionWorkThreads();
     }
 
@@ -595,13 +560,7 @@ void WSMSGridder::Predict(std::vector<Image>&& images) {
 
     Logger::Info << "Predicting...\n";
     for (MSData& msData : msDataVector) {
-      if (Polarization() == aocommon::Polarization::XX) {
-        predictMeasurementSet<DDGainMatrix::kXX>(msData);
-      } else if (Polarization() == aocommon::Polarization::YY) {
-        predictMeasurementSet<DDGainMatrix::kYY>(msData);
-      } else {
-        predictMeasurementSet<DDGainMatrix::kTrace>(msData);
-      }
+      predictMeasurementSet(msData, GetGainMode(Polarization(), 1));
     }
   }
 
