@@ -29,7 +29,8 @@ class Operator(object):
     """Class that wraps WSClean as an operator, so that it is easy
     to get an image from data 'in memory' (and the inverse). Currently, the
     operator will write that data to the MODEL_DATA Measurement Set before imaging.
-    The read/write/backward/forward methods can only be used within a "with" context."""
+    The read/write/backward/forward methods can only be used within a "with" context.
+    """
 
     _userdata = None
     _parameters = None
@@ -143,7 +144,8 @@ class Operator(object):
         """Perform the backward operation. This is the 'imaging' step:
         convert visibilities into an image. dataOut should be an array
         of doubles, which will be filled with the image, dataOut should be an array
-        of complex doubles, representing the visibilities for the operator input."""
+        of complex doubles, representing the visibilities for the operator input.
+        """
 
         if self._userdata == None:
             raise RuntimeError(

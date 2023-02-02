@@ -116,7 +116,6 @@ def create_aterm_config():
 @pytest.mark.usefixtures("prepare_mock_ms")
 class TestAterms:
     def test_aterms(self):
-
         if "IDG" not in check_output([tcf.WSCLEAN, "--version"]).decode():
             pytest.skip("WSClean was not compiled with IDG.")
 

@@ -70,7 +70,6 @@ def deconvolve(residual, model, psf, meta):
         peak_value > first_threshold
         and meta.iteration_number < meta.max_iterations
     ):
-
         model[peak_index] += peak_value
 
         psf_shift = (peak_index[2] + height // 2, peak_index[3] + width // 2)

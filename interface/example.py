@@ -16,7 +16,6 @@ else:
 
     # Test the operator
     with Operator(parameters) as o:
-
         data, weights = o.read()
 
         image = numpy.zeros(parameters.imageWidth * parameters.imageHeight)

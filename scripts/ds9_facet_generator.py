@@ -72,7 +72,6 @@ def makeWCS(centreX, centreY, refRA, refDec, crdelt=0.066667):
 
 
 def convert_to_deg(array_ra, array_dec):
-
     try:
         # Degree format
         new_ra = Angle(array_ra, unit="degree")
@@ -326,7 +325,7 @@ def write_ds9(fname, polygons, points=None):
         for i, polygon in enumerate(polygons):
             poly_string = "polygon("
             xv, yv = polygon.exterior.xy
-            for (x, y) in zip(xv[:-1], yv[:-1]):
+            for x, y in zip(xv[:-1], yv[:-1]):
                 poly_string = f"{poly_string}{x:.5f},{y:.5f},"
             # Strip trailing comma
             poly_string = poly_string[:-1] + ")"
