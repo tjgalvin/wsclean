@@ -75,6 +75,16 @@ ExternalProject_Add(
   BUILD_COMMAND ""
   INSTALL_COMMAND "")
 
+ExternalProject_Add(
+  gmrt_ms
+  URL https://support.astron.nl/software/ci_data/EveryBeam/GMRT_MOCK.tar.bz2
+  URL_HASH
+    SHA256=5286b6f19f226ed97a8198438edcc3c5b09481376ac134135dd595107dc39fc3
+  SOURCE_DIR ${CMAKE_BINARY_DIR}/test_data/GMRT_MOCK.ms
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "")
+
 set(TEST_LIBRARIES pybind11::embed ${ALL_LIBRARIES}
                    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 
@@ -83,6 +93,7 @@ target_link_libraries(unittest PRIVATE ${TEST_LIBRARIES})
 add_custom_target(
   unitchecks
   DEPENDS unittest download_mocks jvla_test_ms mwa_bda_mock_ms ska_low_ms
+          gmrt_ms
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   COMMAND unittest)
 

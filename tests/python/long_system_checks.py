@@ -4,7 +4,8 @@ import os, glob
 import sys
 from astropy.io import fits
 import numpy as np
-from utils import validate_call
+from utils import validate_call, compute_rms
+
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -506,3 +507,22 @@ class TestLongSystem:
         finally:
             chmod = f"chmod u+w -R {tcf.MWA_MS}"
             validate_call(chmod.split())
+
+    def test_rr_polarization(self):
+        s = f"{tcf.WSCLEAN} -pol rr -name {name('gmrt-rr')} -mgain 0.8 -niter 1 -size 512 512 -scale 10asec {tcf.GMRT_MS}"
+        validate_call(s.split())
+        rms_dirty = compute_rms(f"{name('gmrt-rr')}-dirty.fits")
+        rms_image = compute_rms(f"{name('gmrt-rr')}-image.fits")
+        # This was 0.215 when measured
+        assert rms_dirty > 0.2 and rms_dirty < 0.22
+        assert rms_dirty > rms_image
+
+    def test_gmrt_beam(self):
+        s = f"{tcf.WSCLEAN} -pol rr -name {name('gmrt-beam')} -apply-primary-beam -mgain 0.8 -size 512 512 -scale 10asec {tcf.GMRT_MS}"
+        validate_call(s.split())
+        rms_beam = compute_rms(f"{name('gmrt-beam')}-beam-0.fits")
+        # This was measured at 0.6306
+        assert rms_beam > 0.61 and rms_beam < 0.65
+        rms_corrected = compute_rms(f"{name('gmrt-beam')}-image-pb.fits")
+        # Measured at 0.45849
+        assert rms_corrected > 0.42 and rms_corrected < 0.49

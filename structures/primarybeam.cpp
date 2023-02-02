@@ -494,8 +494,9 @@ double PrimaryBeam::MakeBeamForMS(
       *ms, ms->columnName(casacore::MSMainEnums::TIME));
   std::size_t n_baselines =
       telescope->GetNrStations() * (telescope->GetNrStations() + 1) / 2;
-  std::vector<double> baseline_weights(n_baselines * interval_count, 0);
-  std::vector<double> time_array(interval_count, 0);
+
+  std::unique_ptr<everybeam::griddedresponse::GriddedResponse> grid_response =
+      telescope->GetGriddedResponse(coordinateSystem);
 
   // Time array and baseline weights only relevant for LOFAR, MWA (and probably
   // SKA-LOW). MWA beam needs scrutiny, this telescope might be amenable to a
@@ -506,7 +507,9 @@ double PrimaryBeam::MakeBeamForMS(
     case everybeam::TelescopeType::kAARTFAAC:
     case everybeam::TelescopeType::kMWATelescope:
     case everybeam::TelescopeType::kOSKARTelescope:
-    case everybeam::TelescopeType::kSkaMidTelescope:
+    case everybeam::TelescopeType::kSkaMidTelescope: {
+      std::vector<double> baseline_weights(n_baselines * interval_count, 0);
+      std::vector<double> time_array(interval_count, 0);
       // Loop over the intervalCounts
       ms_provider.ResetWritePosition();
       for (size_t interval_index = 0; interval_index != interval_count;
@@ -537,17 +540,24 @@ double PrimaryBeam::MakeBeamForMS(
       // Compute MS weight
       ms_weight = std::accumulate(baseline_weights.begin(),
                                   baseline_weights.end(), 0.0);
-      break;
+      result = grid_response->UndersampledIntegratedResponse(
+          beam_mode_, time_array, central_frequency, field_id, undersample_,
+          baseline_weights);
+    } break;
     case everybeam::TelescopeType::kVLATelescope:
     case everybeam::TelescopeType::kATCATelescope:
-    case everybeam::TelescopeType::kGMRTTelescope:
+    case everybeam::TelescopeType::kGMRTTelescope: {
       if (telescope_type == everybeam::TelescopeType::kATCATelescope ||
           telescope_type == everybeam::TelescopeType::kGMRTTelescope) {
         Logger::Warn << "Warning: ATCA and GMRT primary beam corrections have "
                         "not yet been tested!\n";
       }
-      // Assign weight of 1 for these "time independent" telescopes
+      // The dish response is time independent, so leaving zero is fine:
+      std::vector<double> time_array(1, 0);
+      // A weight of 1 is used for these time independent telescopes
       ms_weight = 1.0;
+      // baseline weights have no effect on homogeneous arrays, so leave at 1
+      std::vector<double> baseline_weights(n_baselines, 1);
       if (settings_.fieldIds[0] == MSSelection::ALL_FIELDS) {
         Logger::Warn
             << "Warning: primary beam correction together with '-fields "
@@ -555,18 +565,14 @@ double PrimaryBeam::MakeBeamForMS(
         Logger::Warn << "       : The beam will be calculated only for the "
                         "first field!\n";
       }
-      break;
+      result = grid_response->UndersampledIntegratedResponse(
+          beam_mode_, time_array, central_frequency, field_id, undersample_,
+          baseline_weights);
+    } break;
     case everybeam::TelescopeType::kUnknownTelescope:
-      Logger::Warn << "Warning: Unknown telescope type!\n";
-      break;
+      throw std::runtime_error("Warning: Unknown telescope type!");
   }
 
-  std::unique_ptr<everybeam::griddedresponse::GriddedResponse> grid_response =
-      telescope->GetGriddedResponse(coordinateSystem);
-
-  result = grid_response->UndersampledIntegratedResponse(
-      beam_mode_, time_array, central_frequency, field_id, undersample_,
-      baseline_weights);
   return ms_weight;
 }
 
