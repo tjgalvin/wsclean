@@ -1,7 +1,7 @@
 Component lists
 ===============
 
-The benefit of a component list is that it allows representing the components of multi-scale cleaning without 'pixelizing' the larger kernels, thereby decreasing the number of required components in a sky model compared to representing all components with delta scales.
+Component lists provide a textual representation of the model that deconvolution finds. The benefit of a component list is that it allows representing the components of multi-scale cleaning without 'pixelizing' the larger kernels, thereby (often) decreasing the number of required components in a sky model compared to representing all components with delta scales.
 
 The option is enabled by adding ``-save-source-list`` on the command line
 
@@ -58,7 +58,7 @@ Note that the value 1 is subtracted in the base. This makes sure that :math:`S_0
 
 **ReferenceFrequency** gives the frequency in Hz at which the polynomial or logarithmic polynomial is normalized.
 
-The **MajorAxis**, **MinorAxis** and **Orientation** columns define the shape of the Gaussian. The axes are given in units of arcseconds, and orientation is in degrees. Note that currently the major and minor axis of scales are always the same, and thus the orientation has no effect (and is therefore always zero).
+The **MajorAxis**, **MinorAxis** and **Orientation** columns define the shape of the Gaussian. The axes are given in units of arcseconds, and orientation is a value that specifies the rotation from North to East in degrees. Note that currently the major and minor axis of scales are always the same, and thus the orientation has no effect (and is therefore always zero).
  
 History
 -------
