@@ -38,6 +38,11 @@ WSMSGridder::WSMSGridder(const Settings& settings, const Resources& resources)
 }
 
 WSMSGridder::~WSMSGridder() noexcept {
+  // In case there is an exception during gridding, the lanes need to
+  // be end so that the threads stop waiting:
+  for (aocommon::Lane<WSMSGridder::InversionWorkSample>& lane :
+       _inversionCPULanes)
+    lane.write_end();
   for (std::thread& t : _threadGroup) t.join();
 }
 
