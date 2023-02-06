@@ -135,7 +135,7 @@ find_package(
   Boost
   COMPONENTS date_time filesystem system program_options
   REQUIRED)
-find_library(PTHREAD_LIB pthread REQUIRED)
+find_package(Threads REQUIRED)
 find_library(DL_LIB dl REQUIRED)
 
 # Once we bump minimum CMake version to >= 3.2, we can use `find_package(GSL REQUIRED)`.
@@ -391,7 +391,7 @@ set(ALL_LIBRARIES
     ${CFITSIO_LIBRARY}
     ${GSL_LIB}
     ${GSL_CBLAS_LIB}
-    ${PTHREAD_LIB}
+    Threads::Threads
     ${IDGAPI_LIBRARIES}
     ${HDF5_LIBRARIES}
     ${MPI_LIBRARIES}
