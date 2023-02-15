@@ -10,18 +10,31 @@ The theoretical foundations of the algorithm are described in
 description of the implementation is given in
 `Arras, Reinecke, Westermann & Enßlin (2020) <https://arxiv.org/abs/2010.10122>`_.
 
-W-gridding is enabled by the command-line flag ``-use-wgridder``,
+W-gridding is enabled by the command-line flag ``-gridder wgridder``,
 and its accuracy can be controlled via the parameter ``-wgridder-accuracy``,
 which is set to ``1e-4`` by default and can be varied in the range from ``1e-2``
-(very coarse, but fast gridding) down to ``1e-6`` (most accurate gridding
-achievable with single-precision floating point). This value specifies
-the maximum acceptable rms error of the result when compared to a direct Fourier
-transform. The algorithm will select
+(very coarse, but fast gridding) down to ``1e-12``.
+This value specifies the maximum acceptable rms error of the result when compared
+to a direct Fourier transform.
+A value of ``1e-5`` or smaller will enable the double-precision floating
+point mode of the wgridder, and larger values will use single-precision calculations.
+Be aware that an accuracy as low as ``1e-12`` is not actually reachable, because
+the final image is converted to single precision. 
+
+The algorithm will select
 appropriate parameters (like amount of padding, kernel shape and kernel support)
 automatically to reach the requested accuracy in the least amount of time.
 Therefore, many parameters accepted by ``wsclean``'s w-stacking gridder (e.g.
-``-padding``, ``-nwlayers*``, ``-grid-mode``, ``-kernel-size`` and ``-oversampling``
-and ``-parallel-gridding``) will be ignored in that mode.
+``-nwlayers*``, ``-grid-mode``, ``-kernel-size`` and ``-oversampling``)
+will be ignored in that mode.
+One parameter that can further be used to influence the gridding accuracy
+is ``[-no]-small-inversion``. The default is to enable this optimization,
+which speeds up imaging considerably, but be aware that it reduces the
+accuracy. The requested accuracy is therefore no longer guaranteed, especially if
+there is emission at the image edges.
+The ``-padding`` parameter does not directly
+influence the padding of the wgridder and should best be left to the default
+value.
 
 The algorithm has a very small memory footprint: it only requires storage for
 a single complex w-plane, a copy of the dirty image and some indexing data
