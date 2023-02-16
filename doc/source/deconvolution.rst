@@ -15,3 +15,4 @@ Deconvolution modes
    moresane_deconvolution
    parallel_deconvolution
    direction_dependent_psfs
+   python_deconvolution

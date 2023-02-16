@@ -1,5 +1,8 @@
 #! /usr/bin/python
 
+# This file demonstrates a simple deconvolution approach, which removes the strongest
+# components one by one (similar to Clean with a gain of 1).
+
 # run this e.g. with:
 # wsclean -niter 10000 -save-first-residual -auto-threshold 3 -mgain 0.8 -interval 10 11 -size 1024 1024 -scale 1amin -python-deconvolution ~/projects/wsclean/scripts/deconvolution-example.py 1052736496-averaged.ms/
 
@@ -7,27 +10,16 @@ import numpy
 
 
 def deconvolve(residual, model, psf, meta):
-    nchan = residual.shape[0]
-    npol = residual.shape[1]
-    height = residual.shape[2]
-    width = residual.shape[3]
+    nchan, npol, height, width = residual.shape
     print(
-        "Starting Python deconvolve() function for "
-        + str(width)
-        + " x "
-        + str(height)
-        + " x "
-        + str(npol)
-        + " x "
-        + str(nchan)
-        + " dataset"
+        "Python deconvolve() function was called for "
+        + f"{width} x {height} x {npol} (npol) x {nchan} (chan) dataset"
     )
 
-    # residual and model are a numpy arrays with dimensions nchan x npol x height x width
-    # psf is a numpy arrays with dimensions nchan x height x width
+    # residual and model are numpy arrays with dimensions nchan x npol x height x width
+    # psf is a numpy array with dimensions nchan x height x width
 
-    # This file demonstrates a very simple deconvolution strategy, which doesn't
-    # support multiple channels or polarizations:
+    # This file doesn't support multiple channels or polarizations:
     if nchan != 1 or npol != 1:
         raise NotImplementedError("nchan and npol must be one")
 
@@ -37,17 +29,16 @@ def deconvolve(residual, model, psf, meta):
     # meta.spectral_fitter is an object that knows how the user requested spectral fitting,
     # and is also aware of the channel frequencies / weights. It
     # has methods 'fit' and 'fit_and_evaluate'. Example:
-    # Furthermore, the meta class has properties major_iter_threshold, final_threshold,
-    # mgain, iteration_number and max_iterations. These are demonstrated below.
-    # iteration_number can be modified, and will keep its value when deconvolve()
-    # is called again.
-
+    #
     # values = numpy.zeros(nchan, dtype=numpy.float64)
     # coefficients = meta.spectral_fitter.fit(values, x, y)
     # or:
     # values = meta.spectral_fitter.fit_and_evaluate(values, x, y)
-
-    mthreshold = 0.0
+    #
+    # Furthermore, the meta class has properties major_iter_threshold, final_threshold,
+    # mgain, iteration_number and max_iterations. These are demonstrated below.
+    # iteration_number can be modified, and will keep its value when deconvolve()
+    # is called again.
 
     # find the largest peak
     peak_index = numpy.unravel_index(numpy.argmax(residual), residual.shape)
@@ -59,12 +50,7 @@ def deconvolve(residual, model, psf, meta):
     )
 
     print(
-        "Starting iteration "
-        + str(meta.iteration_number)
-        + ", peak="
-        + str(peak_value)
-        + ", first threshold="
-        + str(first_threshold)
+        f"Starting iteration {meta.iteration_number}, peak={peak_value}, first threshold={first_threshold}"
     )
     while (
         peak_value > first_threshold
@@ -85,10 +71,7 @@ def deconvolve(residual, model, psf, meta):
         meta.iteration_number = meta.iteration_number + 1
 
     print(
-        "Stopped after iteration "
-        + str(meta.iteration_number)
-        + ", peak="
-        + str(peak_value)
+        f"Stopped after iteration {meta.iteration_number}, peak={peak_value}"
     )
 
     # Fill a dictionary with values that wsclean expects:
