@@ -491,7 +491,7 @@ but subtract components from individual channels.
 
 For detailed help, check the WSClean website: https://wsclean.readthedocs.io/ .
 
-This is the modified Tim code.\n)";
+";
 }
 
 std::vector<std::string> ParseStringList(const char* param) {
