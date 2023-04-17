@@ -124,6 +124,7 @@ class Settings {
   double deconvolutionMGain;
   bool autoDeconvolutionThreshold, autoMask;
   double autoDeconvolutionThresholdSigma, autoMaskSigma;
+  size_t forceMaskRounds;
   double localRMSWindow;
   radler::LocalRmsMethod localRMSMethod;
   bool saveSourceList;
@@ -326,6 +327,7 @@ inline Settings::Settings()
       autoMask(false),
       autoDeconvolutionThresholdSigma(0.0),
       autoMaskSigma(0.0),
+      forceMaskRounds(0),
       localRMSWindow(25.0),
       localRMSMethod(radler::LocalRmsMethod::kNone),
       saveSourceList(false),

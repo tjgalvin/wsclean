@@ -346,6 +346,8 @@ Options can be:
 -auto-mask <sigma>
    Construct a mask from found components and when a threshold of sigma is reached, continue
    cleaning with the mask down to the normal threshold.
+-force-mask-rounds <ncycles>
+    Will force the derivation of the mask to be carried out across a set number of major cleaning rounds. 
 -local-rms
    Instead of using a single RMS for auto thresholding/masking, use a spatially varying
    RMS image.
@@ -488,7 +490,8 @@ but subtract components from individual channels.
    Allow the beam to be elliptical. Default.
 
 For detailed help, check the WSClean website: https://wsclean.readthedocs.io/ .
-)";
+
+This is the modified Tim code.\n)";
 }
 
 std::vector<std::string> ParseStringList(const char* param) {
@@ -662,7 +665,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.autoMask = true;
       settings.autoMaskSigma = ParseDouble(argv[argi], 0.0, "auto-mask");
-    } else if (param == "local-rms") {
+    } else if (param == "force-mask-rounds") {
+      IncArgi(argi, argc);
+      settings.forceMaskRounds = ParseSizeT(argv[argi], "force-mask-round");
+      Logger::Info << "Tim has set the force mask rounds\n";
+    }else if (param == "local-rms") {
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
     } else if (param == "local-rms-window") {
       IncArgi(argi, argc);

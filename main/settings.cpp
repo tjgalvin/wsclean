@@ -347,6 +347,10 @@ void Settings::checkPolarizations() const {
           "auto-threshold. This does not make sense. Did you accidentally "
           "reverse the auto-mask and auto-threshold values?");
   }
+  if (!autoMask && forceMaskRounds > 0)
+    throw std::runtime_error(
+      "force-mask-rounds has been set but auto-masking not enabled. Did you "
+      "mean to enable auto-mask?");
 }
 
 void Settings::Propagate(bool verbose) {
@@ -440,6 +444,7 @@ radler::Settings Settings::GetRadlerSettings() const {
   if (autoMask) {
     radler_settings.auto_mask_sigma = autoMaskSigma;
   }
+  radler_settings.force_mask_rounds = forceMaskRounds;
   radler_settings.local_rms.method = localRMSMethod;
   radler_settings.local_rms.window = localRMSWindow;
   radler_settings.local_rms.image = localRMSImage;
