@@ -10,3 +10,4 @@
 [submodule "external/radler"]
 	path = external/radler
 	url = git@github.com:tjgalvin/radler.git
+	branch = main
