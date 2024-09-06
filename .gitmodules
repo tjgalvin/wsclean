@@ -9,5 +9,5 @@
 	url = https://github.com/pybind/pybind11.git
 [submodule "external/radler"]
 	path = external/radler
-	url = git@github.com:tjgalvin/radler.git
+	url = https://github.com/tjgalvin/radler.git
 	branch = main
