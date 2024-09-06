@@ -489,9 +489,9 @@ but subtract components from individual channels.
 -elliptical-beam
    Allow the beam to be elliptical. Default.
 
-For detailed help, check the WSClean website: https://wsclean.readthedocs.io/ .
+For detailed help, check the WSClean website: https://wsclean.readthedocs.io/.
 
-";
+)";
 }
 
 std::vector<std::string> ParseStringList(const char* param) {
