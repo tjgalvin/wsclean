@@ -36,7 +36,9 @@ def predict_full_image(ms, gridder):
     validate_call(s.split())
 
 
-def predict_facet_image(ms, gridder, apply_beam):
+def predict_facet_image(
+    ms, gridder="wgridder", apply_beam=False, wsclean_command=tcf.WSCLEAN
+):
     name = "point-source"
     facet_beam = "-apply-facet-beam -mwa-path ." if apply_beam else ""
     if apply_beam:
@@ -44,7 +46,7 @@ def predict_facet_image(ms, gridder, apply_beam):
 
     # Predict facet based image
     s = (
-        f"{tcf.WSCLEAN} -predict -gridder {gridder} {facet_beam} "
+        f"{wsclean_command} -predict -gridder {gridder} {facet_beam} "
         f"-facet-regions {tcf.FACETFILE_4FACETS} -name {name} {ms}"
     )
     validate_call(s.split())
@@ -157,8 +159,8 @@ class TestFacets:
         )
         check_and_remove_files(fpaths, remove=True)
 
-    # FIXME: we should test wstacking and wgridder here too
-    # but they fail on the taql assertion
+    # FIXME: we should test wstacking here too
+    # but it fails on the taql assertion
     @pytest.mark.parametrize("gridder", ["wgridder"])
     @pytest.mark.parametrize("apply_facet_beam", [False, True])
     def test_predict(self, gridder, apply_facet_beam, tmp_mwa_mock_facet):
@@ -302,9 +304,12 @@ class TestFacets:
         )
 
     def test_parallel_gridding(self):
-        # Compare serial, threaded and mpi run for facet based imaging
-        # with h5 corrections. Number of used threads/processes is
-        # deliberately chosen smaller than the number of facets.
+        """
+        Run a single gridding cycle (no deconvolution / degridding).
+        Compare serial, threaded and mpi run for facet based imaging
+        with h5 corrections. Number of used threads/processes is
+        deliberately chosen smaller than the number of facets.
+        """
         names = [
             "facets-h5-serial",
             "facets-h5-threaded",
@@ -324,8 +329,7 @@ class TestFacets:
                 "-pol xx,yy -join-polarizations "
                 f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
-                "-interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 "
-                f"-nmiter 5 -gridder wstacking {tcf.MWA_MOCK_MS}"
+                f"-interval 10 14 {tcf.MWA_MOCK_MS}"
             )
             validate_call(s.split())
 
@@ -343,8 +347,44 @@ class TestFacets:
                     threshold,
                 )
 
+    @pytest.mark.parametrize("compound_tasks", [False, True])
+    def test_parallel_predict(
+        self, compound_tasks, tmp_path, tmp_mwa_mock_facet
+    ):
+        """
+        Run a single predict/degridding cycle (no deconvolution / gridding).
+        Compare serial, threaded, mpi and hybrid runs.
+        Do all parallel runs with and without enabling compound tasks.
+        """
+        names = ["threaded", "mpi", "hybrid"]
+        wsclean_commands = [
+            f"{tcf.WSCLEAN} -j 3 -parallel-gridding 3",
+            f"mpirun -np 3 {tcf.WSCLEAN_MP} -max-mpi-message-size 42k",
+            f"mpirun -np 3 {tcf.WSCLEAN_MP} -j 3 -parallel-gridding 3",
+        ]
+
+        # Create reference output using a basic sequential run.
+        predict_facet_image(tmp_mwa_mock_facet)
+
+        # Run various alternatives and compare output against the reference.
+        for name, command in zip(names, wsclean_commands):
+            name = "test_" + name + "_degridding"
+
+            if compound_tasks:
+                name += "_compound"
+                command += " -compound-tasks"
+
+            ms = tmp_path / name
+            shutil.copytree(tcf.MWA_MOCK_FACET, ms)
+            predict_facet_image(ms, wsclean_command=command)
+            assert_taql(
+                f"select from {tmp_mwa_mock_facet} t1, {ms} t2 "
+                "where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
+            )
+
     def test_compound_tasks(self):
         """
+        Run a single gridding cycle (no deconvolution / degridding).
         Compares a basic serial run without compound tasks to
         runs with compound tasks.
         """
@@ -377,8 +417,7 @@ class TestFacets:
                 "-pol xx,yy -join-polarizations "
                 f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
-                "-interval 10 14 -niter 1000000 -auto-threshold 5 -mgain 0.8 "
-                f"-nmiter 5 {tcf.MWA_MOCK_MS}"
+                f"-interval 10 14 {tcf.MWA_MOCK_MS}"
             )
             validate_call(s.split())
 
