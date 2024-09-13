@@ -19,6 +19,8 @@
 #include <fstream>
 #include <string>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 class ReorderedMsReader;

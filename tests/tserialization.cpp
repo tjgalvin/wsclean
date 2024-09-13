@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(msselection) {
   MSSelection a;
   a.SetBandId(3);
   a.SetChannelRange(4, 5);
-  a.SetEvenOrOddTimesteps(MSSelection::EvenTimesteps);
+  a.SetEvenOrOddTimesteps(MSSelection::kEvenTimesteps);
   a.SetFieldIds(std::vector<size_t>{6, 7});
   a.SetInterval(8, 9);
   a.SetMaxUVWInM(11);

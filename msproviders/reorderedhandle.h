@@ -8,6 +8,8 @@
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 namespace reordering {
 

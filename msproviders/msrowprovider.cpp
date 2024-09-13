@@ -5,6 +5,8 @@
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 MSRowProvider::MSRowProvider(
@@ -100,7 +102,7 @@ bool MSRowProvider::isCurrentRowSelected(int fieldId, int a1, int a2) const {
       _selectedDataDescIds.find(_currentDataDescId);
   bool isDataDescIdSelected = dataDescIdIter != _selectedDataDescIds.end();
   return Selection().IsSelected(fieldId, _currentTimestep, a1, a2,
-                                _currentUVWArray) &&
+                                _currentUVWArray.data()) &&
          isDataDescIdSelected;
 }
 

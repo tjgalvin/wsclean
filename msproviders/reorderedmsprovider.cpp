@@ -381,7 +381,7 @@ void ReorderedMsProvider::StoreReorderedInMS(
         time = time_column(row);
       }
       if (handle.selection_.IsSelected(field_id, timestep, antenna1, antenna2,
-                                       uvw)) {
+                                       uvw.data())) {
         std::map<size_t, size_t>::const_iterator data_desc_id_iter =
             data_desc_ids.find(data_desc_id);
         if (data_desc_id_iter != data_desc_ids.end()) {

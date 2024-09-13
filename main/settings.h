@@ -19,6 +19,8 @@
 
 #include <radler/settings.h>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
@@ -55,7 +57,7 @@ class Settings {
   size_t widthForNWCalculation = 0, heightForNWCalculation = 0;
   size_t channelsOut = 1, intervalsOut = 1;
   enum MSSelection::EvenOddSelection evenOddTimesteps =
-      MSSelection::AllTimesteps;
+      MSSelection::kAllTimesteps;
   bool divideChannelsByGaps = false;
   aocommon::UVector<double> divideChannelFrequencies;
   double pixelScaleX = 0.0, pixelScaleY = 0.0;

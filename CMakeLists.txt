@@ -80,7 +80,7 @@ include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 include_directories("${CMAKE_SOURCE_DIR}/external/lrucache11")
 
 # Schaapcommon
-set(SCHAAPCOMMON_MODULES ducc0 facets fitters h5parm math)
+set(SCHAAPCOMMON_MODULES ducc0 facets fitters h5parm math reordering)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
@@ -402,10 +402,10 @@ set(EXTERNAL_LIBRARIES
     ${FFTW3_THREADS_LIB}
     ${FFTW3F_LIB}
     ${FFTW3F_THREADS_LIB}
-    ${Boost_DATE_TIME_LIBRARY}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
+    Boost::date_time
+    Boost::filesystem
+    Boost::program_options
+    Boost::system
     ${CFITSIO_LIBRARY}
     ${GSL_LIB}
     ${GSL_CBLAS_LIB}

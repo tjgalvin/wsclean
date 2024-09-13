@@ -101,7 +101,7 @@ void MSProvider::GetRowRangeAndIDMap(casacore::MeasurementSet& ms,
       casacore::Vector<double> uvw = uvwColumn(row);
       std::set<size_t>::const_iterator dataDescIdIter =
           dataDescIds.find(dataDescId);
-      if (selection.IsSelected(fieldId, timestepIndex, a1, a2, uvw) &&
+      if (selection.IsSelected(fieldId, timestepIndex, a1, a2, uvw.data()) &&
           dataDescIdIter != dataDescIds.end())
         idToMSRow.push_back(row);
     }

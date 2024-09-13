@@ -915,9 +915,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.intervalsOut = atoi(argv[argi]);
     } else if (param == "even-timesteps") {
-      settings.evenOddTimesteps = MSSelection::EvenTimesteps;
+      settings.evenOddTimesteps = MSSelection::kEvenTimesteps;
     } else if (param == "odd-timesteps") {
-      settings.evenOddTimesteps = MSSelection::OddTimesteps;
+      settings.evenOddTimesteps = MSSelection::kOddTimesteps;
     } else if (param == "channel-range") {
       IncArgi(argi, argc);
       settings.startChannel = ParseSizeT(argv[argi], "channel-range");
@@ -1086,7 +1086,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "field") {
       IncArgi(argi, argc);
       if (argv[argi] == std::string("all"))
-        settings.fieldIds.assign(1, MSSelection::ALL_FIELDS);
+        settings.fieldIds.assign(1, MSSelection::kAllFields);
       else {
         aocommon::UVector<int> list = NumberList::ParseIntList(argv[argi]);
         settings.fieldIds.assign(list.begin(), list.end());

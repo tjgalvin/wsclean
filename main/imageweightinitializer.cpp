@@ -47,8 +47,8 @@ void ImageWeightInitializer::InitializeMf(const ImagingTable& imaging_table,
 
           if (settings_.IsBandSelected(band_index)) {
             MSSelection part_selection(global_selection_);
-            const bool has_selection = part_selection.SelectMsChannels(
-                band_data, data_description_id, entry);
+            const bool has_selection = SelectMsChannels(
+                part_selection, band_data, data_description_id, entry);
             if (has_selection) {
               const aocommon::PolarizationEnum pol =
                   settings_.GetProviderPolarization(entry.polarization);

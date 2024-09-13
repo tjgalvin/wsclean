@@ -12,6 +12,8 @@
 #include <map>
 #include <string>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 /** The abstract base of the row providers. */

@@ -116,9 +116,9 @@ void ContiguousMS::NextOutputRow() {
       ++_currentOutputTimestep;
       _currentOutputTime = _timeColumn(_currentOutputRow);
     }
-  } while (
-      !_selection.IsSelected(fieldId, _currentOutputTimestep, a1, a2, uvw) ||
-      (dataDescId != _dataDescId));
+  } while (!_selection.IsSelected(fieldId, _currentOutputTimestep, a1, a2,
+                                  uvw.data()) ||
+           (dataDescId != _dataDescId));
 }
 
 double ContiguousMS::StartTime() {

@@ -39,13 +39,13 @@ static void create_bda_ms_row_provider_with_selection_interval() {
 
 static void create_bda_ms_row_provider_with_selection_even_timesteps() {
   MSSelection selection;
-  selection.SetEvenOrOddTimesteps(MSSelection::EvenTimesteps);
+  selection.SetEvenOrOddTimesteps(MSSelection::kEvenTimesteps);
   create_bda_ms_row_provider_with_selection(selection);
 }
 
 static void create_bda_ms_row_provider_with_selection_odd_timesteps() {
   MSSelection selection;
-  selection.SetEvenOrOddTimesteps(MSSelection::OddTimesteps);
+  selection.SetEvenOrOddTimesteps(MSSelection::kOddTimesteps);
   create_bda_ms_row_provider_with_selection(selection);
 }
 

@@ -8,6 +8,8 @@
 
 #include <cassert>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 const char* BdaMsRowProvider::kBDAFactorsTable = "BDA_FACTORS";
@@ -36,7 +38,7 @@ BdaMsRowProvider::BdaMsRowProvider(
                                 kBDAFactorsTable, " table.");
 
   if (Selection().HasInterval() ||
-      Selection().EvenOrOddTimesteps() != MSSelection::AllTimesteps)
+      Selection().EvenOrOddTimesteps() != MSSelection::kAllTimesteps)
     aocommon::ThrowRuntimeError(
         "An interval selection isn't supported for a BDA measurement set.");
 
@@ -105,7 +107,8 @@ bool BdaMsRowProvider::IsCurrentRowSelected() const {
   }
 
   return Selection().IsSelected(data_.field_id, /*timestep=*/-1,
-                                data_.antenna_1, data_.antenna_2, data_.uvw);
+                                data_.antenna_1, data_.antenna_2,
+                                data_.uvw.data());
 }
 
 }  // namespace wsclean

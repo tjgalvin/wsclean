@@ -31,7 +31,7 @@ bool ContiguousMSReader::CurrentRowAvailable() {
   casacore::Vector<double> uvw = contiguousms._uvwColumn(_currentInputRow);
 
   while (!contiguousms._selection.IsSelected(fieldId, _currentInputTimestep, a1,
-                                             a2, uvw) ||
+                                             a2, uvw.data()) ||
          dataDescId != contiguousms._dataDescId) {
     ++_currentInputRow;
     if (_currentInputRow >= contiguousms._endRow) return false;
@@ -80,7 +80,7 @@ void ContiguousMSReader::NextInputRow() {
       _currentInputTime = contiguousms._timeColumn(_currentInputRow);
     }
   } while (!contiguousms._selection.IsSelected(fieldId, _currentInputTimestep,
-                                               a1, a2, uvw) ||
+                                               a1, a2, uvw.data()) ||
            (dataDescId != contiguousms._dataDescId));
 }
 

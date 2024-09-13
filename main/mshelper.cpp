@@ -31,7 +31,7 @@ const std::vector<reordering::ChannelRange> MsHelper::GenerateChannelInfo(
         const size_t band_index = band_data.GetBandIndex(d);
 
         if (settings_.IsBandSelected(band_index) &&
-            selection.SelectMsChannels(band_data, d, entry)) {
+            SelectMsChannels(selection, band_data, d, entry)) {
           if (entry.polarization == *settings_.polarizations.begin()) {
             reordering::ChannelRange r;
             r.data_desc_id = d;
@@ -133,7 +133,7 @@ std::vector<MsListItem> MsHelper::InitializeMsList(
       const size_t band_index = band_data.GetBandIndex(data_description_id);
 
       if (settings_.IsBandSelected(band_index) &&
-          selection.SelectMsChannels(band_data, data_description_id, entry)) {
+          SelectMsChannels(selection, band_data, data_description_id, entry)) {
         MsListItem item;
         if (settings_.doReorder)
           item.ms_description = MSDataDescription::ForReordered(

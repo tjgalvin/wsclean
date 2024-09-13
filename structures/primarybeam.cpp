@@ -35,6 +35,8 @@ using aocommon::Logger;
 using aocommon::Polarization;
 using aocommon::PolarizationEnum;
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 namespace {
@@ -665,7 +667,7 @@ double PrimaryBeam::MakeBeamForMS(
       ms_weight = 1.0;
       // baseline weights have no effect on homogeneous arrays, so leave at 1
       std::vector<double> baseline_weights(n_baselines, 1);
-      if (settings_.fieldIds[0] == MSSelection::ALL_FIELDS) {
+      if (settings_.fieldIds[0] == MSSelection::kAllFields) {
         Logger::Warn
             << "Warning: primary beam correction together with '-fields "
                "ALL' is not properly supported\n";

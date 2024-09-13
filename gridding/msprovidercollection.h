@@ -9,6 +9,8 @@
 #include "../msproviders/msprovider.h"
 #include "../structures/msselection.h"
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 class MsGridder;

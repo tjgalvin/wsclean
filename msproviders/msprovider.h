@@ -6,6 +6,8 @@
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 
+#include <../structures/msselection.h>
+
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
 
@@ -14,12 +16,13 @@
 #include <type_traits>
 #include <vector>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace casacore {
 class MeasurementSet;
 }  // namespace casacore
 
 namespace wsclean {
-class MSSelection;
 class MSReader;
 
 /**

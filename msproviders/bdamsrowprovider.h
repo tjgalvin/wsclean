@@ -19,7 +19,8 @@ class BdaMsRowProvider final : public MsRowProviderBase {
    * @pre !selection.HasInterval()
    */
   explicit BdaMsRowProvider(
-      const casacore::MeasurementSet& ms, const MSSelection& selection,
+      const casacore::MeasurementSet& ms,
+      const schaapcommon::reordering::MSSelection& selection,
       const std::map<size_t, size_t>& selected_data_description_ids,
       const std::string& data_column_name, bool require_model);
 

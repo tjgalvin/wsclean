@@ -60,7 +60,7 @@ const bool kTestFlags[] = {false, false, false, false, false, false,
                            false, false, false, false};
 
 const std::vector<ChannelRange> kChannelRanges{{0, 0, 2}, {0, 6, 8}, {1, 0, 4}};
-const wsclean::MSSelection kSelection;
+const schaapcommon::reordering::MSSelection kSelection;
 const std::set<PolarizationEnum> kPolsOut{Polarization::StokesI,
                                           Polarization::StokesQ};
 const aocommon::MultiBandData kBands;
