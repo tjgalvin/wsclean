@@ -385,7 +385,7 @@ Options can be:
 -niter <niter>
    Maximum number of clean iterations to perform. Default: 0 (=no cleaning)
 -nmiter <nmiter>
-   Maximum number of major clean (inversion/prediction) iterations. Default: 20.   A value of 0 means no limit.
+   Maximum number of major clean (inversion/prediction) iterations. Default: 12.   A value of 0 means no limit.
 -auto-threshold <sigma>
    Relative clean threshold. Estimate noise level using a robust estimator and stop at sigma x stddev.
 -abs-threshold <threshold>

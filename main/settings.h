@@ -171,7 +171,8 @@ class Settings {
   double localRMSWindow = 25.0;
   radler::LocalRmsMethod localRMSMethod = radler::LocalRmsMethod::kNone;
   bool saveSourceList = false;
-  size_t deconvolutionIterationCount = 0, majorIterationCount = 20;
+  size_t deconvolutionIterationCount = 0;
+  size_t majorIterationCount = 12;
   bool allowNegativeComponents = true, stopOnNegativeComponents = false;
   bool useSubMinorOptimization = true, squaredJoins = false;
   double spectralCorrectionFrequency = 0.0;
