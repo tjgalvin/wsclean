@@ -2,10 +2,13 @@
 #define MSPROVIDERS_REORDERED_MS_PROVIDER_
 
 #include "msprovider.h"
-#include "reordering.h"
 
 #include "../structures/msselection.h"
 #include "../system/mappedfile.h"
+
+#include <schaapcommon/reordering/reorderedhandle.h>
+#include <schaapcommon/reordering/reorderedfilewriter.h>
+#include <schaapcommon/reordering/reordering.h>
 
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
@@ -18,8 +21,6 @@
 #include <functional>
 #include <fstream>
 #include <string>
-
-using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
@@ -83,17 +84,18 @@ class ReorderedMsProvider final : public MSProvider {
    public:
     ReorderedHandle() = default;
 
-    ReorderedHandle(const std::string& ms_path, const string& data_column_name,
-                    const std::string& temporary_directory,
-                    const std::vector<reordering::ChannelRange>& channels,
-                    bool initial_model_required, bool model_update_required,
-                    const std::set<aocommon::PolarizationEnum>& polarizations,
-                    const MSSelection& selection,
-                    const aocommon::MultiBandData& bands, size_t n_antennas,
-                    bool keep_temporary_files,
-                    std::function<void(reordering::ReorderedHandleData& handle)>
-                        cleanup_callback)
-        : data_(std::make_shared<reordering::ReorderedHandleData>(
+    ReorderedHandle(
+        const std::string& ms_path, const string& data_column_name,
+        const std::string& temporary_directory,
+        const std::vector<schaapcommon::reordering::ChannelRange>& channels,
+        bool initial_model_required, bool model_update_required,
+        const std::set<aocommon::PolarizationEnum>& polarizations,
+        const MSSelection& selection, const aocommon::MultiBandData& bands,
+        size_t n_antennas, bool keep_temporary_files,
+        std::function<
+            void(schaapcommon::reordering::ReorderedHandleData& handle)>
+            cleanup_callback)
+        : data_(std::make_shared<schaapcommon::reordering::ReorderedHandleData>(
               ms_path, data_column_name, temporary_directory, channels,
               initial_model_required, model_update_required, polarizations,
               selection, bands, n_antennas, keep_temporary_files,
@@ -103,10 +105,11 @@ class ReorderedMsProvider final : public MSProvider {
     void Unserialize(aocommon::SerialIStream& stream);
 
    private:
-    std::shared_ptr<reordering::ReorderedHandleData> data_;
+    std::shared_ptr<schaapcommon::reordering::ReorderedHandleData> data_;
   };
 
-  static void StoreReorderedInMS(const reordering::ReorderedHandleData& handle);
+  static void StoreReorderedInMS(
+      const schaapcommon::reordering::ReorderedHandleData& handle);
 
  private:
   const ReorderedHandle handle_;
@@ -118,14 +121,14 @@ class ReorderedMsProvider final : public MSProvider {
   const aocommon::PolarizationEnum polarization_;
   size_t polarization_count_in_file_;
 
-  reordering::MetaHeader meta_header_;
-  reordering::PartHeader part_header_;
+  schaapcommon::reordering::MetaHeader meta_header_;
+  schaapcommon::reordering::PartHeader part_header_;
 };
 
 ReorderedMsProvider::ReorderedHandle ReorderMS(
-    const string& ms_path,
-    const std::vector<reordering::ChannelRange>& channels,
-    const class MSSelection& selection, const string& data_column_name,
+    const std::string& ms_path,
+    const std::vector<schaapcommon::reordering::ChannelRange>& channels,
+    const class MSSelection& selection, const std::string& data_column_name,
     bool include_model, bool initial_model_required,
     const class Settings& settings);
 

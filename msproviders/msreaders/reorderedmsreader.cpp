@@ -9,7 +9,7 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
       read_ptr_row_offset_(0),
       meta_ptr_row_offset_(0),
       weight_ptr_row_offset_(0) {
-  meta_file_.open(reordering::GetMetaFilename(
+  meta_file_.open(schaapcommon::reordering::GetMetaFilename(
                       reordered_ms->handle_.data_->ms_path_,
                       reordered_ms->handle_.data_->temporary_directory_,
                       reordered_ms->part_header_.data_desc_id),
@@ -17,9 +17,10 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
   std::vector<char> ms_path(reordered_ms->meta_header_.filename_length + 1,
                             char(0));
   // meta and data header were read in ReorderedMs constructor
-  meta_file_.seekg(reordering::MetaHeader::BINARY_SIZE, std::ios::beg);
+  meta_file_.seekg(schaapcommon::reordering::MetaHeader::BINARY_SIZE,
+                   std::ios::beg);
   meta_file_.read(ms_path.data(), reordered_ms->meta_header_.filename_length);
-  std::string part_prefix = reordering::GetPartPrefix(
+  std::string part_prefix = schaapcommon::reordering::GetPartPrefix(
       ms_path.data(), reordered_ms->part_index_, reordered_ms->polarization_,
       reordered_ms->part_header_.data_desc_id,
       reordered_ms->handle_.data_->temporary_directory_);
@@ -27,7 +28,8 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
   if (!data_file_.good())
     throw std::runtime_error("Error opening temporary data file in '" +
                              part_prefix + ".tmp'");
-  data_file_.seekg(reordering::PartHeader::BINARY_SIZE, std::ios::beg);
+  data_file_.seekg(schaapcommon::reordering::PartHeader::BINARY_SIZE,
+                   std::ios::beg);
 
   weight_file_.open(part_prefix + "-w.tmp", std::ios::in);
   if (!weight_file_.good())
@@ -55,12 +57,12 @@ void ReorderedMsReader::NextInputRow() {
 
 void ReorderedMsReader::ReadMeta(double& u, double& v, double& w) {
   if (meta_ptr_row_offset_ != 0)
-    meta_file_.seekg(
-        meta_ptr_row_offset_ * (reordering::MetaRecord::BINARY_SIZE),
-        std::ios::cur);
+    meta_file_.seekg(meta_ptr_row_offset_ *
+                         schaapcommon::reordering::MetaRecord::BINARY_SIZE,
+                     std::ios::cur);
   meta_ptr_row_offset_ = -1;
 
-  reordering::MetaRecord record;
+  schaapcommon::reordering::MetaRecord record;
   record.Read(meta_file_);
   u = record.u;
   v = record.v;
@@ -69,12 +71,12 @@ void ReorderedMsReader::ReadMeta(double& u, double& v, double& w) {
 
 void ReorderedMsReader::ReadMeta(MSProvider::MetaData& meta_data) {
   if (meta_ptr_row_offset_ != 0)
-    meta_file_.seekg(
-        meta_ptr_row_offset_ * (reordering::MetaRecord::BINARY_SIZE),
-        std::ios::cur);
+    meta_file_.seekg(meta_ptr_row_offset_ *
+                         schaapcommon::reordering::MetaRecord::BINARY_SIZE,
+                     std::ios::cur);
   meta_ptr_row_offset_ = -1;
 
-  reordering::MetaRecord record;
+  schaapcommon::reordering::MetaRecord record;
   record.Read(meta_file_);
   meta_data.uInM = record.u;
   meta_data.vInM = record.v;
@@ -99,8 +101,8 @@ void ReorderedMsReader::ReadData(std::complex<float>* buffer) {
   }
   read_ptr_row_offset_ = -1;
 #ifndef NDEBUG
-  const size_t pos =
-      size_t(data_file_.tellg()) - reordering::PartHeader::BINARY_SIZE;
+  const size_t pos = size_t(data_file_.tellg()) -
+                     schaapcommon::reordering::PartHeader::BINARY_SIZE;
   if (pos !=
       current_input_row_ * n_visibilities * sizeof(std::complex<float>)) {
     std::ostringstream s;
@@ -152,7 +154,7 @@ void ReorderedMsReader::WriteImagingWeights(const float* buffer) {
       static_cast<const ReorderedMsProvider&>(*_msProvider);
 
   if (imaging_weights_file_ == nullptr) {
-    std::string part_prefix = reordering::GetPartPrefix(
+    std::string part_prefix = schaapcommon::reordering::GetPartPrefix(
         reordered_ms.handle_.data_->ms_path_, reordered_ms.part_index_,
         reordered_ms.polarization_, reordered_ms.part_header_.data_desc_id,
         reordered_ms.handle_.data_->temporary_directory_);

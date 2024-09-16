@@ -1,7 +1,5 @@
 #include "reorderedmsprovider.h"
 #include "msreaders/reorderedmsreader.h"
-#include "reorderedfilewriter.h"
-#include "reorderedhandle.h"
 
 #include "averagingmsrowprovider.h"
 #include "directmsrowprovider.h"
@@ -24,6 +22,17 @@
 
 using aocommon::Logger;
 
+using schaapcommon::reordering::ChannelRange;
+using schaapcommon::reordering::GetDataDescIdMap;
+using schaapcommon::reordering::GetMaxChannels;
+using schaapcommon::reordering::GetMetaFilename;
+using schaapcommon::reordering::GetPartPrefix;
+using schaapcommon::reordering::MetaHeader;
+using schaapcommon::reordering::MSSelection;
+using schaapcommon::reordering::PartHeader;
+using schaapcommon::reordering::ReorderedFileWriter;
+using schaapcommon::reordering::ReorderedHandleData;
+
 /**
  * MAP_NORESERVE is unsuported AND not defined on hurd-i386, so
  * assign it to zero in this case.
@@ -37,12 +46,11 @@ namespace wsclean {
 namespace {
 
 std::map<size_t, std::set<aocommon::PolarizationEnum>>
-GetMSPolarizationsPerDataDescId(
-    const std::vector<reordering::ChannelRange>& ranges,
-    casacore::MeasurementSet& ms) {
+GetMSPolarizationsPerDataDescId(const std::vector<ChannelRange>& ranges,
+                                casacore::MeasurementSet& ms) {
   std::map<size_t, std::set<aocommon::PolarizationEnum>>
       ms_polarizations_per_data_desc_id;
-  for (const reordering::ChannelRange& range : ranges) {
+  for (const ChannelRange& range : ranges) {
     ms_polarizations_per_data_desc_id.emplace(
         range.data_desc_id,
         ReorderedMsProvider::GetMSPolarizations(range.data_desc_id, ms));
@@ -62,9 +70,9 @@ ReorderedMsProvider::ReorderedMsProvider(
       polarization_(polarization),
       polarization_count_in_file_(
           aocommon::Polarization::GetVisibilityCount(polarization_)) {
-  std::ifstream meta_file(reordering::GetMetaFilename(
-      handle.data_->ms_path_, handle.data_->temporary_directory_,
-      data_desc_id));
+  std::ifstream meta_file(GetMetaFilename(handle.data_->ms_path_,
+                                          handle.data_->temporary_directory_,
+                                          data_desc_id));
   if (!meta_file) {
     throw std::runtime_error("Error opening meta file for ms " +
                              handle.data_->ms_path_ + ", data_desc_id " +
@@ -76,9 +84,9 @@ ReorderedMsProvider::ReorderedMsProvider(
   meta_file.read(ms_path.data(), meta_header_.filename_length);
   Logger::Info << "Opening reordered part " << part_index << " spw "
                << data_desc_id << " for " << ms_path.data() << '\n';
-  std::string part_prefix = reordering::GetPartPrefix(
-      ms_path.data(), part_index, polarization, data_desc_id,
-      handle.data_->temporary_directory_);
+  std::string part_prefix =
+      GetPartPrefix(ms_path.data(), part_index, polarization, data_desc_id,
+                    handle.data_->temporary_directory_);
 
   std::ifstream data_file(part_prefix + ".tmp", std::ios::in);
   if (!data_file.good())
@@ -150,8 +158,7 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
  * - Model, optionally
  */
 ReorderedMsProvider::ReorderedHandle ReorderMS(
-    const string& ms_path,
-    const std::vector<reordering::ChannelRange>& channels,
+    const string& ms_path, const std::vector<ChannelRange>& channels,
     const MSSelection& selection, const string& data_column_name,
     bool include_model, bool initial_model_required, const Settings& settings) {
   const bool model_update_required = settings.modelUpdateRequired;
@@ -164,7 +171,7 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
 
   // This maps data_desc_id to spw index.
   const std::map<size_t, size_t> selected_data_desc_ids =
-      reordering::GetDataDescIdMap(channels);
+      GetDataDescIdMap(channels);
 
   std::unique_ptr<MsRowProviderBase> row_provider;
   if (settings.baselineDependentAveragingInWavelengths == 0.0) {
@@ -201,14 +208,14 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   const aocommon::MultiBandData bands(row_provider->Ms());
 
   // This handle is just for the writer
-  reordering::ReorderedHandleData handle_data(
+  ReorderedHandleData handle_data(
       ms_path, data_column_name, temporary_directory, channels,
       initial_model_required, model_update_required, pols_out, selection, bands,
       nAntennas, true, ReorderedMsProvider::StoreReorderedInMS);
 
-  reordering::ReorderedFileWriter reordered_file_writer(
-      handle_data, ms_polarizations_per_data_desc_id,
-      row_provider->StartTime());
+  ReorderedFileWriter reordered_file_writer(handle_data,
+                                            ms_polarizations_per_data_desc_id,
+                                            row_provider->StartTime());
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << ms_path << " into " << channel_parts
@@ -277,32 +284,31 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
 }  // namespace wsclean
 
 void ReorderedMsProvider::StoreReorderedInMS(
-    const reordering::ReorderedHandleData& handle) {
+    const ReorderedHandleData& handle) {
   const std::set<aocommon::PolarizationEnum> pols = handle.polarizations_;
 
   const std::map<size_t, size_t> data_desc_ids =
-      reordering::GetDataDescIdMap(handle.channels_);
+      GetDataDescIdMap(handle.channels_);
 
-  std::vector<reordering::MetaHeader> meta_headers(data_desc_ids.size());
+  std::vector<MetaHeader> meta_headers(data_desc_ids.size());
   for (const std::pair<const size_t, size_t>& data_desc_id : data_desc_ids) {
-    std::ifstream meta_file(reordering::GetMetaFilename(
+    std::ifstream meta_file(GetMetaFilename(
         handle.ms_path_, handle.temporary_directory_, data_desc_id.first));
-    reordering::MetaHeader& meta_header = meta_headers[data_desc_id.second];
+    MetaHeader& meta_header = meta_headers[data_desc_id.second];
     meta_header.Read(meta_file);
     std::vector<char> ms_path(meta_header.filename_length + 1, char(0));
     meta_file.read(ms_path.data(), meta_header.filename_length);
   }
 
-  reordering::ChannelRange firstRange = handle.channels_[0];
+  ChannelRange firstRange = handle.channels_[0];
   std::ifstream first_data_file(
-      reordering::GetPartPrefix(handle.ms_path_, 0, *pols.begin(),
-                                firstRange.data_desc_id,
-                                handle.temporary_directory_) +
+      GetPartPrefix(handle.ms_path_, 0, *pols.begin(), firstRange.data_desc_id,
+                    handle.temporary_directory_) +
           ".tmp",
       std::ios::in);
   if (!first_data_file.good())
     throw std::runtime_error("Error opening temporary data file");
-  reordering::PartHeader firstpart_header_;
+  PartHeader firstpart_header_;
   firstpart_header_.Read(first_data_file);
   if (!first_data_file.good())
     throw std::runtime_error("Error reading from temporary data file");
@@ -318,8 +324,8 @@ void ReorderedMsProvider::StoreReorderedInMS(
       size_t data_desc_id = handle.channels_[part].data_desc_id;
       for (aocommon::PolarizationEnum p : pols) {
         std::string part_prefix =
-            reordering::GetPartPrefix(handle.ms_path_, part, p, data_desc_id,
-                                      handle.temporary_directory_);
+            GetPartPrefix(handle.ms_path_, part, p, data_desc_id,
+                          handle.temporary_directory_);
         model_files[file_index] =
             std::make_unique<std::ifstream>(part_prefix + "-m.tmp");
         if (!*model_files[file_index])
@@ -352,7 +358,7 @@ void ReorderedMsProvider::StoreReorderedInMS(
         ms, ms.columnName(casacore::MSMainEnums::UVW));
 
     const casacore::IPosition shape(data_column.shape(0));
-    const size_t maxchannels_ = reordering::GetMaxChannels(handle.channels_);
+    const size_t maxchannels_ = GetMaxChannels(handle.channels_);
 
     const size_t polarizations_per_file =
         aocommon::Polarization::GetVisibilityCount(*pols.begin());
@@ -402,7 +408,7 @@ void ReorderedMsProvider::StoreReorderedInMS(
                 if (!model_files[file_index]->good())
                   throw std::runtime_error(
                       "Error reading from temporary model data file");
-                reordering::StoreData<false>(
+                schaapcommon::reordering::StoreData<false>(
                     model_data_array.data(), part_start_ch, part_end_ch,
                     ms_polarizations, model_data_buffer.data(), p);
 
@@ -429,7 +435,7 @@ void ReorderedMsProvider::MakeIdToMSRowMapping(
     std::vector<size_t>& id_to_ms_row) {
   const MSSelection& selection = handle_.data_->selection_;
   const std::map<size_t, size_t> data_desc_ids =
-      reordering::GetDataDescIdMap(handle_.data_->channels_);
+      GetDataDescIdMap(handle_.data_->channels_);
   std::set<size_t> data_desc_idSet;
   for (std::map<size_t, size_t>::const_iterator i = data_desc_ids.begin();
        i != data_desc_ids.end(); ++i)

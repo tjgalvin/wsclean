@@ -3,6 +3,8 @@
 
 #include <aocommon/logger.h>
 
+#include <schaapcommon/reordering/reordering.h>
+
 #include <casacore/measures/Measures/MEpoch.h>
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/tables/Tables/TableLocker.h>
@@ -180,13 +182,13 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
 
   _modelColumn.get(_currentOutputRow, _modelArray);
   if (addToMS) {
-    reordering::StoreData<true>(_modelArray.data(), startChannel, endChannel,
-                                _inputPolarizations, buffer,
-                                _outputPolarization);
+    schaapcommon::reordering::StoreData<true>(_modelArray.data(), startChannel,
+                                              endChannel, _inputPolarizations,
+                                              buffer, _outputPolarization);
   } else {
-    reordering::StoreData<false>(_modelArray.data(), startChannel, endChannel,
-                                 _inputPolarizations, buffer,
-                                 _outputPolarization);
+    schaapcommon::reordering::StoreData<false>(_modelArray.data(), startChannel,
+                                               endChannel, _inputPolarizations,
+                                               buffer, _outputPolarization);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);
 }

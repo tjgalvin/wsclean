@@ -20,10 +20,6 @@ add_executable(
   msproviders/tbdamsrowprovider.cpp
   msproviders/tbdamsrowproviderdata.cpp
   msproviders/tmsrowproviderbase.cpp
-  msproviders/treorder_utils.cpp
-  msproviders/treorder_extraction.cpp
-  msproviders/treorder_store.cpp
-  msproviders/treorder_writer.cpp
   scheduling/tgriddingtaskfactory.cpp
   structures/timagingtable.cpp
   structures/tfacetutil.cpp

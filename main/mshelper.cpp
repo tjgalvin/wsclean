@@ -8,12 +8,14 @@
 
 using aocommon::Logger;
 
+using schaapcommon::reordering::ChannelRange;
+
 namespace wsclean {
 
-const std::vector<reordering::ChannelRange> MsHelper::GenerateChannelInfo(
+const std::vector<ChannelRange> MsHelper::GenerateChannelInfo(
     const ImagingTable& imaging_table, size_t ms_index) const {
   const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
-  std::vector<reordering::ChannelRange> channels;
+  std::vector<ChannelRange> channels;
   // The partIndex needs to increase per data desc ids and channel ranges
   std::map<aocommon::PolarizationEnum, size_t> next_index;
   for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
@@ -33,7 +35,7 @@ const std::vector<reordering::ChannelRange> MsHelper::GenerateChannelInfo(
         if (settings_.IsBandSelected(band_index) &&
             SelectMsChannels(selection, band_data, d, entry)) {
           if (entry.polarization == *settings_.polarizations.begin()) {
-            reordering::ChannelRange r;
+            ChannelRange r;
             r.data_desc_id = d;
             r.start = selection.ChannelRangeStart();
             r.end = selection.ChannelRangeEnd();
@@ -67,7 +69,7 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
     polarization_types.insert(settings_.GetProviderPolarization(p));
 
   for (size_t ms_index = 0; ms_index < settings_.filenames.size(); ++ms_index) {
-    const std::vector<reordering::ChannelRange> channels =
+    const std::vector<ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
     casacore::MeasurementSet ms_data_obj(settings_.filenames[ms_index]);
     const size_t n_antennas = ms_data_obj.antenna().nrow();
@@ -102,7 +104,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, settings_.filenames.size(), [&](size_t ms_index) {
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
-    std::vector<reordering::ChannelRange> channels =
+    std::vector<ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
     ReorderedMsProvider::ReorderedHandle part_ms = ReorderMS(
         settings_.filenames[ms_index], channels, global_selection_,

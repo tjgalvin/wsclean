@@ -1,6 +1,8 @@
 #include "contiguousmsreader.h"
 #include "../contiguousms.h"
 
+#include <schaapcommon/reordering/reordering.h>
+
 namespace wsclean {
 
 ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
@@ -122,7 +124,7 @@ void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
     endChannel =
         contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
   }
-  reordering::ExtractData(
+  schaapcommon::reordering::ExtractData(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
       contiguousms._dataArray.data(), contiguousms._outputPolarization);
 }
@@ -143,7 +145,7 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
     endChannel =
         contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
   }
-  reordering::ExtractData(
+  schaapcommon::reordering::ExtractData(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
       contiguousms._modelArray.data(), contiguousms._outputPolarization);
 }
@@ -163,7 +165,7 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
     endChannel =
         contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
   }
-  reordering::ExtractWeights(
+  schaapcommon::reordering::ExtractWeights(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
       contiguousms._dataArray.data(), contiguousms._weightSpectrumArray.data(),
       contiguousms._flagArray.data(), contiguousms._outputPolarization);
@@ -188,10 +190,10 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
 
   _imagingWeightsColumn->get(_currentInputRow,
                              contiguousms._imagingWeightSpectrumArray);
-  reordering::StoreWeights(contiguousms._imagingWeightSpectrumArray.data(),
-                           startChannel, endChannel,
-                           contiguousms._inputPolarizations, buffer,
-                           contiguousms._outputPolarization);
+  schaapcommon::reordering::StoreWeights(
+      contiguousms._imagingWeightSpectrumArray.data(), startChannel, endChannel,
+      contiguousms._inputPolarizations, buffer,
+      contiguousms._outputPolarization);
   _imagingWeightsColumn->put(_currentInputRow,
                              contiguousms._imagingWeightSpectrumArray);
 }
