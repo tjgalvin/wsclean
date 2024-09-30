@@ -74,6 +74,23 @@ Auto-masking is also possible in combination with multi-scale cleaning, and is i
 
 For more info about masking, see the chapter on :doc:`masks and auto-masking <masking>`.
 
+Adaptive-scale pixel algorithm
+------------------------------
+WSClean supports a variant of multi-scale called adaptive-scale pixel (ASP), originally described in `Bhatnagar & Cornwell (2004) <https://www.aanda.org/articles/aa/abs/2004/41/aa0354-04/aa0354-04.html>`_. Similar to the multi-scale algorithm, ASP starts by finding the brightest scale from a set of pre-selected Gaussian scales. Once found, ASP performs an additional fitting procedure to fit the position, Gaussian axes and strength of the found shape (taking into account the shape of the point-spread function).
+
+ASP can be simple enabled by adding `-asp` to the command line, e.g.:
+
+.. code-block:: bash
+
+    wsclean -asp -auto-threshold 5 -niter 1000000 -mgain 0.8 \
+      -scale 1amin -size 1024 1024 obs.ms
+
+The advantage of ASP is that it can more accurately fit certain source components, particularly elliptical shaped ones. This freedom can also be a downside, causing over-fitting or mis-fitting of the Gaussian. For example, in complex shapes with sharp edges, ASP can produce very elliptical, thin components that "overshoot" at the feature's edges.
+
+WSClean supports :doc:`multi-frequency <wideband_deconvolution>` and :doc:`multi-polarization <polarimetric_deconvolution>` ASP, and it allows the use of the :doc:`parallel deconvolution option <parallel_deconvolution>`. These are extensions of the original ASP algorithm. The ASP algorithm is *very* slow; it is not uncommon to take more than 100x to 1000x more time than WSClean's multi-scale algorithm. This is in part because no real scenarios were found in which it outperformed multi-scale, hence not a lot of effort was spent on making the algorithm faster. There may nevertheless be some cases, particular with very smooth sources, in which ASP may perform better than multi-scale in terms of accuracy.
+
+The ASP algorithm in WSClean does not support auto-masking. One reason for this is that with ASP, every found component will be a unique component. Hence, to limit the deconvolution to the set of already found components does not have as much benefit as it has for multi-scale. Auto-masking is an important improvement to the accuracy of multi-scale, and the lack of auto-masking in ASP is another reason why it is hard to get better results with ASP, compared to multi-scale clean.
+
 References
 ----------
 

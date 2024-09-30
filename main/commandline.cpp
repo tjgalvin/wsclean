@@ -427,7 +427,7 @@ but subtract components from individual channels.
 -no-fast-subminor
    Do not use the subminor loop optimization during (non-multiscale) cleaning. Default: use the optimization.
 -multiscale
-   Clean on different scales. This is a new algorithm. Default: off.
+   Clean on different scales. Default: off.
    This parameter invokes the optimized multiscale algorithm published by Offringa & Smirnov (2017).
 -multiscale-scale-bias
    Parameter to prevent cleaning small scales in the large-scale iterations. A lower
@@ -447,6 +447,8 @@ but subtract components from individual channels.
    A value of 0.1 might be more stable.
 -multiscale-convolution-padding <padding>
    Size of zero-padding for convolutions during the multi-scale cleaning. Default: 1.1
+-asp
+   Use the adaptive scale pixel algorithm.   
 -no-multiscale-fast-subminor
    Disable the 'fast subminor loop' optimization, that will only search a part of the
    image during the multi-scale subminor loop. The optimization is on by default.
@@ -1027,6 +1029,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           ParseDouble(argv[argi], 1.0, "multiscale-convolution-padding");
     } else if (param == "no-multiscale-fast-subminor") {
       settings.multiscaleFastSubMinorLoop = false;
+    } else if (param == "asp") {
+      settings.algorithmType = radler::AlgorithmType::kAdaptiveScalePixel;
     } else if (param == "weighting-rank-filter") {
       IncArgi(argi, argc);
       settings.rankFilterLevel =

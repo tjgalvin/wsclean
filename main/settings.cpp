@@ -545,6 +545,7 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.algorithm_type = algorithmType;
 
   switch (algorithmType) {
+    case radler::AlgorithmType::kAdaptiveScalePixel:
     case radler::AlgorithmType::kMultiscale:
       radler_settings.multiscale.fast_sub_minor_loop =
           multiscaleFastSubMinorLoop;
