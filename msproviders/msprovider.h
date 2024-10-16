@@ -6,7 +6,7 @@
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 
-#include <../structures/msselection.h>
+#include "../structures/msselection.h"
 
 #include <casacore/casa/Arrays/Array.h>
 #include <casacore/tables/Tables/ArrayColumn.h>
