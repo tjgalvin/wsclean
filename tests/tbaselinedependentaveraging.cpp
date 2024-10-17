@@ -28,9 +28,9 @@ BOOST_AUTO_TEST_CASE(noAveraging,
   std::map<size_t, size_t> dataDescIds;
   dataDescIds.insert(std::make_pair(0, 0));
   AveragingMSRowProvider avgProvider(1e-8, kFilename, selection, dataDescIds, 0,
-                                     "DATA", false);
+                                     "DATA", "MODEL_DATA", false);
   DirectMSRowProvider directProvider(kFilename, selection, dataDescIds, "DATA",
-                                     false);
+                                     "MODEL_DATA", false);
   size_t nRow = 0, nFinite = 0;
   casacore::IPosition shape(2, 4, 1);
   MSRowProvider::DataArray dataArrayAvg(shape), dataArrayDirect(shape);
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(nonZeroTime,
   std::map<size_t, size_t> dataDescIds;
   dataDescIds.insert(std::make_pair(0, 0));
   AveragingMSRowProvider avgProvider(1, kFilename, selection, dataDescIds, 0,
-                                     "DATA", false);
+                                     "DATA", "MODEL_DATA", false);
   size_t nRow = 0;
   casacore::IPosition shape(2, 4, 1);
   MSRowProvider::DataArray dataArray(shape);

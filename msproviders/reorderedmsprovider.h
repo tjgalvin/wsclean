@@ -86,6 +86,7 @@ class ReorderedMsProvider final : public MSProvider {
 
     ReorderedHandle(
         const std::string& ms_path, const string& data_column_name,
+        const std::string& model_column_name,
         const std::string& temporary_directory,
         const std::vector<schaapcommon::reordering::ChannelRange>& channels,
         bool initial_model_required, bool model_update_required,
@@ -96,9 +97,9 @@ class ReorderedMsProvider final : public MSProvider {
             void(schaapcommon::reordering::ReorderedHandleData& handle)>
             cleanup_callback)
         : data_(std::make_shared<schaapcommon::reordering::ReorderedHandleData>(
-              ms_path, data_column_name, temporary_directory, channels,
-              initial_model_required, model_update_required, polarizations,
-              selection, bands, n_antennas, keep_temporary_files,
+              ms_path, data_column_name, model_column_name, temporary_directory,
+              channels, initial_model_required, model_update_required,
+              polarizations, selection, bands, n_antennas, keep_temporary_files,
               std::move(cleanup_callback))) {}
 
     void Serialize(aocommon::SerialOStream& stream) const;
@@ -129,8 +130,8 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
     const std::string& ms_path,
     const std::vector<schaapcommon::reordering::ChannelRange>& channels,
     const class MSSelection& selection, const std::string& data_column_name,
-    bool include_model, bool initial_model_required,
-    const class Settings& settings);
+    const std::string& model_column_name, bool include_model,
+    bool initial_model_required, const class Settings& settings);
 
 }  // namespace wsclean
 

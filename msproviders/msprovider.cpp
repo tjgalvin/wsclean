@@ -110,13 +110,13 @@ void MSProvider::GetRowRangeAndIDMap(casacore::MeasurementSet& ms,
                << idToMSRow.size() << " rows)\n";
 }
 
-void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms) {
+void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms,
+                                       const std::string& model_column_name) {
   casacore::ArrayColumn<casacore::Complex> dataColumn(
       ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
   ms.reopenRW();
-  if (ms.isColumn(casacore::MSMainEnums::MODEL_DATA)) {
-    casacore::ArrayColumn<casacore::Complex> modelColumn(
-        ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
+  if (ms.tableDesc().isColumn(model_column_name)) {
+    casacore::ArrayColumn<casacore::Complex> modelColumn(ms, model_column_name);
     bool isDefined = modelColumn.isDefined(0);
     bool isSameShape = false;
     if (isDefined) {
@@ -129,19 +129,18 @@ void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms) {
                       "as your data column: resetting MODEL column.\n";
       FillModelColumn(dataColumn, modelColumn);
     }
-  } else {  // No column named MODEL_DATA
-    Logger::Info << "Adding model data column... ";
+  } else {  // No column exists with the given model_column_name
+    Logger::Info << "Adding model data column " << model_column_name << "... ";
     Logger::Info.Flush();
     casacore::ArrayColumnDesc<casacore::Complex> modelColumnDesc(
-        ms.columnName(casacore::MSMainEnums::MODEL_DATA));
+        model_column_name);
     try {
       ms.addColumn(modelColumnDesc, "StandardStMan", true, true);
     } catch (std::exception& e) {
       ms.addColumn(modelColumnDesc, "StandardStMan", false, true);
     }
 
-    casacore::ArrayColumn<casacore::Complex> modelColumn(
-        ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
+    casacore::ArrayColumn<casacore::Complex> modelColumn(ms, model_column_name);
     FillModelColumn(dataColumn, modelColumn);
 
     Logger::Info << "DONE\n";

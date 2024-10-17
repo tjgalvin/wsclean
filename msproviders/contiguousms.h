@@ -23,8 +23,9 @@ class ContiguousMS final : public MSProvider {
 
  public:
   ContiguousMS(const string& msPath, const std::string& dataColumnName,
-               const MSSelection& selection, aocommon::PolarizationEnum polOut,
-               size_t dataDescIndex, bool useMPI);
+               const std::string& modelColumnName, const MSSelection& selection,
+               aocommon::PolarizationEnum polOut, size_t dataDescIndex,
+               bool useMPI);
 
   ContiguousMS(const ContiguousMS&) = delete;
 
@@ -90,6 +91,7 @@ class ContiguousMS final : public MSProvider {
   std::unique_ptr<casacore::ArrayColumn<float>> _weightSpectrumColumn;
   std::unique_ptr<casacore::ArrayColumn<float>> _weightScalarColumn;
   std::string _dataColumnName;
+  std::string _modelColumnName;
   casacore::ArrayColumn<casacore::Complex> _dataColumn;
   casacore::ArrayColumn<bool> _flagColumn;
   casacore::ArrayColumn<casacore::Complex> _modelColumn;

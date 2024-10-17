@@ -369,8 +369,10 @@ Options can be:
    all fields in the measurement set. Default: first field (id 0).
 -spws <list>
    Selects only the spws given in the list. list should be a comma-separated list of integers. Default: all spws.
--data-column <columnname>
+-data-column <column name>
    Default: CORRECTED_DATA if it exists, otherwise DATA will be used.
+-model-column <column name>
+   Column to which the predicted data is written. Default: MODEL_DATA.
 -maxuvw-m <meters>
 -minuvw-m <meters>
    Set the min/max baseline distance in meters.
@@ -792,6 +794,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "data-column") {
       IncArgi(argi, argc);
       settings.dataColumnName = argv[argi];
+    } else if (param == "model-column") {
+      IncArgi(argi, argc);
+      settings.modelColumnName = argv[argi];
     } else if (param == "pol") {
       IncArgi(argi, argc);
       settings.polarizations = aocommon::Polarization::ParseList(argv[argi]);

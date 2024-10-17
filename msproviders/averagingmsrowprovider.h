@@ -13,7 +13,7 @@ class AveragingMSRowProvider : public MSRowProvider {
                          const MSSelection& selection,
                          const std::map<size_t, size_t>& selectedDataDescIds,
                          size_t fieldId, const std::string& dataColumnName,
-                         bool requireModel);
+                         const std::string& modelColumnName, bool requireModel);
 
   virtual bool AtEnd() const final override {
     return _flushPosition >= _nElements;

@@ -10,11 +10,9 @@ BOOST_AUTO_TEST_SUITE(bda_ms_row_provider)
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_no_bda_tables) {
   BOOST_CHECK_EXCEPTION(
-      (BdaMsRowProvider{{"test_data/MWA_MOCK.ms"},
-                        MSSelection{},
-                        std::map<size_t, size_t>{{0, 0}},
-                        "DATA",
-                        false}),
+      (BdaMsRowProvider({"test_data/MWA_MOCK.ms"}, MSSelection{},
+                        std::map<size_t, size_t>{{0, 0}}, "DATA", "MODEL_DATA",
+                        false)),
       std::runtime_error, [](const std::runtime_error& e) {
         return e.what() ==
                std::string(
@@ -24,11 +22,9 @@ BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_no_bda_tables) {
 
 static void create_bda_ms_row_provider_with_selection(
     const MSSelection& selection) {
-  BdaMsRowProvider{{"test_data/MWA_BDA_MOCK.ms"},
-                   selection,
-                   std::map<size_t, size_t>{{0, 0}},
-                   "DATA",
-                   false};
+  BdaMsRowProvider({"test_data/MWA_BDA_MOCK.ms"}, selection,
+                   std::map<size_t, size_t>{{0, 0}}, "DATA", "MODEL_DATA",
+                   false);
 }
 
 static void create_bda_ms_row_provider_with_selection_interval() {
@@ -74,11 +70,9 @@ BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_invalid_selection) {
 }
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider) {
-  BdaMsRowProvider provider{{"test_data/MWA_BDA_MOCK.ms"},
-                            MSSelection{},
-                            std::map<size_t, size_t>{{0, 0}},
-                            "DATA",
-                            false};
+  BdaMsRowProvider provider({"test_data/MWA_BDA_MOCK.ms"}, MSSelection{},
+                            std::map<size_t, size_t>{{0, 0}}, "DATA",
+                            "MODEL_DATA", false);
 
   BOOST_REQUIRE_EQUAL(provider.BeginRow(), 0);
   BOOST_REQUIRE_EQUAL(provider.EndRow(), 21);

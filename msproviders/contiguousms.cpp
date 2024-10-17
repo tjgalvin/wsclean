@@ -15,6 +15,7 @@ namespace wsclean {
 
 ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
+                           const std::string& modelColumnName,
                            const MSSelection& selection,
                            aocommon::PolarizationEnum outputPolarization,
                            size_t dataDescId, bool useMPI)
@@ -28,7 +29,8 @@ ContiguousMS::ContiguousMS(const string& msPath,
       _selection(selection),
       _outputPolarization(outputPolarization),
       _msPath(msPath),
-      _dataColumnName(dataColumnName) {
+      _dataColumnName(dataColumnName),
+      _modelColumnName(modelColumnName) {
   open();
 }
 
@@ -149,9 +151,9 @@ size_t ContiguousMS::NPolarizations() {
 }
 
 void ContiguousMS::prepareModelColumn() {
-  InitializeModelColumn(*_ms);
-  _modelColumn = casacore::ArrayColumn<casacore::Complex>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA));
+  InitializeModelColumn(*_ms, _modelColumnName);
+  _modelColumn =
+      casacore::ArrayColumn<casacore::Complex>(*_ms, _modelColumnName);
   const casacore::IPosition shape(_modelColumn.shape(0));
   _modelArray = casacore::Array<std::complex<float>>(shape);
   _isModelColumnPrepared = true;

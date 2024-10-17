@@ -158,9 +158,10 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
  * - Model, optionally
  */
 ReorderedMsProvider::ReorderedHandle ReorderMS(
-    const string& ms_path, const std::vector<ChannelRange>& channels,
-    const MSSelection& selection, const string& data_column_name,
-    bool include_model, bool initial_model_required, const Settings& settings) {
+    const std::string& ms_path, const std::vector<ChannelRange>& channels,
+    const MSSelection& selection, const std::string& data_column_name,
+    const std::string& model_column_name, bool include_model,
+    bool initial_model_required, const Settings& settings) {
   const bool model_update_required = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> pols_out;
   for (aocommon::PolarizationEnum p : settings.polarizations)
@@ -178,7 +179,8 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
     if (settings.simulateNoise) {
       std::unique_ptr<NoiseMSRowProvider> noise_row_provider(
           new NoiseMSRowProvider(ms_path, selection, selected_data_desc_ids,
-                                 data_column_name, initial_model_required));
+                                 data_column_name, model_column_name,
+                                 initial_model_required));
       if (settings.simulatedBaselineNoiseFilename.empty())
         noise_row_provider->SetNoiseLevel(settings.simulatedNoiseStdDev);
       else
@@ -186,9 +188,9 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
             settings.simulatedBaselineNoiseFilename);
       row_provider = std::move(noise_row_provider);
     } else
-      row_provider =
-          MakeMsRowProvider(ms_path, selection, selected_data_desc_ids,
-                            data_column_name, initial_model_required);
+      row_provider = MakeMsRowProvider(
+          ms_path, selection, selected_data_desc_ids, data_column_name,
+          model_column_name, initial_model_required);
   } else {
     if (initial_model_required)
       throw std::runtime_error(
@@ -198,7 +200,7 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
     row_provider = std::make_unique<AveragingMSRowProvider>(
         settings.baselineDependentAveragingInWavelengths, ms_path, selection,
         selected_data_desc_ids, settings.fieldIds[0], data_column_name,
-        initial_model_required);
+        model_column_name, initial_model_required);
   }
 
   const std::map<size_t, std::set<aocommon::PolarizationEnum>>
@@ -208,10 +210,11 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   const aocommon::MultiBandData bands(row_provider->Ms());
 
   // This handle is just for the writer
-  ReorderedHandleData handle_data(
-      ms_path, data_column_name, temporary_directory, channels,
-      initial_model_required, model_update_required, pols_out, selection, bands,
-      nAntennas, true, ReorderedMsProvider::StoreReorderedInMS);
+  ReorderedHandleData handle_data(ms_path, data_column_name, model_column_name,
+                                  temporary_directory, channels,
+                                  initial_model_required, model_update_required,
+                                  pols_out, selection, bands, nAntennas, true,
+                                  ReorderedMsProvider::StoreReorderedInMS);
 
   ReorderedFileWriter reordered_file_writer(handle_data,
                                             ms_polarizations_per_data_desc_id,
@@ -278,9 +281,10 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   progress2.reset();
 
   return ReorderedMsProvider::ReorderedHandle(
-      ms_path, data_column_name, temporary_directory, channels,
-      initial_model_required, model_update_required, pols_out, selection, bands,
-      nAntennas, settings.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
+      ms_path, data_column_name, model_column_name, temporary_directory,
+      channels, initial_model_required, model_update_required, pols_out,
+      selection, bands, nAntennas, settings.saveReorder,
+      ReorderedMsProvider::StoreReorderedInMS);
 }  // namespace wsclean
 
 void ReorderedMsProvider::StoreReorderedInMS(
@@ -339,7 +343,7 @@ void ReorderedMsProvider::StoreReorderedInMS(
     const std::map<size_t, std::set<aocommon::PolarizationEnum>>
         ms_polarizations_per_data_desc_id =
             GetMSPolarizationsPerDataDescId(handle.channels_, ms);
-    InitializeModelColumn(ms);
+    InitializeModelColumn(ms, handle.model_column_name_);
     casacore::ScalarColumn<int> antenna1_column(
         ms, ms.columnName(casacore::MSMainEnums::ANTENNA1));
     casacore::ScalarColumn<int> antenna2_column(
@@ -353,7 +357,7 @@ void ReorderedMsProvider::StoreReorderedInMS(
     casacore::ArrayColumn<casacore::Complex> data_column(
         ms, handle.data_column_name_);
     casacore::ArrayColumn<casacore::Complex> model_column(
-        ms, ms.columnName(casacore::MSMainEnums::MODEL_DATA));
+        ms, handle.model_column_name_);
     casacore::ArrayColumn<double> uvw_column(
         ms, ms.columnName(casacore::MSMainEnums::UVW));
 

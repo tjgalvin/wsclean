@@ -77,10 +77,10 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
     ReorderedMsProvider::ReorderedHandle part_ms =
         ReorderedMsProvider::ReorderedHandle(
             settings_.filenames[ms_index], settings_.dataColumnName,
-            settings_.temporaryDirectory, channels, initial_model_required,
-            settings_.modelUpdateRequired, polarization_types,
-            global_selection_, bands, n_antennas, settings_.saveReorder,
-            ReorderedMsProvider::StoreReorderedInMS);
+            settings_.modelColumnName, settings_.temporaryDirectory, channels,
+            initial_model_required, settings_.modelUpdateRequired,
+            polarization_types, global_selection_, bands, n_antennas,
+            settings_.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
 
     reordered_ms_handles_[ms_index] = std::move(part_ms);
   }
@@ -106,9 +106,10 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
     std::vector<ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
-    ReorderedMsProvider::ReorderedHandle part_ms = ReorderMS(
-        settings_.filenames[ms_index], channels, global_selection_,
-        settings_.dataColumnName, use_model, initial_model_required, settings_);
+    ReorderedMsProvider::ReorderedHandle part_ms =
+        ReorderMS(settings_.filenames[ms_index], channels, global_selection_,
+                  settings_.dataColumnName, settings_.modelColumnName,
+                  use_model, initial_model_required, settings_);
     std::lock_guard<std::mutex> lock(mutex);
     reordered_ms_handles_[ms_index] = std::move(part_ms);
     if (settings_.parallelReordering != 1)
@@ -145,7 +146,8 @@ std::vector<MsListItem> MsHelper::InitializeMsList(
         else
           item.ms_description = MSDataDescription::ForContiguous(
               settings_.filenames[ms_index], settings_.dataColumnName,
-              selection, polarization, data_description_id, settings_.UseMpi());
+              settings_.modelColumnName, selection, polarization,
+              data_description_id, settings_.UseMpi());
         item.ms_index = ms_index;
         ms_list.emplace_back(std::move(item));
       }

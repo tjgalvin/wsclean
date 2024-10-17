@@ -12,9 +12,10 @@ namespace wsclean {
 MSRowProvider::MSRowProvider(
     const string& msPath, const MSSelection& selection,
     const std::map<size_t, size_t>& selectedDataDescIds,
-    const std::string& dataColumnName, bool requireModel)
+    const std::string& dataColumnName, const std::string& model_column_name,
+    bool requireModel)
     : MsRowProviderBase(casacore::MeasurementSet(msPath), selection,
-                        dataColumnName),
+                        dataColumnName, model_column_name),
       _selectedDataDescIds(selectedDataDescIds),
       _requireModel(requireModel) {
   Initialize();
@@ -23,8 +24,9 @@ MSRowProvider::MSRowProvider(
 MSRowProvider::MSRowProvider(
     const casacore::MeasurementSet& ms, const MSSelection& selection,
     const std::map<size_t, size_t>& selected_data_description_ids,
-    const std::string& data_column_name, bool require_model)
-    : MsRowProviderBase(ms, selection, data_column_name),
+    const std::string& data_column_name, const std::string& model_column_name,
+    bool require_model)
+    : MsRowProviderBase(ms, selection, data_column_name, model_column_name),
       _selectedDataDescIds(selected_data_description_ids),
       _requireModel(require_model) {
   Initialize();
@@ -37,8 +39,8 @@ void MSRowProvider::Initialize() {
         "processing.");
 
   if (_requireModel)
-    _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(
-        Ms(), casacore::MS::columnName(casacore::MSMainEnums::MODEL_DATA)));
+    _modelColumn.reset(
+        new casacore::ArrayColumn<casacore::Complex>(Ms(), ModelColumnName()));
 
   MsColumns& columns = Columns();
   _msHasWeights =

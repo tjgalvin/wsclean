@@ -23,8 +23,8 @@ class MSDataDescription {
  public:
   static std::unique_ptr<MSDataDescription> ForContiguous(
       const std::string& filename, const std::string& dataColumnName,
-      const MSSelection& selection, aocommon::PolarizationEnum polarization,
-      size_t dataDescId, bool useMPI) {
+      const std::string& modelColumnName, const MSSelection& selection,
+      aocommon::PolarizationEnum polarization, size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = false;
     mdd->_useMPI = useMPI;
@@ -33,6 +33,7 @@ class MSDataDescription {
     mdd->_selection = selection;
     mdd->_filename = filename;
     mdd->_dataColumnName = dataColumnName;
+    mdd->_modelColumnName = modelColumnName;
     return mdd;
   }
 
@@ -79,6 +80,7 @@ class MSDataDescription {
   // Contiguous
   std::string _filename;
   std::string _dataColumnName;
+  std::string _modelColumnName;
 
   // Reordered
   ReorderedMsProvider::ReorderedHandle _reorderedHandle;

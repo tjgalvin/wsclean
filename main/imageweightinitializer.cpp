@@ -74,7 +74,8 @@ void ImageWeightInitializer::InitializeMf(const ImagingTable& imaging_table,
         const aocommon::PolarizationEnum pol =
             settings_.GetProviderPolarization(*settings_.polarizations.begin());
         ContiguousMS msProvider(settings_.filenames[i],
-                                settings_.dataColumnName, global_selection_,
+                                settings_.dataColumnName,
+                                settings_.modelColumnName, global_selection_,
                                 pol, d, settings_.UseMpi());
         aocommon::BandData selected_band = ms_bands_[i][d];
         if (global_selection_.HasChannelRange())

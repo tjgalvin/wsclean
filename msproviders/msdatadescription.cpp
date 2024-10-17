@@ -19,8 +19,8 @@ std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
                                                  _polarization, _dataDescId);
   else
     return std::make_unique<ContiguousMS>(_filename, _dataColumnName,
-                                          _selection, _polarization,
-                                          _dataDescId, _useMPI);
+                                          _modelColumnName, _selection,
+                                          _polarization, _dataDescId, _useMPI);
 }
 
 void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
@@ -32,6 +32,7 @@ void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
       .Object(_selection)
       .String(_filename)
       .String(_dataColumnName)
+      .String(_modelColumnName)
       .Object(_reorderedHandle)
       .UInt64(_partIndex);
 }
@@ -45,6 +46,7 @@ std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(
       .Object(mdd->_selection)
       .String(mdd->_filename)
       .String(mdd->_dataColumnName)
+      .String(mdd->_modelColumnName)
       .Object(mdd->_reorderedHandle)
       .UInt64(mdd->_partIndex);
   mdd->_useMPI = true;  // Serialization only happens with MPI.

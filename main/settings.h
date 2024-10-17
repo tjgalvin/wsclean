@@ -92,6 +92,7 @@ class Settings {
   size_t startTimestep = 0, endTimestep = 0;
   size_t startChannel = 0, endChannel = 0;
   std::string dataColumnName;
+  std::string modelColumnName = "MODEL_DATA";
   std::set<aocommon::PolarizationEnum> polarizations{
       aocommon::Polarization::StokesI};
   std::string facetRegionFilename;

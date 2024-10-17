@@ -180,7 +180,8 @@ class MSProvider {
     }
   }
 
-  static void InitializeModelColumn(casacore::MeasurementSet& ms);
+  static void InitializeModelColumn(casacore::MeasurementSet& ms,
+                                    const std::string& model_column_name);
 
   static casacore::ArrayColumn<float> InitializeImagingWeightColumn(
       casacore::MeasurementSet& ms);
