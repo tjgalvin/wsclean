@@ -80,6 +80,7 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
                              writer_lock_manager_);
   if (task.operation == GriddingTask::Invert) {
     if (settings_.shared_facet_reads) {
+      manager.SortFacetTasks();
       manager.BatchInvert(task.num_parallel_gridders_);
     } else {
       manager.Invert();

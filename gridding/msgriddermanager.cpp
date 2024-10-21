@@ -52,8 +52,8 @@ void MSGridderManager::InitializeGridders(
     // support reusing them for multiple tasks.
     std::unique_ptr<MsGridder> gridder =
         ConstructGridder(resources.GetPart(task.num_parallel_gridders_));
-    GriddingTask::FacetData& facet_task = task.facets[facet_index];
-    GriddingResult::FacetData& facet_result = facet_results[facet_index];
+    GriddingTask::FacetData* facet_task = &task.facets[facet_index];
+    GriddingResult::FacetData* facet_result = &facet_results[facet_index];
 
     if (solution_data_.HasData()) {
       gridder->GetVisibilityModifier().SetH5Parm(
@@ -62,14 +62,14 @@ void MSGridderManager::InitializeGridders(
     }
     InitializeGridderForTask(*gridder, task, writer_lock_manager);
 
-    const bool has_input_average_beam(facet_task.averageBeam);
+    const bool has_input_average_beam(facet_task->averageBeam);
     if (has_input_average_beam) {
       assert(dynamic_cast<IdgMsGridder*>(gridder.get()));
       IdgMsGridder& idgGridder = static_cast<IdgMsGridder&>(*gridder);
-      idgGridder.SetAverageBeam(std::move(facet_task.averageBeam));
+      idgGridder.SetAverageBeam(std::move(facet_task->averageBeam));
     }
 
-    InitializeGridderForFacet(*gridder, facet_task);
+    InitializeGridderForFacet(*gridder, *facet_task);
 
     facet_tasks_.emplace_back(
         GriddingFacetTask{std::move(gridder), facet_task, facet_result});
@@ -401,7 +401,7 @@ void MSGridderManager::Predict() {
   for (const GriddingFacetTask& task : facet_tasks_) {
     const std::unique_ptr<MsGridder>& gridder = task.facet_gridder;
     gridder->CalculateOverallMetaData();
-    gridder->StartPredict(std::move(task.facet_task.modelImages));
+    gridder->StartPredict(std::move(task.facet_task->modelImages));
     const size_t n_predict_passes = gridder->GetNPredictPasses();
     for (size_t pass_index = 0; pass_index < n_predict_passes; ++pass_index) {
       gridder->StartPredictPass(pass_index);
@@ -422,17 +422,17 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
                                       bool store_common_info) {
   for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
     // Add facet-specific result values to the result.
-    facet_result.images = gridder->ResultImages();
-    facet_result.actualWGridSize = gridder->ActualWGridSize();
-    facet_result.averageCorrection = gridder->GetAverageCorrection();
-    facet_result.averageBeamCorrection = gridder->GetAverageBeamCorrection();
-    facet_result.cache = gridder->AcquireMetaDataCache();
+    facet_result->images = gridder->ResultImages();
+    facet_result->actualWGridSize = gridder->ActualWGridSize();
+    facet_result->averageCorrection = gridder->GetAverageCorrection();
+    facet_result->averageBeamCorrection = gridder->GetAverageBeamCorrection();
+    facet_result->cache = gridder->AcquireMetaDataCache();
 
     // The gridder resets visibility counters in each gridding invocation,
     // so they only contain the statistics of that invocation.
-    facet_result.imageWeight = gridder->ImageWeight();
-    facet_result.normalizationFactor = gridder->NormalizationFactor();
-    facet_result.effectiveGriddedVisibilityCount =
+    facet_result->imageWeight = gridder->ImageWeight();
+    facet_result->normalizationFactor = gridder->NormalizationFactor();
+    facet_result->effectiveGriddedVisibilityCount =
         gridder->EffectiveGriddedVisibilityCount();
     {
       std::lock_guard<std::mutex> result_lock(result_mutex);
@@ -442,10 +442,10 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
 
     // If the average beam already exists on input, IDG will not recompute it,
     // so in that case there is no need to return the unchanged average beam.
-    const bool has_input_average_beam(facet_task.averageBeam);
+    const bool has_input_average_beam(facet_task->averageBeam);
     IdgMsGridder* idgGridder = dynamic_cast<IdgMsGridder*>(gridder.get());
     if (idgGridder && !has_input_average_beam) {
-      facet_result.averageBeam = idgGridder->ReleaseAverageBeam();
+      facet_result->averageBeam = idgGridder->ReleaseAverageBeam();
     }
 
     if (store_common_info) {
@@ -454,6 +454,17 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
       result.beamSize = gridder->BeamSize();
     }
   }
+}
+
+void MSGridderManager::SortFacetTasks() {
+  // Image size is probably an imperfect approximation of job length but should
+  // on average be better than not sorting at all.
+  std::sort(
+      facet_tasks_.begin(), facet_tasks_.end(),
+      [](const GriddingFacetTask& a, const GriddingFacetTask& b) {
+        return a.facet_gridder->ImageWidth() * a.facet_gridder->ImageHeight() >
+               b.facet_gridder->ImageWidth() * b.facet_gridder->ImageHeight();
+      });
 }
 
 std::unique_ptr<MsGridder> MSGridderManager::ConstructGridder(
