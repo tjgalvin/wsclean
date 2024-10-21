@@ -621,11 +621,12 @@ aocommon::PolarizationEnum Settings::GetProviderPolarization(
 }
 
 bool Settings::determineReorder() const {
-  return ((channelsOut != 1) || (polarizations.size() >= 4) ||
-          (deconvolutionMGain != 1.0) ||
-          (baselineDependentAveragingInWavelengths != 0.0) || simulateNoise ||
-          forceReorder) &&
-         !forceNoReorder;
+  const bool prefer_reordering =
+      (channelsOut != 1) || (polarizations.size() >= 4) ||
+      (deconvolutionMGain != 1.0) ||
+      (baselineDependentAveragingInWavelengths != 0.0) || simulateNoise ||
+      !facetRegionFilename.empty();
+  return (prefer_reordering || forceReorder) && !forceNoReorder;
 }
 
 std::string Settings::determineDataColumn(bool verbose) const {
