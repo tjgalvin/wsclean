@@ -330,9 +330,6 @@ void MSGridderManager::BatchInvert(size_t num_parallel_gridders) {
               : ((n_max_chunk_rows * band.ChannelCount()) + data_size);
       aocommon::UVector<std::complex<float>> visibilities(visibility_size);
       ChunkData chunk_data;
-      chunk_data.antennas = antennas.data();
-      chunk_data.uvw = uvw_buffer.data();
-      chunk_data.visibilities = visibilities.data();
 
       // Iterate over chunks until all data has been gridded
       std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
@@ -341,6 +338,9 @@ void MSGridderManager::BatchInvert(size_t num_parallel_gridders) {
         Logger::Info << "Loading data in memory...\n";
 
         // Read / fill the chunk
+        chunk_data.antennas = antennas.data();
+        chunk_data.uvw = uvw_buffer.data();
+        chunk_data.visibilities = visibilities.data();
         size_t n_rows = ReadChunkForInvert(
             shared_data.GetGainMode(), apply_corrections, task_queue, gridders,
             ms_data, n_max_chunk_rows, *ms_reader, band, selected_buffer.data(),

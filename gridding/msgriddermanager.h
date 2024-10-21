@@ -228,6 +228,9 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
   // Restore the quantity of available threads to as it was before entering this
   // method.
   signal.SignalCompletion();
+
+  // We must let all threads process the signal before its destructor is called.
+  task_queue.WaitForIdle(available_cores_);
 }
 
 }  // namespace wsclean
