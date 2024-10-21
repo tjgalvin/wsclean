@@ -64,10 +64,12 @@ class MSGridderManager {
   void ProcessResults(std::mutex& result_mutex, GriddingResult& result,
                       bool store_common_info);
 
-  /* Sort facet tasks by expected gridding time, longest first.
+  /**
+   * Sort facet tasks by expected gridding time, longest first.
    * This enables a mninor optimization for shared reads by slightly reducing
    * the wait time of idle cores when only a few gridders are left running at
-   * end of batch.*/
+   * the end of a batch.
+   */
   void SortFacetTasks();
 
  private:
@@ -227,7 +229,7 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
   // Run the operation with the reduced quantity of available threads.
   for (const GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
-    size_t index = task.facet_task->index;
+    const size_t index = task.facet_task->index;
     task_queue.Emplace([=]() { operation(gridder, index); });
   }
   task_queue.WaitForIdle(n_cores);
