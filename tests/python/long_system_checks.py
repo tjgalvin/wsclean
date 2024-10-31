@@ -5,7 +5,7 @@ import os, glob
 import sys
 from astropy.io import fits
 import numpy as np
-from utils import validate_call, compute_rms
+from utils import validate_call, compute_rms, assert_taql
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -719,13 +719,23 @@ class TestLongSystem:
 -parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -size 2500 2500
 -apply-facet-solutions {solution_file} amplitude000,phase000
 -scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8
--nmiter 1 -maxuvw-m 20000 -no-update-model-required"""
+-nmiter 1 -maxuvw-m 20000"""
         cmd = base_cmd + " -scalar-visibilities 3c196-simulation.ms"
         validate_call(cmd.split())
 
         check_image_pixel(
             i_source_pos, 1.0, "facet-scalar-corrections-image-pb.fits"
         )
+
+        # These next calls check if a predict results in the same values as what the previous deconvolution run produced
+        predict_cmd = f"""{tcf.WSCLEAN} -predict -name facet-scalar-corrections
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -size 2500 2500
+-apply-facet-solutions {solution_file} amplitude000,phase000
+-scale 10asec -maxuvw-m 20000 -model-column PREDICTED_DATA 3c196-simulation.ms"""
+        validate_call(predict_cmd.split())
+
+        taql_cmd = f"select PREDICTED_DATA-MODEL_DATA FROM 3c196-simulation.ms WHERE sumsqr(UVW) < 20000*20000 && ANY(PREDICTED_DATA-MODEL_DATA > 1e-5)"
+        assert_taql(taql_cmd, 0)
 
     def test_iquv_facet_dual_corrections(
         self, model_file_fixture, region_file_fixture
