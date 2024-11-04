@@ -170,6 +170,7 @@ class Settings {
   std::optional<double> absoluteAutoMaskThreshold;
   double deconvolutionGain = 0.1, deconvolutionMGain = 1.0;
   double localRMSWindow = 25.0;
+  double localRMSStrength = 1.0;
   radler::LocalRmsMethod localRMSMethod = radler::LocalRmsMethod::kNone;
   bool saveSourceList = false;
   size_t deconvolutionIterationCount = 0;

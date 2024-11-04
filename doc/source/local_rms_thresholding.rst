@@ -6,7 +6,7 @@ Since :doc:`WSClean 2.3 <changelogs/v2.3>`, WSClean supports setting thresholdin
 There are two ways of using local RMS thresholding:
 
  * WSClean can automatically generate an RMS map; or
- * An pre-made RMS map can be supplied to WSClean.
+ * A pre-made RMS map can be supplied to WSClean.
 
 The two cases will be described in the sections below.
 
@@ -55,3 +55,20 @@ A pre-existing RMS map can be supplied with the ``-rms-background-image`` parame
 The input map (``rmsmap.fits`` in this case) will have to have the size of the output image.
 
 A typical use-case for this is to supply an RMS map created by a source detector. Generally, to use this method, it is required to image the field twice. When an automatically-created RMS map is used instead of a fixed pre-made map, WSClean will adapt the RMS map each major iteration, and in most cases the automatic RMS map will therefore be more accurate compared to a partially cleaned RMS map created by (for example) a source detector. The pre-existing RMS map should therefore normally not be the first choice, but there are probably cases where it *is* useful.
+
+Local-rms strength
+------------------
+
+Using the full local RMS may at times cause issues with picking up bright sources. By using local RMS values, it can happen that a bright source is in an area that has such an increased local noise value that the bright source is not cleaned, or cleaning does not pick up parts of the source, even though they are bright. In combination with auto-masking, this would leave the source fully or partially out of the mask. In any case, this may leave the source undeconvolved, with poor images as a result.
+
+To remedi this situation somewhat, the strength of the local-rms effect is configurable. The strength is a value between 0 and (normally) 1, and is applied by WSClean to the local RMS map using ``local_rms ^ strength``. As a result, a strength value of 0 causes local RMS to have no effect (all areas are cleaned equally deep), a value of 1 normalizes the residual image before peak detection such that the local RMS is constant and a value of 0.5 takes the square root of the local rms. A strength value of 0.5 is therefore a balance between minimizing the deconvolution of artefacts around bright sources; while still likely picking up bright sources. A value of lower than 1 results often in a more stable result.
+
+The strength is specified with the ``-local-rms-strength`` parameter. If not specified, the default strength value is one. An example:
+
+.. code-block:: bash
+
+    wsclean -local-rms-strength 0.5 -auto-threshold 1 -auto-mask 5 [...]
+
+This enables local rms, and sets the strength to 0.5. It cleans the image until all sources in the image have been deconvolved to 5 times the square root of the local rms, and continues then with :doc:`auto mask <masking>` but without considering the local RMS, until a global threshold of 1 sigma is reached. 
+
+The ``-local-rms-strength`` option was added in :doc:`WSClean version 3.6 <changelogs/v3.6>`.

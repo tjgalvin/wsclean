@@ -401,6 +401,9 @@ Options can be:
 -local-rms
    Instead of using a single RMS for auto thresholding/masking, use a spatially varying
    RMS image.
+-local-rms-strength <strength>
+   A value between 0 and (normally) 1 that balances the effect of local RMS: a value of zero turns local RMS off,
+   whereas a value of 1 uses the local RMS directly to flatten the noise in the image. Default: 1.
 -local-rms-window
    Size of window for creating the RMS background map, in number of PSFs. Default: 25 psfs.
 -local-rms-method
@@ -773,6 +776,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           argv[argi], "absolute threshold parameter", FluxDensity::kJansky);
     } else if (param == "local-rms") {
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
+    } else if (param == "local-rms-strength") {
+      IncArgi(argi, argc);
+      settings.localRMSStrength =
+          ParseDouble(argv[argi], 0.0, "local-rms-strength");
     } else if (param == "local-rms-window") {
       IncArgi(argi, argc);
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
