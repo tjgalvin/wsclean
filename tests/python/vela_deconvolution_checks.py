@@ -1,8 +1,9 @@
-from subprocess import check_output
-import pytest
-import os
 import itertools
+import os
 import sys
+from subprocess import check_output
+
+import pytest
 from utils import check_and_remove_files, compute_rms, validate_call
 
 # Append current directory to system path in order to import testconfig variables

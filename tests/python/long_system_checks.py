@@ -1,11 +1,13 @@
-from wsgiref import validate
-import h5py
-import pytest
-import os, glob
+import glob
+import os
 import sys
-from astropy.io import fits
+from wsgiref import validate
+
+import h5py
 import numpy as np
-from utils import validate_call, compute_rms, assert_taql
+import pytest
+from astropy.io import fits
+from utils import assert_taql, compute_rms, validate_call
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")

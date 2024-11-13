@@ -3,20 +3,19 @@
 # This script was written by Jakob Maljaars and
 # Reinout van Weeren.
 
-from scipy.spatial import Voronoi, voronoi_plot_2d
-from astropy.wcs import WCS
-from astropy import units as u
-from astropy.coordinates import SkyCoord
-from astropy.coordinates import Angle
-import numpy as np
 import argparse
 import sys
-import casacore.tables as pt
 
-from shapely.geometry import Polygon
+import casacore.tables as pt
+import numpy as np
 import shapely.geometry
 import shapely.ops
 import tables
+from astropy import units as u
+from astropy.coordinates import Angle, SkyCoord
+from astropy.wcs import WCS
+from scipy.spatial import Voronoi, voronoi_plot_2d
+from shapely.geometry import Polygon
 
 
 def read_dir_fromh5(h5):

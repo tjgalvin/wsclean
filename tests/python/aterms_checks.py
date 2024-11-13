@@ -1,8 +1,9 @@
-import pytest
 import sys
+
 import numpy as np
-from utils import check_and_remove_files, check_output, validate_call
+import pytest
 from astropy.io import fits
+from utils import check_and_remove_files, check_output, validate_call
 
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")

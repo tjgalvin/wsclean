@@ -1,10 +1,11 @@
-import numpy as np
 import os
 import shutil
-from subprocess import check_call, check_output
-from astropy.io import fits
 import sys
 import warnings
+from subprocess import check_call, check_output
+
+import numpy as np
+from astropy.io import fits
 
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")

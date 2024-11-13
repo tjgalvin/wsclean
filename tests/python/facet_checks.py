@@ -1,17 +1,18 @@
-import pytest
 import shutil
 import sys
-from astropy.io import fits
-from astropy.wcs import WCS
+
 import casacore.tables
 import h5py
 import numpy as np
+import pytest
+from astropy.io import fits
+from astropy.wcs import WCS
 from utils import (
     assert_taql,
     basic_image_check,
     check_and_remove_files,
-    compute_rms,
     compare_rms_fits,
+    compute_rms,
     validate_call,
 )
 

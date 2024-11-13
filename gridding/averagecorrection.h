@@ -109,12 +109,12 @@ class AverageCorrection {
                                      const aocommon::MC2x2F& gain2) {
     assert(GetNVisibilities(Mode) == 1);
     if constexpr (Mode == GainMode::kXX)
-      return gain2[0] * std::conj(gain1[0]);
+      return gain2.Get(0) * std::conj(gain1.Get(0));
     else if constexpr (Mode == GainMode::kYY)
-      return gain2[3] * std::conj(gain1[3]);
+      return gain2.Get(3) * std::conj(gain1.Get(3));
     else  // Mode == GainMode::kTrace
-      return 0.5f *
-             (gain2[0] * std::conj(gain1[0]) + gain2[3] * std::conj(gain1[3]));
+      return 0.5f * (gain2.Get(0) * std::conj(gain1.Get(0)) +
+                     gain2.Get(3) * std::conj(gain1.Get(3)));
   }
 
   long double sum_ = 0.0L;

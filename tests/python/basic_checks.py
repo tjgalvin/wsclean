@@ -1,5 +1,6 @@
-import pytest
 import sys
+
+import pytest
 from utils import validate_call
 
 # Append current directory to system path in order to import testconfig

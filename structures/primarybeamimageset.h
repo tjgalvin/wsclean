@@ -92,8 +92,8 @@ class PrimaryBeamImageSet {
       if (Norm(beam) > beamLimit && beam.Invert()) {
         const double xx = images[0][j];
         const double yy = images[1][j];
-        images[0][j] = xx * beam[0].real() + yy * beam[1].real();
-        images[1][j] = xx * beam[2].real() + yy * beam[3].real();
+        images[0][j] = xx * beam.Get(0).real() + yy * beam.Get(1).real();
+        images[1][j] = xx * beam.Get(2).real() + yy * beam.Get(3).real();
       } else {
         for (size_t p = 0; p != 2; ++p)
           images[p][j] = std::numeric_limits<float>::quiet_NaN();

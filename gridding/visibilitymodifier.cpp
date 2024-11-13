@@ -101,7 +101,7 @@ void VisibilityModifier::InitializeCacheParmResponse(
         freqs, *_cachedMSTimes[ms_index], antennaNames,
         (*_gainTypes)[solution_index],
         JonesParameters::InterpolationType::NEAREST, dirIndex, first_solution,
-        second_solution, false, 0.0f, 0u,
+        second_solution, false, 0u,
         JonesParameters::MissingAntennaBehavior::kUnit);
     // parms (Casacore::Cube) is column major
     const casacore::Cube<std::complex<float>>& parms =

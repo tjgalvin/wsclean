@@ -1,9 +1,10 @@
-import pytest
 import os
 import sys
-from utils import validate_call
-from astropy.io import fits
+
 import numpy
+import pytest
+from astropy.io import fits
+from utils import validate_call
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")

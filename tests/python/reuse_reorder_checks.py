@@ -1,8 +1,9 @@
 import os
-from subprocess import check_output, STDOUT
 import sys
-from utils import check_and_remove_files, compare_rms_fits
+from subprocess import STDOUT, check_output
+
 from astropy.io.fits import FITSDiff
+from utils import check_and_remove_files, compare_rms_fits
 
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")

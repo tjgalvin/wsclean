@@ -1,6 +1,6 @@
 import sys
-import numpy
 
+import numpy
 from pywsclean import *
 
 if len(sys.argv) < 2:
