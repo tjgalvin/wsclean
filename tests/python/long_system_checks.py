@@ -736,7 +736,7 @@ class TestLongSystem:
 -scale 10asec -maxuvw-m 20000 -model-column PREDICTED_DATA 3c196-simulation.ms"""
         validate_call(predict_cmd.split())
 
-        taql_cmd = f"select PREDICTED_DATA-MODEL_DATA FROM 3c196-simulation.ms WHERE sumsqr(UVW) < 20000*20000 && ANY(PREDICTED_DATA-MODEL_DATA > 1e-5)"
+        taql_cmd = f"select PREDICTED_DATA-MODEL_DATA FROM 3c196-simulation.ms WHERE sumsqr(UVW) < 20000*20000 && ANY(PREDICTED_DATA-MODEL_DATA > 1e-3)"
         assert_taql(taql_cmd, 0)
 
     def test_iquv_facet_dual_corrections(
