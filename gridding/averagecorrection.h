@@ -40,12 +40,14 @@ class AverageCorrection {
       const std::complex<float> g = GetGainElement<Mode>(gain1, gain2);
       sum_ += std::norm(g) * visibility_weight;
     } else {
-      const aocommon::Matrix4x4 a = aocommon::Matrix4x4::KroneckerProduct(
-          aocommon::MC2x2(gain1), aocommon::MC2x2(gain2));
-      const aocommon::Matrix4x4 b = aocommon::Matrix4x4::KroneckerProduct(
-          aocommon::MC2x2(gain2), aocommon::MC2x2(gain1));
-      matrix_ += (a.HermitianSquare() + b.HermitianSquare()) *
-                 (0.5 * visibility_weight);
+      // Add: w * ((g1^H g1)^T (x) g2^H g2 + (g2^H g2)^T (x) g1^H g1)
+      const aocommon::MC2x2 g1(gain1);
+      const aocommon::MC2x2 g2(gain2);
+      const aocommon::HMatrix4x4 a = aocommon::HMatrix4x4::KroneckerProduct(
+          g1.HermitianSquare().Transpose(), g2.HermitianSquare());
+      const aocommon::HMatrix4x4 b = aocommon::HMatrix4x4::KroneckerProduct(
+          g2.HermitianSquare().Transpose(), g1.HermitianSquare());
+      matrix_ += (a + b) * (0.5 * visibility_weight);
     }
   }
 
