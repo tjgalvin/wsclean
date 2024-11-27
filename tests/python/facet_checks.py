@@ -43,7 +43,7 @@ def predict_facet_image(
     name = "point-source"
     facet_beam = "-apply-facet-beam -mwa-path ." if apply_beam else ""
     if apply_beam:
-        shutil.copyfile(f"{name}-model.fits", f"{name}-model-pb.fits")
+        shutil.copyfile(f"{name}-model.fits", f"{name}-model-fpb.fits")
 
     # Predict facet based image
     s = (
@@ -649,10 +649,10 @@ class TestFacets:
     def test_predict_with_solutions(self):
         # This is a more advanced prediction run which at some point failed
         shutil.copyfile(
-            "point-source-model.fits", "point-source-0000-model-pb.fits"
+            "point-source-model.fits", "point-source-0000-model-fpb.fits"
         )
         shutil.copyfile(
-            "point-source-model.fits", "point-source-0001-model-pb.fits"
+            "point-source-model.fits", "point-source-0001-model-fpb.fits"
         )
         validate_call(
             (

@@ -642,10 +642,11 @@ class TestLongSystem:
         dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[predict] predict.sourcedb=testmodel.txt predict.usebeammodel=True"
         validate_call(dp3_run.split())
 
+        # Run a I-only deconvolution with facets and beam
         base_cmd = f"""{tcf.WSCLEAN} -name facet-iquv-corrections
 -parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -apply-facet-beam
 -size 2500 2500 -scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8
--nmiter 1 -maxuvw-m 20000 -no-update-model-required"""
+-nmiter 1 -maxuvw-m 20000"""
         cmd = base_cmd + " 3c196-simulation.ms"
         validate_call(cmd.split())
 
@@ -653,6 +654,17 @@ class TestLongSystem:
             i_source_pos, 1.0, "facet-iquv-corrections-image-pb.fits"
         )
 
+        # Check consistency of Stokes I predict
+        predict_base_cmd = f"""{tcf.WSCLEAN} -predict -name facet-iquv-corrections
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -apply-facet-beam
+-maxuvw-m 20000 -model-column PREDICTED_DATA"""
+        predict_cmd = predict_base_cmd + " 3c196-simulation.ms"
+        validate_call(predict_cmd.split())
+
+        taql_cmd = f"select PREDICTED_DATA-MODEL_DATA FROM 3c196-simulation.ms WHERE sumsqr(UVW) < 20000*20000 && ANY(PREDICTED_DATA-MODEL_DATA > 1e-3)"
+        assert_taql(taql_cmd, 0)
+
+        # Run a full IQUV deconvolution
         cmd = base_cmd + " -pol iquv -join-polarizations 3c196-simulation.ms"
         validate_call(cmd.split())
 
@@ -674,6 +686,13 @@ class TestLongSystem:
             v_source_pos, 1.0, "facet-iquv-corrections-V-image-pb.fits"
         )
 
+        # Check consistency of IQUV predict
+        predict_cmd = predict_base_cmd + " -pol iquv 3c196-simulation.ms"
+        # TODO this is not working yet: issue with join-polarizations
+        # validate_call(predict_cmd.split())
+        # assert_taql(taql_cmd, 0)
+
+        # Run a XX,YY deconvolution
         cmd = (
             base_cmd
             + " -pol xx,yy -join-polarizations -squared-channel-joining 3c196-simulation.ms"
@@ -702,6 +721,15 @@ class TestLongSystem:
             1.0,
             "facet-iquv-corrections-YY-image-pb.fits",
         )
+
+        # Check consistency of XXYY predict
+        predict_cmd = (
+            predict_base_cmd
+            + " -pol xxyy -join-polarizations 3c196-simulation.ms"
+        )
+        # TODO this is not working yet: issue with join-polarizations
+        # validate_call(predict_cmd.split())
+        # assert_taql(taql_cmd, 0)
 
     def test_facet_scalar_corrections(
         self, model_file_fixture, region_file_fixture

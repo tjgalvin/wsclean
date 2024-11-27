@@ -107,6 +107,14 @@ class WSClean {
            !_settings.facetSolutionFiles.empty() || griddingUsesATerms();
   }
 
+  std::string PredictModelFileSuffix() const {
+    return _settings.applyFacetBeam
+               ? "-model-fpb.fits"
+               : ((_settings.UseFacetCorrections() || griddingUsesATerms())
+                      ? "-model-pb.fits"
+                      : "-model.fits");
+  }
+
   ObservationInfo getObservationInfo() const;
   std::pair<double, double> getLMShift() const;
 
@@ -179,14 +187,9 @@ class WSClean {
 
   /**
    * @brief Stitch facets for all FacetGroups
-   *
-   * @param table Imaging table
-   * @param cachedImage CachedImages
-   * @param writeDirty Write dirty image?
-   * @param writePSF Write PSF image?
    */
-  void stitchFacets(const ImagingTable& table, CachedImageSet& imageCache,
-                    bool writeDirty, bool isPSF);
+  void stitchFacets(const ImagingTable& table, CachedImageSet& image_cache,
+                    bool write_dirty, bool is_psf, bool is_facet_pb_model);
 
   /**
    * Stitch facet for a single (Facet)Group
@@ -200,7 +203,8 @@ class WSClean {
                          aocommon::Image& fullImage,
                          std::unique_ptr<aocommon::Image>& weight_image,
                          schaapcommon::facets::FacetImage& facetImage,
-                         size_t maxFacetGroupIndex, bool apply_scalar);
+                         size_t maxFacetGroupIndex, bool apply_scalar,
+                         bool is_facet_pb_model);
   /**
    * Partition model image into facets and save them into fits files
    */
