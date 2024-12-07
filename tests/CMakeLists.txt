@@ -49,6 +49,10 @@ add_custom_target(
 
 set(WSCLEAN_DATA_URL https://support.astron.nl/software/ci_data/wsclean)
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24")
+  cmake_policy(SET CMP0135 "NEW")
+endif()
+
 ExternalProject_Add(
   jvla_test_ms
   URL ${WSCLEAN_DATA_URL}/JVLA-MultiBand-S1_C5-minimal.ms.tar.bz2

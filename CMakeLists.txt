@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.12)
 
 project(wsclean)
 
@@ -111,9 +111,10 @@ find_path(
   NAMES fftw3.h
   HINTS ENV FFTW3_INCLUDE)
 
-find_package(PythonLibs 3 REQUIRED)
-find_package(PythonInterp REQUIRED)
-message(STATUS "Using python version ${PYTHON_VERSION_STRING}")
+find_package(
+  Python3
+  COMPONENTS Interpreter Development
+  REQUIRED)
 
 # Include pybind11
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
@@ -121,6 +122,10 @@ include_directories(SYSTEM ${pybind11_INCLUDE_DIRS})
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.30")
+  # Disable warning; both old and new policies are fine
+  cmake_policy(SET CMP0167 NEW)
+endif()
 find_package(
   Boost
   COMPONENTS date_time filesystem system program_options
@@ -215,7 +220,7 @@ include_directories(SYSTEM ${CFITSIO_INCLUDE_DIR})
 include_directories(SYSTEM ${FFTW3_INCLUDE_DIR})
 include_directories(SYSTEM ${GSL_INCLUDE_DIR})
 include_directories(SYSTEM ${HDF5_INCLUDE_DIRS})
-include_directories(SYSTEM ${PYTHON_INCLUDE_DIRS})
+include_directories(SYSTEM ${Python3_INCLUDE_DIRS})
 
 include(CheckCXXSourceCompiles)
 
@@ -236,7 +241,7 @@ ExternalProject_Add(
     -DCOMPILE_AS_EXTERNAL_PROJECT=On
     -DPORTABLE=${PORTABLE}
     -DTARGET_CPU=${TARGET_CPU}
-    -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+    -DPYTHON_EXECUTABLE=${Python3_EXECUTABLE}
     -DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}
     -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
     -DCFITSIO_ROOT_DIR=${CFITSIO_ROOT_DIR}
