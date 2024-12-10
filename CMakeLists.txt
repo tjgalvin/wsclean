@@ -244,6 +244,7 @@ ExternalProject_Add(
     -DPYTHON_EXECUTABLE=${Python3_EXECUTABLE}
     -DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}
     -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
+    -DBoost_INCLUDE_DIR=${Boost_INCLUDE_DIR}
     -DCFITSIO_ROOT_DIR=${CFITSIO_ROOT_DIR}
     # The casacore root is set to the location where casacore was found.
     # Note that CASACORE_ROOT_DIR isn't set/updated by the find script, so we
