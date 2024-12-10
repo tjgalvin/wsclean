@@ -89,6 +89,39 @@ aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix) {
   return aocommon::HMC4x4::Unit() * std::numeric_limits<double>::quiet_NaN();
 }
 
+aocommon::HMC4x4 AddConjugateCorrectionPart(const aocommon::HMC4x4& m) {
+  using T = const std::complex<double>;
+  using RT = const double;
+  using std::conj;
+  // See HMC4x4::KroneckerProduct() for the kronecker terms
+  // r00 = q00 * p00 = m00;
+  RT r00 = m[0].real();
+  // r10 = q00 * p10 = q00 * conj(p01) = conj(m20)
+  T r10 = conj(m[8]);
+  // r11 = q00 * p11 = m22
+  RT r11 = m[10].real();
+  // r20 = q01 * p00 = conj(m10)
+  T r20 = conj(m[4]);
+  // r21 = q01 * conj(p10) = q01 * p01 = conj(q10) * p01 = m21
+  T r21 = m[9];
+  // r22 = q11 * p00 = m11
+  RT r22 = m[5].real();
+  // r30 = q01 * p10 = conj(q10) * conj(p01) = conj(m30)
+  T r30 = conj(m[12]);
+  // r31 = q01 * p11 = conj(q10) * p11 = conj(m32)
+  T r31 = conj(m[14]);
+  // r32 = q11 * p10 = q11 * conj(p01) = conj(m31)
+  T r32 = conj(m[13]);
+  // r33 = q11 * p11 = m33;
+  RT r33 = m[15].real();
+
+  return (m + aocommon::HMC4x4::FromData(
+                  {r00, r10.real(), r10.imag(), r11, r20.real(), r20.imag(),
+                   r21.real(), r21.imag(), r22, r30.real(), r30.imag(),
+                   r31.real(), r31.imag(), r32.real(), r32.imag(), r33})) *
+         0.5;
+}
+
 std::string ToString(const AverageCorrection& average_correction) {
   std::ostringstream str;
   str << "AverageCorrection, ";

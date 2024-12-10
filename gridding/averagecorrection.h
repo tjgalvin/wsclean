@@ -26,6 +26,13 @@ namespace wsclean {
 aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix);
 
 /**
+ * Given a matrix that was formed from KroneckerProduct(a^T, b), this
+ * functions constructs 0.5 * [KroneckerProduct(a^T, b) + KroneckerProduct(b^T,
+ * a)].
+ */
+aocommon::HMC4x4 AddConjugateCorrectionPart(const aocommon::HMC4x4& m);
+
+/**
  * This class is used to collect the Jones corrections that are applied
  * to visibilities while gridding. The Kronecker product of the Jones
  * matrices is taken to form a Mueller matrix. The Mueller matrices are
@@ -40,14 +47,13 @@ class AverageCorrection {
       const std::complex<float> g = GetGainElement<Mode>(gain1, gain2);
       sum_ += std::norm(g) * visibility_weight;
     } else {
-      // Add: w * ((g1^H g1)^T (x) g2^H g2 + (g2^H g2)^T (x) g1^H g1)
+      // Add: w * [ (g1^H g1)^T (x) (g2^H g2) ].
+      // The conjugate part is added later (see AddConjugateCorrectionPart()).
       const aocommon::MC2x2 g1(gain1);
       const aocommon::MC2x2 g2(gain2);
-      const aocommon::HMatrix4x4 a = aocommon::HMatrix4x4::KroneckerProduct(
-          g1.HermitianSquare().Transpose(), g2.HermitianSquare());
-      const aocommon::HMatrix4x4 b = aocommon::HMatrix4x4::KroneckerProduct(
-          g2.HermitianSquare().Transpose(), g1.HermitianSquare());
-      matrix_ += (a + b) * (0.5 * visibility_weight);
+      matrix_ += aocommon::HMC4x4::KroneckerProduct(
+                     g1.HermitianSquare().Transpose(), g2.HermitianSquare()) *
+                 visibility_weight;
     }
   }
 
@@ -70,30 +76,40 @@ class AverageCorrection {
    * True if the correction is completely zero.
    */
   constexpr bool IsZero() const {
-    return sum_ == 0.0 && matrix_ == aocommon::HMatrix4x4::Zero();
+    return sum_ == 0.0 && matrix_ == aocommon::HMC4x4::Zero();
   }
 
   /**
    * True if the correction is a scalar correction.
    */
   constexpr bool IsScalar() const {
-    return matrix_ == aocommon::HMatrix4x4::Zero();
+    return matrix_ == aocommon::HMC4x4::Zero();
   }
 
   constexpr long double GetScalarValue() const {
-    assert(matrix_ == aocommon::HMatrix4x4::Zero());
+    assert(matrix_ == aocommon::HMC4x4::Zero());
     return sum_;
   }
 
-  constexpr const aocommon::HMatrix4x4& GetMatrixValue() const {
+  const aocommon::HMC4x4 GetMatrixValue() const {
     assert(sum_ == 0.0);
-    return matrix_;
+    return AddConjugateCorrectionPart(matrix_);
   }
 
   double GetStokesIValue() const {
-    if (matrix_ == aocommon::HMatrix4x4::Zero()) {
+    if (matrix_ == aocommon::HMC4x4::Zero()) {
       return sum_;
     } else {
+      // The matrix hasn't been finalized with
+      // AddConjugateCorrectionPart(matrix_) yet. However, doing so doesn't
+      // change the result of the sum and can therefore be skipped. Proof: if r
+      // is the finalized matrix and m is matrix_, then:
+      // - r_00 = 0.5 * (m_00 + m_00))
+      // - r_30 = 0.5 * (m_30 + conj(m_30))
+      // - r_33 = 0.5 * (m_33 + m_33)
+      // (Equations are from AddConjugateCorrectionPart()).
+      // Hence, r_00 and r_33 are not changed, and the real part of r_30 is also
+      // not changed (and is the only used part).
       return 0.5 * (matrix_.Data(0) + 2.0 * matrix_.Data(9) + matrix_.Data(15));
     }
   }
@@ -120,7 +136,7 @@ class AverageCorrection {
   }
 
   long double sum_ = 0.0L;
-  aocommon::HMatrix4x4 matrix_;
+  aocommon::HMC4x4 matrix_ = aocommon::HMC4x4::Zero();
 };
 
 std::string ToString(const AverageCorrection& average_correction);
