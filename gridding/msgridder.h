@@ -279,7 +279,7 @@ class MsGridder : public MsGridderData {
   /// gridded visibilities. Visibilities outside the limit are skipped.
   double w_limit_ = 0.0;
   bool is_complex_ = false;
-  WeightMode weighting_ = WeightMode(WeightMode::UniformWeighted);
+  WeightMode weighting_ = WeightMode(WeightClass::Uniform);
   bool is_first_task_ = false;
   GriddingKernelMode grid_mode_ = GriddingKernelMode::KaiserBessel;
   double theoretical_beam_size_ = 0.0;

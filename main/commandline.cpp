@@ -1115,9 +1115,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       std::string weightArg = argv[argi];
       if (weightArg == "natural")
-        settings.weightMode = WeightMode(WeightMode::NaturalWeighted);
+        settings.weightMode = WeightMode(WeightClass::Natural);
       else if (weightArg == "uniform")
-        settings.weightMode = WeightMode(WeightMode::UniformWeighted);
+        settings.weightMode = WeightMode(WeightClass::Uniform);
       else if (weightArg == "briggs") {
         IncArgi(argi, argc);
         settings.weightMode =

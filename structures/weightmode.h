@@ -1,5 +1,5 @@
-#ifndef WEIGHTMODE_H
-#define WEIGHTMODE_H
+#ifndef STRUCTURES_WEIGHTMODE_H_
+#define STRUCTURES_WEIGHTMODE_H_
 
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
@@ -9,67 +9,60 @@
 
 namespace wsclean {
 
+enum class WeightClass { Natural, Uniform, Briggs };
+
 class WeightMode {
  public:
-  enum WeightingEnum { NaturalWeighted, UniformWeighted, BriggsWeighted };
+  explicit constexpr WeightMode(WeightClass weight_class)
+      : class_(weight_class) {}
 
-  explicit WeightMode(WeightingEnum mode)
-      : _mode(mode), _briggsRobustness(0.0), _superWeight(1.0) {}
+  constexpr WeightMode(const WeightMode& source)
+      : class_(source.class_),
+        briggs_robustness_(source.briggs_robustness_),
+        super_weight_(source.super_weight_) {}
 
-  WeightMode(const WeightMode& source)
-      : _mode(source._mode),
-        _briggsRobustness(source._briggsRobustness),
-        _superWeight(source._superWeight) {}
+  WeightMode& operator=(const WeightMode& source) = default;
 
-  WeightMode& operator=(const WeightMode& source) {
-    _mode = source._mode;
-    _briggsRobustness = source._briggsRobustness;
-    _superWeight = source._superWeight;
-    return *this;
-  }
-
-  bool operator==(const WeightMode& rhs) {
-    if (_mode != rhs._mode || _superWeight != rhs._superWeight)
+  constexpr bool operator==(const WeightMode& rhs) const {
+    if (class_ != rhs.class_ || super_weight_ != rhs.super_weight_)
       return false;
-    else if (_mode == BriggsWeighted)
-      return _briggsRobustness == rhs._briggsRobustness;
+    else if (class_ == WeightClass::Briggs)
+      return briggs_robustness_ == rhs.briggs_robustness_;
     else
       return true;
   }
 
-  static WeightMode Briggs(double briggsRobustness) {
-    WeightMode m(BriggsWeighted);
-    m._briggsRobustness = briggsRobustness;
+  constexpr static WeightMode Briggs(double briggsRobustness) {
+    WeightMode m(WeightClass::Briggs);
+    m.briggs_robustness_ = briggsRobustness;
     return m;
   }
 
-  WeightingEnum Mode() const { return _mode; }
-  bool IsNatural() const { return _mode == NaturalWeighted; }
-  bool IsUniform() const { return _mode == UniformWeighted; }
-  bool IsBriggs() const { return _mode == BriggsWeighted; }
+  constexpr WeightClass Class() const { return class_; }
+  constexpr bool IsNatural() const { return class_ == WeightClass::Natural; }
+  constexpr bool IsUniform() const { return class_ == WeightClass::Uniform; }
+  constexpr bool IsBriggs() const { return class_ == WeightClass::Briggs; }
 
-  double BriggsRobustness() const { return _briggsRobustness; }
-  double SuperWeight() const { return _superWeight; }
+  constexpr double BriggsRobustness() const { return briggs_robustness_; }
+  constexpr double SuperWeight() const { return super_weight_; }
 
-  void SetSuperWeight(double superWeight) { _superWeight = superWeight; }
-  void SetMode(const WeightMode& mode) {
-    _mode = mode._mode;
-    _briggsRobustness = mode._briggsRobustness;
+  constexpr void SetSuperWeight(double superWeight) {
+    super_weight_ = superWeight;
   }
 
-  bool RequiresGridding() const {
+  constexpr bool RequiresGridding() const {
     return true;
   }  // { IsUniform() || IsBriggs(); }
 
   std::string ToString() const {
-    switch (_mode) {
-      case UniformWeighted:
+    switch (class_) {
+      case WeightClass::Uniform:
         return "uniform";
-      case NaturalWeighted:
+      case WeightClass::Natural:
         return "natural";
-      case BriggsWeighted: {
+      case WeightClass::Briggs: {
         std::ostringstream s;
-        s << "Briggs'(" << _briggsRobustness << ")";
+        s << "Briggs'(" << briggs_robustness_ << ")";
         return s.str();
       }
       default:
@@ -78,24 +71,25 @@ class WeightMode {
   }
 
   void Serialize(aocommon::SerialOStream& stream) const {
-    stream.UInt32(_mode);
-    if (_mode == BriggsWeighted) {
-      stream.Double(_briggsRobustness);
-      stream.Double(_superWeight);
+    stream.UInt32(static_cast<uint32_t>(class_));
+    if (class_ == WeightClass::Briggs) {
+      stream.Double(briggs_robustness_);
+      stream.Double(super_weight_);
     }
   }
 
   void Unserialize(aocommon::SerialIStream& stream) {
-    stream.UInt32(_mode);
-    if (_mode == BriggsWeighted) {
-      stream.Double(_briggsRobustness);
-      stream.Double(_superWeight);
+    class_ = WeightClass(stream.UInt32());
+    if (class_ == WeightClass::Briggs) {
+      stream.Double(briggs_robustness_);
+      stream.Double(super_weight_);
     }
   }
 
  private:
-  WeightingEnum _mode;
-  double _briggsRobustness, _superWeight;
+  WeightClass class_;
+  double briggs_robustness_ = 0.0;
+  double super_weight_ = 1.0;
 };
 
 }  // namespace wsclean

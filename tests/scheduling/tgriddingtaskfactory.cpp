@@ -36,7 +36,7 @@ struct FactoryFixture {
         image_weight_initializer(settings, global_selection, ms_bands,
                                  ms_helper.GetReorderedMsHandles()),
         observation_info{42.0, 6.0, "test_name", "test_observer", "test_field"},
-        image_weight_cache(WeightMode(WeightMode::NaturalWeighted), kImageSize,
+        image_weight_cache(WeightMode(WeightClass::Natural), kImageSize,
                            kImageSize, kPixelScale, kPixelScale, 0.0, 1.0, 0.0,
                            0, false),
         group(2),

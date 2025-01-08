@@ -98,7 +98,7 @@ class Settings {
   std::string facetRegionFilename;
   std::optional<size_t> featherSize;
   std::set<size_t> spectralWindows;
-  WeightMode weightMode{WeightMode::UniformWeighted};
+  WeightMode weightMode{WeightClass::Uniform};
   std::string prefixName = "wsclean";
   bool joinedPolarizationDeconvolution = false;
   bool joinedFrequencyDeconvolution = false;

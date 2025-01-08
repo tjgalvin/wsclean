@@ -22,7 +22,7 @@
 namespace wsclean {
 
 ImageWeights::ImageWeights()
-    : _weightMode(WeightMode::UniformWeighted),
+    : _weightMode(WeightClass::Uniform),
       _imageWidth(0),
       _imageHeight(0),
       _pixelScaleX(0),
@@ -116,8 +116,8 @@ void ImageWeights::FinishGridding() {
     throw std::runtime_error("FinishGridding() called twice");
   _isGriddingFinished = true;
 
-  switch (_weightMode.Mode()) {
-    case WeightMode::BriggsWeighted: {
+  switch (_weightMode.Class()) {
+    case WeightClass::Briggs: {
       double avgW = 0.0;
       for (double val : _grid) avgW += val * val;
       avgW /= _totalSum;
@@ -130,7 +130,7 @@ void ImageWeights::FinishGridding() {
         if (val != 0.0) val = 1.0 / (1.0 + val * sSq);
       }
     } break;
-    case WeightMode::UniformWeighted: {
+    case WeightClass::Uniform: {
       for (double& val : _grid) {
         if (val != 0.0)
           val = 1.0 / val;
@@ -138,7 +138,7 @@ void ImageWeights::FinishGridding() {
           val = 0.0;
       }
     } break;
-    case WeightMode::NaturalWeighted: {
+    case WeightClass::Natural: {
       for (double& val : _grid) {
         if (val != 0.0) val = 1.0;
       }
