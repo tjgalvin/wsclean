@@ -17,7 +17,6 @@ workflow:
   before_script:
     - apt-get update -qq
     - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq
-      casacore-data casacore-dev casacore-tools
       cmake
       g++
       git
@@ -35,6 +34,19 @@ workflow:
       python3-sphinx
       python3-pip
       wget
+      # Install casacore and requirements
+    - apt-get install -y -qq
+      bison flex gfortran libncurses-dev wcslib-dev libboost-dev
+      libboost-python-dev libboost-test-dev libreadline-dev
+    - mkdir /external && cd /external
+    - git clone --depth 1 --branch v3.6.0 https://github.com/casacore/casacore.git
+    - cd /external/casacore
+    - mkdir build && cd build
+    - cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data
+    - make -j`nproc`
+    - make install -j`nproc`
+    - cd $CI_PROJECT_DIR
+    - rm -rf /external/casacore
 
 format:
   stage: format
@@ -119,8 +131,11 @@ pages:
   before_script:
     - source scripts/das6_modules.sh
     - export OPENBLAS_NUM_THREADS=1
+    # Make OpenMPI ignore SLURM restrictions (in MPI tests).
+    - export OMPI_MCA_rmaps_base_oversubscribe=1
+    - export PYTHONPATH=${PYTHONPATH}:~/.local/lib/python3.11/site-packages
     - mkdir -p build && cd build
-    - cmake -DBUILD_TESTING=ON -DCMAKE_CXX_FLAGS="-D_GLIBCXX_ASSERTIONS" -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT -DCASACORE_ROOT_DIR=$CASACORE_ROOT -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT};${EVERYBEAM_ROOT};${FFTW_ROOT}" ..
+    - cmake -DBUILD_TESTING=ON -DCMAKE_CXX_FLAGS="-D_GLIBCXX_ASSERTIONS" -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT -DCASACORE_ROOT_DIR=$CASACORE_ROOT -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT};${EVERYBEAM_ROOT};${FFTW_ROOT}" -DPython3_EXECUTABLE=`which python` ..
     - make -j`nproc`
 
 test-nightly-das6:

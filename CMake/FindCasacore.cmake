@@ -2,8 +2,8 @@
 # Usage:
 #   find_package(Casacore [REQUIRED] [COMPONENTS components...])
 # Valid components are:
-#   casa, coordinates, derivedmscal, fits, images, lattices,
-#   meas, measures, mirlib, ms, msfits, python, scimath, scimath_f, tables
+#   casa, coordinates, derivedmscal, fits, images, lattices, meas,
+#   measures, mirlib, ms, msfits, python, scimath, scimath_f, tables
 #
 # Note that most components are dependent on other (more basic) components.
 # In that case, it suffices to specify the "top-level" components; dependent
@@ -13,20 +13,21 @@
 # For this, you need to have a complete casacore installation, built with shared
 # libraries, at your disposal.
 #
-# The dependencies in this macro were generated against casacore release 1.7.0.
+# The dependencies in this macro were generated against casacore release 2.0.
 #
 # Variables used by this module:
-#  CASACORE_ROOT_DIR         - Casacore root directory. 
+#  CASACORE_ROOT_DIR         - Casacore root directory.
 #
 # Variables defined by this module:
 #  CASACORE_FOUND            - System has Casacore, which means that the
-#                              include dir was found, as well as all 
+#                              include dir was found, as well as all
 #                              libraries specified (not cached)
+#  CASACORE_VERSION          - Found version, e.g. "3.6.1" (not cached)
 #  CASACORE_INCLUDE_DIR      - Casacore include directory (cached)
 #  CASACORE_INCLUDE_DIRS     - Casacore include directories (not cached)
 #                              identical to CASACORE_INCLUDE_DIR
 #  CASACORE_LIBRARIES        - The Casacore libraries (not cached)
-#  CASA_${COMPONENT}_LIBRARY - The absolute path of Casacore library 
+#  CASA_${COMPONENT}_LIBRARY - The absolute path of Casacore library
 #                              "component" (cached)
 #  HAVE_AIPSPP               - True if system has Casacore (cached)
 #                              for backward compatibility with AIPS++
@@ -38,29 +39,12 @@
 # ATTENTION: The component names need to be in lower case, just as the
 # casacore library names. However, the CMake variables use all upper case.
 
-# Copyright (C) 2009
-# ASTRON (Netherlands Institute for Radio Astronomy)
-# P.O.Box 2, 7990 AA Dwingeloo, The Netherlands
-#
-# This file is part of the LOFAR software suite.
-# The LOFAR software suite is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# The LOFAR software suite is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along
-# with the LOFAR software suite. If not, see <http://www.gnu.org/licenses/>.
-#
-# $Id: FindCasacore.cmake 31487 2015-04-16 11:28:17Z dijkema $
+# Copyright (C) 2020 ASTRON (Netherlands Institute for Radio Astronomy)
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 # - casacore_resolve_dependencies(_result)
 #
-# Resolve the Casacore library dependencies for the given components. 
+# Resolve the Casacore library dependencies for the given components.
 # The list of dependent libraries will be returned in the variable result.
 # It is sorted from least dependent to most dependent library, so it can be
 # directly fed to the linker.
@@ -71,7 +55,7 @@ macro(casacore_resolve_dependencies _result)
   set(${_result} ${ARGN})
   set(_index 0)
   # Do a breadth-first search through the dependency graph; append to the
-  # result list the dependent components for each item in that list. 
+  # result list the dependent components for each item in that list.
   # Duplicates will be removed later.
   while(1)
     list(LENGTH ${_result} _length)
@@ -92,7 +76,7 @@ endmacro(casacore_resolve_dependencies _result)
 
 # - casacore_find_library(_name)
 #
-# Search for the library ${_name}. 
+# Search for the library ${_name}.
 # If library is found, add it to CASACORE_LIBRARIES; if not, add ${_name}
 # to CASACORE_MISSING_COMPONENTS and set CASACORE_FOUND to false.
 #
@@ -164,7 +148,7 @@ set(Casacore_casa_DEPENDENCIES)
 set(Casacore_coordinates_DEPENDENCIES   fits measures casa)
 set(Casacore_derivedmscal_DEPENDENCIES  ms measures tables casa)
 set(Casacore_fits_DEPENDENCIES          measures tables casa)
-set(Casacore_images_DEPENDENCIES        mirlib lattices coordinates fits measures scimath tables casa)
+set(Casacore_images_DEPENDENCIES        coordinates mirlib lattices fits measures scimath tables casa)
 set(Casacore_lattices_DEPENDENCIES      tables scimath casa)
 set(Casacore_meas_DEPENDENCIES          measures tables casa)
 set(Casacore_measures_DEPENDENCIES      tables casa)
@@ -181,6 +165,7 @@ set(CASACORE_FOUND FALSE)
 set(CASACORE_DEFINITIONS)
 set(CASACORE_LIBRARIES)
 set(CASACORE_MISSING_COMPONENTS)
+set(CASACORE_VERSION)
 
 # Search for the header file first.
 if(NOT CASACORE_INCLUDE_DIR)
@@ -250,8 +235,12 @@ endif(CASACORE_MISSING_COMPONENTS)
 
 # Print diagnostics.
 if(CASACORE_FOUND)
+  file(WRITE ${CMAKE_BINARY_DIR}/casacore_version.cpp "#include <iostream>\n#include <casacore/casa/version.h>\nint main(int argc,char *argv[]) { std::cout << CASACORE_VERSION; return 0; }\n")
+  try_run(CASACORE_VERSION_RUN_RESULT CASACORE_VERSION_COMPILE_RESULT ${CMAKE_BINARY_DIR} ${CMAKE_BINARY_DIR}/casacore_version.cpp
+    RUN_OUTPUT_VARIABLE CASACORE_VERSION
+    COMPILE_DEFINITIONS "-I${CASACORE_INCLUDE_DIR}" )
   if(NOT Casacore_FIND_QUIETLY)
-    message(STATUS "Found the following Casacore components: ")
+    message(STATUS "Found Casacore (version ${CASACORE_VERSION}) with the following components:")
     foreach(_comp ${_find_components})
       string(TOUPPER casa_${_comp} _COMP)
       message(STATUS "  ${_comp}: ${${_COMP}_LIBRARY}")
@@ -264,4 +253,3 @@ else(CASACORE_FOUND)
     message(STATUS "${CASACORE_ERROR_MESSAGE}")
   endif(Casacore_FIND_REQUIRED)
 endif(CASACORE_FOUND)
-

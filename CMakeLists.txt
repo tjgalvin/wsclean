@@ -24,7 +24,7 @@ else()
   add_compile_options(-DNDEBUG)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -95,7 +95,8 @@ find_package(
 add_definitions(${HDF5_DEFINITIONS})
 
 set(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
-find_package(Casacore REQUIRED COMPONENTS casa ms tables measures fits)
+find_package(Casacore 3.6 REQUIRED COMPONENTS casa ms tables measures fits)
+
 find_package(CFITSIO REQUIRED)
 # Chgcentre uses a lapack function. EveryBeam provides lapack, but because
 # EveryBeam is not required, chgcentre will fail to link when EveryBeam is not

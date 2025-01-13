@@ -5,7 +5,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     git \
     cmake \
     build-essential \
-    g++ \
+    g++-10 \
     pkg-config \
     casacore-data casacore-dev \
     libblas-dev liblapack-dev \
@@ -30,6 +30,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
 
 ADD . /src
 WORKDIR /src
+
+ENV CC /usr/bin/gcc-10
+ENV CXX /usr/bin/g++-10
 
 RUN \
   mkdir /build && \
