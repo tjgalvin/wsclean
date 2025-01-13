@@ -108,10 +108,14 @@ class MSGridderManager {
    *
    * Behaviour/size is different depending on whether corrections are to be
    * applied or not. When not applying corrections there is no need to store the
-   * antenna pairs, and as visibilities are collapsed in place less storage is
-   * required for visibilities If applying corrections: antennas `max_n_rows *
-   * 1` uvw `max_n_rows * 3` visibilities `max_n_rows * n_channels *
-   * n_vis_polarizations`
+   * antenna pairs or time_offsets_, and as visibilities are collapsed in place
+   * less storage is required for visibilities.
+   *
+   * If applying corrections:
+   *   antennas: `max_n_rows`
+   *   uvw: `max_n_rows * 3`
+   *   visibilities: `max_n_rows * n_channels * n_vis_polarizations`
+   *   time_offsets: `max_n_rows`
    *
    * If not applying corrections:
    *   antennas: `0`
@@ -119,11 +123,15 @@ class MSGridderManager {
    *   visibilities: `(max_n_rows * n_channels) + (n_channels *
    * n_vis_polarizations)`. The slight overallocation is used to allow
    * collapsing to be done in place without a copy.
+   *   time_offsets: `0`
    */
   struct ChunkData {
     std::pair<size_t, size_t>* antennas;
     double* uvw;
     std::complex<float>* visibilities;
+    // per row time offset computed during @ref ApplyCorrections()<kSum>
+    // and applied during @ref ApplyCorrections()<kApply>
+    std::vector<size_t> time_offsets_;
   };
 
   /** Read and compute data from an @ref MSReader into a single @ref ChunkData

@@ -640,10 +640,6 @@ class MsGridderData {
   VisibilityWeightingMode visibility_weighting_mode_ =
       VisibilityWeightingMode::NormalVisibilityWeighting;
 
-  // per row time offset computed during @ref ApplyCorrections()
-  // used/set only when using shared facet reads
-  std::map<size_t, std::vector<size_t>> time_offsets_;
-
   // Reset by the gridders at the start of each inversion, incremented during
   // gridding
   size_t gridded_visibility_count_ = 0;

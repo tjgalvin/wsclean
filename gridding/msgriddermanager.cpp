@@ -124,14 +124,6 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
     MSReader& ms_reader, const aocommon::BandData band,
     const bool* selected_buffer, RowData& row_data, ChunkData& chunk_data,
     MsGridderData& shared_data) {
-  // Clear 'per chunk' data that we have cached so that they are fresh for the
-  // next chunk of data
-  if (apply_corrections) {
-    for (MsGridder* gridder : gridders) {
-      gridder->time_offsets_.clear();
-      gridder->time_offsets_[ms_data.internal_ms_index].push_back(0);
-    }
-  }
   size_t n_chunk_rows_read = 0;
   MSProvider::MetaData metadata;
   while (ms_reader.CurrentRowAvailable() && n_chunk_rows_read < max_n_rows) {
@@ -158,19 +150,16 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
       *chunk_data.antennas =
           std::make_pair(metadata.antenna1, metadata.antenna2);
 
+      size_t time_offset;
       ExecuteForAllGridders(task_queue, [&](MsGridder* gridder) {
-        // TODO: Do we need time offset for every gridder or can we hold it once
-        // on the shared weight manager?
-        std::vector<size_t>& time_offsets =
-            gridder->time_offsets_[ms_data.internal_ms_index];
-        size_t time_offset = time_offsets.back();
+        time_offset = chunk_data.time_offsets_.back();
         gridder->ApplyCorrections<Mode, ModifierBehaviour::kSum, true>(
             ms_data.antenna_names.size(), chunk_data.visibilities, band,
             row_data.weights, metadata.time, metadata.fieldId,
             metadata.antenna1, metadata.antenna2, time_offset,
             shared_data.scratch_image_weights_.data());
-        time_offsets.emplace_back(time_offset);
       });
+      chunk_data.time_offsets_.emplace_back(time_offset);
       ++chunk_data.antennas;
     }
     shared_data.ApplyWeights<Mode>(chunk_data.visibilities, band.ChannelCount(),
@@ -287,21 +276,14 @@ void MSGridderManager::BatchInvert(size_t num_parallel_gridders) {
       size_t additional_per_vis_mem = 0;
       bool apply_corrections = gridders[0]->WillApplyCorrections();
       if (apply_corrections) {
-        // For each row we have to store an antenna pair and a per gridder
-        // solution time offset
-        additional_per_vis_mem = sizeof(size_t) * (gridders.size() + 2);
+        // For each row we have to store an antenna pair and a solution time
+        // offset
+        additional_per_vis_mem = sizeof(size_t) * 3;
       }
 
       const size_t n_max_chunk_rows = gridders[0]->CalculateMaxRowsInMemory(
           available_memory_, constant_mem, additional_per_vis_mem,
           band.ChannelCount(), apply_corrections ? 1 : n_vis_polarizations);
-
-      if (apply_corrections) {
-        for (MsGridder* gridder : gridders) {
-          gridder->time_offsets_[ms_data.internal_ms_index].reserve(
-              n_max_chunk_rows + 1);
-        }
-      }
 
       aocommon::UVector<double> frequencies(band.ChannelCount());
       for (size_t i = 0; i != frequencies.size(); ++i)
@@ -341,6 +323,12 @@ void MSGridderManager::BatchInvert(size_t num_parallel_gridders) {
         chunk_data.antennas = antennas.data();
         chunk_data.uvw = uvw_buffer.data();
         chunk_data.visibilities = visibilities.data();
+        if (apply_corrections) {
+          chunk_data.time_offsets_.clear();
+          chunk_data.time_offsets_.reserve(n_max_chunk_rows + 1);
+          chunk_data.time_offsets_.push_back(0);
+        }
+
         size_t n_rows = ReadChunkForInvert(
             shared_data.GetGainMode(), apply_corrections, task_queue, gridders,
             ms_data, n_max_chunk_rows, *ms_reader, band, selected_buffer.data(),
@@ -368,11 +356,8 @@ void MSGridderManager::BatchInvert(size_t num_parallel_gridders) {
                   apply_corrections, shared_data.n_vis_polarizations_, n_rows,
                   uvw_buffer.data(), frequencies.data(), band, antennas.data(),
                   visibilities.data(),
-                  apply_corrections
-                      ? gridder->time_offsets_[ms_data.internal_ms_index]
-                                .data() +
-                            1
-                      : nullptr,
+                  apply_corrections ? chunk_data.time_offsets_.data() + 1
+                                    : nullptr,
                   ms_data.antenna_names.size());
               Logger::Info << "Done gridding facet " +
                                   std::to_string(facet_index) + "\n";
