@@ -329,6 +329,9 @@ Options can be:
    Apply solutions from the provided (h5) file per facet when gridding facet based images.
    Provided file is assumed to be in H5Parm format.
    Filename is followed by a comma separated list of strings specifying which sol tabs from the provided H5Parm file are used.
+-no-solution-directions-check
+   Disable the check that requires the number of solution directions to be equal to the number of directions in the region
+   file.
 -scalar-visibilities
    Only read the visibilities as a single polarization (e.g. Stokes I). When imaging a single polarization and when the solutions
    are also scalar, this option may make IO faster. By default, all four correlated visibilities (e.g. xx, xy, yx, yy) are read
@@ -1279,6 +1282,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             "List of solution tables (soltabs) should contain at most two "
             "entries.");
       }
+    } else if (param == "no-solution-directions-check") {
+      settings.solutionDirectionsCheck = false;
     } else if (param == "scalar-visibilities") {
       settings.visibilityReadMode = VisibilityReadMode::kScalar;
     } else if (param == "diagonal-solutions" ||
