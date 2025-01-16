@@ -11,11 +11,15 @@
 
 #include <memory>
 
+using schaapcommon::reordering::MSSelection;
+using schaapcommon::reordering::StorageManagerType;
+
 namespace wsclean {
 
 ContiguousMS::ContiguousMS(const string& msPath,
                            const std::string& dataColumnName,
                            const std::string& modelColumnName,
+                           StorageManagerType modelStorageManager,
                            const MSSelection& selection,
                            aocommon::PolarizationEnum outputPolarization,
                            size_t dataDescId, bool useMPI)
@@ -30,7 +34,8 @@ ContiguousMS::ContiguousMS(const string& msPath,
       _outputPolarization(outputPolarization),
       _msPath(msPath),
       _dataColumnName(dataColumnName),
-      _modelColumnName(modelColumnName) {
+      _modelColumnName(modelColumnName),
+      _modelStorageManager(modelStorageManager) {
   open();
 }
 
@@ -151,7 +156,7 @@ size_t ContiguousMS::NPolarizations() {
 }
 
 void ContiguousMS::prepareModelColumn() {
-  InitializeModelColumn(*_ms, _modelColumnName);
+  InitializeModelColumn(*_ms, _modelColumnName, _modelStorageManager);
   _modelColumn =
       casacore::ArrayColumn<casacore::Complex>(*_ms, _modelColumnName);
   const casacore::IPosition shape(_modelColumn.shape(0));

@@ -373,6 +373,9 @@ Options can be:
    Default: CORRECTED_DATA if it exists, otherwise DATA will be used.
 -model-column <column name>
    Column to which the predicted data is written. Default: MODEL_DATA.
+-model-storage-manager <type>
+   If a new model column needs to be written, create the model using this storage manager. Supported types:
+   "default" and "stokes-i".
 -maxuvw-m <meters>
 -minuvw-m <meters>
    Set the min/max baseline distance in meters.
@@ -791,7 +794,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.localRMSImage = argv[argi];
     } else if (param == "local-rms-method") {
       IncArgi(argi, argc);
-      std::string method = argv[argi];
+      const std::string method = argv[argi];
       if (method == "rms")
         settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
       else if (method == "rms-with-min")
@@ -804,6 +807,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "model-column") {
       IncArgi(argi, argc);
       settings.modelColumnName = argv[argi];
+    } else if (param == "model-storage-manager") {
+      IncArgi(argi, argc);
+      settings.modelStorageManager =
+          schaapcommon::reordering::GetStorageManagerType(argv[argi]);
     } else if (param == "pol") {
       IncArgi(argi, argc);
       settings.polarizations = aocommon::Polarization::ParseList(argv[argi]);

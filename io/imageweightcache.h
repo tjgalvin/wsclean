@@ -88,7 +88,8 @@ class ImageWeightCache {
     std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
     for (const MsListItem& item : msList) {
       std::unique_ptr<MSProvider> provider = item.ms_description->GetProvider();
-      const MSSelection& selection = item.ms_description->Selection();
+      const schaapcommon::reordering::MSSelection& selection =
+          item.ms_description->Selection();
       const aocommon::BandData selectedBand =
           selection.HasChannelRange()
               ? aocommon::BandData(provider->Band(),

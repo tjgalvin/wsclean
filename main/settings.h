@@ -6,20 +6,18 @@
 #include <limits>
 #include <optional>
 
+#include "../gridding/visibilityweightingmode.h"
 #include "../gridding/wstackinggridder.h"
 
-#include "../gridding/visibilityweightingmode.h"
-#include "../structures/weightmode.h"
-
 #include "../structures/msselection.h"
+#include "../structures/weightmode.h"
 
 #include <aocommon/system.h>
 
 #include <schaapcommon/fitters/spectralfitter.h>
+#include <schaapcommon/reordering/storagemanagertype.h>
 
 #include <radler/settings.h>
-
-using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
@@ -56,8 +54,8 @@ class Settings {
   double imagePadding = 1.2;
   size_t widthForNWCalculation = 0, heightForNWCalculation = 0;
   size_t channelsOut = 1, intervalsOut = 1;
-  enum MSSelection::EvenOddSelection evenOddTimesteps =
-      MSSelection::kAllTimesteps;
+  enum schaapcommon::reordering::MSSelection::EvenOddSelection
+      evenOddTimesteps = schaapcommon::reordering::MSSelection::kAllTimesteps;
   bool divideChannelsByGaps = false;
   aocommon::UVector<double> divideChannelFrequencies;
   double pixelScaleX = 0.0, pixelScaleY = 0.0;
@@ -93,6 +91,8 @@ class Settings {
   size_t startChannel = 0, endChannel = 0;
   std::string dataColumnName;
   std::string modelColumnName = "MODEL_DATA";
+  schaapcommon::reordering::StorageManagerType modelStorageManager =
+      schaapcommon::reordering::StorageManagerType::Default;
   std::set<aocommon::PolarizationEnum> polarizations{
       aocommon::Polarization::StokesI};
   std::string facetRegionFilename;
@@ -222,8 +222,8 @@ class Settings {
    */
   radler::Settings GetRadlerSettings() const;
 
-  MSSelection GetMSSelection() const {
-    MSSelection selection;
+  schaapcommon::reordering::MSSelection GetMSSelection() const {
+    schaapcommon::reordering::MSSelection selection;
     selection.SetInterval(startTimestep, endTimestep);
     selection.SetFieldIds(fieldIds);
     selection.SetMinUVWInM(minUVWInMeters);

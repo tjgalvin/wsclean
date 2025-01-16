@@ -5,6 +5,7 @@
 #include "reorderedmsprovider.h"
 
 #include <aocommon/io/serialstreamfwd.h>
+#include <schaapcommon/reordering/storagemanagertype.h>
 
 #include <memory>
 
@@ -23,7 +24,9 @@ class MSDataDescription {
  public:
   static std::unique_ptr<MSDataDescription> ForContiguous(
       const std::string& filename, const std::string& dataColumnName,
-      const std::string& modelColumnName, const MSSelection& selection,
+      const std::string& modelColumnName,
+      schaapcommon::reordering::StorageManagerType modelStorageManager,
+      const schaapcommon::reordering::MSSelection& selection,
       aocommon::PolarizationEnum polarization, size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = false;
@@ -34,12 +37,13 @@ class MSDataDescription {
     mdd->_filename = filename;
     mdd->_dataColumnName = dataColumnName;
     mdd->_modelColumnName = modelColumnName;
+    mdd->_modelStorageManager = modelStorageManager;
     return mdd;
   }
 
   static std::unique_ptr<MSDataDescription> ForReordered(
       ReorderedMsProvider::ReorderedHandle reorderedHandle,
-      const MSSelection& selection, size_t partIndex,
+      const schaapcommon::reordering::MSSelection& selection, size_t partIndex,
       aocommon::PolarizationEnum polarization, size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = true;
@@ -59,7 +63,9 @@ class MSDataDescription {
    * measurement set that is selected. This includes separating
    * channels caused by e.g. -channels-out and -channel-range.
    */
-  const MSSelection& Selection() const { return _selection; }
+  const schaapcommon::reordering::MSSelection& Selection() const {
+    return _selection;
+  }
 
   size_t DataDescId() const { return _dataDescId; }
 
@@ -75,12 +81,13 @@ class MSDataDescription {
   bool _useMPI;
   aocommon::PolarizationEnum _polarization;
   size_t _dataDescId;
-  MSSelection _selection;
+  schaapcommon::reordering::MSSelection _selection;
 
   // Contiguous
   std::string _filename;
   std::string _dataColumnName;
   std::string _modelColumnName;
+  schaapcommon::reordering::StorageManagerType _modelStorageManager;
 
   // Reordered
   ReorderedMsProvider::ReorderedHandle _reorderedHandle;

@@ -7,6 +7,7 @@
 #include "../../idg/averagebeam.h"
 
 using schaapcommon::facets::Facet;
+using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 

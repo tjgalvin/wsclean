@@ -9,6 +9,7 @@
 
 using aocommon::SerialIStream;
 using aocommon::SerialOStream;
+using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 

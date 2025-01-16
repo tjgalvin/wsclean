@@ -118,11 +118,12 @@ class PrimaryBeam {
 #endif
   std::vector<std::unique_ptr<MSDataDescription>> ms_list_;
   struct MSProviderInfo {
-    MSProviderInfo(MSProvider* _provider, const MSSelection* _selection,
+    MSProviderInfo(MSProvider* _provider,
+                   const schaapcommon::reordering::MSSelection* _selection,
                    size_t _ms_index)
         : provider(_provider), selection(_selection), ms_index(_ms_index) {}
     MSProvider* provider;
-    const MSSelection* selection;
+    const schaapcommon::reordering::MSSelection* selection;
     size_t ms_index;
   };
   std::vector<MSProviderInfo> ms_providers_;
@@ -184,16 +185,17 @@ class PrimaryBeam {
    * @param result The average beam values are assigned to this vector.
    */
   double MakeBeamForMS(std::vector<aocommon::HMC4x4>& result,
-                       MSProvider& ms_provider, const MSSelection& selection,
+                       MSProvider& ms_provider,
+                       const schaapcommon::reordering::MSSelection& selection,
                        const ImageWeights& image_weights,
                        const aocommon::CoordinateSystem& coordinate_system,
                        double central_frequency, size_t field_id);
 
-  static void CalculateStationWeights(const ImageWeights& image_weights,
-                                      WeightMatrix& baseline_weights,
-                                      SynchronizedMS& ms, MSReader& ms_reader,
-                                      const MSSelection& selection,
-                                      size_t& current_row, size_t end_row);
+  static void CalculateStationWeights(
+      const ImageWeights& image_weights, WeightMatrix& baseline_weights,
+      SynchronizedMS& ms, MSReader& ms_reader,
+      const schaapcommon::reordering::MSSelection& selection,
+      size_t& current_row, size_t end_row);
 #endif  // HAVE_EVERYBEAM
 };
 

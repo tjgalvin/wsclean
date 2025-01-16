@@ -1,15 +1,19 @@
 #include "msprovider.h"
+
 #include "msreaders/msreader.h"
 
 #include <aocommon/logger.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include <casacore/tables/DataMan/DataManager.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 
 #include "../structures/msselection.h"
 
 using aocommon::Logger;
+using schaapcommon::reordering::MSSelection;
+using schaapcommon::reordering::StorageManagerType;
 
 namespace wsclean {
 namespace {
@@ -111,37 +115,61 @@ void MSProvider::GetRowRangeAndIDMap(casacore::MeasurementSet& ms,
 }
 
 void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms,
-                                       const std::string& model_column_name) {
-  casacore::ArrayColumn<casacore::Complex> dataColumn(
+                                       const std::string& model_column_name,
+                                       StorageManagerType type) {
+  casacore::ArrayColumn<casacore::Complex> data_column(
       ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
   ms.reopenRW();
   if (ms.tableDesc().isColumn(model_column_name)) {
-    casacore::ArrayColumn<casacore::Complex> modelColumn(ms, model_column_name);
-    bool isDefined = modelColumn.isDefined(0);
-    bool isSameShape = false;
-    if (isDefined) {
-      casacore::IPosition modelShape = modelColumn.shape(0);
-      casacore::IPosition dataShape = dataColumn.shape(0);
-      isSameShape = modelShape == dataShape;
+    casacore::ArrayColumn<casacore::Complex> model_column(ms,
+                                                          model_column_name);
+    const bool is_defined = model_column.isDefined(0);
+    bool is_same_shape = false;
+    if (is_defined) {
+      casacore::IPosition model_shape = model_column.shape(0);
+      casacore::IPosition data_shape = data_column.shape(0);
+      is_same_shape = model_shape == data_shape;
     }
-    if (!isDefined || !isSameShape) {
+    if (!is_defined || !is_same_shape) {
       Logger::Warn << "WARNING: Your model column does not have the same shape "
                       "as your data column: resetting MODEL column.\n";
-      FillModelColumn(dataColumn, modelColumn);
+      FillModelColumn(data_column, model_column);
     }
   } else {  // No column exists with the given model_column_name
     Logger::Info << "Adding model data column " << model_column_name << "... ";
     Logger::Info.Flush();
-    casacore::ArrayColumnDesc<casacore::Complex> modelColumnDesc(
-        model_column_name);
-    try {
-      ms.addColumn(modelColumnDesc, "StandardStMan", true, true);
-    } catch (std::exception& e) {
-      ms.addColumn(modelColumnDesc, "StandardStMan", false, true);
+    std::string st_man_name = "StandardStMan";
+    bool use_direct_column = false;
+    switch (type) {
+      case StorageManagerType::Default:
+        break;
+      case StorageManagerType::StokesI:
+        st_man_name = "StokesIStMan";
+        use_direct_column = true;
     }
+    casacore::DataManagerCtor constructor =
+        casacore::DataManager::getCtor(st_man_name);
+    std::unique_ptr<casacore::DataManager> st_man(
+        constructor(model_column_name + "_dm", casacore::Record()));
+    if (!st_man)
+      throw std::runtime_error(
+          st_man_name +
+          " storage manager requested, but it is not available in "
+          "casacore");
+    casacore::ArrayColumnDesc<casacore::Complex> model_column_desc(
+        model_column_name);
+    if (use_direct_column) {
+      model_column_desc.setShape(data_column.shape(0));
+      model_column_desc.setOptions(casacore::ColumnDesc::Direct |
+                                   casacore::ColumnDesc::FixedShape);
+    }
+    casacore::TableDesc table_desc;
+    table_desc.addColumn(model_column_desc, model_column_name);
+    ms.addColumn(table_desc, *st_man, true);
 
-    casacore::ArrayColumn<casacore::Complex> modelColumn(ms, model_column_name);
-    FillModelColumn(dataColumn, modelColumn);
+    casacore::ArrayColumn<casacore::Complex> model_column(ms,
+                                                          model_column_name);
+    FillModelColumn(data_column, model_column);
 
     Logger::Info << "DONE\n";
   }

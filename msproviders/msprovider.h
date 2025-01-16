@@ -6,6 +6,8 @@
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 
+#include <schaapcommon/reordering/storagemanagertype.h>
+
 #include "../structures/msselection.h"
 
 #include <casacore/casa/Arrays/Array.h>
@@ -15,8 +17,6 @@
 #include <set>
 #include <type_traits>
 #include <vector>
-
-using schaapcommon::reordering::MSSelection;
 
 namespace casacore {
 class MeasurementSet;
@@ -160,15 +160,16 @@ class MSProvider {
    */
   void ResetModelColumn();
 
-  static void GetRowRange(casacore::MeasurementSet& ms,
-                          const MSSelection& selection, size_t& startRow,
-                          size_t& endRow);
+  static void GetRowRange(
+      casacore::MeasurementSet& ms,
+      const schaapcommon::reordering::MSSelection& selection, size_t& startRow,
+      size_t& endRow);
 
-  static void GetRowRangeAndIDMap(casacore::MeasurementSet& ms,
-                                  const MSSelection& selection,
-                                  size_t& startRow, size_t& endRow,
-                                  const std::set<size_t>& dataDescIdMap,
-                                  std::vector<size_t>& idToMSRow);
+  static void GetRowRangeAndIDMap(
+      casacore::MeasurementSet& ms,
+      const schaapcommon::reordering::MSSelection& selection, size_t& startRow,
+      size_t& endRow, const std::set<size_t>& dataDescIdMap,
+      std::vector<size_t>& idToMSRow);
 
   static void CopyRealToComplex(std::complex<float>* dest, const float* source,
                                 size_t n) {
@@ -180,8 +181,9 @@ class MSProvider {
     }
   }
 
-  static void InitializeModelColumn(casacore::MeasurementSet& ms,
-                                    const std::string& model_column_name);
+  static void InitializeModelColumn(
+      casacore::MeasurementSet& ms, const std::string& model_column_name,
+      schaapcommon::reordering::StorageManagerType type);
 
   static casacore::ArrayColumn<float> InitializeImagingWeightColumn(
       casacore::MeasurementSet& ms);

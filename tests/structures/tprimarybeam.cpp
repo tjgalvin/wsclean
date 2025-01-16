@@ -4,14 +4,17 @@
 
 #include "../../msproviders/contiguousms.h"
 
+using schaapcommon::reordering::MSSelection;
+using schaapcommon::reordering::StorageManagerType;
+
 namespace wsclean {
 
 BOOST_AUTO_TEST_SUITE(primary_beam)
 
 BOOST_AUTO_TEST_CASE(get_beam_intervals) {
   const std::string ms_path = "test_data/MWA_MOCK.ms";
-  ContiguousMS ms(ms_path, "DATA", "MODEL_DATA", MSSelection(),
-                  aocommon::PolarizationEnum::StokesI, 0, false);
+  ContiguousMS ms(ms_path, "DATA", "MODEL_DATA", StorageManagerType::Default,
+                  MSSelection(), aocommon::PolarizationEnum::StokesI, 0, false);
   const std::vector<BeamInterval> intervals = GetBeamIntervals(ms, 1);
   BOOST_REQUIRE_EQUAL(intervals.size(), 1);
   BeamInterval first = intervals.front();

@@ -26,9 +26,10 @@ class MsHelper {
    * @param ms_bands List such that element ms_bands[i] holds the bands for
    * settings.filenames[i].
    */
-  explicit MsHelper(const Settings& settings,
-                    const MSSelection& global_selection,
-                    const std::vector<aocommon::MultiBandData>& ms_bands)
+  explicit MsHelper(
+      const Settings& settings,
+      const schaapcommon::reordering::MSSelection& global_selection,
+      const std::vector<aocommon::MultiBandData>& ms_bands)
       : settings_{settings},
         global_selection_{global_selection},
         ms_bands_{ms_bands},
@@ -52,7 +53,7 @@ class MsHelper {
 
  private:
   const Settings& settings_;
-  const MSSelection& global_selection_;
+  const schaapcommon::reordering::MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
   std::vector<ReorderedMsProvider::ReorderedHandle> reordered_ms_handles_;
 };

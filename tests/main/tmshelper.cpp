@@ -8,6 +8,7 @@
 using aocommon::BandData;
 using aocommon::ChannelInfo;
 using aocommon::MultiBandData;
+using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 

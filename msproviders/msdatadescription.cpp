@@ -11,6 +11,8 @@
 #include <cassert>
 #include <memory>
 
+using schaapcommon::reordering::StorageManagerType;
+
 namespace wsclean {
 
 std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
@@ -18,9 +20,9 @@ std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
     return std::make_unique<ReorderedMsProvider>(_reorderedHandle, _partIndex,
                                                  _polarization, _dataDescId);
   else
-    return std::make_unique<ContiguousMS>(_filename, _dataColumnName,
-                                          _modelColumnName, _selection,
-                                          _polarization, _dataDescId, _useMPI);
+    return std::make_unique<ContiguousMS>(
+        _filename, _dataColumnName, _modelColumnName, _modelStorageManager,
+        _selection, _polarization, _dataDescId, _useMPI);
 }
 
 void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
@@ -33,6 +35,7 @@ void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
       .String(_filename)
       .String(_dataColumnName)
       .String(_modelColumnName)
+      .UInt32(static_cast<unsigned>(_modelStorageManager))
       .Object(_reorderedHandle)
       .UInt64(_partIndex);
 }
@@ -46,9 +49,9 @@ std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(
       .Object(mdd->_selection)
       .String(mdd->_filename)
       .String(mdd->_dataColumnName)
-      .String(mdd->_modelColumnName)
-      .Object(mdd->_reorderedHandle)
-      .UInt64(mdd->_partIndex);
+      .String(mdd->_modelColumnName);
+  mdd->_modelStorageManager = static_cast<StorageManagerType>(stream.UInt32());
+  stream.Object(mdd->_reorderedHandle).UInt64(mdd->_partIndex);
   mdd->_useMPI = true;  // Serialization only happens with MPI.
   return mdd;
 }

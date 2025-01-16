@@ -7,6 +7,8 @@
 
 #include <aocommon/multibanddata.h>
 
+#include <schaapcommon/reordering/storagemanagertype.h>
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 #include <casacore/tables/Tables/ArrayColumn.h>
@@ -23,7 +25,9 @@ class ContiguousMS final : public MSProvider {
 
  public:
   ContiguousMS(const string& msPath, const std::string& dataColumnName,
-               const std::string& modelColumnName, const MSSelection& selection,
+               const std::string& modelColumnName,
+               schaapcommon::reordering::StorageManagerType modelStorageManager,
+               const schaapcommon::reordering::MSSelection& selection,
                aocommon::PolarizationEnum polOut, size_t dataDescIndex,
                bool useMPI);
 
@@ -77,7 +81,7 @@ class ContiguousMS final : public MSProvider {
   size_t _startRow, _endRow;
   std::vector<size_t> _idToMSRow;
   std::set<aocommon::PolarizationEnum> _inputPolarizations;
-  MSSelection _selection;
+  schaapcommon::reordering::MSSelection _selection;
   aocommon::PolarizationEnum _outputPolarization;
   std::string _msPath;
   SynchronizedMS _ms;
@@ -95,6 +99,7 @@ class ContiguousMS final : public MSProvider {
   casacore::ArrayColumn<casacore::Complex> _dataColumn;
   casacore::ArrayColumn<bool> _flagColumn;
   casacore::ArrayColumn<casacore::Complex> _modelColumn;
+  schaapcommon::reordering::StorageManagerType _modelStorageManager;
 
   casacore::Array<std::complex<float>> _dataArray, _modelArray;
   casacore::Array<float> _weightSpectrumArray, _weightScalarArray,

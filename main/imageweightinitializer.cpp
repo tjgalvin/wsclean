@@ -6,6 +6,7 @@
 #include "../msproviders/contiguousms.h"
 
 using aocommon::Logger;
+using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
@@ -73,10 +74,10 @@ void ImageWeightInitializer::InitializeMf(const ImagingTable& imaging_table,
       for (size_t d = 0; d != ms_bands_[i].DataDescCount(); ++d) {
         const aocommon::PolarizationEnum pol =
             settings_.GetProviderPolarization(*settings_.polarizations.begin());
-        ContiguousMS msProvider(settings_.filenames[i],
-                                settings_.dataColumnName,
-                                settings_.modelColumnName, global_selection_,
-                                pol, d, settings_.UseMpi());
+        ContiguousMS msProvider(
+            settings_.filenames[i], settings_.dataColumnName,
+            settings_.modelColumnName, settings_.modelStorageManager,
+            global_selection_, pol, d, settings_.UseMpi());
         aocommon::BandData selected_band = ms_bands_[i][d];
         if (global_selection_.HasChannelRange())
           selected_band = aocommon::BandData(
