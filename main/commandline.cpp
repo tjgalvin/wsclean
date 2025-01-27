@@ -1289,7 +1289,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "diagonal-solutions" ||
                param == "diagonal-visibilities") {
       // Deprecated July 2024
-      CheckDeprecated(isSlave, argv[argi], "diagonal-visibilities");
+      CheckDeprecated(isSlave, param, "diagonal-visibilities");
       settings.visibilityReadMode = VisibilityReadMode::kDiagonal;
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
