@@ -409,33 +409,6 @@ constexpr bool ShouldSumCorrection(ModifierBehaviour behaviour) {
          behaviour == ModifierBehaviour::kApplyAndSum;
 }
 
-#if defined(__AVX2__) && defined(__FMA__)
-inline aocommon::avx::MatrixComplexFloat2x2 Multiply(
-    aocommon::avx::DiagonalMatrixComplexFloat2x2 lhs,
-    aocommon::avx::MatrixComplexFloat2x2 rhs) noexcept {
-  // Parts of the matrix multiplication is avoided due to the diagonal LHS
-  // matrix. The 2x2 matrix multiplication is done using the following
-  // algorithm. ret.a = lhs.a * rhs.a ret.b = lhs.a * rhs.b ret.c = lhs.d *
-  // rhs.c ret.d = lhs.d * rhs.d
-  aocommon::avx::VectorComplexFloat4 c1{lhs.Get(0), lhs.Get(0), lhs.Get(1),
-                                        lhs.Get(1)};
-  aocommon::avx::VectorComplexFloat4 c2{rhs.Get(0), rhs.Get(1), rhs.Get(2),
-                                        rhs.Get(3)};
-  return c1 * c2;
-}
-#else
-inline aocommon::scalar::MC2x2Base<float> Multiply(
-    aocommon::scalar::MC2x2DiagBase<float> lhs,
-    aocommon::scalar::MC2x2Base<float> rhs) noexcept {
-  // Parts of the matrix multiplication is avoided due to the diagonal LHS
-  // matrix. The 2x2 matrix multiplication is done using the following
-  // algorithm. ret.a = lhs.a * rhs.a ret.b = lhs.a * rhs.b ret.c = lhs.d *
-  // rhs.c ret.d = lhs.d * rhs.d
-  return MC2x2Base<ValType>{Get(0) * rhs.Get(0), Get(0) * rhs.Get(1),
-                            Get(1) * rhs.Get(2), Get(1) * rhs.Get(3)};
-}
-#endif
-
 template <GainMode Mode, typename T>
 constexpr decltype(auto) MakeDiagonalIfScalar(T& matrix) {
   if constexpr (AllowScalarCorrection(Mode)) {
@@ -509,10 +482,8 @@ inline void VisibilityModifier::ApplyConjugatedDual(
 
       // Combine H5parm and beam. The beam is applied first on the data,
       // and therefore needs to be the last in the multiplication.
-      const aocommon::MC2x2F gain_combined_1 =
-          internal::Multiply(gain_h5_1, gain_b_1);
-      const aocommon::MC2x2F gain_combined_2 =
-          internal::Multiply(gain_h5_2, gain_b_2);
+      const aocommon::MC2x2F gain_combined_1 = gain_h5_1 * gain_b_1;
+      const aocommon::MC2x2F gain_combined_2 = gain_h5_2 * gain_b_2;
 
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         if (apply_forward) {
