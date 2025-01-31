@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 
+#include <aocommon/lane.h>
 #include <aocommon/taskqueue.h>
 
 #include "h5solutiondata.h"
@@ -126,12 +127,32 @@ class MSGridderManager {
    *   time_offsets: `0`
    */
   struct ChunkData {
-    std::pair<size_t, size_t>* antennas;
-    double* uvw;
-    std::complex<float>* visibilities;
+    ChunkData(size_t n_rows, size_t n_channels, size_t n_vis_polarisations,
+              bool apply_corrections)
+        : antennas(apply_corrections ? n_rows : 0), uvw(n_rows * 3) {
+      // If we don't apply corrections then we collapse the visibilities when
+      // storing them to save memory. In order to be able to collapse the
+      // already copied data in place we have to slightly overallocate the
+      // buffer by one uncollapsed row.
+      const size_t visibility_size =
+          apply_corrections
+              ? (n_rows * (n_channels * n_vis_polarisations))
+              : ((n_rows * n_channels) + (n_channels * n_vis_polarisations));
+      visibilities = aocommon::UVector<std::complex<float>>(visibility_size);
+    }
+    ChunkData() = default;
+    aocommon::UVector<std::pair<size_t, size_t>> antennas;
+    aocommon::UVector<double> uvw;
+    aocommon::UVector<std::complex<float>> visibilities;
     // per row time offset computed during @ref ApplyCorrections()<kSum>
     // and applied during @ref ApplyCorrections()<kApply>
-    std::vector<size_t> time_offsets_;
+    std::vector<size_t> time_offsets;
+
+    size_t gridded_visibility_count;
+    size_t visibility_weight_sum;
+    size_t max_gridded_weight;
+    size_t total_weight;
+    size_t n_rows;
   };
 
   /** Read and compute data from an @ref MSReader into a single @ref ChunkData
@@ -147,7 +168,7 @@ class MSGridderManager {
    * n_vis_polarizations` that are used to hold/calculate temporary data while
    * populating the chunk.
    * @param [in, out] chunk_data A struct with pointers to buffers of size @ref
-   * max_n_rows * `data_size` where `data_size` is different for each buffer,
+   * n_chunk_rows * `data_size` where `data_size` is different for each buffer,
    * see @ref ChunkData for more size information.
    * @param [in] shared_data @MsGridderData Initialised by the caller with task
    * and measurement data so that it can be used to call methods a single time
@@ -159,7 +180,7 @@ class MSGridderManager {
       GainMode gain_mode, bool apply_corrections,
       aocommon::TaskQueue<std::function<void()>>& task_queue,
       const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t max_n_rows,
+      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
       MSReader& ms_reader, const aocommon::BandData band,
       const bool* selected_buffer, RowData& row_data, ChunkData& chunk_data,
       MsGridderData& shared_data);
@@ -168,10 +189,53 @@ class MSGridderManager {
       bool apply_corrections,
       aocommon::TaskQueue<std::function<void()>>& task_queue,
       const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t max_n_rows,
+      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
       MSReader& ms_reader, const aocommon::BandData band,
       const bool* selected_buffer, RowData& row_data, ChunkData& chunk_data,
       MsGridderData& shared_data);
+
+  /**
+   * Read and compute data from an @ref MSReader into a single @ref ChunkData
+   * at a time, using @ref ReadChunkForInvert. Pass the ChunkData to the
+   * task_lane and then continue reading a new ChunkData until all data has been
+   * consumed. See @ref ReadChunkForInvert for more information.
+   */
+  void ReadChunksForInvert(
+      aocommon::Lane<ChunkData>& task_lane,
+      aocommon::TaskQueue<std::function<void()>>& task_queue,
+      size_t n_max_rows_in_memory, bool apply_corrections,
+      MsProviderCollection::MsData& ms_data, MsGridderData& shared_data,
+      const std::vector<MsGridder*>& gridders, const aocommon::BandData band,
+      size_t n_vis_polarizations, const bool* selected_buffer);
+
+  /**
+   * Perform gridding on a single block of data stored in @ref ChunkData/
+   */
+  void GridChunk(size_t n_rows, size_t num_parallel_gridders,
+                 bool apply_corrections, ChunkData& chunk_data,
+                 std::vector<MsGridder*>& gridders,
+                 size_t gridded_visibility_count, size_t visibility_weight_sum,
+                 size_t max_gridded_weight, size_t total_weight,
+                 size_t n_vis_polarizations,
+                 aocommon::TaskQueue<std::function<void()>>& task_queue,
+                 const aocommon::UVector<double>& frequencies,
+                 const aocommon::BandData& band,
+                 MsProviderCollection::MsData& ms_data);
+
+  /**
+   * Perform gridding on chunks of @ref ChunkData by calling @ref GridChunk
+   * sequentailly on each chunk, as they become available in the task_lane,
+   * until all chunks have been processed.
+   */
+  void GridChunks(aocommon::Lane<ChunkData>& task_lane,
+                  const size_t num_parallel_gridders,
+                  const bool apply_corrections,
+                  std::vector<MsGridder*>& gridders,
+                  aocommon::TaskQueue<std::function<void()>>& task_queue,
+                  const aocommon::UVector<double>& frequencies,
+                  const aocommon::BandData& band,
+                  MsProviderCollection::MsData& ms_data,
+                  size_t n_vis_polarizations);
 
   std::unique_ptr<MsGridder> ConstructGridder(const Resources& resources);
   struct GriddingFacetTask {
