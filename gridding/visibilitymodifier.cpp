@@ -84,7 +84,9 @@ void VisibilityModifier::InitializeCacheParmResponse(
   const size_t solution_index = (*_h5parms).size() == 1 ? 0 : ms_index;
 
   // Only extract DD solutions if the corresponding cache entry is empty.
-  if (_cachedParmResponse[ms_index].empty()) {
+  std::vector<std::complex<float>>& parm_response =
+      _cachedParmResponse[ms_index];
+  if (parm_response.empty()) {
     const size_t nparms = NValuesPerSolution(ms_index);
     const std::vector<double> freqs(band.begin(), band.end());
     const size_t responseSize = _cachedMSTimes[ms_index]->size() *
@@ -106,9 +108,8 @@ void VisibilityModifier::InitializeCacheParmResponse(
     // parms (Casacore::Cube) is column major
     const casacore::Cube<std::complex<float>>& parms =
         jonesParameters.GetParms();
-    _cachedParmResponse[ms_index].assign(&parms(0, 0, 0),
-                                         &parms(0, 0, 0) + responseSize);
-    setNonFiniteToZero(_cachedParmResponse[ms_index]);
+    parm_response.assign(&parms(0, 0, 0), &parms(0, 0, 0) + responseSize);
+    setNonFiniteToZero(parm_response);
   }
 }
 
@@ -200,6 +201,8 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
                                            size_t antenna2,
                                            size_t time_offset) {
   const size_t nparms = NValuesPerSolution(ms_index);
+  const std::vector<std::complex<float>>& parm_response =
+      _cachedParmResponse[ms_index];
   if (nparms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
       // Column major indexing
@@ -207,10 +210,10 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
           (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
-      const MC2x2F gain1(_cachedParmResponse[ms_index][offset1], 0, 0,
-                         _cachedParmResponse[ms_index][offset1 + 1]);
-      const MC2x2F gain2(_cachedParmResponse[ms_index][offset2], 0, 0,
-                         _cachedParmResponse[ms_index][offset2 + 1]);
+      const MC2x2F gain1(parm_response[offset1], 0, 0,
+                         parm_response[offset1 + 1]);
+      const MC2x2F gain2(parm_response[offset2], 0, 0,
+                         parm_response[offset2 + 1]);
       internal::ApplyGain<Mode>(data, gain1, gain2);
       data += GetNVisibilities(Mode);
     }
@@ -221,8 +224,8 @@ void VisibilityModifier::ApplyParmResponse(std::complex<float>* data,
           (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
-      const MC2x2F gain1(&_cachedParmResponse[ms_index][offset1]);
-      const MC2x2F gain2(&_cachedParmResponse[ms_index][offset2]);
+      const MC2x2F gain1(&parm_response[offset1]);
+      const MC2x2F gain2(&parm_response[offset2]);
       internal::ApplyGain<Mode>(data, gain1, gain2);
       data += GetNVisibilities(Mode);
     }

@@ -32,6 +32,26 @@ aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix);
  */
 aocommon::HMC4x4 AddConjugateCorrectionPart(const aocommon::HMC4x4& m);
 
+namespace internal {
+/**
+ * Given a diagonal matrix that is to be used in a KroneckerProduct.
+ * This function computes the Hermitian square of the matrix with
+ * all results that won't be used in the KroneckerProduct optimised out.
+ * In other words:
+ *   Skip the transpose and all multiplications involving the zero diagonals.
+ *   Skip computing the imaginary part of the final complex multiplication.
+ *   Only the real part is needed for the optimised KroneckerProduct.
+ */
+inline std::array<double, 2> PartialHermitianSquareForDiagonalKronecker(
+    const aocommon::MC2x2FDiag& matrix) {
+  const aocommon::MC2x2FDiag conjugate = matrix.Conjugate();
+  return {(std::real(conjugate.Get(0)) * double{std::real(matrix.Get(0))}) -
+              (std::imag(conjugate.Get(0)) * double{std::imag(matrix.Get(0))}),
+          (std::real(conjugate.Get(1)) * double{std::real(matrix.Get(1))}) -
+              (std::imag(conjugate.Get(1)) * double{std::imag(matrix.Get(1))})};
+}
+}  // namespace internal
+
 /**
  * This class is used to collect the Jones corrections that are applied
  * to visibilities while gridding. The Kronecker product of the Jones
@@ -43,17 +63,60 @@ class AverageCorrection {
   template <GainMode Mode>
   void Add(const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2,
            float visibility_weight) {
+    static_assert(!AllowScalarCorrection(Mode),
+                  "Use MC2x2Diag for scalar corrections");
+    // Add: w * [ (g1^H g1)^T (x) (g2^H g2) ].
+    // The conjugate part is added later (see AddConjugateCorrectionPart()).
+    const aocommon::MC2x2 g1(gain1);
+    const aocommon::MC2x2 g2(gain2);
+    matrix_ += aocommon::HMC4x4::KroneckerProduct(
+                   g1.HermitianSquare().Transpose(), g2.HermitianSquare()) *
+               visibility_weight;
+  }
+
+  /**
+   * Optimised specialisation of @ref Add() for diagonal matrices
+   */
+  template <GainMode Mode>
+  void Add(const aocommon::MC2x2FDiag& gain1, const aocommon::MC2x2FDiag& gain2,
+           double visibility_weight) {
+    using internal::PartialHermitianSquareForDiagonalKronecker;
     if constexpr (AllowScalarCorrection(Mode)) {
       const std::complex<float> g = GetGainElement<Mode>(gain1, gain2);
       sum_ += std::norm(g) * visibility_weight;
     } else {
-      // Add: w * [ (g1^H g1)^T (x) (g2^H g2) ].
-      // The conjugate part is added later (see AddConjugateCorrectionPart()).
-      const aocommon::MC2x2 g1(gain1);
-      const aocommon::MC2x2 g2(gain2);
-      matrix_ += aocommon::HMC4x4::KroneckerProduct(
-                     g1.HermitianSquare().Transpose(), g2.HermitianSquare()) *
-                 visibility_weight;
+      // Compute the hermitian square of gain1 and gain2.
+      // In an optimised way that skips computation of parts we don't need.
+      // Skip transpose of gain1 Hermitian square, this is a no-op on a diagonal
+      // matrix.
+      std::array<double, 2> g1_herm_square_real =
+          PartialHermitianSquareForDiagonalKronecker(gain1);
+      std::array<double, 2> g2_herm_square_real =
+          PartialHermitianSquareForDiagonalKronecker(gain2);
+
+      // Compute the KroneckerProduct of gain1 and gain2:
+      //   * Only compute the real values for full matrix elements:
+      //     {0,0}, {0,3}, {3,0} and {3,3}
+      //   * These have indexes 0, 3, 8 and 15 in the HMatrix class.
+      //   * All other values are guaranteed to be zero.
+      matrix_ += aocommon::HMatrix4x4::FromData({
+          g1_herm_square_real[0] * g2_herm_square_real[0] * visibility_weight,
+          0.0f,
+          0.0f,
+          g1_herm_square_real[0] * g2_herm_square_real[1] * visibility_weight,
+          0.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          g1_herm_square_real[1] * g2_herm_square_real[0] * visibility_weight,
+          0.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          0.0f,
+          g1_herm_square_real[1] * g2_herm_square_real[1] * visibility_weight,
+      });
     }
   }
 
@@ -123,16 +186,16 @@ class AverageCorrection {
    * See @ref GainMode for further documentation.
    */
   template <GainMode Mode>
-  std::complex<float> GetGainElement(const aocommon::MC2x2F& gain1,
-                                     const aocommon::MC2x2F& gain2) {
+  std::complex<float> GetGainElement(const aocommon::MC2x2FDiag& gain1,
+                                     const aocommon::MC2x2FDiag& gain2) {
     assert(GetNVisibilities(Mode) == 1);
     if constexpr (Mode == GainMode::kXX)
       return gain2.Get(0) * std::conj(gain1.Get(0));
     else if constexpr (Mode == GainMode::kYY)
-      return gain2.Get(3) * std::conj(gain1.Get(3));
+      return gain2.Get(1) * std::conj(gain1.Get(1));
     else  // Mode == GainMode::kTrace
       return 0.5f * (gain2.Get(0) * std::conj(gain1.Get(0)) +
-                     gain2.Get(3) * std::conj(gain1.Get(3)));
+                     gain2.Get(1) * std::conj(gain1.Get(1)));
   }
 
   long double sum_ = 0.0L;

@@ -408,6 +408,42 @@ constexpr bool ShouldSumCorrection(ModifierBehaviour behaviour) {
   return behaviour == ModifierBehaviour::kSum ||
          behaviour == ModifierBehaviour::kApplyAndSum;
 }
+
+#if defined(__AVX2__) && defined(__FMA__)
+inline aocommon::avx::MatrixComplexFloat2x2 Multiply(
+    aocommon::avx::DiagonalMatrixComplexFloat2x2 lhs,
+    aocommon::avx::MatrixComplexFloat2x2 rhs) noexcept {
+  // Parts of the matrix multiplication is avoided due to the diagonal LHS
+  // matrix. The 2x2 matrix multiplication is done using the following
+  // algorithm. ret.a = lhs.a * rhs.a ret.b = lhs.a * rhs.b ret.c = lhs.d *
+  // rhs.c ret.d = lhs.d * rhs.d
+  aocommon::avx::VectorComplexFloat4 c1{lhs.Get(0), lhs.Get(0), lhs.Get(1),
+                                        lhs.Get(1)};
+  aocommon::avx::VectorComplexFloat4 c2{rhs.Get(0), rhs.Get(1), rhs.Get(2),
+                                        rhs.Get(3)};
+  return c1 * c2;
+}
+#else
+inline aocommon::scalar::MC2x2Base<float> Multiply(
+    aocommon::scalar::MC2x2DiagBase<float> lhs,
+    aocommon::scalar::MC2x2Base<float> rhs) noexcept {
+  // Parts of the matrix multiplication is avoided due to the diagonal LHS
+  // matrix. The 2x2 matrix multiplication is done using the following
+  // algorithm. ret.a = lhs.a * rhs.a ret.b = lhs.a * rhs.b ret.c = lhs.d *
+  // rhs.c ret.d = lhs.d * rhs.d
+  return MC2x2Base<ValType>{Get(0) * rhs.Get(0), Get(0) * rhs.Get(1),
+                            Get(1) * rhs.Get(2), Get(1) * rhs.Get(3)};
+}
+#endif
+
+template <GainMode Mode, typename T>
+constexpr decltype(auto) MakeDiagonalIfScalar(T& matrix) {
+  if constexpr (AllowScalarCorrection(Mode)) {
+    return matrix.Diagonal();
+  } else {
+    return (matrix);
+  }
+}
 }  // namespace internal
 
 #ifdef HAVE_EVERYBEAM
@@ -415,6 +451,7 @@ template <ModifierBehaviour Behaviour, GainMode Mode>
 inline void VisibilityModifier::ApplyConjugatedBeamResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward) {
+  using internal::MakeDiagonalIfScalar;
   for (size_t ch = 0; ch < n_channels; ++ch) {
     const size_t offset = ch * _pointResponseBufferSize;
     const size_t offset1 = offset + antenna1 * 4u;
@@ -431,7 +468,9 @@ inline void VisibilityModifier::ApplyConjugatedBeamResponse(
     }
     if constexpr (internal::ShouldSumCorrection(Behaviour)) {
       // This assumes that the weights of the polarizations are the same
-      correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
+      correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain1),
+                                MakeDiagonalIfScalar<Mode>(gain2),
+                                image_weights[ch] * weights[0]);
       weights += GetNVisibilities(Mode);
     }
   }
@@ -442,7 +481,10 @@ inline void VisibilityModifier::ApplyConjugatedDual(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
     size_t ms_index, bool apply_forward, size_t time_offset) {
+  using internal::MakeDiagonalIfScalar;
   const size_t nparms = NValuesPerSolution(ms_index);
+  const std::vector<std::complex<float>>& parm_response =
+      _cachedParmResponse[ms_index];
 
   if (nparms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
@@ -460,17 +502,17 @@ inline void VisibilityModifier::ApplyConjugatedDual(
           (time_offset * n_channels + ch) * n_stations * nparms;
       const size_t h5_offset1 = h5_offset + antenna1 * nparms;
       const size_t h5_offset2 = h5_offset + antenna2 * nparms;
-      const aocommon::MC2x2F gain_h5_1(
-          _cachedParmResponse[ms_index][h5_offset1], 0, 0,
-          _cachedParmResponse[ms_index][h5_offset1 + 1]);
-      const aocommon::MC2x2F gain_h5_2(
-          _cachedParmResponse[ms_index][h5_offset2], 0, 0,
-          _cachedParmResponse[ms_index][h5_offset2 + 1]);
+      const aocommon::MC2x2FDiag gain_h5_1(parm_response[h5_offset1],
+                                           parm_response[h5_offset1 + 1]);
+      const aocommon::MC2x2FDiag gain_h5_2(parm_response[h5_offset2],
+                                           parm_response[h5_offset2 + 1]);
 
       // Combine H5parm and beam. The beam is applied first on the data,
       // and therefore needs to be the last in the multiplication.
-      const aocommon::MC2x2F gain_combined_1 = gain_h5_1 * gain_b_1;
-      const aocommon::MC2x2F gain_combined_2 = gain_h5_2 * gain_b_2;
+      const aocommon::MC2x2F gain_combined_1 =
+          internal::Multiply(gain_h5_1, gain_b_1);
+      const aocommon::MC2x2F gain_combined_2 =
+          internal::Multiply(gain_h5_2, gain_b_2);
 
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         if (apply_forward) {
@@ -481,9 +523,11 @@ inline void VisibilityModifier::ApplyConjugatedDual(
         data += GetNVisibilities(Mode);
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
-        beam_correction_sum_.Add<Mode>(gain_b_1, gain_b_2,
+        beam_correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain_b_1),
+                                       MakeDiagonalIfScalar<Mode>(gain_b_2),
                                        weights[0] * image_weights[ch]);
-        correction_sum_.Add<Mode>(gain_combined_1, gain_combined_2,
+        correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain_combined_1),
+                                  MakeDiagonalIfScalar<Mode>(gain_combined_2),
                                   weights[0] * image_weights[ch]);
         weights += GetNVisibilities(Mode);
       }
@@ -505,10 +549,8 @@ inline void VisibilityModifier::ApplyConjugatedDual(
           (time_offset * n_channels + ch) * n_stations * nparms;
       const size_t offset_h5_1 = offset_h5 + antenna1 * nparms;
       const size_t offset_h5_2 = offset_h5 + antenna2 * nparms;
-      const aocommon::MC2x2F gain_h5_1(
-          &_cachedParmResponse[ms_index][offset_h5_1]);
-      const aocommon::MC2x2F gain_h5_2(
-          &_cachedParmResponse[ms_index][offset_h5_2]);
+      const aocommon::MC2x2F gain_h5_1(&parm_response[offset_h5_1]);
+      const aocommon::MC2x2F gain_h5_2(&parm_response[offset_h5_2]);
 
       // Combine H5parm and beam. The beam is applied first on the data,
       // and therefore needs to be the last in the multiplication.
@@ -524,9 +566,11 @@ inline void VisibilityModifier::ApplyConjugatedDual(
         data += GetNVisibilities(Mode);
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
-        beam_correction_sum_.Add<Mode>(gain_b_1, gain_b_2,
+        beam_correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain_b_1),
+                                       MakeDiagonalIfScalar<Mode>(gain_b_2),
                                        weights[0] * image_weights[ch]);
-        correction_sum_.Add<Mode>(gain_combined_1, gain_combined_2,
+        correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain_combined_1),
+                                  MakeDiagonalIfScalar<Mode>(gain_combined_2),
                                   weights[0] * image_weights[ch]);
         weights += GetNVisibilities(Mode);
       }
@@ -540,7 +584,10 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
     size_t ms_index, size_t n_channels, size_t n_antennas, size_t antenna1,
     size_t antenna2, bool apply_forward, size_t time_offset) {
+  using internal::MakeDiagonalIfScalar;
   const size_t nparms = NValuesPerSolution(ms_index);
+  const std::vector<std::complex<float>>& parm_response =
+      _cachedParmResponse[ms_index];
 
   // Conditional could be templated once C++ supports partial function
   // specialization
@@ -551,11 +598,11 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
           (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
-      const aocommon::MC2x2F gain1(_cachedParmResponse[ms_index][offset1], 0, 0,
-                                   _cachedParmResponse[ms_index][offset1 + 1]);
-      const aocommon::MC2x2F gain2(_cachedParmResponse[ms_index][offset2], 0, 0,
-                                   _cachedParmResponse[ms_index][offset2 + 1]);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
+        const aocommon::MC2x2F gain1(parm_response[offset1], 0.0f, 0.0f,
+                                     parm_response[offset1 + 1]);
+        const aocommon::MC2x2F gain2(parm_response[offset2], 0.0f, 0.0f,
+                                     parm_response[offset2 + 1]);
         if (apply_forward) {
           internal::ApplyGain<Mode>(data, gain1, gain2);
         }
@@ -563,7 +610,10 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
         data += GetNVisibilities(Mode);
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
-        // This multiplies a lot of zeros so could be done more efficiently
+        const aocommon::MC2x2FDiag gain1(parm_response[offset1],
+                                         parm_response[offset1 + 1]);
+        const aocommon::MC2x2FDiag gain2(parm_response[offset2],
+                                         parm_response[offset2 + 1]);
         correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
         weights += GetNVisibilities(Mode);
       }
@@ -575,8 +625,8 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
           (time_offset * n_channels + ch) * n_antennas * nparms;
       const size_t offset1 = offset + antenna1 * nparms;
       const size_t offset2 = offset + antenna2 * nparms;
-      const aocommon::MC2x2F gain1(&_cachedParmResponse[ms_index][offset1]);
-      const aocommon::MC2x2F gain2(&_cachedParmResponse[ms_index][offset2]);
+      const aocommon::MC2x2F gain1(&parm_response[offset1]);
+      const aocommon::MC2x2F gain2(&parm_response[offset2]);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         if (apply_forward) {
           internal::ApplyGain<Mode>(data, gain1, gain2);
@@ -586,7 +636,9 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
       }
       if constexpr (internal::ShouldSumCorrection(Behaviour)) {
         // Assumes that the weights of the polarizations are the same
-        correction_sum_.Add<Mode>(gain1, gain2, image_weights[ch] * weights[0]);
+        correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain1),
+                                  MakeDiagonalIfScalar<Mode>(gain2),
+                                  image_weights[ch] * weights[0]);
         weights += GetNVisibilities(Mode);
       }
     }
