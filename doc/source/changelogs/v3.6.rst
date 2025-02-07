@@ -1,0 +1,32 @@
+WSClean version 3.6
+===================
+
+Released 2025-02-07
+
+Summary:
+
+Version 3.6 contains several new features, speed improvements and bugfixes: The result of 6 months of development.
+
+For imaging with beam models, WSClean 3.6 requires EveryBeam `version 0.6.0 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.6.0>`_ or newer.
+
+Full change list
+----------------
+
+* Add ``-no-solution-directions-check`` option, to support h5 solution files with more directions than those being imaged.
+* Add ``-model-column`` option, which specifies the target column for predicted model data.
+* Add ``-model-storage-manager`` option, which allows using Stokes I storage manager for predicted model data.
+* Write facet-corrected primary beam model images, which makes sure that the result of imaging and prediction are consistent.
+* Add ``-local-rms-strength`` option, for balancing the effect of local RMS.
+* Add ``-asp`` option, which enables Radler's adaptive scale pixel algorithm.
+* Set default nr of major iterations (``-nmiter`` option) to 12 instead of 20.
+* Add ``-shared-facet-reads`` option, which avoids reading data multiple times when using parallel gridding with multiple facets.
+* Various speed improvements in faceting mode, resulting from faster average correction calculations and gain applications.
+
+Bug fixes and refactoring
+-------------------------
+* Support EveryBeam v0.7.x (besides v0.6.x).
+* Enable C++20.
+* Use newer XTensor library versions.
+* Prefer to reorder when facetting.
+* Fix a missing transpose in the average correction calculation.
+* Explicitly initialize cfitsio to remove a race condition.

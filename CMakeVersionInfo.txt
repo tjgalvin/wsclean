@@ -1,7 +1,7 @@
-set(WSCLEAN_VERSION_STR   3.5)
+set(WSCLEAN_VERSION_STR   3.6)
 set(WSCLEAN_VERSION_MAJOR 3)
-set(WSCLEAN_VERSION_MINOR 4)
-set(WSCLEAN_VERSION_DATE  2024-07-30)
+set(WSCLEAN_VERSION_MINOR 6)
+set(WSCLEAN_VERSION_DATE  2025-02-07)
 
 # SOVERSION stored in the library, was added for Debian
 # packaging, but seems unnecessary after all -- hence
