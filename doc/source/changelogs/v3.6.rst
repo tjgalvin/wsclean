@@ -7,7 +7,10 @@ Summary:
 
 Version 3.6 contains several new features, speed improvements and bugfixes: The result of 6 months of development.
 
-For imaging with beam models, WSClean 3.6 requires EveryBeam `version 0.6.0 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.6.0>`_ or newer.
+WSClean has two important dependencies:
+
+- WSClean now requires Casacore version 3.6 or newer. At the time of this release, casacore 3.6 is not shipped yet by the latest Ubuntu release, and it might therefore require manual compilation of Casacore.
+- For imaging with beam models, WSClean 3.6 requires EveryBeam `version 0.6.0 <https://git.astron.nl/RD/EveryBeam/-/releases/v0.6.0>`_ or newer.
 
 Full change list
 ----------------
