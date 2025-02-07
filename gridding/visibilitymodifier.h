@@ -412,7 +412,7 @@ constexpr bool ShouldSumCorrection(ModifierBehaviour behaviour) {
 template <GainMode Mode, typename T>
 constexpr decltype(auto) MakeDiagonalIfScalar(T& matrix) {
   if constexpr (AllowScalarCorrection(Mode)) {
-    return matrix.Diagonal();
+    return Diagonal(matrix);
   } else {
     return (matrix);
   }
