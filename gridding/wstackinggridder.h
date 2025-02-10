@@ -322,10 +322,10 @@ class WStackingGridder {
 
   /**
    * Finalize inversion once all passes are performed.
-   * @param multiplicationFactor Apply this factor to all pixels. This can be
+   * @param multiplication_factor Apply this factor to all pixels. This can be
    * used to normalize the image for the weighting scheme.
    */
-  void FinalizeImage(double multiplicationFactor);
+  void FinalizeImage(double multiplication_factor);
 
   /**
    * Initialize gridder for prediction and specify image to predict for.
@@ -580,10 +580,11 @@ class WStackingGridder {
   void fftToImageThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks,
                                 size_t threadIndex);
   void fftToUVThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks);
-  void finalizeImage(double multiplicationFactor,
-                     std::vector<aocommon::ImageBase<num_t>> &dataArray);
-  void initializePrediction(aocommon::Image image,
-                            std::vector<aocommon::ImageBase<num_t>> &dataArray);
+  void finalizeImage(double multiplication_factor,
+                     std::vector<aocommon::ImageBase<num_t>> &data_array);
+  void initializePrediction(
+      aocommon::Image image,
+      std::vector<aocommon::ImageBase<num_t>> &data_array);
 
   void makeKernels();
   /**

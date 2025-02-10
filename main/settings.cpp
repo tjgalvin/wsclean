@@ -158,6 +158,21 @@ void Settings::Validate() const {
         "Parameter -feather-size was specified without enabling facetting.");
   }
 
+  if (gridderType == GridderType::WTowers) {
+#ifndef BUILD_WTOWERS
+    throw std::runtime_error("WSClean not built with w-towers support");
+#else
+    if (parallelGridding != 1)
+      throw std::runtime_error(
+          "Parallel gridding can not be combined with w-towers");
+    if (!facetRegionFilename.empty())
+      throw std::runtime_error("Facets can not be combined with w-towers");
+    if (trimmedImageWidth != trimmedImageHeight)
+      throw std::runtime_error(
+          "w-towers can not yet make rectangular images -- this will be "
+          "implemented at a later time.");
+#endif
+  }
   if (gridderType == GridderType::IDG) {
     const bool stokesIOnly =
         polarizations.size() == 1 &&

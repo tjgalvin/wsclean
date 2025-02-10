@@ -1,65 +1,62 @@
-#include "wgriddingmsgridder.h"
-
-#include "gridder_simple.h"
-
-#include "../gridding/msgriddermanager.h"
-#include "../msproviders/msreaders/msreader.h"
-
-#include "../msproviders/msprovider.h"
-
-#include "../system/buffered_lane.h"
-
-#include "../structures/imageweights.h"
+#include "wtowersmsgridder.h"
 
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
 
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <schaapcommon/math/resampler.h>
 
-#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+#include "wtowers_gridder.h"
+#include "wtowers_gridder_implementation.h"
+#include "../gridding/msgriddermanager.h"
+#include "../msproviders/msreaders/msreader.h"
+#include "../msproviders/msprovider.h"
+#include "../structures/imageweights.h"
+
+template class wsclean::WTowersGridder<double>;
+template class wsclean::WTowersGridder<float>;
 
 using aocommon::Image;
 using aocommon::Logger;
 
 namespace wsclean {
 
-WGriddingMSGridder::WGriddingMSGridder(
-    const Settings& settings, const Resources& resources,
-    MsProviderCollection& ms_provider_collection, bool use_tuned_wgridder)
+WTowersMsGridder::WTowersMsGridder(const Settings& settings,
+                                   const Resources& resources,
+                                   MsProviderCollection& ms_provider_collection)
     : MsGridder(settings, ms_provider_collection),
       resources_(resources),
-      accuracy_(GetSettings().gridder_accuracy),
-      use_tuned_wgridder_(use_tuned_wgridder) {
+      accuracy_(GetSettings().gridder_accuracy) {
   // It may happen that several schaapcommon::fft::Resamplers are created
   // concurrently, so we must make sure that the FFTW planner can deal with
   // this.
   fftwf_make_planner_thread_safe();
 }
 
-WGriddingMSGridder::~WGriddingMSGridder() = default;
+WTowersMsGridder::~WTowersMsGridder() = default;
 
-std::unique_ptr<WGriddingGridderBase> WGriddingMSGridder::MakeGridder(
+std::unique_ptr<WTowersGridderBase> WTowersMsGridder::MakeGridder(
     size_t width, size_t height) const {
   if (accuracy_ <= 1.01e-5) {
-    return std::make_unique<WGriddingGridder_Simple<double>>(
+    return std::make_unique<WTowersGridder<double>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
+        resources_.NCpus(), 0);
   } else {
-    return std::make_unique<WGriddingGridder_Simple<float>>(
+    return std::make_unique<WTowersGridder<float>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
+        resources_.NCpus(), 0);
   }
 }
 
-size_t WGriddingMSGridder::CalculateConstantMemory() const {
+size_t WTowersMsGridder::CalculateConstantMemory() const {
   size_t constant_mem = gridder_->ConstantMemoryUsage();
   constant_mem += GetVisibilityModifier().GetCacheParmResponseSize();
   return constant_mem;
 }
 
-size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
+size_t WTowersMsGridder::CalculateMaxRowsInMemory(
     int64_t available_memory, size_t constant_memory,
     size_t additional_per_row_consumption, size_t channel_count,
     size_t num_polarizations_stored) const {
@@ -94,27 +91,7 @@ size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
   return max_n_rows;
 }
 
-void WGriddingMSGridder::GridSharedMeasurementSetChunk(
-    bool apply_corrections, size_t n_polarizations, size_t n_rows,
-    const double* uvws, const double* frequencies,
-    const aocommon::BandData& selected_band,
-    const std::pair<size_t, size_t>* antennas,
-    const std::complex<float>* visibilities, const size_t* time_offsets,
-    size_t n_antennas) {
-  // If there are no corrections to apply then we can bypass needing a callback
-  // and just use the shared buffer directly
-  if (!apply_corrections) {
-    gridder_->AddInversionData(n_rows, selected_band.ChannelCount(), uvws,
-                               frequencies, visibilities);
-  } else {
-    gridder_->AddInversionDataWithCorrectionCallback(
-        GetGainMode(), n_polarizations, n_rows, uvws, frequencies,
-        selected_band.ChannelCount(), selected_band, antennas, visibilities,
-        time_offsets, this, n_antennas);
-  }
-}
-
-size_t WGriddingMSGridder::GridMeasurementSet(
+size_t WTowersMsGridder::GridMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
   const aocommon::BandData selected_band(ms_data.SelectedBand());
@@ -168,6 +145,11 @@ size_t WGriddingMSGridder::GridMeasurementSet(
           &visibility_buffer[n_chunk_rows_read * selected_band.ChannelCount()]);
       std::copy_n(row_data.uvw, 3, &uvw_buffer[n_chunk_rows_read * 3]);
 
+      // Negate v; otherwise image is flipped compared to other gridders like
+      // DUCC, that also do this. We must do this after GetCollapsedVisibilities
+      // call otherwise we corrupt the image.
+      uvw_buffer[(n_chunk_rows_read * 3) + 1] *= -1;
+
       ++n_chunk_rows_read;
       ms_reader->NextInputRow();
     }
@@ -182,7 +164,7 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   return n_total_rows_read;
 }
 
-size_t WGriddingMSGridder::PredictMeasurementSet(
+size_t WTowersMsGridder::PredictMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   ms_data.ms_provider->ReopenRW();
   const aocommon::BandData selected_band(ms_data.SelectedBand());
@@ -213,7 +195,9 @@ size_t WGriddingMSGridder::PredictMeasurementSet(
       MSProvider::MetaData metadata;
       ReadPredictMetaData(metadata);
       uvw_buffer[n_chunk_rows_read * 3] = metadata.uInM;
-      uvw_buffer[n_chunk_rows_read * 3 + 1] = metadata.vInM;
+      // Negate v; otherwise image is flipped compared to other gridders like
+      // DUCC that also do this
+      uvw_buffer[n_chunk_rows_read * 3 + 1] = -metadata.vInM;
       uvw_buffer[n_chunk_rows_read * 3 + 2] = metadata.wInM;
       metadata_buffer.emplace_back(std::move(metadata));
       n_chunk_rows_read++;
@@ -240,26 +224,26 @@ size_t WGriddingMSGridder::PredictMeasurementSet(
   return n_total_rows_read;
 }
 
-void WGriddingMSGridder::GetActualTrimmedSize(size_t& trimmedWidth,
-                                              size_t& trimmedHeight) const {
-  trimmedWidth = std::ceil(ActualInversionWidth() / ImagePadding());
-  trimmedHeight = std::ceil(ActualInversionHeight() / ImagePadding());
+void WTowersMsGridder::GetActualTrimmedSize(size_t& trimmed_width,
+                                            size_t& trimmed_height) const {
+  trimmed_width = std::ceil(ActualInversionWidth() / ImagePadding());
+  trimmed_height = std::ceil(ActualInversionHeight() / ImagePadding());
 
   // In facet-based imaging, the alignment is 4, see wsclean.cpp. Also for
   // monolithic imaging - in which just an even number would suffice -
-  // the trimmedWidth and trimmedHeight are defined to be divisable by 4.
+  // the trimmed_width and trimmed_height are defined to be divisable by 4.
   const size_t alignment = 4;
-  if (trimmedWidth % alignment != 0) {
-    trimmedWidth += alignment - (trimmedWidth % alignment);
+  if (trimmed_width % alignment != 0) {
+    trimmed_width += alignment - (trimmed_width % alignment);
   }
-  if (trimmedHeight % alignment != 0) {
-    trimmedHeight += alignment - (trimmedHeight % alignment);
+  if (trimmed_height % alignment != 0) {
+    trimmed_height += alignment - (trimmed_height % alignment);
   }
-  trimmedWidth = std::min(trimmedWidth, ActualInversionWidth());
-  trimmedHeight = std::min(trimmedHeight, ActualInversionHeight());
+  trimmed_width = std::min(trimmed_width, ActualInversionWidth());
+  trimmed_height = std::min(trimmed_height, ActualInversionHeight());
 }
 
-void WGriddingMSGridder::StartInversion() {
+void WTowersMsGridder::StartInversion() {
   size_t trimmed_width;
   size_t trimmed_height;
   GetActualTrimmedSize(trimmed_width, trimmed_height);
@@ -270,7 +254,7 @@ void WGriddingMSGridder::StartInversion() {
   ResetVisibilityCounters();
 }
 
-void WGriddingMSGridder::FinishInversion() {
+void WTowersMsGridder::FinishInversion() {
   gridder_->FinalizeImage(1.0 / ImageWeight());
 
   std::string log_message =
@@ -308,7 +292,7 @@ void WGriddingMSGridder::FinishInversion() {
   }
 }
 
-void WGriddingMSGridder::StartPredict(std::vector<Image>&& images) {
+void WTowersMsGridder::StartPredict(std::vector<Image>&& images) {
   size_t trimmed_width;
   size_t trimmed_height;
   GetActualTrimmedSize(trimmed_width, trimmed_height);
@@ -339,6 +323,6 @@ void WGriddingMSGridder::StartPredict(std::vector<Image>&& images) {
   images[0].Reset();
 }
 
-void WGriddingMSGridder::FinishPredict() {}
+void WTowersMsGridder::FinishPredict() {}
 
 }  // namespace wsclean

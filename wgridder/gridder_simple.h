@@ -33,12 +33,13 @@ class WGriddingGridderBase {
       const std::pair<size_t, size_t> *antennas,
       const std::complex<float> *visibilities, const size_t *time_offsets,
       MsGridder *gridder, size_t n_antenna) = 0;
-  virtual void FinalizeImage(double multiplicationFactor) = 0;
+  virtual void FinalizeImage(double multiplication_factor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
-  virtual void PredictVisibilities(size_t n_rows, size_t n_chan,
-                                   const double *uvw, const double *freq,
-                                   std::complex<float> *vis) const = 0;
+  virtual void PredictVisibilities(size_t n_rows, size_t n_channels,
+                                   const double *uvws,
+                                   const double *frequencies,
+                                   std::complex<float> *visibilities) const = 0;
 };
 
 /* Memory usage of this gridder is:
@@ -56,23 +57,22 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
  private:
   static constexpr double sigma_min = 1.1;
   static constexpr double sigma_max = 2.0;
-  size_t width_, height_, width_t_, height_t_, nthreads_;
-  double pixelSizeX_, pixelSizeY_;
-  double l_shift_, m_shift_;
+  size_t width_;
+  size_t height_;
+  size_t trimmed_width_;
+  size_t trimmed_height_;
+  size_t n_threads_;
+  double pixel_size_x_;
+  double pixel_size_y_;
+  double l_shift_;
+  double m_shift_;
   double epsilon_;
-  std::vector<NumT> img;
+  std::vector<NumT> image_;
   size_t verbosity_;
   bool tuning_;
 
  public:
   /** Construct a new gridder with given settings.
-   * @param width The width of the untrimmed image in pixels
-   * @param height The height of the untrimmed image in pixels.
-   * @param width_t The width of the trimmed image in pixels
-   * @param height_t The height of the trimmed image in pixels.
-   * @param pixelSizeX The angular width of a pixel in radians.
-   * @param pixelSizeY The angular height of a pixel in radians.
-   * @param nthreads The number of threads to use
    * @param epsilon The requested accuracy of the gridding process.
    *   Affects the support of the employed kernel. Useful values
    *   range between 1e-2 and 1e-6 (for single-precision visibilities).
@@ -81,11 +81,11 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    *   1: print short overview for every inversion/prediction
    *   2: print information for every processed w-plane
    */
-  WGriddingGridder_Simple(size_t width, size_t height, size_t width_t,
-                          size_t height_t, double pixelSizeX, double pixelSizeY,
-                          double l_shift, double m_shift, size_t nthreads,
-                          double epsilon = 1e-4, size_t verbosity = 0,
-                          bool tuning_ = false);
+  WGriddingGridder_Simple(size_t width, size_t height, size_t trimmed_width,
+                          size_t trimmed_height, double pixel_size_x,
+                          double pixel_size_y, double l_shift, double m_shift,
+                          size_t n_threads, double epsilon = 1e-4,
+                          size_t verbosity = 0, bool tuning_ = false);
 
   WGriddingGridder_Simple(const WGriddingGridder_Simple &) = delete;
   WGriddingGridder_Simple &operator=(const WGriddingGridder_Simple &) = delete;
@@ -93,34 +93,33 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
   /**
    * @return The constant base memory usage of the object in bytes
    */
-  size_t ConstantMemoryUsage() const override;
+  size_t ConstantMemoryUsage() const final;
   /**
    * @return Additional memory required per gridded visibility in bytes.
    */
-  size_t PerVisibilityMemoryUsage() const override;
+  size_t PerVisibilityMemoryUsage() const final;
 
   /**
    * Initialize a new inversion gridding pass. This just
    * intializes the accumulated dirty image with zero.
    */
-  void InitializeInversion() override;
+  void InitializeInversion() final;
 
   /** Add more data to the current inversion operation.
    * The visibilities will be gridded, and the dirty image
    * will be updated accordingly.
    * visibilities with value 0 will be skipped entirely.
-   * @param n_chan The number of frequency channels
-   * @param uvw pointer to n_rows*3 doubles containing UVW in m.
-   *        U(row) := uvw[3*row  ]
-   *        V(row) := uvw[3*row+1]
-   *        W(row) := uvw[3*row+2]
-   * @param freq pointer to n_chan doubles containing channel frequencies
-   * @param vis pointer to nrow*n_chan complex<float> containing weighted and
-   * corrected visibilities: visibility(row, chan) := vis[row*n_chan + chan]
+   * @param uvws pointer to n_rows*3 doubles containing UVW in m.
+   *        U(row) := uvws[3*row  ]
+   *        V(row) := uvws[3*row+1]
+   *        W(row) := uvws[3*row+2]
+   * @param visibilities pointer to nrow*n_channels complex<float> containing
+   * weighted and corrected visibilities: visibility(row, chan) :=
+   * vis[row*n_channels + chan]
    */
-  void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw,
-                        const double *freq,
-                        const std::complex<float> *vis) override;
+  void AddInversionData(size_t n_rows, size_t n_channels, const double *uvws,
+                        const double *frequencies,
+                        const std::complex<float> *visibilities) final;
   /** Equivalent to @ref AddInversionData() but without facet solutions
    * pre-applied and with additional paramaters to allow the creation of a
    * callback that can apply solutions "on the fly" as required
@@ -154,14 +153,14 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
       const aocommon::BandData &selected_band,
       const std::pair<size_t, size_t> *antennas,
       const std::complex<float> *visibilities, const size_t *time_offsets,
-      MsGridder *gridder, size_t n_antenna) override;
+      MsGridder *gridder, size_t n_antenna) final;
 
   /**
    * Finalize inversion once all passes are performed.
-   * @param multiplicationFactor Apply this factor to all pixels. This can be
+   * @param multiplication_factor Apply this factor to all pixels. This can be
    * used to normalize the image for the weighting scheme.
    */
-  void FinalizeImage(double multiplicationFactor) override;
+  void FinalizeImage(double multiplication_factor) final;
 
   /**
    * Get the untrimmed image result of inversion. This is an array of size width
@@ -169,32 +168,28 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    * this image, e.g. set the horizon to zero before saving to fits. This call
    * is only valid once @ref FinalizeImage() has been called.
    */
-  std::vector<float> RealImage() override;
+  std::vector<float> RealImage() final;
 
   /**
    * Initialize gridder for prediction and specify image to predict for.
    * @param image The (untrimmed) model image that is to be predicted for. This
    * is an array of width * height size, index by (x + width*y).
    */
-  void InitializePrediction(const float *image_data) override;
+  void InitializePrediction(const float *image_data) final;
 
   /** Predicts visibilities from the current dirty image.
    * FIXME: how do we indicate flagged visibilities that do not
    *        need to be computed? Some special value on input?
-   * @param n_rows The number of MS rows being passed
-   * @param n_chan The number of frequency channels
-   * @param uvw pointer to n_rows*3 doubles containing UVW in m.
-   *        U(row) := uvw[3*row  ]
-   *        V(row) := uvw[3*row+1]
-   *        W(row) := uvw[3*row+2]
-   * @param freq pointer to n_chan doubles containing channel frequencies
-   * @param vis pointer to nrow*n_chan complex<float> containing weighted
-   *        visibilities
-   *        visibility(row, chan) := vis[row*n_chan + chan]
+   * @param uvws pointer to n_rows*3 doubles containing UVW in m.
+   *        U(row) := uvws[3*row  ]
+   *        V(row) := uvws[3*row+1]
+   *        W(row) := uvws[3*row+2]
+   * @param visibilities pointer to nrow*n_channels complex<float> containing
+   * weighted visibilities visibility(row, chan) := vis[row*n_channels + chan]
    */
-  void PredictVisibilities(size_t n_rows, size_t n_chan, const double *uvw,
-                           const double *freq,
-                           std::complex<float> *vis) const override;
+  void PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
+                           const double *frequencies,
+                           std::complex<float> *visibilities) const final;
 
  private:
   /** Internal helper to handle the processing of
@@ -210,20 +205,21 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
   void AddInversionMs(size_t n_rows, const double *uvw,
                       const ducc0::cmav<double, 1> &freq, Tms &ms) {
     ducc0::cmav<double, 2> uvw2(uvw, {n_rows, 3});
-    ducc0::vmav<NumT, 2> tdirty({width_t_, height_t_});
+    ducc0::vmav<NumT, 2> tdirty({trimmed_width_, trimmed_height_});
     ducc0::cmav<float, 2> twgt(nullptr, {0, 0});
     ducc0::cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
     if (!tuning_)
-      ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixelSizeX_,
-                                  pixelSizeY_, epsilon_, true, nthreads_,
+      ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_,
+                                  pixel_size_y_, epsilon_, true, n_threads_,
                                   tdirty, verbosity_, true, false, sigma_min,
                                   sigma_max, -l_shift_, -m_shift_);
     else
       ducc0::ms2dirty_tuning<NumT, NumT>(
-          uvw2, freq, ms, twgt, tmask, pixelSizeX_, pixelSizeY_, epsilon_, true,
-          nthreads_, tdirty, verbosity_, true, false, sigma_min, sigma_max,
-          -l_shift_, -m_shift_);
-    for (size_t i = 0; i < width_t_ * height_t_; ++i) img[i] += tdirty.raw(i);
+          uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_, epsilon_,
+          true, n_threads_, tdirty, verbosity_, true, false, sigma_min,
+          sigma_max, -l_shift_, -m_shift_);
+    for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i)
+      image_[i] += tdirty.raw(i);
   }
 
   // Helper function to convert mode to a template paramater
@@ -246,8 +242,8 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
 /*
 Usage scenario:
 
-WGriddingGridder_Simple gridder(width, height, pixelSizeX, pixelSizeY, nthreads,
-1e-5);
+WGriddingGridder_Simple gridder(width, height, pixel_size_x, pixel_size_y,
+n_threads, 1e-5);
 // determine number of visibilities that can be gridded in one go, using
 // gridder.memUsage() and information about available memory.
 // Making the chunks as large as posssible will improve perfrmance.

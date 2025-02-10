@@ -38,7 +38,7 @@ class WGriddingMSGridder final : public MsGridder {
   void FinishPredict() final;
 
   std::vector<aocommon::Image> ResultImages() final {
-    return {std::move(_image)};
+    return {std::move(image_)};
   }
 
   void FreeImagingData() final {}
@@ -46,7 +46,7 @@ class WGriddingMSGridder final : public MsGridder {
   size_t GetSuggestedWGridSize() const final { return 1; }
 
  private:
-  aocommon::Image _image;
+  aocommon::Image image_;
 
   std::unique_ptr<WGriddingGridderBase> MakeGridder(size_t width,
                                                     size_t height) const;
@@ -58,7 +58,7 @@ class WGriddingMSGridder final : public MsGridder {
                                   size_t channel_count,
                                   size_t num_polarizations_stored) const final;
 
-  void getActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
+  void GetActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
 
   const Resources resources_;
   double accuracy_;

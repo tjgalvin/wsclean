@@ -22,7 +22,14 @@
 namespace wsclean {
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
-enum class GridderType { WStacking, WGridder, TunedWGridder, DirectFT, IDG };
+enum class GridderType {
+  WStacking,
+  WGridder,
+  TunedWGridder,
+  WTowers,
+  DirectFT,
+  IDG
+};
 enum class VisibilityReadMode { kScalar, kDiagonal, kFull };
 
 /**
@@ -129,7 +136,7 @@ class Settings {
   size_t primaryBeamGridSize = 32, primaryBeamUpdateTime = 1800;
   size_t ddPsfGridHeight = 1, ddPsfGridWidth = 1;
   DirectFTPrecision directFTPrecision = DirectFTPrecision::Double;
-  double wgridderAccuracy = 1e-4;
+  double gridder_accuracy = 0.0f;
   std::string atermConfigFilename;
   double atermKernelSize = 5.0;
   bool gridWithBeam = false;

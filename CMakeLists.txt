@@ -88,6 +88,34 @@ include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
+# W-towers requires ska-sdp-func
+find_package(SKA_SDP_FUNC)
+if(SKA_SDP_FUNC_FOUND)
+  if(EXISTS
+     "${SKA_SDP_FUNC_INCLUDE_DIR}/ska-sdp-func/grid_data/sdp_grid_wstack_wtower.h"
+  )
+    message(
+      STATUS
+        "Enabling w-towers gridder; Using ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
+    )
+    add_definitions(-DBUILD_WTOWERS)
+    set(WTOWERS_CPP_FILES wtowers/wtowersmsgridder.cpp)
+  else()
+    message(
+      STATUS
+        "Disabling w-towers gridder; unsuitable ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
+    )
+    set(WTOWERS_CPP_FILES "")
+    set(SKA_SDP_FUNC_LIBRARIES "")
+    set(SKA_SDP_FUNC_INCLUDE_DIR "")
+  endif()
+else()
+  message(STATUS "Disabling w-towers gridder; ska-sdp-func library not found.")
+  set(WTOWERS_CPP_FILES "")
+  set(SKA_SDP_FUNC_LIBRARIES "")
+  set(SKA_SDP_FUNC_INCLUDE_DIR "")
+endif(SKA_SDP_FUNC_FOUND)
+
 find_package(
   HDF5
   COMPONENTS C CXX
@@ -222,6 +250,7 @@ include_directories(SYSTEM ${FFTW3_INCLUDE_DIR})
 include_directories(SYSTEM ${GSL_INCLUDE_DIR})
 include_directories(SYSTEM ${HDF5_INCLUDE_DIRS})
 include_directories(SYSTEM ${Python3_INCLUDE_DIRS})
+include_directories(SYSTEM ${SKA_SDP_FUNC_INCLUDE_DIR})
 
 include(CheckCXXSourceCompiles)
 
@@ -382,7 +411,8 @@ add_library(
   structures/resources.cpp
   system/pythonfilepath.cpp
   ${IDG_FILES}
-  ${MPI_CPP_FILES})
+  ${MPI_CPP_FILES}
+  ${WTOWERS_CPP_FILES})
 
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is
@@ -399,7 +429,8 @@ add_dependencies(wsclean-object radler-module)
 
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-target_link_libraries(wsclean-object PUBLIC schaapcommon)
+target_link_libraries(wsclean-object PUBLIC schaapcommon
+                                            ${SKA_SDP_FUNC_LIBRARIES})
 
 set(EXTERNAL_LIBRARIES
     ${CASACORE_LIBRARIES}

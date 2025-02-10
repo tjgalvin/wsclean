@@ -31,16 +31,16 @@ namespace wsclean {
 
 template <typename NumT>
 WGriddingGridder_Simple<NumT>::WGriddingGridder_Simple(
-    size_t width, size_t height, size_t width_t, size_t height_t,
-    double pixelSizeX, double pixelSizeY, double l_shift, double m_shift,
-    size_t nthreads, double epsilon, size_t verbosity, bool tuning)
+    size_t width, size_t height, size_t trimmed_width, size_t trimmed_height,
+    double pixel_size_x, double pixel_size_y, double l_shift, double m_shift,
+    size_t n_threads, double epsilon, size_t verbosity, bool tuning)
     : width_(width),
       height_(height),
-      width_t_(width_t),
-      height_t_(height_t),
-      nthreads_(nthreads),
-      pixelSizeX_(pixelSizeX),
-      pixelSizeY_(pixelSizeY),
+      trimmed_width_(trimmed_width),
+      trimmed_height_(trimmed_height),
+      n_threads_(n_threads),
+      pixel_size_x_(pixel_size_x),
+      pixel_size_y_(pixel_size_y),
       l_shift_(l_shift),
       m_shift_(m_shift),
       epsilon_(epsilon),
@@ -52,10 +52,11 @@ WGriddingGridder_Simple<NumT>::WGriddingGridder_Simple(
 template <typename NumT>
 size_t WGriddingGridder_Simple<NumT>::ConstantMemoryUsage() const {
   // Storage for "grid": pessimistically assume an oversampling factor of 2
-  size_t constant = sigma_max * sigma_max * width_t_ * height_t_ *
+  size_t constant = sigma_max * sigma_max * trimmed_width_ * trimmed_height_ *
                     sizeof(std::complex<float>);
   // For prediction, we also need a copy of the dirty image
-  constant += width_t_ * height_t_ * sizeof(NumT);  // trimmed dirty image
+  constant +=
+      trimmed_width_ * trimmed_height_ * sizeof(NumT);  // trimmed dirty image
   return constant;
 }
 
@@ -69,23 +70,27 @@ size_t WGriddingGridder_Simple<NumT>::PerVisibilityMemoryUsage() const {
 
 template <typename NumT>
 void WGriddingGridder_Simple<NumT>::InitializeInversion() {
-  img.assign(width_t_ * height_t_, 0);
+  image_.assign(trimmed_width_ * trimmed_height_, 0);
 }
 
 template <typename NumT>
 void WGriddingGridder_Simple<NumT>::AddInversionData(
-    size_t n_rows, size_t n_chan, const double *uvw, const double *freq,
-    const std::complex<float> *vis) {
-  const bool decreasing_freq = (n_chan > 1) && (freq[1] < freq[0]);
-  auto freq2(decreasing_freq
-                 ? cmav<double, 1>(freq + n_chan - 1, {n_chan}, {-1})
-                 : cmav<double, 1>(freq, {n_chan}));
-  auto ms(decreasing_freq
-              ? cmav<std::complex<float>, 2>(vis + n_chan - 1, {n_rows, n_chan},
-                                             {ptrdiff_t(n_chan), -1})
-              : cmav<std::complex<float>, 2>(vis, {n_rows, n_chan}));
+    size_t n_rows, size_t n_channels, const double *uvws,
+    const double *frequencies, const std::complex<float> *visibilities) {
+  const bool decreasing_freq =
+      (n_channels > 1) && (frequencies[1] < frequencies[0]);
+  auto wrapped_frequencies(
+      decreasing_freq
+          ? cmav<double, 1>(frequencies + n_channels - 1, {n_channels}, {-1})
+          : cmav<double, 1>(frequencies, {n_channels}));
+  auto ms(
+      decreasing_freq
+          ? cmav<std::complex<float>, 2>(visibilities + n_channels - 1,
+                                         {n_rows, n_channels},
+                                         {ptrdiff_t(n_channels), -1})
+          : cmav<std::complex<float>, 2>(visibilities, {n_rows, n_channels}));
 
-  AddInversionMs(n_rows, uvw, freq2, ms);
+  AddInversionMs(n_rows, uvws, wrapped_frequencies, ms);
 }
 
 template <typename NumT>
@@ -139,59 +144,64 @@ void WGriddingGridder_Simple<NumT>::AddInversionMs(GainMode mode,
 }
 
 template <typename NumT>
-void WGriddingGridder_Simple<NumT>::FinalizeImage(double multiplicationFactor) {
-  for (auto &pix : img) pix *= multiplicationFactor;
+void WGriddingGridder_Simple<NumT>::FinalizeImage(
+    double multiplication_factor) {
+  for (auto &pix : image_) pix *= multiplication_factor;
 }
 
 template <typename NumT>
 std::vector<float> WGriddingGridder_Simple<NumT>::RealImage() {
-  size_t dx = (width_ - width_t_) / 2;
-  size_t dy = (height_ - height_t_) / 2;
+  const size_t dx = (width_ - trimmed_width_) / 2;
+  const size_t dy = (height_ - trimmed_height_) / 2;
   std::vector<float> image(width_ * height_,
                            std::numeric_limits<float>::quiet_NaN());
-  for (size_t i = 0; i < width_t_; ++i)
-    for (size_t j = 0; j < height_t_; ++j)
-      image[(i + dx) + (j + dy) * width_] = img[i * height_t_ + j];
+  for (size_t i = 0; i < trimmed_width_; ++i)
+    for (size_t j = 0; j < trimmed_height_; ++j)
+      image[(i + dx) + (j + dy) * width_] = image_[i * trimmed_height_ + j];
   return image;
 }
 
 template <typename NumT>
 void WGriddingGridder_Simple<NumT>::InitializePrediction(
     const float *image_data) {
-  size_t dx = (width_ - width_t_) / 2;
-  size_t dy = (height_ - height_t_) / 2;
-  img.resize(width_t_ * height_t_);
-  for (size_t i = 0; i < width_t_; ++i)
-    for (size_t j = 0; j < height_t_; ++j)
-      img[i * height_t_ + j] = image_data[(i + dx) + (j + dy) * width_];
+  const size_t dx = (width_ - trimmed_width_) / 2;
+  const size_t dy = (height_ - trimmed_height_) / 2;
+  image_.resize(trimmed_width_ * trimmed_height_);
+  for (size_t i = 0; i < trimmed_width_; ++i)
+    for (size_t j = 0; j < trimmed_height_; ++j)
+      image_[i * trimmed_height_ + j] =
+          image_data[(i + dx) + (j + dy) * width_];
 }
 
 template <typename NumT>
 void WGriddingGridder_Simple<NumT>::PredictVisibilities(
-    size_t n_rows, size_t n_chan, const double *uvw, const double *freq,
-    std::complex<float> *vis) const {
-  cmav<double, 2> uvw2(uvw, {n_rows, 3});
-  bool decreasing_freq = (n_chan > 1) && (freq[1] < freq[0]);
-  auto freq2(decreasing_freq
-                 ? cmav<double, 1>(freq + n_chan - 1, {n_chan}, {-1})
-                 : cmav<double, 1>(freq, {n_chan}));
-  auto ms(decreasing_freq
-              ? vmav<std::complex<float>, 2>(vis + n_chan - 1, {n_rows, n_chan},
-                                             {ptrdiff_t(n_chan), -1})
-              : vmav<std::complex<float>, 2>(vis, {n_rows, n_chan}));
-  cmav<NumT, 2> tdirty(img.data(), {width_t_, height_t_});
+    size_t n_rows, size_t n_channels, const double *uvws,
+    const double *frequencies, std::complex<float> *visibilities) const {
+  cmav<double, 2> wrapped_uvws(uvws, {n_rows, 3});
+  bool decreasing_freq = (n_channels > 1) && (frequencies[1] < frequencies[0]);
+  auto wrapped_frequencies(
+      decreasing_freq
+          ? cmav<double, 1>(frequencies + n_channels - 1, {n_channels}, {-1})
+          : cmav<double, 1>(frequencies, {n_channels}));
+  auto ms(
+      decreasing_freq
+          ? vmav<std::complex<float>, 2>(visibilities + n_channels - 1,
+                                         {n_rows, n_channels},
+                                         {ptrdiff_t(n_channels), -1})
+          : vmav<std::complex<float>, 2>(visibilities, {n_rows, n_channels}));
+  cmav<NumT, 2> tdirty(image_.data(), {trimmed_width_, trimmed_height_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
   if (!tuning_)
-    dirty2ms<NumT, NumT>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
-                         pixelSizeY_, epsilon_, true, nthreads_, ms, verbosity_,
-                         true, false, sigma_min, sigma_max, -l_shift_,
-                         -m_shift_);
+    dirty2ms<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt, tmask,
+                         pixel_size_x_, pixel_size_y_, epsilon_, true,
+                         n_threads_, ms, verbosity_, true, false, sigma_min,
+                         sigma_max, -l_shift_, -m_shift_);
   else
-    dirty2ms_tuning<NumT, NumT>(uvw2, freq2, tdirty, twgt, tmask, pixelSizeX_,
-                                pixelSizeY_, epsilon_, true, nthreads_, ms,
-                                verbosity_, true, false, sigma_min, sigma_max,
-                                -l_shift_, -m_shift_);
+    dirty2ms_tuning<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt,
+                                tmask, pixel_size_x_, pixel_size_y_, epsilon_,
+                                true, n_threads_, ms, verbosity_, true, false,
+                                sigma_min, sigma_max, -l_shift_, -m_shift_);
 }
 
 }  // namespace wsclean

@@ -308,6 +308,10 @@ Options can be:
 -wgridder-accuracy <value>
    Set the w-gridding accuracy. Default: 1e-4
    Useful range: 1e-2 to 1e-6
+-wtowers-accuracy <value>
+   Set the w-towers accuracy. Default: 0
+   When zero w-towers will compute a value internally based on other gridding parameters.
+   Useful range: 1e-2 to 1e-6
 -compound-tasks
    Schedule compound gridding tasks which contain all facets for a single image.
 -shared-facet-reads
@@ -1345,6 +1349,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         settings.minGridResolution = false;
       } else if (gridder_str == "wgridder") {
         settings.gridderType = GridderType::WGridder;
+      } else if (gridder_str == "wtowers") {
+        settings.gridderType = GridderType::WTowers;
       } else if (gridder_str == "tuned-wgridder") {
         settings.gridderType = GridderType::TunedWGridder;
       } else if (gridder_str == "wstacking") {
@@ -1380,8 +1386,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.gridderType = GridderType::WGridder;
     } else if (param == "wgridder-accuracy") {
       IncArgi(argi, argc);
-      settings.wgridderAccuracy =
+      settings.gridder_accuracy =
           ParseDouble(argv[argi], 0.0, "wgridder-accuracy", false);
+    } else if (param == "wtowers-accuracy") {
+      IncArgi(argi, argc);
+      settings.gridder_accuracy =
+          ParseDouble(argv[argi], 0.0, "wtowers-accuracy", false);
     } else if (param == "no-dirty") {
       settings.isDirtySaved = false;
     } else if (param == "save-first-residual") {
@@ -1408,6 +1418,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     throw std::runtime_error(
         "-shared-facet-reads are currently only compatible with -gridder "
         "wgridder");
+  }
+
+  if (settings.gridder_accuracy == 0.0f &&
+      settings.gridderType == GridderType::WGridder) {
+    settings.gridder_accuracy = 1e-4;
   }
 
   const size_t defaultAtermSize = settings.atermConfigFilename.empty() ? 5 : 16;

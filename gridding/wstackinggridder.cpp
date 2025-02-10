@@ -691,29 +691,29 @@ void WStackingGridder<T>::SampleDataSample(std::complex<float> &value,
 }
 
 template <typename T>
-void WStackingGridder<T>::FinalizeImage(double multiplicationFactor) {
+void WStackingGridder<T>::FinalizeImage(double multiplication_factor) {
   _layeredUVData.clear();
-  finalizeImage(multiplicationFactor, _imageData);
-  if (_isComplex) finalizeImage(multiplicationFactor, _imageDataImaginary);
+  finalizeImage(multiplication_factor, _imageData);
+  if (_isComplex) finalizeImage(multiplication_factor, _imageDataImaginary);
 }
 
 template <typename T>
 void WStackingGridder<T>::finalizeImage(
-    double multiplicationFactor, std::vector<ImageBase<num_t>> &dataArray) {
+    double multiplication_factor, std::vector<ImageBase<num_t>> &data_array) {
   for (size_t i = 1; i != _nFFTThreads; ++i) {
-    num_t *primaryData = dataArray[0].Data();
-    for (num_t value : dataArray[i]) {
-      *primaryData += value;
-      ++primaryData;
+    num_t *primary_data = data_array[0].Data();
+    for (num_t value : data_array[i]) {
+      *primary_data += value;
+      ++primary_data;
     }
   }
 
-  for (num_t &value : dataArray[0]) {
-    value *= multiplicationFactor;
+  for (num_t &value : data_array[0]) {
+    value *= multiplication_factor;
   }
 
   if (_gridMode != GriddingKernelMode::NearestNeighbour)
-    correctImageForKernel<false>(dataArray[0].Data());
+    correctImageForKernel<false>(data_array[0].Data());
 }
 
 template <>
@@ -830,23 +830,23 @@ void WStackingGridder<float>::correctImageForKernel(num_t *image) const {
 
 template <typename T>
 void WStackingGridder<T>::initializePrediction(
-    Image image, std::vector<ImageBase<num_t>> &dataArray) {
-  num_t *dataPtr = dataArray[0].Data();
-  const float *inPtr = image.Data();
+    Image image, std::vector<ImageBase<num_t>> &data_array) {
+  num_t *data = data_array[0].Data();
+  const float *image_data = image.Data();
   for (size_t y = 0; y != _height; ++y) {
     double m = ((double)y - (_height / 2)) * _pixelSizeY + _m_shift;
     for (size_t x = 0; x != _width; ++x) {
       double l = ((_width / 2) - (double)x) * _pixelSizeX + _l_shift;
-      if (std::isfinite(*dataPtr) && l * l + m * m < 1.0)
-        *dataPtr = *inPtr;
+      if (std::isfinite(*data) && l * l + m * m < 1.0)
+        *data = *image_data;
       else
-        *dataPtr = 0.0;
-      ++dataPtr;
-      ++inPtr;
+        *data = 0.0;
+      ++data;
+      ++image_data;
     }
   }
   if (_gridMode != GriddingKernelMode::NearestNeighbour) {
-    correctImageForKernel<false>(dataArray[0].Data());
+    correctImageForKernel<false>(data_array[0].Data());
   }
 }
 

@@ -24,6 +24,7 @@
 #include "../main/settings.h"
 #include "../structures/resources.h"
 #include "../wgridder/wgriddingmsgridder.h"
+#include "../wtowers/wtowersmsgridder.h"
 
 using aocommon::Logger;
 
@@ -562,6 +563,13 @@ std::unique_ptr<MsGridder> MSGridderManager::ConstructGridder(
     case GridderType::TunedWGridder:
       return std::make_unique<WGriddingMSGridder>(
           settings_, resources, ms_provider_collection_, true);
+    case GridderType::WTowers:
+#ifdef BUILD_WTOWERS
+      return std::make_unique<WTowersMsGridder>(settings_, resources,
+                                                ms_provider_collection_);
+#else
+      throw std::runtime_error("w-towers gridder is not available");
+#endif
     case GridderType::DirectFT:
       switch (settings_.directFTPrecision) {
         case DirectFTPrecision::Float:
