@@ -651,6 +651,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         Logger::Info << "IDG is available.\n";
 #endif
         Logger::Info << "WGridder is available.\n";
+#ifdef BUILD_WTOWERS
+        Logger::Info << "W-Towers is available.\n";
+#endif
       }
       return false;
     } else if (param == "help") {

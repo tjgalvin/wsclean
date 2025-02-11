@@ -149,6 +149,8 @@ size_t WTowersMsGridder::GridMeasurementSet(
       // DUCC, that also do this. We must do this after GetCollapsedVisibilities
       // call otherwise we corrupt the image.
       uvw_buffer[(n_chunk_rows_read * 3) + 1] *= -1;
+      // Negate w; otherwise we get distortion as we move away from the centre
+      uvw_buffer[(n_chunk_rows_read * 3) + 2] *= -1;
 
       ++n_chunk_rows_read;
       ms_reader->NextInputRow();
@@ -198,7 +200,8 @@ size_t WTowersMsGridder::PredictMeasurementSet(
       // Negate v; otherwise image is flipped compared to other gridders like
       // DUCC that also do this
       uvw_buffer[n_chunk_rows_read * 3 + 1] = -metadata.vInM;
-      uvw_buffer[n_chunk_rows_read * 3 + 2] = metadata.wInM;
+      // Negate w; otherwise we get distortion as we move away from the centre
+      uvw_buffer[n_chunk_rows_read * 3 + 2] = -metadata.wInM;
       metadata_buffer.emplace_back(std::move(metadata));
       n_chunk_rows_read++;
 

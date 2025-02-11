@@ -106,6 +106,11 @@ WTowersGridder<NumT>::WTowersGridder(size_t width, size_t height,
           wtowers_parameters_.w_oversampling, wtowers_parameters_.field_of_view,
           wtowers_parameters_.subgrid_frac, 3, accuracy, &status);
 
+  if (wtowers_parameters_.w_towers_height == 0.0f) {
+    Logger::Info << "WARNING: Unable to determine a suitable w_towers_height. "
+                    "Using default of 150.\n";
+    wtowers_parameters_.w_towers_height = 150;
+  }
   if (status != SDP_SUCCESS) {
     throw std::runtime_error("Error computing w_towers_height");
   }
@@ -187,7 +192,7 @@ void WTowersGridder<NumT>::AddInversionData(
 
   const std::vector<int64_t> visibilities_shape{
       static_cast<int64_t>(n_rows), static_cast<int64_t>(n_channels)};
-  const sdp_Mem *wrapped_visibilities = sdp_mem_create_wrapper(
+  sdp_Mem *wrapped_visibilities = sdp_mem_create_wrapper(
       (void *)visibilities, SDP_MEM_COMPLEX_FLOAT, SDP_MEM_CPU, 2,
       visibilities_shape.data(), nullptr, &status);
   if (status != SDP_SUCCESS) {
@@ -195,7 +200,7 @@ void WTowersGridder<NumT>::AddInversionData(
         "w-towers: Fatal error while wrapping memory for visibilities");
   }
   const std::vector<int64_t> uvws_shape{static_cast<int64_t>(n_rows), 3};
-  const sdp_Mem *wrapped_uvws =
+  sdp_Mem *wrapped_uvws =
       sdp_mem_create_wrapper((void *)uvws, SDP_MEM_DOUBLE, SDP_MEM_CPU, 2,
                              uvws_shape.data(), nullptr, &status);
   if (status != SDP_SUCCESS) {
@@ -227,8 +232,12 @@ void WTowersGridder<NumT>::AddInversionData(
 
   if (status != SDP_SUCCESS) {
     throw std::runtime_error(
-        "w-towers: Failiure inside sdp_grid_wstack_wtower_grid_all");
+        "w-towers: Failure inside sdp_grid_wstack_wtower_grid_all");
   }
+
+  sdp_mem_free(wrapped_dirty);
+  sdp_mem_free(wrapped_uvws);
+  sdp_mem_free(wrapped_visibilities);
 
   aocommon::ImageBase<NumT>::Trim(
       dirty_image.data(), wtowers_parameters_.image_size,
@@ -308,14 +317,14 @@ void WTowersGridder<NumT>::PredictVisibilities(
       static_cast<int64_t>(wtowers_parameters_.grid_size),
       static_cast<int64_t>(wtowers_parameters_.grid_size)};
   const std::vector<int64_t> uvws_shape{static_cast<int64_t>(n_rows), 3};
-  const sdp_Mem *wrapped_uvws =
+  sdp_Mem *wrapped_uvws =
       sdp_mem_create_wrapper((void *)uvws, SDP_MEM_DOUBLE, SDP_MEM_CPU, 2,
                              uvws_shape.data(), nullptr, &status);
   if (status != SDP_SUCCESS) {
     throw std::runtime_error(
         "w-towers: Fatal error while wrapping memory for uvws");
   }
-  const sdp_Mem *wrapped_dirty = sdp_mem_create_wrapper(
+  sdp_Mem *wrapped_dirty = sdp_mem_create_wrapper(
       (void *)untrimmed_image.Data(), image_data_type, SDP_MEM_CPU, 2,
       image_shape.data(), nullptr, &status);
   if (status != SDP_SUCCESS) {
@@ -334,6 +343,15 @@ void WTowersGridder<NumT>::PredictVisibilities(
       wtowers_parameters_.w_oversampling, wtowers_parameters_.subgrid_frac,
       wtowers_parameters_.w_towers_height, wtowers_parameters_.verbosity,
       wrapped_visibilities, n_threads_, &status);
+
+  if (status != SDP_SUCCESS) {
+    throw std::runtime_error(
+        "w-towers: Failure inside sdp_grid_wstack_wtower_degrid_all");
+  }
+
+  sdp_mem_free(wrapped_dirty);
+  sdp_mem_free(wrapped_uvws);
+  sdp_mem_free(wrapped_visibilities);
 }
 
 }  // namespace wsclean
