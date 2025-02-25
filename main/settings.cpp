@@ -158,6 +158,12 @@ void Settings::Validate() const {
         "Parameter -feather-size was specified without enabling facetting.");
   }
 
+  if (shared_facet_reads && writeImagingWeightSpectrumColumn) {
+    throw std::runtime_error(
+        "-store-imaging-weights is currently not possible to combine with "
+        "-shared-facet-reads.");
+  }
+
   if (gridderType == GridderType::WTowers) {
 #ifndef BUILD_WTOWERS
     throw std::runtime_error("WSClean not built with w-towers support");
