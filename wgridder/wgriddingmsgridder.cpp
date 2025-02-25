@@ -1,6 +1,6 @@
 #include "wgriddingmsgridder.h"
 
-#include "gridder_simple.h"
+#include "wgridder.h"
 
 #include "../gridding/msgriddermanager.h"
 #include "../msproviders/msreaders/msreader.h"
@@ -38,15 +38,15 @@ WGriddingMSGridder::WGriddingMSGridder(
 
 WGriddingMSGridder::~WGriddingMSGridder() = default;
 
-std::unique_ptr<WGriddingGridderBase> WGriddingMSGridder::MakeGridder(
+std::unique_ptr<WGridderBase> WGriddingMSGridder::MakeGridder(
     size_t width, size_t height) const {
   if (accuracy_ <= 1.01e-5) {
-    return std::make_unique<WGriddingGridder_Simple<double>>(
+    return std::make_unique<WGridder<double>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
         resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
   } else {
-    return std::make_unique<WGriddingGridder_Simple<float>>(
+    return std::make_unique<WGridder<float>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
         resources_.NCpus(), accuracy_, 0, use_tuned_wgridder_);
@@ -100,17 +100,18 @@ void WGriddingMSGridder::GridSharedMeasurementSetChunk(
     const aocommon::BandData& selected_band,
     const std::pair<size_t, size_t>* antennas,
     const std::complex<float>* visibilities, const size_t* time_offsets,
-    size_t n_antennas) {
+    size_t n_antennas, const std::vector<std::complex<float>>& parm_response) {
   // If there are no corrections to apply then we can bypass needing a callback
   // and just use the shared buffer directly
   if (!apply_corrections) {
     gridder_->AddInversionData(n_rows, selected_band.ChannelCount(), uvws,
                                frequencies, visibilities);
   } else {
+    VisibilityCallbackData data(selected_band.ChannelCount(), selected_band,
+                                antennas, visibilities, time_offsets, this,
+                                n_antennas, parm_response.data());
     gridder_->AddInversionDataWithCorrectionCallback(
-        GetGainMode(), n_polarizations, n_rows, uvws, frequencies,
-        selected_band.ChannelCount(), selected_band, antennas, visibilities,
-        time_offsets, this, n_antennas);
+        GetGainMode(), n_polarizations, n_rows, uvws, frequencies, data);
   }
 }
 
@@ -141,6 +142,8 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   InversionRow row_data;
   row_data.data = row_visibilities.data();
 
+  const size_t n_parms = NumValuesPerSolution();
+
   // Iterate over chunks until all data has been gridded
   size_t n_total_rows_read = 0;
   while (ms_reader->CurrentRowAvailable()) {
@@ -158,10 +161,17 @@ size_t WGriddingMSGridder::GridMeasurementSet(
       row_data.uvw[1] = metadata.vInM;
       row_data.uvw[2] = metadata.wInM;
 
-      GetCollapsedVisibilities(*ms_reader, ms_data.antenna_names.size(),
-                               row_data, selected_band, weight_buffer.data(),
-                               model_buffer.data(), selection_buffer.data(),
-                               metadata);
+      if (n_parms == 2) {
+        GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
+                                    row_data, selected_band,
+                                    weight_buffer.data(), model_buffer.data(),
+                                    selection_buffer.data(), metadata);
+      } else {
+        GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
+                                    row_data, selected_band,
+                                    weight_buffer.data(), model_buffer.data(),
+                                    selection_buffer.data(), metadata);
+      }
 
       std::copy_n(
           row_data.data, selected_band.ChannelCount(),

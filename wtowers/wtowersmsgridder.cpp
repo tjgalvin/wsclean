@@ -118,6 +118,8 @@ size_t WTowersMsGridder::GridMeasurementSet(
   InversionRow row_data;
   row_data.data = row_visibilities.data();
 
+  const size_t n_parms = NumValuesPerSolution();
+
   // Iterate over chunks until all data has been gridded
   size_t n_total_rows_read = 0;
   while (ms_reader->CurrentRowAvailable()) {
@@ -135,10 +137,17 @@ size_t WTowersMsGridder::GridMeasurementSet(
       row_data.uvw[1] = metadata.vInM;
       row_data.uvw[2] = metadata.wInM;
 
-      GetCollapsedVisibilities(*ms_reader, ms_data.antenna_names.size(),
-                               row_data, selected_band, weight_buffer.data(),
-                               model_buffer.data(), selection_buffer.data(),
-                               metadata);
+      if (n_parms == 2) {
+        GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
+                                    row_data, selected_band,
+                                    weight_buffer.data(), model_buffer.data(),
+                                    selection_buffer.data(), metadata);
+      } else {
+        GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
+                                    row_data, selected_band,
+                                    weight_buffer.data(), model_buffer.data(),
+                                    selection_buffer.data(), metadata);
+      }
 
       std::copy_n(
           row_data.data, selected_band.ChannelCount(),

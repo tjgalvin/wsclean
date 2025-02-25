@@ -117,8 +117,8 @@ class MsGridder : public MsGridderData {
    * order to compute the corrections as needed.
    *
    * It is expected that the average correction has already been calculated by
-   * summing the corrections via @ref ApplyCorrections<kSum>() and that this
-   * gridder is already populated with the resulting sums.
+   * summing the corrections via @ref LoadAndApplyCorrections<kSum>() and that
+   * this gridder is already populated with the resulting sums.
    *
    * @param n_polarizations The number of polarizations per visibility in @ref
    * visibilities
@@ -135,8 +135,9 @@ class MsGridder : public MsGridderData {
    * visibilities: visibility(row, chan) := vis[row*n_chan + chan]
    * @param time_offsets Pointer to n_rows `size_t` containing the time offset
    * as calculated by @ref CacheParmResponse() for the corresponding visibility
-   * row when applying @ref ApplyCorrections<ModifierBehaviour::kSum>() on it
-   * For further explanation see @ref VisibilityCallbackBuffer::time_offsets_
+   * row when applying @ref LoadAndApplyCorrections<ModifierBehaviour::kSum>()
+   * on it For further explanation see @ref
+   * VisibilityCallbackBuffer::time_offsets_
    */
   virtual void GridSharedMeasurementSetChunk(
       bool apply_corrections, size_t n_polarizations, size_t n_rows,
@@ -144,7 +145,8 @@ class MsGridder : public MsGridderData {
       const aocommon::BandData& selected_band,
       const std::pair<size_t, size_t>* antennas,
       const std::complex<float>* visibilities, const size_t* time_offsets,
-      size_t n_antennas) {
+      size_t n_antennas,
+      const std::vector<std::complex<float>>& parm_response) {
     throw std::runtime_error("Gridder does not yet support shared reading");
   }
 

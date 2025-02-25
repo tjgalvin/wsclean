@@ -85,38 +85,79 @@ size_t MSGridderManager::ReadChunkForInvert(
     MSReader& ms_reader, const aocommon::BandData band,
     const bool* selected_buffer, RowData& row_data, ChunkData& chunk_data,
     MsGridderData& shared_data) {
+  const size_t n_parms = gridders[0]->NumValuesPerSolution();
   switch (gain_mode) {
     case GainMode::kXX:
-      return ReadChunkForInvertImplementation<GainMode::kXX>(
-          apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
-          ms_reader, band, selected_buffer, row_data, chunk_data, shared_data);
+      if (n_parms == 2) {
+        return ReadChunkForInvertImplementation<GainMode::kXX, 2>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      } else {
+        return ReadChunkForInvertImplementation<GainMode::kXX, 4>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      }
       break;
     case GainMode::kYY:
-      return ReadChunkForInvertImplementation<GainMode::kYY>(
-          apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
-          ms_reader, band, selected_buffer, row_data, chunk_data, shared_data);
+      if (n_parms == 2) {
+        return ReadChunkForInvertImplementation<GainMode::kYY, 2>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      } else {
+        return ReadChunkForInvertImplementation<GainMode::kYY, 4>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      }
       break;
     case GainMode::k2VisDiagonal:
-      return ReadChunkForInvertImplementation<GainMode::k2VisDiagonal>(
-          apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
-          ms_reader, band, selected_buffer, row_data, chunk_data, shared_data);
+      if (n_parms == 2) {
+        return ReadChunkForInvertImplementation<GainMode::k2VisDiagonal, 2>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      } else {
+        return ReadChunkForInvertImplementation<GainMode::k2VisDiagonal, 4>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      }
       break;
     case GainMode::kTrace:
-      return ReadChunkForInvertImplementation<GainMode::kTrace>(
-          apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
-          ms_reader, band, selected_buffer, row_data, chunk_data, shared_data);
+      if (n_parms == 2) {
+        return ReadChunkForInvertImplementation<GainMode::kTrace, 2>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      } else {
+        return ReadChunkForInvertImplementation<GainMode::kTrace, 4>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      }
       break;
     case GainMode::kFull:
-      return ReadChunkForInvertImplementation<GainMode::kFull>(
-          apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
-          ms_reader, band, selected_buffer, row_data, chunk_data, shared_data);
+      if (n_parms == 2) {
+        return ReadChunkForInvertImplementation<GainMode::kFull, 2>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      } else {
+        return ReadChunkForInvertImplementation<GainMode::kFull, 4>(
+            apply_corrections, task_queue, gridders, ms_data, n_chunk_rows,
+            ms_reader, band, selected_buffer, row_data, chunk_data,
+            shared_data);
+      }
       break;
   }
   assert(false);
   return 0;
 }
 
-template <GainMode Mode>
+template <GainMode Mode, size_t NParms>
 size_t MSGridderManager::ReadChunkForInvertImplementation(
     bool apply_corrections,
     aocommon::TaskQueue<std::function<void()>>& task_queue,
@@ -155,7 +196,8 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
       size_t time_offset;
       ExecuteForAllGridders(task_queue, [&](MsGridder* gridder) {
         time_offset = chunk_data.time_offsets.back();
-        gridder->ApplyCorrections<Mode, ModifierBehaviour::kSum, true>(
+        gridder->LoadAndApplyCorrections<Mode, NParms, ModifierBehaviour::kSum,
+                                         true>(
             ms_data.antenna_names.size(), visibilities, band, row_data.weights,
             metadata.time, metadata.fieldId, metadata.antenna1,
             metadata.antenna2, time_offset,
@@ -235,6 +277,10 @@ void MSGridderManager::GridChunk(
         Logger::Info << "Gridding facet " + std::to_string(facet_index) + "\n";
         Logger::Info.Flush();
 
+        const std::vector<std::complex<float>>& parm_response =
+            gridder->GetVisibilityModifier().GetCachedParmResponse(
+                ms_data.original_ms_index);
+
         gridder->gridded_visibility_count_ = gridded_visibility_count;
         gridder->visibility_weight_sum_ = visibility_weight_sum;
         gridder->max_gridded_weight_ = max_gridded_weight;
@@ -245,7 +291,7 @@ void MSGridderManager::GridChunk(
             chunk_data.uvw.data(), frequencies.data(), band,
             chunk_data.antennas.data(), chunk_data.visibilities.data(),
             apply_corrections ? chunk_data.time_offsets.data() + 1 : nullptr,
-            ms_data.antenna_names.size());
+            ms_data.antenna_names.size(), parm_response);
         Logger::Info << "Done gridding facet " + std::to_string(facet_index) +
                             "\n";
         Logger::Info.Flush();

@@ -76,9 +76,6 @@ include(external/aocommon/CMake/SetTargetCPU.cmake)
 # Include aocommon.
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
-# LRUCache11
-include_directories("${CMAKE_SOURCE_DIR}/external/lrucache11")
-
 # Schaapcommon
 set(SCHAAPCOMMON_MODULES ducc0 facets fitters h5parm math reordering)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
@@ -333,24 +330,110 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   endif()
 endif()
 
+# Compile an explicit instantiation of the wgridder callback for each possible type
+add_library(wgridder_float_xx_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_xx_2 PRIVATE DTYPE=float MODE=GainMode::kXX NPOL=1 NPARMS=2)
+add_library(wgridder_float_xx_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_xx_4 PRIVATE DTYPE=float MODE=GainMode::kXX NPOL=1 NPARMS=4)
+add_library(wgridder_float_yy_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_yy_2 PRIVATE DTYPE=float MODE=GainMode::kYY NPOL=1 NPARMS=2)
+add_library(wgridder_float_yy_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_yy_4 PRIVATE DTYPE=float MODE=GainMode::kYY NPOL=1 NPARMS=4)
+add_library(wgridder_float_trace_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_trace_2 PRIVATE DTYPE=float MODE=GainMode::kTrace NPOL=1
+                                 NPARMS=2)
+add_library(wgridder_float_trace_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_trace_4 PRIVATE DTYPE=float MODE=GainMode::kTrace NPOL=1
+                                 NPARMS=4)
+add_library(wgridder_float_diagonal_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_diagonal_2 PRIVATE DTYPE=float MODE=GainMode::k2VisDiagonal
+                                    NPOL=2 NPARMS=2)
+add_library(wgridder_float_diagonal_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_diagonal_4 PRIVATE DTYPE=float MODE=GainMode::k2VisDiagonal
+                                    NPOL=2 NPARMS=4)
+add_library(wgridder_float_full_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_full_2 PRIVATE DTYPE=float MODE=GainMode::kFull NPOL=4
+                                NPARMS=2)
+add_library(wgridder_float_full_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_float_full_4 PRIVATE DTYPE=float MODE=GainMode::kFull NPOL=4
+                                NPARMS=4)
+add_library(wgridder_double_xx_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_xx_2 PRIVATE DTYPE=double MODE=GainMode::kXX NPOL=1 NPARMS=2)
+add_library(wgridder_double_xx_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_xx_4 PRIVATE DTYPE=double MODE=GainMode::kXX NPOL=1 NPARMS=4)
+add_library(wgridder_double_yy_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_yy_2 PRIVATE DTYPE=double MODE=GainMode::kYY NPOL=1 NPARMS=2)
+add_library(wgridder_double_yy_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_yy_4 PRIVATE DTYPE=double MODE=GainMode::kYY NPOL=1 NPARMS=4)
+add_library(wgridder_double_trace_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_trace_2 PRIVATE DTYPE=double MODE=GainMode::kTrace NPOL=1
+                                  NPARMS=2)
+add_library(wgridder_double_trace_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_trace_4 PRIVATE DTYPE=double MODE=GainMode::kTrace NPOL=1
+                                  NPARMS=4)
+add_library(wgridder_double_diagonal_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_diagonal_2 PRIVATE DTYPE=double MODE=GainMode::k2VisDiagonal
+                                     NPOL=2 NPARMS=2)
+add_library(wgridder_double_diagonal_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_diagonal_4 PRIVATE DTYPE=double MODE=GainMode::k2VisDiagonal
+                                     NPOL=2 NPARMS=4)
+add_library(wgridder_double_full_2 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_full_2 PRIVATE DTYPE=double MODE=GainMode::kFull NPOL=4
+                                 NPARMS=2)
+add_library(wgridder_double_full_4 OBJECT wgridder/callback.cpp)
+target_compile_definitions(
+  wgridder_double_full_4 PRIVATE DTYPE=double MODE=GainMode::kFull NPOL=4
+                                 NPARMS=4)
+
+set(wsclean-wgridder-callback-object
+    wgridder_float_xx_2
+    wgridder_float_xx_4
+    wgridder_float_yy_2
+    wgridder_float_yy_4
+    wgridder_float_trace_2
+    wgridder_float_trace_4
+    wgridder_float_diagonal_2
+    wgridder_float_diagonal_4
+    wgridder_float_full_2
+    wgridder_float_full_4
+    wgridder_double_xx_2
+    wgridder_double_xx_4
+    wgridder_double_yy_2
+    wgridder_double_yy_4
+    wgridder_double_trace_2
+    wgridder_double_trace_4
+    wgridder_double_diagonal_2
+    wgridder_double_diagonal_4
+    wgridder_double_full_2
+    wgridder_double_full_4)
+
 add_library(
   wsclean-object OBJECT
   # These wgridder files are given first because they take a long time to compile. In multi-threaded compilation,
   # this has the advantage that it allows better parallelization.
   # Instantiation is split over multiple files to help make it more parallel and reduce memory requirements
   wgridder/wgriddingmsgridder.cpp
-  wgridder/gridder_simple_float.cpp
-  wgridder/gridder_simple_double.cpp
-  wgridder/callback_float_xx.cpp
-  wgridder/callback_double_xx.cpp
-  wgridder/callback_float_yy.cpp
-  wgridder/callback_double_yy.cpp
-  wgridder/callback_float_diagonal.cpp
-  wgridder/callback_double_diagonal.cpp
-  wgridder/callback_float_trace.cpp
-  wgridder/callback_double_trace.cpp
-  wgridder/callback_float_full.cpp
-  wgridder/callback_double_full.cpp
+  wgridder/wgridder_float.cpp
+  wgridder/wgridder_double.cpp
   main/commandline.cpp
   main/imageweightinitializer.cpp
   main/mshelper.cpp
@@ -414,20 +497,26 @@ add_library(
   ${MPI_CPP_FILES}
   ${WTOWERS_CPP_FILES})
 
+set(wsclean-object-all wsclean-object ${wsclean-wgridder-callback-object})
+
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is
 # allowed. Note that visibilities can be NaN hence this can not be turned
 # on for all files.
 set_source_files_properties(
   wsclean/directmsgridder.cpp wsclean/wstackinggridder.cpp
-  wgridder/gridder_simple_float.cpp wgridder/gridder_simple_double.cpp
-  PROPERTIES COMPILE_FLAGS -ffast-math)
+  wgridder/wgridder_float.cpp wgridder/wgridder_double.cpp
+  gridding/msgriddermanager.cpp PROPERTIES COMPILE_FLAGS "-ffast-math")
+set_source_files_properties(${wsclean-wgridder-callback-object}
+                            PROPERTIES COMPILE_FLAGS "-ffast-math")
 
 # Add radler-module dependency to wsclean-object to ensure all
 # wsclean targets can link against ${RADLER_LIB}
-add_dependencies(wsclean-object radler-module)
+foreach(X ${wsclean-object-all})
+  add_dependencies(${X} radler-module)
+endforeach()
 
-set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
+set_property(TARGET ${wsclean-object-all} PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 target_link_libraries(wsclean-object PUBLIC schaapcommon
                                             ${SKA_SDP_FUNC_LIBRARIES})
@@ -462,13 +551,14 @@ check_blas(LIBRARIES ${EXTERNAL_LIBRARIES})
 list(PREPEND EXTERNAL_LIBRARIES ${RADLER_LIB})
 
 add_library(wsclean-lib STATIC)
-target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES} wsclean-object)
+target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES}
+                                          ${wsclean-object-all})
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_library(wsclean-shared SHARED)
 target_link_libraries(wsclean-shared PRIVATE ${EXTERNAL_LIBRARIES}
-                                             wsclean-object)
+                                             ${wsclean-object-all})
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 # Make schaapcommon a PUBLIC dependency, since some WSClean headers use

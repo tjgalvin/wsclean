@@ -138,6 +138,7 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(
   const aocommon::BandData selected_band(ms_data.SelectedBand());
 
   const size_t data_size = selected_band.ChannelCount() * n_vis_polarizations;
+  const size_t n_parms = NumValuesPerSolution();
   aocommon::UVector<std::complex<float>> model_buffer(data_size);
   aocommon::UVector<float> weight_buffer(data_size);
   aocommon::UVector<bool> selection_buffer(selected_band.ChannelCount(), true);
@@ -160,10 +161,17 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(
     row_data.uvw[1] = metadata.vInM;
     row_data.uvw[2] = metadata.wInM;
 
-    GetCollapsedVisibilities(*ms_reader, ms_data.antenna_names.size(), row_data,
-                             selected_band, weight_buffer.data(),
-                             model_buffer.data(), selection_buffer.data(),
-                             metadata);
+    if (n_parms == 2) {
+      GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
+                                  row_data, selected_band, weight_buffer.data(),
+                                  model_buffer.data(), selection_buffer.data(),
+                                  metadata);
+    } else {
+      GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
+                                  row_data, selected_band, weight_buffer.data(),
+                                  model_buffer.data(), selection_buffer.data(),
+                                  metadata);
+    }
     InversionSample sample;
     for (size_t channel = 0; channel != selected_band.ChannelCount();
          ++channel) {

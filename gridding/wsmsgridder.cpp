@@ -162,6 +162,7 @@ size_t WSMSGridder::GridMeasurementSet(
   aocommon::UVector<std::complex<float>> row_visibilities(data_size);
   row_data.data = row_visibilities.data();
 
+  const size_t n_parms = NumValuesPerSolution();
   size_t n_total_rows_read = 0;
   try {
     std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
@@ -187,10 +188,17 @@ size_t WSMSGridder::GridMeasurementSet(
           selection_buffer[ch] = _gridder->IsInLayerRange(w);
         }
 
-        GetCollapsedVisibilities(*ms_reader, ms_data.antenna_names.size(),
-                                 row_data, band, weight_buffer.data(),
-                                 model_buffer.data(), selection_buffer.data(),
-                                 metadata);
+        if (n_parms == 2) {
+          GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
+                                      row_data, band, weight_buffer.data(),
+                                      model_buffer.data(),
+                                      selection_buffer.data(), metadata);
+        } else {
+          GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
+                                      row_data, band, weight_buffer.data(),
+                                      model_buffer.data(),
+                                      selection_buffer.data(), metadata);
+        }
 
         if (HasDenormalPhaseCentre()) {
           const double shiftFactor =

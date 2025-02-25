@@ -1,5 +1,5 @@
-#ifndef WSCLEAN_WGRIDDER_SIMPLE_H_
-#define WSCLEAN_WGRIDDER_SIMPLE_H_
+#ifndef WSCLEAN_WGRIDDER_H_
+#define WSCLEAN_WGRIDDER_H_
 
 #include <complex>
 #include <cstddef>
@@ -10,16 +10,26 @@
 
 #include "../gridding/gainmode.h"
 
-#include <LRUCache11.hpp>
 #include "../gridding/msgridder.h"
 
 namespace wsclean {
 
 class MsGridder;
 
-class WGriddingGridderBase {
+struct VisibilityCallbackData {
+  size_t n_channels;
+  const aocommon::BandData &selected_band;
+  const std::pair<size_t, size_t> *antennas;
+  const std::complex<float> *visibilities;
+  const size_t *time_offsets;
+  MsGridder *gridder;
+  size_t n_antennas;
+  const std::complex<float> *parm_response;
+};
+
+class WGridderBase {
  public:
-  virtual ~WGriddingGridderBase() = default;
+  virtual ~WGridderBase() = default;
   virtual size_t ConstantMemoryUsage() const = 0;
   virtual size_t PerVisibilityMemoryUsage() const = 0;
   virtual void InitializeInversion() = 0;
@@ -28,11 +38,7 @@ class WGriddingGridderBase {
                                 const std::complex<float> *vis) = 0;
   virtual void AddInversionDataWithCorrectionCallback(
       GainMode mode, size_t n_polarizations, size_t n_rows, const double *uvws,
-      const double *frequencies, size_t n_channels,
-      const aocommon::BandData &selected_band,
-      const std::pair<size_t, size_t> *antennas,
-      const std::complex<float> *visibilities, const size_t *time_offsets,
-      MsGridder *gridder, size_t n_antenna) = 0;
+      const double *frequencies, VisibilityCallbackData &data) = 0;
   virtual void FinalizeImage(double multiplication_factor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
@@ -53,7 +59,7 @@ class WGriddingGridderBase {
      + nvis_unflagged*8 (index arrays, rough guess)
 */
 template <typename NumT>
-class WGriddingGridder_Simple final : public WGriddingGridderBase {
+class WGridder final : public WGridderBase {
  private:
   static constexpr double sigma_min = 1.1;
   static constexpr double sigma_max = 2.0;
@@ -81,14 +87,13 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    *   1: print short overview for every inversion/prediction
    *   2: print information for every processed w-plane
    */
-  WGriddingGridder_Simple(size_t width, size_t height, size_t trimmed_width,
-                          size_t trimmed_height, double pixel_size_x,
-                          double pixel_size_y, double l_shift, double m_shift,
-                          size_t n_threads, double epsilon = 1e-4,
-                          size_t verbosity = 0, bool tuning_ = false);
+  WGridder(size_t width, size_t height, size_t trimmed_width,
+           size_t trimmed_height, double pixel_size_x, double pixel_size_y,
+           double l_shift, double m_shift, size_t n_threads,
+           double epsilon = 1e-4, size_t verbosity = 0, bool tuning_ = false);
 
-  WGriddingGridder_Simple(const WGriddingGridder_Simple &) = delete;
-  WGriddingGridder_Simple &operator=(const WGriddingGridder_Simple &) = delete;
+  WGridder(const WGridder &) = delete;
+  WGridder &operator=(const WGridder &) = delete;
 
   /**
    * @return The constant base memory usage of the object in bytes
@@ -125,7 +130,7 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    * callback that can apply solutions "on the fly" as required
    *
    * It is expected that corrections have already been summed via @ref
-   * ApplyCorrections<ModifierBehaviour::kSum>()
+   * LoadAndApplyCorrections<ModifierBehaviour::kSum>()
    *
    * @param n_polarizations The number of polarizations per visibility in @ref
    * visibilities
@@ -142,18 +147,15 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
    * visibilities: visibility(row, chan) := vis[row*n_chan + chan]
    * @param time_offsets Pointer to n_rows `size_t` containing the time offset
    * as calculated by @ref CacheParmResponse() for the corresponding visibility
-   * row when applying @ref ApplyCorrections<ModifierBehaviour::kSum>() on it
-   * For further explanation see @ref VisibilityCallbackBuffer::time_offsets_
+   * row when applying @ref LoadAndApplyCorrections<ModifierBehaviour::kSum>()
+   * on it For further explanation see @ref
+   * VisibilityCallbackBuffer::time_offsets_
    * @param gridder Pointer to a gridder that can be called back into in order
    * to apply solutions
    */
   void AddInversionDataWithCorrectionCallback(
       GainMode mode, size_t n_polarizations, size_t n_rows, const double *uvws,
-      const double *frequencies, size_t n_channels,
-      const aocommon::BandData &selected_band,
-      const std::pair<size_t, size_t> *antennas,
-      const std::complex<float> *visibilities, const size_t *time_offsets,
-      MsGridder *gridder, size_t n_antenna) final;
+      const double *frequencies, VisibilityCallbackData &data) final;
 
   /**
    * Finalize inversion once all passes are performed.
@@ -222,27 +224,67 @@ class WGriddingGridder_Simple final : public WGriddingGridderBase {
       image_[i] += tdirty.raw(i);
   }
 
-  // Helper function to convert mode to a template paramater
-  template <typename... Params>
-  void AddInversionMs(GainMode mode, Params... params);
-  // Helper function to convert polarisations to a template paramater
-  template <GainMode Mode, typename... Params>
-  void AddInversionMs(size_t n_polarizations, Params... params);
-  // Helper function to finally construct the templated object now that we have
-  // mode and polarisations as template paramaters
-  template <GainMode Mode, size_t NPolarizations, typename... Params>
-  void AddInversionMs(size_t n_rows, const double *uvw,
-                      const ducc0::cmav<double, 1> &freq, Params... params);
+  // Each of the following versions of CreateAndAddInversionMs converts the
+  // first parameter into a template argument and then passes the rest of the
+  // parameters on to the next call.
+  // We add multiple template parameters in a chain to avoid an exponential
+  // explosion of boilerplate code.
+  // Sorted and numbered in the order that they will be called.
+  void CreateAndAddInversionMs(GainMode mode, size_t n_polarizations,
+                               size_t n_parms, bool apply_beam,
+                               bool apply_forward, bool has_h5_parm,
+                               size_t n_rows, const double *uvws,
+                               const ducc0::cmav<double, 1> &frequencies,
+                               VisibilityCallbackData &data);
+  template <GainMode Mode>
+  void CreateAndAddInversionMs2(size_t n_polarizations, size_t n_parms,
+                                bool apply_beam, bool apply_forward,
+                                bool has_h5_parm, size_t n_rows,
+                                const double *uvws,
+                                const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
+  template <GainMode Mode, size_t NPolarizations>
+  void CreateAndAddInversionMs3(size_t n_parms, bool apply_beam,
+                                bool apply_forward, bool has_h5_parm,
+                                size_t n_rows, const double *uvws,
+                                const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
+  template <GainMode Mode, size_t NPolarizations, size_t NParms>
+  void CreateAndAddInversionMs4(bool apply_beam, bool apply_forward,
+                                bool has_h5_parm, size_t n_rows,
+                                const double *uvws,
+                                const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam>
+  void CreateAndAddInversionMs5(bool apply_forward, bool has_h5_parm,
+                                size_t n_rows, const double *uvws,
+                                const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
+            bool ApplyForward>
+  void CreateAndAddInversionMs6(bool has_h5_parm, size_t n_rows,
+                                const double *uvws,
+                                const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
+  // Construct a VisibilityCallbackBuffer object using the remaining paramaters
+  // and templatized based on all the paramaters that previous calls in the
+  // template chain have parsed.
+  // Call AddInversionMs with the constructed callback object.
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
+            bool ApplyForward, bool HasH5Parm>
+  void CreateAndAddInversionMs7(size_t n_rows, const double *uvws,
+                                const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
 };
 
 }  // namespace wsclean
 
-#endif  // WSCLEAN_WGRIDDER_SIMPLE_H_
+#endif  // WSCLEAN_WGRIDDER_H_
 
 /*
 Usage scenario:
 
-WGriddingGridder_Simple gridder(width, height, pixel_size_x, pixel_size_y,
+WGridder gridder(width, height, pixel_size_x, pixel_size_y,
 n_threads, 1e-5);
 // determine number of visibilities that can be gridded in one go, using
 // gridder.memUsage() and information about available memory.

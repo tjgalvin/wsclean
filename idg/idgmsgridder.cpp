@@ -232,11 +232,19 @@ size_t IdgMsGridder::GridMeasurementSet(
     row_data.antenna2 = metadata.antenna2;
     row_data.timeIndex = time_index;
 
+    const size_t n_parms = NumValuesPerSolution();
     if (n_vis_polarizations == 1) {
-      GetInstrumentalVisibilities<1>(*ms_reader, ms_data.antenna_names.size(),
-                                     row_data, _selectedBand,
-                                     weight_buffer.data(), model_buffer.data(),
-                                     selection_buffer.data(), metadata);
+      if (n_parms == 2) {
+        GetInstrumentalVisibilities<1, 2>(
+            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
+            metadata);
+      } else {
+        GetInstrumentalVisibilities<1, 4>(
+            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
+            metadata);
+      }
       // The data is placed in the first quarter of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
       // be able to directly accept 1 polarization instead of 4.
@@ -253,10 +261,17 @@ size_t IdgMsGridder::GridMeasurementSet(
         source_index--;
       }
     } else if (n_vis_polarizations == 2) {
-      GetInstrumentalVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
-                                     row_data, _selectedBand,
-                                     weight_buffer.data(), model_buffer.data(),
-                                     selection_buffer.data(), metadata);
+      if (n_parms == 2) {
+        GetInstrumentalVisibilities<2, 2>(
+            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
+            metadata);
+      } else {
+        GetInstrumentalVisibilities<2, 4>(
+            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
+            metadata);
+      }
       // The data is placed in the first half of the buffers: reverse copy it
       // and expand it to 4 polarizations. TODO at a later time, IDG should
       // be able to directly accept 2 pols instead of 4.
@@ -274,10 +289,17 @@ size_t IdgMsGridder::GridMeasurementSet(
       }
     } else {
       assert(n_vis_polarizations == 4);
-      GetInstrumentalVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
-                                     row_data, _selectedBand,
-                                     weight_buffer.data(), model_buffer.data(),
-                                     selection_buffer.data(), metadata);
+      if (n_parms == 2) {
+        GetInstrumentalVisibilities<4, 2>(
+            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
+            metadata);
+      } else {
+        GetInstrumentalVisibilities<4, 4>(
+            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
+            metadata);
+      }
     }
 
     row_data.uvw[1] = -metadata.vInM;  // DEBUG vdtol, flip axis

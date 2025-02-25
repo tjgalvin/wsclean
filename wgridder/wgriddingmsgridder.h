@@ -10,7 +10,7 @@
 
 namespace wsclean {
 
-class WGriddingGridderBase;
+class WGridderBase;
 
 class WGriddingMSGridder final : public MsGridder {
  public:
@@ -21,15 +21,14 @@ class WGriddingMSGridder final : public MsGridder {
 
   void StartInversion() final;
   size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
-  void GridSharedMeasurementSetChunk(bool apply_corrections,
-                                     size_t n_polarizations, size_t n_rows,
-                                     const double* uvws,
-                                     const double* frequencies,
-                                     const aocommon::BandData& selected_band,
-                                     const std::pair<size_t, size_t>* antennas,
-                                     const std::complex<float>* visibilities,
-                                     const size_t* time_offsets,
-                                     size_t n_antennas) final;
+  void GridSharedMeasurementSetChunk(
+      bool apply_corrections, size_t n_polarizations, size_t n_rows,
+      const double* uvws, const double* frequencies,
+      const aocommon::BandData& selected_band,
+      const std::pair<size_t, size_t>* antennas,
+      const std::complex<float>* visibilities, const size_t* time_offsets,
+      size_t n_antennas,
+      const std::vector<std::complex<float>>& parm_response) final;
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;
@@ -48,8 +47,7 @@ class WGriddingMSGridder final : public MsGridder {
  private:
   aocommon::Image image_;
 
-  std::unique_ptr<WGriddingGridderBase> MakeGridder(size_t width,
-                                                    size_t height) const;
+  std::unique_ptr<WGridderBase> MakeGridder(size_t width, size_t height) const;
 
   size_t CalculateConstantMemory() const final;
   size_t CalculateMaxRowsInMemory(int64_t available_memory,
@@ -63,7 +61,7 @@ class WGriddingMSGridder final : public MsGridder {
   const Resources resources_;
   double accuracy_;
   bool use_tuned_wgridder_;
-  std::unique_ptr<WGriddingGridderBase> gridder_;
+  std::unique_ptr<WGridderBase> gridder_;
 };
 
 }  // namespace wsclean

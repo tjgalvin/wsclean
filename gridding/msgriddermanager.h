@@ -144,8 +144,8 @@ class MSGridderManager {
     aocommon::UVector<std::pair<size_t, size_t>> antennas;
     aocommon::UVector<double> uvw;
     aocommon::UVector<std::complex<float>> visibilities;
-    // per row time offset computed during @ref ApplyCorrections()<kSum>
-    // and applied during @ref ApplyCorrections()<kApply>
+    // per row time offset computed during @ref LoadAndApplyCorrections()<kSum>
+    // and applied during @ref LoadAndApplyCorrections()<kApply>
     std::vector<size_t> time_offsets;
 
     size_t gridded_visibility_count;
@@ -159,7 +159,7 @@ class MSGridderManager {
    * chunk which can be passed to @ref BatchInvert for gridding multiple
    * gridders in parallel.
    * @param [in] task_queue A task queue that is used to call @ref
-   * ApplyCorrections in parallel across multiple gridders.
+   * LoadAndApplyCorrections in parallel across multiple gridders.
    * @param [in] ms_reader A @ref MSReader from which the chunk data can be
    * read. Expected to already be set up by the caller.
    * @param [in] selected_buffer Buffer of size `n_channels` containing a
@@ -184,7 +184,7 @@ class MSGridderManager {
       MSReader& ms_reader, const aocommon::BandData band,
       const bool* selected_buffer, RowData& row_data, ChunkData& chunk_data,
       MsGridderData& shared_data);
-  template <GainMode Mode>
+  template <GainMode Mode, size_t NParms>
   size_t ReadChunkForInvertImplementation(
       bool apply_corrections,
       aocommon::TaskQueue<std::function<void()>>& task_queue,

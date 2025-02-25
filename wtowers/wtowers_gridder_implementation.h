@@ -130,7 +130,7 @@ size_t WTowersGridder<NumT>::ConstantMemoryUsage() const {
 template <typename NumT>
 size_t WTowersGridder<NumT>::PerVisibilityMemoryUsage() const {
   // For now we assume this is the same as wgridder.
-  // See comments in wgridder/gridder_simple_implementation.h for how this size
+  // See comments in wgridder/wgridder_implementation.h for how this size
   // is picked. This and ConstantMemoryUsage() should be reworked to more
   // precise w-towers specific estimates.
   return 8;
