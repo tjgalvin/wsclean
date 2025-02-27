@@ -459,6 +459,7 @@ add_library(
   io/wscfitswriter.cpp
   math/imageoperations.cpp
   math/renderer.cpp
+  math/subpixelrenderer.cpp
   math/tophatconvolution.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp

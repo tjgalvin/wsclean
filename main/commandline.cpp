@@ -463,7 +463,7 @@ but subtract components from individual channels.
 -multiscale-convolution-padding <padding>
    Size of zero-padding for convolutions during the multi-scale cleaning. Default: 1.1
 -asp
-   Use the adaptive scale pixel algorithm.   
+   Use the adaptive scale pixel algorithm.
 -no-multiscale-fast-subminor
    Disable the 'fast subminor loop' optimization, that will only search a part of the
    image during the multi-scale subminor loop. The optimization is on by default.
@@ -522,8 +522,13 @@ but subtract components from individual channels.
 -deconvolution-threads <n>
    Number of threads to use during deconvolution. On machines with a large nr of cores, this may be used to decrease the memory usage.
    If not specified, the number of threads during deconvolution is controlled with the -j option.
-
-  ** RESTORATION OPTIONS **
+  ** SKY MODEL DRAWING OPTIONS**
+-draw-model <input model> <output image>
+   Create a FITS image from a sky model, provided in the BBS/DP3 text format.
+-draw-frequencies <central frequency> <bandwidth>
+   Sets the central fequency and bandwidth of the image that is to be rendered (in Hz).
+-sinc-window-size <window size in pixels>
+   Sinc convolution window size (in pixels).
 -restore <input residual> <input model> <output image>
    Restore the model image onto the residual image and save it in output image. By
    default, the beam parameters are read from the residual image. If this parameter
@@ -1145,6 +1150,21 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.weightMode.SetSuperWeight(
           ParseDouble(argv[argi], 0.0, "super-weight"));
+    } else if (param == "draw-model") {
+      settings.mode = Settings::DrawModelMode;
+      IncArgi(argi, argc);
+      settings.inputSkyModelFilename = argv[argi];
+      IncArgi(argi, argc);
+      settings.drawnSkyModelFilename = argv[argi];
+    } else if (param == "draw-frequencies") {
+      IncArgi(argi, argc);
+      settings.drawnSkyModelFrequency =
+          ParseDouble(argv[argi], "centre frequency");
+      IncArgi(argi, argc);
+      settings.drawnSkyModelBandwidth = ParseDouble(argv[argi], "bandwidth");
+    } else if (param == "sinc-window-size") {
+      IncArgi(argi, argc);
+      settings.sincWindowSize = ParseSizeT(argv[argi], "sinc window size");
     } else if (param == "restore" || param == "restore-list") {
       if (param == "restore")
         settings.mode = Settings::RestoreMode;
@@ -1476,6 +1496,9 @@ void CommandLine::Run(class WSClean& wsclean) {
       break;
     case Settings::ImagingMode:
       wsclean.RunClean();
+      break;
+    case Settings::DrawModelMode:
+      wsclean.DrawModel();
       break;
   }
 }

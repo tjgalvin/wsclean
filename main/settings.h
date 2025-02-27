@@ -51,7 +51,8 @@ class Settings {
     ImagingMode,
     PredictMode,
     RestoreMode,
-    RestoreListMode
+    RestoreListMode,
+    DrawModelMode
   } mode = ImagingMode;
   GridderType gridderType = GridderType::WGridder;
   size_t paddedImageWidth = 0, paddedImageHeight = 0;
@@ -207,6 +208,11 @@ class Settings {
       schaapcommon::fitters::SpectralFittingMode::kNoFitting;
   size_t spectralFittingTerms = 0;
   std::string forcedSpectrumFilename;
+  std::string inputSkyModelFilename;
+  std::string drawnSkyModelFilename;
+  size_t sincWindowSize;
+  double drawnSkyModelFrequency;
+  double drawnSkyModelBandwidth;
   /**
    * The number of channels used during deconvolution. This can be used to
    * image with more channels than deconvolution. Before deconvolution,

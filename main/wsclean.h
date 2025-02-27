@@ -65,6 +65,11 @@ class WSClean {
    */
   void RunPredict();
 
+  /**
+   * @brief Create a FITS image based on a skymodel.
+   */
+  void DrawModel();
+
  private:
   void runIndependentGroup(ImagingTable& groupTable,
                            std::unique_ptr<PrimaryBeam>& primaryBeam);

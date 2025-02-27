@@ -26,6 +26,7 @@
 
 #include "../math/renderer.h"
 #include "../math/tophatconvolution.h"
+#include "../math/subpixelrenderer.h"
 
 #include "../model/model.h"
 
@@ -49,6 +50,7 @@
 #include <iostream>
 #include <memory>
 
+using aocommon::CoordinateSystem;
 using aocommon::Image;
 using aocommon::Logger;
 using aocommon::Polarization;
@@ -953,6 +955,36 @@ void WSClean::RunPredict() {
     predictGroup(_imagingTable);
     _griddingTaskManager.reset();
   }
+}
+
+void WSClean::DrawModel() {
+  _observationInfo = getObservationInfo();
+  std::tie(_l_shift, _m_shift) = getLMShift();
+
+  CoordinateSystem cs;
+  cs.width = _settings.trimmedImageWidth;
+  cs.height = _settings.trimmedImageHeight;
+  cs.ra = _observationInfo.phaseCentreRA;
+  cs.dec = _observationInfo.phaseCentreDec;
+  cs.dl = _settings.pixelScaleX;
+  cs.dm = _settings.pixelScaleY;
+  cs.l_shift = _l_shift;
+  cs.m_shift = _m_shift;
+
+  aocommon::Image image = math::RenderSubPixelModel(
+      _settings.inputSkyModelFilename, cs, _settings.drawnSkyModelFrequency,
+      _settings.drawnSkyModelBandwidth, _settings.sincWindowSize);
+
+  aocommon::FitsWriter fits_writer;
+  fits_writer.SetImageDimensions(cs.width, cs.height, cs.ra, cs.dec, cs.dl,
+                                 cs.dm);
+  fits_writer.SetPhaseCentreShift(cs.l_shift, cs.m_shift);
+  fits_writer.SetFrequency(_settings.drawnSkyModelFrequency,
+                           _settings.drawnSkyModelBandwidth);
+
+  Logger::Info << "Writing sky model image " << _settings.drawnSkyModelFilename
+               << "...\n";
+  fits_writer.Write(_settings.drawnSkyModelFilename, image.Data());
 }
 
 double WSClean::minTheoreticalBeamSize(const ImagingTable& table) const {
