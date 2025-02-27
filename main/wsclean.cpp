@@ -1396,7 +1396,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
       _settings.gridderType == GridderType::IDG &&
       _settings.polarizations.size() != 1;
 
-  resetModelColumns(groupTable.FacetGroups());
+  ResetModelColumnsIfUsingFacets(groupTable.FacetGroups());
   _griddingTaskManager->Start(getMaxNrMSProviders() *
                               (groupTable.MaxFacetGroupIndex() + 1));
   _predictingWatch.Start();
@@ -1441,7 +1441,8 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
                << ", cleaning: " << _deconvolutionWatch.ToString() << '\n';
 }
 
-void WSClean::resetModelColumns(const ImagingTable::Groups& facet_groups) {
+void WSClean::ResetModelColumnsIfUsingFacets(
+    const ImagingTable::Groups& facet_groups) {
   assert(!facet_groups.empty());
   if (facet_groups.front().size() > 1) {
     for (const ImagingTable::Group& facet_group : facet_groups) {
@@ -1582,7 +1583,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
 
       partitionModelIntoFacets(facetGroups, false);
       if (_settings.deconvolutionMGain != 1.0) {
-        resetModelColumns(facetGroups);
+        ResetModelColumnsIfUsingFacets(facetGroups);
         _griddingTaskManager->Start(
             getMaxNrMSProviders() *
             (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));

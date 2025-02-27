@@ -123,7 +123,7 @@ class WSClean {
   ObservationInfo getObservationInfo() const;
   std::pair<double, double> getLMShift() const;
 
-  void resetModelColumns(const ImagingTable::Groups& facet_groups);
+  void ResetModelColumnsIfUsingFacets(const ImagingTable::Groups& facet_groups);
   void resetModelColumns(const ImagingTableEntry& entry);
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
