@@ -36,7 +36,24 @@ set(RADLER_CXX_FLAGS
     " "
     CACHE STRING "Extra C++ flags used for compiling Radler")
 
-set(ExternalSubmoduleDirectories aocommon pybind11 radler schaapcommon)
+set(ExternalSubmoduleDirectories aocommon radler schaapcommon)
+
+find_package(pybind11 CONFIG QUIET)
+if(NOT pybind11_FOUND)
+  message(
+    No
+    system
+    pybind11
+    version
+    found,
+    using
+    the
+    external/pybind11
+    submodule
+    instead.)
+  set(ExternalSubmoduleDirectories ${ExternalSubmoduleDirectories} pybind11)
+endif()
+
 foreach(ExternalSubmodule ${ExternalSubmoduleDirectories})
   if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExternalSubmodule})
     message(
@@ -142,9 +159,11 @@ find_package(
   COMPONENTS Interpreter Development
   REQUIRED)
 
-# Include pybind11
-add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
-include_directories(SYSTEM ${pybind11_INCLUDE_DIRS})
+if(NOT pybind11_FOUND)
+  # Include pybind11
+  add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
+  include_directories(SYSTEM ${pybind11_INCLUDE_DIRS})
+endif()
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
