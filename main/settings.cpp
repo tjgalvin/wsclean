@@ -542,6 +542,7 @@ radler::Settings Settings::GetRadlerSettings() const {
       absoluteDeconvolutionThreshold.value_or(0.0);
   radler_settings.auto_mask_sigma = autoMaskSigma;
   radler_settings.absolute_auto_mask_threshold = absoluteAutoMaskThreshold;
+  radler_settings.major_auto_mask_iteration_count = majorAutoMaskIterations;
   radler_settings.minor_loop_gain = deconvolutionGain;
   radler_settings.major_loop_gain = deconvolutionMGain;
   radler_settings.local_rms.method = localRMSMethod;

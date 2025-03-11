@@ -408,6 +408,8 @@ Options can be:
    the threshold is reached, continue cleaning with the mask down to the normal threshold.
 -abs-auto-mask <abs-threshold>
    Absolute stopping threshold for the mask generation stage. See -auto-mask.
+-auto-mask-nmiter <max iterations>
+   Limit for the number of major iterations after having reached the auto-mask threshold. Default: 2.
 -local-rms
    Instead of using a single RMS for auto thresholding/masking, use a spatially varying
    RMS image.
@@ -792,6 +794,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.absoluteAutoMaskThreshold = FluxDensity::Parse(
           argv[argi], "absolute threshold parameter", FluxDensity::kJansky);
+    } else if (param == "auto-mask-nmiter") {
+      IncArgi(argi, argc);
+      settings.majorAutoMaskIterations =
+          ParseSizeT(argv[argi], "auto-mask-nmiter");
     } else if (param == "local-rms") {
       settings.localRMSMethod = radler::LocalRmsMethod::kRmsWindow;
     } else if (param == "local-rms-strength") {
