@@ -151,8 +151,8 @@ class BBSModel {
       double stokesI = 0.0;
       index = 0;
 
-      BBSLine bbsLine(line);
       if (!line.empty() && line[0] != '#') {
+        BBSLine bbsLine(line);
         while (bbsLine.MoveToNext()) {
           std::string val = bbsLine.Value();
           if (index == h.nameInd)
@@ -268,7 +268,10 @@ class BBSModel {
     }
 
     std::string Value() const {
-      if (_endIndex > 0)
+      if (_endIndex == _line.size())
+        return boost::algorithm::trim_copy(
+            _line.substr(_startIndex, _endIndex - _startIndex));
+      else if (_endIndex > 0)
         return boost::algorithm::trim_copy(
             _line.substr(_startIndex, _endIndex - _startIndex - 1));
       else
