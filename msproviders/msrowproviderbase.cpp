@@ -45,9 +45,26 @@ std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
 }
 
 bool MsHasBdaData(const casacore::MeasurementSet& ms) {
-  return ms.keywordSet().isDefined(BdaMsRowProvider::kBDAFactorsTable) &&
-         ms.keywordSet().asTable(BdaMsRowProvider::kBDAFactorsTable).nrow() !=
+  return ms.keywordSet().isDefined(BdaMsRowProvider::kBdaFactorsTable) &&
+         ms.keywordSet().asTable(BdaMsRowProvider::kBdaFactorsTable).nrow() !=
              0;
+}
+
+double GetBdaMaxTimeInterval(const casacore::MeasurementSet& ms) {
+  if (!ms.keywordSet().isDefined(BdaMsRowProvider::kBdaFactorsTable))
+    throw std::runtime_error(
+        "To process BDA data with WSClean, the " +
+        BdaMsRowProvider::kBdaFactorsTable +
+        " table needs to be present in the measurement set");
+  casacore::Table table(
+      ms.keywordSet().asTable(BdaMsRowProvider::kBdaTimeAxisTable));
+  if (table.nrow() != 1)
+    throw std::runtime_error(
+        "Measurement set with BDA data and multiple fields or spectral "
+        "windows is not supported");
+  casacore::ScalarColumn<double> max_time_interval_column(
+      table, BdaMsRowProvider::kBdaMaxTimeIntervalColumn);
+  return max_time_interval_column(0);
 }
 
 }  // namespace wsclean

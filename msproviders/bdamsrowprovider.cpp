@@ -2,8 +2,6 @@
 
 #include "msprovider.h"
 
-#include <aocommon/throwruntimeerror.h>
-
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <cassert>
@@ -11,8 +9,6 @@
 using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
-
-const char* BdaMsRowProvider::kBDAFactorsTable = "BDA_FACTORS";
 
 static std::optional<casacore::ArrayColumn<casacore::Complex>> GetModel(
     const casacore::MeasurementSet& ms, const std::string& model_column_name,
@@ -33,27 +29,42 @@ BdaMsRowProvider::BdaMsRowProvider(
       weight_(Ms()),
       model_(GetModel(Ms(), model_column_name, require_model)),
       current_row_(BeginRow()),
-      data_(Columns().time(BeginRow())) {
-  if (!MsHasBdaData(Ms()))
-    aocommon::ThrowRuntimeError("A BDA measurement set requires a ",
-                                kBDAFactorsTable, " table.");
-
+      last_read_data_(Columns().time(BeginRow())),
+      max_bda_interval_(GetBdaMaxTimeInterval(Ms())) {
   if (Selection().HasInterval() ||
       Selection().EvenOrOddTimesteps() != MSSelection::kAllTimesteps)
-    aocommon::ThrowRuntimeError(
+    throw std::runtime_error(
         "An interval selection isn't supported for a BDA measurement set.");
 
-  // Initializes the uninitalized field of data_.
+  // Initializes last_read_data_.
   if (current_row_ != EndRow() && !LoadCurrentRow()) {
-    NextRow();
+    MoveToNextSelectedRow();
+  }
+  // Fill the queue until we have a full time span in the queue.
+  while (current_row_ != EndRow() && TimeSpanInQueue() <= max_bda_interval_) {
+    queue_.emplace(last_read_data_);
+    MoveToNextSelectedRow();
   }
 
-  if (current_row_ == EndRow())
-    aocommon::ThrowRuntimeError(
+  if (AtEnd())
+    throw std::runtime_error(
         "The measurement set contains no data for the current selection.");
 }
 
+inline double BdaMsRowProvider::TimeSpanInQueue() const {
+  if (queue_.empty()) return 0.0;
+  return last_read_data_.time - queue_.top().time;
+}
+
 void BdaMsRowProvider::NextRow() {
+  queue_.pop();
+  while (current_row_ != EndRow() && TimeSpanInQueue() <= max_bda_interval_) {
+    queue_.push(last_read_data_);
+    MoveToNextSelectedRow();
+  }
+}
+
+void BdaMsRowProvider::MoveToNextSelectedRow() {
   do {
     ++current_row_;
   } while (current_row_ != EndRow() && !LoadCurrentRow());
@@ -64,25 +75,26 @@ void BdaMsRowProvider::ReadData(DataArray& data, FlagArray& flags,
                                 double& w, uint32_t& data_description_id,
                                 uint32_t& antenna_1, uint32_t& antenna_2,
                                 uint32_t& field_id, double& time) {
-  assert(data_.uvw.size() == 3 &&
-         "Invalid UVW dimensions used or an empty data set.");
-
-  u = data_.uvw(0);
-  v = data_.uvw(1);
-  w = data_.uvw(2);
-  data_description_id = data_.data_description_id;
+  assert(!queue_.empty());
+  const Data& row_data = queue_.top();
+  u = row_data.uvw[0];
+  v = row_data.uvw[1];
+  w = row_data.uvw[2];
+  data_description_id = row_data.data_description_id;
   MsColumns& columns = Columns();
-  columns.data.get(current_row_, data, true);
-  columns.flag.get(current_row_, flags, true);
-  antenna_1 = columns.antenna_1(current_row_);
-  antenna_2 = columns.antenna_2(current_row_);
-  field_id = columns.field_id(current_row_);
-  time = data_.time;
-  weight_.ReadData(weights, current_row_, data.shape());
+  const size_t row_index = row_data.row_index;
+  columns.data.get(row_index, data, true);
+  columns.flag.get(row_index, flags, true);
+  antenna_1 = columns.antenna_1(row_index);
+  antenna_2 = columns.antenna_2(row_index);
+  field_id = columns.field_id(row_index);
+  time = row_data.time;
+  weight_.ReadData(weights, row_index, data.shape());
 }
 
 void BdaMsRowProvider::ReadModel(DataArray& model) {
-  model_->get(current_row_, model, true);
+  assert(!queue_.empty());
+  model_->get(queue_.top().row_index, model, true);
 }
 
 template <class Container, class T>
@@ -92,24 +104,28 @@ static bool Contains(const Container& container, const T& value) {
 
 bool BdaMsRowProvider::LoadCurrentRow() {
   MsColumns& columns = Columns();
-  data_.antenna_1 = columns.antenna_1(current_row_);
-  data_.antenna_2 = columns.antenna_2(current_row_);
-  data_.field_id = columns.field_id(current_row_);
-  data_.data_description_id = columns.data_description_id(current_row_);
-  data_.time = columns.time(current_row_);
-  data_.uvw = columns.uvw(current_row_);
+  last_read_data_.antenna_1 = columns.antenna_1(current_row_);
+  last_read_data_.antenna_2 = columns.antenna_2(current_row_);
+  last_read_data_.field_id = columns.field_id(current_row_);
+  last_read_data_.data_description_id =
+      columns.data_description_id(current_row_);
+  last_read_data_.time = columns.time(current_row_);
+  columns.uvw.get(current_row_, uvw_);
+  last_read_data_.uvw[0] = uvw_(0);
+  last_read_data_.uvw[1] = uvw_(1);
+  last_read_data_.uvw[2] = uvw_(2);
+  last_read_data_.row_index = current_row_;
 
-  return IsCurrentRowSelected();
+  return IsRowSelected(last_read_data_);
 }
 
-bool BdaMsRowProvider::IsCurrentRowSelected() const {
-  if (!Contains(selected_data_description_ids_, data_.data_description_id)) {
+bool BdaMsRowProvider::IsRowSelected(const Data& data) const {
+  if (!Contains(selected_data_description_ids_, data.data_description_id)) {
     return false;
   }
 
-  return Selection().IsSelected(data_.field_id, /*timestep=*/-1,
-                                data_.antenna_1, data_.antenna_2,
-                                data_.uvw.data());
+  return Selection().IsSelected(data.field_id, /*timestep=*/-1, data.antenna_1,
+                                data.antenna_2, data.uvw.data());
 }
 
 }  // namespace wsclean
