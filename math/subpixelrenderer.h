@@ -37,10 +37,10 @@ class SubPixelRenderer {
   aocommon::UVector<float> y_kernel_;
 };
 
-aocommon::Image RenderSubPixelModel(
+std::vector<aocommon::Image> RenderSubPixelModel(
     const std::string& model_filename,
     const aocommon::CoordinateSystem& coordinate_system, double frequency,
-    double bandwidth, size_t window_size);
+    double bandwidth, size_t window_size, size_t n_terms);
 
 }  // namespace wsclean::math
 

@@ -525,12 +525,14 @@ but subtract components from individual channels.
    Number of threads to use during deconvolution. On machines with a large nr of cores, this may be used to decrease the memory usage.
    If not specified, the number of threads during deconvolution is controlled with the -j option.
   ** SKY MODEL DRAWING OPTIONS**
--draw-model <input model> <output image>
-   Create a FITS image from a sky model, provided in the BBS/DP3 text format.
+-draw-model <input model>
+   Create a FITS image from a sky model, provided in the BBS/DP3 text format. Use -name to specify the prefix of the output image(s).
 -draw-frequencies <central frequency> <bandwidth>
    Sets the central fequency and bandwidth of the image that is to be rendered (in Hz).
 -sinc-window-size <window size in pixels>
-   Sinc convolution window size (in pixels).
+   Sinc convolution window size (in pixels). Default: 127.
+-draw-spectral-terms <nterms>
+   Number of spectral terms to draw; for each term a seperate image will be rendered. Defaults to 1, to only draw the first term image.
 -restore <input residual> <input model> <output image>
    Restore the model image onto the residual image and save it in output image. By
    default, the beam parameters are read from the residual image. If this parameter
@@ -1160,8 +1162,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.mode = Settings::DrawModelMode;
       IncArgi(argi, argc);
       settings.inputSkyModelFilename = argv[argi];
-      IncArgi(argi, argc);
-      settings.drawnSkyModelFilename = argv[argi];
     } else if (param == "draw-frequencies") {
       IncArgi(argi, argc);
       settings.drawnSkyModelFrequency =
@@ -1171,6 +1171,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "sinc-window-size") {
       IncArgi(argi, argc);
       settings.sincWindowSize = ParseSizeT(argv[argi], "sinc window size");
+    } else if (param == "draw-spectral-terms") {
+      IncArgi(argi, argc);
+      settings.drawnSpectralTermCount =
+          ParseSizeT(argv[argi], "spectral terms");
     } else if (param == "restore" || param == "restore-list") {
       if (param == "restore")
         settings.mode = Settings::RestoreMode;

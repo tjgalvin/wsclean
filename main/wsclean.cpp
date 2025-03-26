@@ -971,20 +971,26 @@ void WSClean::DrawModel() {
   cs.l_shift = _l_shift;
   cs.m_shift = _m_shift;
 
-  aocommon::Image image = math::RenderSubPixelModel(
+  std::vector<Image> images = math::RenderSubPixelModel(
       _settings.inputSkyModelFilename, cs, _settings.drawnSkyModelFrequency,
-      _settings.drawnSkyModelBandwidth, _settings.sincWindowSize);
+      _settings.drawnSkyModelBandwidth, _settings.sincWindowSize,
+      _settings.drawnSpectralTermCount);
 
-  aocommon::FitsWriter fits_writer;
-  fits_writer.SetImageDimensions(cs.width, cs.height, cs.ra, cs.dec, cs.dl,
-                                 cs.dm);
-  fits_writer.SetPhaseCentreShift(cs.l_shift, cs.m_shift);
-  fits_writer.SetFrequency(_settings.drawnSkyModelFrequency,
-                           _settings.drawnSkyModelBandwidth);
+  for (size_t image_index = 0; image_index < images.size(); ++image_index) {
+    std::string fits_filename = _settings.prefixName;
+    if (image_index > 0) {
+      fits_filename += "-term_" + std::to_string(image_index) + ".fits";
+    }
+    aocommon::FitsWriter fits_writer;
+    fits_writer.SetImageDimensions(cs.width, cs.height, cs.ra, cs.dec, cs.dl,
+                                   cs.dm);
+    fits_writer.SetPhaseCentreShift(cs.l_shift, cs.m_shift);
+    fits_writer.SetFrequency(_settings.drawnSkyModelFrequency,
+                             _settings.drawnSkyModelBandwidth);
 
-  Logger::Info << "Writing sky model image " << _settings.drawnSkyModelFilename
-               << "...\n";
-  fits_writer.Write(_settings.drawnSkyModelFilename, image.Data());
+    Logger::Info << "Writing sky model image " << fits_filename << "...\n";
+    fits_writer.Write(fits_filename, images[image_index].Data());
+  }
 }
 
 double WSClean::minTheoreticalBeamSize(const ImagingTable& table) const {

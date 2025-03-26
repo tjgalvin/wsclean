@@ -9,6 +9,7 @@
 #include <aocommon/threadpool.h>
 
 #include <schaapcommon/math/drawgaussian.h>
+#include <schaapcommon/fitters/polynomialfitter.h>
 
 #include "../model/bbsmodel.h"
 #include "../model/modelsource.h"
@@ -19,10 +20,11 @@ namespace wsclean::math {
 namespace {
 
 struct RenderingInfo {
+  double central_frequency;
   double start_frequency;
   double end_frequency;
   const aocommon::CoordinateSystem& coordinate_system;
-  std::vector<aocommon::Image> images;
+  std::vector<std::vector<Image>> images;
 };
 
 aocommon::UVector<float> MakeSincKernel(double value, size_t size) {
@@ -48,51 +50,95 @@ void MakeWindowedKernel(double value, size_t n,
   }
 }
 
+// This function reads the spectral terms (including Stokes I flux) from the
+// component model data, and, if required, the terms are converted to those of
+// the desired (ordinary) polynomial.
+std::vector<float> GetSpectralTerms(const ModelComponent& component,
+                                    const RenderingInfo& settings) {
+  if (!component.HasPowerLawSED())
+    throw std::runtime_error(
+        "Spectral term imaging requires the model to specify functional terms");
+  const PowerLawSED& sed = static_cast<const PowerLawSED&>(component.SED());
+  double component_reference_frequency = 0.0;
+  double component_brightness[4] = {0.0, 0.0, 0.0, 0.0};
+  std::vector<double> component_terms;
+  sed.GetData(component_reference_frequency, component_brightness,
+              component_terms);
+
+  // Combine Stokes I flux with the higher-order spectral terms.
+  const float stokes_i = component_brightness[0];
+  std::vector<float> spectral_terms = {stokes_i};
+  spectral_terms.insert(spectral_terms.end(), component_terms.begin(),
+                        component_terms.end());
+
+  if (sed.IsLogarithmic()) {
+    std::vector<float> polynomial_terms(spectral_terms.size(), 0.0);
+    schaapcommon::fitters::PowerLawToPolynomialCoefficients(
+        polynomial_terms, spectral_terms, component_reference_frequency,
+        settings.central_frequency, settings.start_frequency,
+        settings.end_frequency);
+
+    spectral_terms = polynomial_terms;
+  } else if (component_reference_frequency != settings.central_frequency) {
+    schaapcommon::fitters::ShiftPolynomialReferenceFrequency(
+        spectral_terms, component_reference_frequency,
+        settings.central_frequency);
+  }
+
+  return spectral_terms;
+}
+
 // This function waits for sources to be placed in the source lane, and renders
 // these to the image. It runs until the lane receives a write_end() call.
-void RenderSourceTasks(aocommon::Lane<ModelSource>& source_lane, Image& image,
-                       size_t window_size, const RenderingInfo& settings) {
+void RenderSourceTasks(aocommon::Lane<ModelSource>& source_lane,
+                       std::vector<Image>& images, size_t window_size,
+                       size_t n_terms, const RenderingInfo& settings) {
   SubPixelRenderer renderer(window_size);
   ModelSource source;
   while (source_lane.read(source)) {
-    for (const ModelComponent& comp : source) {
-      const float flux = comp.SED().IntegratedFlux(
-          settings.start_frequency, settings.end_frequency,
-          aocommon::Polarization::StokesI);
-      if (!std::isfinite(flux)) {
-        std::cout << "Evaluating the spectrum for source " + source.Name()
-                  << " resulted in a non-finite value.\n";
-        throw std::runtime_error("Evaluating the spectrum for source " +
-                                 source.Name() +
-                                 " resulted in a non-finite value");
+    for (const ModelComponent& component : source) {
+      std::vector<float> spectral_terms = GetSpectralTerms(component, settings);
+      if (n_terms < spectral_terms.size()) {
+        aocommon::Logger::Warn << "Consider increasing the number of spectral "
+                                  "terms set with --draw-spectral-terms (" +
+                                      std::to_string(spectral_terms.size()) +
+                                      " terms available, but only " +
+                                      std::to_string(n_terms) + " requested)";
       }
-      if (comp.Type() != ModelComponent::PointSource) {
-        // TODO: also (small) Gaussian sources should be sinc-convolved
-        const aocommon::CoordinateSystem& cs = settings.coordinate_system;
-        const schaapcommon::math::Ellipse shape(
-            comp.MajorAxis(), comp.MinorAxis(), comp.PositionAngle());
-        DrawGaussianToLm(image.Data(), cs.width, cs.height, cs.ra, cs.dec,
-                         cs.dl, cs.dm, cs.l_shift, cs.m_shift, comp.PosRA(),
-                         comp.PosDec(), shape, flux);
-      } else {
-        double l, m;
-        float x, y;
-        aocommon::ImageCoordinates::RaDecToLM<double>(
-            comp.PosRA(), comp.PosDec(), settings.coordinate_system.ra,
-            settings.coordinate_system.dec, l, m);
-        l += settings.coordinate_system.l_shift;
-        m += settings.coordinate_system.m_shift;
-        aocommon::ImageCoordinates::LMToXYfloat<float>(
-            l, m, settings.coordinate_system.dl, settings.coordinate_system.dm,
-            settings.coordinate_system.width, settings.coordinate_system.height,
-            x, y);
-        if (window_size)
-          renderer.RenderWindowedSource(
-              image.Data(), settings.coordinate_system.width,
-              settings.coordinate_system.height, flux, x, y);
-        else
-          renderer.RenderSource(image.Data(), settings.coordinate_system.width,
-                                settings.coordinate_system.height, flux, x, y);
+      for (size_t image_index = 0; image_index < n_terms; ++image_index) {
+        const float term = spectral_terms[image_index];
+        Image& image = images[image_index];
+        if (component.Type() != ModelComponent::PointSource) {
+          // TODO: also (small) Gaussian sources should be sinc-convolved
+          const aocommon::CoordinateSystem& cs = settings.coordinate_system;
+          const schaapcommon::math::Ellipse shape(component.MajorAxis(),
+                                                  component.MinorAxis(),
+                                                  component.PositionAngle());
+          DrawGaussianToLm(image.Data(), cs.width, cs.height, cs.ra, cs.dec,
+                           cs.dl, cs.dm, cs.l_shift, cs.m_shift,
+                           component.PosRA(), component.PosDec(), shape, term);
+        } else {
+          double l, m;
+          float x, y;
+          aocommon::ImageCoordinates::RaDecToLM<double>(
+              component.PosRA(), component.PosDec(),
+              settings.coordinate_system.ra, settings.coordinate_system.dec, l,
+              m);
+          l += settings.coordinate_system.l_shift;
+          m += settings.coordinate_system.m_shift;
+          aocommon::ImageCoordinates::LMToXYfloat<float>(
+              l, m, settings.coordinate_system.dl,
+              settings.coordinate_system.dm, settings.coordinate_system.width,
+              settings.coordinate_system.height, x, y);
+          if (window_size)
+            renderer.RenderWindowedSource(
+                image.Data(), settings.coordinate_system.width,
+                settings.coordinate_system.height, term, x, y);
+          else
+            renderer.RenderSource(
+                image.Data(), settings.coordinate_system.width,
+                settings.coordinate_system.height, term, x, y);
+        }
       }
     }
   }
@@ -150,24 +196,31 @@ void SubPixelRenderer::RenderWindowedSource(float* image, size_t width,
   }
 }
 
-aocommon::Image RenderSubPixelModel(
+std::vector<aocommon::Image> RenderSubPixelModel(
     const std::string& model_filename,
     const aocommon::CoordinateSystem& coordinate_system, double frequency,
-    double bandwidth, size_t window_size) {
+    double bandwidth, size_t window_size, size_t n_terms) {
   aocommon::Logger::Info << "Rendering sources...\n";
   aocommon::ThreadPool& pool = aocommon::ThreadPool::GetInstance();
-  // Each thread will get their own image, to prevent having to synchronize.
-  std::vector<Image> images;
-  const RenderingInfo settings(frequency - bandwidth * 0.5,
+  // Each thread will get their own list of images, to prevent having to
+  // synchronize. These lists consist of the Stokes I image and images for each
+  // of the higher order spectral terms, as requested.
+  std::vector<std::vector<Image>> images;
+  images.resize(pool.NThreads());
+  const RenderingInfo settings(frequency, frequency - bandwidth * 0.5,
                                frequency + bandwidth * 0.5, coordinate_system,
                                images);
   aocommon::Lane<ModelSource> source_lane(pool.NThreads());
-  for (size_t i = 0; i != pool.NThreads(); ++i)
-    images.emplace_back(coordinate_system.width, coordinate_system.height,
-                        0.0f);
+  for (size_t i = 0; i != pool.NThreads(); ++i) {
+    for (size_t t = 0; t != n_terms; ++t) {
+      images[i].emplace_back(coordinate_system.width, coordinate_system.height,
+                             0.0f);
+    }
+  }
 
   pool.StartParallelExecution([&](size_t thread_index) {
-    RenderSourceTasks(source_lane, images[thread_index], window_size, settings);
+    RenderSourceTasks(source_lane, images[thread_index], window_size, n_terms,
+                      settings);
   });
 
   // We use the "streaming" reading function from BBSModel. This allows using
@@ -185,11 +238,13 @@ aocommon::Image RenderSubPixelModel(
   pool.FinishParallelExecution();
 
   // Add all images together
-  for (size_t image_index = 1; image_index != images.size(); ++image_index) {
-    images[0] += images[image_index];
+  for (size_t thread_index = 1; thread_index != images.size(); ++thread_index) {
+    for (size_t image_index = 0; image_index < n_terms; ++image_index) {
+      images[0][image_index] += images[thread_index][image_index];
+    }
   }
 
-  aocommon::Image result(std::move(images.front()));
+  std::vector<aocommon::Image> result(std::move(images.front()));
   return result;
 }
 
