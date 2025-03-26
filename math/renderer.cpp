@@ -1,18 +1,16 @@
 
 #include "renderer.h"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+
 #include <aocommon/imagecoordinates.h>
 
 #include <schaapcommon/math/convolution.h>
 #include <schaapcommon/math/restoreimage.h>
 
-#include <cmath>
-#include <array>
-
-#include <boost/algorithm/clamp.hpp>
-
 using aocommon::ImageCoordinates;
-using boost::algorithm::clamp;
 
 namespace wsclean::renderer {
 namespace {
@@ -23,45 +21,44 @@ long double Gaussian(long double x, long double sigma) {
   return std::exp(static_cast<long double>(-0.5) * xi * xi);
 }
 
-void RenderPointComponent(float* image_data, size_t image_width,
-                          size_t image_height, long double ra, long double dec,
-                          long double pixel_scale_l, long double pixel_scale_m,
-                          long double l_shift, long double m_shift,
+void RenderPointComponent(aocommon::Image& image,
+                          const ImageCoordinateSettings& image_settings,
                           long double position_ra, long double position_dec,
                           long double flux) {
   long double source_l;
   long double source_m;
-  ImageCoordinates::RaDecToLM(position_ra, position_dec, ra, dec, source_l,
-                              source_m);
-  source_l -= l_shift;
-  source_m -= m_shift;
+  ImageCoordinates::RaDecToLM(position_ra, position_dec, image_settings.ra,
+                              image_settings.dec, source_l, source_m);
+  source_l -= image_settings.l_shift;
+  source_m -= image_settings.m_shift;
 
   int source_x;
   int source_y;
-  ImageCoordinates::LMToXY<long double>(source_l, source_m, pixel_scale_l,
-                                        pixel_scale_m, image_width,
-                                        image_height, source_x, source_y);
+  ImageCoordinates::LMToXY<long double>(
+      source_l, source_m, image_settings.pixel_scale_l,
+      image_settings.pixel_scale_m, image.Width(), image.Height(), source_x,
+      source_y);
 
-  if (source_x >= 0 && source_x < (int)image_width && source_y >= 0 &&
-      source_y < (int)image_height) {
-    float* image_data_ptr = image_data + source_y * image_width + source_x;
-    (*image_data_ptr) += static_cast<double>(flux);
+  if (source_x >= 0 && source_x < int(image.Width()) && source_y >= 0 &&
+      source_y < int(image.Height())) {
+    image.Value(source_x, source_y) += static_cast<double>(flux);
   }
 }
 
-void RenderGaussianComponent(
-    float* image_data, size_t image_width, size_t image_height, long double ra,
-    long double dec, long double pixel_scale_l, long double pixel_scale_m,
-    long double l_shift, long double m_shift, long double position_ra,
-    long double position_dec, long double gaus_major_axis,
-    long double gaus_minor_axis, long double gaus_position_angle,
-    long double flux) {
+void RenderGaussianComponent(aocommon::Image& image,
+                             const ImageCoordinateSettings& image_settings,
+                             long double position_ra, long double position_dec,
+                             long double gaus_major_axis,
+                             long double gaus_minor_axis,
+                             long double gaus_position_angle,
+                             long double flux) {
   // Using the FWHM formula for a Gaussian:
   const long double fwhm_constant = (2.0L * std::sqrt(2.0L * std::log(2.0L)));
   const long double sigma_major_axis = gaus_major_axis / fwhm_constant;
   const long double sigma_minor_axis = gaus_minor_axis / fwhm_constant;
   // TODO this won't work for non-equally spaced dimensions
-  const long double min_pixel_scale = std::min(pixel_scale_l, pixel_scale_m);
+  const long double min_pixel_scale =
+      std::min(image_settings.pixel_scale_l, image_settings.pixel_scale_m);
 
   // Position angle is angle from North:
   const long double angle = gaus_position_angle + M_PI_2;
@@ -85,31 +82,35 @@ void RenderGaussianComponent(
   const int bounding_box_size = std::ceil(sigma_max * 20.0 / min_pixel_scale);
   long double source_l;
   long double source_m;
-  ImageCoordinates::RaDecToLM(position_ra, position_dec, ra, dec, source_l,
-                              source_m);
+  ImageCoordinates::RaDecToLM(position_ra, position_dec, image_settings.ra,
+                              image_settings.dec, source_l, source_m);
 
   // Calculate the bounding box
   int source_x;
   int source_y;
   ImageCoordinates::LMToXY<long double>(
-      source_l - l_shift, source_m - m_shift, pixel_scale_l, pixel_scale_m,
-      image_width, image_height, source_x, source_y);
-  const int x_left = clamp(source_x - bounding_box_size, 0, int(image_width));
+      source_l - image_settings.l_shift, source_m - image_settings.m_shift,
+      image_settings.pixel_scale_l, image_settings.pixel_scale_m, image.Width(),
+      image.Height(), source_x, source_y);
+  const int x_left =
+      std::clamp(source_x - bounding_box_size, 0, int(image.Width()));
   const int x_right =
-      clamp(source_x + bounding_box_size, x_left, int(image_width));
-  const int y_top = clamp(source_y - bounding_box_size, 0, int(image_height));
+      std::clamp(source_x + bounding_box_size, x_left, int(image.Width()));
+  const int y_top =
+      std::clamp(source_y - bounding_box_size, 0, int(image.Height()));
   const int y_bottom =
-      clamp(source_y + bounding_box_size, y_top, int(image_height));
+      std::clamp(source_y + bounding_box_size, y_top, int(image.Height()));
 
   std::vector<double> values;
   double flux_sum = 0.0;
   for (int y = y_top; y != y_bottom; ++y) {
     for (int x = x_left; x != x_right; ++x) {
       long double l, m;
-      ImageCoordinates::XYToLM<long double>(x, y, pixel_scale_l, pixel_scale_m,
-                                            image_width, image_height, l, m);
-      l += l_shift;
-      m += m_shift;
+      ImageCoordinates::XYToLM<long double>(
+          x, y, image_settings.pixel_scale_l, image_settings.pixel_scale_m,
+          image.Width(), image.Height(), l, m);
+      l += image_settings.l_shift;
+      m += image_settings.m_shift;
       const long double l_transf =
           (l - source_l) * transf[0] + (m - source_m) * transf[1];
       const long double m_transf =
@@ -121,15 +122,20 @@ void RenderGaussianComponent(
       values.emplace_back(v);
     }
   }
-  const double* iter = values.data();
-  const double factor = flux / flux_sum;
-  for (int y = y_top; y != y_bottom; ++y) {
-    float* image_data_ptr = image_data + y * image_width + x_left;
-    for (int x = x_left; x != x_right; ++x) {
-      (*image_data_ptr) += *iter * factor;
-      ++image_data_ptr;
-      ++iter;
+  // flux_sum can be zero for small or faint sources.
+  // Render those as a point source instead.
+  if (flux_sum > 0.0) {
+    const double* iter = values.data();
+    const double factor = flux / flux_sum;
+    for (int y = y_top; y != y_bottom; ++y) {
+      for (int x = x_left; x != x_right; ++x) {
+        image.Value(x, y) += *iter * factor;
+        ++iter;
+      }
     }
+  } else {
+    RenderPointComponent(image, image_settings, position_ra, position_dec,
+                         flux);
   }
 }
 
@@ -140,27 +146,21 @@ void RenderModel(aocommon::Image& image,
                  aocommon::PolarizationEnum polarization) {
   for (const ModelSource& source : model) {
     for (const ModelComponent& component : source) {
-      const long double position_ra = component.PosRA(),
-                        position_dec = component.PosDec();
+      const long double position_ra = component.PosRA();
+      const long double position_dec = component.PosDec();
       const long double integrated_flux = component.SED().IntegratedFlux(
           start_frequency, end_frequency, polarization);
 
       if (component.Type() == ModelComponent::GaussianSource) {
-        const long double gaus_major_axis = component.MajorAxis(),
-                          gaus_minor_axis = component.MinorAxis();
+        const long double gaus_major_axis = component.MajorAxis();
+        const long double gaus_minor_axis = component.MinorAxis();
         const long double gaus_position_angle = component.PositionAngle();
-        RenderGaussianComponent(
-            image.Data(), image.Width(), image.Height(), image_settings.ra,
-            image_settings.dec, image_settings.pixel_scale_l,
-            image_settings.pixel_scale_m, image_settings.l_shift,
-            image_settings.m_shift, position_ra, position_dec, gaus_major_axis,
-            gaus_minor_axis, gaus_position_angle, integrated_flux);
+        RenderGaussianComponent(image, image_settings, position_ra,
+                                position_dec, gaus_major_axis, gaus_minor_axis,
+                                gaus_position_angle, integrated_flux);
       } else
-        RenderPointComponent(
-            image.Data(), image.Width(), image.Height(), image_settings.ra,
-            image_settings.dec, image_settings.pixel_scale_l,
-            image_settings.pixel_scale_m, image_settings.l_shift,
-            image_settings.m_shift, position_ra, position_dec, integrated_flux);
+        RenderPointComponent(image, image_settings, position_ra, position_dec,
+                             integrated_flux);
     }
   }
 }
