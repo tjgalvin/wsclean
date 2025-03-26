@@ -214,6 +214,66 @@ void WGridder<NumT>::CreateAndAddInversionMs3(
 }
 
 template <typename NumT>
+template <GainMode Mode, size_t NPolarizations, size_t NParms>
+void WGridder<NumT>::CreateAndAddInversionMs4(
+    bool apply_beam, bool apply_forward, bool has_h5_parm, size_t n_rows,
+    const double *uvws, const ducc0::cmav<double, 1> &frequencies,
+    VisibilityCallbackData &data) {
+  if (apply_beam) {
+    CreateAndAddInversionMs5<Mode, NPolarizations, NParms, true>(
+        apply_forward, has_h5_parm, n_rows, uvws, frequencies, data);
+  } else {
+    CreateAndAddInversionMs5<Mode, NPolarizations, NParms, false>(
+        apply_forward, has_h5_parm, n_rows, uvws, frequencies, data);
+  }
+}
+
+template <typename NumT>
+template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam>
+void WGridder<NumT>::CreateAndAddInversionMs5(
+    bool apply_forward, bool has_h5_parm, size_t n_rows, const double *uvws,
+    const ducc0::cmav<double, 1> &frequencies, VisibilityCallbackData &data) {
+  if (apply_forward) {
+    CreateAndAddInversionMs6<Mode, NPolarizations, NParms, ApplyBeam, true>(
+        has_h5_parm, n_rows, uvws, frequencies, data);
+  } else {
+    CreateAndAddInversionMs6<Mode, NPolarizations, NParms, ApplyBeam, false>(
+        has_h5_parm, n_rows, uvws, frequencies, data);
+  }
+}
+
+template <typename NumT>
+template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
+          bool ApplyForward>
+void WGridder<NumT>::CreateAndAddInversionMs6(
+    bool has_h5_parm, size_t n_rows, const double *uvws,
+    const ducc0::cmav<double, 1> &frequencies, VisibilityCallbackData &data) {
+  if (has_h5_parm) {
+    CreateAndAddInversionMs7<Mode, NPolarizations, NParms, ApplyBeam,
+                             ApplyForward, true>(n_rows, uvws, frequencies,
+                                                 data);
+  } else {
+    CreateAndAddInversionMs7<Mode, NPolarizations, NParms, ApplyBeam,
+                             ApplyForward, false>(n_rows, uvws, frequencies,
+                                                  data);
+  }
+}
+
+template <typename NumT>
+template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
+          bool ApplyForward, bool HasH5Parm>
+void WGridder<NumT>::CreateAndAddInversionMs7(
+    size_t n_rows, const double *uvws,
+    const ducc0::cmav<double, 1> &frequencies, VisibilityCallbackData &data) {
+  const std::function visibility_callback =
+      internal::VisibilityCallback<Mode, NPolarizations, NParms, ApplyBeam,
+                                   ApplyForward, HasH5Parm>;
+  const VisibilityCallbackBuffer<std::complex<float>> ms(n_rows, data,
+                                                         visibility_callback);
+  AddInversionMs(n_rows, uvws, frequencies, ms);
+}
+
+template <typename NumT>
 void WGridder<NumT>::FinalizeImage(double multiplication_factor) {
   for (auto &pix : image_) pix *= multiplication_factor;
 }

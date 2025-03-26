@@ -349,102 +349,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   endif()
 endif()
 
-# Compile an explicit instantiation of the wgridder callback for each possible type
-add_library(wgridder_float_xx_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_xx_2 PRIVATE DTYPE=float MODE=GainMode::kXX NPOL=1 NPARMS=2)
-add_library(wgridder_float_xx_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_xx_4 PRIVATE DTYPE=float MODE=GainMode::kXX NPOL=1 NPARMS=4)
-add_library(wgridder_float_yy_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_yy_2 PRIVATE DTYPE=float MODE=GainMode::kYY NPOL=1 NPARMS=2)
-add_library(wgridder_float_yy_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_yy_4 PRIVATE DTYPE=float MODE=GainMode::kYY NPOL=1 NPARMS=4)
-add_library(wgridder_float_trace_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_trace_2 PRIVATE DTYPE=float MODE=GainMode::kTrace NPOL=1
-                                 NPARMS=2)
-add_library(wgridder_float_trace_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_trace_4 PRIVATE DTYPE=float MODE=GainMode::kTrace NPOL=1
-                                 NPARMS=4)
-add_library(wgridder_float_diagonal_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_diagonal_2 PRIVATE DTYPE=float MODE=GainMode::k2VisDiagonal
-                                    NPOL=2 NPARMS=2)
-add_library(wgridder_float_diagonal_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_diagonal_4 PRIVATE DTYPE=float MODE=GainMode::k2VisDiagonal
-                                    NPOL=2 NPARMS=4)
-add_library(wgridder_float_full_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_full_2 PRIVATE DTYPE=float MODE=GainMode::kFull NPOL=4
-                                NPARMS=2)
-add_library(wgridder_float_full_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_float_full_4 PRIVATE DTYPE=float MODE=GainMode::kFull NPOL=4
-                                NPARMS=4)
-add_library(wgridder_double_xx_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_xx_2 PRIVATE DTYPE=double MODE=GainMode::kXX NPOL=1 NPARMS=2)
-add_library(wgridder_double_xx_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_xx_4 PRIVATE DTYPE=double MODE=GainMode::kXX NPOL=1 NPARMS=4)
-add_library(wgridder_double_yy_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_yy_2 PRIVATE DTYPE=double MODE=GainMode::kYY NPOL=1 NPARMS=2)
-add_library(wgridder_double_yy_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_yy_4 PRIVATE DTYPE=double MODE=GainMode::kYY NPOL=1 NPARMS=4)
-add_library(wgridder_double_trace_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_trace_2 PRIVATE DTYPE=double MODE=GainMode::kTrace NPOL=1
-                                  NPARMS=2)
-add_library(wgridder_double_trace_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_trace_4 PRIVATE DTYPE=double MODE=GainMode::kTrace NPOL=1
-                                  NPARMS=4)
-add_library(wgridder_double_diagonal_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_diagonal_2 PRIVATE DTYPE=double MODE=GainMode::k2VisDiagonal
-                                     NPOL=2 NPARMS=2)
-add_library(wgridder_double_diagonal_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_diagonal_4 PRIVATE DTYPE=double MODE=GainMode::k2VisDiagonal
-                                     NPOL=2 NPARMS=4)
-add_library(wgridder_double_full_2 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_full_2 PRIVATE DTYPE=double MODE=GainMode::kFull NPOL=4
-                                 NPARMS=2)
-add_library(wgridder_double_full_4 OBJECT wgridder/callback.cpp)
-target_compile_definitions(
-  wgridder_double_full_4 PRIVATE DTYPE=double MODE=GainMode::kFull NPOL=4
-                                 NPARMS=4)
-
-set(wsclean-wgridder-callback-object
-    wgridder_float_xx_2
-    wgridder_float_xx_4
-    wgridder_float_yy_2
-    wgridder_float_yy_4
-    wgridder_float_trace_2
-    wgridder_float_trace_4
-    wgridder_float_diagonal_2
-    wgridder_float_diagonal_4
-    wgridder_float_full_2
-    wgridder_float_full_4
-    wgridder_double_xx_2
-    wgridder_double_xx_4
-    wgridder_double_yy_2
-    wgridder_double_yy_4
-    wgridder_double_trace_2
-    wgridder_double_trace_4
-    wgridder_double_diagonal_2
-    wgridder_double_diagonal_4
-    wgridder_double_full_2
-    wgridder_double_full_4)
-
 add_library(
   wsclean-object OBJECT
   # These wgridder files are given first because they take a long time to compile. In multi-threaded compilation,
@@ -517,7 +421,7 @@ add_library(
   ${MPI_CPP_FILES}
   ${WTOWERS_CPP_FILES})
 
-set(wsclean-object-all wsclean-object ${wsclean-wgridder-callback-object})
+set(wsclean-object-all wsclean-object)
 
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is
@@ -527,8 +431,6 @@ set_source_files_properties(
   wsclean/directmsgridder.cpp wsclean/wstackinggridder.cpp
   wgridder/wgridder_float.cpp wgridder/wgridder_double.cpp
   gridding/msgriddermanager.cpp PROPERTIES COMPILE_FLAGS "-ffast-math")
-set_source_files_properties(${wsclean-wgridder-callback-object}
-                            PROPERTIES COMPILE_FLAGS "-ffast-math")
 
 # Add radler-module dependency to wsclean-object to ensure all
 # wsclean targets can link against ${RADLER_LIB}

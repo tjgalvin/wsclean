@@ -48,6 +48,132 @@ class WGridderBase {
                                    std::complex<float> *visibilities) const = 0;
 };
 
+/**
+ * VisibilityCallbackBuffer implements a virtual buffer replacement to the
+ * `cmav` that would ordinarily be used to pass visibility data into DUCC.
+ *
+ * Ordinarily the `cmav` that DUCC takes would contain visibilities with facet
+ * solutions pre-applied.
+ * With VisibilityCallbackBuffer we instead hold in memory a buffer that does
+ * not have facet solutions applied.
+ * When DUCC requests from the buffer a specific visibility for a specific facet
+ * the facet solution is applied "on the fly" and the required value returned.
+ * Some internal caching is applied at the row level to help a bit with
+ * efficiency.
+ */
+template <typename TVisibility, typename TInfo = ducc0::detail_mav::mav_info<2>>
+class VisibilityCallbackBuffer : public TInfo {
+ public:
+  VisibilityCallbackBuffer(
+      size_t n_rows, VisibilityCallbackData &data,
+      std::function<std::complex<float>(
+          size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
+          const std::complex<float> *, const size_t *,
+          const std::pair<size_t, size_t> *)>
+          visibility_callback)
+      : TInfo({n_rows, data.n_channels}),
+        n_antennas_(data.n_antennas),
+        n_channels_(data.n_channels),
+        selected_band_(data.selected_band),
+        antennas_(data.antennas),
+        visibilities_(data.visibilities),
+        time_offsets_(data.time_offsets),
+        gridder_(data.gridder),
+        parm_response_(data.parm_response),
+        visibility_callback_(visibility_callback) {}
+
+  template <typename Index>
+  const TVisibility raw(Index index) const {
+    return visibility_callback_(index, n_channels_, n_antennas_, gridder_,
+                                visibilities_, parm_response_, time_offsets_,
+                                antennas_);
+  }
+  template <typename... Params>
+  const TVisibility operator()(Params... params) const {
+    return raw(TInfo::idx(params...));
+  }
+
+  // Turn all prefetch operations inside DUCC into null ops
+  // As we return by value and are not a persistent buffer prefetching doesn't
+  // make sense in this context
+  template <typename Index>
+  void prefetch_r(Index) const {}
+  template <typename Index>
+  void prefetch_w(Index) const {}
+  template <typename... Params>
+  void prefetch_r(Params...) const {}
+
+ private:
+  size_t n_antennas_;
+  // Number of channels per row of visibilities
+  size_t n_channels_;
+  const aocommon::BandData &selected_band_;
+  const std::pair<size_t, size_t> *antennas_;
+  const std::complex<float> *visibilities_;
+  /**
+   * When applying corrections sequentially a time_offset is calculated by @ref
+   * CacheParmResponse() for each row, used for applying the corrections, and
+   * then the time_offset for the next row calculated on top of it.
+   * As the time_offset is needed when we apply the corrections, and we can't
+   * compute it again here without sequentially going through every single row,
+   * we have to store all of them in a buffer to be used when we apply the
+   * corrections.
+   */
+  const size_t *time_offsets_;
+  MsGridder *gridder_;
+  const std::complex<float> *parm_response_;
+  std::function<std::complex<float>(size_t, size_t, size_t, MsGridder *,
+                                    const std::complex<float> *,
+                                    const std::complex<float> *, const size_t *,
+                                    const std::pair<size_t, size_t> *)>
+      visibility_callback_;
+};
+
+namespace internal {
+/**
+ * VisibilityCallback implements the logic required by @ref
+ * VisibilityCallbackBuffer::raw This is delibritely isolated into a standalone
+ * function that can be passed into @ref VisibilityCallbackBuffer as a
+ * std::function in order to break coupling with DUCC.
+ * @ref VisibilityCallbackBuffer is passed into DUCC as a template paramater and
+ * therefore for each different instance/type of @ref VisibilityCallbackBuffer a
+ * new/different instantiation of DUCC is created. This leads to longer compile
+ * times and larger binaries, which is especially problematic for builds with
+ * debug symbols. By breaking the coupling we avoid these multiple
+ * instantiations. Removing this decoupling would theoretically remove some
+ * "function call" overhead which potentially might improve performance, however
+ * testing at the time of this writing code showed that doing so actually harmed
+ * performance and that the decoupled code outperformed the coupled code by
+ * about 5%
+ */
+template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
+          bool ApplyForward, bool HasH5Parm>
+const std::complex<float> VisibilityCallback(
+    size_t index, size_t n_channels, size_t n_antennas, MsGridder *gridder,
+    const std::complex<float> *visibilities,
+    const std::complex<float> *parm_response, const size_t *time_offsets,
+    const std::pair<size_t, size_t> *antennas) {
+  // Calculate offsets
+  const size_t row = index / n_channels;
+  size_t channel = index % n_channels;
+  // Retrieve value for offsets
+  const std::pair<size_t, size_t> &antenna_pair = antennas[row];
+  const size_t &time_offset = time_offsets[row];
+  std::complex<float> visibilities_temp[NPolarizations];
+  std::copy_n(&visibilities[(row * n_channels * NPolarizations) +
+                            (channel * NPolarizations)],
+              NPolarizations, visibilities_temp);
+  // Apply correction
+  gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply,
+                                 ApplyBeam, ApplyForward, HasH5Parm>(
+      parm_response, channel, n_channels, n_antennas, visibilities_temp,
+      nullptr, antenna_pair.first, antenna_pair.second, time_offset, nullptr);
+  internal::CollapseData<NPolarizations>(1, visibilities_temp,
+                                         gridder->Polarization());
+  return visibilities_temp[0];
+}
+}  // namespace internal
+
 /* Memory usage of this gridder is:
    between calls:
      width*height*4  between calls (dirty image buffer)
@@ -205,7 +331,11 @@ class WGridder final : public WGridderBase {
    */
   template <typename Tms>
   void AddInversionMs(size_t n_rows, const double *uvw,
-                      const ducc0::cmav<double, 1> &freq, Tms &ms) {
+                      const ducc0::cmav<double, 1> &freq, Tms &ms);
+  template <typename Tms>
+  void AddInversionMsImplementation(size_t n_rows, const double *uvw,
+                                    const ducc0::cmav<double, 1> &freq,
+                                    Tms &ms) {
     ducc0::cmav<double, 2> uvw2(uvw, {n_rows, 3});
     ducc0::vmav<NumT, 2> tdirty({trimmed_width_, trimmed_height_});
     ducc0::cmav<float, 2> twgt(nullptr, {0, 0});
@@ -276,6 +406,21 @@ class WGridder final : public WGridderBase {
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
 };
+
+// Prevent implicit instantiation of these templates as they are costly.
+// Explicit instantiation is done instead, see:
+// wgridder_double.cpp
+// wgridder_float.cpp
+extern template class WGridder<float>;
+extern template class WGridder<double>;
+extern template void
+WGridder<float>::AddInversionMs<VisibilityCallbackBuffer<std::complex<float>>>(
+    size_t n_rows, const double *uvw, const ducc0::cmav<double, 1> &freq,
+    VisibilityCallbackBuffer<std::complex<float>> &ms);
+extern template void
+WGridder<double>::AddInversionMs<VisibilityCallbackBuffer<std::complex<float>>>(
+    size_t n_rows, const double *uvw, const ducc0::cmav<double, 1> &freq,
+    VisibilityCallbackBuffer<std::complex<float>> &ms);
 
 }  // namespace wsclean
 
