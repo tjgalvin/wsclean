@@ -978,9 +978,8 @@ void WSClean::DrawModel() {
 
   for (size_t image_index = 0; image_index < images.size(); ++image_index) {
     std::string fits_filename = _settings.prefixName;
-    if (image_index > 0) {
-      fits_filename += "-term_" + std::to_string(image_index) + ".fits";
-    }
+    fits_filename += "-term_" + std::to_string(image_index) + ".fits";
+
     aocommon::FitsWriter fits_writer;
     fits_writer.SetImageDimensions(cs.width, cs.height, cs.ra, cs.dec, cs.dl,
                                    cs.dm);
