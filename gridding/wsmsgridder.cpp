@@ -55,10 +55,12 @@ void WSMSGridder::countSamplesPerLayer(MsProviderCollection::MsData& msData) {
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   const aocommon::BandData& bandData = msData.band_data;
   while (msReader->CurrentRowAvailable()) {
-    double uInM, vInM, wInM;
-    msReader->ReadMeta(uInM, vInM, wInM);
+    double u_in_m;
+    double v_in_m;
+    double w_in_m;
+    msReader->ReadMeta(u_in_m, v_in_m, w_in_m);
     for (size_t ch = msData.start_channel; ch != msData.end_channel; ++ch) {
-      double w = wInM / bandData.ChannelWavelength(ch);
+      double w = w_in_m / bandData.ChannelWavelength(ch);
       size_t wLayerIndex = _gridder->WToLayer(w);
       if (wLayerIndex < ActualWGridSize()) {
         ++sampleCount[wLayerIndex];
@@ -169,17 +171,17 @@ size_t WSMSGridder::GridMeasurementSet(
     while (ms_reader->CurrentRowAvailable()) {
       MSProvider::MetaData metadata;
       ms_reader->ReadMeta(metadata);
-      const double u_in_meters = metadata.uInM;
-      const double v_in_meters = metadata.vInM;
-      const double w_in_meters = metadata.wInM;
+      const double u_in_m = metadata.u_in_m;
+      const double v_in_m = metadata.v_in_m;
+      const double w_in_m = metadata.w_in_m;
 
       const aocommon::BandData& band(selected_band);
-      const double w1 = w_in_meters / band.LongestWavelength();
-      const double w2 = w_in_meters / band.SmallestWavelength();
+      const double w1 = w_in_m / band.LongestWavelength();
+      const double w2 = w_in_m / band.SmallestWavelength();
       if (_gridder->IsInLayerRange(w1, w2)) {
-        row_data.uvw[0] = u_in_meters;
-        row_data.uvw[1] = v_in_meters;
-        row_data.uvw[2] = w_in_meters;
+        row_data.uvw[0] = u_in_m;
+        row_data.uvw[1] = v_in_m;
+        row_data.uvw[2] = w_in_m;
 
         // Any visibilities that are not gridded in this pass
         // should not contribute to the weight sum
@@ -305,11 +307,11 @@ size_t WSMSGridder::PredictMeasurementSet(
   std::vector<size_t> row_ids;
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
   while (ms_reader->CurrentRowAvailable()) {
-    double u_in_meters;
-    double v_in_meters;
-    double w_in_meters;
-    ms_reader->ReadMeta(u_in_meters, v_in_meters, w_in_meters);
-    uvws.push_back({u_in_meters, v_in_meters, w_in_meters});
+    double u_in_m;
+    double v_in_m;
+    double w_in_m;
+    ms_reader->ReadMeta(u_in_m, v_in_m, w_in_m);
+    uvws.push_back({u_in_m, v_in_m, w_in_m});
     row_ids.push_back(ms_reader->RowId());
     ++n_total_rows_processed;
 
@@ -375,11 +377,11 @@ void WSMSGridder::predictWriteThread(
   while (buffer.read(workItem)) {
     queue.emplace(std::move(workItem));
     while (!queue.empty() && queue.top().rowId == nextRowId) {
-      MSProvider::MetaData metaData;
-      ReadPredictMetaData(metaData);
+      MSProvider::MetaData metadata;
+      ReadPredictMetaData(metadata);
       WriteCollapsedVisibilities(*msData->ms_provider,
                                  msData->antenna_names.size(), *bandData,
-                                 queue.top().data.get(), metaData);
+                                 queue.top().data.get(), metadata);
 
       queue.pop();
       ++nextRowId;

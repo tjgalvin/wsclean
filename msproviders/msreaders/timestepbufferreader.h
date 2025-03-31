@@ -8,11 +8,13 @@ namespace wsclean {
 
 class TimestepBufferReader final : public MSReader {
  public:
-  TimestepBufferReader(TimestepBuffer* timestepBuffer);
+  TimestepBufferReader(TimestepBuffer* timestep_buffer);
 
   virtual ~TimestepBufferReader(){};
 
-  size_t RowId() const final override { return _buffer[_bufferPosition].rowId; }
+  size_t RowId() const final override {
+    return buffer_[buffer_position_].row_id;
+  }
 
   bool CurrentRowAvailable() final override;
 
@@ -20,7 +22,7 @@ class TimestepBufferReader final : public MSReader {
 
   void ReadMeta(double& u, double& v, double& w) final override;
 
-  void ReadMeta(MSProvider::MetaData& metaData) final override;
+  void ReadMeta(MSProvider::MetaData& metadata) final override;
 
   void ReadData(std::complex<float>* buffer) final override;
 
@@ -36,13 +38,13 @@ class TimestepBufferReader final : public MSReader {
    * @param uvws should have the correct size on input (nantenna * 3)
    */
   void GetUVWsForTimestep(aocommon::UVector<double>& uvws) {
-    for (size_t i = 0; i != _buffer.size(); ++i) {
-      if (_buffer[i].metaData.antenna1 == 0) {
-        size_t index = _buffer[i].metaData.antenna2 * 3;
-        if (index >= _buffer.size()) _buffer.resize(index + 3);
-        uvws[index + 0] = _buffer[i].metaData.uInM;
-        uvws[index + 1] = _buffer[i].metaData.vInM;
-        uvws[index + 2] = _buffer[i].metaData.wInM;
+    for (size_t i = 0; i != buffer_.size(); ++i) {
+      if (buffer_[i].metadata.antenna1 == 0) {
+        size_t index = buffer_[i].metadata.antenna2 * 3;
+        if (index >= buffer_.size()) buffer_.resize(index + 3);
+        uvws[index + 0] = buffer_[i].metadata.u_in_m;
+        uvws[index + 1] = buffer_[i].metadata.v_in_m;
+        uvws[index + 2] = buffer_[i].metadata.w_in_m;
       }
     }
     uvws[0] = 0.0;
@@ -53,10 +55,10 @@ class TimestepBufferReader final : public MSReader {
  private:
   void readTimeblock();
 
-  std::unique_ptr<MSReader> _msReader;
+  std::unique_ptr<MSReader> ms_reader_;
 
-  size_t _bufferPosition;
-  std::vector<TimestepBuffer::RowData> _buffer;
+  size_t buffer_position_;
+  std::vector<TimestepBuffer::RowData> buffer_;
 };
 
 }  // namespace wsclean

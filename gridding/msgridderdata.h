@@ -160,7 +160,7 @@ class MsGridderData {
     size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
     LoadAndApplyCorrections<Mode, NParms, Behaviour, LoadResponse>(
         n_antennas, visibility_row, band, weight_buffer, metadata.time,
-        metadata.fieldId, metadata.antenna1, metadata.antenna2, time_offset,
+        metadata.field_id, metadata.antenna1, metadata.antenna2, time_offset,
         scratch_image_weights_.data());
     visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
   }
@@ -1132,7 +1132,7 @@ void MsGridderData::WriteInstrumentalVisibilities(
 
 #ifdef HAVE_EVERYBEAM
   if (settings_.applyFacetBeam) {
-    visibility_modifier_.CacheBeamResponse(metadata.time, metadata.fieldId,
+    visibility_modifier_.CacheBeamResponse(metadata.time, metadata.field_id,
                                            band);
 
     visibility_modifier_.ApplyBeamResponse<Mode>(

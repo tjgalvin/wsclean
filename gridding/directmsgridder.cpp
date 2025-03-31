@@ -157,9 +157,9 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(
 
     MSProvider::MetaData metadata;
     ms_reader->ReadMeta(metadata);
-    row_data.uvw[0] = metadata.uInM;
-    row_data.uvw[1] = metadata.vInM;
-    row_data.uvw[2] = metadata.wInM;
+    row_data.uvw[0] = metadata.u_in_m;
+    row_data.uvw[1] = metadata.v_in_m;
+    row_data.uvw[2] = metadata.w_in_m;
 
     if (n_parms == 2) {
       GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),

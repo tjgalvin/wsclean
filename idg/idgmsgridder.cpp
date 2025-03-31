@@ -214,7 +214,7 @@ size_t IdgMsGridder::GridMeasurementSet(
         timestep_reader.GetUVWsForTimestep(uvws);
         if (aterm_maker->Calculate(aterm_buffer.data(), current_time,
                                    _selectedBand.CentreFrequency(),
-                                   metadata.fieldId, uvws.data())) {
+                                   metadata.field_id, uvws.data())) {
           _bufferset->get_gridder(kGridderIndex)
               ->set_aterm(time_index, aterm_buffer.data());
           Logger::Debug << "Calculated a-terms for timestep " << time_index
@@ -224,9 +224,9 @@ size_t IdgMsGridder::GridMeasurementSet(
 #endif
     }
 
-    row_data.uvw[0] = metadata.uInM;
-    row_data.uvw[1] = metadata.vInM;
-    row_data.uvw[2] = metadata.wInM;
+    row_data.uvw[0] = metadata.u_in_m;
+    row_data.uvw[1] = metadata.v_in_m;
+    row_data.uvw[2] = metadata.w_in_m;
 
     row_data.antenna1 = metadata.antenna1;
     row_data.antenna2 = metadata.antenna2;
@@ -302,8 +302,8 @@ size_t IdgMsGridder::GridMeasurementSet(
       }
     }
 
-    row_data.uvw[1] = -metadata.vInM;  // DEBUG vdtol, flip axis
-    row_data.uvw[2] = -metadata.wInM;  //
+    row_data.uvw[1] = -metadata.v_in_m;  // DEBUG vdtol, flip axis
+    row_data.uvw[2] = -metadata.w_in_m;  //
 
     _bufferset->get_gridder(kGridderIndex)
         ->grid_visibilities(time_index, metadata.antenna1, metadata.antenna2,
@@ -442,7 +442,7 @@ size_t IdgMsGridder::PredictMeasurementSet(
         timestep_reader.GetUVWsForTimestep(uvws);
         if (aterm_maker->Calculate(aterm_buffer.data(), current_time,
                                    _selectedBand.CentreFrequency(),
-                                   metadata.fieldId, uvws.data())) {
+                                   metadata.field_id, uvws.data())) {
           _bufferset->get_degridder(kGridderIndex)
               ->set_aterm(time_index, aterm_buffer.data());
           Logger::Debug << "Calculated new a-terms for timestep " << time_index
@@ -453,9 +453,9 @@ size_t IdgMsGridder::PredictMeasurementSet(
     }
 
     IDGPredictionRow row;
-    row.uvw[0] = metadata.uInM;
-    row.uvw[1] = -metadata.vInM;
-    row.uvw[2] = -metadata.wInM;
+    row.uvw[0] = metadata.u_in_m;
+    row.uvw[1] = -metadata.v_in_m;
+    row.uvw[2] = -metadata.w_in_m;
     row.antenna1 = metadata.antenna1;
     row.antenna2 = metadata.antenna2;
     row.timeIndex = time_index;
@@ -483,8 +483,8 @@ void IdgMsGridder::computePredictionBuffer(
   const size_t n_vis_polarizations = _outputProvider->NPolarizations();
   for (std::pair<long unsigned, std::complex<float>*>& row :
        available_row_ids) {
-    MSProvider::MetaData metaData;
-    ReadPredictMetaData(metaData);
+    MSProvider::MetaData metadata;
+    ReadPredictMetaData(metadata);
     if (n_vis_polarizations == 1) {
       // Place Stokes I in the first quarter of the array
       for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
@@ -502,7 +502,7 @@ void IdgMsGridder::computePredictionBuffer(
       assert(n_vis_polarizations == 4);
     }
     WriteInstrumentalVisibilities(*_outputProvider, antenna_names.size(),
-                                  _selectedBand, row.second, metaData);
+                                  _selectedBand, row.second, metadata);
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();
   _degriddingWatch.Pause();
@@ -602,7 +602,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
     aocommon::UVector<std::complex<float>>& aTermBuffer,
     idg::api::BufferSetType bufferSetType) {
 #endif  // HAVE_EVERYBEAM
-  const float max_baseline = ms_data.max_baseline_meters;
+  const float max_baseline = ms_data.max_baseline_in_m;
   // Skip this ms if there is no data in it
   if (!max_baseline) return false;
 

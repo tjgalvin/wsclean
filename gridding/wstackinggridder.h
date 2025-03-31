@@ -283,12 +283,9 @@ class WStackingGridder {
    *
    * @param data Array of samples for different channels. The size of this array
    * is given by the band referred to by dataDescId.
-   * @param uInM U value of UVW coordinate, in meters.
-   * @param vInM V value of UVW coordinate, in meters.
-   * @param wInM W value of UVW coordinate, in meters.
    */
-  void AddData(const std::complex<float> *data, double uInM, double vInM,
-               double wInM);
+  void AddData(const std::complex<float> *data, double u_in_m, double v_in_m,
+               double w_in_m);
 #endif
 
   /**
@@ -380,12 +377,9 @@ class WStackingGridder {
    *
    * @param data Array of samples for different channels. The size of this array
    * is given by the band.
-   * @param uInM U value of UVW coordinate, in meters.
-   * @param vInM V value of UVW coordinate, in meters.
-   * @param wInM W value of UVW coordinate, in meters.
    */
-  void SampleData(std::complex<float> *data, double uInM, double vInM,
-                  double wInM);
+  void SampleData(std::complex<float> *data, double u_in_m, double v_in_m,
+                  double w_in_m);
 #endif
 
   /**

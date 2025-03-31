@@ -144,7 +144,7 @@ void VisibilityModifier::CacheParmResponse(double time,
 }
 
 #ifdef HAVE_EVERYBEAM
-void VisibilityModifier::CacheBeamResponse(double time, size_t fieldId,
+void VisibilityModifier::CacheBeamResponse(double time, size_t field_id,
                                            const aocommon::BandData& band) {
   _pointResponse->UpdateTime(time);
   if (_pointResponse->HasTimeUpdate()) {
@@ -152,7 +152,7 @@ void VisibilityModifier::CacheBeamResponse(double time, size_t fieldId,
       _pointResponse->ResponseAllStations(
           _beamMode, &_cachedBeamResponse[ch * _pointResponseBufferSize],
           _facetDirectionRA, _facetDirectionDec, band.ChannelFrequency(ch),
-          fieldId);
+          field_id);
     }
   }
 }

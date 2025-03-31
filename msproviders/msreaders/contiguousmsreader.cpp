@@ -22,7 +22,7 @@ ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
 
 bool ContiguousMSReader::CurrentRowAvailable() {
   const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
+      static_cast<const ContiguousMS&>(*ms_provider_);
 
   if (_currentInputRow >= contiguousms._endRow) return false;
 
@@ -58,7 +58,7 @@ bool ContiguousMSReader::CurrentRowAvailable() {
 
 void ContiguousMSReader::NextInputRow() {
   const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
+      static_cast<const ContiguousMS&>(*ms_provider_);
 
   _isDataRead = false;
   _isWeightRead = false;
@@ -88,7 +88,7 @@ void ContiguousMSReader::NextInputRow() {
 
 void ContiguousMSReader::ReadMeta(double& u, double& v, double& w) {
   const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
+      static_cast<const ContiguousMS&>(*ms_provider_);
 
   casacore::Vector<double> uvwArray = contiguousms._uvwColumn(_currentInputRow);
   u = uvwArray(0);
@@ -96,22 +96,22 @@ void ContiguousMSReader::ReadMeta(double& u, double& v, double& w) {
   w = uvwArray(2);
 }
 
-void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metaData) {
+void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metadata) {
   const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
+      static_cast<const ContiguousMS&>(*ms_provider_);
 
   casacore::Vector<double> uvwArray = contiguousms._uvwColumn(_currentInputRow);
-  metaData.uInM = uvwArray(0);
-  metaData.vInM = uvwArray(1);
-  metaData.wInM = uvwArray(2);
-  metaData.fieldId = contiguousms._fieldIdColumn(_currentInputRow);
-  metaData.antenna1 = contiguousms._antenna1Column(_currentInputRow);
-  metaData.antenna2 = contiguousms._antenna2Column(_currentInputRow);
-  metaData.time = contiguousms._timeColumn(_currentInputRow);
+  metadata.u_in_m = uvwArray(0);
+  metadata.v_in_m = uvwArray(1);
+  metadata.w_in_m = uvwArray(2);
+  metadata.field_id = contiguousms._fieldIdColumn(_currentInputRow);
+  metadata.antenna1 = contiguousms._antenna1Column(_currentInputRow);
+  metadata.antenna2 = contiguousms._antenna2Column(_currentInputRow);
+  metadata.time = contiguousms._timeColumn(_currentInputRow);
 }
 
 void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*ms_provider_);
 
   readData();
   readWeights();
@@ -130,7 +130,7 @@ void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
 }
 
 void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*ms_provider_);
 
   if (!contiguousms._isModelColumnPrepared) contiguousms.prepareModelColumn();
 
@@ -152,7 +152,7 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
 
 void ContiguousMSReader::ReadWeights(float* buffer) {
   const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*_msProvider);
+      static_cast<const ContiguousMS&>(*ms_provider_);
 
   readData();
   readWeights();
@@ -172,7 +172,7 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
 }
 
 void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*ms_provider_);
 
   if (_imagingWeightsColumn == nullptr) {
     _imagingWeightsColumn.reset(new casacore::ArrayColumn<float>(
@@ -199,7 +199,7 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
 }
 
 void ContiguousMSReader::readData() {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*ms_provider_);
   if (!_isDataRead) {
     contiguousms._dataColumn.get(_currentInputRow, contiguousms._dataArray);
     _isDataRead = true;
@@ -207,7 +207,7 @@ void ContiguousMSReader::readData() {
 }
 
 void ContiguousMSReader::readWeights() {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*ms_provider_);
 
   if (!_isWeightRead) {
     contiguousms._flagColumn.get(_currentInputRow, contiguousms._flagArray);
@@ -225,7 +225,7 @@ void ContiguousMSReader::readWeights() {
 }
 
 void ContiguousMSReader::readModel() {
-  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*_msProvider);
+  ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*ms_provider_);
   if (!_isModelRead) {
     contiguousms._modelColumn.get(_currentInputRow, contiguousms._modelArray);
     _isModelRead = true;

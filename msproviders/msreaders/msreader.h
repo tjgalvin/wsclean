@@ -17,7 +17,7 @@ namespace wsclean {
  */
 class MSReader {
  public:
-  MSReader(MSProvider* msProvider) : _msProvider(msProvider){};
+  MSReader(MSProvider* ms_provider) : ms_provider_(ms_provider){};
 
   virtual ~MSReader(){};
 
@@ -46,7 +46,7 @@ class MSReader {
    */
   virtual void ReadMeta(double& u, double& v, double& w) = 0;
 
-  virtual void ReadMeta(MSProvider::MetaData& metaData) = 0;
+  virtual void ReadMeta(MSProvider::MetaData& metadata) = 0;
   /** @} */
 
   /**
@@ -71,12 +71,12 @@ class MSReader {
   virtual void WriteImagingWeights(const float* buffer) = 0;
 
   /// @returns MSProvider::NPolarizations().
-  size_t NPolarizations() const { return _msProvider->NPolarizations(); }
+  size_t NPolarizations() const { return ms_provider_->NPolarizations(); }
   /// @returns MSProvider::DataDescId().
-  size_t DataDescId() const { return _msProvider->DataDescId(); }
+  size_t DataDescId() const { return ms_provider_->DataDescId(); }
 
  protected:
-  MSProvider* _msProvider;
+  MSProvider* ms_provider_;
 };
 
 }  // namespace wsclean

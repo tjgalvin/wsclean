@@ -335,7 +335,7 @@ class VisibilityModifier {
    * @brief Compute and cache the beam response if no cached response
    * present for the provided time.
    */
-  void CacheBeamResponse(double time, size_t fieldId,
+  void CacheBeamResponse(double time, size_t field_id,
                          const aocommon::BandData& band);
 
   template <GainMode Mode>

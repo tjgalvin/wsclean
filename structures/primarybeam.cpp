@@ -704,16 +704,16 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
   aocommon::UVector<float> weight_array(n_channels * n_polarizations);
   const aocommon::BandData band = multi_band[ms_reader.DataDescId()];
   while (ms_reader.CurrentRowAvailable() && current_row <= end_row) {
-    MSProvider::MetaData meta_data;
-    ms_reader.ReadMeta(meta_data);
+    MSProvider::MetaData metadata;
+    ms_reader.ReadMeta(metadata);
     ms_reader.ReadWeights(weight_array.data());
 
     for (size_t ch = 0; ch != n_channels; ++ch) {
-      const double u = meta_data.uInM / band.ChannelWavelength(ch);
-      const double v = meta_data.vInM / band.ChannelWavelength(ch);
+      const double u = metadata.u_in_m / band.ChannelWavelength(ch);
+      const double v = metadata.v_in_m / band.ChannelWavelength(ch);
       const double iw = imageWeights.GetWeight(u, v);
       const double w = weight_array[ch * n_polarizations] * iw;
-      baselineWeights.Value(meta_data.antenna1, meta_data.antenna2) += w;
+      baselineWeights.Value(metadata.antenna1, metadata.antenna2) += w;
     }
     ms_reader.NextInputRow();
     ++current_row;

@@ -49,8 +49,12 @@ class MSReader;
 class MSProvider {
  public:
   struct MetaData {
-    double uInM, vInM, wInM;
-    size_t fieldId, antenna1, antenna2;
+    double u_in_m;
+    double v_in_m;
+    double w_in_m;
+    size_t field_id;
+    size_t antenna1;
+    size_t antenna2;
     double time;
   };
 

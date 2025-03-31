@@ -2,92 +2,92 @@
 
 namespace wsclean {
 
-TimestepBufferReader::TimestepBufferReader(TimestepBuffer* timestepBuffer)
-    : MSReader(timestepBuffer),
-      _msReader(timestepBuffer->_msProvider->MakeReader()),
-      _bufferPosition(0) {
+TimestepBufferReader::TimestepBufferReader(TimestepBuffer* timestep_buffer)
+    : MSReader(timestep_buffer),
+      ms_reader_(timestep_buffer->ms_provider_->MakeReader()),
+      buffer_position_(0) {
   readTimeblock();
 }
 
 bool TimestepBufferReader::CurrentRowAvailable() {
-  return !_buffer.empty() || _msReader->CurrentRowAvailable();
+  return !buffer_.empty() || ms_reader_->CurrentRowAvailable();
 }
 
 void TimestepBufferReader::NextInputRow() {
-  ++_bufferPosition;
-  if (_bufferPosition == _buffer.size()) {
+  ++buffer_position_;
+  if (buffer_position_ == buffer_.size()) {
     readTimeblock();
   }
 }
 
 void TimestepBufferReader::ReadMeta(double& u, double& v, double& w) {
-  MSProvider::MetaData& m = _buffer[_bufferPosition].metaData;
-  u = m.uInM;
-  v = m.vInM;
-  w = m.wInM;
+  MSProvider::MetaData& m = buffer_[buffer_position_].metadata;
+  u = m.u_in_m;
+  v = m.v_in_m;
+  w = m.w_in_m;
 }
 
-void TimestepBufferReader::ReadMeta(MSProvider::MetaData& metaData) {
-  metaData = _buffer[_bufferPosition].metaData;
+void TimestepBufferReader::ReadMeta(MSProvider::MetaData& metadata) {
+  metadata = buffer_[buffer_position_].metadata;
 }
 
 void TimestepBufferReader::ReadData(std::complex<float>* buffer) {
-  std::copy(_buffer[_bufferPosition].data.begin(),
-            _buffer[_bufferPosition].data.end(), buffer);
+  std::copy(buffer_[buffer_position_].data.begin(),
+            buffer_[buffer_position_].data.end(), buffer);
 }
 
 void TimestepBufferReader::ReadModel(std::complex<float>* buffer) {
-  std::copy(_buffer[_bufferPosition].model.begin(),
-            _buffer[_bufferPosition].model.end(), buffer);
+  std::copy(buffer_[buffer_position_].model.begin(),
+            buffer_[buffer_position_].model.end(), buffer);
 }
 
 void TimestepBufferReader::ReadWeights(float* buffer) {
-  std::copy(_buffer[_bufferPosition].weights.begin(),
-            _buffer[_bufferPosition].weights.end(), buffer);
+  std::copy(buffer_[buffer_position_].weights.begin(),
+            buffer_[buffer_position_].weights.end(), buffer);
 }
 
 void TimestepBufferReader::WriteImagingWeights(const float* buffer) {
-  _msReader->WriteImagingWeights(buffer);
+  ms_reader_->WriteImagingWeights(buffer);
 }
 
 void TimestepBufferReader::readTimeblock() {
-  // Beware that the _msProvider data member is a TimestepBuffer,
-  // which in turn has its own _msProvider
-  TimestepBuffer& tstepbuffer = static_cast<TimestepBuffer&>(*_msProvider);
+  // Beware that the ms_provider_ data member is a TimestepBuffer,
+  // which in turn has its own ms_provider_
+  TimestepBuffer& tstepbuffer = static_cast<TimestepBuffer&>(*ms_provider_);
 
-  _bufferPosition = 0;
-  _buffer.clear();
-  MSProvider::MetaData metaData;
-  size_t dataSize = tstepbuffer._msProvider->NPolarizations() *
-                    tstepbuffer._msProvider->NChannels();
+  buffer_position_ = 0;
+  buffer_.clear();
+  MSProvider::MetaData metadata;
+  size_t dataSize = tstepbuffer.ms_provider_->NPolarizations() *
+                    tstepbuffer.ms_provider_->NChannels();
 
-  if (_msReader->CurrentRowAvailable()) {
-    _msReader->ReadMeta(metaData);
-    double blockTime = metaData.time, curTime = blockTime;
+  if (ms_reader_->CurrentRowAvailable()) {
+    ms_reader_->ReadMeta(metadata);
+    double blockTime = metadata.time, curTime = blockTime;
     size_t writePos = 0;
     do {
-      if (_buffer.size() <= writePos) {
-        _buffer.emplace_back();
-        TimestepBuffer::RowData& newRow = _buffer.back();
+      if (buffer_.size() <= writePos) {
+        buffer_.emplace_back();
+        TimestepBuffer::RowData& newRow = buffer_.back();
         newRow.data.resize(dataSize);
-        if (tstepbuffer._readModel) newRow.model.resize(dataSize);
+        if (tstepbuffer.read_model_) newRow.model.resize(dataSize);
         newRow.weights.resize(dataSize);
       }
-      TimestepBuffer::RowData& row = _buffer[writePos];
-      row.metaData = metaData;
-      _msReader->ReadData(row.data.data());
-      if (tstepbuffer._readModel) _msReader->ReadModel(row.model.data());
-      _msReader->ReadWeights(row.weights.data());
-      row.rowId = _msReader->RowId();
+      TimestepBuffer::RowData& row = buffer_[writePos];
+      row.metadata = metadata;
+      ms_reader_->ReadData(row.data.data());
+      if (tstepbuffer.read_model_) ms_reader_->ReadModel(row.model.data());
+      ms_reader_->ReadWeights(row.weights.data());
+      row.row_id = ms_reader_->RowId();
 
-      _msReader->NextInputRow();
+      ms_reader_->NextInputRow();
       ++writePos;
-      if (_msReader->CurrentRowAvailable()) {
-        _msReader->ReadMeta(metaData);
-        curTime = metaData.time;
+      if (ms_reader_->CurrentRowAvailable()) {
+        ms_reader_->ReadMeta(metadata);
+        curTime = metadata.time;
       }
-    } while (_msReader->CurrentRowAvailable() && blockTime == curTime);
-    _buffer.resize(writePos);
+    } while (ms_reader_->CurrentRowAvailable() && blockTime == curTime);
+    buffer_.resize(writePos);
   }
 }
 

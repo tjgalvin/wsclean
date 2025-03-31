@@ -83,23 +83,25 @@ void ImageWeights::Grid(MSProvider& msProvider,
 
     std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
     while (msReader->CurrentRowAvailable()) {
-      double uInM, vInM, wInM;
-      msReader->ReadMeta(uInM, vInM, wInM);
+      double u_in_m;
+      double v_in_m;
+      double w_in_m;
+      msReader->ReadMeta(u_in_m, v_in_m, w_in_m);
       msReader->ReadWeights(weightBuffer.data());
       if (_weightsAsTaper) {
         for (float& w : weightBuffer) {
           if (w != 0.0) w = 1.0;
         }
       }
-      if (vInM < 0.0) {
-        uInM = -uInM;
-        vInM = -vInM;
+      if (v_in_m < 0.0) {
+        u_in_m = -u_in_m;
+        v_in_m = -v_in_m;
       }
 
       const float* weightIter = weightBuffer.data();
       for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
-        const double u = uInM / selectedBand.ChannelWavelength(ch);
-        const double v = vInM / selectedBand.ChannelWavelength(ch);
+        const double u = u_in_m / selectedBand.ChannelWavelength(ch);
+        const double v = v_in_m / selectedBand.ChannelWavelength(ch);
         for (size_t p = 0; p != polarizationCount; ++p) {
           Grid(u, v, *weightIter);
           ++weightIter;

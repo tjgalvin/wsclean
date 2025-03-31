@@ -133,9 +133,9 @@ size_t WTowersMsGridder::GridMeasurementSet(
            n_chunk_rows_read < max_rows_per_chunk) {
       MSProvider::MetaData metadata;
       ms_reader->ReadMeta(metadata);
-      row_data.uvw[0] = metadata.uInM;
-      row_data.uvw[1] = metadata.vInM;
-      row_data.uvw[2] = metadata.wInM;
+      row_data.uvw[0] = metadata.u_in_m;
+      row_data.uvw[1] = metadata.v_in_m;
+      row_data.uvw[2] = metadata.w_in_m;
 
       if (n_parms == 2) {
         GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
@@ -205,12 +205,12 @@ size_t WTowersMsGridder::PredictMeasurementSet(
            n_chunk_rows_read < max_rows_per_chunk) {
       MSProvider::MetaData metadata;
       ReadPredictMetaData(metadata);
-      uvw_buffer[n_chunk_rows_read * 3] = metadata.uInM;
+      uvw_buffer[n_chunk_rows_read * 3] = metadata.u_in_m;
       // Negate v; otherwise image is flipped compared to other gridders like
       // DUCC that also do this
-      uvw_buffer[n_chunk_rows_read * 3 + 1] = -metadata.vInM;
+      uvw_buffer[n_chunk_rows_read * 3 + 1] = -metadata.v_in_m;
       // Negate w; otherwise we get distortion as we move away from the centre
-      uvw_buffer[n_chunk_rows_read * 3 + 2] = -metadata.wInM;
+      uvw_buffer[n_chunk_rows_read * 3 + 2] = -metadata.w_in_m;
       metadata_buffer.emplace_back(std::move(metadata));
       n_chunk_rows_read++;
 

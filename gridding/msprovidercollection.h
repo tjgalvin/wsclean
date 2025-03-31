@@ -46,7 +46,7 @@ class MsProviderCollection {
     double max_w = 0.0;
     double max_w_with_flags = 0.0;
     double max_baseline_uvw = 0.0;
-    double max_baseline_meters = 0.0;
+    double max_baseline_in_m = 0.0;
     double integration_time = 0.0;
 
     std::vector<std::string> antenna_names;

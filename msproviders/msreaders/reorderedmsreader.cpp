@@ -39,13 +39,13 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
 
 bool ReorderedMsReader::CurrentRowAvailable() {
   const ReorderedMsProvider& reordered_ms =
-      static_cast<const ReorderedMsProvider&>(*_msProvider);
+      static_cast<const ReorderedMsProvider&>(*ms_provider_);
   return current_input_row_ < reordered_ms.meta_header_.selected_row_count;
 }
 
 void ReorderedMsReader::NextInputRow() {
   const ReorderedMsProvider& reordered_ms =
-      static_cast<const ReorderedMsProvider&>(*_msProvider);
+      static_cast<const ReorderedMsProvider&>(*ms_provider_);
 
   ++current_input_row_;
   if (current_input_row_ < reordered_ms.meta_header_.selected_row_count) {
@@ -69,7 +69,7 @@ void ReorderedMsReader::ReadMeta(double& u, double& v, double& w) {
   w = record.w;
 }
 
-void ReorderedMsReader::ReadMeta(MSProvider::MetaData& meta_data) {
+void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metadata) {
   if (meta_ptr_row_offset_ != 0)
     meta_file_.seekg(meta_ptr_row_offset_ *
                          schaapcommon::reordering::MetaRecord::BINARY_SIZE,
@@ -78,18 +78,18 @@ void ReorderedMsReader::ReadMeta(MSProvider::MetaData& meta_data) {
 
   schaapcommon::reordering::MetaRecord record;
   record.Read(meta_file_);
-  meta_data.uInM = record.u;
-  meta_data.vInM = record.v;
-  meta_data.wInM = record.w;
-  meta_data.fieldId = record.field_id;
-  meta_data.antenna1 = record.antenna1;
-  meta_data.antenna2 = record.antenna2;
-  meta_data.time = record.time;
+  metadata.u_in_m = record.u;
+  metadata.v_in_m = record.v;
+  metadata.w_in_m = record.w;
+  metadata.field_id = record.field_id;
+  metadata.antenna1 = record.antenna1;
+  metadata.antenna2 = record.antenna2;
+  metadata.time = record.time;
 }
 
 void ReorderedMsReader::ReadData(std::complex<float>* buffer) {
   const ReorderedMsProvider& reordered_ms =
-      static_cast<const ReorderedMsProvider&>(*_msProvider);
+      static_cast<const ReorderedMsProvider&>(*ms_provider_);
 
   const int64_t n_visibilities = reordered_ms.part_header_.channel_count *
                                  reordered_ms.polarization_count_in_file_;
@@ -119,7 +119,7 @@ void ReorderedMsReader::ReadData(std::complex<float>* buffer) {
 
 void ReorderedMsReader::ReadModel(std::complex<float>* buffer) {
   const ReorderedMsProvider& reordered_ms =
-      static_cast<ReorderedMsProvider&>(*_msProvider);
+      static_cast<ReorderedMsProvider&>(*ms_provider_);
 
 #ifndef NDEBUG
   if (!reordered_ms.part_header_.has_model)
@@ -134,7 +134,7 @@ void ReorderedMsReader::ReadModel(std::complex<float>* buffer) {
 
 void ReorderedMsReader::ReadWeights(float* buffer) {
   const ReorderedMsProvider& reordered_ms =
-      static_cast<const ReorderedMsProvider&>(*_msProvider);
+      static_cast<const ReorderedMsProvider&>(*ms_provider_);
 
   const int64_t n_visibilities = reordered_ms.part_header_.channel_count *
                                  reordered_ms.polarization_count_in_file_;
@@ -151,7 +151,7 @@ void ReorderedMsReader::ReadWeights(float* buffer) {
 
 void ReorderedMsReader::WriteImagingWeights(const float* buffer) {
   const ReorderedMsProvider& reordered_ms =
-      static_cast<const ReorderedMsProvider&>(*_msProvider);
+      static_cast<const ReorderedMsProvider&>(*ms_provider_);
 
   if (imaging_weights_file_ == nullptr) {
     std::string part_prefix = schaapcommon::reordering::GetPartPrefix(

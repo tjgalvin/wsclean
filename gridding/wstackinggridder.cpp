@@ -972,25 +972,25 @@ void WStackingGridder<T>::copyImageToLayerAndInverseCorrect(
 
 #ifndef AVOID_CASACORE
 template <typename T>
-void WStackingGridder<T>::AddData(const std::complex<float> *data, double uInM,
-                                  double vInM, double wInM) {
+void WStackingGridder<T>::AddData(const std::complex<float> *data,
+                                  double u_in_m, double v_in_m, double w_in_m) {
   for (size_t ch = 0; ch != _bandData.ChannelCount(); ++ch) {
     const double wavelength = _bandData.ChannelWavelength(ch);
-    const double u = uInM / wavelength;
-    const double v = vInM / wavelength;
-    const double w = wInM / wavelength;
+    const double u = u_in_m / wavelength;
+    const double v = v_in_m / wavelength;
+    const double w = w_in_m / wavelength;
     AddDataSample(data[ch], u, v, w);
   }
 }
 
 template <typename T>
-void WStackingGridder<T>::SampleData(std::complex<float> *data, double uInM,
-                                     double vInM, double wInM) {
+void WStackingGridder<T>::SampleData(std::complex<float> *data, double u_in_m,
+                                     double v_in_m, double w_in_m) {
   for (size_t ch = 0; ch != _bandData.ChannelCount(); ++ch) {
     const double wavelength = _bandData.ChannelWavelength(ch);
-    const double u = uInM / wavelength;
-    const double v = vInM / wavelength;
-    const double w = wInM / wavelength;
+    const double u = u_in_m / wavelength;
+    const double v = v_in_m / wavelength;
+    const double w = w_in_m / wavelength;
     SampleDataSample(data[ch], u, v, w);
   }
 }

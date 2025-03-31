@@ -14,7 +14,7 @@ namespace wsclean {
 namespace {
 template <size_t NPolInMSProvider>
 inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
-                              double v, double w, double baseline_in_meters,
+                              double v, double w, double baseline_in_m,
                               double wavelength, double pixel_size_x,
                               double pixel_size_y, size_t image_width,
                               size_t image_height,
@@ -30,9 +30,9 @@ inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
       ms_data.max_w = std::max(ms_data.max_w, std::fabs(w));
       ms_data.min_w = std::min(ms_data.min_w, std::fabs(w));
       ms_data.max_baseline_uvw =
-          std::max(ms_data.max_baseline_uvw, baseline_in_meters / wavelength);
-      ms_data.max_baseline_meters =
-          std::max(ms_data.max_baseline_meters, baseline_in_meters);
+          std::max(ms_data.max_baseline_uvw, baseline_in_m / wavelength);
+      ms_data.max_baseline_in_m =
+          std::max(ms_data.max_baseline_in_m, baseline_in_m);
     }
   }
 }
@@ -180,7 +180,7 @@ void MsProviderCollection::InitializeMeasurementSet(
     ms_data.max_w_with_flags = cache_entry.max_w_with_flags;
     ms_data.min_w = cache_entry.min_w;
     ms_data.max_baseline_uvw = cache_entry.max_baseline_uvw;
-    ms_data.max_baseline_meters = cache_entry.max_baseline_in_m;
+    ms_data.max_baseline_in_m = cache_entry.max_baseline_in_m;
     ms_data.integration_time = cache_entry.integration_time;
   } else {
     if (ms_provider.NPolarizations() == 4)
@@ -199,7 +199,7 @@ void MsProviderCollection::InitializeMeasurementSet(
     cache_entry.max_w_with_flags = ms_data.max_w_with_flags;
     cache_entry.min_w = ms_data.min_w;
     cache_entry.max_baseline_uvw = ms_data.max_baseline_uvw;
-    cache_entry.max_baseline_in_m = ms_data.max_baseline_meters;
+    cache_entry.max_baseline_in_m = ms_data.max_baseline_in_m;
     cache_entry.integration_time = ms_data.integration_time;
   }
 
@@ -224,7 +224,7 @@ void MsProviderCollection::CalculateMsLimits(
   ms_data.max_w_with_flags = 0.0;
   ms_data.min_w = 1e100;
   ms_data.max_baseline_uvw = 0.0;
-  ms_data.max_baseline_meters = 0.0;
+  ms_data.max_baseline_in_m = 0.0;
   const aocommon::BandData selectedBand = ms_data.SelectedBand();
   std::vector<float> weightArray(selectedBand.ChannelCount() *
                                  NPolInMSProvider);
@@ -234,21 +234,21 @@ void MsProviderCollection::CalculateMsLimits(
   const double smallestWavelength = selectedBand.SmallestWavelength();
   const double longestWavelength = selectedBand.LongestWavelength();
   while (msReader->CurrentRowAvailable()) {
-    MSProvider::MetaData metaData;
-    msReader->ReadMeta(metaData);
+    MSProvider::MetaData metadata;
+    msReader->ReadMeta(metadata);
 
-    if (curTimestep != metaData.time) {
-      curTimestep = metaData.time;
+    if (curTimestep != metadata.time) {
+      curTimestep = metadata.time;
       ++nTimesteps;
       if (firstTime == -1) firstTime = curTimestep;
       lastTime = curTimestep;
     }
 
-    const double wHi = std::fabs(metaData.wInM / smallestWavelength);
-    const double wLo = std::fabs(metaData.wInM / longestWavelength);
-    const double baselineInM = std::sqrt(metaData.uInM * metaData.uInM +
-                                         metaData.vInM * metaData.vInM +
-                                         metaData.wInM * metaData.wInM);
+    const double wHi = std::fabs(metadata.w_in_m / smallestWavelength);
+    const double wLo = std::fabs(metadata.w_in_m / longestWavelength);
+    const double baselineInM = std::sqrt(metadata.u_in_m * metadata.u_in_m +
+                                         metadata.v_in_m * metadata.v_in_m +
+                                         metadata.w_in_m * metadata.w_in_m);
     if (wHi > ms_data.max_w || wLo < ms_data.min_w ||
         baselineInM / selectedBand.SmallestWavelength() >
             ms_data.max_baseline_uvw) {
@@ -257,12 +257,12 @@ void MsProviderCollection::CalculateMsLimits(
 
       for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
         const double wavelength = selectedBand.ChannelWavelength(ch);
-        double wInL = metaData.wInM / wavelength;
+        double wInL = metadata.w_in_m / wavelength;
         ms_data.max_w_with_flags =
             std::max(ms_data.max_w_with_flags, fabs(wInL));
         if (*weightPtr != 0.0) {
-          double uInL = metaData.uInM / wavelength;
-          double vInL = metaData.vInM / wavelength;
+          double uInL = metadata.u_in_m / wavelength;
+          double vInL = metadata.v_in_m / wavelength;
           wsclean::CalculateMsLimits<NPolInMSProvider>(
               ms_data, uInL, vInL, wInL, baselineInM, wavelength, pixel_size_x,
               pixel_size_y, image_width, image_height, image_weights);
