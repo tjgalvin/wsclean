@@ -501,8 +501,9 @@ void IdgMsGridder::computePredictionBuffer(
     } else {
       assert(n_vis_polarizations == 4);
     }
-    WriteInstrumentalVisibilities(*_outputProvider, antenna_names.size(),
-                                  _selectedBand, row.second, metadata);
+    WriteInstrumentalVisibilities(
+        *_outputProvider, antenna_names.size(), _selectedBand, row.second,
+        metadata.field_id, metadata.antenna1, metadata.antenna2, metadata.time);
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();
   _degriddingWatch.Pause();

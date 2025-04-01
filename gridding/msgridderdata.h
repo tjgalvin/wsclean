@@ -385,24 +385,27 @@ class MsGridderData {
    */
   void WriteCollapsedVisibilities(MSProvider& ms_provider, size_t n_antennas,
                                   const aocommon::BandData& band,
-                                  std::complex<float>* buffer,
-                                  MSProvider::MetaData& metadata) {
+                                  std::complex<float>* buffer, size_t field_id,
+                                  size_t antenna1, size_t antenna2,
+                                  double time) {
     switch (n_vis_polarizations_) {
       case 1:
         WriteInstrumentalVisibilities(ms_provider, n_antennas, band, buffer,
-                                      metadata);
+                                      field_id, antenna1, antenna2, time);
         break;
       case 2:
         internal::ExpandData<2>(band.ChannelCount(), buffer,
                                 scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, n_antennas, band,
-                                      scratch_model_data_.data(), metadata);
+                                      scratch_model_data_.data(), field_id,
+                                      antenna1, antenna2, time);
         break;
       case 4:
         internal::ExpandData<4>(band.ChannelCount(), buffer,
                                 scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, n_antennas, band,
-                                      scratch_model_data_.data(), metadata);
+                                      scratch_model_data_.data(), field_id,
+                                      antenna1, antenna2, time);
         break;
     }
   }
@@ -410,13 +413,26 @@ class MsGridderData {
   /**
    * Similar to @ref WriteCollapsedVisibilities(), but assumes the input are
    * instrumental visibilities.
+   * To correct the visibilities that will be written without writing them call
+   * @ref ApplyInstrumentalVisibilities() which @ref
+   * WriteInstrumentalVisibilities() calls internally.
    * @param buffer n_polarizations x n_channels entries, which are the
    * instrumental visibilities.
    */
   void WriteInstrumentalVisibilities(MSProvider& ms_provider, size_t n_antennas,
                                      const aocommon::BandData& band,
                                      std::complex<float>* buffer,
-                                     MSProvider::MetaData& metadata);
+                                     size_t field_id, size_t antenna1,
+                                     size_t antenna2, double time);
+  /**
+   * Perform the corrections required by to @ref WriteCollapsedVisibilities() in
+   * memory.
+   */
+  void CorrectInstrumentalVisibilities(size_t n_antennas,
+                                       const aocommon::BandData& band,
+                                       std::complex<float>* buffer,
+                                       size_t field_id, size_t antenna1,
+                                       size_t antenna2, double time);
 
   bool HasDenormalPhaseCentre() const {
     return l_shift_ != 0.0 || m_shift_ != 0.0;
@@ -859,7 +875,14 @@ class MsGridderData {
   void WriteInstrumentalVisibilities(MSProvider& ms_provider, size_t n_antennas,
                                      const aocommon::BandData& band,
                                      std::complex<float>* buffer,
-                                     MSProvider::MetaData& metadata);
+                                     size_t field_id, size_t antenna1,
+                                     size_t antenna2, double time);
+  template <GainMode Mode>
+  void CorrectInstrumentalVisibilities(size_t n_antennas,
+                                       const aocommon::BandData& band,
+                                       std::complex<float>* buffer,
+                                       size_t field_id, size_t antenna1,
+                                       size_t antenna2, double time);
 
   const Settings& settings_;
 
@@ -1099,27 +1122,61 @@ void MsGridderData::RotateVisibilities(const aocommon::BandData& band,
 
 inline void MsGridderData::WriteInstrumentalVisibilities(
     MSProvider& ms_provider, size_t n_antennas, const aocommon::BandData& band,
-    std::complex<float>* buffer, MSProvider::MetaData& metadata) {
+    std::complex<float>* buffer, size_t field_id, size_t antenna1,
+    size_t antenna2, double time) {
   switch (gain_mode_) {
     case GainMode::kXX:
       WriteInstrumentalVisibilities<GainMode::kXX>(ms_provider, n_antennas,
-                                                   band, buffer, metadata);
+                                                   band, buffer, field_id,
+                                                   antenna1, antenna2, time);
       break;
     case GainMode::kYY:
       WriteInstrumentalVisibilities<GainMode::kYY>(ms_provider, n_antennas,
-                                                   band, buffer, metadata);
+                                                   band, buffer, field_id,
+                                                   antenna1, antenna2, time);
       break;
     case GainMode::kTrace:
       WriteInstrumentalVisibilities<GainMode::kTrace>(ms_provider, n_antennas,
-                                                      band, buffer, metadata);
+                                                      band, buffer, field_id,
+                                                      antenna1, antenna2, time);
       break;
     case GainMode::k2VisDiagonal:
       WriteInstrumentalVisibilities<GainMode::k2VisDiagonal>(
-          ms_provider, n_antennas, band, buffer, metadata);
+          ms_provider, n_antennas, band, buffer, field_id, antenna1, antenna2,
+          time);
       break;
     case GainMode::kFull:
       WriteInstrumentalVisibilities<GainMode::kFull>(ms_provider, n_antennas,
-                                                     band, buffer, metadata);
+                                                     band, buffer, field_id,
+                                                     antenna1, antenna2, time);
+      break;
+  }
+}
+
+inline void MsGridderData::CorrectInstrumentalVisibilities(
+    size_t n_antennas, const aocommon::BandData& band,
+    std::complex<float>* buffer, size_t field_id, size_t antenna1,
+    size_t antenna2, double time) {
+  switch (gain_mode_) {
+    case GainMode::kXX:
+      CorrectInstrumentalVisibilities<GainMode::kXX>(
+          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+      break;
+    case GainMode::kYY:
+      CorrectInstrumentalVisibilities<GainMode::kYY>(
+          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+      break;
+    case GainMode::kTrace:
+      CorrectInstrumentalVisibilities<GainMode::kTrace>(
+          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+      break;
+    case GainMode::k2VisDiagonal:
+      CorrectInstrumentalVisibilities<GainMode::k2VisDiagonal>(
+          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+      break;
+    case GainMode::kFull:
+      CorrectInstrumentalVisibilities<GainMode::kFull>(
+          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
       break;
   }
 }
@@ -1127,36 +1184,43 @@ inline void MsGridderData::WriteInstrumentalVisibilities(
 template <GainMode Mode>
 void MsGridderData::WriteInstrumentalVisibilities(
     MSProvider& ms_provider, size_t n_antennas, const aocommon::BandData& band,
-    std::complex<float>* buffer, MSProvider::MetaData& metadata) {
-  assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
-
-#ifdef HAVE_EVERYBEAM
-  if (settings_.applyFacetBeam) {
-    visibility_modifier_.CacheBeamResponse(metadata.time, metadata.field_id,
-                                           band);
-
-    visibility_modifier_.ApplyBeamResponse<Mode>(
-        buffer, band.ChannelCount(), metadata.antenna1, metadata.antenna2);
-  }
-#endif
-
-  if (visibility_modifier_.HasH5Parm()) {
-    assert(!settings_.facetRegionFilename.empty());
-    size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
-    visibility_modifier_.CacheParmResponse(metadata.time, band,
-                                           original_ms_index_, time_offset);
-    visibility_modifier_.ApplyParmResponse<Mode>(
-        buffer, original_ms_index_, band.ChannelCount(), n_antennas,
-        metadata.antenna1, metadata.antenna2, time_offset);
-    visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
-  }
-
+    std::complex<float>* buffer, size_t field_id, size_t antenna1,
+    size_t antenna2, double time) {
+  CorrectInstrumentalVisibilities<Mode>(n_antennas, band, buffer, field_id,
+                                        antenna1, antenna2, time);
   {
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
         writer_lock_manager_->GetLock(writer_lock_index_);
     ms_provider.WriteModel(buffer, IsFacet());
   }
   ms_provider.NextOutputRow();
+}
+
+template <GainMode Mode>
+void MsGridderData::CorrectInstrumentalVisibilities(
+    size_t n_antennas, const aocommon::BandData& band,
+    std::complex<float>* buffer, size_t field_id, size_t antenna1,
+    size_t antenna2, double time) {
+  assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
+
+#ifdef HAVE_EVERYBEAM
+  if (settings_.applyFacetBeam) {
+    visibility_modifier_.CacheBeamResponse(time, field_id, band);
+    visibility_modifier_.ApplyBeamResponse<Mode>(buffer, band.ChannelCount(),
+                                                 antenna1, antenna2);
+  }
+#endif
+
+  if (visibility_modifier_.HasH5Parm()) {
+    assert(!settings_.facetRegionFilename.empty());
+    size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
+    visibility_modifier_.CacheParmResponse(time, band, original_ms_index_,
+                                           time_offset);
+    visibility_modifier_.ApplyParmResponse<Mode>(
+        buffer, original_ms_index_, band.ChannelCount(), n_antennas, antenna1,
+        antenna2, time_offset);
+    visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
+  }
 }
 
 }  // namespace wsclean
