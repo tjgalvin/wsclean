@@ -399,18 +399,17 @@ void MSGridderManager::Invert() {
   }
 }
 
-void MSGridderManager::GridChunk(
-    size_t n_rows, size_t num_parallel_gridders, bool apply_corrections,
-    InversionChunkData& chunk_data, std::vector<MsGridder*>& gridders,
-    size_t gridded_visibility_count, size_t visibility_weight_sum,
-    size_t max_gridded_weight, size_t total_weight, size_t n_vis_polarizations,
+size_t MSGridderManager::GridChunk(
     aocommon::TaskQueue<std::function<void()>>& task_queue,
+    size_t num_parallel_gridders, bool apply_corrections,
+    size_t n_vis_polarizations, const aocommon::BandData& band,
+    const InversionChunkData& chunk_data,
     const aocommon::UVector<double>& frequencies,
-    const aocommon::BandData& band, MsProviderCollection::MsData& ms_data) {
-  // Grid the chunk
-  Logger::Info << "Gridding " + std::to_string(n_rows) + " rows for " +
-                      std::to_string(gridders.size()) + " facets using " +
-                      std::to_string(num_parallel_gridders) + " threads...\n";
+    const MsProviderCollection::MsData& ms_data) {
+  Logger::Info << "Gridding " + std::to_string(chunk_data.n_rows) +
+                      " rows for " + std::to_string(facet_tasks_.size()) +
+                      " facets using " + std::to_string(num_parallel_gridders) +
+                      " threads...\n";
 
   ExecuteForAllGriddersWithNCores(
       task_queue, num_parallel_gridders,
@@ -421,13 +420,14 @@ void MSGridderManager::GridChunk(
             gridder->GetVisibilityModifier().GetCachedParmResponse(
                 ms_data.original_ms_index);
 
-        gridder->gridded_visibility_count_ = gridded_visibility_count;
-        gridder->visibility_weight_sum_ = visibility_weight_sum;
-        gridder->max_gridded_weight_ = max_gridded_weight;
-        gridder->total_weight_ = total_weight;
+        gridder->gridded_visibility_count_ =
+            chunk_data.gridded_visibility_count;
+        gridder->visibility_weight_sum_ = chunk_data.visibility_weight_sum;
+        gridder->max_gridded_weight_ = chunk_data.max_gridded_weight;
+        gridder->total_weight_ = chunk_data.total_weight;
 
         gridder->GridSharedMeasurementSetChunk(
-            apply_corrections, n_vis_polarizations, n_rows,
+            apply_corrections, n_vis_polarizations, chunk_data.n_rows,
             chunk_data.uvw.data(), frequencies.data(), band,
             chunk_data.antennas.data(), chunk_data.visibilities.data(),
             apply_corrections ? chunk_data.time_offsets.data() + 1 : nullptr,
@@ -435,11 +435,11 @@ void MSGridderManager::GridChunk(
         Logger::Info << "Done gridding facet " + std::to_string(facet_index) +
                             "\n";
       });
-
-  Logger::Info << "Finished gridding " + std::to_string(n_rows) + " rows for " +
-                      std::to_string(gridders.size()) + " facets using " +
-                      std::to_string(num_parallel_gridders) + " threads...\n";
-  ms_data.total_rows_processed += n_rows;
+  Logger::Info << "Finished gridding " + std::to_string(chunk_data.n_rows) +
+                      " rows for " + std::to_string(facet_tasks_.size()) +
+                      " facets using " + std::to_string(num_parallel_gridders) +
+                      " threads...\n";
+  return chunk_data.n_rows * facet_tasks_.size();
 }
 
 void MSGridderManager::ReadChunksForInvert(
@@ -508,7 +508,6 @@ void MSGridderManager::ReadChunksForInvert(
 void MSGridderManager::GridChunks(
     aocommon::Lane<InversionChunkData>& task_lane,
     const size_t num_parallel_gridders, const bool apply_corrections,
-    std::vector<MsGridder*>& gridders,
     aocommon::TaskQueue<std::function<void()>>& task_queue,
     const aocommon::UVector<double>& frequencies,
     const aocommon::BandData& band, MsProviderCollection::MsData& ms_data,
@@ -517,11 +516,9 @@ void MSGridderManager::GridChunks(
   size_t chunk_index = 1;
   while (task_lane.read(chunk_data)) {
     Logger::Info << "Gridding chunk" << chunk_index << ".\n";
-    GridChunk(chunk_data.n_rows, num_parallel_gridders, apply_corrections,
-              chunk_data, gridders, chunk_data.gridded_visibility_count,
-              chunk_data.visibility_weight_sum, chunk_data.max_gridded_weight,
-              chunk_data.total_weight, n_vis_polarizations, task_queue,
-              frequencies, band, ms_data);
+    ms_data.total_rows_processed +=
+        GridChunk(task_queue, num_parallel_gridders, apply_corrections,
+                  n_vis_polarizations, band, chunk_data, frequencies, ms_data);
     Logger::Info << "Done gridding chunk" << chunk_index << ".\n";
     ++chunk_index;
   }
@@ -611,8 +608,7 @@ void MSGridderManager::BatchInvert(size_t num_parallel_gridders) {
       aocommon::Lane<InversionChunkData> task_lane(1);
       std::thread grid_chunks_thread([&] {
         GridChunks(task_lane, num_parallel_gridders, apply_corrections,
-                   gridders, task_queue, frequencies, band, ms_data,
-                   n_vis_polarizations);
+                   task_queue, frequencies, band, ms_data, n_vis_polarizations);
       });
       ReadChunksForInvert(task_lane, n_max_rows_in_memory, apply_corrections,
                           ms_data, shared_data, gridders, band,

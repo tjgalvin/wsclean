@@ -273,18 +273,15 @@ class MSGridderManager {
 
   /**
    * Perform gridding on a single block of data stored in @ref
-   * InversionChunkData
+   * InversionChunkData.
+   * @return The number of rows processed.
    */
-  void GridChunk(size_t n_rows, size_t num_parallel_gridders,
-                 bool apply_corrections, InversionChunkData& chunk_data,
-                 std::vector<MsGridder*>& gridders,
-                 size_t gridded_visibility_count, size_t visibility_weight_sum,
-                 size_t max_gridded_weight, size_t total_weight,
-                 size_t n_vis_polarizations,
-                 aocommon::TaskQueue<std::function<void()>>& task_queue,
-                 const aocommon::UVector<double>& frequencies,
-                 const aocommon::BandData& band,
-                 MsProviderCollection::MsData& ms_data);
+  size_t GridChunk(aocommon::TaskQueue<std::function<void()>>& task_queue,
+                   size_t num_parallel_gridders, bool apply_corrections,
+                   size_t n_vis_polarizations, const aocommon::BandData& band,
+                   const InversionChunkData& chunk_data,
+                   const aocommon::UVector<double>& frequencies,
+                   const MsProviderCollection::MsData& ms_data);
 
   /**
    * Perform gridding on chunks of @ref InversionChunkData by calling @ref
@@ -294,7 +291,6 @@ class MSGridderManager {
   void GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
                   const size_t num_parallel_gridders,
                   const bool apply_corrections,
-                  std::vector<MsGridder*>& gridders,
                   aocommon::TaskQueue<std::function<void()>>& task_queue,
                   const aocommon::UVector<double>& frequencies,
                   const aocommon::BandData& band,
