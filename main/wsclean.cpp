@@ -1581,13 +1581,15 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
           _settings.isFirstResidualSaved)
         writeFirstResidualImages(tableWithoutDdPsf);
-      const bool isFinished = !reachedMajorThreshold;
-      if (isFinished) {
+
+      const bool is_finished = !reachedMajorThreshold;
+      if (is_finished) {
         writeModelImages(tableWithoutDdPsf);
       }
 
-      partitionModelIntoFacets(facetGroups, false);
-      if (_settings.deconvolutionMGain != 1.0) {
+      const bool skip_iteration = is_finished && _settings.skipFinalIteration;
+      if (!skip_iteration) partitionModelIntoFacets(facetGroups, false);
+      if (_settings.deconvolutionMGain != 1.0 && !skip_iteration) {
         ResetModelColumnsIfUsingFacets(facetGroups);
         _griddingTaskManager->Start(
             getMaxNrMSProviders() *

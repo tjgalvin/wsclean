@@ -275,6 +275,10 @@ Options can be:
    Always make the psf, even when no cleaning is performed.
 -make-psf-only
    Only make the psf, no images are made.
+-skip-final-iteration
+   Skip the prediction-gridding round after finishing deconvolution. The final images may have slightly lower
+   quality, but the model (images/list) is complete. This is therefore useful in self-calibration when the
+   model image or model component list is used instead of the visibilities.
 -visibility-weighting-mode [normal/squared/unit]
    Specify visibility weighting modi. Affects how the weights (normally) stored in
    WEIGHT_SPECTRUM column are applied. Useful for estimating e.g. EoR power spectra errors.
@@ -940,6 +944,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.makePSF = true;
     } else if (param == "make-psf-only") {
       settings.makePSFOnly = true;
+    } else if (param == "skip-final-iteration") {
+      settings.skipFinalIteration = true;
     } else if (param == "name") {
       IncArgi(argi, argc);
       settings.prefixName = argv[argi];

@@ -113,6 +113,7 @@ class Settings {
   bool minGridResolution = true;
   bool makePSF = false;
   bool makePSFOnly = false;
+  bool skipFinalIteration = false;
   bool isWeightImageSaved = false;
   bool isUVImageSaved = false;
   bool isDirtySaved = true;
