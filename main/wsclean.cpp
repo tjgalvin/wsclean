@@ -958,18 +958,33 @@ void WSClean::RunPredict() {
 }
 
 void WSClean::DrawModel() {
-  _observationInfo = getObservationInfo();
-  std::tie(_l_shift, _m_shift) = getLMShift();
+  double phase_centre_ra = 0.0;
+  double phase_centre_dec = 0.0;
+  double l_shift = 0.0;
+  double m_shift = 0.0;
+
+  if (_settings.useManualPhaseCentre) {
+    phase_centre_ra = _settings.drawnPhaseCentreRA;
+    phase_centre_dec = _settings.drawnPhaseCentreDec;
+  } else if (_settings.filenames.size() != 0) {
+    _observationInfo = getObservationInfo();
+    phase_centre_ra = _observationInfo.phaseCentreRA;
+    phase_centre_dec = _observationInfo.phaseCentreDec;
+
+    std::tie(l_shift, m_shift) = getLMShift();
+  } else {
+    throw std::runtime_error("No phase centre is provided.");
+  }
 
   CoordinateSystem cs;
   cs.width = _settings.trimmedImageWidth;
   cs.height = _settings.trimmedImageHeight;
-  cs.ra = _observationInfo.phaseCentreRA;
-  cs.dec = _observationInfo.phaseCentreDec;
+  cs.ra = phase_centre_ra;
+  cs.dec = phase_centre_dec;
   cs.dl = _settings.pixelScaleX;
   cs.dm = _settings.pixelScaleY;
-  cs.l_shift = _l_shift;
-  cs.m_shift = _m_shift;
+  cs.l_shift = l_shift;
+  cs.m_shift = m_shift;
 
   std::vector<Image> images = math::RenderSubPixelModel(
       _settings.inputSkyModelFilename, cs, _settings.drawnSkyModelFrequency,
@@ -978,7 +993,7 @@ void WSClean::DrawModel() {
 
   for (size_t image_index = 0; image_index < images.size(); ++image_index) {
     std::string fits_filename = _settings.prefixName;
-    fits_filename += "-term_" + std::to_string(image_index) + ".fits";
+    fits_filename += "-term-" + std::to_string(image_index) + ".fits";
 
     aocommon::FitsWriter fits_writer;
     fits_writer.SetImageDimensions(cs.width, cs.height, cs.ra, cs.dec, cs.dl,

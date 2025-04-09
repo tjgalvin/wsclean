@@ -215,6 +215,9 @@ class Settings {
   size_t drawnSpectralTermCount = 1;
   double drawnSkyModelFrequency = 0.0;
   double drawnSkyModelBandwidth = 0.0;
+  bool useManualPhaseCentre = false;
+  double drawnPhaseCentreRA = 0.0;
+  double drawnPhaseCentreDec = 0.0;
   /**
    * The number of channels used during deconvolution. This can be used to
    * image with more channels than deconvolution. Before deconvolution,

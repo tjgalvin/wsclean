@@ -531,6 +531,8 @@ but subtract components from individual channels.
   ** SKY MODEL DRAWING OPTIONS**
 -draw-model <input model>
    Create a FITS image from a sky model, provided in the BBS/DP3 text format. Use -name to specify the prefix of the output image(s).
+-draw-centre <ra> <dec>
+  Draw the sky model at the given phase centre. Takes precedent over observation phase centre, if a MS is provided.
 -draw-frequencies <central frequency> <bandwidth>
    Sets the central fequency and bandwidth of the image that is to be rendered (in Hz).
 -sinc-window-size <window size in pixels>
@@ -1168,6 +1170,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.mode = Settings::DrawModelMode;
       IncArgi(argi, argc);
       settings.inputSkyModelFilename = argv[argi];
+    } else if (param == "draw-centre") {
+      settings.useManualPhaseCentre = true;
+      IncArgi(argi, argc);
+      settings.drawnPhaseCentreRA = aocommon::RaDecCoord::ParseRA(argv[argi]);
+      IncArgi(argi, argc);
+      settings.drawnPhaseCentreDec = aocommon::RaDecCoord::ParseDec(argv[argi]);
     } else if (param == "draw-frequencies") {
       IncArgi(argi, argc);
       settings.drawnSkyModelFrequency =
@@ -1443,7 +1451,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
   }
 
   if (argi == argc && settings.mode != Settings::RestoreMode &&
-      settings.mode != Settings::RestoreListMode)
+      settings.mode != Settings::RestoreListMode &&
+      settings.mode != Settings::DrawModelMode)
     throw std::runtime_error("No input measurement sets given.");
 
   // Done parsing.
