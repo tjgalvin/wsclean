@@ -1464,7 +1464,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
 void WSClean::ResetModelColumnsIfUsingFacets(
     const ImagingTable::Groups& facet_groups) {
   assert(!facet_groups.empty());
-  if (facet_groups.front().size() > 1) {
+  if (_facetCount != 0) {
     for (const ImagingTable::Group& facet_group : facet_groups) {
       resetModelColumns(*facet_group.front());
     }
