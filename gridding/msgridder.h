@@ -75,7 +75,7 @@ class MsGridder : public MsGridderData {
    *   @ref GetNInversionPasses()
    *   @ref StartInversionPass()
    *   @ref FinishInversionPass()
-   * For inversion with shared reads:
+   * For inversion with shared memory and reads:
    *   @ref CalculateConstantMemory()
    *   @ref CalculateMaxRowsInMemory()
    *   @ref GridSharedMeasurementSetChunk()
@@ -101,12 +101,16 @@ class MsGridder : public MsGridderData {
    * channel that will be kept in memory. Often this will be 1 as we collapse
    * the visibilities before gridding, but in some cases; e.g. shared reads we
    * need to keep all the polatizations in memory
+   * @param additional_per_row_consumption Is taken as a double in order to
+   * maintain precision, because in some cases its value can represent shared
+   * memory across multiple facets (shared_per_row_consumption/num_facets) and
+   * therefore might be fractional.
    * @return The number of rows that will fit in memory.
    */
   virtual size_t CalculateMaxRowsInMemory(
       int64_t available_memory, size_t constant_memory,
-      size_t additional_per_row_consumption, size_t channel_count,
-      size_t num_polarizations_stored) const {
+      double additional_per_row_consumption, size_t per_row_uvw_consumption,
+      size_t channel_count, size_t num_polarizations_stored) const {
     return 0;
   }
   /** Takes a chunk of visibilities pre-populated by the caller, that does
@@ -151,12 +155,18 @@ class MsGridder : public MsGridderData {
   }
 
   /**
-   * To handle prediction a gridder must implement either 3 or 6 of the
-   * following functions.
+   * To handle prediction a gridder must implement the following
+   * functions.
    * If a gridder only makes one pass per MS:
-   *     StartPredict(), PredictMeasurementSet(), FinishPredict()
+   *   @ref StartPredict()
+   *   @ref PredictMeasurementSet()
+   *   @ref FinishPredict()
    * If multiple passes then additionally:
-   *     GetNPredictPasses(), StartPredictPass(), FinishPredictPass()
+   *   @ref GetNPredictPasses()
+   *   @ref StartPredictPass()
+   *   @ref FinishPredictPass()
+   * For prediction with shared memory and writes:
+   *   @ref PredictChunk()
    */
   virtual void StartPredict(std::vector<aocommon::Image>&& images) = 0;
   virtual size_t GetNPredictPasses() const { return 1; }
@@ -164,7 +174,14 @@ class MsGridder : public MsGridderData {
   /** @return The number of visibility rows processed */
   virtual size_t PredictMeasurementSet(
       const MsProviderCollection::MsData& ms_data) = 0;
-  virtual void FinishPredictPass(){};
+  virtual void PredictChunk(size_t n_rows, size_t n_channels,
+                            const double* frequencies, const double* uvws,
+                            std::complex<float>* visibilities) const {
+    throw std::runtime_error(
+        "Selected gridder does not yet support shared predict. Try a different "
+        "gridder, e.g. wgridder.");
+  }
+  virtual void FinishPredictPass(size_t pass_index){};
   virtual void FinishPredict() = 0;
 
   virtual std::vector<aocommon::Image> ResultImages() = 0;

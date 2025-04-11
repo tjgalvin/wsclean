@@ -320,6 +320,8 @@ Options can be:
    Schedule compound gridding tasks which contain all facets for a single image.
 -shared-facet-reads
    When parallel gridding with multiple facets read data only once per compound gridding task into a shared data buffer and share this buffer for the gridders of all facets within the task. Implicitly sets -compound-tasks.
+-shared-facet-writes
+   When parallel gridding with multiple facets, sum all predicted data from all facets in a compound gridding task in a single shared memory data buffer and then write this buffer once. This can be more efficient than having each facet write independently. Implicitly sets -compound-tasks.
 
   ** A-TERM GRIDDING **
 -aterm-config <filename>
@@ -1310,6 +1312,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "shared-facet-reads") {
       settings.compound_tasks = true;
       settings.shared_facet_reads = true;
+    } else if (param == "shared-facet-writes") {
+      settings.compound_tasks = true;
+      settings.shared_facet_writes = true;
     } else if (param == "aterm-config") {
       IncArgi(argi, argc);
       settings.atermConfigFilename = argv[argi];
@@ -1465,6 +1470,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.gridderType != GridderType::WGridder) {
     throw std::runtime_error(
         "-shared-facet-reads are currently only compatible with -gridder "
+        "wgridder");
+  }
+  if (settings.shared_facet_writes &&
+      settings.gridderType != GridderType::WGridder) {
+    throw std::runtime_error(
+        "-shared_facet_writes are currently only compatible with -gridder "
         "wgridder");
   }
 

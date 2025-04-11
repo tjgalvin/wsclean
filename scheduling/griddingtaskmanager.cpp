@@ -86,7 +86,12 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
       manager.Invert();
     }
   } else {
-    manager.Predict();
+    if (settings_.shared_facet_writes) {
+      manager.SortFacetTasks();
+      manager.BatchPredict(task.num_parallel_gridders_);
+    } else {
+      manager.Predict();
+    }
   }
   const bool store_common_info = (facet_indices.front() == 0);
   if (store_common_info) {
@@ -94,7 +99,7 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   }
   manager.ProcessResults(result_mutex, result, store_common_info);
 
-  if (GetSettings().shared_facet_reads) {
+  if (GetSettings().shared_facet_reads || GetSettings().shared_facet_writes) {
     // Allow wait tasks to resume
     if (task.lock_excess_scheduler_tasks_) {
       task.lock_excess_scheduler_tasks_->SignalCompletion();

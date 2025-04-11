@@ -57,7 +57,12 @@ void ThreadedScheduler::Run(
   task_data->result.facets.resize(facet_count);
   task_data->callback = std::move(finish_callback);
 
-  if (!GetSettings().shared_facet_reads) {
+  const bool batch_invert = GetSettings().shared_facet_reads &&
+                            task.operation == GriddingTask::Invert;
+  const bool batch_predict =
+      (GetSettings().shared_facet_reads || GetSettings().shared_facet_writes) &&
+      task.operation == GriddingTask::Predict;
+  if (!batch_invert && !batch_predict) {
     // Add sub-tasks for each facet to the task queue.
     for (std::size_t facet_index = 0; facet_index < facet_count;
          ++facet_index) {

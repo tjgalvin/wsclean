@@ -414,7 +414,7 @@ class MsGridderData {
    * Similar to @ref WriteCollapsedVisibilities(), but assumes the input are
    * instrumental visibilities.
    * To correct the visibilities that will be written without writing them call
-   * @ref ApplyInstrumentalVisibilities() which @ref
+   * @ref CorrectInstrumentalVisibilities() which @ref
    * WriteInstrumentalVisibilities() calls internally.
    * @param buffer n_polarizations x n_channels entries, which are the
    * instrumental visibilities.

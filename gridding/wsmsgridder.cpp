@@ -586,7 +586,7 @@ void WSMSGridder::StartPredictPass(size_t pass_index) {
   Logger::Info << "Predicting...\n";
 }
 
-void WSMSGridder::FinishPredictPass() {}
+void WSMSGridder::FinishPredictPass(size_t /*pass_index*/) {}
 
 void WSMSGridder::FinishPredict() {
   size_t total_rows_processed = 0;

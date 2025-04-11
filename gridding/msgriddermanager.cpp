@@ -577,24 +577,26 @@ void MSGridderManager::BatchInvert(size_t num_parallel_gridders) {
       const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
 
       // We need to sum constant memory usage up across all gridders as each
-      // gridder has its own internal memory usage based on image size, but
-      // perVisMem will always be the same as its shared across all gridders
+      // gridder has its own internal memory usage based on image size
       size_t constant_mem = 0;
       for (MsGridder* gridder : gridders) {
         constant_mem += gridder->CalculateConstantMemory();
       }
       // We incur these additional per row memory overheads with data that we
       // have to cache for later in order to apply the corrections
-      size_t additional_per_vis_mem = 0;
+      size_t additional_per_vis_row_mem = 0;
       bool apply_corrections = gridders[0]->WillApplyCorrections();
       if (apply_corrections) {
         // For each row we have to store an antenna pair and a solution time
         // offset
-        additional_per_vis_mem = sizeof(size_t) * 3;
+        additional_per_vis_row_mem = sizeof(size_t) * 3;
       }
-
+      // Per visibility memory is only calculated once as its shared across
+      // gridders.
+      const size_t per_row_uvw_memory_consumption = sizeof(double) * 3;
       const size_t n_max_rows_in_memory = gridders[0]->CalculateMaxRowsInMemory(
-          available_memory_, constant_mem, additional_per_vis_mem, n_channels,
+          available_memory_, constant_mem, additional_per_vis_row_mem,
+          per_row_uvw_memory_consumption, n_channels,
           apply_corrections ? n_vis_polarizations : 1);
 
       aocommon::UVector<double> frequencies(n_channels);
@@ -645,9 +647,332 @@ void MSGridderManager::Predict() {
                                      true);
         ms_data.total_rows_processed += gridder->PredictMeasurementSet(ms_data);
       }
-      gridder->FinishPredictPass();
+      gridder->FinishPredictPass(pass_index);
     }
     gridder->FinishPredict();
+  }
+}
+
+namespace internal {
+/*
+ * The input for this function is the predicted facet visibilities for a single
+ * facet.
+ * 1. Expand the visibilities.
+ * 2. Apply corrections to the visibilities.
+ * 3. Cumulatively add the expanded and corrected visibilities with those of
+ * other facets.
+ */
+void ExpandAndCombineFacetVisibilities(
+    size_t n_antennas, size_t n_channels, size_t n_rows,
+    size_t n_vis_polarizations, const aocommon::BandData& band,
+    const size_t* antennas1, const size_t* antennas2, const size_t* field_ids,
+    const double* times, std::complex<float>* facet_visibilities,
+    MsGridder* gridder, std::complex<float>* combined_visibilities) {
+  aocommon::UVector<std::complex<float>> visibilities_scratch(
+      n_channels * n_vis_polarizations);
+  for (size_t i = 0; i < n_rows; ++i) {
+    switch (n_vis_polarizations) {
+      case 1:
+        std::copy_n(facet_visibilities, n_channels,
+                    visibilities_scratch.data());
+        break;
+      case 2:
+        internal::ExpandData<2>(n_channels, facet_visibilities,
+                                visibilities_scratch.data(),
+                                gridder->Polarization());
+        break;
+      case 4:
+        internal::ExpandData<4>(n_channels, facet_visibilities,
+                                visibilities_scratch.data(),
+                                gridder->Polarization());
+        break;
+    }
+    gridder->CorrectInstrumentalVisibilities(
+        n_antennas, band, visibilities_scratch.data(), *field_ids, *antennas1,
+        *antennas2, *times);
+
+    // In case the value was not sampled in this pass, it has been set to
+    // infinite and should not overwrite the current value in the set.
+    // NB! This is only true for multi pass gridders (wstacking gridder) other
+    // gridders could consider skipping this check if it becomes important for
+    // performance.
+    for (size_t i = 0; i < n_channels * n_vis_polarizations; ++i) {
+      if (std::isfinite(visibilities_scratch[i].real())) {
+        combined_visibilities[i] += visibilities_scratch[i];
+      }
+    }
+    facet_visibilities += n_channels;
+    combined_visibilities += n_channels * n_vis_polarizations;
+    field_ids++;
+    antennas1++;
+    antennas2++;
+    times++;
+  }
+}
+}  // namespace internal
+
+size_t MSGridderManager::PredictChunk(
+    const PredictionChunkData& chunk_data, size_t n_channels,
+    size_t n_vis_polarizations, size_t n_antennas,
+    std::vector<std::complex<float>>& combined_visibilities,
+    size_t num_parallel_gridders,
+    aocommon::TaskQueue<std::function<void()>>& task_queue,
+    const aocommon::UVector<double>& frequencies,
+    const aocommon::BandData& band, MsProviderCollection::MsData& ms_data) {
+  using internal::ExpandAndCombineFacetVisibilities;
+  Logger::Info << "Predicting " + std::to_string(chunk_data.n_rows) +
+                      " rows for " + std::to_string(facet_tasks_.size()) +
+                      " facets using " + std::to_string(num_parallel_gridders) +
+                      " threads...\n";
+  // As all facets are summing their values into combined_visibilities we have
+  // to protect it with a mutex to avoid data corruption. NB! This may not be
+  // ideal performance wise, if benchmarks indicate that it is worthwhile then a
+  // lock free alternative should be possible. As we are only summing the
+  // complex numbers and not doing any other operations, it would not be
+  // necessarry for the entire complex number to be atomic, only the independent
+  // additions on the real and imaginary portions would need to be atomic.
+  std::mutex sum_visibilities_mutex;
+  ExecuteForAllGriddersWithNCores(
+      task_queue, num_parallel_gridders,
+      [&](MsGridder* gridder, size_t facet_index) {
+        Logger::Info << "Predicting facet " + std::to_string(facet_index) +
+                            "\n";
+        aocommon::UVector<std::complex<float>> facet_visibilities(
+            chunk_data.n_rows * n_channels);
+        gridder->PredictChunk(chunk_data.n_rows, n_channels, frequencies.data(),
+                              chunk_data.uvws.data(),
+                              facet_visibilities.data());
+        {
+          std::unique_lock<std::mutex> lock(sum_visibilities_mutex);
+          ExpandAndCombineFacetVisibilities(
+              n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
+              band, chunk_data.antennas1.data(), chunk_data.antennas2.data(),
+              chunk_data.field_ids.data(), chunk_data.times.data(),
+              facet_visibilities.data(), gridder, combined_visibilities.data());
+        }
+        Logger::Info << "Done predicting facet " + std::to_string(facet_index) +
+                            "\n";
+      });
+  Logger::Info << "Finished Predicting " + std::to_string(chunk_data.n_rows) +
+                      " rows for " + std::to_string(facet_tasks_.size()) +
+                      " facets using " + std::to_string(num_parallel_gridders) +
+                      " threads...\n";
+  return chunk_data.n_rows * facet_tasks_.size();
+}
+
+void MSGridderManager::PredictChunks(
+    aocommon::Lane<PredictionChunkData>& task_lane,
+    size_t num_parallel_gridders,
+    aocommon::TaskQueue<std::function<void()>>& task_queue,
+    const aocommon::UVector<double>& frequencies,
+    const aocommon::BandData& band, MsProviderCollection::MsData& ms_data,
+    size_t n_vis_polarizations) {
+  PredictionChunkData chunk_data;
+  size_t chunk_index = 1;
+
+  while (task_lane.read(chunk_data)) {
+    std::vector<std::complex<float>> combined_visibilities(
+        chunk_data.n_rows * band.ChannelCount() * n_vis_polarizations);
+    // Predict the per facet visibilities; expand and apply corrections then
+    // combine them together.
+    Logger::Info << "Predicting chunk" << chunk_index << ".\n";
+    ms_data.total_rows_processed += PredictChunk(
+        chunk_data, band.ChannelCount(), n_vis_polarizations,
+        ms_data.antenna_names.size(), combined_visibilities,
+        num_parallel_gridders, task_queue, frequencies, band, ms_data);
+
+    // Do a single write for the combined/expanded chunk of visibilities of all
+    // facets.
+    Logger::Info << "Writing chunk" << chunk_index << ".\n";
+    const bool sum_with_ms_model = false;
+    const size_t stride = band.ChannelCount() * n_vis_polarizations;
+    std::complex<float>* visibilities = combined_visibilities.data();
+    for (size_t row = 0; row != chunk_data.n_rows; ++row) {
+      ms_data.ms_provider->WriteModel(visibilities, sum_with_ms_model);
+      ms_data.ms_provider->NextOutputRow();
+      visibilities += stride;
+    }
+    Logger::Info << "Done predicting chunk" << chunk_index << ".\n";
+    ++chunk_index;
+  }
+  Logger::Info << "All predict rows processed.\n";
+}
+
+void MSGridderManager::ReadChunksForPredict(
+    aocommon::Lane<PredictionChunkData>& task_lane, size_t n_max_rows_in_memory,
+    MsProviderCollection::MsData& ms_data, MsGridderData& shared_data,
+    const std::vector<MsGridder*>& gridders, const aocommon::BandData band,
+    size_t n_vis_polarizations, const bool* selected_buffer) {
+  // We read chunks based on the maximum amount of rows we think we can fit
+  // in memory at a time.
+  Logger::Info << "Max " << n_max_rows_in_memory << " rows fit in memory.\n";
+  SynchronizedMS ms = ms_data.ms_provider->MS();
+  const size_t n_total_rows_in_ms = ms->nrow();
+  n_max_rows_in_memory = std::min(n_max_rows_in_memory, n_total_rows_in_ms);
+  // We want two chunks of memory, one reading while one processes.
+  // However estimate that we can read 50% of the next chunk before
+  // the first is done gridding, so divide by 1.5 instead of 2.
+  // NB! This should be revised in future if/when loading is faster
+  // than gridding which would be ideal but is not the case currently.
+  const size_t n_rows_per_chunk = n_max_rows_in_memory / 1.5;
+  size_t total_chunks = (n_total_rows_in_ms / n_rows_per_chunk);
+  size_t target_chunk_size = n_rows_per_chunk;
+  // Compute the partial chunk remainder that might be left over.
+  size_t n_rows_in_smaller_chunk = n_max_rows_in_memory % n_rows_per_chunk;
+  if (n_rows_in_smaller_chunk > 0) {
+    total_chunks += 1;
+    target_chunk_size = n_rows_in_smaller_chunk;
+  } else {
+    n_rows_in_smaller_chunk = n_rows_per_chunk;
+  }
+  size_t chunk_index = 1;
+  Logger::Info << "Reading " << total_chunks << " chunks with "
+               << n_rows_in_smaller_chunk << " rows in first chunk and "
+               << n_rows_per_chunk << " rows per remaining chunk.\n";
+  // Set provider up for writing
+  ms_data.ms_provider->ReopenRW();
+  ms_data.ms_provider->ResetWritePosition();
+  std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
+  while (ms_reader->CurrentRowAvailable()) {
+    Logger::Info << "Loading " << target_chunk_size
+                 << " rows into memory chunk " << chunk_index << ".\n";
+    PredictionChunkData chunk_data(target_chunk_size);
+    while (ms_reader->CurrentRowAvailable() &&
+           chunk_data.n_rows < target_chunk_size) {
+      MSProvider::MetaData metadata;
+      shared_data.ReadPredictMetaData(metadata);
+      chunk_data.uvws[chunk_data.n_rows * 3] = metadata.u_in_m;
+      chunk_data.uvws[chunk_data.n_rows * 3 + 1] = metadata.v_in_m;
+      chunk_data.uvws[chunk_data.n_rows * 3 + 2] = metadata.w_in_m;
+      chunk_data.antennas1[chunk_data.n_rows] = metadata.antenna1;
+      chunk_data.antennas2[chunk_data.n_rows] = metadata.antenna2;
+      chunk_data.field_ids[chunk_data.n_rows] = metadata.field_id;
+      chunk_data.times[chunk_data.n_rows] = metadata.time;
+      chunk_data.n_rows++;
+      ms_reader->NextInputRow();
+    }
+    Logger::Debug << "Done loading chunk " << chunk_index << ".\n";
+
+    task_lane.write(std::move(chunk_data));
+    ++chunk_index;
+    target_chunk_size = n_rows_per_chunk;
+  }
+  Logger::Info << "All predict rows loaded.\n";
+  task_lane.write_end();
+}
+
+void MSGridderManager::BatchPredict(size_t num_parallel_gridders) {
+  assert(facet_tasks_.size() > 1);
+  InitializeMSDataVectors();
+
+  MsProviderCollection& providers = ms_provider_collection_;
+
+  aocommon::TaskQueue<std::function<void()>> task_queue;
+  std::vector<std::thread> thread_pool;
+  thread_pool.reserve(available_cores_);
+  for (size_t i = 0; i < available_cores_; ++i) {
+    thread_pool.emplace_back([&] {
+      std::function<void()> operation;
+      while (task_queue.Pop(operation)) {
+        operation();
+      }
+    });
+  }
+
+  std::vector<MsGridder*> gridders;
+  gridders.reserve(facet_tasks_.size());
+  for (const GriddingFacetTask& task : facet_tasks_) {
+    const std::unique_ptr<MsGridder>& gridder = task.facet_gridder;
+    gridders.emplace_back(gridder.get());
+  }
+
+  ExecuteForAllGridders(
+      task_queue, [=](MsGridder* gridder, GriddingFacetTask& task) {
+        gridder->CalculateOverallMetaData();
+        gridder->StartPredict(std::move(task.facet_task->modelImages));
+      });
+
+  const size_t n_predict_passes = gridders[0]->GetNPredictPasses();
+  for (size_t pass_index = 0; pass_index < n_predict_passes; ++pass_index) {
+    ExecuteForAllGridders(task_queue, [=](MsGridder* gridder) {
+      gridder->StartPredictPass(pass_index);
+    });
+    for (MsProviderCollection::MsData& ms_data : providers.ms_data_vector_) {
+      MsGridderData shared_data(settings_);
+      shared_data.CopyTaskData((*gridders[0]), solution_data_, ms_data);
+      ExecuteForAllGridders(
+          task_queue,
+          [&](MsGridder* gridder) {
+            gridder->StartMeasurementSet(providers.Count(), ms_data, true);
+          },
+          false);
+      shared_data.StartMeasurementSet(providers.Count(), ms_data, true);
+      task_queue.WaitForIdle(available_cores_);
+
+      const aocommon::BandData band(ms_data.SelectedBand());
+      const size_t n_channels = band.ChannelCount();
+      const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
+
+      // Each gridder has its own constant memory usage:
+      //   * Memory to store the grid
+      //   * A copy of the dirty image
+      //   * Memory to store predicted visibilities.
+      size_t constant_mem = 0;
+      for (MsGridder* gridder : gridders) {
+        constant_mem += gridder->CalculateConstantMemory();
+      }
+      // Additionally there is per row memory usage across all gridders:
+      //   * One set of expanded/corrected visibilities
+      //   * One set of metadata
+      size_t shared_mem_per_row =
+          sizeof(std::complex<float>) * n_channels * n_vis_polarizations;
+      shared_mem_per_row += sizeof(double) * 3;  // uvw
+      shared_mem_per_row += sizeof(double) * 3;  // time
+      shared_mem_per_row += sizeof(size_t) * 3;  // antenna1, antenna2, field_id
+      // Which we approximate to a per gridder overhead instead.
+      // This will not be perfect but should be close enough.
+      double additional_per_vis_row_mem = shared_mem_per_row / gridders.size();
+      // uvw is already accounted for in shared memory so don't count it again.
+      const size_t per_row_uvw_memory_consumption = 0;
+      // Compute maximum rows for a single gridder based on the above
+      // assumptions/approximations.
+      const size_t n_max_overall_rows_in_memory =
+          gridders[0]->CalculateMaxRowsInMemory(
+              available_memory_, constant_mem, additional_per_vis_row_mem,
+              per_row_uvw_memory_consumption, n_channels, 1);
+      // Finally approximate that again to multiple gridders to get maximum rows
+      // per gridder.
+      const size_t n_max_rows_in_memory =
+          n_max_overall_rows_in_memory / gridders.size();
+
+      aocommon::UVector<double> frequencies(n_channels);
+      for (size_t i = 0; i != frequencies.size(); ++i) {
+        frequencies[i] = band.ChannelFrequency(i);
+      }
+      aocommon::UVector<bool> selected_buffer(n_channels, true);
+
+      // Iterate over data in chunks until all visibilities have been predicted.
+      aocommon::Lane<PredictionChunkData> task_lane(1);
+      std::thread predict_chunks_thread([&] {
+        PredictChunks(task_lane, num_parallel_gridders, task_queue, frequencies,
+                      band, ms_data, n_vis_polarizations);
+      });
+      ReadChunksForPredict(task_lane, n_max_rows_in_memory, ms_data,
+                           shared_data, gridders, band, n_vis_polarizations,
+                           selected_buffer.data());
+      predict_chunks_thread.join();
+    }
+    ExecuteForAllGridders(task_queue, [=](MsGridder* gridder) {
+      gridder->FinishPredictPass(pass_index);
+    });
+  }
+  ExecuteForAllGridders(task_queue,
+                        [](MsGridder* gridder) { gridder->FinishPredict(); });
+
+  // Clean up the thread pool
+  task_queue.Finish();
+  for (std::thread& thread : thread_pool) {
+    thread.join();
   }
 }
 

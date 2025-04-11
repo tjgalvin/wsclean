@@ -165,6 +165,7 @@ class Settings {
   std::string simulatedBaselineNoiseFilename;
   bool compound_tasks = false;
   bool shared_facet_reads = false;
+  bool shared_facet_writes = false;
 
   /** @{
    * These settings all relate to the deconvolution.

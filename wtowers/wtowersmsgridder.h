@@ -54,7 +54,8 @@ class WTowersMsGridder final : public MsGridder {
   size_t CalculateConstantMemory() const final;
   size_t CalculateMaxRowsInMemory(int64_t available_memory,
                                   size_t constant_memory,
-                                  size_t additional_per_row_consumption,
+                                  double additional_per_row_consumption,
+                                  size_t per_row_uvw_consumption,
                                   size_t channel_count,
                                   size_t num_polarizations_stored) const final;
 

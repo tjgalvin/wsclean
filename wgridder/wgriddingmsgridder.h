@@ -34,6 +34,9 @@ class WGriddingMSGridder final : public MsGridder {
   void StartPredict(std::vector<aocommon::Image>&& images) final;
   size_t PredictMeasurementSet(
       const MsProviderCollection::MsData& ms_data) final;
+  void PredictChunk(size_t n_rows, size_t n_channels, const double* frequencies,
+                    const double* uvws,
+                    std::complex<float>* visibilities) const final;
   void FinishPredict() final;
 
   std::vector<aocommon::Image> ResultImages() final {
@@ -52,11 +55,18 @@ class WGriddingMSGridder final : public MsGridder {
   size_t CalculateConstantMemory() const final;
   size_t CalculateMaxRowsInMemory(int64_t available_memory,
                                   size_t constant_memory,
-                                  size_t additional_per_row_consumption,
+                                  double additional_per_row_consumption,
+                                  size_t per_row_uvw_consumption,
                                   size_t channel_count,
                                   size_t num_polarizations_stored) const final;
 
   void GetActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
+
+  void WritePredictChunk(MSProvider* ms_provider, size_t n_rows,
+                         size_t n_antennas,
+                         const aocommon::BandData& selected_band,
+                         const std::vector<MSProvider::MetaData>& metadatas,
+                         std::complex<float>* visibilities);
 
   const Resources resources_;
   double accuracy_;

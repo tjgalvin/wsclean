@@ -39,7 +39,7 @@ class WSMSGridder final : public MsGridder {
   void StartPredictPass(size_t pass_index) final;
   size_t PredictMeasurementSet(
       const MsProviderCollection::MsData& ms_data) final;
-  void FinishPredictPass() final;
+  void FinishPredictPass(size_t pass_index) final;
   void FinishPredict() final;
 
   std::vector<aocommon::Image> ResultImages() final {

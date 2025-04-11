@@ -61,8 +61,8 @@ size_t WGriddingMSGridder::CalculateConstantMemory() const {
 
 size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
     int64_t available_memory, size_t constant_memory,
-    size_t additional_per_row_consumption, size_t channel_count,
-    size_t num_polarizations_stored) const {
+    double additional_per_row_consumption, size_t per_row_uvw_consumption,
+    size_t channel_count, size_t num_polarizations_stored) const {
   if (static_cast<int64_t>(constant_memory) >= available_memory) {
     // Assume that half the memory is necessary for the constant parts (like
     // image grid), and the other half remains available for the dynamic buffers
@@ -78,14 +78,19 @@ size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
   const size_t per_row_visibility_memory =
       (per_visibility_ducc_overhead * channel_count) +
       (sizeof(std::complex<float>) * channel_count * num_polarizations_stored);
-  const size_t per_row_uvw_memory = sizeof(double) * 3;
-  const uint64_t memory_per_row =
+  // Keep computed number floating point to maintain precision.
+  // This is because additional_per_row_consumption can be fractional in the
+  // case of -shared-facet-writes; where gridders/facets share some per row
+  // memory overheads with each other. In this instance we allocate a fractional
+  // portion of this shared memory to each gridder to help compute maximum rows
+  // more accurately.
+  const double memory_per_row =
       additional_per_row_consumption  // external overheads
       + per_row_visibility_memory     // visibilities
-      + per_row_uvw_memory;           // uvw
+      + per_row_uvw_consumption;      // uvw
   const uint64_t memory_for_buffers = available_memory - constant_memory;
   const size_t max_n_rows =
-      std::max(memory_for_buffers / memory_per_row, uint64_t(100));
+      std::max(uint64_t(memory_for_buffers / memory_per_row), uint64_t(100));
   if (max_n_rows < 1000) {
     Logger::Warn << "Less than 1000 data rows fit in memory: this probably "
                     "means performance is going to be very poor!\n";
@@ -129,9 +134,10 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   for (size_t i = 0; i != frequencies.size(); ++i)
     frequencies[i] = selected_band.ChannelFrequency(i);
 
-  size_t max_rows_per_chunk =
-      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(),
-                               0, selected_band.ChannelCount(), 1);
+  const size_t per_row_uvw_memory_consumption = sizeof(double) * 3;
+  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
+      resources_.Memory(), CalculateConstantMemory(), 0,
+      per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
 
   aocommon::UVector<std::complex<float>> visibility_buffer(
       max_rows_per_chunk * selected_band.ChannelCount());
@@ -192,6 +198,29 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   return n_total_rows_read;
 }
 
+void WGriddingMSGridder::PredictChunk(size_t n_rows, size_t n_channels,
+                                      const double* frequencies,
+                                      const double* uvws,
+                                      std::complex<float>* visibilities) const {
+  Logger::Info << "Predicting " << n_rows << " rows...\n";
+  gridder_->PredictVisibilities(n_rows, n_channels, uvws, frequencies,
+                                visibilities);
+}
+
+void WGriddingMSGridder::WritePredictChunk(
+    MSProvider* ms_provider, size_t n_rows, size_t n_antennas,
+    const aocommon::BandData& band,
+    const std::vector<MSProvider::MetaData>& metadata,
+    std::complex<float>* visibilities) {
+  Logger::Info << "Writing...\n";
+  for (size_t row = 0; row != n_rows; ++row) {
+    WriteCollapsedVisibilities(*ms_provider, n_antennas, band,
+                               &visibilities[row * band.ChannelCount()],
+                               metadata[row].field_id, metadata[row].antenna1,
+                               metadata[row].antenna2, metadata[row].time);
+  }
+}
+
 size_t WGriddingMSGridder::PredictMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   ms_data.ms_provider->ReopenRW();
@@ -203,9 +232,10 @@ size_t WGriddingMSGridder::PredictMeasurementSet(
   for (size_t i = 0; i != frequencies.size(); ++i)
     frequencies[i] = selected_band.ChannelFrequency(i);
 
-  size_t max_rows_per_chunk =
-      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(),
-                               0, selected_band.ChannelCount(), 1);
+  const size_t per_row_uvw_memory_consumption = sizeof(double) * 3;
+  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
+      resources_.Memory(), CalculateConstantMemory(), 0,
+      per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
 
   aocommon::UVector<double> uvw_buffer(max_rows_per_chunk * 3);
   // Iterate over chunks until all data has been gridded

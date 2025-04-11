@@ -304,6 +304,41 @@ class TestFacets:
             ).split()
         )
 
+    def test_shared_facet_reads_and_writes(self):
+        names = [
+            "facets-no-shared",
+            "facets-shared-writes",
+            "facets-shared-reads",
+            "facets-shared-reads-and-writes",
+        ]
+        for name in names:
+            shared_args = ""
+            if name == names[1]:
+                shared_args = " -shared-facet-writes "
+            if name == names[2]:
+                shared_args = " -shared-facet-reads "
+            if name == names[3]:
+                shared_args = " -shared-facet-reads -shared-facet-writes "
+
+            s = (
+                f"{tcf.WSCLEAN} -name {name} "
+                f" {shared_args} "
+                "-parallel-gridding 3 "
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
+                f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
+                "-niter 20000 -auto-threshold 5 -mgain 0.8 "
+                f"{tcf.MWA_MOCK_MS}"
+            )
+            validate_call(s.split())
+
+            if name != names[0]:
+                threshold = 6.0e-2
+                compare_rms_fits(
+                    f"{names[0]}-image.fits",
+                    f"{name}-image.fits",
+                    threshold,
+                )
+
     def test_parallel_gridding(self):
         """
         Run a single gridding cycle (no deconvolution / degridding).

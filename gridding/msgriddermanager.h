@@ -62,6 +62,7 @@ class MSGridderManager {
   void Invert();
   void BatchInvert(size_t num_parallel_gridders);
   void Predict();
+  void BatchPredict(size_t num_parallel_gridders);
   void ProcessResults(std::mutex& result_mutex, GriddingResult& result,
                       bool store_common_info);
 
@@ -146,6 +147,22 @@ class MSGridderManager {
     size_t max_gridded_weight;
     size_t total_weight;
     size_t n_rows;
+  };
+
+  struct PredictionChunkData {
+    PredictionChunkData(size_t n_rows)
+        : antennas1(n_rows),
+          antennas2(n_rows),
+          field_ids(n_rows),
+          times(n_rows),
+          uvws(n_rows * 3) {}
+    PredictionChunkData() = default;
+    aocommon::UVector<size_t> antennas1;
+    aocommon::UVector<size_t> antennas2;
+    aocommon::UVector<size_t> field_ids;
+    aocommon::UVector<double> times;
+    aocommon::UVector<double> uvws;
+    size_t n_rows = 0;
   };
 
   /**
@@ -297,6 +314,46 @@ class MSGridderManager {
                   MsProviderCollection::MsData& ms_data,
                   size_t n_vis_polarizations);
 
+  /**
+   * Read data from an @ref MSReader into a single @ref PredictionChunkData at a
+   * time. Pass the filled @ref PredictionChunkData to the task_lane for
+   * processing and then continue reading a new @ref PredictionChunkData until
+   * all data has been consumed.
+   */
+  void ReadChunksForPredict(aocommon::Lane<PredictionChunkData>& task_lane,
+                            size_t n_max_rows_in_memory,
+                            MsProviderCollection::MsData& ms_data,
+                            MsGridderData& shared_data,
+                            const std::vector<MsGridder*>& gridders,
+                            const aocommon::BandData band,
+                            size_t n_vis_polarizations,
+                            const bool* selected_buffer);
+
+  /**
+   * Perform predict on a single block of data stored in @ref
+   * PredictionChunkData
+   */
+  size_t PredictChunk(const PredictionChunkData& chunk_data, size_t n_channels,
+                      size_t n_vis_polarizations, size_t n_antennas,
+                      std::vector<std::complex<float>>& combined_visibilities,
+                      size_t num_parallel_gridders,
+                      aocommon::TaskQueue<std::function<void()>>& task_queue,
+                      const aocommon::UVector<double>& frequencies,
+                      const aocommon::BandData& band,
+                      MsProviderCollection::MsData& ms_data);
+  /**
+   * Perform predict on chunks of @ref PredictionChunkData by calling @ref
+   * PredictChunk() sequentially on each chunk, as they become available in the
+   * task_lane, until all chunks have been processed.
+   */
+  void PredictChunks(aocommon::Lane<PredictionChunkData>& task_lane,
+                     size_t num_parallel_gridders,
+                     aocommon::TaskQueue<std::function<void()>>& task_queue,
+                     const aocommon::UVector<double>& frequencies,
+                     const aocommon::BandData& band,
+                     MsProviderCollection::MsData& ms_data,
+                     size_t n_vis_polarizations);
+
   std::unique_ptr<MsGridder> ConstructGridder(const Resources& resources);
   struct GriddingFacetTask {
     std::unique_ptr<MsGridder> facet_gridder;
@@ -333,13 +390,22 @@ class MSGridderManager {
   double w_limit_ = 0.0;
 };
 
+/**
+ * Call operation() for each gridder/task using all available threads in the
+ * task queue. operation can be a functor taking either one argument (gridder)
+ * or two (gridder, task).
+ */
 template <typename T>
 void MSGridderManager::ExecuteForAllGridders(
     aocommon::TaskQueue<std::function<void()>>& task_queue, T&& operation,
     bool wait_for_idle) {
-  for (const GriddingFacetTask& task : facet_tasks_) {
+  for (GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
-    task_queue.Emplace([=]() { operation(gridder); });
+    if constexpr (std::is_invocable<T, MsGridder*, GriddingFacetTask&>::value) {
+      task_queue.Emplace([=, &task]() { operation(gridder, task); });
+    } else {
+      task_queue.Emplace([=, &task]() { operation(gridder); });
+    }
   }
   if (wait_for_idle) {
     task_queue.WaitForIdle(available_cores_);
