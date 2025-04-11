@@ -140,121 +140,79 @@ class MsGridderData {
    * Applies the selected visibility modifier (selected by Mode)
    * solutions to the visibilities and computes the weight corresponding to the
    * combined effect.
-   *
-   * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
-   * ApplyConjugatedParmResponse for more information
-   * @tparam LoadResponse This should always be true unless the calling code
-   * knows the response has already been loaded previously, e.g. if we first
-   * call `LoadAndApplyCorrections<Mode, kSum, true>(...)` we can then
-   * afterwards call `ApplyCorrection<Mode, kApply, false>(...)` for the same
-   * values
    */
-  template <GainMode Mode, size_t NParms,
-            ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum,
-            bool LoadResponse = true, bool UseBufferedOffsets = false>
+  template <GainMode Mode, size_t NParms>
   void LoadAndApplyCorrections(size_t n_antennas,
                                std::complex<float>* visibility_row,
                                const aocommon::BandData& band,
                                const float* weight_buffer,
                                const MSProvider::MetaData& metadata) {
     size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
-    LoadAndApplyCorrections<Mode, NParms, Behaviour, LoadResponse>(
-        n_antennas, visibility_row, band, weight_buffer, metadata.time,
-        metadata.field_id, metadata.antenna1, metadata.antenna2, time_offset,
-        scratch_image_weights_.data());
-    visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
-  }
-  template <GainMode Mode, size_t NParms,
-            ModifierBehaviour Behaviour = ModifierBehaviour::kApplyAndSum,
-            bool LoadResponse = true>
-  void LoadAndApplyCorrections(size_t n_antennas,
-                               std::complex<float>* visibility_row,
-                               const aocommon::BandData& band,
-                               const float* weight_buffer, double time,
-                               size_t field_id, size_t antenna1,
-                               size_t antenna2, size_t& time_offset,
-                               float* scratch_image_weights) {
-    assert((weight_buffer == nullptr) ==
-           (Behaviour == ModifierBehaviour::kApply));
     if (IsFacet() && GetPsfMode() != PsfMode::kSingle) {
       const bool apply_beam =
           settings_.applyFacetBeam || settings_.gridWithBeam;
       if (apply_beam) {
-        LoadAndApplyCorrectionsInternal<Mode, NParms, Behaviour, LoadResponse,
-                                        true>(
-            n_antennas, visibility_row, band, weight_buffer, time, field_id,
-            antenna1, antenna2, time_offset, scratch_image_weights);
+        LoadAndApplyCorrections<Mode, NParms, true>(n_antennas, visibility_row,
+                                                    band, weight_buffer,
+                                                    metadata, time_offset);
       } else {
-        LoadAndApplyCorrectionsInternal<Mode, NParms, Behaviour, LoadResponse,
-                                        false>(
-            n_antennas, visibility_row, band, weight_buffer, time, field_id,
-            antenna1, antenna2, time_offset, scratch_image_weights);
+        LoadAndApplyCorrections<Mode, NParms, false>(n_antennas, visibility_row,
+                                                     band, weight_buffer,
+                                                     metadata, time_offset);
       }
     }
+    visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
   }
-  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour,
-            bool LoadResponse, bool ApplyBeam>
-  void LoadAndApplyCorrectionsInternal(size_t n_antennas,
-                                       std::complex<float>* visibility_row,
-                                       const aocommon::BandData& band,
-                                       const float* weight_buffer, double time,
-                                       size_t field_id, size_t antenna1,
-                                       size_t antenna2, size_t& time_offset,
-                                       float* scratch_image_weights) {
+  template <GainMode Mode, size_t NParms, bool ApplyBeam>
+  void LoadAndApplyCorrections(size_t n_antennas,
+                               std::complex<float>* visibility_row,
+                               const aocommon::BandData& band,
+                               const float* weight_buffer,
+                               const MSProvider::MetaData& metadata,
+                               size_t& time_offset) {
     const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
     if (apply_forward) {
-      LoadAndApplyCorrectionsInternal<Mode, NParms, Behaviour, LoadResponse,
-                                      ApplyBeam, true>(
-          n_antennas, visibility_row, band, weight_buffer, time, field_id,
-          antenna1, antenna2, time_offset, scratch_image_weights);
+      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, true>(
+          n_antennas, visibility_row, band, weight_buffer, metadata,
+          time_offset);
     } else {
-      LoadAndApplyCorrectionsInternal<Mode, NParms, Behaviour, LoadResponse,
-                                      ApplyBeam, false>(
-          n_antennas, visibility_row, band, weight_buffer, time, field_id,
-          antenna1, antenna2, time_offset, scratch_image_weights);
+      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, false>(
+          n_antennas, visibility_row, band, weight_buffer, metadata,
+          time_offset);
     }
   }
-  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour,
-            bool LoadResponse, bool ApplyBeam, bool ApplyForward>
-  void LoadAndApplyCorrectionsInternal(size_t n_antennas,
-                                       std::complex<float>* visibility_row,
-                                       const aocommon::BandData& band,
-                                       const float* weight_buffer, double time,
-                                       size_t field_id, size_t antenna1,
-                                       size_t antenna2, size_t& time_offset,
-                                       float* scratch_image_weights) {
+  template <GainMode Mode, size_t NParms, bool ApplyBeam, bool ApplyForward>
+  void LoadAndApplyCorrections(size_t n_antennas,
+                               std::complex<float>* visibility_row,
+                               const aocommon::BandData& band,
+                               const float* weight_buffer,
+                               const MSProvider::MetaData& metadata,
+                               size_t& time_offset) {
     const bool has_h5_parm = visibility_modifier_.HasH5Parm();
     if (has_h5_parm) {
-      LoadAndApplyCorrections<Mode, NParms, Behaviour, LoadResponse, ApplyBeam,
-                              ApplyForward, true>(
-          n_antennas, visibility_row, band, weight_buffer, time, field_id,
-          antenna1, antenna2, time_offset, scratch_image_weights);
+      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, ApplyForward, true>(
+          n_antennas, visibility_row, band, weight_buffer, metadata,
+          time_offset);
     } else {
-      LoadAndApplyCorrections<Mode, NParms, Behaviour, LoadResponse, ApplyBeam,
-                              ApplyForward, false>(
-          n_antennas, visibility_row, band, weight_buffer, time, field_id,
-          antenna1, antenna2, time_offset, scratch_image_weights);
+      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, ApplyForward, false>(
+          n_antennas, visibility_row, band, weight_buffer, metadata,
+          time_offset);
     }
   }
-  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour,
-            bool LoadResponse, bool ApplyBeam, bool ApplyForward,
+  template <GainMode Mode, size_t NParms, bool ApplyBeam, bool ApplyForward,
             bool HasH5Parm>
   void LoadAndApplyCorrections(size_t n_antennas,
                                std::complex<float>* visibility_row,
                                const aocommon::BandData& band,
-                               const float* weight_buffer, double time,
-                               size_t field_id, size_t antenna1,
-                               size_t antenna2, size_t& time_offset,
-                               float* scratch_image_weights) {
-    if constexpr (LoadResponse) {
-      LoadCorrections<ApplyBeam, HasH5Parm>(band, time, field_id, time_offset);
-    }
-    if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
-      ApplyCorrections<Mode, NParms, Behaviour, ApplyBeam, ApplyForward,
-                       HasH5Parm>(n_antennas, visibility_row, band,
-                                  weight_buffer, antenna1, antenna2,
-                                  time_offset, scratch_image_weights);
-    }
+                               const float* weight_buffer,
+                               const MSProvider::MetaData& metadata,
+                               size_t& time_offset) {
+    LoadCorrections<ApplyBeam, HasH5Parm>(band, metadata.time,
+                                          metadata.field_id, time_offset);
+    ApplyCorrections<Mode, NParms, ModifierBehaviour::kApplyAndSum, ApplyBeam,
+                     ApplyForward, HasH5Parm>(
+        n_antennas, visibility_row, band, weight_buffer, metadata.antenna1,
+        metadata.antenna2, time_offset, scratch_image_weights_.data());
   }
   template <bool ApplyBeam, bool HasH5Parm>
   void LoadCorrections(const aocommon::BandData& band, double time,

@@ -256,7 +256,7 @@ class WGridder final : public WGridderBase {
    * callback that can apply solutions "on the fly" as required
    *
    * It is expected that corrections have already been summed via @ref
-   * LoadAndApplyCorrections<ModifierBehaviour::kSum>()
+   * ApplyCorrections<ModifierBehaviour::kSum>()
    *
    * @param n_polarizations The number of polarizations per visibility in @ref
    * visibilities
@@ -273,7 +273,7 @@ class WGridder final : public WGridderBase {
    * visibilities: visibility(row, chan) := vis[row*n_chan + chan]
    * @param time_offsets Pointer to n_rows `size_t` containing the time offset
    * as calculated by @ref CacheParmResponse() for the corresponding visibility
-   * row when applying @ref LoadAndApplyCorrections<ModifierBehaviour::kSum>()
+   * row when applying @ref ApplyCorrections<ModifierBehaviour::kSum>()
    * on it For further explanation see @ref
    * VisibilityCallbackBuffer::time_offsets_
    * @param gridder Pointer to a gridder that can be called back into in order
