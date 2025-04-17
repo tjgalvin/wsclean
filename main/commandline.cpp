@@ -515,6 +515,9 @@ but subtract components from individual channels.
    when the channels are joined with -join-channels.
 -fit-spectral-log-pol <nterms>
    Like fit-spectral-pol, but fits a logarithmic polynomial over frequency instead.
+-fit-rm
+   Fits each spectrum to a wavelength-squared sinusodial signal, thereby performing RM synthesis
+   during cleaning. This option only works when imaging the Stokes Q and U polarizations.
 -force-spectrum <fitsfile>
    Uses the fits file to force spectral indices (or other/more terms)   during the deconvolution.
 -deconvolution-channels <nchannels>
@@ -1122,6 +1125,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           schaapcommon::fitters::SpectralFittingMode::kLogPolynomial;
       settings.spectralFittingTerms =
           ParseSizeT(argv[argi], "fit-spectral-log-pol");
+    } else if (param == "fit-rm") {
+      settings.spectralFittingMode =
+          schaapcommon::fitters::SpectralFittingMode::kRotationMeasure;
+      settings.spectralFittingTerms = 1;
     } else if (param == "force-spectrum") {
       IncArgi(argi, argc);
       settings.forcedSpectrumFilename = argv[argi];

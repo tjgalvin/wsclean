@@ -325,6 +325,19 @@ void Settings::Validate() const {
         "full number of channels. The most useful and common spectral fitting "
         "function is -fit-spectral-pol.");
 
+  if (spectralFittingMode ==
+      schaapcommon::fitters::SpectralFittingMode::kRotationMeasure) {
+    if (polarizations != std::set{aocommon::Polarization::StokesQ,
+                                  aocommon::Polarization::StokesU}) {
+      throw std::runtime_error(
+          "RM fitting is only possible when imaging Stokes Q and U "
+          "polarizations");
+    }
+    if (!joinedPolarizationDeconvolution)
+      throw std::runtime_error(
+          "Joined polarization deconvolution must be enabled for RM fitting");
+  }
+
   if (savePsfPb && !(applyPrimaryBeam || gridWithBeam))
     throw std::runtime_error(
         "You can not save the primary-beam corrected PSF without enabling "
