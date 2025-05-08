@@ -307,16 +307,16 @@ class TestFacets:
     def test_shared_facet_reads_and_writes(self):
         names = [
             "facets-no-shared",
-            "facets-shared-writes",
             "facets-shared-reads",
+            "facets-shared-writes",
             "facets-shared-reads-and-writes",
         ]
         for name in names:
             shared_args = ""
             if name == names[1]:
-                shared_args = " -shared-facet-writes "
-            if name == names[2]:
                 shared_args = " -shared-facet-reads "
+            if name == names[2]:
+                shared_args = " -shared-facet-writes "
             if name == names[3]:
                 shared_args = " -shared-facet-reads -shared-facet-writes "
 
@@ -324,18 +324,22 @@ class TestFacets:
                 f"{tcf.WSCLEAN} -name {name} "
                 f" {shared_args} "
                 "-parallel-gridding 3 "
+                "-channels-out 3 -join-channels "
                 f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
-                "-niter 20000 -auto-threshold 5 -mgain 0.8 "
+                "-nmiter 3 -niter 20000 -auto-threshold 5 -mgain 0.8 "
                 f"{tcf.MWA_MOCK_MS}"
             )
             validate_call(s.split())
 
+            # On some machines this test is able to pass a threshold of 9e-6 for reads and 5e-6 for writes.
+            # However on the CI a lower threshold is required to pass.
+            # It would be good to investigate this further, but for now use a lower threshold.
             if name != names[0]:
-                threshold = 6.0e-2
+                threshold = 3.0e-2
                 compare_rms_fits(
-                    f"{names[0]}-image.fits",
-                    f"{name}-image.fits",
+                    f"{names[0]}-MFS-image.fits",
+                    f"{name}-MFS-image.fits",
                     threshold,
                 )
 

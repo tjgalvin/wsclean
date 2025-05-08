@@ -247,7 +247,7 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
   const size_t n_row_size =
       band.ChannelCount() * ms_data.ms_provider->NPolarizations();
 
-  // Allow reading to get a but ahead of processing but not by too much.
+  // Allow reading to get a bit ahead of processing but not by too much.
   aocommon::Lane<BatchRowData> task_lane(available_cores_ * 2);
 
   std::thread read_rows_thread([&] {
@@ -302,6 +302,9 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
     task_lane.write_end();
   });
 
+  // Per gridder mutex to prevent data race on currection sums inside
+  // ApplyCorrections()
+  std::vector<std::mutex> gridder_mutexes(gridders.size());
   // NB! This delibritely leads to overallocation of threads
   // As this still outperforms the alternative of not overlapping the IO.
   // Future changes should implement task stealing which would
@@ -312,6 +315,12 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
     thread_pool_process.emplace_back([&] {
       BatchRowData rows;
       aocommon::UVector<float> image_weights(band.ChannelCount());
+      // Per thread local counters to prevent contention and race conditions.
+      // Propagate to global counters once per thread at end of processing loop.
+      size_t local_gridded_visibility_count = 0;
+      double local_total_weight = 0.0;
+      double local_max_gridded_weight = 0.0;
+      double local_visibility_weight_sum = 0.0;
       while (task_lane.read(rows)) {
         double* uvws = chunk_data.uvw.data() + rows.uvws_offset;
         std::complex<float>* visibilities =
@@ -338,18 +347,24 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
           // other required info when we apply the corrections
           if constexpr (ApplyCorrections) {
             size_t& time_offset = *time_offsets;
-            for (const auto& gridder : gridders) {
-              gridder->ApplyCorrections<Mode, NParms, ModifierBehaviour::kSum,
-                                        ApplyBeam, ApplyForward, HasH5Parm>(
-                  ms_data.antenna_names.size(), row_visibilities, band,
-                  row_weights, metadata.antenna1, metadata.antenna2,
-                  time_offset, image_weights.data());
+            for (size_t gridder_index = 0; gridder_index < gridders.size();
+                 ++gridder_index) {
+              std::lock_guard<std::mutex> lock(gridder_mutexes[gridder_index]);
+              gridders[gridder_index]
+                  ->ApplyCorrections<Mode, NParms, ModifierBehaviour::kSum,
+                                     ApplyBeam, ApplyForward, HasH5Parm>(
+                      ms_data.antenna_names.size(), row_visibilities, band,
+                      row_weights, metadata.antenna1, metadata.antenna2,
+                      time_offset, image_weights.data());
             };
             ++time_offsets;
           }
 
-          shared_data.ApplyWeights<Mode>(row_visibilities, band.ChannelCount(),
-                                         row_weights, image_weights.data());
+          shared_data.ApplyWeights<Mode>(
+              row_visibilities, band.ChannelCount(), row_weights,
+              image_weights.data(), local_gridded_visibility_count,
+              local_total_weight, local_max_gridded_weight,
+              local_visibility_weight_sum);
 
           // When not applying corrections we collapse the polarizations.
           // When applying correction we need to keep them.
@@ -367,6 +382,9 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
           uvws += uvws_stride;
         }
       }
+      shared_data.AddVisibilityCounts(
+          local_gridded_visibility_count, local_total_weight,
+          local_max_gridded_weight, local_visibility_weight_sum);
     });
   }
   read_rows_thread.join();
@@ -995,8 +1013,8 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
         gridder->EffectiveGriddedVisibilityCount();
     {
       std::lock_guard<std::mutex> result_lock(result_mutex);
-      result.griddedVisibilityCount += gridder->GriddedVisibilityCount();
-      result.visibilityWeightSum += gridder->VisibilityWeightSum();
+      result.griddedVisibilityCount = gridder->GriddedVisibilityCount();
+      result.visibilityWeightSum = gridder->VisibilityWeightSum();
     }
 
     // If the average beam already exists on input, IDG will not recompute it,

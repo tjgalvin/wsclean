@@ -25,7 +25,7 @@ class GriddingTaskManager;
  * The MSGridderManager is a middle layer between GriddingTaskManager and
  * MsGridder derived classes.
  *
- * GriddingTaskManager is solely responsible for scheduling MsGridder
+ * GriddingTaskManager is solely responsible for scheduling. MsGridder
  * derived classes are responsible for gridding (inversion/predict)
  *
  * MSGridderManager is responsible for:
@@ -143,9 +143,9 @@ class MSGridderManager {
     std::vector<size_t> time_offsets;
 
     size_t gridded_visibility_count;
-    size_t visibility_weight_sum;
-    size_t max_gridded_weight;
-    size_t total_weight;
+    double visibility_weight_sum;
+    double max_gridded_weight;
+    double total_weight;
     size_t n_rows;
   };
 

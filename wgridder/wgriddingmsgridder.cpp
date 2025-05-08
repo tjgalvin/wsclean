@@ -202,7 +202,7 @@ void WGriddingMSGridder::PredictChunk(size_t n_rows, size_t n_channels,
                                       const double* frequencies,
                                       const double* uvws,
                                       std::complex<float>* visibilities) const {
-  Logger::Info << "Predicting " << n_rows << " rows...\n";
+  Logger::Info << "Predicting " + std::to_string(n_rows) + " rows...\n";
   gridder_->PredictVisibilities(n_rows, n_channels, uvws, frequencies,
                                 visibilities);
 }
@@ -342,8 +342,10 @@ void WGriddingMSGridder::FinishInversion() {
   }
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
-    Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight()
-                  << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
+    Logger::Debug << "Trimming " + std::to_string(ImageWidth()) + " x " +
+                         std::to_string(ImageHeight()) + " -> " +
+                         std::to_string(TrimWidth()) + " x " +
+                         std::to_string(TrimHeight()) + "\n";
 
     image_ = image_.Trim(TrimWidth(), TrimHeight());
   }
@@ -358,8 +360,10 @@ void WGriddingMSGridder::StartPredict(std::vector<Image>&& images) {
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Image untrimmed_image(ImageWidth(), ImageHeight());
-    Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight()
-                  << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
+    Logger::Debug << "Untrimming " + std::to_string(TrimWidth()) + " x " +
+                         std::to_string(TrimHeight()) + " -> " +
+                         std::to_string(ImageWidth()) + " x " +
+                         std::to_string(ImageHeight()) + "\n";
     Image::Untrim(untrimmed_image.Data(), ImageWidth(), ImageHeight(),
                   images[0].Data(), TrimWidth(), TrimHeight());
     images[0] = std::move(untrimmed_image);

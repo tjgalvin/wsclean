@@ -242,8 +242,8 @@ class MsGridderData {
    * solutions to the visibilities and computes the weight corresponding to the
    * combined effect.
    *
-   * It is the responsibility of the called to ensure that @ref
-   * LoadCorrections() has been valled prior to calling @ref ApplyCorrections()
+   * It is the responsibility of the caller to ensure that @ref
+   * LoadCorrections() has been called prior to calling @ref ApplyCorrections()
    *
    * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
    * ApplyConjugatedParmResponse for more information
@@ -254,17 +254,16 @@ class MsGridderData {
                         const aocommon::BandData& band,
                         const float* weight_buffer, size_t antenna1,
                         size_t antenna2, size_t& time_offset,
-                        float* scratch_image_weights) {
+                        const float* image_weights) {
     const std::complex<float>* parm_response =
         visibility_modifier_.GetCachedParmResponse(original_ms_index_).data();
     const size_t n_channels = band.ChannelCount();
     const size_t n_visibilities = GetNVisibilities(Mode);
     for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
       ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward,
-                            HasH5Parm>(parm_response, n_channel, n_channels,
-                                       n_antennas, visibility_row,
-                                       weight_buffer, antenna1, antenna2,
-                                       time_offset, scratch_image_weights);
+                            HasH5Parm>(
+          parm_response, n_channel, n_channels, n_antennas, visibility_row,
+          weight_buffer, antenna1, antenna2, time_offset, image_weights);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         visibility_row += n_visibilities;
       }
@@ -292,20 +291,20 @@ class MsGridderData {
                                     std::complex<float>* visibility_row,
                                     const float* weight_buffer, size_t antenna1,
                                     size_t antenna2, const size_t& time_offset,
-                                    float* scratch_image_weights) {
+                                    const float* image_weights) {
     if constexpr (ApplyBeam) {
 #ifdef HAVE_EVERYBEAM
       if constexpr (HasH5Parm) {
         // Apply (in conjugate) both the beam and the h5parm solutions
         visibility_modifier_.ApplyConjugatedDual<Behaviour, Mode, NParms>(
-            parm_response, visibility_row, weight_buffer, scratch_image_weights,
+            parm_response, visibility_row, weight_buffer, image_weights,
             n_channel, n_channels, n_antennas, antenna1, antenna2, ApplyForward,
             time_offset);
       } else {
         // Apply only the conjugate beam
         visibility_modifier_
             .ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(
-                visibility_row, weight_buffer, scratch_image_weights, n_channel,
+                visibility_row, weight_buffer, image_weights, n_channel,
                 n_channels, antenna1, antenna2);
       }
 #else
@@ -315,9 +314,9 @@ class MsGridderData {
       // Apply the h5parm solutions
       visibility_modifier_
           .ApplyConjugatedParmResponse<Behaviour, Mode, NParms, ApplyForward>(
-              parm_response, visibility_row, weight_buffer,
-              scratch_image_weights, n_channel, n_channels, n_antennas,
-              antenna1, antenna2, time_offset);
+              parm_response, visibility_row, weight_buffer, image_weights,
+              n_channel, n_channels, n_antennas, antenna1, antenna2,
+              time_offset);
     }
   }
 
@@ -436,6 +435,16 @@ class MsGridderData {
     total_weight_ = 0.0;
     max_gridded_weight_ = 0.0;
     visibility_weight_sum_ = 0.0;
+  }
+
+  void AddVisibilityCounts(size_t gridded_visibility_count, double total_weight,
+                           double max_gridded_weight,
+                           double visibility_weight_sum) {
+    std::lock_guard<std::mutex> lock(visibility_counter_mutex_);
+    gridded_visibility_count_ += gridded_visibility_count;
+    total_weight_ += total_weight;
+    max_gridded_weight_ = std::max(max_gridded_weight_, max_gridded_weight);
+    visibility_weight_sum_ += visibility_weight_sum;
   }
 
   bool DoSubtractModel() const { return do_subtract_model_; }
@@ -747,13 +756,17 @@ class MsGridderData {
   template <GainMode Mode>
   void ApplyWeights(std::complex<float>* visibility_row,
                     const size_t channel_count, float* weight_buffer,
-                    float* image_weights);
+                    float* image_weights, size_t& gridded_visibility_count,
+                    double& total_weight, double& max_gridded_weight,
+                    double& visibility_weight_sum);
 
   template <GainMode Mode>
   void ApplyWeights(std::complex<float>* visibility_row,
                     const size_t channel_count, float* weight_buffer) {
     ApplyWeights<Mode>(visibility_row, channel_count, weight_buffer,
-                       scratch_image_weights_.data());
+                       scratch_image_weights_.data(), gridded_visibility_count_,
+                       total_weight_, max_gridded_weight_,
+                       visibility_weight_sum_);
   }
 
   /**
@@ -853,6 +866,7 @@ class MsGridderData {
   double total_weight_ = 0.0;
   double max_gridded_weight_ = 0.0;
   double visibility_weight_sum_ = 0.0;
+  std::mutex visibility_counter_mutex_;
 
   // These members are set from the task during InitializeGridderForTask
   bool do_subtract_model_ = false;
@@ -893,10 +907,11 @@ class MsGridderData {
 };
 
 template <GainMode Mode>
-inline void MsGridderData::ApplyWeights(std::complex<float>* visibility_row,
-                                        const size_t channel_count,
-                                        float* weight_buffer,
-                                        float* image_weights) {
+inline void MsGridderData::ApplyWeights(
+    std::complex<float>* visibility_row, const size_t channel_count,
+    float* weight_buffer, float* image_weights,
+    size_t& gridded_visibility_count, double& total_weight,
+    double& max_gridded_weight, double& visibility_weight_sum) {
   const size_t n_pols = GetNVisibilities(Mode);
 
   for (size_t channel = 0; channel < channel_count; channel++) {
@@ -910,13 +925,13 @@ inline void MsGridderData::ApplyWeights(std::complex<float>* visibility_row,
       const bool has_weight = cumWeight != 0.0;
       if (pol == 0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
-        visibility_weight_sum_ += weight_buffer[i] * has_weight;
-        max_gridded_weight_ =
-            std::max(static_cast<double>(cumWeight), max_gridded_weight_);
-        gridded_visibility_count_ += has_weight;
+        visibility_weight_sum += weight_buffer[i] * has_weight;
+        max_gridded_weight =
+            std::max(static_cast<double>(cumWeight), max_gridded_weight);
+        gridded_visibility_count += has_weight;
       }
       // Total weight includes imaging weights
-      total_weight_ += cumWeight;
+      total_weight += cumWeight;
       weight_buffer[i] = cumWeight;
       visibility_row[i] *= cumWeight;
     }

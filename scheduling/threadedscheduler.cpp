@@ -133,8 +133,8 @@ void ThreadedScheduler::ProcessQueue() {
     try {
       assert(!facet_indexes.empty());
       // As the gridder manager will potentially be running/managing N parallel
-      // gridding tasks internally instead of just a single on it is n ecessary
-      // to allocate it the appropriate resources for all N tasks
+      // gridding tasks internally instead of just a single one it is necessary
+      // to allocate it the appropriate resources for all N tasks.
       Resources task_resources = resources_per_task_.GetCombined(
           task_data.task.num_parallel_gridders_);
       RunDirect(task_data.task, facet_indexes, task_resources, task_data.result,
