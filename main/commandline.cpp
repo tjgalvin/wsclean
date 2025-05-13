@@ -431,6 +431,10 @@ Options can be:
 -mgain <gain>
    Cleaning gain for major iterations: Ratio of peak that will be subtracted in each major
    iteration. To use major iterations, 0.85 is a good value. Default: 1.0
+-mgain-boosting <boost value>
+   Values higher than 1 will cause a higher mgain value in the first two iterations. The first
+   iterations uses mgain' = 1 - (1 - mgain) ^ boost_value, the second iteration uses half the boost.
+   Default: 1.2
 -join-polarizations
    Perform deconvolution by searching for peaks in the sum of squares of the polarizations,
    but subtract components from the individual images. Only possible when imaging two or four Stokes
@@ -785,6 +789,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "mgain") {
       IncArgi(argi, argc);
       settings.deconvolutionMGain = ParseDouble(argv[argi], 0.0, "mgain");
+    } else if (param == "mgain-boosting") {
+      IncArgi(argi, argc);
+      settings.deconvolutionBoosting =
+          ParseDouble(argv[argi], 0.0, "mgain-boosting", false);
     } else if (param == "niter") {
       IncArgi(argi, argc);
       settings.deconvolutionIterationCount = ParseSizeT(argv[argi], "niter");
