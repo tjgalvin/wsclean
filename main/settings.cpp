@@ -547,6 +547,8 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.thread_count = threadCount;
   radler_settings.prefix_name = prefixName;
   radler_settings.linked_polarizations = linkedPolarizations;
+  radler_settings.component_optimization_algorithm =
+      componentOptimizationAlgorithm;
   radler_settings.parallel.grid_width = parallelDeconvolutionGridWidth;
   radler_settings.parallel.grid_height = parallelDeconvolutionGridHeight;
   radler_settings.parallel.max_threads = parallelDeconvolutionMaxThreads;

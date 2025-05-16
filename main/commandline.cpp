@@ -446,6 +446,9 @@ Options can be:
    Perform deconvolution by searching for peaks in the MF image,
 but subtract components from individual channels.
    This will turn on mf-weighting by default. Default: off.
+-component-optimization <mode>
+   Optimization algorithm for determining component levels after the auto mask threshold has been reached.
+   Options: clean, gradient-descent, linear-solver.
 -spectral-correction <reffreq> <term list>
    Enable correction of the given spectral function inside deconvolution.
    This can e.g. avoid downweighting higher frequencies because of
@@ -1018,6 +1021,21 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
           aocommon::Polarization::ParseList(argv[argi]);
     } else if (param == "join-channels") {
       settings.joinedFrequencyDeconvolution = true;
+    } else if (param == "component-optimization") {
+      IncArgi(argi, argc);
+      const std::string mode = boost::to_lower_copy(std::string(argv[argi]));
+      if (mode == "clean")
+        settings.componentOptimizationAlgorithm =
+            radler::OptimizationAlgorithm::kClean;
+      else if (mode == "linear-solver")
+        settings.componentOptimizationAlgorithm =
+            radler::OptimizationAlgorithm::kLinearEquationSolver;
+      else if (mode == "gradient-descent")
+        settings.componentOptimizationAlgorithm =
+            radler::OptimizationAlgorithm::kGradientDescent;
+      else
+        throw std::runtime_error("Invalid value for component-optimization: " +
+                                 mode);
     } else if (param == "mf-weighting" || param == "mfs-weighting") {
       mfWeighting = true;
       // mfs was renamed to mf in wsclean 2.7

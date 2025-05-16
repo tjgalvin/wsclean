@@ -186,6 +186,8 @@ class Settings {
   double localRMSWindow = 25.0;
   double localRMSStrength = 1.0;
   radler::LocalRmsMethod localRMSMethod = radler::LocalRmsMethod::kNone;
+  radler::OptimizationAlgorithm componentOptimizationAlgorithm =
+      radler::OptimizationAlgorithm::kClean;
   bool saveSourceList = false;
   size_t deconvolutionIterationCount = 0;
   size_t majorIterationCount = 12;
