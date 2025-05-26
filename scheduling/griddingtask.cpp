@@ -10,11 +10,6 @@
 
 namespace wsclean {
 
-GriddingTask::GriddingTask() = default;
-GriddingTask::GriddingTask(GriddingTask&& source) noexcept = default;
-GriddingTask::~GriddingTask() noexcept = default;
-GriddingTask& GriddingTask::operator=(GriddingTask&& source) noexcept = default;
-
 void GriddingTask::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt32(unique_id)
       .UInt32(operation)

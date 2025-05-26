@@ -404,7 +404,7 @@ void MSGridderManager::ExecuteForAllGridders(
     if constexpr (std::is_invocable<T, MsGridder*, GriddingFacetTask&>::value) {
       task_queue.Emplace([=, &task]() { operation(gridder, task); });
     } else {
-      task_queue.Emplace([=, &task]() { operation(gridder); });
+      task_queue.Emplace([=]() { operation(gridder); });
     }
   }
   if (wait_for_idle) {

@@ -684,7 +684,7 @@ void ExpandAndCombineFacetVisibilities(
     size_t n_antennas, size_t n_channels, size_t n_rows,
     size_t n_vis_polarizations, const aocommon::BandData& band,
     const size_t* antennas1, const size_t* antennas2, const size_t* field_ids,
-    const double* times, std::complex<float>* facet_visibilities,
+    const double* times, const std::complex<float>* facet_visibilities,
     MsGridder* gridder, std::complex<float>* combined_visibilities) {
   aocommon::UVector<std::complex<float>> visibilities_scratch(
       n_channels * n_vis_polarizations);

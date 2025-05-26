@@ -20,7 +20,7 @@ class UnavailableGridder final : public MsGridder {
     doThrow();
   }
 
-  ~UnavailableGridder() final { doThrow(); }
+  ~UnavailableGridder() = default;
 
   void StartInversion() final { doThrow(); }
   size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final {

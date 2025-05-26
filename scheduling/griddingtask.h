@@ -24,12 +24,12 @@ class AverageBeam;
 
 class GriddingTask {
  public:
-  GriddingTask();
+  GriddingTask() = default;
   GriddingTask(const GriddingTask&) = delete;
-  GriddingTask(GriddingTask&& source) noexcept;
-  ~GriddingTask() noexcept;
+  GriddingTask(GriddingTask&& source) noexcept = default;
+  ~GriddingTask() noexcept = default;
   GriddingTask& operator=(const GriddingTask& source) = delete;
-  GriddingTask& operator=(GriddingTask&& source) noexcept;
+  GriddingTask& operator=(GriddingTask&& source) noexcept = default;
 
   uint32_t unique_id;
   enum Operation {

@@ -207,20 +207,6 @@ void WGriddingMSGridder::PredictChunk(size_t n_rows, size_t n_channels,
                                 visibilities);
 }
 
-void WGriddingMSGridder::WritePredictChunk(
-    MSProvider* ms_provider, size_t n_rows, size_t n_antennas,
-    const aocommon::BandData& band,
-    const std::vector<MSProvider::MetaData>& metadata,
-    std::complex<float>* visibilities) {
-  Logger::Info << "Writing...\n";
-  for (size_t row = 0; row != n_rows; ++row) {
-    WriteCollapsedVisibilities(*ms_provider, n_antennas, band,
-                               &visibilities[row * band.ChannelCount()],
-                               metadata[row].field_id, metadata[row].antenna1,
-                               metadata[row].antenna2, metadata[row].time);
-  }
-}
-
 size_t WGriddingMSGridder::PredictMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   ms_data.ms_provider->ReopenRW();

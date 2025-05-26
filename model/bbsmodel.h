@@ -93,7 +93,7 @@ class BBSModel {
     Headers h;
     int index = 0;
     double default_reference_frequency = 0.0;
-    for (auto s : tok) {
+    for (const auto& s : tok) {
       std::string key =
           boost::algorithm::to_lower_copy(boost::algorithm::trim_copy(s));
       std::string defaultVal;
@@ -199,7 +199,7 @@ class BBSModel {
           } else if (index == h.spectrInd) {
             boost::char_separator<char> freqsep("[,] ");
             boost::tokenizer<boost::char_separator<char>> freqtok(val, freqsep);
-            for (auto fval : freqtok)
+            for (const auto& fval : freqtok)
               frequencyTerms.push_back(atof(fval.c_str()));
           } else if (index == h.majAxisInd)
             component.SetMajorAxis(atof(val.c_str()) *

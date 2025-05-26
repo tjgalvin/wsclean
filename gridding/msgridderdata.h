@@ -53,17 +53,18 @@ inline void CollapseData(
 
 template <size_t PolarizationCount>
 inline void ExpandData(
-    size_t n_channels, std::complex<float>* buffer, std::complex<float>* output,
+    size_t n_channels, const std::complex<float>* input,
+    std::complex<float>* output,
     [[maybe_unused]] aocommon::PolarizationEnum polarization) {
   if constexpr (PolarizationCount == 2) {
     for (size_t ch = 0; ch != n_channels; ++ch) {
-      output[ch * 2] = buffer[ch];
-      output[ch * 2 + 1] = buffer[ch];
+      output[ch * 2] = input[ch];
+      output[ch * 2 + 1] = input[ch];
     }
   } else if constexpr (PolarizationCount == 4) {
     for (size_t i = 0; i != n_channels; ++i) {
       const size_t ch = n_channels - 1 - i;
-      aocommon::Polarization::ConvertToLinear(buffer[ch], polarization,
+      aocommon::Polarization::ConvertToLinear(input[ch], polarization,
                                               &output[ch * 4]);
     }
   } else

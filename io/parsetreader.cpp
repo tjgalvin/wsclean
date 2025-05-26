@@ -55,7 +55,7 @@ ParsetReader::ParsetEntry::ParsetEntry(const std::string& line) {
     boost::tokenizer<boost::char_separator<char>> listTokenizer(valStr,
                                                                 listSep);
     std::unique_ptr<StringListValue> value(new StringListValue());
-    for (auto item : listTokenizer) value->_value.push_back(item);
+    for (const auto& item : listTokenizer) value->_value.push_back(item);
     _value = std::move(value);
   }
 }

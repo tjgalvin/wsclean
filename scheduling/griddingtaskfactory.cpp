@@ -79,14 +79,14 @@ std::vector<GriddingTask> GriddingTaskFactory::CreatePsfTasks(
   for (const std::shared_ptr<ImagingTableEntry>& entry : facet_group) {
     // During PSF imaging, the average beam will never exist, so it is not
     // necessary to set the average beam in the task.
-
-    if (tasks.empty() || !combine_facets) {  // Create a new task.
-      tasks.push_back(CreateBase(*entry, image_weight_cache, is_first_task));
-      tasks.back().operation = GriddingTask::Invert;
-      tasks.back().imagePSF = true;
-      tasks.back().polarization = entry->polarization;
-      tasks.back().subtractModel = false;
-      tasks.back().storeImagingWeights = store_imaging_weights;
+    if (tasks.empty() || !combine_facets) {
+      GriddingTask task = CreateBase(*entry, image_weight_cache, is_first_task);
+      task.operation = GriddingTask::Invert;
+      task.imagePSF = true;
+      task.polarization = entry->polarization;
+      task.subtractModel = false;
+      task.storeImagingWeights = store_imaging_weights;
+      tasks.push_back(std::move(task));
     }
     AddFacet(tasks, *entry);
 
@@ -111,17 +111,17 @@ std::vector<GriddingTask> GriddingTaskFactory::CreateInvertTasks(
   for (std::size_t i = 0; i < facet_group.size(); ++i) {
     const ImagingTableEntry& entry = *facet_group[i];
 
-    if (tasks.empty() || !combine_facets) {  // Create a new task.
-      tasks.push_back(CreateBase(entry, image_weight_cache, is_first_task));
+    if (tasks.empty() || !combine_facets) {
+      GriddingTask task = CreateBase(entry, image_weight_cache, is_first_task);
 
-      tasks.back().operation = GriddingTask::Invert;
-      tasks.back().imagePSF = false;
-      tasks.back().polarization = DeterminePolarization(entry);
-      tasks.back().subtractModel = !is_first_inversion ||
-                                   settings.subtractModel ||
-                                   settings.continuedRun;
-      tasks.back().storeImagingWeights =
+      task.operation = GriddingTask::Invert;
+      task.imagePSF = false;
+      task.polarization = DeterminePolarization(entry);
+      task.subtractModel = !is_first_inversion || settings.subtractModel ||
+                           settings.continuedRun;
+      task.storeImagingWeights =
           is_first_inversion && settings.writeImagingWeightSpectrumColumn;
+      tasks.push_back(std::move(task));
     }
 
     std::unique_ptr<AverageBeam> average_beam;
@@ -148,10 +148,14 @@ std::vector<GriddingTask> GriddingTaskFactory::CreatePredictTasks(
   for (std::size_t i = 0; i < facet_group.size(); ++i) {
     const ImagingTableEntry& entry = *facet_group[i];
 
-    if (tasks.empty() || !combine_facets) {  // Create a new task.
-      tasks.push_back(CreateBase(entry, image_weight_cache, false));
-      tasks.back().operation = GriddingTask::Predict;
-      tasks.back().polarization = DeterminePolarization(entry);
+    if (tasks.empty() || !combine_facets) {
+      GriddingTask task = CreateBase(entry, image_weight_cache, false);
+      task.operation = GriddingTask::Predict;
+      task.imagePSF = false;
+      task.polarization = DeterminePolarization(entry);
+      task.subtractModel = false;
+      task.storeImagingWeights = false;
+      tasks.push_back(std::move(task));
     }
 
     std::unique_ptr<AverageBeam> average_beam;
