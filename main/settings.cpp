@@ -388,6 +388,12 @@ void Settings::Validate() const {
         "required joining or linking the polarizations.");
   }
 
+  if (UseFacetCorrections() && baselineDependentAveragingInWavelengths != 0.0) {
+    throw std::runtime_error(
+        "Baseline-dependent averaging can not be combined with facet "
+        "corrections.");
+  }
+
   if (reuseDirty && (gridWithBeam || !atermConfigFilename.empty())) {
     throw std::runtime_error(
         "Reusing dirty image and beam/aterm corrections"
