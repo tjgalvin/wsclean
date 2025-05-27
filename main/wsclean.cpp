@@ -986,6 +986,8 @@ void WSClean::DrawModel() {
   cs.l_shift = l_shift;
   cs.m_shift = m_shift;
 
+  fftwf_make_planner_thread_safe();
+
   std::vector<Image> images = math::RenderSubPixelModel(
       _settings.inputSkyModelFilename, cs, _settings.drawnSkyModelFrequency,
       _settings.drawnSkyModelBandwidth, _settings.sincWindowSize,

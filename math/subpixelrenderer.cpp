@@ -13,6 +13,7 @@
 
 #include "../model/bbsmodel.h"
 #include "../model/modelsource.h"
+#include "fourierdomainrenderer.h"
 
 using aocommon::Image;
 
@@ -93,6 +94,8 @@ std::vector<float> GetSpectralTerms(const ModelComponent& component,
 void RenderSourceTasks(aocommon::Lane<ModelSource>& source_lane,
                        std::vector<Image>& images, size_t window_size,
                        size_t n_terms, const RenderingInfo& settings) {
+  const double pixel_size = settings.coordinate_system.dl;
+  FourierDomainRenderer fd_renderer(window_size, pixel_size);
   SubPixelRenderer renderer(window_size);
   ModelSource source;
   while (source_lane.read(source)) {
@@ -100,7 +103,7 @@ void RenderSourceTasks(aocommon::Lane<ModelSource>& source_lane,
       std::vector<float> spectral_terms = GetSpectralTerms(component, settings);
       if (n_terms < spectral_terms.size()) {
         aocommon::Logger::Warn << "Consider increasing the number of spectral "
-                                  "terms set with --draw-spectral-terms (" +
+                                  "terms set with -draw-spectral-terms (" +
                                       std::to_string(spectral_terms.size()) +
                                       " terms available, but only " +
                                       std::to_string(n_terms) + " requested)";
@@ -108,24 +111,44 @@ void RenderSourceTasks(aocommon::Lane<ModelSource>& source_lane,
       for (size_t image_index = 0; image_index < n_terms; ++image_index) {
         const float term = spectral_terms[image_index];
         Image& image = images[image_index];
-        if (component.Type() != ModelComponent::PointSource) {
-          // TODO: also (small) Gaussian sources should be sinc-convolved
-          const aocommon::CoordinateSystem& cs = settings.coordinate_system;
-          const schaapcommon::math::Ellipse shape(component.MajorAxis(),
-                                                  component.MinorAxis(),
-                                                  component.PositionAngle());
-          DrawGaussianToLm(image.Data(), cs.width, cs.height, cs.ra, cs.dec,
-                           cs.dl, cs.dm, cs.l_shift, cs.m_shift,
-                           component.PosRA(), component.PosDec(), shape, term);
+        if (component.Type() == ModelComponent::GaussianSource) {
+          bool is_small_gaussian = component.MinorAxis() < 50.0 * pixel_size;
+          if (is_small_gaussian) {
+            double l, m;
+            aocommon::ImageCoordinates::RaDecToLM<double>(
+                component.PosRA(), component.PosDec(),
+                settings.coordinate_system.ra, settings.coordinate_system.dec,
+                l, m);
+            l += settings.coordinate_system.l_shift;
+            m += settings.coordinate_system.m_shift;
+            float x, y;
+            aocommon::ImageCoordinates::LMToXYfloat<float>(
+                l, m, settings.coordinate_system.dl,
+                settings.coordinate_system.dm, settings.coordinate_system.width,
+                settings.coordinate_system.height, x, y);
+
+            fd_renderer.RenderModelComponent(
+                image.Data(), component, settings.coordinate_system.width,
+                settings.coordinate_system.height, term, x, y);
+          } else {
+            const aocommon::CoordinateSystem& cs = settings.coordinate_system;
+            const schaapcommon::math::Ellipse shape(component.MajorAxis(),
+                                                    component.MinorAxis(),
+                                                    component.PositionAngle());
+            DrawGaussianToLm(image.Data(), cs.width, cs.height, cs.ra, cs.dec,
+                             cs.dl, cs.dm, cs.l_shift, cs.m_shift,
+                             component.PosRA(), component.PosDec(), shape,
+                             term);
+          }
         } else {
           double l, m;
-          float x, y;
           aocommon::ImageCoordinates::RaDecToLM<double>(
               component.PosRA(), component.PosDec(),
               settings.coordinate_system.ra, settings.coordinate_system.dec, l,
               m);
           l += settings.coordinate_system.l_shift;
           m += settings.coordinate_system.m_shift;
+          float x, y;
           aocommon::ImageCoordinates::LMToXYfloat<float>(
               l, m, settings.coordinate_system.dl,
               settings.coordinate_system.dm, settings.coordinate_system.width,

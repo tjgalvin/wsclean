@@ -383,6 +383,7 @@ add_library(
   math/imageoperations.cpp
   math/renderer.cpp
   math/subpixelrenderer.cpp
+  math/fourierdomainrenderer.cpp
   math/tophatconvolution.cpp
   model/model.cpp
   msproviders/averagingmsrowprovider.cpp
