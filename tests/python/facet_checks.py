@@ -55,7 +55,7 @@ def predict_facet_image(
 
 def deconvolve_facets(ms, gridder, reorder, mpi, apply_beam=False):
     nthreads = 4
-    mpi_cmd = f"mpirun -tag-output -np {nthreads} {tcf.WSCLEAN_MP}"
+    mpi_cmd = f"{tcf.MPIRUN} -tag-output -np {nthreads} {tcf.WSCLEAN_MP}"
     thread_cmd = f"{tcf.WSCLEAN} -parallel-gridding {nthreads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
     facet_beam = "-mwa-path . -apply-facet-beam" if apply_beam else ""
@@ -360,8 +360,8 @@ class TestFacets:
         wsclean_commands = [
             f"{tcf.WSCLEAN} -j 2",
             f"{tcf.WSCLEAN} -j 6 -parallel-gridding 3",
-            f"mpirun -np 3 {tcf.WSCLEAN_MP} -j 2 -max-mpi-message-size 42k",
-            f"mpirun -np 3 {tcf.WSCLEAN_MP} -j 6 -parallel-gridding 3",
+            f"{tcf.MPIRUN} -np 3 {tcf.WSCLEAN_MP} -j 2 -max-mpi-message-size 42k",
+            f"{tcf.MPIRUN} -np 3 {tcf.WSCLEAN_MP} -j 6 -parallel-gridding 3",
         ]
         for name, command in zip(names, wsclean_commands):
             s = (
@@ -399,8 +399,8 @@ class TestFacets:
         names = ["threaded", "mpi", "hybrid"]
         wsclean_commands = [
             f"{tcf.WSCLEAN} -j 3 -parallel-gridding 3",
-            f"mpirun -np 3 {tcf.WSCLEAN_MP} -max-mpi-message-size 42k",
-            f"mpirun -np 3 {tcf.WSCLEAN_MP} -j 3 -parallel-gridding 3",
+            f"{tcf.MPIRUN} -np 3 {tcf.WSCLEAN_MP} -max-mpi-message-size 42k",
+            f"{tcf.MPIRUN} -np 3 {tcf.WSCLEAN_MP} -j 3 -parallel-gridding 3",
         ]
 
         # Create reference output using a basic sequential run.
@@ -438,7 +438,7 @@ class TestFacets:
         # Because of the static channel-to-node map, using more than
         # 2 processes makes no sense: This test only has a single channel.
         # The MPI tests either run everything 'local'ly or 'remote'ly.
-        mpi_cmd = f"mpirun -np 2 {tcf.WSCLEAN_MP}"
+        mpi_cmd = f"{tcf.MPIRUN} -np 2 {tcf.WSCLEAN_MP}"
         # Using 5 tasks/node makes the main node send the compound tasks for
         # the yy polarization while the task for xx is not yet finished
         # Using only 1 thread/gridder yields very stable results: It allows
