@@ -498,7 +498,7 @@ if(MPI_FOUND)
   target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 
-add_executable(chgcentre chgcentre/main.cpp chgcentre/progressbar.cpp)
+add_executable(chgcentre chgcentre/main.cpp main/progressbar.cpp)
 target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB}
                       ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 

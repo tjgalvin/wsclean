@@ -12,7 +12,7 @@ class ProgressBar {
 
   void SetProgress(size_t taskIndex, size_t taskCount);
 
-  ProgressBar& operator=(ProgressBar&& rhs);
+  ProgressBar& operator=(ProgressBar&& rhs) noexcept;
 
  private:
   std::string _taskDescription;

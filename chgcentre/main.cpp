@@ -1,4 +1,4 @@
-#include "progressbar.h"
+#include "../main/progressbar.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -50,6 +50,8 @@ using casacore::MVuvw;
 using casacore::ScalarColumn;
 
 using aocommon::RaDecCoord;
+
+using wsclean::ProgressBar;
 
 std::vector<MPosition> antennas;
 

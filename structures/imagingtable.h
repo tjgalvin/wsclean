@@ -96,7 +96,7 @@ class ImagingTable {
                          }) const {
     return CreateGroups(
         [](const ImagingTableEntry& e) { return e.facetGroupIndex; },
-        is_selected);
+        std::move(is_selected));
   }
 
   size_t FacetCount() const { return _facets.size(); }

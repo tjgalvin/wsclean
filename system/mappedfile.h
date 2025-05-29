@@ -22,7 +22,7 @@ class MappedFile {
  public:
   MappedFile() : reserved_size_(0) {}
   MappedFile(const MappedFile&) = delete;
-  MappedFile(MappedFile&& source)
+  MappedFile(MappedFile&& source) noexcept
       : reserved_size_(source.reserved_size_),
         memory_map_(source.memory_map_),
         file_descriptor_(source.file_descriptor_) {
@@ -31,8 +31,8 @@ class MappedFile {
     source.file_descriptor_ = -1;
   }
 
-  MappedFile& operator=(MappedFile&& rhs) {
-    Swap(*this, rhs);
+  MappedFile& operator=(MappedFile&& rhs) noexcept {
+    swap(*this, rhs);
     return *this;
   }
   MappedFile& operator=(const MappedFile& rhs) = delete;
@@ -83,7 +83,7 @@ class MappedFile {
   const char* Data() const { return memory_map_; }
 
  private:
-  friend void Swap(MappedFile& lhs, MappedFile& rhs) {
+  friend void swap(MappedFile& lhs, MappedFile& rhs) noexcept {
     std::swap(lhs.reserved_size_, rhs.reserved_size_);
     std::swap(lhs.memory_map_, rhs.memory_map_);
     std::swap(lhs.file_descriptor_, rhs.file_descriptor_);

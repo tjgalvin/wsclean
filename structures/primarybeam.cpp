@@ -507,7 +507,7 @@ void PrimaryBeam::MakeOrReuse(const ImageFilename& image_name,
   }
   if (!use_existing_beam) {
     Logger::Info << " == Constructing primary beam ==\n";
-    MakeImage(image_name, entry, image_weights, field_id);
+    MakeImage(image_name, entry, std::move(image_weights), field_id);
   }
 }
 

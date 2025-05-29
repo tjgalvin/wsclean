@@ -80,7 +80,7 @@ class VisibilityCallbackBuffer : public TInfo {
         time_offsets_(data.time_offsets),
         gridder_(data.gridder),
         parm_response_(data.parm_response),
-        visibility_callback_(visibility_callback) {}
+        visibility_callback_(std::move(visibility_callback)) {}
 
   template <typename Index>
   const TVisibility raw(Index index) const {
