@@ -684,8 +684,9 @@ void ExpandAndCombineFacetVisibilities(
     size_t n_antennas, size_t n_channels, size_t n_rows,
     size_t n_vis_polarizations, const aocommon::BandData& band,
     const size_t* antennas1, const size_t* antennas2, const size_t* field_ids,
-    const double* times, const std::complex<float>* facet_visibilities,
-    MsGridder* gridder, std::complex<float>* combined_visibilities) {
+    const double* times, const double* uvw,
+    const std::complex<float>* facet_visibilities, MsGridder* gridder,
+    std::complex<float>* combined_visibilities) {
   aocommon::UVector<std::complex<float>> visibilities_scratch(
       n_channels * n_vis_polarizations);
   for (size_t i = 0; i < n_rows; ++i) {
@@ -706,8 +707,8 @@ void ExpandAndCombineFacetVisibilities(
         break;
     }
     gridder->CorrectInstrumentalVisibilities(
-        n_antennas, band, visibilities_scratch.data(), *field_ids, *antennas1,
-        *antennas2, *times);
+        n_antennas, band, visibilities_scratch.data(), uvw, *field_ids,
+        *antennas1, *antennas2, *times);
 
     // In case the value was not sampled in this pass, it has been set to
     // infinite and should not overwrite the current value in the set.
@@ -766,7 +767,8 @@ size_t MSGridderManager::PredictChunk(
               n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
               band, chunk_data.antennas1.data(), chunk_data.antennas2.data(),
               chunk_data.field_ids.data(), chunk_data.times.data(),
-              facet_visibilities.data(), gridder, combined_visibilities.data());
+              chunk_data.uvws.data(), facet_visibilities.data(), gridder,
+              combined_visibilities.data());
         }
         Logger::Info << "Done predicting facet " + std::to_string(facet_index) +
                             "\n";

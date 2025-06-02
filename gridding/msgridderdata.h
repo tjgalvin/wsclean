@@ -349,26 +349,27 @@ class MsGridderData {
    */
   void WriteCollapsedVisibilities(MSProvider& ms_provider, size_t n_antennas,
                                   const aocommon::BandData& band,
-                                  std::complex<float>* buffer, size_t field_id,
+                                  std::complex<float>* buffer,
+                                  const double* uvw, size_t field_id,
                                   size_t antenna1, size_t antenna2,
                                   double time) {
     switch (n_vis_polarizations_) {
       case 1:
         WriteInstrumentalVisibilities(ms_provider, n_antennas, band, buffer,
-                                      field_id, antenna1, antenna2, time);
+                                      uvw, field_id, antenna1, antenna2, time);
         break;
       case 2:
         internal::ExpandData<2>(band.ChannelCount(), buffer,
                                 scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, n_antennas, band,
-                                      scratch_model_data_.data(), field_id,
+                                      scratch_model_data_.data(), uvw, field_id,
                                       antenna1, antenna2, time);
         break;
       case 4:
         internal::ExpandData<4>(band.ChannelCount(), buffer,
                                 scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, n_antennas, band,
-                                      scratch_model_data_.data(), field_id,
+                                      scratch_model_data_.data(), uvw, field_id,
                                       antenna1, antenna2, time);
         break;
     }
@@ -386,8 +387,9 @@ class MsGridderData {
   void WriteInstrumentalVisibilities(MSProvider& ms_provider, size_t n_antennas,
                                      const aocommon::BandData& band,
                                      std::complex<float>* buffer,
-                                     size_t field_id, size_t antenna1,
-                                     size_t antenna2, double time);
+                                     const double* uvw, size_t field_id,
+                                     size_t antenna1, size_t antenna2,
+                                     double time);
   /**
    * Perform the corrections required by to @ref WriteCollapsedVisibilities() in
    * memory.
@@ -395,8 +397,9 @@ class MsGridderData {
   void CorrectInstrumentalVisibilities(size_t n_antennas,
                                        const aocommon::BandData& band,
                                        std::complex<float>* buffer,
-                                       size_t field_id, size_t antenna1,
-                                       size_t antenna2, double time);
+                                       const double* uvw, size_t field_id,
+                                       size_t antenna1, size_t antenna2,
+                                       double time);
 
   bool HasDenormalPhaseCentre() const {
     return l_shift_ != 0.0 || m_shift_ != 0.0;
@@ -853,14 +856,16 @@ class MsGridderData {
   void WriteInstrumentalVisibilities(MSProvider& ms_provider, size_t n_antennas,
                                      const aocommon::BandData& band,
                                      std::complex<float>* buffer,
-                                     size_t field_id, size_t antenna1,
-                                     size_t antenna2, double time);
+                                     const double* uvw, size_t field_id,
+                                     size_t antenna1, size_t antenna2,
+                                     double time);
   template <GainMode Mode>
   void CorrectInstrumentalVisibilities(size_t n_antennas,
                                        const aocommon::BandData& band,
                                        std::complex<float>* buffer,
-                                       size_t field_id, size_t antenna1,
-                                       size_t antenna2, double time);
+                                       const double* uvw, size_t field_id,
+                                       size_t antenna1, size_t antenna2,
+                                       double time);
 
   const Settings& settings_;
 
@@ -1107,61 +1112,61 @@ void MsGridderData::RotateVisibilities(const aocommon::BandData& band,
 
 inline void MsGridderData::WriteInstrumentalVisibilities(
     MSProvider& ms_provider, size_t n_antennas, const aocommon::BandData& band,
-    std::complex<float>* buffer, size_t field_id, size_t antenna1,
-    size_t antenna2, double time) {
+    std::complex<float>* buffer, const double* uvw, size_t field_id,
+    size_t antenna1, size_t antenna2, double time) {
   switch (gain_mode_) {
     case GainMode::kXX:
       WriteInstrumentalVisibilities<GainMode::kXX>(ms_provider, n_antennas,
-                                                   band, buffer, field_id,
+                                                   band, buffer, uvw, field_id,
                                                    antenna1, antenna2, time);
       break;
     case GainMode::kYY:
       WriteInstrumentalVisibilities<GainMode::kYY>(ms_provider, n_antennas,
-                                                   band, buffer, field_id,
+                                                   band, buffer, uvw, field_id,
                                                    antenna1, antenna2, time);
       break;
     case GainMode::kTrace:
-      WriteInstrumentalVisibilities<GainMode::kTrace>(ms_provider, n_antennas,
-                                                      band, buffer, field_id,
-                                                      antenna1, antenna2, time);
+      WriteInstrumentalVisibilities<GainMode::kTrace>(
+          ms_provider, n_antennas, band, buffer, uvw, field_id, antenna1,
+          antenna2, time);
       break;
     case GainMode::k2VisDiagonal:
       WriteInstrumentalVisibilities<GainMode::k2VisDiagonal>(
-          ms_provider, n_antennas, band, buffer, field_id, antenna1, antenna2,
-          time);
+          ms_provider, n_antennas, band, buffer, uvw, field_id, antenna1,
+          antenna2, time);
       break;
     case GainMode::kFull:
-      WriteInstrumentalVisibilities<GainMode::kFull>(ms_provider, n_antennas,
-                                                     band, buffer, field_id,
-                                                     antenna1, antenna2, time);
+      WriteInstrumentalVisibilities<GainMode::kFull>(
+          ms_provider, n_antennas, band, buffer, uvw, field_id, antenna1,
+          antenna2, time);
       break;
   }
 }
 
 inline void MsGridderData::CorrectInstrumentalVisibilities(
     size_t n_antennas, const aocommon::BandData& band,
-    std::complex<float>* buffer, size_t field_id, size_t antenna1,
-    size_t antenna2, double time) {
+    std::complex<float>* buffer, const double* uvw, size_t field_id,
+    size_t antenna1, size_t antenna2, double time) {
   switch (gain_mode_) {
     case GainMode::kXX:
       CorrectInstrumentalVisibilities<GainMode::kXX>(
-          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+          n_antennas, band, buffer, uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::kYY:
       CorrectInstrumentalVisibilities<GainMode::kYY>(
-          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+          n_antennas, band, buffer, uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::kTrace:
       CorrectInstrumentalVisibilities<GainMode::kTrace>(
-          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+          n_antennas, band, buffer, uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::k2VisDiagonal:
       CorrectInstrumentalVisibilities<GainMode::k2VisDiagonal>(
-          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+          n_antennas, band, buffer, uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::kFull:
       CorrectInstrumentalVisibilities<GainMode::kFull>(
-          n_antennas, band, buffer, field_id, antenna1, antenna2, time);
+          n_antennas, band, buffer, uvw, field_id, antenna1, antenna2, time);
       break;
   }
 }
@@ -1169,9 +1174,9 @@ inline void MsGridderData::CorrectInstrumentalVisibilities(
 template <GainMode Mode>
 void MsGridderData::WriteInstrumentalVisibilities(
     MSProvider& ms_provider, size_t n_antennas, const aocommon::BandData& band,
-    std::complex<float>* buffer, size_t field_id, size_t antenna1,
-    size_t antenna2, double time) {
-  CorrectInstrumentalVisibilities<Mode>(n_antennas, band, buffer, field_id,
+    std::complex<float>* buffer, const double* uvw, size_t field_id,
+    size_t antenna1, size_t antenna2, double time) {
+  CorrectInstrumentalVisibilities<Mode>(n_antennas, band, buffer, uvw, field_id,
                                         antenna1, antenna2, time);
   {
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
@@ -1184,8 +1189,8 @@ void MsGridderData::WriteInstrumentalVisibilities(
 template <GainMode Mode>
 void MsGridderData::CorrectInstrumentalVisibilities(
     size_t n_antennas, const aocommon::BandData& band,
-    std::complex<float>* buffer, size_t field_id, size_t antenna1,
-    size_t antenna2, double time) {
+    std::complex<float>* buffer, const double* uvw, size_t field_id,
+    size_t antenna1, size_t antenna2, double time) {
   assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
 
 #ifdef HAVE_EVERYBEAM
@@ -1205,6 +1210,10 @@ void MsGridderData::CorrectInstrumentalVisibilities(
         buffer, original_ms_index_, band.ChannelCount(), n_antennas, antenna1,
         antenna2, time_offset);
     visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
+  }
+  if (settings_.applyTimeFrequencySmearing) {
+    visibility_modifier_.ApplyTimeFrequencySmearing(
+        buffer, uvw, band, n_vis_polarizations_, LShift(), MShift());
   }
 }
 

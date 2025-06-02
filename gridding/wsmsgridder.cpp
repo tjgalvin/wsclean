@@ -381,8 +381,8 @@ void WSMSGridder::predictWriteThread(
       ReadPredictMetaData(metadata);
       WriteCollapsedVisibilities(
           *msData->ms_provider, msData->antenna_names.size(), *bandData,
-          queue.top().data.get(), metadata.field_id, metadata.antenna1,
-          metadata.antenna2, metadata.time);
+          queue.top().data.get(), queue.top().uvw.data(), metadata.field_id,
+          metadata.antenna1, metadata.antenna2, metadata.time);
 
       queue.pop();
       ++nextRowId;
