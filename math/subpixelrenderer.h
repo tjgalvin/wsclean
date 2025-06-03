@@ -40,7 +40,8 @@ class SubPixelRenderer {
 std::vector<aocommon::Image> RenderSubPixelModel(
     const std::string& model_filename,
     const aocommon::CoordinateSystem& coordinate_system, double frequency,
-    double bandwidth, size_t window_size, size_t n_terms);
+    double bandwidth, size_t window_size, size_t n_terms, double mem_fraction,
+    double mem_limit);
 
 }  // namespace wsclean::math
 

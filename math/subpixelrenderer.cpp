@@ -13,6 +13,7 @@
 
 #include "../model/bbsmodel.h"
 #include "../model/modelsource.h"
+#include "../structures/resources.h"
 #include "fourierdomainrenderer.h"
 
 using aocommon::Image;
@@ -222,19 +223,36 @@ void SubPixelRenderer::RenderWindowedSource(float* image, size_t width,
 std::vector<aocommon::Image> RenderSubPixelModel(
     const std::string& model_filename,
     const aocommon::CoordinateSystem& coordinate_system, double frequency,
-    double bandwidth, size_t window_size, size_t n_terms) {
+    double bandwidth, size_t window_size, size_t n_terms, double mem_fraction,
+    double mem_limit) {
   aocommon::Logger::Info << "Rendering sources...\n";
   aocommon::ThreadPool& pool = aocommon::ThreadPool::GetInstance();
   // Each thread will get their own list of images, to prevent having to
   // synchronize. These lists consist of the Stokes I image and images for each
   // of the higher order spectral terms, as requested.
   std::vector<std::vector<Image>> images;
-  images.resize(pool.NThreads());
+
+  // Limit the number of threads based on the available memory.
+  const size_t thread_limit =
+      std::max<size_t>(1, GetAvailableMemory(0.5 * mem_fraction, mem_limit) /
+                              (n_terms * coordinate_system.width *
+                               coordinate_system.height * sizeof(float)));
+  const size_t n_threads = std::min(pool.NThreads(), thread_limit);
+  if (n_threads < pool.NThreads()) {
+    aocommon::Logger::Warn << "Rendering sky model with fewer threads ("
+                           << n_threads << ") than requested ("
+                           << pool.NThreads() << ").";
+  }
+
+  // Thread pool is only used for renderering, hence, it's safe to resize.
+  pool.SetNThreads(n_threads);
+
+  images.resize(n_threads);
   const RenderingInfo settings(frequency, frequency - bandwidth * 0.5,
                                frequency + bandwidth * 0.5, coordinate_system,
                                images);
-  aocommon::Lane<ModelSource> source_lane(pool.NThreads());
-  for (size_t i = 0; i != pool.NThreads(); ++i) {
+  aocommon::Lane<ModelSource> source_lane(n_threads);
+  for (size_t i = 0; i != n_threads; ++i) {
     for (size_t t = 0; t != n_terms; ++t) {
       images[i].emplace_back(coordinate_system.width, coordinate_system.height,
                              0.0f);

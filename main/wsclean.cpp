@@ -991,7 +991,8 @@ void WSClean::DrawModel() {
   std::vector<Image> images = math::RenderSubPixelModel(
       _settings.inputSkyModelFilename, cs, _settings.drawnSkyModelFrequency,
       _settings.drawnSkyModelBandwidth, _settings.sincWindowSize,
-      _settings.drawnSpectralTermCount);
+      _settings.drawnSpectralTermCount, _settings.memFraction,
+      _settings.absMemLimit);
 
   for (size_t image_index = 0; image_index < images.size(); ++image_index) {
     std::string fits_filename = _settings.prefixName;
