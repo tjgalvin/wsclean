@@ -254,11 +254,21 @@ std::vector<aocommon::Image> RenderSubPixelModel(
   auto process_function = [&source_lane](const ModelSource& s) {
     source_lane.write(s);
   };
-  BBSModel::Read(model_filename, process_function);
+
+  std::exception_ptr exception;
+  try {
+    BBSModel::Read(model_filename, process_function);
+  } catch (...) {
+    // In case of an exception (e.g. file not found), the threads still need to
+    // receive a signal to end.
+    exception = std::current_exception();
+  }
 
   aocommon::Logger::Info << "Finishing...\n";
   source_lane.write_end();
   pool.FinishParallelExecution();
+
+  if (exception) rethrow_exception(exception);
 
   // Add all images together
   for (size_t thread_index = 1; thread_index != images.size(); ++thread_index) {
