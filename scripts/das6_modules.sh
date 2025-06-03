@@ -19,3 +19,4 @@ module load idg
 
 # Use a venv instead of spack for python packages
 source /var/software/spack-extras/20250523/wsclean-ci-env/bin/activate
+export EVERYBEAM_DATADIR=/var/software/spack-extras/20250109/opt/spack/linux-rocky8-zen2/gcc-13.1.0/everybeam-0.6.1-wm3lduhu6psslnrqr6jyc3ru5l4vvnou/share/everybeam/

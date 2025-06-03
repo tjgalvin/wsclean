@@ -3,6 +3,7 @@ import os
 import sys
 from wsgiref import validate
 
+import casacore.tables
 import h5py
 import numpy as np
 import pytest
@@ -28,16 +29,34 @@ def name(name: str):
     return os.path.join(tcf.RESULTS_DIR, name)
 
 
-"""
-Checks if a specified pixel in a fits file is within 0.03 units
-of the given expected value.
-"""
-
-
 def check_image_pixel(position, expected_value, filename):
+    """
+    Checks if a specified pixel in a fits file is within 0.03 units
+    of the given expected value.
+    """
     with fits.open(filename) as image:
         value = image[0].data[position]
     assert expected_value - 0.03 < value < expected_value + 0.03
+
+
+def make_h5parm(solution_file, mode, solint):
+    """
+    Perfoms a simple solve to make a hdf5 parm with the given mode (e.g. scalar, diagonal, fulljones).
+    """
+    dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.mode={mode} ddecal.maxiter=1 ddecal.solint={solint}"
+    validate_call(dp3_run.split())
+
+
+def check_preapplied_beam_parameters(ms_name):
+    """
+    Check if the beam keywords were added to a measurement set after applying the beam.
+    This checks DP3, but is required for WSClean to function correctly.
+    """
+    with casacore.tables.table(ms_name) as bda_table:
+        bda_data_col = bda_table.col("DATA")
+        fields = bda_data_col.fieldnames()
+        assert "LOFAR_APPLIED_BEAM_MODE" in fields
+        assert "LOFAR_APPLIED_BEAM_DIR" in fields
 
 
 def set_test_gains_in_solution_file(solution_file):
@@ -734,11 +753,8 @@ class TestLongSystem:
     def test_facet_scalar_corrections(
         self, model_file_fixture, region_file_fixture
     ):
-        # Perform simple solve to get a hdf5 parm file
         solution_file = "scalar_correction_solutions.h5"
-        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.mode=scalar ddecal.maxiter=1"
-        validate_call(dp3_run.split())
-
+        make_h5parm(solution_file, "scalar", 1)
         set_test_gains_in_solution_file(solution_file)
 
         # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
@@ -772,9 +788,7 @@ class TestLongSystem:
     ):
         # Perform simple solve to get a hdf5 parm file
         solution_file = "dual_correction_solutions.h5"
-        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.maxiter=1"
-        validate_call(dp3_run.split())
-
+        make_h5parm(solution_file, "diagonal", 1)
         set_test_gains_in_solution_file(solution_file)
 
         # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
@@ -820,6 +834,8 @@ class TestLongSystem:
         dp3_run = f"DP3 msin=3c196-simulation.ms msout= steps=[applybeam]"
         validate_call(dp3_run.split())
 
+        check_preapplied_beam_parameters("3c196-simulation.ms")
+
         cmd = base_cmd + " -diagonal-visibilities 3c196-simulation.ms"
         validate_call(cmd.split())
 
@@ -827,13 +843,58 @@ class TestLongSystem:
             i_source_pos, 1.0, "facet-dual-corrections-image-pb.fits"
         )
 
+    def test_time_bda_facet_dual_corrections(
+        self, model_file_fixture, region_file_fixture
+    ):
+        """
+        Predict a skymodel with corruptions in DP3, writing the output with BDA.
+        Check that wsclean corrects for the corruptions correctly.
+        """
+        solution_file = "bda_dual_correction_solutions.h5"
+        make_h5parm(solution_file, "diagonal", 8)
+        set_test_gains_in_solution_file(solution_file)
+
+        bda_set = "3c196-simulation-bda.ms"
+        # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
+        # The input MS has 12 second intervals. We limit averaging to 8 timesteps, so 96 seconds.
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout={bda_set} msout.overwrite=True steps=[h5parmpredict,bda] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.usebeammodel=True h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=amplitude000 bda.timebase=200 bda.maxinterval=96.0 bda.type=bdaaverager bda.minchannels=1 bda.frequencybase=0.0"
+        validate_call(dp3_run.split())
+
+        base_cmd = f"""{tcf.WSCLEAN}
+-parallel-gridding 4 -facet-regions 3c196-with-5-facets.reg -apply-facet-beam
+-apply-facet-solutions {solution_file} amplitude000,phase000 -size 2500 2500
+-scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8 -nmiter 1
+-maxuvw-m 20000 -no-update-model-required"""
+        cmd = f"{base_cmd} -name bda-facet-corrections {bda_set}"
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "bda-facet-corrections-image-pb.fits"
+        )
+
+        # Prepare for applying solutions to diagonal (XX,YY) vis. To do so, first
+        # apply the beam so that the element's projection effect is removed. For diagonal
+        # visibilities, we want to have as little power in xy,yx as possible, since it is 'lost'.
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout={bda_set} msout.overwrite=True steps=[h5parmpredict,applybeam,bda] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.usebeammodel=True h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=amplitude000 bda.timebase=200 bda.maxinterval=96.0 bda.type=bdaaverager bda.minchannels=1 bda.frequencybase=0.0"
+        validate_call(dp3_run.split())
+
+        check_preapplied_beam_parameters(bda_set)
+
+        cmd = (
+            base_cmd
+            + f" -diagonal-visibilities -name bda-facet-beam-applied {bda_set}"
+        )
+        validate_call(cmd.split())
+
+        check_image_pixel(
+            i_source_pos, 1.0, "bda-facet-beam-applied-image-pb.fits"
+        )
+
     def test_full_jones_facet_corrections(
         self, model_file_fixture, region_file_fixture
     ):
-        # Perform simple solve to get a hdf5 parm file
         solution_file = "full_jones_correction_solutions.h5"
-        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.mode=fulljones ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.maxiter=1"
-        validate_call(dp3_run.split())
+        make_h5parm(solution_file, "fulljones", 1)
 
         with h5py.File(solution_file, "a") as table:
             solset = table["sol000"]
