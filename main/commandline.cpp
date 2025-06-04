@@ -1382,6 +1382,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.visibilityReadMode = VisibilityReadMode::kDiagonal;
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
+    } else if (param == "apply-time-frequency-smearing") {
+      settings.applyTimeFrequencySmearing = true;
     } else if (param == "facet-beam-update") {
       IncArgi(argi, argc);
       settings.facetBeamUpdateTime =

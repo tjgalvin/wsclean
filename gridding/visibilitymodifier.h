@@ -12,6 +12,7 @@
 #include <schaapcommon/h5parm/jonesparameters.h>
 
 #include <aocommon/banddata.h>
+#include <aocommon/constants.h>
 #include <aocommon/matrix2x2.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
@@ -298,6 +299,10 @@ class VisibilityModifier {
   void ApplyParmResponse(std::complex<float>* data, size_t ms_index,
                          size_t n_channels, size_t n_antennas, size_t antenna1,
                          size_t antenna2, size_t time_offset);
+
+  void ApplyTimeFrequencySmearing(std::complex<float>* data, const double* uvw,
+                                  const aocommon::BandData& band, int n,
+                                  double l, double m);
 
   void SetMSTimes(size_t ms_index, std::shared_ptr<std::vector<double>> times) {
     _cachedMSTimes[ms_index] = std::move(times);
@@ -633,6 +638,22 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
         CreateMatrix2x2OrDiag<NParms, Mode>(parm_response, offset2);
     correction_sum_.Add<Mode>(gain1, gain2,
                               image_weights[n_channel] * weights[0]);
+  }
+}
+
+inline void VisibilityModifier::ApplyTimeFrequencySmearing(
+    std::complex<float>* data, const double* uvw,
+    const aocommon::BandData& band, int n_pol_per_vis, double dl, double dm) {
+  if (dl != 0.0 || dm != 0.0) {
+    const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;
+    const double x = M_PI * (uvw[0] * dl + uvw[1] * dm + uvw[2] * dn) /
+                     aocommon::kSpeedOfLight * band.ChannelWidth(0);
+    const double smearing_factor = abs(x) < 1e-6 ? 1.0 : sin(x) / x;
+    const size_t n_channels = band.ChannelCount();
+    const size_t n = n_pol_per_vis * n_channels;
+    for (size_t i = 0; i < n; ++i) {
+      data[i] *= smearing_factor;
+    }
   }
 }
 

@@ -148,6 +148,7 @@ class Settings {
   bool solutionDirectionsCheck = true;
   VisibilityReadMode visibilityReadMode = VisibilityReadMode::kFull;
   bool applyFacetBeam = false;
+  bool applyTimeFrequencySmearing = false;
   double facetBeamUpdateTime = 120.0;  // in seconds.
   bool saveATerms = false;
   enum IDGMode {

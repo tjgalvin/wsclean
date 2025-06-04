@@ -143,7 +143,7 @@ class MsGridderData {
    * combined effect.
    */
   template <GainMode Mode, size_t NParms>
-  void LoadAndApplyCorrections(size_t n_antennas,
+  void LoadAndApplyCorrections(size_t n_antennas, const double* uvw,
                                std::complex<float>* visibility_row,
                                const aocommon::BandData& band,
                                const float* weight_buffer,
@@ -153,19 +153,19 @@ class MsGridderData {
       const bool apply_beam =
           settings_.applyFacetBeam || settings_.gridWithBeam;
       if (apply_beam) {
-        LoadAndApplyCorrections<Mode, NParms, true>(n_antennas, visibility_row,
-                                                    band, weight_buffer,
-                                                    metadata, time_offset);
+        LoadAndApplyCorrections<Mode, NParms, true>(
+            n_antennas, uvw, visibility_row, band, weight_buffer, metadata,
+            time_offset);
       } else {
-        LoadAndApplyCorrections<Mode, NParms, false>(n_antennas, visibility_row,
-                                                     band, weight_buffer,
-                                                     metadata, time_offset);
+        LoadAndApplyCorrections<Mode, NParms, false>(
+            n_antennas, uvw, visibility_row, band, weight_buffer, metadata,
+            time_offset);
       }
     }
     visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
   }
   template <GainMode Mode, size_t NParms, bool ApplyBeam>
-  void LoadAndApplyCorrections(size_t n_antennas,
+  void LoadAndApplyCorrections(size_t n_antennas, const double* uvw,
                                std::complex<float>* visibility_row,
                                const aocommon::BandData& band,
                                const float* weight_buffer,
@@ -176,6 +176,12 @@ class MsGridderData {
       LoadAndApplyCorrections<Mode, NParms, ApplyBeam, true>(
           n_antennas, visibility_row, band, weight_buffer, metadata,
           time_offset);
+      if (settings_.applyTimeFrequencySmearing) {
+        visibility_modifier_.ApplyTimeFrequencySmearing(
+            visibility_row, uvw, band, n_vis_polarizations_, LShift(),
+            MShift());
+      }
+
     } else {
       LoadAndApplyCorrections<Mode, NParms, ApplyBeam, false>(
           n_antennas, visibility_row, band, weight_buffer, metadata,
@@ -1045,32 +1051,37 @@ void MsGridderData::ApplyWeightsAndCorrections(
     float* weight_buffer, const MSProvider::MetaData& metadata) {
   switch (gain_mode_) {
     case GainMode::kXX:
-      LoadAndApplyCorrections<GainMode::kXX, NParms>(
-          n_antennas, row_data.data, band, weight_buffer, metadata);
+      LoadAndApplyCorrections<GainMode::kXX, NParms>(n_antennas, row_data.uvw,
+                                                     row_data.data, band,
+                                                     weight_buffer, metadata);
       ApplyWeights<GainMode::kXX>(row_data.data, band.ChannelCount(),
                                   weight_buffer);
       break;
     case GainMode::kYY:
-      LoadAndApplyCorrections<GainMode::kYY, NParms>(
-          n_antennas, row_data.data, band, weight_buffer, metadata);
+      LoadAndApplyCorrections<GainMode::kYY, NParms>(n_antennas, row_data.uvw,
+                                                     row_data.data, band,
+                                                     weight_buffer, metadata);
       ApplyWeights<GainMode::kYY>(row_data.data, band.ChannelCount(),
                                   weight_buffer);
       break;
     case GainMode::kTrace:
       LoadAndApplyCorrections<GainMode::kTrace, NParms>(
-          n_antennas, row_data.data, band, weight_buffer, metadata);
+          n_antennas, row_data.uvw, row_data.data, band, weight_buffer,
+          metadata);
       ApplyWeights<GainMode::kTrace>(row_data.data, band.ChannelCount(),
                                      weight_buffer);
       break;
     case GainMode::k2VisDiagonal:
       LoadAndApplyCorrections<GainMode::k2VisDiagonal, NParms>(
-          n_antennas, row_data.data, band, weight_buffer, metadata);
+          n_antennas, row_data.uvw, row_data.data, band, weight_buffer,
+          metadata);
       ApplyWeights<GainMode::k2VisDiagonal>(row_data.data, band.ChannelCount(),
                                             weight_buffer);
       break;
     case GainMode::kFull:
-      LoadAndApplyCorrections<GainMode::kFull, NParms>(
-          n_antennas, row_data.data, band, weight_buffer, metadata);
+      LoadAndApplyCorrections<GainMode::kFull, NParms>(n_antennas, row_data.uvw,
+                                                       row_data.data, band,
+                                                       weight_buffer, metadata);
       ApplyWeights<GainMode::kFull>(row_data.data, band.ChannelCount(),
                                     weight_buffer);
       break;
