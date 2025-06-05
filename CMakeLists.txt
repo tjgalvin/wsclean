@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(wsclean)
+project(wsclean LANGUAGES CXX)
 
 include(ExternalProject)
 include(CMakeVersionInfo.txt)
@@ -41,16 +41,8 @@ set(ExternalSubmoduleDirectories aocommon radler schaapcommon)
 find_package(pybind11 CONFIG QUIET)
 if(NOT pybind11_FOUND)
   message(
-    No
-    system
-    pybind11
-    version
-    found,
-    using
-    the
-    external/pybind11
-    submodule
-    instead.)
+    "No system pybind11 version found, using the external/pybind11 submodule instead."
+  )
   set(ExternalSubmoduleDirectories ${ExternalSubmoduleDirectories} pybind11)
 endif()
 
@@ -132,7 +124,7 @@ endif(SKA_SDP_FUNC_FOUND)
 
 find_package(
   HDF5
-  COMPONENTS C CXX
+  COMPONENTS CXX
   REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
 
