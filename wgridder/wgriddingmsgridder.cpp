@@ -259,7 +259,7 @@ size_t WGriddingMSGridder::PredictMeasurementSet(
       WriteCollapsedVisibilities(
           *ms_data.ms_provider, ms_data.antenna_names.size(), selected_band,
           &visibility_buffer[row * selected_band.ChannelCount()],
-          uvw_buffer.data(), metadata_buffer[row].field_id,
+          &uvw_buffer[row * 3], metadata_buffer[row].field_id,
           metadata_buffer[row].antenna1, metadata_buffer[row].antenna2,
           metadata_buffer[row].time);
     }
