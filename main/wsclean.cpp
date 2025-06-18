@@ -1214,10 +1214,11 @@ void WSClean::writeFirstResidualImages(const ImagingTable& groupTable) const {
   }
 }
 
-void WSClean::writeModelImages(const ImagingTable& groupTable) const {
+void WSClean::WriteModelImages(const ImagingTable::Groups& facet_groups) const {
   Logger::Info << "Writing model image...\n";
   Image ptr(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  for (const ImagingTableEntry& entry : groupTable) {
+  for (const ImagingTable::Group& group : facet_groups) {
+    const ImagingTableEntry& entry = *group.front();
     size_t ch = entry.outputChannelIndex;
     if (entry.polarization == Polarization::YX) {
       _modelImages.Load(ptr.Data(), Polarization::XY, ch, true);
@@ -1602,7 +1603,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
 
       const bool is_finished = !reachedMajorThreshold;
       if (is_finished) {
-        writeModelImages(tableWithoutDdPsf);
+        WriteModelImages(facetGroups);
       }
 
       const bool skip_iteration = is_finished && _settings.skipFinalIteration;

@@ -226,7 +226,7 @@ class WSClean {
                             bool isPredictOnly);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
-  void writeModelImages(const ImagingTable& groupTable) const;
+  void WriteModelImages(const ImagingTable::Groups& facet_groups) const;
 
   double minTheoreticalBeamSize(const ImagingTable& table) const;
 
