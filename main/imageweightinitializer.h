@@ -43,6 +43,13 @@ class ImageWeightInitializer {
   void InitializeMf(const ImagingTable& imaging_table, ImageWeightCache& cache);
 
  private:
+  void GridMfReorderedBand(size_t data_desc_id,
+                           const aocommon::MultiBandData& bands,
+                           ImageWeights& weights, size_t ms_index,
+                           const ImagingTableEntry& entry) const;
+  void GridMfContiguousBand(size_t filename_index, size_t data_desc_id,
+                            ImageWeights& weights) const;
+
   const Settings& settings_;
   const schaapcommon::reordering::MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;

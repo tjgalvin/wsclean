@@ -30,6 +30,7 @@ struct ImagingTableEntry {
   };
 
   struct MSInfo {
+    // Indexed by data desc id.
     std::vector<MSBandInfo> bands;
   };
 

@@ -29,25 +29,27 @@ const std::vector<ChannelRange> MsHelper::GenerateChannelInfo(
       // The band information is determined from the first facet in the group.
       // After this, all facet entries inside the group are updated.
       const ImagingTableEntry& entry = *facet_group.front();
-      for (size_t d = 0; d != band_data.DataDescCount(); ++d) {
-        MSSelection selection{global_selection_};
-        const size_t band_index = band_data.GetBandIndex(d);
+      for (size_t d = 0; d != band_data.HighestBandId() + 1; ++d) {
+        if (band_data.HasDataDescId(d)) {
+          MSSelection selection{global_selection_};
+          const size_t band_index = band_data.GetBandIndex(d);
 
-        if (settings_.IsBandSelected(band_index) &&
-            SelectMsChannels(selection, band_data, d, entry)) {
-          if (entry.polarization == *settings_.polarizations.begin()) {
-            ChannelRange r;
-            r.data_desc_id = d;
-            r.start = selection.ChannelRangeStart();
-            r.end = selection.ChannelRangeEnd();
-            channels.push_back(r);
+          if (settings_.IsBandSelected(band_index) &&
+              SelectMsChannels(selection, band_data, d, entry)) {
+            if (entry.polarization == *settings_.polarizations.begin()) {
+              ChannelRange r;
+              r.data_desc_id = d;
+              r.start = selection.ChannelRangeStart();
+              r.end = selection.ChannelRangeEnd();
+              channels.push_back(r);
+            }
+            for (const std::shared_ptr<ImagingTableEntry>& facet_entry :
+                 facet_group) {
+              facet_entry->msData[ms_index].bands[d].partIndex =
+                  next_index[entry.polarization];
+            }
+            ++next_index[entry.polarization];
           }
-          for (const std::shared_ptr<ImagingTableEntry>& facet_entry :
-               facet_group) {
-            facet_entry->msData[ms_index].bands[d].partIndex =
-                next_index[entry.polarization];
-          }
-          ++next_index[entry.polarization];
         }
       }
     }
@@ -132,27 +134,29 @@ std::vector<MsListItem> MsHelper::InitializeMsList(
        ++ms_index) {
     const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
 
-    for (size_t data_description_id = 0;
-         data_description_id != band_data.DataDescCount();
-         ++data_description_id) {
-      MSSelection selection{global_selection_};
-      const size_t band_index = band_data.GetBandIndex(data_description_id);
+    for (size_t data_desc_id = 0; data_desc_id != band_data.HighestBandId() + 1;
+         ++data_desc_id) {
+      if (band_data.HasDataDescId(data_desc_id)) {
+        MSSelection selection{global_selection_};
+        const size_t band_index = band_data.GetBandIndex(data_desc_id);
 
-      if (settings_.IsBandSelected(band_index) &&
-          SelectMsChannels(selection, band_data, data_description_id, entry)) {
-        MsListItem item;
-        if (settings_.doReorder)
-          item.ms_description = MSDataDescription::ForReordered(
-              reordered_ms_handles_[ms_index], selection,
-              entry.msData[ms_index].bands[data_description_id].partIndex,
-              polarization, data_description_id, settings_.UseMpi());
-        else
-          item.ms_description = MSDataDescription::ForContiguous(
-              settings_.filenames[ms_index], settings_.dataColumnName,
-              settings_.modelColumnName, settings_.modelStorageManager,
-              selection, polarization, data_description_id, settings_.UseMpi());
-        item.ms_index = ms_index;
-        ms_list.emplace_back(std::move(item));
+        if (settings_.IsBandSelected(band_index) &&
+            SelectMsChannels(selection, band_data, data_desc_id, entry)) {
+          MsListItem item;
+          if (settings_.doReorder) {
+            item.ms_description = MSDataDescription::ForReordered(
+                reordered_ms_handles_[ms_index], selection,
+                entry.msData[ms_index].bands[data_desc_id].partIndex,
+                polarization, data_desc_id, settings_.UseMpi());
+          } else {
+            item.ms_description = MSDataDescription::ForContiguous(
+                settings_.filenames[ms_index], settings_.dataColumnName,
+                settings_.modelColumnName, settings_.modelStorageManager,
+                selection, polarization, data_desc_id, settings_.UseMpi());
+          }
+          item.ms_index = ms_index;
+          ms_list.emplace_back(std::move(item));
+        }
       }
     }
   }

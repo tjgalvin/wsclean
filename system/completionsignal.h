@@ -8,7 +8,7 @@ namespace wsclean {
 /*
  * Single use exception safe utility class to allow multiple consumer threads to
  * wait until the producing/constructing thread signals completion. Must be used
- * only once, i.e. after the signal is sent the instance should be detroyed and
+ * only once, i.e. after the signal is sent the instance should be destroyed and
  * not used again.
  *
  * Example usage:

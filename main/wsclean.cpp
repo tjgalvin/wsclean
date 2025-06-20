@@ -2003,8 +2003,8 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
     casacore::MeasurementSet ms(_settings.filenames[i]);
     _msBands[i] = aocommon::MultiBandData(ms);
     std::set<size_t> dataDescIds = _msBands[i].GetUsedDataDescIds(ms);
-    if (dataDescIds.size() != _msBands[i].DataDescCount()) {
-      Logger::Debug << dataDescIds.size() << "/" << _msBands[i].DataDescCount()
+    if (dataDescIds.size() != _msBands[i].BandCount()) {
+      Logger::Debug << dataDescIds.size() << "/" << _msBands[i].BandCount()
                     << " spws are used of " << _settings.filenames[i] << '\n';
     }
 
@@ -2158,7 +2158,8 @@ void WSClean::makeImagingTableEntry(
 
   entry.msData.resize(_settings.filenames.size());
   for (size_t msIndex = 0; msIndex != _settings.filenames.size(); ++msIndex) {
-    entry.msData[msIndex].bands.resize(_msBands[msIndex].DataDescCount());
+    entry.msData[msIndex].bands.resize(_msBands[msIndex].HighestDataDescId() +
+                                       1);
   }
 }
 

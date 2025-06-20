@@ -264,7 +264,8 @@ class WSClean {
    */
   size_t getMaxNrMSProviders() const {
     size_t msCount = 0;
-    for (const auto& msBand : _msBands) msCount += msBand.DataDescCount();
+    for (const auto& msBand : _msBands)
+      msCount += msBand.HighestDataDescId() + 1;
     return msCount;
   }
 
