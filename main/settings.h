@@ -183,7 +183,7 @@ class Settings {
   size_t majorAutoMaskIterations = 2;
   double deconvolutionGain = 0.1;
   double deconvolutionMGain = 1.0;
-  double deconvolutionBoosting = 1.2;
+  double deconvolutionBoosting = 1.0;
   radler::MajorIterationStrategy majorIterationStrategy =
       radler::MajorIterationStrategy::kDual;
   double localRMSWindow = 25.0;

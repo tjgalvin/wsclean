@@ -435,7 +435,7 @@ Options can be:
 -mgain-boosting <boost value>
    Values higher than 1 will cause a higher mgain value in the first two iterations. The first
    iterations uses mgain' = 1 - (1 - mgain) ^ boost_value, the second iteration uses half the boost.
-   Default: 1.2
+   Default: 1.0
 -major-iteration-mode <single/dual/full>
    Alters the behaviour of major iterations when using auto-masking. In single mode, every iteration
    ends once the mgain is reached. In dual mode, during the mask-creation stage, a second major iteration
