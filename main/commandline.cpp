@@ -21,6 +21,7 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <sstream>
 
 using aocommon::Logger;
@@ -435,6 +436,12 @@ Options can be:
    Values higher than 1 will cause a higher mgain value in the first two iterations. The first
    iterations uses mgain' = 1 - (1 - mgain) ^ boost_value, the second iteration uses half the boost.
    Default: 1.2
+-major-iteration-mode <single/dual/full>
+   Alters the behaviour of major iterations when using auto-masking. In single mode, every iteration
+   ends once the mgain is reached. In dual mode, during the mask-creation stage, a second major iteration
+   is started in which the so-far constructed mask is used to constrain the cleaning. Full mode is
+   like dual, but ignores mgain in the repeated iteration. Dual was found to be a good average strategy,
+   but can occasionally be too aggressive. If cleaning diverges, single is recommended. Default: dual.
 -join-polarizations
    Perform deconvolution by searching for peaks in the sum of squares of the polarizations,
    but subtract components from the individual images. Only possible when imaging two or four Stokes
@@ -796,6 +803,19 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.deconvolutionBoosting =
           ParseDouble(argv[argi], 0.0, "mgain-boosting", false);
+    } else if (param == "major-iteration-mode") {
+      IncArgi(argi, argc);
+      const std::string_view mode(argv[argi]);
+      if (mode == "single")
+        settings.majorIterationStrategy =
+            radler::MajorIterationStrategy::kNormal;
+      else if (mode == "dual")
+        settings.majorIterationStrategy = radler::MajorIterationStrategy::kDual;
+      else if (mode == "full")
+        settings.majorIterationStrategy = radler::MajorIterationStrategy::kFull;
+      else
+        throw std::runtime_error(
+            "Invalid major iteration strategy specified: " + std::string(mode));
     } else if (param == "niter") {
       IncArgi(argi, argc);
       settings.deconvolutionIterationCount = ParseSizeT(argv[argi], "niter");

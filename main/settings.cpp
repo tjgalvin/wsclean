@@ -567,6 +567,7 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.minor_loop_gain = deconvolutionGain;
   radler_settings.major_loop_gain = deconvolutionMGain;
   radler_settings.initial_iteration_boost = deconvolutionBoosting;
+  radler_settings.major_iteration_strategy = majorIterationStrategy;
   radler_settings.local_rms.method = localRMSMethod;
   radler_settings.local_rms.strength = localRMSStrength;
   radler_settings.local_rms.window = localRMSWindow;

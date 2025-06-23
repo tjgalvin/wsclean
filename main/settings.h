@@ -184,6 +184,8 @@ class Settings {
   double deconvolutionGain = 0.1;
   double deconvolutionMGain = 1.0;
   double deconvolutionBoosting = 1.2;
+  radler::MajorIterationStrategy majorIterationStrategy =
+      radler::MajorIterationStrategy::kDual;
   double localRMSWindow = 25.0;
   double localRMSStrength = 1.0;
   radler::LocalRmsMethod localRMSMethod = radler::LocalRmsMethod::kNone;
