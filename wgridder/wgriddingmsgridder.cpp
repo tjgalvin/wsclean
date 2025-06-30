@@ -113,8 +113,8 @@ void WGriddingMSGridder::GridSharedMeasurementSetChunk(
                                frequencies, visibilities);
   } else {
     VisibilityCallbackData data(selected_band.ChannelCount(), selected_band,
-                                antennas, visibilities, time_offsets, this,
-                                n_antennas, parm_response.data());
+                                antennas, visibilities, uvws, time_offsets,
+                                this, n_antennas, parm_response.data());
     gridder_->AddInversionDataWithCorrectionCallback(
         GetGainMode(), n_polarizations, n_rows, uvws, frequencies, data);
   }

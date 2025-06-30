@@ -21,6 +21,7 @@ struct VisibilityCallbackData {
   const aocommon::BandData &selected_band;
   const std::pair<size_t, size_t> *antennas;
   const std::complex<float> *visibilities;
+  const double *uvws;
   const size_t *time_offsets;
   MsGridder *gridder;
   size_t n_antennas;
@@ -68,6 +69,7 @@ class VisibilityCallbackBuffer : public TInfo {
       size_t n_rows, VisibilityCallbackData &data,
       std::function<std::complex<float>(
           size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
+          const double *uvws, const aocommon::BandData &selected_band,
           const std::complex<float> *, const size_t *,
           const std::pair<size_t, size_t> *)>
           visibility_callback)
@@ -77,6 +79,7 @@ class VisibilityCallbackBuffer : public TInfo {
         selected_band_(data.selected_band),
         antennas_(data.antennas),
         visibilities_(data.visibilities),
+        uvws_(data.uvws),
         time_offsets_(data.time_offsets),
         gridder_(data.gridder),
         parm_response_(data.parm_response),
@@ -85,8 +88,8 @@ class VisibilityCallbackBuffer : public TInfo {
   template <typename Index>
   const TVisibility raw(Index index) const {
     return visibility_callback_(index, n_channels_, n_antennas_, gridder_,
-                                visibilities_, parm_response_, time_offsets_,
-                                antennas_);
+                                visibilities_, uvws_, selected_band_,
+                                parm_response_, time_offsets_, antennas_);
   }
   template <typename... Params>
   const TVisibility operator()(Params... params) const {
@@ -110,6 +113,7 @@ class VisibilityCallbackBuffer : public TInfo {
   const aocommon::BandData &selected_band_;
   const std::pair<size_t, size_t> *antennas_;
   const std::complex<float> *visibilities_;
+  const double *uvws_;
   /**
    * When applying corrections sequentially a time_offset is calculated by @ref
    * CacheParmResponse() for each row, used for applying the corrections, and
@@ -122,10 +126,11 @@ class VisibilityCallbackBuffer : public TInfo {
   const size_t *time_offsets_;
   MsGridder *gridder_;
   const std::complex<float> *parm_response_;
-  std::function<std::complex<float>(size_t, size_t, size_t, MsGridder *,
-                                    const std::complex<float> *,
-                                    const std::complex<float> *, const size_t *,
-                                    const std::pair<size_t, size_t> *)>
+  std::function<std::complex<float>(
+      size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
+      const double *uvws, const aocommon::BandData &selected_band,
+      const std::complex<float> *, const size_t *,
+      const std::pair<size_t, size_t> *)>
       visibility_callback_;
 };
 
@@ -147,10 +152,11 @@ namespace internal {
  * about 5%
  */
 template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
-          bool ApplyForward, bool HasH5Parm>
+          bool ApplyForward, bool HasH5Parm, bool ApplyRotation>
 const std::complex<float> VisibilityCallback(
     size_t index, size_t n_channels, size_t n_antennas, MsGridder *gridder,
-    const std::complex<float> *visibilities,
+    const std::complex<float> *visibilities, const double *uvws,
+    const aocommon::BandData &selected_band,
     const std::complex<float> *parm_response, const size_t *time_offsets,
     const std::pair<size_t, size_t> *antennas) {
   // Calculate offsets
@@ -163,6 +169,16 @@ const std::complex<float> VisibilityCallback(
   std::copy_n(&visibilities[(row * n_channels * NPolarizations) +
                             (channel * NPolarizations)],
               NPolarizations, visibilities_temp);
+
+  // Apply rotation for direction dependent PSF
+  if constexpr (ApplyRotation) {
+    double dl = gridder->LShift();
+    double dm = gridder->MShift();
+    gridder->RotateSingleVisibilityToPhaseCenter<NPolarizations>(
+        dl, dm, channel, selected_band, uvws + (row * 3),
+        &visibilities_temp[0]);
+  }
+
   // Apply correction
   gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply,
                                  ApplyBeam, ApplyForward, HasH5Parm>(
@@ -396,13 +412,18 @@ class WGridder final : public WGridderBase {
                                 const double *uvws,
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
+            bool ApplyForward, bool HasH5Parm>
+  void CreateAndAddInversionMs7(size_t n_rows, const double *uvws,
+                                const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
   // Construct a VisibilityCallbackBuffer object using the remaining paramaters
   // and templatized based on all the paramaters that previous calls in the
   // template chain have parsed.
   // Call AddInversionMs with the constructed callback object.
   template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
-            bool ApplyForward, bool HasH5Parm>
-  void CreateAndAddInversionMs7(size_t n_rows, const double *uvws,
+            bool ApplyForward, bool HasH5Parm, bool ApplyRotation>
+  void CreateAndAddInversionMs8(size_t n_rows, const double *uvws,
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
 };

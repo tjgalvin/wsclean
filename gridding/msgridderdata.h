@@ -285,7 +285,7 @@ class MsGridderData {
    * weight corresponding to the combined effect.
    *
    * It is the responsibility of the called to ensure that @ref
-   * LoadCorrections() has been valled prior to calling @ref ApplyCorrections()
+   * LoadCorrections() has been called prior to calling @ref ApplyCorrections()
    *
    * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
    * ApplyConjugatedParmResponse for more information
@@ -551,10 +551,70 @@ class MsGridderData {
     std::complex<float>* data;
   };
 
+  /* Compute shift factor for rotation toward phase center. */
+  static double ComputePhaseCenterShift(double l_shift, double m_shift,
+                                        const double* uvws) {
+    const double dn =
+        std::sqrt(1.0 - l_shift * l_shift - m_shift * m_shift) - 1.0;
+    const double shift_factor =
+        2.0 * M_PI * (uvws[0] * l_shift + uvws[1] * m_shift + uvws[2] * dn);
+    return shift_factor;
+  }
+
+  /* Rotate visibilities toward phase center if necessary. */
+  template <size_t PolarizationCount>
+  static void RotateVisibilitiesToPhaseCenter(
+      double l_shift, double m_shift, const aocommon::BandData& band,
+      const double* uvws, std::complex<float>* visibilities) {
+    if (l_shift != 0.0 || m_shift != 0.0) {
+      const double shift_factor =
+          ComputePhaseCenterShift(l_shift, m_shift, uvws);
+      RotateVisibilities<PolarizationCount>(band, shift_factor, visibilities);
+    }
+  }
+
+  /* Rotate visibilities by pre-determined shift factor. */
   template <size_t PolarizationCount>
   static void RotateVisibilities(const aocommon::BandData& band,
                                  double shift_factor,
-                                 std::complex<float>* data_iter);
+                                 std::complex<float>* visibilities) {
+    for (size_t channel = 0; channel != band.ChannelCount(); ++channel) {
+      RotateSingleVisibility<PolarizationCount>(band, shift_factor, channel,
+                                                visibilities);
+      visibilities += PolarizationCount;
+    }
+  }
+
+  /* Rotate all polarizations of a single channel visibility toward phase center
+   * if necessary. To rotate all channels see @RotateVisibilitiesToPhaseCenter
+   */
+  template <size_t PolarizationCount>
+  static void RotateSingleVisibilityToPhaseCenter(
+      double l_shift, double m_shift, size_t channel,
+      const aocommon::BandData& band, const double* uvws,
+      std::complex<float>* visibilities) {
+    if (l_shift != 0.0 || m_shift != 0.0) {
+      const double shift_factor =
+          ComputePhaseCenterShift(l_shift, m_shift, uvws);
+      RotateSingleVisibility<PolarizationCount>(band, shift_factor, channel,
+                                                visibilities);
+    }
+  }
+
+  /* Rotate all polarizations of a single channel visibily by pre-determined
+   * shift factor. */
+  template <size_t PolarizationCount>
+  static void RotateSingleVisibility(const aocommon::BandData& band,
+                                     double shift_factor, size_t channel,
+                                     std::complex<float>* visibilities) {
+    const double w_shift_radians =
+        shift_factor / band.ChannelWavelength(channel);
+    const std::complex<float> phasor(std::cos(w_shift_radians),
+                                     std::sin(w_shift_radians));
+    for (size_t p = 0; p != PolarizationCount; ++p) {
+      visibilities[p] *= phasor;
+    }
+  }
 
   size_t NumValuesPerSolution() const {
     if (visibility_modifier_.HasH5Parm()) {
@@ -660,9 +720,12 @@ class MsGridderData {
       const MSProvider::MetaData& metadata) {
     ReadVisibilities(ms_reader, row_data.data, weight_buffer, model_buffer);
 
+    ModifyVisibilities<PolarizationCount, true>(row_data.data, row_data.uvw,
+                                                band, model_buffer);
+
     CalculateWeightsImplementation<PolarizationCount>(
-        row_data.uvw, row_data.data, band, weight_buffer, model_buffer,
-        is_selected, scratch_image_weights_.data());
+        weight_buffer, scratch_image_weights_.data(), row_data.uvw, band,
+        is_selected);
 
     ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, band,
                                        weight_buffer, metadata);
@@ -730,25 +793,31 @@ class MsGridderData {
                                    const MSProvider::MetaData& metadata) {
     switch (n_vis_polarizations_) {
       case 1:
-        CalculateWeightsImplementation<1>(
-            row_data.uvw, row_data.data, band, weight_buffer, model_buffer,
-            is_selected, scratch_image_weights_.data());
+        ModifyVisibilities<1, true>(row_data.data, row_data.uvw, band,
+                                    model_buffer);
+        CalculateWeightsImplementation<1>(weight_buffer,
+                                          scratch_image_weights_.data(),
+                                          row_data.uvw, band, is_selected);
         ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, band,
                                            weight_buffer, metadata);
         break;
       case 2:
-        CalculateWeightsImplementation<2>(
-            row_data.uvw, row_data.data, band, weight_buffer, model_buffer,
-            is_selected, scratch_image_weights_.data());
+        ModifyVisibilities<2, true>(row_data.data, row_data.uvw, band,
+                                    model_buffer);
+        CalculateWeightsImplementation<2>(weight_buffer,
+                                          scratch_image_weights_.data(),
+                                          row_data.uvw, band, is_selected);
         ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, band,
                                            weight_buffer, metadata);
         internal::CollapseData<2>(band.ChannelCount(), row_data.data,
                                   Polarization());
         break;
       case 4:
-        CalculateWeightsImplementation<4>(
-            row_data.uvw, row_data.data, band, weight_buffer, model_buffer,
-            is_selected, scratch_image_weights_.data());
+        ModifyVisibilities<4, true>(row_data.data, row_data.uvw, band,
+                                    model_buffer);
+        CalculateWeightsImplementation<4>(weight_buffer,
+                                          scratch_image_weights_.data(),
+                                          row_data.uvw, band, is_selected);
         ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, band,
                                            weight_buffer, metadata);
         internal::CollapseData<4>(band.ChannelCount(), row_data.data,
@@ -798,57 +867,83 @@ class MsGridderData {
                              const float* weight_buffer,
                              bool apply_forward = false);
 
-#ifdef HAVE_EVERYBEAM
+  template <bool SharedReads>
+  void ModifyVisibilities(std::complex<float>* visibilities, const double* uvws,
+                          const aocommon::BandData& band,
+                          const std::complex<float>* model) const {
+    switch (n_vis_polarizations_) {
+      case 1:
+        ModifyVisibilities<1, SharedReads>(visibilities, uvws, band, model);
+        break;
+      case 2:
+        ModifyVisibilities<2, SharedReads>(visibilities, uvws, band, model);
+        break;
+      case 4:
+        ModifyVisibilities<4, SharedReads>(visibilities, uvws, band, model);
+        break;
+    }
+  }
+
   /**
-   * @brief Applies the conjugated facet beam to the visibilities and computes
-   * the weight corresponding to the combined effect.
+   * When doing PSF imaging fill the visibilities with 1 and then phase
+   * rotate if necessary.
    *
-   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
-   *                      Used for generating a direction dependent psf, where
-   *                      both the (forward) gain needs to be applied for the
-   *                      predict/degridding step
-   *                      and the conjugate gain for the gridding step
-   */
-
-  template <size_t PolarizationCount, GainMode GainEntry>
-  void ApplyConjugatedFacetBeam(MSReader& ms_reader, InversionRow& row_data,
-                                const aocommon::BandData& band,
-                                const float* weight_buffer,
-                                bool apply_forward = false);
-
-  /**
-   * @brief Applies both the conjugated facet beam and the conjugated h5 parm
-   * solutions to the visibilities and computes the weight corresponding to the
-   * combined effect.
+   * Subtracts model from visibilities if appropriate.
    *
-   * @param apply_forward If true, also apply the forward (non-conjugated) gain.
-   *                      Used for generating a direction dependent psf, where
-   *                      both the (forward) gain needs to be applied for the
-   *                      predict/degridding step
-   *                      and the conjugate gain for the gridding step
+   * When `SharedReads` is true direction dependent rotation will not be done
+   * here and must instead be applied later during the gridding process;
+   * See @ref VisibilityCallbackBuffer for this.
    */
-  template <size_t PolarizationCount, GainMode GainEntry>
-  void ApplyConjugatedFacetDdEffects(
-      MSReader& ms_reader, const std::vector<std::string>& antenna_names,
-      InversionRow& row_data, const aocommon::BandData& band,
-      const float* weight_buffer, bool apply_forward = false);
-#endif  // HAVE_EVERYBEAM
+  template <size_t PolarizationCount, bool SharedReads>
+  void ModifyVisibilities(std::complex<float>* visibilities, const double* uvws,
+                          const aocommon::BandData& band,
+                          const std::complex<float>* model) const {
+    const PsfMode psf_mode = GetPsfMode();
+    const std::size_t data_size = band.ChannelCount() * PolarizationCount;
+    if (psf_mode != PsfMode::kNone) {
+      // Visibilities for a point source at the phase centre are all ones
+      std::fill_n(visibilities, data_size, 1.0);
+      double l_shift = 0.0;
+      double m_shift = 0.0;
+      if (psf_mode == PsfMode::kSingle) {
+        // The point source is shifted to the centre of the main image
+        l_shift = MainImageDL();
+        m_shift = MainImageDM();
+      } else {  // psf_mode == PsfMode::kDirectionDependent
+        // The point source is shifted to the centre of the current DdPsf
+        // position
+        l_shift = LShift();
+        m_shift = MShift();
+      }
+      // When using a shared visibility buffer for shared reads we need to delay
+      // direction dependent visibility rotation to inside the same callback
+      // where we handle corrections.
+      if (SharedReads || psf_mode != PsfMode::kDirectionDependent) {
+        RotateVisibilitiesToPhaseCenter<PolarizationCount>(
+            l_shift, m_shift, band, uvws, visibilities);
+      }
+    }
 
-  inline void CalculateWeights(double* uvw_buffer,
-                               std::complex<float>* visibility_buffer,
+    if (DoSubtractModel()) {
+      const std::complex<float>* model_iter = model;
+      for (std::complex<float>* iter = visibilities;
+           iter != visibilities + data_size; ++iter) {
+        *iter -= *model_iter;
+        model_iter++;
+      }
+    }
+  }
+
+  inline void CalculateWeights(float* weights, float* image_weights,
+                               const double* uvws,
                                const aocommon::BandData& band,
-                               float* weight_buffer,
-                               std::complex<float>* model_buffer,
-                               const bool* is_selected, float* image_weights);
+                               const bool* is_selected) const;
 
   template <size_t PolarizationCount>
-  void CalculateWeightsImplementation(double* uvw_buffer,
-                                      std::complex<float>* visibility_buffer,
+  void CalculateWeightsImplementation(float* weights, float* image_weights,
+                                      const double* uvws,
                                       const aocommon::BandData& band,
-                                      float* weight_buffer,
-                                      std::complex<float>* model_buffer,
-                                      const bool* is_selected,
-                                      float* image_weights);
+                                      const bool* is_selected) const;
 
   void InitializePointResponse(const MsProviderCollection::MsData& ms_data);
 
@@ -950,101 +1045,62 @@ inline void MsGridderData::ApplyWeights(
   }
 }
 
-inline void MsGridderData::CalculateWeights(
-    double* uvw_buffer, std::complex<float>* visibility_buffer,
-    const aocommon::BandData& band, float* weight_buffer,
-    std::complex<float>* model_buffer, const bool* is_selected,
-    float* image_weights) {
+inline void MsGridderData::CalculateWeights(float* weights,
+                                            float* image_weights,
+                                            const double* uvws,
+                                            const aocommon::BandData& band,
+                                            const bool* is_selected) const {
   switch (n_vis_polarizations_) {
     case 1:
-      CalculateWeightsImplementation<1>(uvw_buffer, visibility_buffer, band,
-                                        weight_buffer, model_buffer,
-                                        is_selected, image_weights);
+      CalculateWeightsImplementation<1>(weights, image_weights, uvws, band,
+                                        is_selected);
+
       break;
     case 2:
-      CalculateWeightsImplementation<2>(uvw_buffer, visibility_buffer, band,
-                                        weight_buffer, model_buffer,
-                                        is_selected, image_weights);
+      CalculateWeightsImplementation<2>(weights, image_weights, uvws, band,
+                                        is_selected);
       break;
     case 4:
-      CalculateWeightsImplementation<4>(uvw_buffer, visibility_buffer, band,
-                                        weight_buffer, model_buffer,
-                                        is_selected, image_weights);
+      CalculateWeightsImplementation<4>(weights, image_weights, uvws, band,
+                                        is_selected);
       break;
   }
 }
 
 template <size_t PolarizationCount>
 void MsGridderData::CalculateWeightsImplementation(
-    double* uvw_buffer, std::complex<float>* visibility_buffer,
-    const aocommon::BandData& band, float* weight_buffer,
-    std::complex<float>* model_buffer, const bool* is_selected,
-    float* image_weights) {
-  const std::size_t data_size = band.ChannelCount() * PolarizationCount;
-  if (GetPsfMode() != PsfMode::kNone) {
-    // Visibilities for a point source at the phase centre are all ones
-    std::fill_n(visibility_buffer, data_size, 1.0);
-    double dl = 0.0;
-    double dm = 0.0;
-    if (GetPsfMode() == PsfMode::kSingle) {
-      // The point source is shifted to the centre of the main image
-      dl = MainImageDL();
-      dm = MainImageDM();
-    } else {  // GetPsfMode() == PsfMode::kDirectionDependent
-      // The point source is shifted to the centre of the current DdPsf
-      // position
-      dl = LShift();
-      dm = MShift();
-    }
-    if (dl != 0.0 || dm != 0.0) {
-      const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;
-      const double shift_factor =
-          2.0 * M_PI *
-          (uvw_buffer[0] * dl + uvw_buffer[1] * dm + uvw_buffer[2] * dn);
-      RotateVisibilities<PolarizationCount>(band, shift_factor,
-                                            visibility_buffer);
-    }
-  }
-
-  if (DoSubtractModel()) {
-    std::complex<float>* model_iter = model_buffer;
-    for (std::complex<float>* iter = visibility_buffer;
-         iter != visibility_buffer + data_size; ++iter) {
-      *iter -= *model_iter;
-      model_iter++;
-    }
-  }
-
+    float* weights, float* image_weights, const double* uvws,
+    const aocommon::BandData& band, const bool* is_selected) const {
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
   // to have zero weight.
   for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
     for (size_t p = 0; p != PolarizationCount; ++p) {
-      if (!is_selected[ch]) weight_buffer[ch * PolarizationCount + p] = 0.0;
+      if (!is_selected[ch]) weights[ch * PolarizationCount + p] = 0.0;
     }
   }
 
+  const std::size_t data_size = band.ChannelCount() * PolarizationCount;
   switch (GetVisibilityWeightingMode()) {
     case VisibilityWeightingMode::NormalVisibilityWeighting:
       // The weight buffer already contains the visibility weights: do nothing
       break;
     case VisibilityWeightingMode::SquaredVisibilityWeighting:
       // Square the visibility weights
-      for (size_t i = 0; i != data_size; ++i)
-        weight_buffer[i] *= weight_buffer[i];
+      for (size_t i = 0; i != data_size; ++i) weights[i] *= weights[i];
       break;
     case VisibilityWeightingMode::UnitVisibilityWeighting:
       // Set the visibility weights to one
       for (size_t i = 0; i != data_size; ++i) {
-        if (weight_buffer[i] != 0.0) weight_buffer[i] = 1.0f;
+        if (weights[i] != 0.0) weights[i] = 1.0f;
       }
       break;
   }
 
   // Precompute imaging weights
   for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
-    const double u = uvw_buffer[0] / band.ChannelWavelength(ch);
-    const double v = uvw_buffer[1] / band.ChannelWavelength(ch);
+    const double u = uvws[0] / band.ChannelWavelength(ch);
+    const double v = uvws[1] / band.ChannelWavelength(ch);
     image_weights[ch] = GetImageWeights()->GetWeight(u, v);
   }
 }
@@ -1093,20 +1149,6 @@ void MsGridderData::ApplyWeightsAndCorrections(
     default:
       throw std::runtime_error(
           "Invalid combination of visibility polarizations and gain mode");
-  }
-}
-
-template <size_t PolarizationCount>
-void MsGridderData::RotateVisibilities(const aocommon::BandData& band,
-                                       double shift_factor,
-                                       std::complex<float>* data_iter) {
-  for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
-    const double wShiftRad = shift_factor / band.ChannelWavelength(ch);
-    const std::complex<float> phasor(std::cos(wShiftRad), std::sin(wShiftRad));
-    for (size_t p = 0; p != PolarizationCount; ++p) {
-      *data_iter *= phasor;
-      ++data_iter;
-    }
   }
 }
 

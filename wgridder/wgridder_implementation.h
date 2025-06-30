@@ -265,9 +265,26 @@ template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
 void WGridder<NumT>::CreateAndAddInversionMs7(
     size_t n_rows, const double *uvws,
     const ducc0::cmav<double, 1> &frequencies, VisibilityCallbackData &data) {
+  if (data.gridder->GetPsfMode() == PsfMode::kDirectionDependent) {
+    CreateAndAddInversionMs8<Mode, NPolarizations, NParms, ApplyBeam,
+                             ApplyForward, HasH5Parm, true>(n_rows, uvws,
+                                                            frequencies, data);
+  } else {
+    CreateAndAddInversionMs8<Mode, NPolarizations, NParms, ApplyBeam,
+                             ApplyForward, HasH5Parm, false>(n_rows, uvws,
+                                                             frequencies, data);
+  }
+}
+
+template <typename NumT>
+template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
+          bool ApplyForward, bool HasH5Parm, bool ApplyRotation>
+void WGridder<NumT>::CreateAndAddInversionMs8(
+    size_t n_rows, const double *uvws,
+    const ducc0::cmav<double, 1> &frequencies, VisibilityCallbackData &data) {
   const std::function visibility_callback =
       internal::VisibilityCallback<Mode, NPolarizations, NParms, ApplyBeam,
-                                   ApplyForward, HasH5Parm>;
+                                   ApplyForward, HasH5Parm, ApplyRotation>;
   const VisibilityCallbackBuffer<std::complex<float>> ms(n_rows, data,
                                                          visibility_callback);
   AddInversionMs(n_rows, uvws, frequencies, ms);
