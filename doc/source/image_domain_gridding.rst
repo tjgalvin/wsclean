@@ -3,7 +3,7 @@ Image domain gridding
 
 The `image-domain gridder (IDG) <https://gitlab.com/astron-idg/idg>`_ is a new, fast gridder that makes *w*-term correction and *a*-term correction computationally very cheap. It performs extremely well on gpus.
 
-To use IDG, the `IDG library <https://gitlab.com/astron-idg/idg>`_ needs to be available during compilation. :doc:`WSClean 2.5 <changelogs/v2.5>` is compatible with IDG version 0.2. See :doc:`installation <installation>` for more information. 
+To use IDG, the `IDG library <https://gitlab.com/astron-idg/idg>`_ needs to be available during compilation. See :doc:`installation <installation>` for more information.
 
 Considerations
 --------------
@@ -61,10 +61,10 @@ There are several distinct cases of interest:
 
 * Total intensity science, i.e., not interested in QUV: only image I with ``-pol I``.
 * Total intensity science, but "nice to have QUV" for e.g. sensivity analysis (V is useful for that): image all polarizations with ``-pol IQUV`` and *link* the deconvolution on polarization I with ``-link-polarization i``.
-* Interested in rotation measure synthesis, not directly in I and V but nice to have: image all polarizations with ``-pol IQUV`` and link the deconvolution on polarization Q and U with ``-link-polarization qu`` (possibly with squared deconvolution etc., see [polarized cleaning page](PolarizedCleaning)).
+* Interested in rotation measure synthesis, not directly in I and V but nice to have: image all polarizations with ``-pol IQUV`` and link the deconvolution on polarization Q and U with ``-link-polarization qu`` (possibly with squared deconvolution etc., see :doc:`polarized cleaning page <polarimetric_deconvolution>`.
 * Interested in all stokes parameter, cleaning each polarization in a joined way: ``-pol IQUV -join-polarizations``.
 
-Some further explanation on this: IDG in combination with ``-pol iquv -join-polarizations`` can be the best choice in some cases, but if one is only interested in Stokes I, it has the downside that QUV are involved in the cleaning of I, and in case these are mostly empty, the net effect is that the noise in the clean-component finding step is increased slightly. Since [WSClean 2.6](Changelog-2.6) it is possible to "link" polarizations. Its use is explained on the [polarized cleaning page](PolarizedCleaning). To overcome the downside described above, the recommended setting for imaging with IDG is to use polarization linking on I, similar to:
+Some further explanation on this: IDG in combination with ``-pol iquv -join-polarizations`` can be the best choice in some cases, but if one is only interested in Stokes I, it has the downside that QUV are involved in the cleaning of I, and in case these are mostly empty, the net effect is that the noise in the clean-component finding step is increased slightly. Since :doc:`WSClean 2.6 <changelogs/v2.6>` it is possible to "link" polarizations. Its use is explained on the :doc:`polarized cleaning page <polarimetric_deconvolution>`. To overcome the downside described above, the recommended setting for imaging with IDG is to use polarization linking on I, similar to:
 
 .. code-block:: bash
 
@@ -84,13 +84,4 @@ IDG has been tested and shown to work on MWA data. It performs well, but does re
 Advanced *a*-term corrections
 -----------------------------
 
-WSClean+IDG allows a combination of several direction-dependent corrections to be applied, including TEC screens, diagonal gain correction and position shifts ("dldm screens"). These are discussed on the [a-term correction page](ATermCorrection).
-
-Information for older IDG versions
-----------------------------------
-
-Before :doc:`WSClean version 2.9 <changelogs/v2.9>`, IDG's memory usage was highly dependant on the number of channels in the set. IDG can be made to use considerably less memory by splitting the bandwidth using ``-channels-out`` and wide-band deconvolution (see :doc:`making image cube <making_image_cubes>` and :doc:`wideband deconvolution <wideband_deconvolution>`). For example, splitting the bandwidth in 4 output channels has allowed imaging one of the MWA sets on a 32 GB machine:
-
-  wsclean -grid-with-beam -beam-aterm-update 10 -channels-out 4 -join-channels -link-polarizations i -use-idg -size 1536 1536 -scale 1amin -niter 1000000 -auto-threshold 0.5 -auto-mask 4 -multiscale -mgain 0.8 observation.ms
-  
-This should no longer be necessary for WSClean 2.9 and later. In those versions, IDG should honour the requested memory settings and available memory. If you do expect memory issues, you can tweak the memory usage using the ``-mem`` and ``-absmem`` parameters of WSClean.
+WSClean+IDG allows a combination of several direction-dependent corrections to be applied, including TEC screens, diagonal gain correction and position shifts ("dldm screens"). These are discussed on the :doc:`a-term correction page <idg_a_term_correction>`.
