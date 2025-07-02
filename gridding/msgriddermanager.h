@@ -68,7 +68,7 @@ class MSGridderManager {
 
   /**
    * Sort facet tasks by expected gridding time, longest first.
-   * This enables a mninor optimization for shared reads by slightly reducing
+   * This enables a minor optimization for shared reads by slightly reducing
    * the wait time of idle cores when only a few gridders are left running at
    * the end of a batch.
    */

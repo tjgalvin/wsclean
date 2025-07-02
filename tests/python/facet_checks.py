@@ -332,11 +332,8 @@ class TestFacets:
             )
             validate_call(s.split())
 
-            # On some machines this test is able to pass a threshold of 9e-6 for reads and 5e-6 for writes.
-            # However on the CI a lower threshold is required to pass.
-            # It would be good to investigate this further, but for now use a lower threshold.
             if name != names[0]:
-                threshold = 3.0e-2
+                threshold = 5.0e-6
                 compare_rms_fits(
                     f"{names[0]}-MFS-image.fits",
                     f"{name}-MFS-image.fits",

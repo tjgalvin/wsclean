@@ -78,16 +78,18 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   manager.InitializeMS(task);
   manager.InitializeGridders(task, facet_indices, resources, result.facets,
                              writer_lock_manager_);
+  // If sorting for one of Predict/Invert then we must also sort for the other.
+  if (settings_.shared_facet_reads || settings_.shared_facet_writes) {
+    manager.SortFacetTasks();
+  }
   if (task.operation == GriddingTask::Invert) {
     if (settings_.shared_facet_reads) {
-      manager.SortFacetTasks();
       manager.BatchInvert(task.num_parallel_gridders_);
     } else {
       manager.Invert();
     }
   } else {
     if (settings_.shared_facet_writes) {
-      manager.SortFacetTasks();
       manager.BatchPredict(task.num_parallel_gridders_);
     } else {
       manager.Predict();
