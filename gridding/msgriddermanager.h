@@ -47,8 +47,7 @@ class MSGridderManager {
       : settings_(settings),
         solution_data_(solution_data),
         w_limit_(settings.wLimit / 100.0) {}
-  ~MSGridderManager() {}
-
+  ~MSGridderManager();
   MSGridderManager(const MSGridderManager&) = delete;
   MSGridderManager& operator=(const MSGridderManager&) = delete;
 
@@ -60,9 +59,9 @@ class MSGridderManager {
                           std::vector<GriddingResult::FacetData>& facet_results,
                           GriddingTaskManager* writer_lock_manager);
   void Invert();
-  void BatchInvert(size_t num_parallel_gridders);
+  void BatchInvert();
   void Predict();
-  void BatchPredict(size_t num_parallel_gridders);
+  void BatchPredict();
   void ProcessResults(std::mutex& result_mutex, GriddingResult& result,
                       bool store_common_info);
 
@@ -75,27 +74,65 @@ class MSGridderManager {
   void SortFacetTasks();
 
  private:
-  /** Execute `operation` for all gridders in parallel, using all cores/threads
-   * available to the manager. This includes threads that would otherwise be
-   * assigned to the gridders once they start gridding.
-   * @param wait_for_idle If true then wait for all gridders to finish executing
-   * the operation before returning, if false then return immediately and it
-   * becomes the callers responsibility to wait when appropriate.
+  /** Call `operation()` once per gridder, for all gridders, running as many as
+   * possible in parallel.
+   *
+   * Make use of all cores/threads available to the manager, each
+   * gridder/call consumes 1 thread.
+   * This includes threads that would otherwise be assigned to the gridders once
+   * they start gridding.
+   *
+   * NB! Do not use this with an `operation` that will use the gridders internal
+   * threads (e.g. predict/invert) as doing so will cause an oversubscription of
+   * threads.
+   *
+   * @param operation Functor taking either one argument (gridder)
+   * or two (gridder, task).
+   * @param wait_for_idle If true then wait for the task queue to be idle before
+   * returning. If false, return immediately. Then it becomes the callers
+   * responsibility to wait for the task queue when appropriate.
    */
   template <typename T>
-  void ExecuteForAllGridders(
-      aocommon::TaskQueue<std::function<void()>>& task_queue, T&& operation,
-      bool wait_for_idle = true);
+  void ExecuteForAllGridders(T&& operation, bool wait_for_idle = true);
 
-  /** Execute `operation` for all gridders in parallel, using fewer cores than
-   * the total available to the manager. This is used for gridding, because once
-   * the gridders start we only want to use `num_parallel_gridders` worth of
-   * threads/cores. The remainder are used internally inside the gridders.
+  /** Call `operation()` once per gridder, for all gridders, running as many as
+   * possible in parallel while using `n_cores_per_gridder` threads per
+   * operation.
+   *
+   * It makes use of all threads available to the manager, each operation
+   * consumes `n_cores_per_gridder` threads, 1 to launch the operation, the
+   * remainder are blocked during execution. If the manager manages 32 threads
+   * and `n_cores_per_gridder` is 8, then 4 operations will run in parallel.
+   *
+   * The intention is to use this for operations (predict/invert) where the
+   * gridders internal threads will be used. `n_cores_per_gridder` should map to
+   * the number of internal gridder threads otherwise there will be an over or
+   * under subscription of threads.
+   *
+   * NB! This call waits/blocks until all the tasks that it queues internally
+   * are completed. It does not wait for the task queue itself to be
+   * empty.
+   * This allows for concurrent `ExecuteForAllGriddersWithNCores()` calls with
+   * tasks from the subsequent calls able to start executing prior to all tasks
+   * from the first call being complete. This only occurs when remaining tasks
+   * from the first core are unable to make use of all threads, this allows
+   * better processing throughput in such a scenario.
+   *
+   * Gridders are protected from concurrent calls:
+   * ExecuteForAllGriddersWithNCores2::gridder[0]->operation() will not be
+   * called unless ExecuteForAllGriddersWithNCores1::gridder[0]->operation() is
+   * already done executing.
+   * Ordering is maintained:
+   * ExecuteForAllGriddersWithNCores1::gridder2->operation() will always run
+   * before ExecuteForAllGriddersWithNCores2::gridder2->operation() but this can
+   * only be guaranteed for up to 2 concurrent calls.
+   * NB! Never make more than 2 concurrent calls if ordering is important.
+   *
+   * @param operation Functor taking two arguments (gridder, task).
    */
   template <typename T>
-  void ExecuteForAllGriddersWithNCores(
-      aocommon::TaskQueue<std::function<void()>>& task_queue, size_t n_cores,
-      T&& operation);
+  void ExecuteForAllGriddersWithNCores(size_t n_cores_per_gridder,
+                                       T&& operation);
 
   /**
    * Pointers to data buffers that are required by @ref ReadChunkForInvert to
@@ -203,8 +240,6 @@ class MSGridderManager {
   /** Read and compute data from an @ref MSReader into a single @ref
    * InversionChunkData chunk which can be passed to @ref BatchInvert() for
    * gridding multiple tasks in parallel.
-   * @param [in] task_queue A task queue that is used to call @ref
-   * LoadAndApplyCorrections in parallel across multiple gridders.
    * @param [in] ms_reader A @ref MSReader from which the chunk data can be
    * read. Expected to already be set up by the caller.
    * @param [in] selected_buffer Buffer of size `n_channels` containing a
@@ -293,9 +328,8 @@ class MSGridderManager {
    * InversionChunkData.
    * @return The number of rows processed.
    */
-  size_t GridChunk(aocommon::TaskQueue<std::function<void()>>& task_queue,
-                   size_t num_parallel_gridders, bool apply_corrections,
-                   size_t n_vis_polarizations, const aocommon::BandData& band,
+  size_t GridChunk(bool apply_corrections, size_t n_vis_polarizations,
+                   const aocommon::BandData& band,
                    const InversionChunkData& chunk_data,
                    const aocommon::UVector<double>& frequencies,
                    const MsProviderCollection::MsData& ms_data);
@@ -306,9 +340,7 @@ class MSGridderManager {
    * task_lane, until all chunks have been processed.
    */
   void GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
-                  const size_t num_parallel_gridders,
-                  const bool apply_corrections,
-                  aocommon::TaskQueue<std::function<void()>>& task_queue,
+                  bool apply_corrections,
                   const aocommon::UVector<double>& frequencies,
                   const aocommon::BandData& band,
                   MsProviderCollection::MsData& ms_data,
@@ -336,8 +368,6 @@ class MSGridderManager {
   size_t PredictChunk(const PredictionChunkData& chunk_data, size_t n_channels,
                       size_t n_vis_polarizations, size_t n_antennas,
                       std::vector<std::complex<float>>& combined_visibilities,
-                      size_t num_parallel_gridders,
-                      aocommon::TaskQueue<std::function<void()>>& task_queue,
                       const aocommon::UVector<double>& frequencies,
                       const aocommon::BandData& band,
                       MsProviderCollection::MsData& ms_data);
@@ -347,8 +377,6 @@ class MSGridderManager {
    * task_lane, until all chunks have been processed.
    */
   void PredictChunks(aocommon::Lane<PredictionChunkData>& task_lane,
-                     size_t num_parallel_gridders,
-                     aocommon::TaskQueue<std::function<void()>>& task_queue,
                      const aocommon::UVector<double>& frequencies,
                      const aocommon::BandData& band,
                      MsProviderCollection::MsData& ms_data,
@@ -361,6 +389,21 @@ class MSGridderManager {
     GriddingResult::FacetData* facet_result;
   };
   std::vector<GriddingFacetTask> facet_tasks_;
+
+  void InitializeThreadTaskQueues();
+  // All CPU intensive worker tasks should be scheduled through this queue.
+  // Non-CPU intensive tasks can be queued through `scheduler_task_queue_`
+  // instead so that they don't take resources away from CPU intensive tasks.
+  aocommon::TaskQueue<std::function<void()>> worker_task_queue_;
+  std::vector<std::thread> worker_thread_pool_;
+  // Use this pool only to manage lightweight asynchronous scheduler type tasks.
+  // CPU intensive tasks should instead use `worker_task_queue_`.
+  // Doing CPU intensive tasks in this queue can lead to oversubscription as
+  // `worker_thread_pool_` will already attempt to use all cores that have been
+  // made available to us.
+  aocommon::TaskQueue<std::function<void()>> scheduler_task_queue_;
+  std::vector<std::thread> scheduler_thread_pool_;
+  const size_t scheduler_task_queue_size_ = 2;
 
   inline void InitializeMSDataVectors() {
     std::vector<MsGridder*> gridders;
@@ -383,61 +426,69 @@ class MSGridderManager {
   const Settings& settings_;
   const H5SolutionData& solution_data_;
   MsProviderCollection ms_provider_collection_;
-  int64_t available_memory_;
-  size_t available_cores_;
+  int64_t available_memory_ = 0;
+  size_t available_cores_ = 0;
+  size_t available_cores_per_gridder_ = 0;
   /// A fractional value that, when non-zero, places a limit on the w-value of
   /// gridded visibilities. Visibilities outside the limit are skipped.
   double w_limit_ = 0.0;
 };
 
-/**
- * Call operation() for each gridder/task using all available threads in the
- * task queue. operation can be a functor taking either one argument (gridder)
- * or two (gridder, task).
- */
 template <typename T>
-void MSGridderManager::ExecuteForAllGridders(
-    aocommon::TaskQueue<std::function<void()>>& task_queue, T&& operation,
-    bool wait_for_idle) {
+void MSGridderManager::ExecuteForAllGridders(T&& operation,
+                                             bool wait_for_idle) {
   for (GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
     if constexpr (std::is_invocable<T, MsGridder*, GriddingFacetTask&>::value) {
-      task_queue.Emplace([=, &task]() { operation(gridder, task); });
+      worker_task_queue_.Emplace([=, &task]() { operation(gridder, task); });
     } else {
-      task_queue.Emplace([=]() { operation(gridder); });
+      worker_task_queue_.Emplace([=]() { operation(gridder); });
     }
   }
   if (wait_for_idle) {
-    task_queue.WaitForIdle(available_cores_);
+    worker_task_queue_.WaitForIdle(available_cores_);
   }
 }
 
 template <typename T>
 void MSGridderManager::ExecuteForAllGriddersWithNCores(
-    aocommon::TaskQueue<std::function<void()>>& task_queue, size_t n_cores,
-    T&& operation) {
-  // Pause the excess threads in the pool that we don't want to use for this
-  // operation.
-  const size_t excess_cores = available_cores_ - n_cores;
-  CompletionSignal signal;
-  for (size_t i = 0; i < excess_cores; ++i) {
-    task_queue.Emplace([&]() { signal.WaitForCompletion(); });
-  }
-
-  // Run the operation with the reduced quantity of available threads.
+    size_t n_cores_per_gridder, T&& operation) {
+  std::vector<std::shared_ptr<CompletionSignal>> signals;
+  signals.reserve(facet_tasks_.size());
+  // Queue tasks in a way that each task will consume `n_cores_per_gridder` task
+  // slots.
   for (const GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
+
+    // Avoid gridder processing concurrently.
+    gridder->processing_semaphore_.acquire();
+
+    // Task must consume N threads.
+    // Pause N-1 threads so that they are unavailable to the pool.
+    // Only once we have done so are we allowed to run the task.
+    std::shared_ptr<CompletionSignal> signal =
+        std::make_shared<CompletionSignal>();
+    signals.push_back(signal);
+
+    // Queue "blocker" tasks to consume extra task slots.
+    for (size_t i = 0; i < n_cores_per_gridder - 1; ++i) {
+      // Consume 1 thread from the pool until completion is signalled.
+      worker_task_queue_.Emplace([=]() { signal->WaitForCompletion(); });
+    }
+    // Queue task to perform the operation.
     const size_t index = task.facet_task->index;
-    task_queue.Emplace([=]() { operation(gridder, index); });
+    worker_task_queue_.Emplace([=]() {
+      // We are consuming N threads from the pool while this occurs.
+      operation(gridder, index);
+      gridder->processing_semaphore_.release();
+      // Return the additional threads to the pool.
+      signal->SignalCompletion();
+    });
   }
-  task_queue.WaitForIdle(n_cores);
-
-  // Restore the quantity of available threads to as it was before entering this
-  // method.
-  signal.SignalCompletion();
-
-  // We must let all threads process the signal before its destructor is called.
-  task_queue.WaitForIdle(available_cores_);
+  // Wait for all tasks launched by this call to complete.
+  for (const auto& signal : signals) {
+    signal->WaitForCompletion();
+  }
 }
 
 }  // namespace wsclean

@@ -245,6 +245,12 @@ class MsGridder : public MsGridderData {
   void SetMaxBaseline(double max_baseline) { max_baseline_ = max_baseline; }
   void SetMinW(double min_w) { min_w_ = min_w; }
 
+  // Prevent multiple calls of grid/invert on the same gridder at the same time.
+  // Semaphore instead of mutex because we need to block in the scheduler but
+  // release in the worker. See @ref
+  // MSGridderManager::ExecuteForAllGriddersWithNCores() for more information.
+  std::binary_semaphore processing_semaphore_{1};
+
  protected:
   size_t ActualInversionWidth() const { return actual_inversion_width_; }
   size_t ActualInversionHeight() const { return actual_inversion_height_; }

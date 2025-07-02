@@ -84,13 +84,13 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   }
   if (task.operation == GriddingTask::Invert) {
     if (settings_.shared_facet_reads) {
-      manager.BatchInvert(task.num_parallel_gridders_);
+      manager.BatchInvert();
     } else {
       manager.Invert();
     }
   } else {
     if (settings_.shared_facet_writes) {
-      manager.BatchPredict(task.num_parallel_gridders_);
+      manager.BatchPredict();
     } else {
       manager.Predict();
     }
