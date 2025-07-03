@@ -86,7 +86,43 @@ def generate_full_image_facet(image_filename, region_filename):
     return polygon
 
 
-@pytest.mark.usefixtures("prepare_mock_ms", "create_mock_sky_model")
+def run_dp3_wgridder_predict(ms_in, ms_out, model_prefix, n_terms):
+    """
+    Run DP3's WGridderPredict to generate model visibilities based
+    on model images produced by WSClean's sub-pixel renderer.
+
+    Parameters
+    ----------
+    ms_in: str
+        Name of the input MeasurementSet
+    ms_out: str
+        Name of the output MeasurementSet
+    model_prefix: str
+        Model image prefix (i.e., before -term-0.fits)
+    n_terms: int
+        The number of term images WGridderPredict should use
+    """
+    model_images = [f"{model_prefix}-term-{i}.fits" for i in range(n_terms)]
+    region_filename = f"{model_prefix}.reg"
+    generate_full_image_facet(model_images[0], region_filename)
+    term_images_string = ",".join([filename for filename in model_images])
+    dp3_wgridder_predict_run = [
+        "DP3",
+        "checkparset=1",
+        f"msin={ms_in}",
+        f"msout={ms_out}",
+        "msout.overwrite=True",
+        "steps=[wgridderpredict]",
+        f"wgridderpredict.images=[{term_images_string}]",
+        f"wgridderpredict.regions={region_filename}",
+        "wgridderpredict.sumfacets=True",
+    ]
+    validate_call(dp3_wgridder_predict_run)
+
+
+@pytest.mark.usefixtures(
+    "prepare_mock_ms", "create_mock_sky_model", "prepare_3c196_sky_model"
+)
 class TestSubPixelRenderer:
     def test_sub_pixel_renderer(self):
         # Execute the sub-pixel renderer with the -draw-model option
@@ -106,21 +142,10 @@ class TestSubPixelRenderer:
         validate_call(s.split())
 
         # Run image-based predict with DP3
-        model_images = [f"{prefix}-term-{i}.fits" for i in range(n_terms)]
-        generate_full_image_facet(model_images[0], "mock.reg")
-        term_images_string = ",".join([filename for filename in model_images])
-        dp3_run = [
-            "DP3",
-            "checkparset=1",
-            f"msin={tcf.MWA_MOCK_MS}",
-            "msout=image-based-predict.ms",
-            "msout.overwrite=True",
-            "steps=[wgridderpredict]",
-            f"wgridderpredict.images=[{term_images_string}]",
-            f"wgridderpredict.regions=mock.reg",
-            "wgridderpredict.sumfacets=True",
-        ]
-        validate_call(dp3_run)
+        image_based_predict_ms = "image-based-predict.ms"
+        run_dp3_wgridder_predict(
+            tcf.MWA_MOCK_MS, image_based_predict_ms, prefix, n_terms
+        )
 
         # Run direct predict with DP3
         dp3_run = [
@@ -146,4 +171,46 @@ class TestSubPixelRenderer:
             "direct-predict-dirty.fits",
             "image-based-predict-dirty.fits",
             threshold=1.0e-2,
+        )
+
+    def test_image_based_predict_at_different_resolution(self):
+        n_terms = 3
+        window_size = 256
+
+        # Step 1: create a low-resolution model image, with 0.5 arcmin/pixel resolution
+        low_res_prefix = "low-res-model-image"
+        low_res_dims = "-size 512 512 -scale 0.5arcsec"
+        s = f"{tcf.WSCLEAN} -draw-model {tcf.SKYMODEL_3C196} -draw-frequencies 150e6 10e6 {low_res_dims} -draw-spectral-terms {n_terms} -sinc-window-size {window_size} -name {low_res_prefix} {tcf.LOFAR_3C196_MS}"
+        validate_call(s.split())
+
+        # Run image-based predict with DP3
+        low_res_ms = "low-res-predict.ms"
+        run_dp3_wgridder_predict(
+            tcf.LOFAR_3C196_MS, low_res_ms, low_res_prefix, n_terms
+        )
+
+        # Step 2: create a high-resolution model image, with 0.05 arcmin/pixel resolution
+        high_res_prefix = "high-res-model-image"
+        high_res_dims = "-size 5120 5120 -scale 0.05arcsec"
+        s = f"{tcf.WSCLEAN} -draw-model {tcf.SKYMODEL_3C196} -draw-frequencies 150e6 10e6 {high_res_dims} -draw-spectral-terms {n_terms} -sinc-window-size {window_size} -name {high_res_prefix} {tcf.LOFAR_3C196_MS}"
+        validate_call(s.split())
+
+        # Run image-based predict with DP3
+        high_res_ms = "high-res-predict.ms"
+        run_dp3_wgridder_predict(
+            tcf.LOFAR_3C196_MS, high_res_ms, high_res_prefix, n_terms
+        )
+
+        # Image the predicted visibilities
+        s = f"{tcf.WSCLEAN} -name low-res-predict {low_res_dims} {low_res_ms}"
+        validate_call(s.split())
+
+        s = f"{tcf.WSCLEAN} -name high-res-predict {low_res_dims} {high_res_ms}"
+        validate_call(s.split())
+
+        # Step 3: Compare the RMS of the residual image
+        compare_rms_fits(
+            "low-res-predict-dirty.fits",
+            "high-res-predict-dirty.fits",
+            threshold=1.0e-3,
         )

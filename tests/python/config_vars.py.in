@@ -25,6 +25,8 @@ FACETFILE_2FACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_2facets.reg"
 FACETFILE_4FACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_4facets.reg"
 FACETFILE_NFACETS = "@CMAKE_SOURCE_DIR@/tests/data/ds9_nfacets.reg"
 
+SKYMODEL_3C196 = "3C196-SH-offringa.skymodel"
+
 # MWA beam coefficient file and dummy MODEL_IMAGE
 MWA_COEFF_ARCHIVE = "mwa_full_embedded_element_pattern.tar.bz2"
 MWA_COEFF_FILE = "mwa_full_embedded_element_pattern.h5"

@@ -99,3 +99,12 @@ def prepare_mock_soltab():
     if not os.path.isfile(tcf.MOCK_SOLTAB_2POL):
         wget = f"wget -q {os.path.join(tcf.WSCLEAN_DATA_URL, tcf.MOCK_SOLTAB_2POL)}"
         check_call(wget.split())
+
+
+@pytest.fixture(scope="class")
+def prepare_3c196_sky_model():
+    if not os.path.isfile(tcf.SKYMODEL_3C196):
+        wget = (
+            f"wget -q {os.path.join(tcf.WSCLEAN_DATA_URL, tcf.SKYMODEL_3C196)}"
+        )
+        check_call(wget.split())

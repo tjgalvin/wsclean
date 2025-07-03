@@ -132,5 +132,6 @@ add_custom_target(
           '.*/CompilerIdCXX/.*' ${CMAKE_BINARY_DIR})
 
 # Collect all tests that should run on das5 in a single target
-add_custom_target(nightlychecks
-                  DEPENDS integrationchecks;facetchecks;gridderchecks)
+add_custom_target(
+  nightlychecks
+  DEPENDS integrationchecks;facetchecks;gridderchecks;subpixelrendererchecks)

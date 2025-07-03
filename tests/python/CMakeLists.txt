@@ -31,6 +31,13 @@ add_custom_target(
     --junitxml=${CMAKE_BINARY_DIR}/check_gridder.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/gridder_checks.py)
 
+add_custom_target(
+  subpixelrendererchecks
+  COMMAND
+    python3 -B -m pytest --exitfirst -v
+    --junitxml=${CMAKE_BINARY_DIR}/check_gridder.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/sub_pixel_renderer_checks.py)
+
 # Test a number of wsclean commands, which can be considered system level tests
 add_custom_target(
   longsystemchecks
