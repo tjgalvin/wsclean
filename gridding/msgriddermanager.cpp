@@ -705,46 +705,54 @@ void ExpandAndCombineFacetVisibilities(
     const size_t* antennas1, const size_t* antennas2, const size_t* field_ids,
     const double* times, const double* uvw,
     const std::complex<float>* facet_visibilities, MsGridder* gridder,
-    std::complex<float>* combined_visibilities) {
+    std::complex<float>* combined_visibilities,
+    std::vector<std::mutex>& sum_visibilities_mutexes,
+    size_t mutex_chunk_size) {
   aocommon::UVector<std::complex<float>> visibilities_scratch(
       n_channels * n_vis_polarizations);
-  for (size_t i = 0; i < n_rows; ++i) {
-    switch (n_vis_polarizations) {
-      case 1:
-        std::copy_n(facet_visibilities, n_channels,
-                    visibilities_scratch.data());
-        break;
-      case 2:
-        internal::ExpandData<2>(n_channels, facet_visibilities,
-                                visibilities_scratch.data(),
-                                gridder->Polarization());
-        break;
-      case 4:
-        internal::ExpandData<4>(n_channels, facet_visibilities,
-                                visibilities_scratch.data(),
-                                gridder->Polarization());
-        break;
-    }
-    gridder->CorrectInstrumentalVisibilities(
-        n_antennas, band, visibilities_scratch.data(), uvw, *field_ids,
-        *antennas1, *antennas2, *times);
-
-    // In case the value was not sampled in this pass, it has been set to
-    // infinite and should not overwrite the current value in the set.
-    // NB! This is only true for multi pass gridders (wstacking gridder) other
-    // gridders could consider skipping this check if it becomes important for
-    // performance.
-    for (size_t i = 0; i < n_channels * n_vis_polarizations; ++i) {
-      if (std::isfinite(visibilities_scratch[i].real())) {
-        combined_visibilities[i] += visibilities_scratch[i];
+  const size_t n_chunks = n_rows / mutex_chunk_size + 1;
+  for (size_t chunk = 0; chunk < n_chunks; ++chunk) {
+    std::lock_guard<std::mutex> sum_lock(sum_visibilities_mutexes[chunk]);
+    const size_t start = chunk * mutex_chunk_size;
+    const size_t end = std::min(start + mutex_chunk_size, n_rows);
+    for (size_t i = start; i < end; ++i) {
+      switch (n_vis_polarizations) {
+        case 1:
+          std::copy_n(facet_visibilities, n_channels,
+                      visibilities_scratch.data());
+          break;
+        case 2:
+          internal::ExpandData<2>(n_channels, facet_visibilities,
+                                  visibilities_scratch.data(),
+                                  gridder->Polarization());
+          break;
+        case 4:
+          internal::ExpandData<4>(n_channels, facet_visibilities,
+                                  visibilities_scratch.data(),
+                                  gridder->Polarization());
+          break;
       }
+      gridder->CorrectInstrumentalVisibilities(
+          n_antennas, band, visibilities_scratch.data(), uvw, *field_ids,
+          *antennas1, *antennas2, *times);
+
+      // In case the value was not sampled in this pass, it has been set to
+      // infinite and should not overwrite the current value in the set.
+      // NB! This is only true for multi pass gridders (wstacking gridder) other
+      // gridders could consider skipping this check if it becomes important for
+      // performance.
+      for (size_t i = 0; i < n_channels * n_vis_polarizations; ++i) {
+        if (std::isfinite(visibilities_scratch[i].real())) {
+          combined_visibilities[i] += visibilities_scratch[i];
+        }
+      }
+      facet_visibilities += n_channels;
+      combined_visibilities += n_channels * n_vis_polarizations;
+      field_ids++;
+      antennas1++;
+      antennas2++;
+      times++;
     }
-    facet_visibilities += n_channels;
-    combined_visibilities += n_channels * n_vis_polarizations;
-    field_ids++;
-    antennas1++;
-    antennas2++;
-    times++;
   }
 }
 }  // namespace internal
@@ -763,13 +771,12 @@ size_t MSGridderManager::PredictChunk(
                       std::to_string(available_cores_per_gridder_) +
                       " threads per gridder...\n";
   // As all facets are summing their values into combined_visibilities we have
-  // to protect it with a mutex to avoid data corruption. NB! This may not be
-  // ideal performance wise, if benchmarks indicate that it is worthwhile then a
-  // lock free alternative should be possible. As we are only summing the
-  // complex numbers and not doing any other operations, it would not be
-  // necessarry for the entire complex number to be atomic, only the independent
-  // additions on the real and imaginary portions would need to be atomic.
-  std::mutex sum_visibilities_mutex;
+  // to protect it with a mutex to avoid data corruption.
+  // Chunk into ranges and use a mutex per range instead of a single mutex to
+  // strike a balance between gridder lock contention and time spent waiting.
+  constexpr size_t kMutexChunkSize = 2048;
+  std::vector<std::mutex> sum_visibilities_mutexes(
+      (chunk_data.n_rows / kMutexChunkSize) + 1);
   ExecuteForAllGriddersWithNCores(
       available_cores_per_gridder_,
       [&](MsGridder* gridder, size_t facet_index) {
@@ -781,15 +788,15 @@ size_t MSGridderManager::PredictChunk(
         gridder->PredictChunk(chunk_data.n_rows, n_channels, frequencies.data(),
                               chunk_data.uvws.data(),
                               facet_visibilities.data());
-        {
-          std::unique_lock<std::mutex> lock(sum_visibilities_mutex);
-          ExpandAndCombineFacetVisibilities(
-              n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
-              band, chunk_data.antennas1.data(), chunk_data.antennas2.data(),
-              chunk_data.field_ids.data(), chunk_data.times.data(),
-              chunk_data.uvws.data(), facet_visibilities.data(), gridder,
-              combined_visibilities.data());
-        }
+
+        ExpandAndCombineFacetVisibilities(
+            n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
+            band, chunk_data.antennas1.data(), chunk_data.antennas2.data(),
+            chunk_data.field_ids.data(), chunk_data.times.data(),
+            chunk_data.uvws.data(), facet_visibilities.data(), gridder,
+            combined_visibilities.data(), sum_visibilities_mutexes,
+            kMutexChunkSize);
+
         Logger::Info << "Done predicting facet " + std::to_string(facet_index) +
                             "\n";
       });
