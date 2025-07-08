@@ -411,7 +411,6 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
 }
 
 void MSGridderManager::Invert() {
-  assert(facet_tasks_.size() == 1);
   InitializeMSDataVectors();
 
   for (const GriddingFacetTask& task : facet_tasks_) {
