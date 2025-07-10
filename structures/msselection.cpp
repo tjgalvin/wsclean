@@ -33,10 +33,10 @@ bool SelectMsChannels(schaapcommon::reordering::MSSelection& selection,
       newStart = band.ChannelCount() - 1 - (highPtr - band.rbegin());
       newEnd = band.ChannelCount() - (lowPtr - band.rbegin());
     } else {
-      const double *lowPtr, *highPtr;
-      lowPtr =
+      const aocommon::BandData::const_iterator lowPtr =
           std::lower_bound(band.begin(), band.end(), entry.lowestFrequency);
-      highPtr = std::lower_bound(lowPtr, band.end(), entry.highestFrequency);
+      aocommon::BandData::const_iterator highPtr =
+          std::lower_bound(lowPtr, band.end(), entry.highestFrequency);
 
       if (highPtr == band.end()) --highPtr;
       newStart = lowPtr - band.begin();

@@ -69,15 +69,25 @@ void ContiguousMS::open() {
   _weightSpectrumArray = casacore::Array<float>(shape);
   _imagingWeightSpectrumArray = casacore::Array<float>(shape);
   _flagArray = casacore::Array<bool>(shape);
-  _bandData = aocommon::MultiBandData(*_ms);
-
-  if (_bandData.BandCount() > 1) {
+  original_bands_ = aocommon::MultiBandData(*_ms);
+  if (original_bands_.BandCount() > 1) {
     throw std::runtime_error(
         "This set contains multiple spws, and can therefore not be opened "
         "directly due to possible synchronization issues between spws. You can "
         "force reordering of the measurement by adding -reorder to the command "
         "line.");
   }
+
+  aocommon::BandData band;
+  if (_selection.HasChannelRange()) {
+    band = aocommon::BandData(original_bands_[_dataDescId],
+                              _selection.ChannelRangeStart(),
+                              _selection.ChannelRangeEnd());
+  } else {
+    band = aocommon::BandData(original_bands_[_dataDescId]);
+  }
+  selected_bands_.SetBand(_dataDescId, band);
+
   _nAntenna = _ms->antenna().nrow();
 
   _msHasWeightSpectrum = OpenWeightSpectrumColumn(*_ms, _weightSpectrumColumn);
@@ -137,11 +147,11 @@ double ContiguousMS::StartTime() {
       .get();
 }
 
-size_t ContiguousMS::NChannels() {
+size_t ContiguousMS::NMaxChannels() {
   if (_selection.HasChannelRange())
     return _selection.ChannelRangeEnd() - _selection.ChannelRangeStart();
   else
-    return _bandData[_dataDescId].ChannelCount();
+    return original_bands_[_dataDescId].ChannelCount();
 }
 
 size_t ContiguousMS::NPolarizations() {
@@ -184,7 +194,7 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
     endChannel = _selection.ChannelRangeEnd();
   } else {
     startChannel = 0;
-    endChannel = _bandData[_dataDescId].ChannelCount();
+    endChannel = original_bands_[_dataDescId].ChannelCount();
   }
 
   _modelColumn.get(_currentOutputRow, _modelArray);

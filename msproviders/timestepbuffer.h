@@ -27,44 +27,48 @@ class TimestepBuffer final : public MSProvider {
 
   virtual ~TimestepBuffer(){};
 
-  SynchronizedMS MS() override { return ms_provider_->MS(); }
+  SynchronizedMS MS() final { return ms_provider_->MS(); }
 
-  std::unique_ptr<MSReader> MakeReader() final override;
+  std::unique_ptr<MSReader> MakeReader() final;
 
-  const std::string& DataColumnName() override {
+  const std::string& DataColumnName() final {
     return ms_provider_->DataColumnName();
   }
 
-  void NextOutputRow() override { ms_provider_->NextOutputRow(); }
+  void NextOutputRow() final { ms_provider_->NextOutputRow(); }
 
-  void ResetWritePosition() override { ms_provider_->ResetWritePosition(); }
+  void ResetWritePosition() final { ms_provider_->ResetWritePosition(); }
 
   virtual void WriteModel(const std::complex<float>* buffer,
-                          bool addToMS) override {
+                          bool addToMS) final {
     ms_provider_->WriteModel(buffer, addToMS);
   }
 
-  void ReopenRW() override { ms_provider_->ReopenRW(); }
+  void ReopenRW() final { ms_provider_->ReopenRW(); }
 
-  double StartTime() override { return ms_provider_->StartTime(); }
+  double StartTime() final { return ms_provider_->StartTime(); }
 
-  size_t DataDescId() override { return ms_provider_->DataDescId(); }
+  size_t DataDescId() final { return ms_provider_->DataDescId(); }
 
-  void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override {
+  void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) final {
     ms_provider_->MakeIdToMSRowMapping(idToMSRow);
   }
 
-  aocommon::PolarizationEnum Polarization() override {
+  aocommon::PolarizationEnum Polarization() final {
     return ms_provider_->Polarization();
   }
 
-  size_t NChannels() override { return ms_provider_->NChannels(); }
+  bool IsRegular() const final { return ms_provider_->IsRegular(); }
 
-  size_t NAntennas() override { return ms_provider_->NAntennas(); }
+  size_t NMaxChannels() final { return ms_provider_->NMaxChannels(); }
 
-  size_t NPolarizations() override { return ms_provider_->NPolarizations(); }
+  size_t NAntennas() final { return ms_provider_->NAntennas(); }
 
-  const aocommon::BandData& Band() override { return ms_provider_->Band(); }
+  size_t NPolarizations() final { return ms_provider_->NPolarizations(); }
+
+  const aocommon::MultiBandData& SelectedBands() final {
+    return ms_provider_->SelectedBands();
+  }
 
  private:
   struct RowData {

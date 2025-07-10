@@ -41,13 +41,9 @@ class MSReader {
   virtual void NextInputRow() = 0;
 
   /**
-   * @{
    * Read meta data from the current reading position.
    */
-  virtual void ReadMeta(double& u, double& v, double& w) = 0;
-
   virtual void ReadMeta(MSProvider::MetaData& metadata) = 0;
-  /** @} */
 
   /**
    * Read visibility data from current reading position.

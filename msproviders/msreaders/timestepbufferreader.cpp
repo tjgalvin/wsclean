@@ -20,13 +20,6 @@ void TimestepBufferReader::NextInputRow() {
   }
 }
 
-void TimestepBufferReader::ReadMeta(double& u, double& v, double& w) {
-  MSProvider::MetaData& m = buffer_[buffer_position_].metadata;
-  u = m.u_in_m;
-  v = m.v_in_m;
-  w = m.w_in_m;
-}
-
 void TimestepBufferReader::ReadMeta(MSProvider::MetaData& metadata) {
   metadata = buffer_[buffer_position_].metadata;
 }
@@ -58,22 +51,23 @@ void TimestepBufferReader::readTimeblock() {
   buffer_position_ = 0;
   buffer_.clear();
   MSProvider::MetaData metadata;
-  size_t dataSize = tstepbuffer.ms_provider_->NPolarizations() *
-                    tstepbuffer.ms_provider_->NChannels();
+  const size_t max_size = tstepbuffer.ms_provider_->NPolarizations() *
+                          tstepbuffer.ms_provider_->NMaxChannels();
 
   if (ms_reader_->CurrentRowAvailable()) {
     ms_reader_->ReadMeta(metadata);
-    double blockTime = metadata.time, curTime = blockTime;
-    size_t writePos = 0;
+    const double block_time = metadata.time;
+    double row_time = block_time;
+    size_t write_pos = 0;
     do {
-      if (buffer_.size() <= writePos) {
+      if (buffer_.size() <= write_pos) {
         buffer_.emplace_back();
-        TimestepBuffer::RowData& newRow = buffer_.back();
-        newRow.data.resize(dataSize);
-        if (tstepbuffer.read_model_) newRow.model.resize(dataSize);
-        newRow.weights.resize(dataSize);
+        TimestepBuffer::RowData& new_row = buffer_.back();
+        new_row.data.resize(max_size);
+        if (tstepbuffer.read_model_) new_row.model.resize(max_size);
+        new_row.weights.resize(max_size);
       }
-      TimestepBuffer::RowData& row = buffer_[writePos];
+      TimestepBuffer::RowData& row = buffer_[write_pos];
       row.metadata = metadata;
       ms_reader_->ReadData(row.data.data());
       if (tstepbuffer.read_model_) ms_reader_->ReadModel(row.model.data());
@@ -81,13 +75,13 @@ void TimestepBufferReader::readTimeblock() {
       row.row_id = ms_reader_->RowId();
 
       ms_reader_->NextInputRow();
-      ++writePos;
+      ++write_pos;
       if (ms_reader_->CurrentRowAvailable()) {
         ms_reader_->ReadMeta(metadata);
-        curTime = metadata.time;
+        row_time = metadata.time;
       }
-    } while (ms_reader_->CurrentRowAvailable() && blockTime == curTime);
-    buffer_.resize(writePos);
+    } while (ms_reader_->CurrentRowAvailable() && block_time == row_time);
+    buffer_.resize(write_pos);
   }
 }
 

@@ -20,8 +20,6 @@ class TimestepBufferReader final : public MSReader {
 
   void NextInputRow() final override;
 
-  void ReadMeta(double& u, double& v, double& w) final override;
-
   void ReadMeta(MSProvider::MetaData& metadata) final override;
 
   void ReadData(std::complex<float>* buffer) final override;

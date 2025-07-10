@@ -41,7 +41,7 @@ bool ContiguousMSReader::CurrentRowAvailable() {
     fieldId = contiguousms._fieldIdColumn(_currentInputRow);
     a1 = contiguousms._antenna1Column(_currentInputRow);
     a2 = contiguousms._antenna2Column(_currentInputRow);
-    uvw = contiguousms._uvwColumn(_currentInputRow);
+    contiguousms._uvwColumn.get(_currentInputRow, uvw, true);
     dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
     if (_currentInputTime != contiguousms._timeColumn(_currentInputRow)) {
       ++_currentInputTimestep;
@@ -86,16 +86,6 @@ void ContiguousMSReader::NextInputRow() {
            (dataDescId != contiguousms._dataDescId));
 }
 
-void ContiguousMSReader::ReadMeta(double& u, double& v, double& w) {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*ms_provider_);
-
-  casacore::Vector<double> uvwArray = contiguousms._uvwColumn(_currentInputRow);
-  u = uvwArray(0);
-  v = uvwArray(1);
-  w = uvwArray(2);
-}
-
 void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metadata) {
   const ContiguousMS& contiguousms =
       static_cast<const ContiguousMS&>(*ms_provider_);
@@ -104,10 +94,11 @@ void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metadata) {
   metadata.u_in_m = uvwArray(0);
   metadata.v_in_m = uvwArray(1);
   metadata.w_in_m = uvwArray(2);
+  metadata.time = contiguousms._timeColumn(_currentInputRow);
+  metadata.data_desc_id = contiguousms._dataDescId;
   metadata.field_id = contiguousms._fieldIdColumn(_currentInputRow);
   metadata.antenna1 = contiguousms._antenna1Column(_currentInputRow);
   metadata.antenna2 = contiguousms._antenna2Column(_currentInputRow);
-  metadata.time = contiguousms._timeColumn(_currentInputRow);
 }
 
 void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
@@ -122,7 +113,7 @@ void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
   } else {
     startChannel = 0;
     endChannel =
-        contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
+        contiguousms.original_bands_[contiguousms._dataDescId].ChannelCount();
   }
   schaapcommon::reordering::ExtractData(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
@@ -143,7 +134,7 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
   } else {
     startChannel = 0;
     endChannel =
-        contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
+        contiguousms.original_bands_[contiguousms._dataDescId].ChannelCount();
   }
   schaapcommon::reordering::ExtractData(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
@@ -163,7 +154,7 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
   } else {
     startChannel = 0;
     endChannel =
-        contiguousms._bandData[contiguousms._dataDescId].ChannelCount();
+        contiguousms.original_bands_[contiguousms._dataDescId].ChannelCount();
   }
   schaapcommon::reordering::ExtractWeights(
       buffer, startChannel, endChannel, contiguousms._inputPolarizations,
@@ -185,7 +176,7 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
     endChannel = contiguousms._selection.ChannelRangeEnd();
   } else {
     startChannel = 0;
-    endChannel = contiguousms._bandData[dataDescId].ChannelCount();
+    endChannel = contiguousms.original_bands_[dataDescId].ChannelCount();
   }
 
   _imagingWeightsColumn->get(_currentInputRow,

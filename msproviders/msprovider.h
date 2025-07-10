@@ -22,8 +22,16 @@ namespace casacore {
 class MeasurementSet;
 }  // namespace casacore
 
+namespace schaapcommon::reordering {
+struct ChannelRange;
+}  // namespace schaapcommon::reordering
+
 namespace wsclean {
 class MSReader;
+
+std::vector<aocommon::MultiBandData> MakeSelectedBands(
+    const aocommon::MultiBandData& input,
+    const std::vector<schaapcommon::reordering::ChannelRange>& channel_ranges);
 
 /**
  * The abstract MSProvider class is the base class for classes that read and
@@ -52,10 +60,11 @@ class MSProvider {
     double u_in_m;
     double v_in_m;
     double w_in_m;
-    size_t field_id;
-    size_t antenna1;
-    size_t antenna2;
     double time;
+    uint32_t data_desc_id;
+    uint32_t field_id;
+    uint32_t antenna1;
+    uint32_t antenna2;
   };
 
   MSProvider() = default;
@@ -123,10 +132,17 @@ class MSProvider {
   virtual size_t DataDescId() = 0;
 
   /**
-   * Number of channels provided by this provider. May be different from the
-   * underlying measurement set if not all channels are selected.
+   * Number of channels provided by this provider. If the set is regular,
+   * this is equal to the number of channels in every row. This value may be
+   * different from the underlying measurement set if not all channels are
+   * selected.
    */
-  virtual size_t NChannels() = 0;
+  virtual size_t NMaxChannels() = 0;
+
+  /**
+   * Does every row have the same number of channels?
+   */
+  virtual bool IsRegular() const = 0;
 
   /**
    * Count of antennas in the underlying measurement set (irrespective of
@@ -143,11 +159,11 @@ class MSProvider {
   virtual size_t NPolarizations() = 0;
 
   /**
-   * Get the band information that this MSProvider covers. The BandData
-   * includes all channels in the original data, even when not all
-   * channels are selected (@sa NChannels()).
+   * Get the band information that this MSProvider covers after applying
+   * any selection. The indexing of channels matches therefore with
+   * the indexing of visibilities and weights by reading/writing.
    */
-  virtual const aocommon::BandData& Band() = 0;
+  virtual const aocommon::MultiBandData& SelectedBands() = 0;
 
   /**
    * Get a set of polarizations in the measurement set for a given data desc

@@ -4,6 +4,8 @@
 
 #include <aocommon/logger.h>
 
+#include <schaapcommon/reordering/reorderedhandledata.h>
+
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/DataMan/DataManager.h>
 #include <casacore/tables/Tables/ScalarColumn.h>
@@ -29,7 +31,19 @@ void FillModelColumn(const casacore::ArrayColumn<casacore::Complex>& dataColumn,
 }
 }  // namespace
 
-MSProvider::~MSProvider() {}
+std::vector<aocommon::MultiBandData> MakeSelectedBands(
+    const aocommon::MultiBandData& input,
+    const std::vector<schaapcommon::reordering::ChannelRange>& channel_ranges) {
+  std::vector<aocommon::MultiBandData> result;
+  for (const schaapcommon::reordering::ChannelRange& range : channel_ranges) {
+    const aocommon::BandData& band = input[range.data_desc_id];
+    result.emplace_back().SetBand(
+        range.data_desc_id, aocommon::BandData(band, range.start, range.end));
+  }
+  return result;
+}
+
+MSProvider::~MSProvider() = default;
 
 void MSProvider::GetRowRange(casacore::MeasurementSet& ms,
                              const MSSelection& selection, size_t& startRow,
@@ -234,8 +248,8 @@ std::set<aocommon::PolarizationEnum> MSProvider::GetMSPolarizations(
 
 void MSProvider::ResetModelColumn() {
   std::unique_ptr<MSReader> msReader = MakeReader();
-  const std::vector<std::complex<float>> buffer(NChannels() * NPolarizations(),
-                                                {0.0f, 0.0f});
+  const std::vector<std::complex<float>> buffer(
+      NMaxChannels() * NPolarizations(), {0.0f, 0.0f});
   while (msReader->CurrentRowAvailable()) {
     // Always overwrite
     const bool addToMS = false;

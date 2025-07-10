@@ -537,15 +537,10 @@ void PrimaryBeam::MakeImage(const ImageFilename& image_name,
   std::vector<aocommon::HMC4x4> result;
   double ms_weight_sum = 0;
   for (const MSProviderInfo& ms_provider_info : ms_providers_) {
-    const MSSelection& selection = *ms_provider_info.selection;
-    double central_frequency;
-    {
-      aocommon::BandData band(ms_provider_info.provider->Band(),
-                              selection.ChannelRangeStart(),
-                              selection.ChannelRangeEnd());
-      central_frequency = band.CentreFrequency();
-    }
+    const double central_frequency =
+        ms_provider_info.provider->SelectedBands().CentreFrequency();
 
+    const MSSelection& selection = *ms_provider_info.selection;
     std::vector<aocommon::HMC4x4> ms_beam;
     const double ms_weight =
         MakeBeamForMS(ms_beam, *ms_provider_info.provider, selection,

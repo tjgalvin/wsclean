@@ -55,13 +55,11 @@ void WSMSGridder::countSamplesPerLayer(MsProviderCollection::MsData& msData) {
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
   const aocommon::BandData& bandData = msData.band_data;
   while (msReader->CurrentRowAvailable()) {
-    double u_in_m;
-    double v_in_m;
-    double w_in_m;
-    msReader->ReadMeta(u_in_m, v_in_m, w_in_m);
+    MSProvider::MetaData meta_data;
+    msReader->ReadMeta(meta_data);
     for (size_t ch = msData.start_channel; ch != msData.end_channel; ++ch) {
-      double w = w_in_m / bandData.ChannelWavelength(ch);
-      size_t wLayerIndex = _gridder->WToLayer(w);
+      const double w = meta_data.w_in_m / bandData.ChannelWavelength(ch);
+      const size_t wLayerIndex = _gridder->WToLayer(w);
       if (wLayerIndex < ActualWGridSize()) {
         ++sampleCount[wLayerIndex];
         ++total;
@@ -307,11 +305,9 @@ size_t WSMSGridder::PredictMeasurementSet(
   std::vector<size_t> row_ids;
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
   while (ms_reader->CurrentRowAvailable()) {
-    double u_in_m;
-    double v_in_m;
-    double w_in_m;
-    ms_reader->ReadMeta(u_in_m, v_in_m, w_in_m);
-    uvws.push_back({u_in_m, v_in_m, w_in_m});
+    MSProvider::MetaData meta_data;
+    ms_reader->ReadMeta(meta_data);
+    uvws.push_back({meta_data.u_in_m, meta_data.v_in_m, meta_data.w_in_m});
     row_ids.push_back(ms_reader->RowId());
     ++n_total_rows_processed;
 

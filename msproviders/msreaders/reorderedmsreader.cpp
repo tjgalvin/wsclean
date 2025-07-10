@@ -54,21 +54,6 @@ void ReorderedMsReader::NextInputRow() {
     weight_ptr_row_offset_ += 1;
   }
 }
-
-void ReorderedMsReader::ReadMeta(double& u, double& v, double& w) {
-  if (meta_ptr_row_offset_ != 0)
-    meta_file_.seekg(meta_ptr_row_offset_ *
-                         schaapcommon::reordering::MetaRecord::BINARY_SIZE,
-                     std::ios::cur);
-  meta_ptr_row_offset_ = -1;
-
-  schaapcommon::reordering::MetaRecord record;
-  record.Read(meta_file_);
-  u = record.u;
-  v = record.v;
-  w = record.w;
-}
-
 void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metadata) {
   if (meta_ptr_row_offset_ != 0)
     meta_file_.seekg(meta_ptr_row_offset_ *
@@ -81,10 +66,11 @@ void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metadata) {
   metadata.u_in_m = record.u;
   metadata.v_in_m = record.v;
   metadata.w_in_m = record.w;
+  metadata.time = record.time;
+  metadata.data_desc_id = ms_provider_->DataDescId();
   metadata.field_id = record.field_id;
   metadata.antenna1 = record.antenna1;
   metadata.antenna2 = record.antenna2;
-  metadata.time = record.time;
 }
 
 void ReorderedMsReader::ReadData(std::complex<float>* buffer) {

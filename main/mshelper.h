@@ -6,7 +6,7 @@
 
 #include <aocommon/multibanddata.h>
 
-#include <schaapcommon/reordering/reorderedhandle.h>
+#include <schaapcommon/reordering/reorderedhandledata.h>
 
 #include "../msproviders/reorderedmsprovider.h"
 #include "../structures/imagingtable.h"

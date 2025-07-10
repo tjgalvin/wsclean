@@ -72,36 +72,34 @@ void ImageWeights::Unserialize(aocommon::SerialIStream& stream) {
       .Bool(_weightsAsTaper);
 }
 
-void ImageWeights::Grid(MSProvider& msProvider,
-                        const aocommon::BandData& selectedBand) {
+void ImageWeights::Grid(MSProvider& msProvider) {
   assert(!_isGriddingFinished);
   const size_t polarizationCount = msProvider.NPolarizations();
+  const aocommon::MultiBandData& selected_bands = msProvider.SelectedBands();
   if (_weightMode.RequiresGridding()) {
-    assert(selectedBand.ChannelCount() == msProvider.NChannels());
-    aocommon::UVector<float> weightBuffer(selectedBand.ChannelCount() *
+    aocommon::UVector<float> weightBuffer(selected_bands.MaxBandChannels() *
                                           polarizationCount);
 
     std::unique_ptr<MSReader> msReader = msProvider.MakeReader();
     while (msReader->CurrentRowAvailable()) {
-      double u_in_m;
-      double v_in_m;
-      double w_in_m;
-      msReader->ReadMeta(u_in_m, v_in_m, w_in_m);
+      MSProvider::MetaData meta_data;
+      msReader->ReadMeta(meta_data);
       msReader->ReadWeights(weightBuffer.data());
       if (_weightsAsTaper) {
         for (float& w : weightBuffer) {
           if (w != 0.0) w = 1.0;
         }
       }
-      if (v_in_m < 0.0) {
-        u_in_m = -u_in_m;
-        v_in_m = -v_in_m;
+      if (meta_data.v_in_m < 0.0) {
+        meta_data.u_in_m = -meta_data.u_in_m;
+        meta_data.v_in_m = -meta_data.v_in_m;
       }
 
       const float* weightIter = weightBuffer.data();
-      for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
-        const double u = u_in_m / selectedBand.ChannelWavelength(ch);
-        const double v = v_in_m / selectedBand.ChannelWavelength(ch);
+      const aocommon::BandData& band = selected_bands[meta_data.data_desc_id];
+      for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
+        const double u = meta_data.u_in_m / band.ChannelWavelength(ch);
+        const double v = meta_data.v_in_m / band.ChannelWavelength(ch);
         for (size_t p = 0; p != polarizationCount; ++p) {
           Grid(u, v, *weightIter);
           ++weightIter;

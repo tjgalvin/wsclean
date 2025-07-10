@@ -22,8 +22,6 @@ class ReorderedMsReader final : public MSReader {
 
   void NextInputRow() override;
 
-  void ReadMeta(double& u, double& v, double& w) override;
-
   void ReadMeta(MSProvider::MetaData& metadata) override;
 
   void ReadData(std::complex<float>* buffer) override;

@@ -6,7 +6,7 @@
 #include "../structures/msselection.h"
 #include "../system/mappedfile.h"
 
-#include <schaapcommon/reordering/reorderedhandle.h>
+#include <schaapcommon/reordering/reorderedhandledata.h>
 #include <schaapcommon/reordering/reorderedfilewriter.h>
 #include <schaapcommon/reordering/reordering.h>
 
@@ -36,7 +36,7 @@ class ReorderedMsProvider final : public MSProvider {
                       aocommon::PolarizationEnum polarization,
                       size_t data_desc_id);
 
-  virtual ~ReorderedMsProvider();
+  ~ReorderedMsProvider() final;
 
   ReorderedMsProvider(const ReorderedMsProvider&) = delete;
   ReorderedMsProvider& operator=(const ReorderedMsProvider&) = delete;
@@ -65,14 +65,15 @@ class ReorderedMsProvider final : public MSProvider {
 
   aocommon::PolarizationEnum Polarization() override { return polarization_; }
 
-  size_t NChannels() override { return part_header_.channel_count; }
+  size_t NMaxChannels() override { return part_header_.channel_count; }
+  bool IsRegular() const override { return true; }
   size_t NPolarizations() override { return polarization_count_in_file_; }
   size_t NAntennas() override { return handle_.data_->n_antennas_; }
 
   size_t DataDescId() override { return part_header_.data_desc_id; }
 
-  const aocommon::BandData& Band() override {
-    return handle_.data_->bands_[data_desc_id_];
+  const aocommon::MultiBandData& SelectedBands() final {
+    return handle_.data_->bands_per_part_[part_index_];
   }
 
   class ReorderedHandle {
@@ -93,8 +94,8 @@ class ReorderedMsProvider final : public MSProvider {
         bool initial_model_required, bool model_update_required,
         const std::set<aocommon::PolarizationEnum>& polarizations,
         const schaapcommon::reordering::MSSelection& selection,
-        const aocommon::MultiBandData& bands, size_t n_antennas,
-        bool keep_temporary_files,
+        const std::vector<aocommon::MultiBandData>& bands_per_part,
+        size_t n_antennas, bool keep_temporary_files,
         std::function<
             void(schaapcommon::reordering::ReorderedHandleData& handle)>
             cleanup_callback)
@@ -102,7 +103,7 @@ class ReorderedMsProvider final : public MSProvider {
               ms_path, data_column_name, model_column_name,
               model_storage_manager, temporary_directory, channels,
               initial_model_required, model_update_required, polarizations,
-              selection, bands, n_antennas, keep_temporary_files,
+              selection, bands_per_part, n_antennas, keep_temporary_files,
               std::move(cleanup_callback))) {}
 
     void Serialize(aocommon::SerialOStream& stream) const;

@@ -108,7 +108,7 @@ ReorderedMsProvider::ReorderedMsProvider(
   data_file.close();
 }
 
-ReorderedMsProvider::~ReorderedMsProvider() {}
+ReorderedMsProvider::~ReorderedMsProvider() = default;
 
 std::unique_ptr<MSReader> ReorderedMsProvider::MakeReader() {
   std::unique_ptr<MSReader> reader(new ReorderedMsReader(this));
@@ -209,14 +209,16 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
       ms_polarizations_per_data_desc_id =
           GetMSPolarizationsPerDataDescId(channels, row_provider->Ms());
   const size_t nAntennas = row_provider->Ms().antenna().nrow();
-  const aocommon::MultiBandData bands(row_provider->Ms());
+  const aocommon::MultiBandData original_bands(row_provider->Ms());
 
   // This handle is just for the writer
+  const std::vector<aocommon::MultiBandData> bands_per_part =
+      MakeSelectedBands(original_bands, channels);
   ReorderedHandleData handle_data(
       ms_path, data_column_name, model_column_name, model_storage_manager,
       temporary_directory, channels, initial_model_required,
-      model_update_required, pols_out, selection, bands, nAntennas, true,
-      ReorderedMsProvider::StoreReorderedInMS);
+      model_update_required, pols_out, selection, bands_per_part, nAntennas,
+      true, ReorderedMsProvider::StoreReorderedInMS);
 
   ReorderedFileWriter reordered_file_writer(handle_data,
                                             ms_polarizations_per_data_desc_id,
@@ -285,7 +287,7 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   return ReorderedMsProvider::ReorderedHandle(
       ms_path, data_column_name, model_column_name, model_storage_manager,
       temporary_directory, channels, initial_model_required,
-      model_update_required, pols_out, selection, bands, nAntennas,
+      model_update_required, pols_out, selection, bands_per_part, nAntennas,
       settings.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
 }  // namespace wsclean
 

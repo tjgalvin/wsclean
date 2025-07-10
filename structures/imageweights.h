@@ -12,7 +12,7 @@
 #include "weightmode.h"
 
 namespace aocommon {
-class BandData;
+class MultiBandData;
 }
 
 namespace wsclean {
@@ -35,7 +35,7 @@ class ImageWeights {
 
   double GetWeight(double u, double v) const { return sampleGridValue(u, v); }
 
-  void Grid(MSProvider& ms, const aocommon::BandData& selectedBand);
+  void Grid(MSProvider& ms);
   void Grid(double u, double v, double weight) {
     int x, y;
     uvToXY(u, v, x, y);

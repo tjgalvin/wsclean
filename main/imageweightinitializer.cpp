@@ -41,13 +41,7 @@ void ImageWeightInitializer::GridMfReorderedBand(
     ReorderedMsProvider ms_provider(reordered_ms_handles_[ms_index],
                                     entry_ms_info.bands[data_desc_id].partIndex,
                                     pol, data_desc_id);
-    aocommon::BandData selected_band(bands[data_desc_id]);
-    if (part_selection.HasChannelRange()) {
-      selected_band =
-          aocommon::BandData(selected_band, part_selection.ChannelRangeStart(),
-                             part_selection.ChannelRangeEnd());
-    }
-    weights.Grid(ms_provider, selected_band);
+    weights.Grid(ms_provider);
   }
 }
 
@@ -60,12 +54,7 @@ void ImageWeightInitializer::GridMfContiguousBand(size_t filename_index,
                           settings_.dataColumnName, settings_.modelColumnName,
                           settings_.modelStorageManager, global_selection_, pol,
                           data_desc_id, settings_.UseMpi());
-  aocommon::BandData selected_band = ms_bands_[filename_index][data_desc_id];
-  if (global_selection_.HasChannelRange())
-    selected_band =
-        aocommon::BandData(selected_band, global_selection_.ChannelRangeStart(),
-                           global_selection_.ChannelRangeEnd());
-  weights.Grid(msProvider, selected_band);
+  weights.Grid(msProvider);
 }
 
 void ImageWeightInitializer::InitializeMf(const ImagingTable& imaging_table,
@@ -81,26 +70,20 @@ void ImageWeightInitializer::InitializeMf(const ImagingTable& imaging_table,
            ++ms_index) {
         const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
 
-        for (size_t data_desc_id = 0;
-             data_desc_id != band_data.HighestDataDescId() + 1;
-             ++data_desc_id) {
-          if (band_data.HasDataDescId(data_desc_id)) {
-            const size_t band_index = band_data.GetBandIndex(data_desc_id);
+        for (size_t data_desc_id : band_data.DataDescIds()) {
+          const size_t band_index = band_data.GetBandIndex(data_desc_id);
 
-            if (settings_.IsBandSelected(band_index)) {
-              GridMfReorderedBand(data_desc_id, band_data, *weights, ms_index,
-                                  entry);
-            }
+          if (settings_.IsBandSelected(band_index)) {
+            GridMfReorderedBand(data_desc_id, band_data, *weights, ms_index,
+                                entry);
           }
         }
       }
     }
   } else {
     for (size_t i = 0; i != settings_.filenames.size(); ++i) {
-      for (size_t d = 0; d != ms_bands_[i].HighestDataDescId() + 1; ++d) {
-        if (ms_bands_[i].HasDataDescId(d)) {
-          GridMfContiguousBand(i, d, *weights);
-        }
+      for (size_t d : ms_bands_[i].DataDescIds()) {
+        GridMfContiguousBand(i, d, *weights);
       }
     }
   }

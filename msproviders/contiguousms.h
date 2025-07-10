@@ -59,13 +59,17 @@ class ContiguousMS final : public MSProvider {
 
   size_t DataDescId() override { return _dataDescId; }
 
-  size_t NChannels() override;
+  size_t NMaxChannels() override;
+
+  bool IsRegular() const override { return true; }
 
   size_t NPolarizations() override;
 
   size_t NAntennas() override { return _nAntenna; }
 
-  const aocommon::BandData& Band() override { return _bandData[_dataDescId]; }
+  const aocommon::MultiBandData& SelectedBands() final {
+    return selected_bands_;
+  }
 
  private:
   void open();
@@ -85,7 +89,8 @@ class ContiguousMS final : public MSProvider {
   aocommon::PolarizationEnum _outputPolarization;
   std::string _msPath;
   SynchronizedMS _ms;
-  aocommon::MultiBandData _bandData;
+  aocommon::MultiBandData original_bands_;
+  aocommon::MultiBandData selected_bands_;
   bool _msHasWeightSpectrum;
 
   casacore::ScalarColumn<int> _antenna1Column, _antenna2Column, _fieldIdColumn,
