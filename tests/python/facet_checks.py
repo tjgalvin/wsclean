@@ -23,14 +23,6 @@ sys.path.append(".")
 import config_vars as tcf
 
 
-def gridders():
-    return {
-        "wstacking": "-gridder wstacking",
-        "wgridder": "-gridder wgridder",
-        "idg": "-gridder idg",
-    }
-
-
 def predict_full_image(ms, gridder):
     """Predict full image"""
     s = f"{tcf.WSCLEAN} -predict -gridder {gridder} -name point-source {ms}"
@@ -133,16 +125,16 @@ class TestFacets:
         basic_image_check("facet-psf-only-psf.fits")
 
     # Test assumes that IDG and EveryBeam are installed
-    @pytest.mark.parametrize("gridder", gridders().items())
+    @pytest.mark.parametrize("gridder", ["wstacking", "wgridder", "idg"])
     def test_stitching(self, gridder):
         """Test stitching of the facets"""
-        prefix = f"facet-stitch-{gridder[0]}"
+        prefix = f"facet-stitch-{gridder}"
         s = [
             tcf.WSCLEAN,
             "-quiet",
-            gridder[1],
+            f"-gridder {gridder}",
             tcf.DIMS_SMALL,
-            "" if (gridder[0] == "idg") else "-pol XX,YY",
+            "" if (gridder == "idg") else "-pol XX,YY",
             f"-facet-regions {tcf.FACETFILE_2FACETS}",
             f"-name {prefix}",
             tcf.MWA_MOCK_MS,
@@ -150,7 +142,7 @@ class TestFacets:
         validate_call(" ".join(s).split())
         fpaths = (
             [prefix + "-dirty.fits", prefix + "-image.fits"]
-            if (gridder[0] == "idg")
+            if (gridder == "idg")
             else [
                 prefix + "-XX-dirty.fits",
                 prefix + "-YY-dirty.fits",
@@ -163,7 +155,9 @@ class TestFacets:
     # FIXME: we should test wstacking here too
     # but it fails on the taql assertion
     @pytest.mark.parametrize("gridder", ["wgridder"])
-    @pytest.mark.parametrize("apply_facet_beam", [False, True])
+    @pytest.mark.parametrize(
+        "apply_facet_beam", ["without facet beam", "with facet beam"]
+    )
     def test_predict(self, gridder, apply_facet_beam, tmp_mwa_mock_facet):
         """
         Test predict only run
@@ -174,17 +168,19 @@ class TestFacets:
             wsclean compatible description of gridder to be used.
         """
 
-        predict_facet_image(tmp_mwa_mock_facet, gridder, apply_facet_beam)
+        do_apply_facet_beam = apply_facet_beam == "with facet beam"
+
+        predict_facet_image(tmp_mwa_mock_facet, gridder, do_apply_facet_beam)
 
         # A numerical check can only be performed in case no DD effects were applied.
-        if not apply_facet_beam:
+        if not do_apply_facet_beam:
             predict_full_image(tcf.MWA_MOCK_FULL, gridder)
             taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tmp_mwa_mock_facet} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
             assert_taql(taql_command)
 
     @pytest.mark.parametrize("gridder", ["wgridder"])
-    @pytest.mark.parametrize("reorder", [False, True])
-    @pytest.mark.parametrize("mpi", [False, True])
+    @pytest.mark.parametrize("reorder", ["without reorder", "with reorder"])
+    @pytest.mark.parametrize("mpi", ["without mpi", "with mpi"])
     def test_facetdeconvolution(self, gridder, reorder, mpi):
         """
         Test facet-based deconvolution
@@ -229,7 +225,14 @@ class TestFacets:
         taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tcf.MWA_MOCK_FACET} t2 where not all(near(t1.MODEL_DATA,t2.DATA, 4e-3))"
         assert_taql(taql_command)
 
-        deconvolve_facets(tcf.MWA_MOCK_FACET, gridder, reorder, mpi)
+        do_reorder = reorder == "with reorder"
+        use_mpi = mpi == "with mpi"
+        deconvolve_facets(
+            tcf.MWA_MOCK_FACET,
+            gridder,
+            do_reorder,
+            use_mpi,
+        )
 
         taql_command = f"select from {tcf.MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 4e-3))"
         assert_taql(taql_command)
@@ -251,7 +254,7 @@ class TestFacets:
             chmod = f"chmod u+w -R {tcf.MWA_MOCK_FULL}"
             validate_call(chmod.split())
 
-    @pytest.mark.parametrize("mpi", [False, True])
+    @pytest.mark.parametrize("mpi", ["without mpi", "with mpi"])
     def test_facetbeamimages(self, mpi, tmp_mwa_mock_facet):
         """
         Basic checks of the generated images when using facet beams. For each image,
@@ -259,7 +262,8 @@ class TestFacets:
         of zero pixels.
         """
 
-        deconvolve_facets(tmp_mwa_mock_facet, "wgridder", True, mpi, True)
+        use_mpi = mpi == "with mpi"
+        deconvolve_facets(tmp_mwa_mock_facet, "wgridder", True, use_mpi, True)
 
         basic_image_check("facet-imaging-reorder-psf.fits")
         basic_image_check("facet-imaging-reorder-dirty.fits")
@@ -314,9 +318,7 @@ class TestFacets:
             "facets-shared-writes",
             "facets-shared-reads-and-writes",
         ]
-        do_apply_facet_beam = (
-            True if apply_facet_beam == "with facet beam" else False
-        )
+        do_apply_facet_beam = apply_facet_beam == "with facet beam"
         facet_beam = (
             "-mwa-path . -apply-facet-beam" if do_apply_facet_beam else ""
         )
@@ -398,7 +400,9 @@ class TestFacets:
                     threshold,
                 )
 
-    @pytest.mark.parametrize("compound_tasks", [False, True])
+    @pytest.mark.parametrize(
+        "compound_tasks", ["without compound tasks", "with compound tasks"]
+    )
     def test_parallel_predict(
         self, compound_tasks, tmp_path, tmp_mwa_mock_facet
     ):
@@ -416,12 +420,13 @@ class TestFacets:
 
         # Create reference output using a basic sequential run.
         predict_facet_image(tmp_mwa_mock_facet)
+        use_compound_tasks = compound_tasks == "with compound tasks"
 
         # Run various alternatives and compare output against the reference.
         for name, command in zip(names, wsclean_commands):
             name = "test_" + name + "_degridding"
 
-            if compound_tasks:
+            if use_compound_tasks:
                 name += "_compound"
                 command += " -compound-tasks"
 
@@ -487,11 +492,11 @@ class TestFacets:
                     threshold,
                 )
 
-    @pytest.mark.parametrize("beam", [False, True])
+    @pytest.mark.parametrize("beam", ["without beam", "with beam"])
     @pytest.mark.parametrize(
         "h5file",
         [
-            None,
+            "no h5file",
             [tcf.MOCK_SOLTAB_2POL],
             [tcf.MOCK_SOLTAB_2POL, tcf.MOCK_SOLTAB_2POL],
         ],
@@ -510,14 +515,14 @@ class TestFacets:
             f"{tcf.MWA_MOCK_MS}",
             f"{tcf.MWA_MOCK_COPY_1} {tcf.MWA_MOCK_COPY_2}",
         ]
-
-        if beam:
+        use_beam = beam == "with beam"
+        if use_beam:
             commands = [
                 "-mwa-path . -apply-facet-beam " + command
                 for command in commands
             ]
 
-        if h5file is not None:
+        if h5file != "no h5file":
             commands[0] = (
                 f"-apply-facet-solutions {h5file[0]} ampl000,phase000 "
                 + commands[0]
