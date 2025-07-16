@@ -42,9 +42,7 @@ void MsGridderData::ReadPredictMetaData(MSProvider::MetaData& metadata) {
 }
 
 void MsGridderData::ResetVisibilityModifierCache(size_t ms_count) {
-  if (visibility_modifier_.HasH5Parm()) {
-    visibility_modifier_.ResetCache(ms_count);
-  }
+  visibility_modifier_.ResetCache(ms_count);
   visibility_modifier_.ResetSums();
 }
 

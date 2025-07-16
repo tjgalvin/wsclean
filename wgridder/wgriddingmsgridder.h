@@ -27,8 +27,8 @@ class WGriddingMSGridder final : public MsGridder {
       const aocommon::BandData& selected_band,
       const std::pair<size_t, size_t>* antennas,
       const std::complex<float>* visibilities, const size_t* time_offsets,
-      size_t n_antennas,
-      const std::vector<std::complex<float>>& parm_response) final;
+      size_t n_antennas, const std::vector<std::complex<float>>& parm_response,
+      const BeamResponseCacheChunk& beam_response) final;
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;

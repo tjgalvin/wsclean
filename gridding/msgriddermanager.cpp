@@ -265,6 +265,12 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
   // Allow reading to get a bit ahead of processing but not by too much.
   aocommon::Lane<BatchRowData> task_lane(available_cores_ * 2);
 
+  // Visibility modifier needs to know when we are starting a new chunk in order
+  // to track the beam correctly.
+  for (MsGridder* gridder : gridders) {
+    gridder->GetVisibilityModifier().StartProcessingChunk();
+  }
+
   std::thread read_rows_thread([&] {
     std::pair<size_t, size_t>* antennas = chunk_data.antennas.data();
     size_t uvws_offset = 0;
@@ -291,13 +297,15 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
                                      rows.weights[rows.n_rows_read].data(),
                                      rows.model[rows.n_rows_read].data());
 
+        constexpr bool kCacheEntireBeam = true;
         if constexpr (ApplyCorrections) {
           *antennas = std::make_pair(metadata.antenna1, metadata.antenna2);
           ++antennas;
           size_t time_offset = chunk_data.time_offsets.back();
           for (const auto& gridder : gridders) {
             gridder->LoadCorrections<ApplyBeam, HasH5Parm>(
-                band, metadata.time, metadata.field_id, time_offset);
+                band, metadata.time, metadata.field_id, time_offset,
+                kCacheEntireBeam);
           };
           chunk_data.time_offsets.emplace_back(time_offset);
           ++time_offsets_offset;
@@ -306,7 +314,8 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
         ++rows.n_rows_read;
         ++n_chunk_rows_read;
         if (n_chunk_rows_read % 100000 == 0) {
-          Logger::Debug << "n_chunk_rows_read: " << n_chunk_rows_read << "\n";
+          Logger::Debug << "n_chunk_rows_read: " +
+                               std::to_string(n_chunk_rows_read) + "\n";
         }
         ms_reader.NextInputRow();
       }
@@ -407,6 +416,13 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
   for (std::thread& thread : thread_pool_process) {
     thread.join();
   }
+
+  // Visibility modifier needs to know when we have finished a chunk in order to
+  // track the beam correctly.
+  for (MsGridder* gridder : gridders) {
+    gridder->GetVisibilityModifier().FinishProcessingChunk();
+  }
+
   return n_chunk_rows_read;
 }
 
@@ -432,11 +448,13 @@ void MSGridderManager::Invert() {
   }
 }
 
-size_t MSGridderManager::GridChunk(
-    bool apply_corrections, size_t n_vis_polarizations,
-    const aocommon::BandData& band, const InversionChunkData& chunk_data,
-    const aocommon::UVector<double>& frequencies,
-    const MsProviderCollection::MsData& ms_data) {
+size_t MSGridderManager::GridChunk(bool apply_corrections,
+                                   size_t n_vis_polarizations,
+                                   const aocommon::BandData& band,
+                                   const InversionChunkData& chunk_data,
+                                   const aocommon::UVector<double>& frequencies,
+                                   const MsProviderCollection::MsData& ms_data,
+                                   size_t chunk_index) {
   Logger::Info << "Gridding " + std::to_string(chunk_data.n_rows) +
                       " rows for " + std::to_string(facet_tasks_.size()) +
                       " facets using " + std::to_string(available_cores_) +
@@ -453,6 +471,10 @@ size_t MSGridderManager::GridChunk(
             gridder->GetVisibilityModifier().GetCachedParmResponse(
                 ms_data.original_ms_index);
 
+        std::shared_ptr<BeamResponseCacheChunk> beam_response =
+            gridder->GetVisibilityModifier().TakeCachedBeamResponse(
+                chunk_index);
+
         gridder->gridded_visibility_count_ =
             chunk_data.gridded_visibility_count;
         gridder->visibility_weight_sum_ = chunk_data.visibility_weight_sum;
@@ -464,7 +486,7 @@ size_t MSGridderManager::GridChunk(
             chunk_data.uvw.data(), frequencies.data(), band,
             chunk_data.antennas.data(), chunk_data.visibilities.data(),
             apply_corrections ? chunk_data.time_offsets.data() + 1 : nullptr,
-            ms_data.antenna_names.size(), parm_response);
+            ms_data.antenna_names.size(), parm_response, *beam_response.get());
         Logger::Info << "Done gridding facet " + std::to_string(facet_index) +
                             "\n";
       });
@@ -502,7 +524,7 @@ void MSGridderManager::ReadChunksForInvert(
   } else {
     n_rows_in_smaller_chunk = n_rows_per_chunk;
   }
-  size_t chunk_index = 1;
+  size_t chunk_index = 0;
   Logger::Info << "Reading " << total_chunks << " chunks with "
                << n_rows_in_smaller_chunk << " rows in first chunk and "
                << n_rows_per_chunk << " rows per remaining chunk.\n";
@@ -533,6 +555,11 @@ void MSGridderManager::ReadChunksForInvert(
     ++chunk_index;
     target_chunk_size = n_rows_per_chunk;
   }
+  // Visibility modifier needs to know when we are done processing chunks, so it
+  // can free caches.
+  for (const auto& gridder : gridders) {
+    gridder->GetVisibilityModifier().FinishChunkedProcessing();
+  };
   Logger::Info << "All gridding rows loaded.\n";
   task_lane.write_end();
 }
@@ -544,12 +571,12 @@ void MSGridderManager::GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
                                   MsProviderCollection::MsData& ms_data,
                                   size_t n_vis_polarizations) {
   InversionChunkData chunk_data;
-  size_t chunk_index = 1;
+  size_t chunk_index = 0;
   while (task_lane.read(chunk_data)) {
     Logger::Info << "Gridding chunk" << chunk_index << ".\n";
     ms_data.total_rows_processed +=
         GridChunk(apply_corrections, n_vis_polarizations, band, chunk_data,
-                  frequencies, ms_data);
+                  frequencies, ms_data, chunk_index);
     Logger::Info << "Done gridding chunk" << chunk_index << ".\n";
     ++chunk_index;
   }
@@ -811,7 +838,7 @@ void MSGridderManager::PredictChunks(
     const aocommon::BandData& band, MsProviderCollection::MsData& ms_data,
     size_t n_vis_polarizations) {
   PredictionChunkData chunk_data;
-  size_t chunk_index = 1;
+  size_t chunk_index = 0;
   // If data for a second chunk becomes available predict 2 chunks at a time in
   // parallel. The second predict can make use of cores that would otherwise be
   // idle when the last few facets of the first predict are finishing up.
@@ -822,19 +849,27 @@ void MSGridderManager::PredictChunks(
   // order of execution when the semaphore is released. If more than one chunk
   // is waiting then the wrong (later) chunk might be processed out of order.
   std::counting_semaphore<2> chunking_semaphore(2);
+  // aocommon::TaskQueue does not guarantee order. While tasks for 2 chunks
+  // can run in parallel they need to start in the correct order otherwise
+  // there is a race and ExecuteForAllGriddersWithNCores() could get the order
+  // backwards.
+  // Use this semaphore to ensure ordering.
+  std::binary_semaphore processing_order_semaphore(1);
   while (task_lane.read(chunk_data)) {
     Logger::Debug << "Queue PredictChunk" << chunk_index << ".\n";
     std::vector<std::complex<float>> combined_visibilities(
         chunk_data.n_rows * band.ChannelCount() * n_vis_polarizations);
 
     chunking_semaphore.acquire();
+    processing_order_semaphore.acquire();
     scheduler_task_queue_.Emplace(
-        [=, this, chunk_data = std::move(chunk_data),
-         combined_visibilities = std::move(combined_visibilities), &band,
-         &ms_data, &frequencies, &chunking_semaphore]() mutable {
+        [&, chunk_data = std::move(chunk_data),
+         combined_visibilities = std::move(combined_visibilities),
+         chunk_index]() mutable {
           // Predict the per facet visibilities; expand and apply corrections
           // then combine them together.
           Logger::Info << "Predicting chunk" << chunk_index << ".\n";
+          processing_order_semaphore.release();
           ms_data.total_rows_processed +=
               PredictChunk(chunk_data, band.ChannelCount(), n_vis_polarizations,
                            ms_data.antenna_names.size(), combined_visibilities,
@@ -889,7 +924,7 @@ void MSGridderManager::ReadChunksForPredict(
   } else {
     n_rows_in_smaller_chunk = n_rows_per_chunk;
   }
-  size_t chunk_index = 1;
+  size_t chunk_index = 0;
   Logger::Info << "Reading " << total_chunks << " chunks with "
                << n_rows_in_smaller_chunk << " rows in first chunk and "
                << n_rows_per_chunk << " rows per remaining chunk.\n";
@@ -1056,17 +1091,6 @@ void MSGridderManager::ProcessResults(std::mutex& result_mutex,
       result.beamSize = gridder->BeamSize();
     }
   }
-}
-
-void MSGridderManager::SortFacetTasks() {
-  // Image size is probably an imperfect approximation of job length but should
-  // on average be better than not sorting at all.
-  std::sort(
-      facet_tasks_.begin(), facet_tasks_.end(),
-      [](const GriddingFacetTask& a, const GriddingFacetTask& b) {
-        return a.facet_gridder->ImageWidth() * a.facet_gridder->ImageHeight() >
-               b.facet_gridder->ImageWidth() * b.facet_gridder->ImageHeight();
-      });
 }
 
 std::unique_ptr<MsGridder> MSGridderManager::ConstructGridder(

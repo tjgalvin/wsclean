@@ -144,19 +144,6 @@ void VisibilityModifier::CacheParmResponse(double time,
 }
 
 #ifdef HAVE_EVERYBEAM
-void VisibilityModifier::CacheBeamResponse(double time, size_t field_id,
-                                           const aocommon::BandData& band) {
-  _pointResponse->UpdateTime(time);
-  if (_pointResponse->HasTimeUpdate()) {
-    for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
-      _pointResponse->ResponseAllStations(
-          _beamMode, &_cachedBeamResponse[ch * _pointResponseBufferSize],
-          _facetDirectionRA, _facetDirectionDec, band.ChannelFrequency(ch),
-          field_id);
-    }
-  }
-}
-
 template <GainMode Mode>
 void VisibilityModifier::ApplyBeamResponse(std::complex<float>* data,
                                            size_t n_channels, size_t antenna1,

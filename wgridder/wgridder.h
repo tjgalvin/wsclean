@@ -26,6 +26,7 @@ struct VisibilityCallbackData {
   MsGridder *gridder;
   size_t n_antennas;
   const std::complex<float> *parm_response;
+  const BeamResponseCacheChunk &beam_response;
 };
 
 class WGridderBase {
@@ -70,8 +71,8 @@ class VisibilityCallbackBuffer : public TInfo {
       std::function<std::complex<float>(
           size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
           const double *uvws, const aocommon::BandData &selected_band,
-          const std::complex<float> *, const size_t *,
-          const std::pair<size_t, size_t> *)>
+          const std::complex<float> *, const BeamResponseCacheChunk &,
+          const size_t *, const std::pair<size_t, size_t> *)>
           visibility_callback)
       : TInfo({n_rows, data.n_channels}),
         n_antennas_(data.n_antennas),
@@ -83,13 +84,15 @@ class VisibilityCallbackBuffer : public TInfo {
         time_offsets_(data.time_offsets),
         gridder_(data.gridder),
         parm_response_(data.parm_response),
+        beam_response_(data.beam_response),
         visibility_callback_(std::move(visibility_callback)) {}
 
   template <typename Index>
   const TVisibility raw(Index index) const {
     return visibility_callback_(index, n_channels_, n_antennas_, gridder_,
                                 visibilities_, uvws_, selected_band_,
-                                parm_response_, time_offsets_, antennas_);
+                                parm_response_, beam_response_, time_offsets_,
+                                antennas_);
   }
   template <typename... Params>
   const TVisibility operator()(Params... params) const {
@@ -126,11 +129,12 @@ class VisibilityCallbackBuffer : public TInfo {
   const size_t *time_offsets_;
   MsGridder *gridder_;
   const std::complex<float> *parm_response_;
+  const BeamResponseCacheChunk &beam_response_;
   std::function<std::complex<float>(
       size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
       const double *uvws, const aocommon::BandData &selected_band,
-      const std::complex<float> *, const size_t *,
-      const std::pair<size_t, size_t> *)>
+      const std::complex<float> *, const BeamResponseCacheChunk &,
+      const size_t *, const std::pair<size_t, size_t> *)>
       visibility_callback_;
 };
 
@@ -157,7 +161,8 @@ const std::complex<float> VisibilityCallback(
     size_t index, size_t n_channels, size_t n_antennas, MsGridder *gridder,
     const std::complex<float> *visibilities, const double *uvws,
     const aocommon::BandData &selected_band,
-    const std::complex<float> *parm_response, const size_t *time_offsets,
+    const std::complex<float> *parm_response,
+    const BeamResponseCacheChunk &beam_response, const size_t *time_offsets,
     const std::pair<size_t, size_t> *antennas) {
   // Calculate offsets
   const size_t row = index / n_channels;
@@ -180,10 +185,13 @@ const std::complex<float> VisibilityCallback(
   }
 
   // Apply correction
+  const std::complex<float> *cached_beam_response =
+      ApplyBeam ? beam_response.GetCachedBeamResponseForRow(row) : nullptr;
   gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply,
                                  ApplyBeam, ApplyForward, HasH5Parm>(
       parm_response, channel, n_channels, n_antennas, visibilities_temp,
-      nullptr, antenna_pair.first, antenna_pair.second, time_offset, nullptr);
+      nullptr, antenna_pair.first, antenna_pair.second, time_offset, nullptr,
+      cached_beam_response);
   internal::CollapseData<NPolarizations>(1, visibilities_temp,
                                          gridder->Polarization());
   return visibilities_temp[0];

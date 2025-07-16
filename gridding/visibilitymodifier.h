@@ -147,6 +147,20 @@ auto CreateMatrix2x2(MatrixArrayType data, size_t offset) {
 }  // namespace internal
 
 /**
+ * Cache the beam response for all timesteps in the rows of a chunk, maintain a
+ * row to timestep mapping so that the responses are indexable by row number.
+ */
+struct BeamResponseCacheChunk {
+  std::vector<uint32_t> offsets;
+  std::vector<aocommon::UVector<std::complex<float>>> responses;
+  const std::complex<float>* GetCachedBeamResponseForRow(size_t row) const {
+    assert(row < offsets.size());
+    assert(offsets[row] < responses.size());
+    return responses[offsets[row]].data();
+  }
+};
+
+/**
  * Applies beam and h5parm solutions to visibilities.
  * See the documentation for function @ref ApplyConjugatedParmResponse()
  * for an overview of parameters that hold for most of these functions.
@@ -191,6 +205,11 @@ class VisibilityModifier {
     _cachedParmResponse.clear();
     _cachedMSTimes.clear();
     time_offsets_.clear();
+#ifdef HAVE_EVERYBEAM
+    beam_cache_chunks_.clear();
+    current_beam_cache_chunk_ = nullptr;
+    previous_beam_cache_chunk_ = nullptr;
+#endif
   }
 
   /**
@@ -335,13 +354,150 @@ class VisibilityModifier {
     time_offsets_[ms_index] = time_offset;
   }
 
+  /*
+   * Return the beam response cache for a given procesing chunk. Internal
+   * references are released and ownership given to the caller.
+   */
+  std::shared_ptr<BeamResponseCacheChunk> TakeCachedBeamResponse(size_t chunk) {
+#ifdef HAVE_EVERYBEAM
+    assert(beam_cache_chunks_[chunk]);
+    assert(beam_cache_chunks_[chunk].get() != current_beam_cache_chunk_);
+    std::shared_ptr<BeamResponseCacheChunk> beam_response =
+        beam_cache_chunks_[chunk];
+    beam_cache_chunks_[chunk] = nullptr;
+    return beam_response;
+#else
+    return nullptr;
+#endif
+  }
+
+  /*
+   * Start processing a new chunk.
+   * @ref FinishProcessingChunk() must be called at end of processing the chunk.
+   * @ref FinishChunkedProcessing() must be called after processing all chunks.
+   *
+   * @param check_for_empty Should always be set to true when called externally.
+   * It exists for internal usage only.
+   */
+  void StartProcessingChunk(bool check_for_empty = true) {
+#ifdef HAVE_EVERYBEAM
+    // Temporary access is required to the previous cache to compute the first
+    // response in the new cache.
+    //
+    // Only add a new chunk if it will be the first chunk (check_for_empty=true)
+    // Internally when called from FinishChunkedProcessing() always add a chunk
+    // (check_for_empty=false)
+    // This behaviour is necessary to prevent a data race with
+    // TakeCachedBeamResponse() on debug builds.
+    if (!check_for_empty || beam_cache_chunks_.empty()) {
+      current_beam_cache_chunk_ =
+          beam_cache_chunks_
+              .emplace_back(std::make_shared<BeamResponseCacheChunk>())
+              .get();
+    }
+#endif
+  }
+
+  /*
+   * Finalise processing of a chunk started by @ref StartProcessingChunk().
+   * NB! @ref FinishChunkedProcessing() must also be called after processing the
+   * last chunk.
+   */
+  void FinishProcessingChunk() {
+#ifdef HAVE_EVERYBEAM
+    assert(!beam_cache_chunks_.empty());
+    // Temporary access is required to the previous cache to compute the first
+    // response in the new cache.
+    previous_beam_cache_chunk_ = beam_cache_chunks_.back();
+    StartProcessingChunk(false);
+#endif
+  }
+
+  /*
+   * Finalise any internal state after processing all data.
+   * Must be called once at end of processing when using @ref
+   * StartProcessingChunk()
+   */
+  void FinishChunkedProcessing() {
+#ifdef HAVE_EVERYBEAM
+    current_beam_cache_chunk_ = nullptr;
+    previous_beam_cache_chunk_ = nullptr;
+#endif
+  }
+
+  /* Get the cached beam response data for the most recently processed timestep.
+   */
+  std::complex<float>* GetCachedBeamResponse() {
+#ifdef HAVE_EVERYBEAM
+    return _cachedBeamResponse.data();
+#else
+    return nullptr;
+#endif
+  }
+
 #ifdef HAVE_EVERYBEAM
   /**
-   * @brief Compute and cache the beam response if no cached response
-   * present for the provided time.
+   * Compute and cache the beam response for the provided time; if it is not
+   * already cached.
    */
   void CacheBeamResponse(double time, size_t field_id,
-                         const aocommon::BandData& band);
+                         const aocommon::BandData& band,
+                         bool cache_entire_beam) {
+    if (cache_entire_beam) {
+      CacheBeamResponseWithCacheChunk(time, field_id, band);
+    } else {
+      UpdateCachedBeamResponseForRow(time, field_id, band,
+                                     _cachedBeamResponse.data());
+    }
+  }
+  /**
+   * Compute the beam response for the provided time; if it is not already
+   * cached.
+   * Update the cache chunk with the new response or index to existing response.
+   */
+  void CacheBeamResponseWithCacheChunk(double time, size_t field_id,
+                                       const aocommon::BandData& band) {
+    // Add a new response to the cache if its a new time interval.
+    if (UpdateCachedBeamResponseForRow(time, field_id, band,
+                                       _cachedBeamResponse.data())) {
+      current_beam_cache_chunk_->responses.push_back(_cachedBeamResponse);
+    }
+    // If we have not entered a new time interval, but are processing the first
+    // row of a new chunk, there is no previous reponse to reference.
+    // In this specific case it becomes necessarry to retrieve/copy the last
+    // response of the previous chunks cache.
+    if (previous_beam_cache_chunk_) {
+      if (current_beam_cache_chunk_->responses.empty()) {
+        current_beam_cache_chunk_->responses.push_back(
+            previous_beam_cache_chunk_->responses.back());
+      }
+      previous_beam_cache_chunk_ = nullptr;
+    }
+    // Current row indexes the most recent response.
+    // Either the freshly generated response if this is a new time interval,
+    // otherwise the previously cached response.
+    current_beam_cache_chunk_->offsets.push_back(
+        current_beam_cache_chunk_->responses.size() - 1);
+  }
+  /**
+   * Compute the beam response for the current time if the time is in a new time
+   * interval. Return true if new beam response computed; otherwise false.
+   */
+  bool UpdateCachedBeamResponseForRow(
+      double time, size_t field_id, const aocommon::BandData& band,
+      std::complex<float>* cached_beam_response) {
+    _pointResponse->UpdateTime(time);
+    if (_pointResponse->HasTimeUpdate()) {
+      for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
+        _pointResponse->ResponseAllStations(
+            _beamMode, &cached_beam_response[ch * _pointResponseBufferSize],
+            _facetDirectionRA, _facetDirectionDec, band.ChannelFrequency(ch),
+            field_id);
+      }
+      return true;
+    }
+    return false;
+  }
 
   template <GainMode Mode>
   void ApplyBeamResponse(std::complex<float>* data, size_t n_channels,
@@ -354,10 +510,11 @@ class VisibilityModifier {
                                          size_t n_channels, size_t antenna1,
                                          size_t antenna2) {
     const size_t n_visibilities = GetNVisibilities(Mode);
+    const std::complex<float>* cached_beam_response = GetCachedBeamResponse();
     for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
       ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(
           data, weights, image_weights, n_channel, n_channels, antenna1,
-          antenna2);
+          antenna2, cached_beam_response);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         data += n_visibilities;
       }
@@ -367,11 +524,11 @@ class VisibilityModifier {
     }
   }
   template <ModifierBehaviour Behaviour, GainMode Mode, bool ApplyForward>
-  void ApplyConjugatedBeamResponse(std::complex<float>* data,
-                                   const float* weights,
-                                   const float* image_weights, size_t n_channel,
-                                   size_t n_channels, size_t antenna1,
-                                   size_t antenna2);
+  void ApplyConjugatedBeamResponse(
+      std::complex<float>* data, const float* weights,
+      const float* image_weights, size_t n_channel, size_t n_channels,
+      size_t antenna1, size_t antenna2,
+      const std::complex<float>* cached_beam_response);
 
   /**
    * Correct the data for both the conjugated beam and the
@@ -398,10 +555,12 @@ class VisibilityModifier {
     const std::complex<float>* parm_response =
         _cachedParmResponse[ms_index].data();
     const size_t n_visibilities = GetNVisibilities(Mode);
+    const std::complex<float>* cached_beam_response = GetCachedBeamResponse();
     for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
       ApplyConjugatedDual<Behaviour, Mode, NParms>(
           parm_response, data, weights, image_weights, n_channel, n_channels,
-          n_stations, antenna1, antenna2, apply_forward, time_offset);
+          n_stations, antenna1, antenna2, apply_forward, time_offset,
+          cached_beam_response);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         data += n_visibilities;
       }
@@ -416,7 +575,8 @@ class VisibilityModifier {
                            const float* image_weights, size_t n_channel,
                            size_t n_channels, size_t n_stations,
                            size_t antenna1, size_t antenna2, bool apply_forward,
-                           size_t time_offset);
+                           size_t time_offset,
+                           const std::complex<float>* cached_beam_response);
 #endif
 
   void SetFacetDirection(double ra, double dec) {
@@ -480,6 +640,22 @@ class VisibilityModifier {
    * changing index.
    */
   aocommon::UVector<std::complex<float>> _cachedBeamResponse;
+
+  /** Hold the caches for all processed chunks in memory until they are no
+   * longer required.
+   * Calling @ref TakeCachedBeamResponse() will set the corresponding entry to
+   * null and pass ownership to the caller via shared pointer.
+   * Shared pointer is used in place of unique pointer because
+   * `previous_beam_cache_chunk_` also references this data; while this
+   * reference will usually be short lived it is not impossible that it outlives
+   * the pointer returned by @ref TakeCachedBeamResponse(). */
+  std::vector<std::shared_ptr<BeamResponseCacheChunk>> beam_cache_chunks_;
+  BeamResponseCacheChunk* current_beam_cache_chunk_ = nullptr;
+  /* The previous cache is kept in memory until we have processed the first row
+   * of the current cache. This is because the last response of the previous
+   * cache needs to be copied in some instances. */
+  std::shared_ptr<BeamResponseCacheChunk> previous_beam_cache_chunk_ = nullptr;
+
   everybeam::BeamMode _beamMode = everybeam::BeamMode::kNone;
 #endif
   std::string _beamModeString;
@@ -532,14 +708,15 @@ class VisibilityModifier {
 template <ModifierBehaviour Behaviour, GainMode Mode, bool ApplyForward>
 inline void VisibilityModifier::ApplyConjugatedBeamResponse(
     std::complex<float>* data, const float* weights, const float* image_weights,
-    size_t n_channel, size_t n_channels, size_t antenna1, size_t antenna2) {
+    size_t n_channel, size_t n_channels, size_t antenna1, size_t antenna2,
+    const std::complex<float>* cached_beam_response) {
   using internal::MakeDiagonalIfScalar;
   const size_t offset = n_channel * _pointResponseBufferSize;
   const size_t offset1 = offset + antenna1 * 4u;
   const size_t offset2 = offset + antenna2 * 4u;
 
-  const aocommon::MC2x2F gain1(&_cachedBeamResponse[offset1]);
-  const aocommon::MC2x2F gain2(&_cachedBeamResponse[offset2]);
+  const aocommon::MC2x2F gain1(&cached_beam_response[offset1]);
+  const aocommon::MC2x2F gain2(&cached_beam_response[offset2]);
   if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
     if constexpr (ApplyForward) {
       internal::ApplyGain<Mode>(data, gain1, gain2);
@@ -559,7 +736,8 @@ inline void VisibilityModifier::ApplyConjugatedDual(
     const std::complex<float>* parm_response, std::complex<float>* data,
     const float* weights, const float* image_weights, size_t n_channel,
     size_t n_channels, size_t n_stations, size_t antenna1, size_t antenna2,
-    bool apply_forward, size_t time_offset) {
+    bool apply_forward, size_t time_offset,
+    const std::complex<float>* cached_beam_response) {
   using internal::CreateMatrix2x2OrDiag;
   using internal::MakeDiagonalIfScalar;
 
@@ -568,8 +746,8 @@ inline void VisibilityModifier::ApplyConjugatedDual(
   const size_t beam_offset1 = beam_offset + antenna1 * 4u;
   const size_t beam_offset2 = beam_offset + antenna2 * 4u;
 
-  const aocommon::MC2x2F gain_b_1(&_cachedBeamResponse[beam_offset1]);
-  const aocommon::MC2x2F gain_b_2(&_cachedBeamResponse[beam_offset2]);
+  const aocommon::MC2x2F gain_b_1(&cached_beam_response[beam_offset1]);
+  const aocommon::MC2x2F gain_b_2(&cached_beam_response[beam_offset2]);
 
   // Get h5 solution
   // Column major indexing

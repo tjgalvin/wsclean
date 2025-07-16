@@ -105,7 +105,8 @@ void WGriddingMSGridder::GridSharedMeasurementSetChunk(
     const aocommon::BandData& selected_band,
     const std::pair<size_t, size_t>* antennas,
     const std::complex<float>* visibilities, const size_t* time_offsets,
-    size_t n_antennas, const std::vector<std::complex<float>>& parm_response) {
+    size_t n_antennas, const std::vector<std::complex<float>>& parm_response,
+    const BeamResponseCacheChunk& beam_response) {
   // If there are no corrections to apply then we can bypass needing a callback
   // and just use the shared buffer directly
   if (!apply_corrections) {
@@ -114,7 +115,8 @@ void WGriddingMSGridder::GridSharedMeasurementSetChunk(
   } else {
     VisibilityCallbackData data(selected_band.ChannelCount(), selected_band,
                                 antennas, visibilities, uvws, time_offsets,
-                                this, n_antennas, parm_response.data());
+                                this, n_antennas, parm_response.data(),
+                                beam_response);
     gridder_->AddInversionDataWithCorrectionCallback(
         GetGainMode(), n_polarizations, n_rows, uvws, frequencies, data);
   }

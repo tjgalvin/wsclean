@@ -304,27 +304,39 @@ class TestFacets:
             ).split()
         )
 
-    def test_shared_facet_reads_and_writes(self):
+    @pytest.mark.parametrize(
+        "apply_facet_beam", ["without facet beam", "with facet beam"]
+    )
+    def test_shared_facet_reads_and_writes(self, apply_facet_beam):
         names = [
             "facets-no-shared",
             "facets-shared-reads",
             "facets-shared-writes",
             "facets-shared-reads-and-writes",
         ]
+        do_apply_facet_beam = (
+            True if apply_facet_beam == "with facet beam" else False
+        )
+        facet_beam = (
+            "-mwa-path . -apply-facet-beam" if do_apply_facet_beam else ""
+        )
+        name_suffix = "-beam" if do_apply_facet_beam else "-no-beam"
         for name in names:
             shared_args = ""
             if name == names[1]:
-                shared_args = " -shared-facet-reads "
+                shared_args = "-shared-facet-reads"
             if name == names[2]:
-                shared_args = " -shared-facet-writes "
+                shared_args = "-shared-facet-writes"
             if name == names[3]:
-                shared_args = " -shared-facet-reads -shared-facet-writes "
+                shared_args = "-shared-facet-reads -shared-facet-writes"
 
             s = (
-                f"{tcf.WSCLEAN} -name {name} "
-                f" {shared_args} "
+                f"{tcf.WSCLEAN} -name {name}{name_suffix} "
+                f"{shared_args} "
+                f"{facet_beam} "
                 "-parallel-gridding 3 "
                 "-channels-out 3 -join-channels "
+                "-no-update-model-required "
                 f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
                 "-nmiter 3 -niter 20000 -auto-threshold 5 -mgain 0.8 "
@@ -334,9 +346,11 @@ class TestFacets:
 
             if name != names[0]:
                 threshold = 5.0e-6
+                if do_apply_facet_beam:
+                    threshold = 9.0e-3
                 compare_rms_fits(
-                    f"{names[0]}-MFS-image.fits",
-                    f"{name}-MFS-image.fits",
+                    f"{names[0]}{name_suffix}-MFS-image.fits",
+                    f"{name}{name_suffix}-MFS-image.fits",
                     threshold,
                 )
 

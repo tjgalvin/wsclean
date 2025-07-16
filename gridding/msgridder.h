@@ -148,8 +148,8 @@ class MsGridder : public MsGridderData {
       const aocommon::BandData& selected_band,
       const std::pair<size_t, size_t>* antennas,
       const std::complex<float>* visibilities, const size_t* time_offsets,
-      size_t n_antennas,
-      const std::vector<std::complex<float>>& parm_response) {
+      size_t n_antennas, const std::vector<std::complex<float>>& parm_response,
+      const BeamResponseCacheChunk& beam_response) {
     throw std::runtime_error("Gridder does not yet support shared reading");
   }
 

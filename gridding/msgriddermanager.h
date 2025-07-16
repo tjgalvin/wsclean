@@ -65,14 +65,6 @@ class MSGridderManager {
   void ProcessResults(std::mutex& result_mutex, GriddingResult& result,
                       bool store_common_info);
 
-  /**
-   * Sort facet tasks by expected gridding time, longest first.
-   * This enables a minor optimization for shared reads by slightly reducing
-   * the wait time of idle cores when only a few gridders are left running at
-   * the end of a batch.
-   */
-  void SortFacetTasks();
-
  private:
   /** Call `operation()` once per gridder, for all gridders, running as many as
    * possible in parallel.
@@ -332,7 +324,8 @@ class MSGridderManager {
                    const aocommon::BandData& band,
                    const InversionChunkData& chunk_data,
                    const aocommon::UVector<double>& frequencies,
-                   const MsProviderCollection::MsData& ms_data);
+                   const MsProviderCollection::MsData& ms_data,
+                   size_t chunk_index);
 
   /**
    * Perform gridding on chunks of @ref InversionChunkData by calling @ref
