@@ -67,7 +67,9 @@ void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metadata) {
   metadata.v_in_m = record.v;
   metadata.w_in_m = record.w;
   metadata.time = record.time;
-  metadata.data_desc_id = ms_provider_->DataDescId();
+  const ReorderedMsProvider& reordered_ms =
+      static_cast<const ReorderedMsProvider&>(*ms_provider_);
+  metadata.data_desc_id = reordered_ms.DataDescId();
   metadata.field_id = record.field_id;
   metadata.antenna1 = record.antenna1;
   metadata.antenna2 = record.antenna2;

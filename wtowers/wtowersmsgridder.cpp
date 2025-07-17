@@ -99,7 +99,16 @@ size_t WTowersMsGridder::CalculateMaxRowsInMemory(
 size_t WTowersMsGridder::GridMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
-  const aocommon::BandData selected_band(ms_data.SelectedBand());
+
+  // TODO For now we do not allow multiple bands in one msprovider
+  const aocommon::MultiBandData& selected_bands(
+      ms_data.ms_provider->SelectedBands());
+  if (!ms_data.ms_provider->IsRegular())
+    throw std::runtime_error(
+        "w-towers implementation does not support irregular data yet");
+  // Regular data should always have one band...
+  assert(selected_bands.BandCount() == 1);
+  const aocommon::BandData& selected_band = *selected_bands.begin();
 
   const size_t data_size = selected_band.ChannelCount() * n_vis_polarizations;
   aocommon::UVector<std::complex<float>> model_buffer(data_size);
@@ -145,13 +154,13 @@ size_t WTowersMsGridder::GridMeasurementSet(
 
       if (n_parms == 2) {
         GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
-                                    row_data, selected_band,
-                                    weight_buffer.data(), model_buffer.data(),
+                                    row_data, weight_buffer.data(),
+                                    model_buffer.data(),
                                     selection_buffer.data(), metadata);
       } else {
         GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
-                                    row_data, selected_band,
-                                    weight_buffer.data(), model_buffer.data(),
+                                    row_data, weight_buffer.data(),
+                                    model_buffer.data(),
                                     selection_buffer.data(), metadata);
       }
 
@@ -184,7 +193,17 @@ size_t WTowersMsGridder::GridMeasurementSet(
 size_t WTowersMsGridder::PredictMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   ms_data.ms_provider->ReopenRW();
-  const aocommon::BandData selected_band(ms_data.SelectedBand());
+
+  // TODO For now we do not allow multiple bands in one msprovider
+  const aocommon::MultiBandData& selected_bands(
+      ms_data.ms_provider->SelectedBands());
+  if (!ms_data.ms_provider->IsRegular())
+    throw std::runtime_error(
+        "w-towers implementation does not support irregular data yet");
+  // Regular data should always have one band...
+  assert(selected_bands.BandCount() == 1);
+  const aocommon::BandData& selected_band = *selected_bands.begin();
+  const size_t data_desc_id = *selected_bands.DataDescIds().begin();
 
   size_t n_total_rows_read = 0;
 
@@ -234,7 +253,7 @@ size_t WTowersMsGridder::PredictMeasurementSet(
     Logger::Info << "Writing...\n";
     for (size_t row = 0; row != n_chunk_rows_read; ++row) {
       WriteCollapsedVisibilities(
-          *ms_data.ms_provider, ms_data.antenna_names.size(), selected_band,
+          *ms_data.ms_provider, ms_data.antenna_names.size(), data_desc_id,
           &visibility_buffer[row * selected_band.ChannelCount()],
           &uvw_buffer[row * 3], metadata_buffer[row].field_id,
           metadata_buffer[row].antenna1, metadata_buffer[row].antenna2,

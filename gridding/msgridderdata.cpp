@@ -18,16 +18,16 @@ void MsGridderData::StartMeasurementSet(
     bool is_predict) {
   InitializePointResponse(ms_data);
   if (visibility_modifier_.HasH5Parm()) {
-    visibility_modifier_.InitializeCacheParmResponse(ms_data.antenna_names,
-                                                     ms_data.SelectedBand(),
-                                                     ms_data.original_ms_index);
+    visibility_modifier_.InitializeCacheParmResponse(
+        ms_data.antenna_names, ms_data.ms_provider->SelectedBands(),
+        ms_data.original_ms_index);
   }
   original_ms_index_ = ms_data.original_ms_index;
   writer_lock_index_ =
       facet_group_index_ * ms_count + ms_data.original_ms_index;
   n_vis_polarizations_ = ms_data.ms_provider->NPolarizations();
   gain_mode_ = SelectGainMode(Polarization(), n_vis_polarizations_);
-  const size_t n_channels = ms_data.SelectedBand().ChannelCount();
+  const size_t n_channels = ms_data.ms_provider->NMaxChannels();
   scratch_image_weights_.resize(n_channels);
   if (is_predict) {
     scratch_model_data_.resize(n_channels *
@@ -54,7 +54,7 @@ void MsGridderData::InitializePointResponse(
         !settings_.beamModel.empty() ? settings_.beamModel : "DEFAULT";
     visibility_modifier_.InitializePointResponse(
         ms_data.ms_provider->MS(), settings_.facetBeamUpdateTime,
-        element_response_string, ms_data.band_data.ChannelCount(),
+        element_response_string, ms_data.ms_provider->SelectedBands(),
         settings_.dataColumnName, settings_.mwaPath);
   } else {
     visibility_modifier_.SetNoPointResponse();

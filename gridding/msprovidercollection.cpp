@@ -79,7 +79,7 @@ void MsProviderCollection::InitializeMSDataVector(
     ms_data.original_ms_index = Index(i);
     InitializeMeasurementSet(ms_data, gridders, has_cache, has_solution_data);
 
-    ms_limits_.Calculate(ms_data.SelectedBand(),
+    ms_limits_.Calculate(ms_data.ms_provider->SelectedBands(),
                          ms_data.ms_provider->StartTime());
     ms_limits_.max_baseline =
         std::max(ms_limits_.max_baseline, ms_data.max_baseline_uvw);
@@ -117,30 +117,6 @@ std::vector<std::string> MsProviderCollection::GetAntennaNames(
   return antenna_names;
 }
 
-void MsProviderCollection::MsData::InitializeBandData(
-    const casacore::MeasurementSet& ms, const MSSelection& selection) {
-  band_data = aocommon::MultiBandData(ms)[data_desc_id];
-  if (selection.HasChannelRange()) {
-    start_channel = selection.ChannelRangeStart();
-    end_channel = selection.ChannelRangeEnd();
-    Logger::Debug << "Selected channels: " << start_channel << '-'
-                  << end_channel << '\n';
-    if (start_channel >= band_data.ChannelCount() ||
-        end_channel > band_data.ChannelCount() ||
-        start_channel == end_channel) {
-      std::ostringstream str;
-      str << "An invalid channel range was specified! Measurement set only has "
-          << band_data.ChannelCount()
-          << " channels, requested imaging range is " << start_channel << " -- "
-          << end_channel << '.';
-      throw std::runtime_error(str.str());
-    }
-  } else {
-    start_channel = 0;
-    end_channel = band_data.ChannelCount();
-  }
-}
-
 void MsProviderCollection::InitializeMeasurementSet(
     MsData& ms_data, const std::vector<MsGridder*>& gridders, bool is_cached,
     bool has_solution_data) {
@@ -153,9 +129,6 @@ void MsProviderCollection::InitializeMeasurementSet(
       throw std::runtime_error("Table has no rows (no data)");
 
     ms_data.antenna_names = GetAntennaNames(ms->antenna());
-    ms_data.data_desc_id = ms_provider.DataDescId();
-
-    ms_data.InitializeBandData(*ms, Selection(ms_data.internal_ms_index));
   }
 
   // wlimits will vary across facets in a facet group, however these limits are
@@ -225,14 +198,15 @@ void MsProviderCollection::CalculateMsLimits(
   ms_data.min_w = 1e100;
   ms_data.max_baseline_uvw = 0.0;
   ms_data.max_baseline_in_m = 0.0;
-  const aocommon::BandData selectedBand = ms_data.SelectedBand();
-  std::vector<float> weightArray(selectedBand.ChannelCount() *
+  const aocommon::MultiBandData& selected_bands =
+      ms_data.ms_provider->SelectedBands();
+  std::vector<float> weightArray(selected_bands.MaxBandChannels() *
                                  NPolInMSProvider);
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
   std::unique_ptr<MSReader> msReader = ms_data.ms_provider->MakeReader();
-  const double smallestWavelength = selectedBand.SmallestWavelength();
-  const double longestWavelength = selectedBand.LongestWavelength();
+  const double smallest_wavelength = selected_bands.SmallestWavelength();
+  const double longest_wavelength = selected_bands.LongestWavelength();
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metadata;
     msReader->ReadMeta(metadata);
@@ -244,19 +218,19 @@ void MsProviderCollection::CalculateMsLimits(
       lastTime = curTimestep;
     }
 
-    const double wHi = std::fabs(metadata.w_in_m / smallestWavelength);
-    const double wLo = std::fabs(metadata.w_in_m / longestWavelength);
+    const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
+    const double wHi = std::fabs(metadata.w_in_m / smallest_wavelength);
+    const double wLo = std::fabs(metadata.w_in_m / longest_wavelength);
     const double baselineInM = std::sqrt(metadata.u_in_m * metadata.u_in_m +
                                          metadata.v_in_m * metadata.v_in_m +
                                          metadata.w_in_m * metadata.w_in_m);
     if (wHi > ms_data.max_w || wLo < ms_data.min_w ||
-        baselineInM / selectedBand.SmallestWavelength() >
-            ms_data.max_baseline_uvw) {
+        baselineInM / band.SmallestWavelength() > ms_data.max_baseline_uvw) {
       msReader->ReadWeights(weightArray.data());
       const float* weightPtr = weightArray.data();
 
-      for (size_t ch = 0; ch != selectedBand.ChannelCount(); ++ch) {
-        const double wavelength = selectedBand.ChannelWavelength(ch);
+      for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
+        const double wavelength = band.ChannelWavelength(ch);
         double wInL = metadata.w_in_m / wavelength;
         ms_data.max_w_with_flags =
             std::max(ms_data.max_w_with_flags, fabs(wInL));

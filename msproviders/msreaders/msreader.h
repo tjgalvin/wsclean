@@ -68,8 +68,8 @@ class MSReader {
 
   /// @returns MSProvider::NPolarizations().
   size_t NPolarizations() const { return ms_provider_->NPolarizations(); }
-  /// @returns MSProvider::DataDescId().
-  size_t DataDescId() const { return ms_provider_->DataDescId(); }
+
+  MSProvider& Provider() const { return *ms_provider_; }
 
  protected:
   MSProvider* ms_provider_;

@@ -183,12 +183,14 @@ class MSGridderManager {
         : antennas1(n_rows),
           antennas2(n_rows),
           field_ids(n_rows),
+          data_desc_ids(n_rows),
           times(n_rows),
           uvws(n_rows * 3) {}
     PredictionChunkData() = default;
     aocommon::UVector<size_t> antennas1;
     aocommon::UVector<size_t> antennas2;
     aocommon::UVector<size_t> field_ids;
+    aocommon::UVector<size_t> data_desc_ids;
     aocommon::UVector<double> times;
     aocommon::UVector<double> uvws;
     size_t n_rows = 0;
@@ -249,7 +251,6 @@ class MSGridderManager {
                             const std::vector<MsGridder*>& gridders,
                             MsProviderCollection::MsData& ms_data,
                             size_t n_chunk_rows, MSReader& ms_reader,
-                            const aocommon::BandData band,
                             const bool* selected_buffer,
                             InversionChunkData& chunk_data,
                             MsGridderData& shared_data);
@@ -258,46 +259,40 @@ class MSGridderManager {
       size_t n_parms, bool apply_corrections,
       const std::vector<MsGridder*>& gridders,
       MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const aocommon::BandData band,
-      const bool* selected_buffer, InversionChunkData& chunk_data,
-      MsGridderData& shared_data);
+      MSReader& ms_reader, const bool* selected_buffer,
+      InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms>
   size_t ReadChunkForInvertImplementation(
       bool apply_corrections, const std::vector<MsGridder*>& gridders,
       MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const aocommon::BandData band,
-      const bool* selected_buffer, InversionChunkData& chunk_data,
-      MsGridderData& shared_data);
+      MSReader& ms_reader, const bool* selected_buffer,
+      InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms, bool ApplyCorrections>
   size_t ReadChunkForInvertImplementation(
       const std::vector<MsGridder*>& gridders,
       MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const aocommon::BandData band,
-      const bool* selected_buffer, InversionChunkData& chunk_data,
-      MsGridderData& shared_data);
+      MSReader& ms_reader, const bool* selected_buffer,
+      InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam>
   size_t ReadChunkForInvertImplementation(
       const std::vector<MsGridder*>& gridders,
       MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const aocommon::BandData band,
-      const bool* selected_buffer, InversionChunkData& chunk_data,
-      MsGridderData& shared_data);
+      MSReader& ms_reader, const bool* selected_buffer,
+      InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam,
             bool ApplyForward>
   size_t ReadChunkForInvertImplementation(
       const std::vector<MsGridder*>& gridders,
       MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const aocommon::BandData band,
-      const bool* selected_buffer, InversionChunkData& chunk_data,
-      MsGridderData& shared_data);
+      MSReader& ms_reader, const bool* selected_buffer,
+      InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam,
             bool ApplyForward, bool HasH5Parm>
   size_t ReadChunkForInvertImplementation(
       const std::vector<MsGridder*>& gridders,
       MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const aocommon::BandData band,
-      const bool* selected_buffer, InversionChunkData& chunk_data,
-      MsGridderData& shared_data);
+      MSReader& ms_reader, const bool* selected_buffer,
+      InversionChunkData& chunk_data, MsGridderData& shared_data);
 
   /**
    * Read and compute data from an @ref MSReader into a single @ref
@@ -311,7 +306,6 @@ class MSGridderManager {
                            MsProviderCollection::MsData& ms_data,
                            MsGridderData& shared_data,
                            const std::vector<MsGridder*>& gridders,
-                           const aocommon::BandData band,
                            size_t n_vis_polarizations,
                            const bool* selected_buffer);
 
@@ -321,7 +315,7 @@ class MSGridderManager {
    * @return The number of rows processed.
    */
   size_t GridChunk(bool apply_corrections, size_t n_vis_polarizations,
-                   const aocommon::BandData& band,
+                   const aocommon::MultiBandData& bands,
                    const InversionChunkData& chunk_data,
                    const aocommon::UVector<double>& frequencies,
                    const MsProviderCollection::MsData& ms_data,
@@ -335,7 +329,7 @@ class MSGridderManager {
   void GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
                   bool apply_corrections,
                   const aocommon::UVector<double>& frequencies,
-                  const aocommon::BandData& band,
+                  const aocommon::MultiBandData& bands,
                   MsProviderCollection::MsData& ms_data,
                   size_t n_vis_polarizations);
 
@@ -358,11 +352,10 @@ class MSGridderManager {
    * Perform predict on a single block of data stored in @ref
    * PredictionChunkData
    */
-  size_t PredictChunk(const PredictionChunkData& chunk_data, size_t n_channels,
+  size_t PredictChunk(const PredictionChunkData& chunk_data,
                       size_t n_vis_polarizations, size_t n_antennas,
                       std::vector<std::complex<float>>& combined_visibilities,
                       const aocommon::UVector<double>& frequencies,
-                      const aocommon::BandData& band,
                       MsProviderCollection::MsData& ms_data);
   /**
    * Perform predict on chunks of @ref PredictionChunkData by calling @ref
@@ -371,7 +364,6 @@ class MSGridderManager {
    */
   void PredictChunks(aocommon::Lane<PredictionChunkData>& task_lane,
                      const aocommon::UVector<double>& frequencies,
-                     const aocommon::BandData& band,
                      MsProviderCollection::MsData& ms_data,
                      size_t n_vis_polarizations);
 

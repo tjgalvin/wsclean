@@ -10,6 +10,7 @@ BOOST_AUTO_TEST_SUITE(visibility_modifier)
 
 namespace {
 constexpr size_t kNChannels = 1;
+constexpr size_t kDataDescId = 0;
 constexpr size_t kNStations = 2;
 constexpr std::complex<float> kAntenna1BeamGainX = {0.5, 0.0};
 constexpr std::complex<float> kAntenna2BeamGainX = {3.0, 4.0};
@@ -49,8 +50,8 @@ struct ModifierFixture {
                              : schaapcommon::h5parm::GainType::kFullJones);
     modifier.SetH5Parm(dummy_h5parms, dummy_solutions, dummy_solutions,
                        gain_types);
-    modifier.InitializeMockResponse(kNStations, kNChannels, beam_response,
-                                    parm_response);
+    modifier.InitializeMockResponse(kNStations, kNChannels, kDataDescId,
+                                    beam_response, parm_response);
   }
 
   void CheckClose(std::complex<float> a, std::complex<float> b) {
@@ -65,8 +66,8 @@ struct ModifierFixture {
     std::complex<float> data[] = {kXx, kYy};
     modifier.ApplyConjugatedDualForRow<ModifierBehaviour::kApplyAndSum,
                                        GainMode::k2VisDiagonal, NTerms>(
-        data, kWeights, kImageWeights, kNChannels, kNStations, kAntenna1,
-        kAntenna2, kMsIndex, false);
+        data, kWeights, kImageWeights, kNChannels, kDataDescId, kNStations,
+        kAntenna1, kAntenna2, kMsIndex, false);
     const float a1_parm_norm_x = std::norm(kAntenna1ParmGainX);
     const float a2_parm_norm_x = std::norm(kAntenna2ParmGainX);
     const float a1_beam_norm_x = std::norm(kAntenna1BeamGainX);
@@ -111,7 +112,7 @@ BOOST_FIXTURE_TEST_CASE(apply_h5parm, ModifierFixture<2>) {
   constexpr float kYy = 8.0;
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyParmResponse<GainMode::k2VisDiagonal>(
-      data, 0, kNChannels, kNStations, kAntenna1, kAntenna2);
+      data, 0, kNChannels, kDataDescId, kNStations, kAntenna1, kAntenna2);
   CheckClose(data[0], kXx * kAntenna1ParmGainX * std::conj(kAntenna2ParmGainX));
   CheckClose(data[1], kYy * kAntenna1ParmGainY * std::conj(kAntenna2ParmGainY));
 }
@@ -122,8 +123,8 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugate_h5parm, ModifierFixture<2>) {
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyConjugatedParmResponseForRow<ModifierBehaviour::kApplyAndSum,
                                              GainMode::k2VisDiagonal, 2, false>(
-      data, kWeights, kImageWeights, kMsIndex, kNChannels, kNStations,
-      kAntenna1, kAntenna2);
+      data, kWeights, kImageWeights, kMsIndex, kNChannels, kDataDescId,
+      kNStations, kAntenna1, kAntenna2);
   const float reference_x_correction =
       std::norm(kAntenna1ParmGainX) * std::norm(kAntenna2ParmGainX);
   const float reference_y_correction =
@@ -147,8 +148,8 @@ BOOST_FIXTURE_TEST_CASE(apply_beam, ModifierFixture<2>) {
   constexpr float kXx = 3.14;
   constexpr float kYy = -1.0;
   std::complex<float> data[] = {kXx, kYy};
-  modifier.ApplyBeamResponse<GainMode::k2VisDiagonal>(data, kNChannels,
-                                                      kAntenna1, kAntenna2);
+  modifier.ApplyBeamResponse<GainMode::k2VisDiagonal>(
+      data, kNChannels, kDataDescId, kAntenna1, kAntenna2);
   CheckClose(data[0], kXx * kAntenna1BeamGainX * std::conj(kAntenna2BeamGainX));
   CheckClose(data[1], kYy * kAntenna1BeamGainY * std::conj(kAntenna2BeamGainY));
 }
@@ -165,12 +166,13 @@ BOOST_AUTO_TEST_CASE(apply_unit_beam) {
       1.0, 0.0, 0.0, 1.0   // antenna 2
   };
   VisibilityModifier modifier;
-  modifier.InitializeMockResponse(kNStations, kNChannels, beam_response,
-                                  gain_response);
+  modifier.InitializeMockResponse(kNStations, kNChannels, kDataDescId,
+                                  beam_response, gain_response);
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyConjugatedBeamResponseForRow<ModifierBehaviour::kApplyAndSum,
                                              GainMode::k2VisDiagonal, false>(
-      data, kWeights, kImageWeights, kNChannels, kAntenna1, kAntenna2);
+      data, kWeights, kImageWeights, kNChannels, kDataDescId, kAntenna1,
+      kAntenna2);
   const AverageCorrection correction = modifier.TotalCorrectionSum();
   BOOST_CHECK_CLOSE_FRACTION(correction.GetMatrixValue()[0], 1.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(correction.GetMatrixValue()[15], 1.0, 1e-5);
@@ -185,7 +187,8 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugate_beam, ModifierFixture<2>) {
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyConjugatedBeamResponseForRow<ModifierBehaviour::kApplyAndSum,
                                              GainMode::k2VisDiagonal, false>(
-      data, kWeights, kImageWeights, kNChannels, kAntenna1, kAntenna2);
+      data, kWeights, kImageWeights, kNChannels, kDataDescId, kAntenna1,
+      kAntenna2);
   const float reference_x_correction =
       std::norm(kAntenna1BeamGainX) * std::norm(kAntenna2BeamGainX);
   const float reference_y_correction =
@@ -202,10 +205,10 @@ BOOST_FIXTURE_TEST_CASE(apply_dual, ModifierFixture<2>) {
   constexpr float kXx = 1e3;
   constexpr float kYy = 1e-3;
   std::complex<float> data[] = {kXx, kYy};
-  modifier.ApplyBeamResponse<GainMode::k2VisDiagonal>(data, kNChannels,
-                                                      kAntenna1, kAntenna2);
+  modifier.ApplyBeamResponse<GainMode::k2VisDiagonal>(
+      data, kNChannels, kDataDescId, kAntenna1, kAntenna2);
   modifier.ApplyParmResponse<GainMode::k2VisDiagonal>(
-      data, 0, kNChannels, kNStations, kAntenna1, kAntenna2);
+      data, 0, kNChannels, kDataDescId, kNStations, kAntenna1, kAntenna2);
   const std::complex<float> forward_x =
       kAntenna1BeamGainX * std::conj(kAntenna2BeamGainX) * kAntenna1ParmGainX *
       std::conj(kAntenna2ParmGainX);
@@ -230,8 +233,8 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugated_dual_forward, ModifierFixture<2>) {
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyConjugatedDualForRow<ModifierBehaviour::kApplyAndSum,
                                      GainMode::k2VisDiagonal, 2>(
-      data, kWeights, kImageWeights, kNChannels, kNStations, kAntenna1,
-      kAntenna2, kMsIndex, true);
+      data, kWeights, kImageWeights, kNChannels, kDataDescId, kNStations,
+      kAntenna1, kAntenna2, kMsIndex, true);
   const float a1_parm_norm_x = std::norm(kAntenna1ParmGainX);
   const float a2_parm_norm_x = std::norm(kAntenna2ParmGainX);
   const float a1_beam_norm_x = std::norm(kAntenna1BeamGainX);

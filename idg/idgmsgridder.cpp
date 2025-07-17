@@ -178,12 +178,21 @@ size_t IdgMsGridder::GridMeasurementSet(
     return 0;
 #endif
 
+  // TODO For now we do not allow multiple bands in one msprovider
+  if (!ms_data.ms_provider->IsRegular()) {
+    throw std::runtime_error(
+        "IDG implementation does not support irregular data yet");
+  }
+  // Regular data should always have one band...
+  assert(_selectedBands.BandCount() == 1);
+  const aocommon::BandData& selected_band = *_selectedBands.begin();
+
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
   constexpr size_t n_idg_polarizations = 4;
-  const size_t data_size = _selectedBand.ChannelCount() * n_idg_polarizations;
+  const size_t data_size = selected_band.ChannelCount() * n_idg_polarizations;
   aocommon::UVector<float> weight_buffer(data_size);
   aocommon::UVector<std::complex<float>> model_buffer(data_size);
-  aocommon::UVector<bool> selection_buffer(_selectedBand.ChannelCount(), true);
+  aocommon::UVector<bool> selection_buffer(selected_band.ChannelCount(), true);
 
   _griddingWatch.Start();
 
@@ -213,7 +222,7 @@ size_t IdgMsGridder::GridMeasurementSet(
       if (aterm_maker) {
         timestep_reader.GetUVWsForTimestep(uvws);
         if (aterm_maker->Calculate(aterm_buffer.data(), current_time,
-                                   _selectedBand.CentreFrequency(),
+                                   selected_band.CentreFrequency(),
                                    metadata.field_id, uvws.data())) {
           _bufferset->get_gridder(kGridderIndex)
               ->set_aterm(time_index, aterm_buffer.data());
@@ -236,12 +245,12 @@ size_t IdgMsGridder::GridMeasurementSet(
     if (n_vis_polarizations == 1) {
       if (n_parms == 2) {
         GetInstrumentalVisibilities<1, 2>(
-            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            *ms_reader, ms_data.antenna_names.size(), row_data,
             weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
             metadata);
       } else {
         GetInstrumentalVisibilities<1, 4>(
-            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            *ms_reader, ms_data.antenna_names.size(), row_data,
             weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
             metadata);
       }
@@ -263,12 +272,12 @@ size_t IdgMsGridder::GridMeasurementSet(
     } else if (n_vis_polarizations == 2) {
       if (n_parms == 2) {
         GetInstrumentalVisibilities<2, 2>(
-            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            *ms_reader, ms_data.antenna_names.size(), row_data,
             weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
             metadata);
       } else {
         GetInstrumentalVisibilities<2, 4>(
-            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            *ms_reader, ms_data.antenna_names.size(), row_data,
             weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
             metadata);
       }
@@ -291,12 +300,12 @@ size_t IdgMsGridder::GridMeasurementSet(
       assert(n_vis_polarizations == 4);
       if (n_parms == 2) {
         GetInstrumentalVisibilities<4, 2>(
-            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            *ms_reader, ms_data.antenna_names.size(), row_data,
             weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
             metadata);
       } else {
         GetInstrumentalVisibilities<4, 4>(
-            *ms_reader, ms_data.antenna_names.size(), row_data, _selectedBand,
+            *ms_reader, ms_data.antenna_names.size(), row_data,
             weight_buffer.data(), model_buffer.data(), selection_buffer.data(),
             metadata);
       }
@@ -413,8 +422,16 @@ size_t IdgMsGridder::PredictMeasurementSet(
 
   _outputProvider = ms_data.ms_provider;
 
+  // TODO For now we do not allow multiple bands in one msprovider
+  if (!ms_data.ms_provider->IsRegular())
+    throw std::runtime_error(
+        "IDG implementation does not support irregular data yet");
+  // Regular data should always have one band...
+  assert(_selectedBands.BandCount() == 1);
+  const aocommon::BandData& selected_band = *_selectedBands.begin();
+
   constexpr size_t n_idg_polarizations = 4;
-  aocommon::UVector<std::complex<float>> buffer(_selectedBand.ChannelCount() *
+  aocommon::UVector<std::complex<float>> buffer(selected_band.ChannelCount() *
                                                 n_idg_polarizations);
   _degriddingWatch.Start();
 
@@ -441,7 +458,7 @@ size_t IdgMsGridder::PredictMeasurementSet(
       if (aterm_maker) {
         timestep_reader.GetUVWsForTimestep(uvws);
         if (aterm_maker->Calculate(aterm_buffer.data(), current_time,
-                                   _selectedBand.CentreFrequency(),
+                                   selected_band.CentreFrequency(),
                                    metadata.field_id, uvws.data())) {
           _bufferset->get_degridder(kGridderIndex)
               ->set_aterm(time_index, aterm_buffer.data());
@@ -485,16 +502,17 @@ void IdgMsGridder::computePredictionBuffer(
        available_row_ids) {
     MSProvider::MetaData metadata;
     ReadPredictMetaData(metadata);
+    const aocommon::BandData& band = _selectedBands[metadata.data_desc_id];
     if (n_vis_polarizations == 1) {
       // Place Stokes I in the first quarter of the array
-      for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
+      for (size_t i = 0; i != band.ChannelCount(); ++i) {
         row.second[i] = (row.second[i * 4] + row.second[i * 4 + 3]) / 2.0f;
       }
 
     } else if (n_vis_polarizations == 2) {
       // Remove the XY/YX pols from the data and place the result in the first
       // half of the array
-      for (size_t i = 0; i != _selectedBand.ChannelCount(); ++i) {
+      for (size_t i = 0; i != band.ChannelCount(); ++i) {
         row.second[i * 2] = row.second[i * 4];
         row.second[i * 2 + 1] = row.second[i * 4 + 3];
       }
@@ -502,9 +520,10 @@ void IdgMsGridder::computePredictionBuffer(
       assert(n_vis_polarizations == 4);
     }
     const double* uvw = nullptr;
-    WriteInstrumentalVisibilities(
-        *_outputProvider, antenna_names.size(), _selectedBand, row.second, uvw,
-        metadata.field_id, metadata.antenna1, metadata.antenna2, metadata.time);
+    WriteInstrumentalVisibilities(*_outputProvider, antenna_names.size(),
+                                  metadata.data_desc_id, row.second, uvw,
+                                  metadata.field_id, metadata.antenna1,
+                                  metadata.antenna2, metadata.time);
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();
   _degriddingWatch.Pause();
@@ -608,15 +627,23 @@ bool IdgMsGridder::prepareForMeasurementSet(
   // Skip this ms if there is no data in it
   if (!max_baseline) return false;
 
-  _selectedBand = ms_data.SelectedBand();
+  _selectedBands = ms_data.ms_provider->SelectedBands();
+
+  // TODO For now we do not allow multiple bands in one msprovider
+  if (!ms_data.ms_provider->IsRegular())
+    throw std::runtime_error(
+        "IDG implementation does not support irregular data yet");
+  // Regular data should always have one band...
+  assert(_selectedBands.BandCount() == 1);
+  const aocommon::BandData& selected_band = *_selectedBands.begin();
 
   // TODO for now we map the ms antennas directly to the gridder's antenna,
   // including non-selected antennas. Later this can be made more efficient.
   const size_t nStations = ms_data.ms_provider->MS()->antenna().nrow();
 
   std::vector<std::vector<double>> bands;
-  bands.emplace_back(_selectedBand.begin(), _selectedBand.end());
-  const size_t nChannels = _selectedBand.ChannelCount();
+  bands.emplace_back(selected_band.begin(), selected_band.end());
+  const size_t nChannels = selected_band.ChannelCount();
 
   // Only one-third of the mem is allocated to the buffers, so that memory
   // remains available for the images and other things done by IDG.

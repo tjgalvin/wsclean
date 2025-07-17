@@ -125,13 +125,6 @@ class MSProvider {
   virtual aocommon::PolarizationEnum Polarization() = 0;
 
   /**
-   * The dataDescID to which this MS provider is associated. An MSProvider
-   * is associated with only one dataDescId. When an MS has multiple
-   * dataDescIds, it will have multiple MSProviders.
-   */
-  virtual size_t DataDescId() = 0;
-
-  /**
    * Number of channels provided by this provider. If the set is regular,
    * this is equal to the number of channels in every row. This value may be
    * different from the underlying measurement set if not all channels are

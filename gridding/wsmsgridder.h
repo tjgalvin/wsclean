@@ -66,6 +66,7 @@ class WSMSGridder final : public MsGridder {
   struct PredictionWorkItem {
     std::array<double, 3> uvw;
     std::unique_ptr<std::complex<float>[]> data;
+    size_t data_desc_id;
     size_t rowId;
   };
 
@@ -76,14 +77,13 @@ class WSMSGridder final : public MsGridder {
   void finishInversionWorkThreads();
   void workThreadPerSample(aocommon::Lane<InversionWorkSample>* workLane);
 
-  void predictCalcThread(aocommon::Lane<PredictionWorkItem>* inputLane,
-                         aocommon::Lane<PredictionWorkItem>* outputLane,
-                         const aocommon::BandData* bandData);
+  void predictCalcThread(aocommon::Lane<PredictionWorkItem>* input_lane,
+                         aocommon::Lane<PredictionWorkItem>* output_lane,
+                         const aocommon::MultiBandData* bands);
 
-  void predictWriteThread(aocommon::Lane<PredictionWorkItem>* samplingWorkLane,
-                          const MsProviderCollection::MsData* msData,
-                          const aocommon::BandData* bandData,
-                          GainMode gain_mode);
+  void predictWriteThread(
+      aocommon::Lane<PredictionWorkItem>* sampling_work_lane,
+      const MsProviderCollection::MsData* ms_data, GainMode gain_mode);
 
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;

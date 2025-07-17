@@ -105,7 +105,7 @@ class IdgMsGridder final : public MsGridder {
   aocommon::UVector<float> _taper_subgrid;
   aocommon::UVector<float> _taper_grid;
   MSProvider* _outputProvider;
-  aocommon::BandData _selectedBand;
+  aocommon::MultiBandData _selectedBands;
   idg::api::Type _proxyType;
   int _buffersize;
   idg::api::options_type _options;

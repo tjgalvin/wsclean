@@ -135,16 +135,18 @@ template <typename num_t>
 void DirectMSGridder<num_t>::InvertMeasurementSet(
     const MsProviderCollection::MsData& ms_data, size_t ms_index) {
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
-  const aocommon::BandData selected_band(ms_data.SelectedBand());
+  const aocommon::MultiBandData& selected_bands(
+      ms_data.ms_provider->SelectedBands());
 
-  const size_t data_size = selected_band.ChannelCount() * n_vis_polarizations;
+  const size_t max_data_size =
+      selected_bands.MaxBandChannels() * n_vis_polarizations;
   const size_t n_parms = NumValuesPerSolution();
-  aocommon::UVector<std::complex<float>> model_buffer(data_size);
-  aocommon::UVector<float> weight_buffer(data_size);
-  aocommon::UVector<bool> selection_buffer(selected_band.ChannelCount(), true);
+  aocommon::UVector<std::complex<float>> model_buffer(max_data_size);
+  aocommon::UVector<float> weight_buffer(max_data_size);
+  aocommon::UVector<bool> selection_buffer(max_data_size, true);
 
   InversionRow row_data;
-  aocommon::UVector<std::complex<float>> row_visibilities(data_size);
+  aocommon::UVector<std::complex<float>> row_visibilities(max_data_size);
   row_data.data = row_visibilities.data();
 
   std::vector<size_t> id_to_ms_row;
@@ -163,19 +165,19 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(
 
     if (n_parms == 2) {
       GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
-                                  row_data, selected_band, weight_buffer.data(),
+                                  row_data, weight_buffer.data(),
                                   model_buffer.data(), selection_buffer.data(),
                                   metadata);
     } else {
       GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
-                                  row_data, selected_band, weight_buffer.data(),
+                                  row_data, weight_buffer.data(),
                                   model_buffer.data(), selection_buffer.data(),
                                   metadata);
     }
+    const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
     InversionSample sample;
-    for (size_t channel = 0; channel != selected_band.ChannelCount();
-         ++channel) {
-      const double wavelength = selected_band.ChannelWavelength(channel);
+    for (size_t channel = 0; channel != band.ChannelCount(); ++channel) {
+      const double wavelength = band.ChannelWavelength(channel);
       sample.uInLambda = row_data.uvw[0] / wavelength;
       sample.vInLambda = row_data.uvw[1] / wavelength;
       sample.wInLambda = row_data.uvw[2] / wavelength;

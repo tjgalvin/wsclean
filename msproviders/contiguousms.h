@@ -57,8 +57,6 @@ class ContiguousMS final : public MSProvider {
     return _outputPolarization;
   }
 
-  size_t DataDescId() override { return _dataDescId; }
-
   size_t NMaxChannels() override;
 
   bool IsRegular() const override { return true; }

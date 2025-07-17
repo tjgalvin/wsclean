@@ -33,10 +33,6 @@ class MsProviderCollection {
     MSProvider* ms_provider = nullptr;
     size_t internal_ms_index = 0;
     size_t original_ms_index = 0;
-    size_t data_desc_id = 0;
-    aocommon::BandData band_data;
-    size_t start_channel = 0;
-    size_t end_channel = 0;
     size_t matching_rows = 0;
     size_t total_rows_processed = 0;
     size_t row_start = 0;
@@ -51,12 +47,6 @@ class MsProviderCollection {
 
     std::vector<std::string> antenna_names;
     std::shared_ptr<std::vector<double>> unique_times;
-
-    aocommon::BandData SelectedBand() const {
-      return aocommon::BandData(band_data, start_channel, end_channel);
-    }
-    void InitializeBandData(const casacore::MeasurementSet& ms,
-                            const MSSelection& selection);
   };
 
   MSProvider& MeasurementSet(size_t internal_ms_index) const {
@@ -121,21 +111,21 @@ class MsProviderCollection {
     double min_w = 0.0;
     double max_baseline = 0.0;
 
-    void Calculate(const aocommon::BandData& selected_band,
+    void Calculate(const aocommon::MultiBandData& selected_bands,
                    double _start_time) {
       if (has_frequencies) {
         lowest_frequency =
-            std::min(lowest_frequency, selected_band.LowestFrequency());
+            std::min(lowest_frequency, selected_bands.LowestFrequency());
         highest_frequency =
-            std::max(highest_frequency, selected_band.HighestFrequency());
-        band_start = std::min(band_start, selected_band.BandStart());
-        band_end = std::max(band_end, selected_band.BandEnd());
+            std::max(highest_frequency, selected_bands.HighestFrequency());
+        band_start = std::min(band_start, selected_bands.BandStart());
+        band_end = std::max(band_end, selected_bands.BandEnd());
         start_time = std::min(start_time, _start_time);
       } else {
-        lowest_frequency = selected_band.LowestFrequency();
-        highest_frequency = selected_band.HighestFrequency();
-        band_start = selected_band.BandStart();
-        band_end = selected_band.BandEnd();
+        lowest_frequency = selected_bands.LowestFrequency();
+        highest_frequency = selected_bands.HighestFrequency();
+        band_start = selected_bands.BandStart();
+        band_end = selected_bands.BandEnd();
         start_time = _start_time;
         has_frequencies = true;
       }

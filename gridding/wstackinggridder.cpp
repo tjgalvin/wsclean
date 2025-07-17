@@ -973,9 +973,11 @@ void WStackingGridder<T>::copyImageToLayerAndInverseCorrect(
 #ifndef AVOID_CASACORE
 template <typename T>
 void WStackingGridder<T>::AddData(const std::complex<float> *data,
-                                  double u_in_m, double v_in_m, double w_in_m) {
-  for (size_t ch = 0; ch != _bandData.ChannelCount(); ++ch) {
-    const double wavelength = _bandData.ChannelWavelength(ch);
+                                  size_t data_desc_id, double u_in_m,
+                                  double v_in_m, double w_in_m) {
+  const aocommon::BandData &band = _bands[data_desc_id];
+  for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
+    const double wavelength = band.ChannelWavelength(ch);
     const double u = u_in_m / wavelength;
     const double v = v_in_m / wavelength;
     const double w = w_in_m / wavelength;
@@ -984,10 +986,12 @@ void WStackingGridder<T>::AddData(const std::complex<float> *data,
 }
 
 template <typename T>
-void WStackingGridder<T>::SampleData(std::complex<float> *data, double u_in_m,
+void WStackingGridder<T>::SampleData(std::complex<float> *data,
+                                     size_t data_desc_id, double u_in_m,
                                      double v_in_m, double w_in_m) {
-  for (size_t ch = 0; ch != _bandData.ChannelCount(); ++ch) {
-    const double wavelength = _bandData.ChannelWavelength(ch);
+  const aocommon::BandData &band = _bands[data_desc_id];
+  for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
+    const double wavelength = band.ChannelWavelength(ch);
     const double u = u_in_m / wavelength;
     const double v = v_in_m / wavelength;
     const double w = w_in_m / wavelength;

@@ -145,7 +145,7 @@ class MsGridder : public MsGridderData {
   virtual void GridSharedMeasurementSetChunk(
       bool apply_corrections, size_t n_polarizations, size_t n_rows,
       const double* uvws, const double* frequencies,
-      const aocommon::BandData& selected_band,
+      const aocommon::BandData& selected_band, size_t data_desc_id,
       const std::pair<size_t, size_t>* antennas,
       const std::complex<float>* visibilities, const size_t* time_offsets,
       size_t n_antennas, const std::vector<std::complex<float>>& parm_response,

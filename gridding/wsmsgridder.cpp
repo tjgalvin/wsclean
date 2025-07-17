@@ -53,12 +53,13 @@ void WSMSGridder::countSamplesPerLayer(MsProviderCollection::MsData& msData) {
   size_t total = 0;
   msData.matching_rows = 0;
   std::unique_ptr<MSReader> msReader = msData.ms_provider->MakeReader();
-  const aocommon::BandData& bandData = msData.band_data;
+  const aocommon::MultiBandData& bands = msData.ms_provider->SelectedBands();
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData meta_data;
     msReader->ReadMeta(meta_data);
-    for (size_t ch = msData.start_channel; ch != msData.end_channel; ++ch) {
-      const double w = meta_data.w_in_m / bandData.ChannelWavelength(ch);
+    const aocommon::BandData& band = bands[meta_data.data_desc_id];
+    for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
+      const double w = meta_data.w_in_m / band.ChannelWavelength(ch);
       const size_t wLayerIndex = _gridder->WToLayer(w);
       if (wLayerIndex < ActualWGridSize()) {
         ++sampleCount[wLayerIndex];
@@ -133,15 +134,17 @@ size_t WSMSGridder::GetSuggestedWGridSize() const {
 size_t WSMSGridder::GridMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
-  const aocommon::BandData selected_band = ms_data.SelectedBand();
+  const aocommon::MultiBandData& selected_bands =
+      ms_data.ms_provider->SelectedBands();
 
-  const size_t data_size = selected_band.ChannelCount() * n_vis_polarizations;
-  aocommon::UVector<std::complex<float>> model_buffer(data_size);
-  aocommon::UVector<float> weight_buffer(data_size);
-  aocommon::UVector<bool> selection_buffer(selected_band.ChannelCount());
+  const size_t max_data_size =
+      selected_bands.MaxBandChannels() * n_vis_polarizations;
+  aocommon::UVector<std::complex<float>> model_buffer(max_data_size);
+  aocommon::UVector<float> weight_buffer(max_data_size);
+  aocommon::UVector<bool> selection_buffer(selected_bands.MaxBandChannels());
 
-  startInversionWorkThreads(selected_band.ChannelCount());
-  _gridder->PrepareBand(selected_band);
+  startInversionWorkThreads(selected_bands.MaxBandChannels());
+  _gridder->PrepareBands(selected_bands);
 
   // Samples of the same w-layer are collected in a buffer
   // before they are written into the lane. This is done because writing
@@ -159,7 +162,7 @@ size_t WSMSGridder::GridMeasurementSet(
   }
 
   InversionRow row_data;
-  aocommon::UVector<std::complex<float>> row_visibilities(data_size);
+  aocommon::UVector<std::complex<float>> row_visibilities(max_data_size);
   row_data.data = row_visibilities.data();
 
   const size_t n_parms = NumValuesPerSolution();
@@ -173,7 +176,7 @@ size_t WSMSGridder::GridMeasurementSet(
       const double v_in_m = metadata.v_in_m;
       const double w_in_m = metadata.w_in_m;
 
-      const aocommon::BandData& band(selected_band);
+      const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
       const double w1 = w_in_m / band.LongestWavelength();
       const double w2 = w_in_m / band.SmallestWavelength();
       if (_gridder->IsInLayerRange(w1, w2)) {
@@ -190,12 +193,12 @@ size_t WSMSGridder::GridMeasurementSet(
 
         if (n_parms == 2) {
           GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
-                                      row_data, band, weight_buffer.data(),
+                                      row_data, weight_buffer.data(),
                                       model_buffer.data(),
                                       selection_buffer.data(), metadata);
         } else {
           GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
-                                      row_data, band, weight_buffer.data(),
+                                      row_data, weight_buffer.data(),
                                       model_buffer.data(),
                                       selection_buffer.data(), metadata);
         }
@@ -279,8 +282,9 @@ size_t WSMSGridder::PredictMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   ms_data.ms_provider->ReopenRW();
   ms_data.ms_provider->ResetWritePosition();
-  const aocommon::BandData selected_band(ms_data.SelectedBand());
-  _gridder->PrepareBand(selected_band);
+  const aocommon::MultiBandData& selected_bands =
+      ms_data.ms_provider->SelectedBands();
+  _gridder->PrepareBands(selected_bands);
 
   size_t n_total_rows_processed = 0;
 
@@ -292,23 +296,25 @@ size_t WSMSGridder::PredictMeasurementSet(
                       "Prediction write lane containing full row data");
   lane_write_buffer<PredictionWorkItem> buffered_lane(&lane, _laneBufferSize);
   std::thread writeThread(&WSMSGridder::predictWriteThread, this, &write_lane,
-                          &ms_data, &selected_band,
-                          SelectGainMode(Polarization(), 1));
+                          &ms_data, SelectGainMode(Polarization(), 1));
   std::vector<std::thread> calcThreads;
   for (size_t i = 0; i != _resources.NCpus(); ++i)
     calcThreads.emplace_back(&WSMSGridder::predictCalcThread, this, &lane,
-                             &write_lane, &selected_band);
+                             &write_lane, &selected_bands);
 
   /* Start by reading the u,v,ws in, so we don't need IO access
    * from this thread during further processing */
   std::vector<std::array<double, 3>> uvws;
   std::vector<size_t> row_ids;
+  std::vector<size_t> data_desc_ids;
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
   while (ms_reader->CurrentRowAvailable()) {
     MSProvider::MetaData meta_data;
     ms_reader->ReadMeta(meta_data);
-    uvws.push_back({meta_data.u_in_m, meta_data.v_in_m, meta_data.w_in_m});
-    row_ids.push_back(ms_reader->RowId());
+    uvws.emplace_back(std::array<double, 3>{meta_data.u_in_m, meta_data.v_in_m,
+                                            meta_data.w_in_m});
+    data_desc_ids.emplace_back(meta_data.data_desc_id);
+    row_ids.emplace_back(ms_reader->RowId());
     ++n_total_rows_processed;
 
     ms_reader->NextInputRow();
@@ -317,8 +323,10 @@ size_t WSMSGridder::PredictMeasurementSet(
   for (size_t i = 0; i != uvws.size(); ++i) {
     PredictionWorkItem new_item;
     new_item.uvw = uvws[i];
-    new_item.data.reset(new std::complex<float>[selected_band.ChannelCount()]);
+    new_item.data.reset(
+        new std::complex<float>[selected_bands.MaxBandChannels()]);
     new_item.rowId = row_ids[i];
+    new_item.data_desc_id = data_desc_ids[i];
     buffered_lane.write(std::move(new_item));
   }
   if (IsFirstTask())
@@ -336,18 +344,19 @@ size_t WSMSGridder::PredictMeasurementSet(
 void WSMSGridder::predictCalcThread(
     aocommon::Lane<PredictionWorkItem>* inputLane,
     aocommon::Lane<PredictionWorkItem>* outputLane,
-    const aocommon::BandData* bandData) {
+    const aocommon::MultiBandData* bands) {
   lane_write_buffer<PredictionWorkItem> writeBuffer(outputLane,
                                                     _laneBufferSize);
 
   PredictionWorkItem item;
   while (inputLane->read(item)) {
-    _gridder->SampleData(item.data.get(), item.uvw[0], item.uvw[1],
-                         item.uvw[2]);
+    _gridder->SampleData(item.data.get(), item.data_desc_id, item.uvw[0],
+                         item.uvw[1], item.uvw[2]);
     if (HasDenormalPhaseCentre()) {
       const double shiftFactor =
           2.0 * M_PI * (item.uvw[0] * LShift() + item.uvw[1] * MShift());
-      RotateVisibilities<1>(*bandData, shiftFactor, item.data.get());
+      RotateVisibilities<1>((*bands)[item.data_desc_id], shiftFactor,
+                            item.data.get());
     }
 
     writeBuffer.write(std::move(item));
@@ -356,8 +365,7 @@ void WSMSGridder::predictCalcThread(
 
 void WSMSGridder::predictWriteThread(
     aocommon::Lane<PredictionWorkItem>* predictionWorkLane,
-    const MsProviderCollection::MsData* msData,
-    const aocommon::BandData* bandData, GainMode gain_mode) {
+    const MsProviderCollection::MsData* msData, GainMode gain_mode) {
   lane_read_buffer<PredictionWorkItem> buffer(
       predictionWorkLane,
       std::min(_laneBufferSize, predictionWorkLane->capacity()));
@@ -376,9 +384,10 @@ void WSMSGridder::predictWriteThread(
       MSProvider::MetaData metadata;
       ReadPredictMetaData(metadata);
       WriteCollapsedVisibilities(
-          *msData->ms_provider, msData->antenna_names.size(), *bandData,
-          queue.top().data.get(), queue.top().uvw.data(), metadata.field_id,
-          metadata.antenna1, metadata.antenna2, metadata.time);
+          *msData->ms_provider, msData->antenna_names.size(),
+          metadata.data_desc_id, queue.top().data.get(), queue.top().uvw.data(),
+          metadata.field_id, metadata.antenna1, metadata.antenna2,
+          metadata.time);
 
       queue.pop();
       ++nextRowId;

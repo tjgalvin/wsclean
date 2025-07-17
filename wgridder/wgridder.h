@@ -19,6 +19,7 @@ class MsGridder;
 struct VisibilityCallbackData {
   size_t n_channels;
   const aocommon::BandData &selected_band;
+  size_t data_desc_id;
   const std::pair<size_t, size_t> *antennas;
   const std::complex<float> *visibilities;
   const double *uvws;
@@ -71,13 +72,15 @@ class VisibilityCallbackBuffer : public TInfo {
       std::function<std::complex<float>(
           size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
           const double *uvws, const aocommon::BandData &selected_band,
-          const std::complex<float> *, const BeamResponseCacheChunk &,
-          const size_t *, const std::pair<size_t, size_t> *)>
+          size_t data_desc_id, const std::complex<float> *,
+          const BeamResponseCacheChunk &, const size_t *,
+          const std::pair<size_t, size_t> *)>
           visibility_callback)
       : TInfo({n_rows, data.n_channels}),
         n_antennas_(data.n_antennas),
         n_channels_(data.n_channels),
         selected_band_(data.selected_band),
+        data_desc_id_(data.data_desc_id),
         antennas_(data.antennas),
         visibilities_(data.visibilities),
         uvws_(data.uvws),
@@ -91,8 +94,8 @@ class VisibilityCallbackBuffer : public TInfo {
   const TVisibility raw(Index index) const {
     return visibility_callback_(index, n_channels_, n_antennas_, gridder_,
                                 visibilities_, uvws_, selected_band_,
-                                parm_response_, beam_response_, time_offsets_,
-                                antennas_);
+                                data_desc_id_, parm_response_, beam_response_,
+                                time_offsets_, antennas_);
   }
   template <typename... Params>
   const TVisibility operator()(Params... params) const {
@@ -114,6 +117,7 @@ class VisibilityCallbackBuffer : public TInfo {
   // Number of channels per row of visibilities
   size_t n_channels_;
   const aocommon::BandData &selected_band_;
+  size_t data_desc_id_;
   const std::pair<size_t, size_t> *antennas_;
   const std::complex<float> *visibilities_;
   const double *uvws_;
@@ -133,8 +137,9 @@ class VisibilityCallbackBuffer : public TInfo {
   std::function<std::complex<float>(
       size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
       const double *uvws, const aocommon::BandData &selected_band,
-      const std::complex<float> *, const BeamResponseCacheChunk &,
-      const size_t *, const std::pair<size_t, size_t> *)>
+      size_t data_desc_id, const std::complex<float> *,
+      const BeamResponseCacheChunk &, const size_t *,
+      const std::pair<size_t, size_t> *)>
       visibility_callback_;
 };
 
@@ -160,7 +165,7 @@ template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
 const std::complex<float> VisibilityCallback(
     size_t index, size_t n_channels, size_t n_antennas, MsGridder *gridder,
     const std::complex<float> *visibilities, const double *uvws,
-    const aocommon::BandData &selected_band,
+    const aocommon::BandData &selected_band, size_t data_desc_id,
     const std::complex<float> *parm_response,
     const BeamResponseCacheChunk &beam_response, const size_t *time_offsets,
     const std::pair<size_t, size_t> *antennas) {
@@ -185,13 +190,16 @@ const std::complex<float> VisibilityCallback(
   }
 
   // Apply correction
-  const std::complex<float> *cached_beam_response =
-      ApplyBeam ? beam_response.GetCachedBeamResponseForRow(row) : nullptr;
+  const aocommon::VectorMap<aocommon::UVector<std::complex<float>>>
+      &cached_beam_response =
+          ApplyBeam
+              ? beam_response.GetCachedBeamResponseForRow(row)
+              : aocommon::VectorMap<aocommon::UVector<std::complex<float>>>();
   gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply,
                                  ApplyBeam, ApplyForward, HasH5Parm>(
-      parm_response, channel, n_channels, n_antennas, visibilities_temp,
-      nullptr, antenna_pair.first, antenna_pair.second, time_offset, nullptr,
-      cached_beam_response);
+      parm_response, channel, n_channels, data_desc_id, n_antennas,
+      visibilities_temp, nullptr, antenna_pair.first, antenna_pair.second,
+      time_offset, nullptr, cached_beam_response);
   internal::CollapseData<NPolarizations>(1, visibilities_temp,
                                          gridder->Polarization());
   return visibilities_temp[0];

@@ -39,6 +39,8 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const aocommon::BandData& band = input[range.data_desc_id];
     result.emplace_back().SetBand(
         range.data_desc_id, aocommon::BandData(band, range.start, range.end));
+    std::cout << "data_desc_id: " << range.data_desc_id << " (" << range.start
+              << " - " << range.end << ")\n";
   }
   return result;
 }

@@ -691,19 +691,18 @@ void PrimaryBeam::CalculateStationWeights(const ImageWeights& imageWeights,
   casacore::MSAntenna antenna_table(ms->antenna());
   aocommon::UVector<double> per_antenna_weights(antenna_table.nrow(), 0.0);
 
-  aocommon::MultiBandData multi_band(ms->spectralWindow(),
-                                     ms->dataDescription());
-  const size_t n_channels =
-      selection.ChannelRangeEnd() - selection.ChannelRangeStart();
+  const aocommon::MultiBandData& multi_band =
+      ms_reader.Provider().SelectedBands();
   const size_t n_polarizations = ms_reader.NPolarizations();
-  aocommon::UVector<float> weight_array(n_channels * n_polarizations);
-  const aocommon::BandData band = multi_band[ms_reader.DataDescId()];
+  aocommon::UVector<float> weight_array(multi_band.MaxBandChannels() *
+                                        n_polarizations);
   while (ms_reader.CurrentRowAvailable() && current_row <= end_row) {
     MSProvider::MetaData metadata;
     ms_reader.ReadMeta(metadata);
     ms_reader.ReadWeights(weight_array.data());
+    const aocommon::BandData band = multi_band[metadata.data_desc_id];
 
-    for (size_t ch = 0; ch != n_channels; ++ch) {
+    for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
       const double u = metadata.u_in_m / band.ChannelWavelength(ch);
       const double v = metadata.v_in_m / band.ChannelWavelength(ch);
       const double iw = imageWeights.GetWeight(u, v);

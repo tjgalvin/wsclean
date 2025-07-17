@@ -70,8 +70,6 @@ class ReorderedMsProvider final : public MSProvider {
   size_t NPolarizations() override { return polarization_count_in_file_; }
   size_t NAntennas() override { return handle_.data_->n_antennas_; }
 
-  size_t DataDescId() override { return part_header_.data_desc_id; }
-
   const aocommon::MultiBandData& SelectedBands() final {
     return handle_.data_->bands_per_part_[part_index_];
   }
@@ -117,6 +115,8 @@ class ReorderedMsProvider final : public MSProvider {
       const schaapcommon::reordering::ReorderedHandleData& handle);
 
  private:
+  size_t DataDescId() const { return part_header_.data_desc_id; }
+
   const ReorderedHandle handle_;
   const size_t part_index_;
   const size_t data_desc_id_;
