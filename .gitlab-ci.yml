@@ -134,6 +134,8 @@ pages:
     # Make OpenMPI ignore SLURM restrictions (in MPI tests).
     - export OMPI_MCA_rmaps_base_oversubscribe=1
     - export PYTHONPATH=${PYTHONPATH}:~/.local/lib/python3.11/site-packages
+    # 20250724: UCX memory allocation failed. It suggested raising the lock limit.
+    - ulimit -l unlimited
     - mkdir -p build && cd build
     - cmake -DBUILD_TESTING=ON -DCMAKE_CXX_FLAGS="-D_GLIBCXX_ASSERTIONS" -DCFITSIO_ROOT_DIR=$CFITSIO_ROOT -DCASACORE_ROOT_DIR=$CASACORE_ROOT -DCMAKE_INSTALL_PREFIX=. -DCMAKE_PREFIX_PATH="${IDG_ROOT};${EVERYBEAM_ROOT};${FFTW_ROOT}" -DPython3_EXECUTABLE=`which python` ..
     - make -j`nproc`
