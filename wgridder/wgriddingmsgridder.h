@@ -48,17 +48,40 @@ class WGriddingMSGridder final : public MsGridder {
   size_t GetSuggestedWGridSize() const final { return 1; }
 
  private:
-  aocommon::Image image_;
-
   std::unique_ptr<WGridderBase> MakeGridder(size_t width, size_t height) const;
 
   size_t CalculateConstantMemory() const final;
+  /**
+   * Returns a suggested maximum nr rows that should be stored in memory. This
+   * function is for regular data.
+   * @param available_memory System memory available for this gridder.
+   * @param constant_memory Constant memory size used by the gridder, e.g. to
+   * store the image. Typically the value returned by @ref
+   * CalculateConstantMemory().
+   * @param additional_per_row_consumption Any external over heads to storing a
+   * row of data (not being the data or their uvws).
+   * @param per_row_uvw_consumption Data size of storing the uvws (typically 3 x
+   * sizeof(double)).
+   * @param channel_count Channels per row.
+   * @param num_polarizations_stored Polarizations per row (typically 1).
+   */
   size_t CalculateMaxRowsInMemory(int64_t available_memory,
                                   size_t constant_memory,
                                   double additional_per_row_consumption,
                                   size_t per_row_uvw_consumption,
                                   size_t channel_count,
                                   size_t num_polarizations_stored) const final;
+  /**
+   * Returns a suggested maximum nr rows that should be stored in memory. This
+   * function is for irregular data that needs to be flattened. As a
+   * consequence, each value will have its own uvw values. The parameters are
+   * otherwise similar to @ref CalculateMaxRowsInMemory().
+   */
+  size_t CalculateMaxVisibilitiesInMemory(
+      int64_t available_memory, size_t constant_memory,
+      double additional_per_visibility_consumption,
+      size_t per_visibility_uvw_consumption,
+      size_t num_polarizations_stored) const;
 
   void GetActualTrimmedSize(size_t& trimmedWidth, size_t& trimmedHeight) const;
 
@@ -68,6 +91,13 @@ class WGriddingMSGridder final : public MsGridder {
                          const std::vector<MSProvider::MetaData>& metadatas,
                          std::complex<float>* visibilities);
 
+  size_t GridRegularMeasurementSet(const MsProviderCollection::MsData& ms_data);
+  size_t GridBdaMeasurementSet(const MsProviderCollection::MsData& ms_data);
+  size_t PredictRegularMeasurementSet(
+      const MsProviderCollection::MsData& ms_data);
+  size_t PredictBdaMeasurementSet(const MsProviderCollection::MsData& ms_data);
+
+  aocommon::Image image_;
   const Resources resources_;
   double accuracy_;
   bool use_tuned_wgridder_;

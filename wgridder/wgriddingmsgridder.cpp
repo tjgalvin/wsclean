@@ -22,6 +22,9 @@ using aocommon::Image;
 using aocommon::Logger;
 
 namespace wsclean {
+namespace {
+constexpr size_t kUvwSize = sizeof(double) * 3;
+}  // namespace
 
 WGriddingMSGridder::WGriddingMSGridder(
     const Settings& settings, const Resources& resources,
@@ -99,6 +102,37 @@ size_t WGriddingMSGridder::CalculateMaxRowsInMemory(
   return max_n_rows;
 }
 
+size_t WGriddingMSGridder::CalculateMaxVisibilitiesInMemory(
+    int64_t available_memory, size_t constant_memory,
+    double additional_per_visibility_consumption,
+    size_t per_visibility_uvw_consumption,
+    size_t num_polarizations_stored) const {
+  // Function follows mostly the logic of CalculateMaxRowsInMemory().
+  if (static_cast<int64_t>(constant_memory) >= available_memory) {
+    constant_memory = available_memory / 2;
+    Logger::Warn << "Not enough memory available for doing the gridding:\n"
+                    "swapping might occur!\n";
+  }
+
+  const size_t per_visibility_ducc_overhead =
+      gridder_->PerVisibilityMemoryUsage();
+  const size_t per_visibility_memory =
+      per_visibility_ducc_overhead +
+      (sizeof(std::complex<float>) * num_polarizations_stored);
+  const double memory_per_visibility =
+      additional_per_visibility_consumption  // external overheads
+      + per_visibility_memory                // visibilities
+      + per_visibility_uvw_consumption;      // uvw
+  const uint64_t memory_for_buffers = available_memory - constant_memory;
+  // This value is a bit arbitrary, but gridding less than 10000 vis at a time
+  // will be prohabitively slow...
+  constexpr uint64_t kMinVisibilities = 10000;
+  const size_t max_n_visibilities = std::max(
+      uint64_t(memory_for_buffers / memory_per_visibility), kMinVisibilities);
+
+  return max_n_visibilities;
+}
+
 void WGriddingMSGridder::GridSharedMeasurementSetChunk(
     bool apply_corrections, size_t n_polarizations, size_t n_rows,
     const double* uvws, const double* frequencies,
@@ -122,23 +156,14 @@ void WGriddingMSGridder::GridSharedMeasurementSetChunk(
   }
 }
 
-size_t WGriddingMSGridder::GridMeasurementSet(
+size_t WGriddingMSGridder::GridRegularMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
-  const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
-
-  // TODO For now we do not allow multiple bands in one msprovider
+  // Regular data should always have one band per ms provider...
   const aocommon::MultiBandData& selected_bands(
       ms_data.ms_provider->SelectedBands());
-  if (!ms_data.ms_provider->IsRegular()) {
-    throw std::runtime_error(
-        "w-gridder implementation does not support irregular data yet");
-  }
-  // Regular data should always have one band...
   assert(selected_bands.BandCount() == 1);
-  std::cout << "band count=" << selected_bands.BandCount() << '\n';
-  std::cout << "data_desc_id=" << *selected_bands.DataDescIds().begin() << '\n';
   const aocommon::BandData& selected_band = *selected_bands.begin();
-  std::cout << "n_channels=" << selected_band.ChannelCount() << '\n';
+  const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
 
   const size_t data_size = selected_band.ChannelCount() * n_vis_polarizations;
   aocommon::UVector<std::complex<float>> model_buffer(data_size);
@@ -149,10 +174,9 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   for (size_t i = 0; i != frequencies.size(); ++i)
     frequencies[i] = selected_band.ChannelFrequency(i);
 
-  const size_t per_row_uvw_memory_consumption = sizeof(double) * 3;
-  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
-      resources_.Memory(), CalculateConstantMemory(), 0,
-      per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
+  size_t max_rows_per_chunk =
+      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(),
+                               0, kUvwSize, selected_band.ChannelCount(), 1);
 
   aocommon::UVector<std::complex<float>> visibility_buffer(
       max_rows_per_chunk * selected_band.ChannelCount());
@@ -167,8 +191,8 @@ size_t WGriddingMSGridder::GridMeasurementSet(
 
   // Iterate over chunks until all data has been gridded
   size_t n_total_rows_read = 0;
+  Logger::Debug << "Max " << max_rows_per_chunk << " rows fit in memory.\n";
   while (ms_reader->CurrentRowAvailable()) {
-    Logger::Debug << "Max " << max_rows_per_chunk << " rows fit in memory.\n";
     Logger::Info << "Loading data in memory...\n";
 
     size_t n_chunk_rows_read = 0;
@@ -213,6 +237,95 @@ size_t WGriddingMSGridder::GridMeasurementSet(
   return n_total_rows_read;
 }
 
+size_t WGriddingMSGridder::GridBdaMeasurementSet(
+    const MsProviderCollection::MsData& ms_data) {
+  const aocommon::MultiBandData& selected_bands(
+      ms_data.ms_provider->SelectedBands());
+  const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
+
+  const size_t max_data_size =
+      ms_data.ms_provider->NMaxChannels() * n_vis_polarizations;
+  aocommon::UVector<std::complex<float>> model_buffer(max_data_size);
+  aocommon::UVector<float> weight_buffer(max_data_size);
+  aocommon::UVector<bool> selection_buffer(max_data_size, true);
+
+  const size_t max_vis_per_chunk = CalculateMaxVisibilitiesInMemory(
+      resources_.Memory(), CalculateConstantMemory(), 0, kUvwSize, 1);
+
+  aocommon::UVector<std::complex<float>> visibility_buffer;
+  visibility_buffer.reserve(max_vis_per_chunk);
+  aocommon::UVector<double> uvw_buffer;
+  uvw_buffer.reserve(3 * max_vis_per_chunk);
+
+  std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
+  aocommon::UVector<std::complex<float>> row_visibilities(max_data_size);
+  InversionRow row_data;
+  row_data.data = row_visibilities.data();
+
+  const size_t n_parms = NumValuesPerSolution();
+
+  // Iterate over chunks until all data has been gridded
+  size_t n_total_rows_read = 0;
+  while (ms_reader->CurrentRowAvailable()) {
+    Logger::Info << "Loading data in memory...\n";
+
+    size_t n_chunk_rows_read = 0;
+    visibility_buffer.clear();
+    uvw_buffer.clear();
+
+    // Read / fill the chunk
+    while (ms_reader->CurrentRowAvailable()) {
+      MSProvider::MetaData metadata;
+      ms_reader->ReadMeta(metadata);
+      row_data.uvw[0] = metadata.u_in_m;
+      row_data.uvw[1] = metadata.v_in_m;
+      row_data.uvw[2] = metadata.w_in_m;
+      const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
+      if (visibility_buffer.size() + band.ChannelCount() >= max_vis_per_chunk)
+        break;
+
+      if (n_parms == 2) {
+        GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
+                                    row_data, weight_buffer.data(),
+                                    model_buffer.data(),
+                                    selection_buffer.data(), metadata);
+      } else {
+        GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
+                                    row_data, weight_buffer.data(),
+                                    model_buffer.data(),
+                                    selection_buffer.data(), metadata);
+      }
+
+      for (size_t channel = 0; channel != band.ChannelCount(); ++channel) {
+        // Because the gridder doesn't have an option to have different nr of
+        // channels per row, the data is "flattened" into a single array and the
+        // uvws are scaled so that they become frequency independent.
+        visibility_buffer.emplace_back(row_data.data[channel]);
+        for (size_t i = 0; i != 3; ++i)
+          uvw_buffer.emplace_back(row_data.uvw[i] *
+                                  band.ChannelFrequency(channel));
+      }
+
+      ++n_chunk_rows_read;
+      ms_reader->NextInputRow();
+    }
+
+    Logger::Info << "Gridding " << n_chunk_rows_read
+                 << " (irregular) rows...\n";
+
+    // The Uvws have been scaled by the frequency already, hence use 1 here.
+    constexpr double kDummyFrequency = 1.0;
+    // Data has been flattened, so for the gridder there's only one channel:
+    constexpr size_t kNGridderChannels = 1;
+    gridder_->AddInversionData(visibility_buffer.size(), kNGridderChannels,
+                               uvw_buffer.data(), &kDummyFrequency,
+                               visibility_buffer.data());
+
+    n_total_rows_read += n_chunk_rows_read;
+  }  // end of chunk
+  return n_total_rows_read;
+}
+
 void WGriddingMSGridder::PredictChunk(size_t n_rows, size_t n_channels,
                                       const double* frequencies,
                                       const double* uvws,
@@ -222,30 +335,23 @@ void WGriddingMSGridder::PredictChunk(size_t n_rows, size_t n_channels,
                                 visibilities);
 }
 
-size_t WGriddingMSGridder::PredictMeasurementSet(
+size_t WGriddingMSGridder::PredictRegularMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
-  ms_data.ms_provider->ReopenRW();
-
-  // TODO For now we do not allow multiple bands in one msprovider
   const aocommon::MultiBandData& selected_bands(
       ms_data.ms_provider->SelectedBands());
-  if (!ms_data.ms_provider->IsRegular())
-    throw std::runtime_error(
-        "w-gridder implementation does not support irregular data yet");
   // Regular data should always have one band...
   assert(selected_bands.BandCount() == 1);
   const aocommon::BandData& selected_band = *selected_bands.begin();
 
-  size_t n_total_rows_read = 0;
+  size_t n_total_rows_written = 0;
 
   aocommon::UVector<double> frequencies(selected_band.ChannelCount());
   for (size_t i = 0; i != frequencies.size(); ++i)
     frequencies[i] = selected_band.ChannelFrequency(i);
 
-  const size_t per_row_uvw_memory_consumption = sizeof(double) * 3;
-  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
-      resources_.Memory(), CalculateConstantMemory(), 0,
-      per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
+  const size_t max_rows_per_chunk =
+      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(),
+                               0, kUvwSize, selected_band.ChannelCount(), 1);
 
   aocommon::UVector<double> uvw_buffer(max_rows_per_chunk * 3);
   // Iterate over chunks until all data has been gridded
@@ -288,9 +394,109 @@ size_t WGriddingMSGridder::PredictMeasurementSet(
           metadata_buffer[row].antenna1, metadata_buffer[row].antenna2,
           metadata_buffer[row].time);
     }
-    n_total_rows_read += n_chunk_rows_read;
+    n_total_rows_written += n_chunk_rows_read;
   }  // end of chunk
-  return n_total_rows_read;
+  return n_total_rows_written;
+}
+
+size_t WGriddingMSGridder::PredictBdaMeasurementSet(
+    const MsProviderCollection::MsData& ms_data) {
+  const aocommon::MultiBandData& selected_bands(
+      ms_data.ms_provider->SelectedBands());
+
+  size_t n_total_rows_written = 0;
+
+  const size_t max_vis_per_chunk = CalculateMaxVisibilitiesInMemory(
+      resources_.Memory(), CalculateConstantMemory(), 0, kUvwSize, 1);
+
+  aocommon::UVector<double> uvw_buffer;
+  uvw_buffer.reserve(3 * max_vis_per_chunk);
+
+  // Iterate over chunks until all data has been gridded
+  ms_data.ms_provider->ResetWritePosition();
+  std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
+  std::vector<MSProvider::MetaData> metadata_buffer;
+  while (ms_reader->CurrentRowAvailable()) {
+    size_t n_chunk_rows_read = 0;
+
+    // Read / fill the chunk
+    Logger::Info << "Loading metadata...\n";
+    metadata_buffer.clear();
+    uvw_buffer.clear();
+    size_t visibility_count = 0;
+    while (ms_reader->CurrentRowAvailable()) {
+      MSProvider::MetaData metadata;
+      ReadPredictMetaData(metadata);
+      const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
+      if (visibility_count + band.ChannelCount() >= max_vis_per_chunk) break;
+
+      visibility_count += band.ChannelCount();
+      for (size_t channel = 0; channel != band.ChannelCount(); ++channel) {
+        const double frequency = band.ChannelFrequency(channel);
+        uvw_buffer.emplace_back(metadata.u_in_m * frequency);
+        uvw_buffer.emplace_back(metadata.v_in_m * frequency);
+        uvw_buffer.emplace_back(metadata.w_in_m * frequency);
+      }
+      metadata_buffer.emplace_back(std::move(metadata));
+      n_chunk_rows_read++;
+
+      ms_reader->NextInputRow();
+    }
+
+    Logger::Info << "Predicting " << n_chunk_rows_read
+                 << " (irregular) rows...\n";
+    aocommon::UVector<std::complex<float>> visibility_buffer(visibility_count);
+    // The Uvws have been scaled by the frequency already, hence use 1 here.
+    constexpr double kDummyFrequency = 1.0;
+    // Data has been flattened, so for the gridder there's only one channel:
+    constexpr size_t kNGridderChannels = 1;
+    gridder_->PredictVisibilities(visibility_count, kNGridderChannels,
+                                  uvw_buffer.data(), &kDummyFrequency,
+                                  visibility_buffer.data());
+
+    Logger::Info << "Writing...\n";
+    std::complex<float>* visibility_ptr = visibility_buffer.data();
+    for (size_t row = 0; row != n_chunk_rows_read; ++row) {
+      // The uvw_buffer has scaled uvws, so reload them from the metadata
+      const double uvw[3] = {metadata_buffer[row].u_in_m,
+                             metadata_buffer[row].v_in_m,
+                             metadata_buffer[row].w_in_m};
+      WriteCollapsedVisibilities(
+          *ms_data.ms_provider, ms_data.antenna_names.size(),
+          metadata_buffer[row].data_desc_id, visibility_ptr, uvw,
+          metadata_buffer[row].field_id, metadata_buffer[row].antenna1,
+          metadata_buffer[row].antenna2, metadata_buffer[row].time);
+      const aocommon::BandData& band =
+          selected_bands[metadata_buffer[row].data_desc_id];
+      visibility_ptr += band.ChannelCount();
+    }
+    n_total_rows_written += n_chunk_rows_read;
+  }  // end of chunk
+  return n_total_rows_written;
+}
+
+size_t WGriddingMSGridder::GridMeasurementSet(
+    const MsProviderCollection::MsData& ms_data) {
+  // If the data isn't regular, the data is flattened before calling the
+  // gridder. This costs more memory and may potentially be a bit slower or
+  // cause more gridder calls, so flattening is done only when it is necessary.
+  if (ms_data.ms_provider->IsRegular()) {
+    return GridRegularMeasurementSet(ms_data);
+  } else {
+    return GridBdaMeasurementSet(ms_data);
+  }
+}
+
+size_t WGriddingMSGridder::PredictMeasurementSet(
+    const MsProviderCollection::MsData& ms_data) {
+  ms_data.ms_provider->ReopenRW();
+
+  // See comment in GridMeasurementSet().
+  if (ms_data.ms_provider->IsRegular()) {
+    return PredictRegularMeasurementSet(ms_data);
+  } else {
+    return PredictBdaMeasurementSet(ms_data);
+  }
 }
 
 void WGriddingMSGridder::GetActualTrimmedSize(size_t& trimmedWidth,
