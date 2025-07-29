@@ -16,4 +16,5 @@ Contents:
     storing_imaging_weights
     ds9_facet_file
     primary_beam_component_images
+    time_frequency_smearing
     

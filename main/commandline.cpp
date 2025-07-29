@@ -340,6 +340,11 @@ Options can be:
    Apply solutions from the provided (h5) file per facet when gridding facet based images.
    Provided file is assumed to be in H5Parm format.
    Filename is followed by a comma separated list of strings specifying which sol tabs from the provided H5Parm file are used.
+-apply-time-frequency-smearing
+   Takes time frequency smearing over the integration interval of the visibilities into account
+   in the computation of the psf and when predicting visibilities. This only affects directions
+   away from the phase centre, so this option only has an effect when
+   the -dd-psf and/or the -facet-regions option is enabled.
 -no-solution-directions-check
    Disable the check that requires the number of solution directions to be equal to the number of directions in the region
    file.

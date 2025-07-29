@@ -1,3 +1,4 @@
+import os
 import shutil
 import sys
 
@@ -700,6 +701,101 @@ class TestFacets:
         assert not os.path.isfile(f"dd-psfs-with-faceting-0000-psf.fits")
         assert not os.path.isfile(f"dd-psfs-with-faceting-0001-psf.fits")
         assert not os.path.isfile(f"dd-psfs-with-faceting-MFS-psf.fits")
+
+    def test_time_frequency_smearing(self):
+
+        # Create a small test data set from a high time frequency resolution data set
+        s = [
+            "DP3",
+            "msin=/var/scratch/offringa/Raw-RFI-Test-Set/processed/L2014581_SAP000_SB079_uv.ms",
+            "msin.baseline=[CR]S*&",
+            "msin.ntimes=8",
+            "msin.nchan=32",
+            "msout=time-frequency-smearing.ms",
+            "msout.overwrite=true",
+            "steps=[]",
+        ]
+        validate_call(s)
+
+        # Make template model image
+        s = f"{tcf.WSCLEAN} -size 4800 4800 -scale 5asec time-frequency-smearing.ms"
+        validate_call(s.split())
+
+        # Fill model images with grid of point sources
+        f_image = fits.open("wsclean-image.fits")
+        image_size = f_image[0].data.shape[-1]
+        GRID_SIZE_1D = 3
+        point_source_spacing = image_size // GRID_SIZE_1D
+        position_range_1d = (
+            point_source_spacing // 2
+            + point_source_spacing * np.arange(GRID_SIZE_1D)
+        )
+        f_image[0].data[:] = 0.0
+        for i in position_range_1d:
+            for j in position_range_1d:
+                f_image[0].data[0, 0, i, j] = 1.0
+        f_image.writeto("wsclean-model.fits", overwrite=True)
+
+        # Predict visibilities for the 3x3 point source grid at high time frequency resolution
+        s = f"{tcf.WSCLEAN} -predict -model-column DATA -size 4800 4800 -scale 5asec time-frequency-smearing.ms"
+        validate_call(s.split())
+
+        # Average to a lower time frequency resolution
+        s = [
+            "DP3",
+            "msin=time-frequency-smearing.ms",
+            "msout=time-frequency-smearing-averaged.ms",
+            "msout.overwrite=true",
+            "steps=[average]",
+            "average.timestep=8",
+            "average.freqstep=32",
+        ]
+        validate_call(s)
+
+        # Predict at low time frequency resolution, without taking time frequency smearing into account
+        s = f"{tcf.WSCLEAN} -predict -size 4800 4800 -scale 5asec time-frequency-smearing-averaged.ms"
+        validate_call(s.split())
+
+        # Check that the error is relatively high
+        with casacore.tables.table("time-frequency-smearing-averaged.ms") as t:
+            d1 = t.getcol("DATA")[:, :, 0]
+            d2 = t.getcol("MODEL_DATA")[:, :, 0]
+            r = d1 - d2
+            # Threshold is rather arbitrary, determined by running the test and rounding
+            # the result downwards to a 'nice' number
+            assert np.sum(np.abs(r**2)) > 450
+
+        # Create a 3x3 grid of facets, each facet covers one point source in the model image
+        with open("facets.reg", "w") as f:
+            print(
+                "# Region file format: DS9 version 4.1\n"
+                'global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1\n'
+                "fk5\n"
+                "\n"
+                "polygon(322.44872,22.02513,322.51426,19.37362,325.32867,19.42002,325.30977,22.07500)\n"
+                "polygon(325.30977,22.07500,325.32867,19.42002,325.33176,19.41714,328.16107,19.41714,328.16416,19.42002,328.18306,22.07500)\n"
+                "polygon(331.04483,22.02511,328.18306,22.07500,328.16416,19.42002,330.97927,19.37360)\n"
+                "polygon(322.57796,16.71169,325.35012,16.74595,325.35312,16.74887,325.33176,19.41714,325.32867,19.42002,322.51426,19.37362)\n"
+                "polygon(328.13971,16.74887,328.16107,19.41714,325.33176,19.41714,325.35312,16.74887)\n"
+                "polygon(330.97927,19.37360,328.16416,19.42002,328.16107,19.41714,328.13971,16.74887,328.14271,16.74595,330.91557,16.71168)\n"
+                "polygon(322.63967,14.05948,325.37381,14.09035,325.35012,16.74595,322.57796,16.71169)\n"
+                "polygon(328.11903,14.09035,328.14271,16.74595,328.13971,16.74887,325.35312,16.74887,325.35012,16.74595,325.37381,14.09035)\n"
+                "polygon(330.85384,14.05947,330.91557,16.71168,328.14271,16.74595,328.11903,14.09035)\n",
+                file=f,
+            )
+
+        # Run predict again on the low resolution data, this time including time frequency smearing
+        s = f"{tcf.WSCLEAN} -predict -size 4800 4800 -scale 5asec -facet-regions facets.reg -apply-time-frequency-smearing time-frequency-smearing-averaged.ms"
+        validate_call(s.split())
+
+        # Check that the error is relatively low this time
+        with casacore.tables.table("time-frequency-smearing-averaged.ms") as t:
+            d1 = t.getcol("DATA")[:, :, 0]
+            d2 = t.getcol("MODEL_DATA")[:, :, 0]
+            r = d1 - d2
+            # Threshold is rather arbitrary, determined by running the test and rounding
+            # the result upwards to a 'nice' number
+            assert np.sum(np.abs(r**2)) < 10
 
     def test_predict_with_solutions(self):
         # This is a more advanced prediction run which at some point failed

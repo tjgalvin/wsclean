@@ -17,6 +17,10 @@ void MsGridderData::StartMeasurementSet(
     size_t ms_count, const MsProviderCollection::MsData& ms_data,
     bool is_predict) {
   InitializePointResponse(ms_data);
+  if (settings_.applyTimeFrequencySmearing) {
+    visibility_modifier_.InitializeTimeFrequencySmearing(
+        ms_data.ms_provider->MS());
+  }
   if (visibility_modifier_.HasH5Parm()) {
     visibility_modifier_.InitializeCacheParmResponse(
         ms_data.antenna_names, ms_data.ms_provider->SelectedBands(),

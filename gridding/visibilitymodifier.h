@@ -179,6 +179,8 @@ class VisibilityModifier {
                                const std::string& data_column,
                                const std::string& mwa_path);
 
+  void InitializeTimeFrequencySmearing(SynchronizedMS&& ms);
+
   /**
    * A function that initializes this visibility modifier for testing. After
    * calling this function, the Apply* functions can be called.
@@ -725,6 +727,7 @@ class VisibilityModifier {
   double _facetDirectionDec = 0.0;
   AverageCorrection correction_sum_;
   AverageCorrection beam_correction_sum_;
+  double scaled_ncp_uvw_[3];
 };
 
 #ifdef HAVE_EVERYBEAM
@@ -847,18 +850,37 @@ inline void VisibilityModifier::ApplyConjugatedParmResponse(
   }
 }
 
+namespace {
+double sinc(double x) { return abs(x) < 1e-6 ? 1.0 : sin(x) / x; }
+}  // namespace
+
 inline void VisibilityModifier::ApplyTimeFrequencySmearing(
     std::complex<float>* data, const double* uvw,
     const aocommon::BandData& band, int n_pol_per_vis, double dl, double dm) {
   if (dl != 0.0 || dm != 0.0) {
     const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;
-    const double x = M_PI * (uvw[0] * dl + uvw[1] * dm + uvw[2] * dn) /
-                     aocommon::kSpeedOfLight * band.ChannelWidth(0);
-    const double smearing_factor = abs(x) < 1e-6 ? 1.0 : sin(x) / x;
+    const double smearing_factor_frequency =
+        sinc(M_PI * (uvw[0] * dl + uvw[1] * dm + uvw[2] * dn) /
+             aocommon::kSpeedOfLight * band.ChannelWidth(0));
+
+    // Below terms with scaled_ncp_uvw_[0] are commented out because for epoch
+    // J2000 this element is zero. In case the initialization of
+    // scaled_ncp_uvw_ is modified to the current epoch,
+    // these terms need to be uncommented, because then they are non-zero.
+    const double delta_time =
+        M_PI *
+        (dl * (uvw[1] * scaled_ncp_uvw_[2] - uvw[2] * scaled_ncp_uvw_[1]) +
+         dm * (/* uvw[2] * scaled_ncp_uvw_[0] */ -uvw[0] * scaled_ncp_uvw_[2]) +
+         dn * (uvw[0] *
+               scaled_ncp_uvw_[1] /* - uvw[1] * scaled_ncp_uvw_[0] */)) /
+        aocommon::kSpeedOfLight;
+
     const size_t n_channels = band.ChannelCount();
     const size_t n = n_pol_per_vis * n_channels;
+
     for (size_t i = 0; i < n; ++i) {
-      data[i] *= smearing_factor;
+      data[i] *= smearing_factor_frequency *
+                 sinc(delta_time * band.ChannelFrequency(i));
     }
   }
 }
