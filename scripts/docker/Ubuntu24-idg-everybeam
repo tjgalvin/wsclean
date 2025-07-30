@@ -56,6 +56,16 @@ RUN mkdir /external && \
   cd /external && \
   rm -rf /external/casacore
 
+# Install EveryBeam
+RUN cd /external && git clone https://git.astron.nl/RD/EveryBeam.git && \
+  mkdir /external/EveryBeam/build && cd /external/EveryBeam/build && \
+  cmake ../ && make install -j`nproc` && rm -rf /external/EveryBeam
+
+# Install IDG
+RUN cd /external && git clone https://git.astron.nl/RD/idg.git && \
+  mkdir /external/idg/build && cd /external/idg/build && cmake ../ && \
+  make install -j`nproc` && rm -rf /external/idg
+
 # WSClean
 ADD . /src
 WORKDIR /src
