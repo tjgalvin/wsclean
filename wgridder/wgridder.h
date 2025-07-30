@@ -191,10 +191,11 @@ const std::complex<float> VisibilityCallback(
 
   // Apply correction
   const aocommon::VectorMap<aocommon::UVector<std::complex<float>>>
+      empty_beam_response;
+  const aocommon::VectorMap<aocommon::UVector<std::complex<float>>>
       &cached_beam_response =
-          ApplyBeam
-              ? beam_response.GetCachedBeamResponseForRow(row)
-              : aocommon::VectorMap<aocommon::UVector<std::complex<float>>>();
+          ApplyBeam ? beam_response.GetCachedBeamResponseForRow(row)
+                    : empty_beam_response;
   gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply,
                                  ApplyBeam, ApplyForward, HasH5Parm>(
       parm_response, channel, n_channels, data_desc_id, n_antennas,
