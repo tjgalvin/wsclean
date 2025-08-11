@@ -10,28 +10,36 @@
 #include "../main/settings.h"
 
 #include <fstream>
+#include <map>
+#include <set>
 #include <sstream>
 #include <memory>
 #include <vector>
 
 #include <aocommon/logger.h>
 
+#include <schaapcommon/reordering/msselection.h>
+
 #include <casacore/measures/Measures/MEpoch.h>
 
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
+#include <casacore/ms/MeasurementSets/MSDataDescription.h>
 
 using aocommon::Logger;
 
+using casacore::ArrayColumn;
+using casacore::MSMainEnums;
+using casacore::ScalarColumn;
+
 using schaapcommon::reordering::ChannelRange;
-using schaapcommon::reordering::GetDataDescIdMap;
+using schaapcommon::reordering::FileWriter;
 using schaapcommon::reordering::GetMaxChannels;
 using schaapcommon::reordering::GetMetaFilename;
 using schaapcommon::reordering::GetPartPrefix;
+using schaapcommon::reordering::HandleData;
 using schaapcommon::reordering::MetaHeader;
 using schaapcommon::reordering::MSSelection;
 using schaapcommon::reordering::PartHeader;
-using schaapcommon::reordering::ReorderedFileWriter;
-using schaapcommon::reordering::ReorderedHandleData;
 using schaapcommon::reordering::StorageManagerType;
 
 /**
@@ -47,16 +55,29 @@ namespace wsclean {
 namespace {
 
 std::map<size_t, std::set<aocommon::PolarizationEnum>>
-GetMSPolarizationsPerDataDescId(const std::vector<ChannelRange>& ranges,
-                                casacore::MeasurementSet& ms) {
+GetMSPolarizationsPerDataDescId(casacore::MeasurementSet& ms) {
+  casacore::MSDataDescription data_description_table = ms.dataDescription();
   std::map<size_t, std::set<aocommon::PolarizationEnum>>
       ms_polarizations_per_data_desc_id;
-  for (const ChannelRange& range : ranges) {
+  for (size_t data_desc_id = 0; data_desc_id != data_description_table.nrow();
+       ++data_desc_id) {
     ms_polarizations_per_data_desc_id.emplace(
-        range.data_desc_id,
-        ReorderedMsProvider::GetMSPolarizations(range.data_desc_id, ms));
+        data_desc_id,
+        ReorderedMsProvider::GetMSPolarizations(data_desc_id, ms));
   }
   return ms_polarizations_per_data_desc_id;
+}
+
+/**
+ * Returns a map that maps data_desc_id to spw index.
+ */
+std::map<size_t, size_t> GetSpwMap(const aocommon::MultiBandData& all_bands) {
+  std::map<size_t, size_t> result;
+  for (size_t data_desc_id : all_bands.DataDescIds()) {
+    const size_t spw_index = all_bands.GetBandIndex(data_desc_id);
+    result.emplace(data_desc_id, spw_index);
+  }
+  return result;
 }
 
 }  // namespace
@@ -71,9 +92,10 @@ ReorderedMsProvider::ReorderedMsProvider(
       polarization_(polarization),
       polarization_count_in_file_(
           aocommon::Polarization::GetVisibilityCount(polarization_)) {
+  const size_t meta_file_index = handle_.data_->metadata_indices_[part_index_];
   std::ifstream meta_file(GetMetaFilename(handle.data_->ms_path_,
                                           handle.data_->temporary_directory_,
-                                          data_desc_id));
+                                          meta_file_index));
   if (!meta_file) {
     throw std::runtime_error("Error opening meta file for ms " +
                              handle.data_->ms_path_ + ", data_desc_id " +
@@ -86,7 +108,7 @@ ReorderedMsProvider::ReorderedMsProvider(
   Logger::Info << "Opening reordered part " << part_index << " spw "
                << data_desc_id << " for " << ms_path.data() << '\n';
   std::string part_prefix =
-      GetPartPrefix(ms_path.data(), part_index, polarization, data_desc_id,
+      GetPartPrefix(ms_path.data(), part_index, polarization,
                     handle.data_->temporary_directory_);
 
   std::ifstream data_file(part_prefix + ".tmp", std::ios::in);
@@ -99,10 +121,7 @@ ReorderedMsProvider::ReorderedMsProvider(
                              ".tmp'");
 
   if (part_header_.has_model) {
-    const size_t length =
-        part_header_.channel_count * meta_header_.selected_row_count *
-        polarization_count_in_file_ * sizeof(std::complex<float>);
-    model_file_ = MappedFile(part_prefix + "-m.tmp", length);
+    model_file_ = MappedFile(part_prefix + "-m.tmp");
   }
   meta_file.close();
   data_file.close();
@@ -123,21 +142,22 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
   if (!part_header_.has_model)
     throw std::runtime_error("Reordered MS initialized without model");
 #endif
-  size_t row_length = part_header_.channel_count * polarization_count_in_file_ *
-                      sizeof(std::complex<float>);
+  // This class only provides regular MSs, hence max_channel_count is the
+  // channel count.
+  const size_t n_channels = part_header_.max_channel_count;
+  size_t row_length =
+      n_channels * polarization_count_in_file_ * sizeof(std::complex<float>);
   std::complex<float>* model_write_ptr = reinterpret_cast<std::complex<float>*>(
       model_file_.Data() + row_length * current_output_row_);
 
   // In case the value was not sampled in this pass, it has been set to infinite
   // and should not overwrite the current value in the set.
   if (add_to_ms) {
-    for (size_t i = 0;
-         i != part_header_.channel_count * polarization_count_in_file_; ++i) {
+    for (size_t i = 0; i != n_channels * polarization_count_in_file_; ++i) {
       if (std::isfinite(buffer[i].real())) model_write_ptr[i] += buffer[i];
     }
   } else {
-    for (size_t i = 0;
-         i != part_header_.channel_count * polarization_count_in_file_; ++i) {
+    for (size_t i = 0; i != n_channels * polarization_count_in_file_; ++i) {
       if (std::isfinite(buffer[i].real())) model_write_ptr[i] = buffer[i];
     }
   }
@@ -158,12 +178,14 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
  * - Weights (single)
  * - Model, optionally
  */
-ReorderedMsProvider::ReorderedHandle ReorderMS(
-    const std::string& ms_path, const std::vector<ChannelRange>& channels,
-    const MSSelection& selection, const std::string& data_column_name,
-    const std::string& model_column_name,
-    StorageManagerType model_storage_manager, bool include_model,
-    bool initial_model_required, const Settings& settings) {
+ReorderedHandle ReorderMS(const std::string& ms_path,
+                          const std::vector<ChannelRange>& channels,
+                          const MSSelection& selection,
+                          const std::string& data_column_name,
+                          const std::string& model_column_name,
+                          StorageManagerType model_storage_manager,
+                          bool include_model, bool initial_model_required,
+                          const Settings& settings) {
   const bool model_update_required = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> pols_out;
   for (aocommon::PolarizationEnum p : settings.polarizations)
@@ -173,8 +195,9 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
   const size_t channel_parts = channels.size();
 
   // This maps data_desc_id to spw index.
+  // TODO use VectorMap instead
   const std::map<size_t, size_t> selected_data_desc_ids =
-      GetDataDescIdMap(channels);
+      GetSpwMap(aocommon::MultiBandData(casacore::MeasurementSet(ms_path)));
 
   std::unique_ptr<MsRowProviderBase> row_provider;
   if (settings.baselineDependentAveragingInWavelengths == 0.0) {
@@ -207,22 +230,31 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
 
   const std::map<size_t, std::set<aocommon::PolarizationEnum>>
       ms_polarizations_per_data_desc_id =
-          GetMSPolarizationsPerDataDescId(channels, row_provider->Ms());
+          GetMSPolarizationsPerDataDescId(row_provider->Ms());
   const size_t nAntennas = row_provider->Ms().antenna().nrow();
   const aocommon::MultiBandData original_bands(row_provider->Ms());
 
   // This handle is just for the writer
   const std::vector<aocommon::MultiBandData> bands_per_part =
       MakeSelectedBands(original_bands, channels);
-  ReorderedHandleData handle_data(
+  auto handle_data = std::make_unique<HandleData>(
       ms_path, data_column_name, model_column_name, model_storage_manager,
-      temporary_directory, channels, initial_model_required,
-      model_update_required, pols_out, selection, bands_per_part, nAntennas,
-      true, ReorderedMsProvider::StoreReorderedInMS);
+      temporary_directory,
+      schaapcommon::reordering::MakeRegularChannelMap(channels),
+      initial_model_required, model_update_required, pols_out, selection,
+      bands_per_part, nAntennas, settings.saveReorder,
+      ReorderedMsProvider::StoreReorderedInMS);
 
-  ReorderedFileWriter reordered_file_writer(handle_data,
-                                            ms_polarizations_per_data_desc_id,
-                                            row_provider->StartTime());
+  aocommon::UVector<bool> file_is_regular;
+  std::tie(handle_data->metadata_indices_, file_is_regular) =
+      schaapcommon::reordering::MakeMetaFilesMap(handle_data->channels_);
+
+  Logger::Debug << "Using " << file_is_regular.size()
+                << " temporary metadata files.\n";
+
+  FileWriter reordered_file_writer(*handle_data,
+                                   ms_polarizations_per_data_desc_id,
+                                   file_is_regular, row_provider->StartTime());
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << ms_path << " into " << channel_parts
@@ -254,7 +286,6 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
 
     reordered_file_writer.WriteMetaRow(u, v, w, time, data_desc_id, antenna1,
                                        antenna2, field_id);
-
     reordered_file_writer.WriteDataRow(data_array.data(), model_array.data(),
                                        weight_spectrum_array.data(),
                                        flag_array.data(), data_desc_id);
@@ -280,40 +311,22 @@ ReorderedMsProvider::ReorderedHandle ReorderMS(
         progress2->SetProgress(progress, total);
       }
     };
-    reordered_file_writer.PopulateModelWithZeros(std::cref(update_progress));
+    constexpr bool zero_initialize_model = true;
+    reordered_file_writer.PopulateModel(zero_initialize_model,
+                                        std::cref(update_progress));
   }
   progress2.reset();
 
-  return ReorderedMsProvider::ReorderedHandle(
-      ms_path, data_column_name, model_column_name, model_storage_manager,
-      temporary_directory, channels, initial_model_required,
-      model_update_required, pols_out, selection, bands_per_part, nAntennas,
-      settings.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
+  return ReorderedHandle(std::move(handle_data));
 }  // namespace wsclean
 
-void ReorderedMsProvider::StoreReorderedInMS(
-    const ReorderedHandleData& handle) {
+void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
   const std::set<aocommon::PolarizationEnum> pols = handle.polarizations_;
 
-  const std::map<size_t, size_t> data_desc_ids =
-      GetDataDescIdMap(handle.channels_);
-
-  std::vector<MetaHeader> meta_headers(data_desc_ids.size());
-  for (const std::pair<const size_t, size_t>& data_desc_id : data_desc_ids) {
-    std::ifstream meta_file(GetMetaFilename(
-        handle.ms_path_, handle.temporary_directory_, data_desc_id.first));
-    MetaHeader& meta_header = meta_headers[data_desc_id.second];
-    meta_header.Read(meta_file);
-    std::vector<char> ms_path(meta_header.filename_length + 1, char(0));
-    meta_file.read(ms_path.data(), meta_header.filename_length);
-  }
-
-  ChannelRange firstRange = handle.channels_[0];
-  std::ifstream first_data_file(
-      GetPartPrefix(handle.ms_path_, 0, *pols.begin(), firstRange.data_desc_id,
-                    handle.temporary_directory_) +
-          ".tmp",
-      std::ios::in);
+  std::ifstream first_data_file(GetPartPrefix(handle.ms_path_, 0, *pols.begin(),
+                                              handle.temporary_directory_) +
+                                    ".tmp",
+                                std::ios::in);
   if (!first_data_file.good())
     throw std::runtime_error("Error opening temporary data file");
   PartHeader firstpart_header_;
@@ -329,11 +342,9 @@ void ReorderedMsProvider::StoreReorderedInMS(
                                                             pols.size());
     size_t file_index = 0;
     for (size_t part = 0; part != channel_parts; ++part) {
-      size_t data_desc_id = handle.channels_[part].data_desc_id;
       for (aocommon::PolarizationEnum p : pols) {
-        std::string part_prefix =
-            GetPartPrefix(handle.ms_path_, part, p, data_desc_id,
-                          handle.temporary_directory_);
+        std::string part_prefix = GetPartPrefix(handle.ms_path_, part, p,
+                                                handle.temporary_directory_);
         model_files[file_index] =
             std::make_unique<std::ifstream>(part_prefix + "-m.tmp");
         if (!*model_files[file_index])
@@ -344,27 +355,19 @@ void ReorderedMsProvider::StoreReorderedInMS(
     }
 
     casacore::MeasurementSet ms(handle.ms_path_, casacore::Table::Update);
-    const std::map<size_t, std::set<aocommon::PolarizationEnum>>
-        ms_polarizations_per_data_desc_id =
-            GetMSPolarizationsPerDataDescId(handle.channels_, ms);
+    const aocommon::VectorMap<std::set<aocommon::PolarizationEnum>>
+        ms_polarizations_per_data_desc_id(GetMSPolarizationsPerDataDescId(ms));
     InitializeModelColumn(ms, handle.model_column_name_,
                           handle.model_storage_manager_);
-    casacore::ScalarColumn<int> antenna1_column(
-        ms, ms.columnName(casacore::MSMainEnums::ANTENNA1));
-    casacore::ScalarColumn<int> antenna2_column(
-        ms, ms.columnName(casacore::MSMainEnums::ANTENNA2));
-    casacore::ScalarColumn<int> field_id_column(
-        ms, ms.columnName(casacore::MSMainEnums::FIELD_ID));
-    casacore::ScalarColumn<double> time_column(
-        ms, ms.columnName(casacore::MSMainEnums::TIME));
-    casacore::ScalarColumn<int> data_desc_id_column(
-        ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
-    casacore::ArrayColumn<casacore::Complex> data_column(
-        ms, handle.data_column_name_);
-    casacore::ArrayColumn<casacore::Complex> model_column(
-        ms, handle.model_column_name_);
-    casacore::ArrayColumn<double> uvw_column(
-        ms, ms.columnName(casacore::MSMainEnums::UVW));
+    ScalarColumn<int> antenna1_column(ms, ms.columnName(MSMainEnums::ANTENNA1));
+    ScalarColumn<int> antenna2_column(ms, ms.columnName(MSMainEnums::ANTENNA2));
+    ScalarColumn<int> field_id_column(ms, ms.columnName(MSMainEnums::FIELD_ID));
+    ScalarColumn<double> time_column(ms, ms.columnName(MSMainEnums::TIME));
+    ScalarColumn<int> data_desc_id_column(
+        ms, ms.columnName(MSMainEnums::DATA_DESC_ID));
+    ArrayColumn<casacore::Complex> data_column(ms, handle.data_column_name_);
+    ArrayColumn<casacore::Complex> model_column(ms, handle.model_column_name_);
+    ArrayColumn<double> uvw_column(ms, ms.columnName(MSMainEnums::UVW));
 
     const casacore::IPosition shape(data_column.shape(0));
     const size_t maxchannels_ = GetMaxChannels(handle.channels_);
@@ -397,39 +400,35 @@ void ReorderedMsProvider::StoreReorderedInMS(
       }
       if (handle.selection_.IsSelected(field_id, timestep, antenna1, antenna2,
                                        uvw.data())) {
-        std::map<size_t, size_t>::const_iterator data_desc_id_iter =
-            data_desc_ids.find(data_desc_id);
-        if (data_desc_id_iter != data_desc_ids.end()) {
-          model_column.get(row, model_data_array, true);
-          size_t file_index = 0;
-          for (size_t part = 0; part != channel_parts; ++part) {
-            const size_t partDataDescId = handle.channels_[part].data_desc_id;
-            if (data_desc_id == partDataDescId) {
-              const size_t part_start_ch = handle.channels_[part].start;
-              const size_t part_end_ch = handle.channels_[part].end;
-              const std::set<aocommon::PolarizationEnum>& ms_polarizations =
-                  ms_polarizations_per_data_desc_id.find(data_desc_id)->second;
-              for (aocommon::PolarizationEnum p : pols) {
-                model_files[file_index]->read(
-                    reinterpret_cast<char*>(model_data_buffer.data()),
-                    (part_end_ch - part_start_ch) * polarizations_per_file *
-                        sizeof(std::complex<float>));
-                if (!model_files[file_index]->good())
-                  throw std::runtime_error(
-                      "Error reading from temporary model data file");
-                schaapcommon::reordering::StoreData<false>(
-                    model_data_array.data(), part_start_ch, part_end_ch,
-                    ms_polarizations, model_data_buffer.data(), p);
+        model_column.get(row, model_data_array, true);
+        size_t file_index = 0;
+        for (size_t part = 0; part != channel_parts; ++part) {
+          const ChannelRange& range = handle.channels_[part][data_desc_id];
+          if (!range.Empty()) {
+            const size_t part_start_ch = range.start;
+            const size_t part_end_ch = range.end;
+            const std::set<aocommon::PolarizationEnum>& ms_polarizations =
+                ms_polarizations_per_data_desc_id[data_desc_id];
+            for (aocommon::PolarizationEnum p : pols) {
+              model_files[file_index]->read(
+                  reinterpret_cast<char*>(model_data_buffer.data()),
+                  (part_end_ch - part_start_ch) * polarizations_per_file *
+                      sizeof(std::complex<float>));
+              if (!model_files[file_index]->good())
+                throw std::runtime_error(
+                    "Error reading from temporary model data file");
+              schaapcommon::reordering::StoreData<false>(
+                  model_data_array.data(), part_start_ch, part_end_ch,
+                  ms_polarizations, model_data_buffer.data(), p);
 
-                ++file_index;
-              }
-            } else {
-              file_index += pols.size();
+              ++file_index;
             }
+          } else {
+            file_index += pols.size();
           }
-          model_column.put(row, model_data_array);
-          selected_row_count_for_debug++;
         }
+        model_column.put(row, model_data_array);
+        selected_row_count_for_debug++;
       }
     }
     progress.SetProgress(end_row - start_row, end_row - start_row);
@@ -438,31 +437,6 @@ void ReorderedMsProvider::StoreReorderedInMS(
         << "Row count for writing reordered data back to the measurement set: "
         << selected_row_count_for_debug << '\n';
   }
-}
-
-void ReorderedMsProvider::MakeIdToMSRowMapping(
-    std::vector<size_t>& id_to_ms_row) {
-  const MSSelection& selection = handle_.data_->selection_;
-  const std::map<size_t, size_t> data_desc_ids =
-      GetDataDescIdMap(handle_.data_->channels_);
-  std::set<size_t> data_desc_idSet;
-  for (std::map<size_t, size_t>::const_iterator i = data_desc_ids.begin();
-       i != data_desc_ids.end(); ++i)
-    data_desc_idSet.insert(i->first);
-  size_t start_row, end_row;
-  SynchronizedMS ms = MS();
-  GetRowRangeAndIDMap(*ms, selection, start_row, end_row, data_desc_idSet,
-                      id_to_ms_row);
-}
-
-void ReorderedMsProvider::ReorderedHandle::Serialize(
-    aocommon::SerialOStream& stream) const {
-  stream.Ptr(data_);
-}
-
-void ReorderedMsProvider::ReorderedHandle::Unserialize(
-    aocommon::SerialIStream& stream) {
-  stream.Ptr(data_);
 }
 
 }  // namespace wsclean

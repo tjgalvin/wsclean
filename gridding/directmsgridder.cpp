@@ -149,13 +149,13 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(
   aocommon::UVector<std::complex<float>> row_visibilities(max_data_size);
   row_data.data = row_visibilities.data();
 
-  std::vector<size_t> id_to_ms_row;
-  ms_data.ms_provider->MakeIdToMSRowMapping(id_to_ms_row);
   size_t rowIndex = 0;
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
   while (ms_reader->CurrentRowAvailable()) {
-    progress_bar_->SetProgress(ms_index * id_to_ms_row.size() + rowIndex,
-                               GetMsCount() * id_to_ms_row.size());
+    // This is temporarily disabled during BDA changes. Once MsProvider provides
+    // a way to get the nr of selected rows, this can be enabled.
+    // progress_bar_->SetProgress(ms_index * id_to_ms_row.size() + rowIndex,
+    //                            GetMsCount() * id_to_ms_row.size());
 
     MSProvider::MetaData metadata;
     ms_reader->ReadMeta(metadata);

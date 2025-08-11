@@ -6,11 +6,12 @@
 #include "../structures/msselection.h"
 #include "../system/mappedfile.h"
 
-#include <schaapcommon/reordering/reorderedhandledata.h>
-#include <schaapcommon/reordering/reorderedfilewriter.h>
+#include "reorderedhandle.h"
+
+#include <schaapcommon/reordering/handledata.h>
+#include <schaapcommon/reordering/filewriter.h>
 #include <schaapcommon/reordering/reordering.h>
 
-#include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
@@ -25,13 +26,12 @@
 namespace wsclean {
 
 class ReorderedMsReader;
+class Settings;
 
 class ReorderedMsProvider final : public MSProvider {
   friend class ReorderedMsReader;
 
  public:
-  class ReorderedHandle;
-
   ReorderedMsProvider(const ReorderedHandle& handle, size_t part_index,
                       aocommon::PolarizationEnum polarization,
                       size_t data_desc_id);
@@ -61,11 +61,9 @@ class ReorderedMsProvider final : public MSProvider {
 
   double StartTime() override { return meta_header_.start_time; }
 
-  void MakeIdToMSRowMapping(std::vector<size_t>& id_to_MS_row) override;
-
   aocommon::PolarizationEnum Polarization() override { return polarization_; }
 
-  size_t NMaxChannels() override { return part_header_.channel_count; }
+  size_t NMaxChannels() override { return part_header_.max_channel_count; }
   bool IsRegular() const override { return true; }
   size_t NPolarizations() override { return polarization_count_in_file_; }
   size_t NAntennas() override { return handle_.data_->n_antennas_; }
@@ -74,49 +72,10 @@ class ReorderedMsProvider final : public MSProvider {
     return handle_.data_->bands_per_part_[part_index_];
   }
 
-  class ReorderedHandle {
-    // ReorderedMsReader is a friend of ReorderedHandle
-    // in order to access the data_ member.
-    friend class ReorderedMsReader;
-    friend class ReorderedMsProvider;
-
-   public:
-    ReorderedHandle() = default;
-
-    ReorderedHandle(
-        const std::string& ms_path, const string& data_column_name,
-        const std::string& model_column_name,
-        schaapcommon::reordering::StorageManagerType model_storage_manager,
-        const std::string& temporary_directory,
-        const std::vector<schaapcommon::reordering::ChannelRange>& channels,
-        bool initial_model_required, bool model_update_required,
-        const std::set<aocommon::PolarizationEnum>& polarizations,
-        const schaapcommon::reordering::MSSelection& selection,
-        const std::vector<aocommon::MultiBandData>& bands_per_part,
-        size_t n_antennas, bool keep_temporary_files,
-        std::function<
-            void(schaapcommon::reordering::ReorderedHandleData& handle)>
-            cleanup_callback)
-        : data_(std::make_shared<schaapcommon::reordering::ReorderedHandleData>(
-              ms_path, data_column_name, model_column_name,
-              model_storage_manager, temporary_directory, channels,
-              initial_model_required, model_update_required, polarizations,
-              selection, bands_per_part, n_antennas, keep_temporary_files,
-              std::move(cleanup_callback))) {}
-
-    void Serialize(aocommon::SerialOStream& stream) const;
-    void Unserialize(aocommon::SerialIStream& stream);
-
-   private:
-    std::shared_ptr<schaapcommon::reordering::ReorderedHandleData> data_;
-  };
-
   static void StoreReorderedInMS(
-      const schaapcommon::reordering::ReorderedHandleData& handle);
+      const schaapcommon::reordering::HandleData& handle);
 
  private:
-  size_t DataDescId() const { return part_header_.data_desc_id; }
-
   const ReorderedHandle handle_;
   const size_t part_index_;
   const size_t data_desc_id_;
@@ -130,14 +89,13 @@ class ReorderedMsProvider final : public MSProvider {
   schaapcommon::reordering::PartHeader part_header_;
 };
 
-ReorderedMsProvider::ReorderedHandle ReorderMS(
+ReorderedHandle ReorderMS(
     const std::string& ms_path,
     const std::vector<schaapcommon::reordering::ChannelRange>& channels,
     const schaapcommon::reordering::MSSelection& selection,
     const std::string& data_column_name, const std::string& model_column_name,
     schaapcommon::reordering::StorageManagerType model_storage_manager,
-    bool include_model, bool initial_model_required,
-    const class Settings& settings);
+    bool include_model, bool initial_model_required, const Settings& settings);
 
 }  // namespace wsclean
 

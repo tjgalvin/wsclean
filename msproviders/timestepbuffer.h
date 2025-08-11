@@ -48,10 +48,6 @@ class TimestepBuffer final : public MSProvider {
 
   double StartTime() final { return ms_provider_->StartTime(); }
 
-  void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) final {
-    ms_provider_->MakeIdToMSRowMapping(idToMSRow);
-  }
-
   aocommon::PolarizationEnum Polarization() final {
     return ms_provider_->Polarization();
   }

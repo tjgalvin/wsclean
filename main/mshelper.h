@@ -6,7 +6,7 @@
 
 #include <aocommon/multibanddata.h>
 
-#include <schaapcommon/reordering/reorderedhandledata.h>
+#include <schaapcommon/reordering/handledata.h>
 
 #include "../msproviders/reorderedmsprovider.h"
 #include "../structures/imagingtable.h"
@@ -35,8 +35,7 @@ class MsHelper {
         ms_bands_{ms_bands},
         reordered_ms_handles_{} {}
 
-  const std::vector<ReorderedMsProvider::ReorderedHandle>&
-  GetReorderedMsHandles() const {
+  const std::vector<ReorderedHandle>& GetReorderedMsHandles() const {
     return reordered_ms_handles_;
   }
 
@@ -55,7 +54,7 @@ class MsHelper {
   const Settings& settings_;
   const schaapcommon::reordering::MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  std::vector<ReorderedMsProvider::ReorderedHandle> reordered_ms_handles_;
+  std::vector<ReorderedHandle> reordered_ms_handles_;
 };
 
 }  // namespace wsclean

@@ -205,7 +205,7 @@ void MsProviderCollection::CalculateMsLimits(
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
   std::unique_ptr<MSReader> msReader = ms_data.ms_provider->MakeReader();
-  const double smallest_wavelength = selected_bands.SmallestWavelength();
+  const double shortest_wavelength = selected_bands.ShortestWavelength();
   const double longest_wavelength = selected_bands.LongestWavelength();
   while (msReader->CurrentRowAvailable()) {
     MSProvider::MetaData metadata;
@@ -219,7 +219,7 @@ void MsProviderCollection::CalculateMsLimits(
     }
 
     const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
-    const double wHi = std::fabs(metadata.w_in_m / smallest_wavelength);
+    const double wHi = std::fabs(metadata.w_in_m / shortest_wavelength);
     const double wLo = std::fabs(metadata.w_in_m / longest_wavelength);
     const double baselineInM = std::sqrt(metadata.u_in_m * metadata.u_in_m +
                                          metadata.v_in_m * metadata.v_in_m +

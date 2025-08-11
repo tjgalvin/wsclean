@@ -51,8 +51,6 @@ class ContiguousMS final : public MSProvider {
 
   double StartTime() override;
 
-  void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) override;
-
   aocommon::PolarizationEnum Polarization() override {
     return _outputPolarization;
   }
@@ -81,7 +79,6 @@ class ContiguousMS final : public MSProvider {
   bool _isDataRead, _isModelRead, _isWeightRead;
   bool _isModelColumnPrepared;
   size_t _startRow, _endRow;
-  std::vector<size_t> _idToMSRow;
   std::set<aocommon::PolarizationEnum> _inputPolarizations;
   schaapcommon::reordering::MSSelection _selection;
   aocommon::PolarizationEnum _outputPolarization;

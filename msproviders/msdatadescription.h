@@ -42,7 +42,7 @@ class MSDataDescription {
   }
 
   static std::unique_ptr<MSDataDescription> ForReordered(
-      ReorderedMsProvider::ReorderedHandle reorderedHandle,
+      ReorderedHandle reorderedHandle,
       const schaapcommon::reordering::MSSelection& selection, size_t partIndex,
       aocommon::PolarizationEnum polarization, size_t dataDescId, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
@@ -90,7 +90,7 @@ class MSDataDescription {
   schaapcommon::reordering::StorageManagerType _modelStorageManager;
 
   // Reordered
-  ReorderedMsProvider::ReorderedHandle _reorderedHandle;
+  ReorderedHandle _reorderedHandle;
   size_t _partIndex;
 };
 

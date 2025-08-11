@@ -4,7 +4,7 @@
 
 #include <aocommon/logger.h>
 
-#include <schaapcommon/reordering/reorderedhandledata.h>
+#include <schaapcommon/reordering/handledata.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 #include <casacore/tables/DataMan/DataManager.h>
@@ -39,8 +39,6 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const aocommon::BandData& band = input[range.data_desc_id];
     result.emplace_back().SetBand(
         range.data_desc_id, aocommon::BandData(band, range.start, range.end));
-    std::cout << "data_desc_id: " << range.data_desc_id << " (" << range.start
-              << " - " << range.end << ")\n";
   }
   return result;
 }
@@ -55,7 +53,7 @@ void MSProvider::GetRowRange(casacore::MeasurementSet& ms,
   if (selection.HasInterval()) {
     Logger::Info << "Determining first and last row index... ";
     Logger::Info.Flush();
-    casacore::ROScalarColumn<double> timeColumn(
+    casacore::ScalarColumn<double> timeColumn(
         ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
     double time = timeColumn(0);
     size_t timestepIndex = 0;
@@ -72,62 +70,6 @@ void MSProvider::GetRowRange(casacore::MeasurementSet& ms,
     }
     Logger::Info << "DONE (" << startRow << '-' << endRow << ")\n";
   }
-}
-
-void MSProvider::GetRowRangeAndIDMap(casacore::MeasurementSet& ms,
-                                     const MSSelection& selection,
-                                     size_t& startRow, size_t& endRow,
-                                     const std::set<size_t>& dataDescIds,
-                                     std::vector<size_t>& idToMSRow) {
-  startRow = 0;
-  endRow = ms.nrow();
-
-  Logger::Info << "Mapping measurement set rows... ";
-  Logger::Info.Flush();
-  casacore::ArrayColumn<double> uvwColumn(
-      ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
-  casacore::ScalarColumn<int> antenna1Column(
-      ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
-  casacore::ScalarColumn<int> antenna2Column(
-      ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
-  casacore::ScalarColumn<int> fieldIdColumn(
-      ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
-  casacore::ScalarColumn<double> timeColumn(
-      ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
-  casacore::ScalarColumn<int> dataDescIdColumn(
-      ms, ms.columnName(casacore::MSMainEnums::DATA_DESC_ID));
-  double time = timeColumn(0);
-  size_t timestepIndex = 0;
-  bool timeStepSelected =
-      !selection.HasInterval() || timestepIndex == selection.IntervalStart();
-  for (size_t row = 0; row != ms.nrow(); ++row) {
-    if (time != timeColumn(row)) {
-      ++timestepIndex;
-      if (selection.HasInterval() &&
-          timestepIndex == selection.IntervalStart()) {
-        startRow = row;
-        timeStepSelected = true;
-      }
-      if (timestepIndex == selection.IntervalEnd()) {
-        if (selection.HasInterval()) endRow = row;
-        break;
-      }
-      time = timeColumn(row);
-    }
-    if (timeStepSelected) {
-      const int a1 = antenna1Column(row), a2 = antenna2Column(row),
-                fieldId = fieldIdColumn(row),
-                dataDescId = dataDescIdColumn(row);
-      casacore::Vector<double> uvw = uvwColumn(row);
-      std::set<size_t>::const_iterator dataDescIdIter =
-          dataDescIds.find(dataDescId);
-      if (selection.IsSelected(fieldId, timestepIndex, a1, a2, uvw.data()) &&
-          dataDescIdIter != dataDescIds.end())
-        idToMSRow.push_back(row);
-    }
-  }
-  Logger::Info << "DONE (" << startRow << '-' << endRow << "; "
-               << idToMSRow.size() << " rows)\n";
 }
 
 void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms,

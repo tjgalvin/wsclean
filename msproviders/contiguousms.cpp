@@ -98,8 +98,7 @@ void ContiguousMS::open() {
         *_ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
   }
 
-  GetRowRangeAndIDMap(*_ms, _selection, _startRow, _endRow,
-                      std::set<size_t>{size_t(_dataDescId)}, _idToMSRow);
+  GetRowRange(*_ms, _selection, _startRow, _endRow);
   ResetWritePosition();
 }
 
@@ -208,10 +207,6 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
                                                buffer, _outputPolarization);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);
-}
-
-void ContiguousMS::MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) {
-  idToMSRow = _idToMSRow;
 }
 
 }  // namespace wsclean

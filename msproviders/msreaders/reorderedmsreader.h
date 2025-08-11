@@ -5,6 +5,7 @@
 
 #include <aocommon/uvector.h>
 
+#include <cstdint>
 #include <fstream>
 
 namespace wsclean {
@@ -33,6 +34,8 @@ class ReorderedMsReader final : public MSReader {
   void WriteImagingWeights(const float* buffer) override;
 
  private:
+  uint64_t NVisibilitiesPerRow() const;
+
   size_t current_input_row_;
 
   // Chunkoffset counts the amount of data rows we are ahead or behind.

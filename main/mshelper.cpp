@@ -77,14 +77,18 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
     const aocommon::MultiBandData original_bands(ms_data_obj);
     const std::vector<aocommon::MultiBandData> bands_per_part =
         MakeSelectedBands(original_bands, channels);
-    ReorderedMsProvider::ReorderedHandle part_ms =
-        ReorderedMsProvider::ReorderedHandle(
-            settings_.filenames[ms_index], settings_.dataColumnName,
-            settings_.modelColumnName, settings_.modelStorageManager,
-            settings_.temporaryDirectory, channels, initial_model_required,
-            settings_.modelUpdateRequired, polarization_types,
-            global_selection_, bands_per_part, n_antennas,
-            settings_.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
+    auto data = std::make_unique<schaapcommon::reordering::HandleData>(
+        settings_.filenames[ms_index], settings_.dataColumnName,
+        settings_.modelColumnName, settings_.modelStorageManager,
+        settings_.temporaryDirectory,
+        schaapcommon::reordering::MakeRegularChannelMap(channels),
+        initial_model_required, settings_.modelUpdateRequired,
+        polarization_types, global_selection_, bands_per_part, n_antennas,
+        settings_.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
+    aocommon::UVector<bool> file_is_regular;
+    std::tie(data->metadata_indices_, file_is_regular) =
+        schaapcommon::reordering::MakeMetaFilesMap(data->channels_);
+    ReorderedHandle part_ms = ReorderedHandle(std::move(data));
 
     reordered_ms_handles_[ms_index] = std::move(part_ms);
   }
@@ -110,7 +114,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
     std::vector<ChannelRange> channels =
         GenerateChannelInfo(imaging_table, ms_index);
-    ReorderedMsProvider::ReorderedHandle part_ms =
+    ReorderedHandle part_ms =
         ReorderMS(settings_.filenames[ms_index], channels, global_selection_,
                   settings_.dataColumnName, settings_.modelColumnName,
                   settings_.modelStorageManager, use_model,

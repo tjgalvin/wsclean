@@ -1,17 +1,18 @@
 #ifndef MAPPED_FILE_H_
 #define MAPPED_FILE_H_
 
-#include <aocommon/system.h>
-
-#include <stdexcept>
-#include <string>
-
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include <errno.h>
 #include <fcntl.h>
+
+#include <filesystem>
+#include <stdexcept>
+#include <string>
+
+#include <aocommon/system.h>
 
 namespace wsclean {
 
@@ -39,7 +40,14 @@ class MappedFile {
 
   /**
    * Memory map a file. The file should exist prior to this call,
-   * and should contain data.
+   * and should contain data. The size of the reservation is
+   * determined from the filesize.
+   */
+  MappedFile(const std::string& filename)
+      : MappedFile(filename, std::filesystem::file_size(filename)) {}
+
+  /**
+   * Same as other overload, but with explicit size.
    */
   MappedFile(const std::string& filename, size_t reserved_size)
       : reserved_size_(reserved_size) {

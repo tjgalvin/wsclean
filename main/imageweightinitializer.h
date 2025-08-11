@@ -27,8 +27,7 @@ class ImageWeightInitializer {
       const Settings& settings,
       const schaapcommon::reordering::MSSelection& global_selection,
       const std::vector<aocommon::MultiBandData>& ms_bands,
-      const std::vector<ReorderedMsProvider::ReorderedHandle>&
-          reordered_ms_handles)
+      const std::vector<ReorderedHandle>& reordered_ms_handles)
       : settings_(settings),
         global_selection_(global_selection),
         ms_bands_(ms_bands),
@@ -53,8 +52,7 @@ class ImageWeightInitializer {
   const Settings& settings_;
   const schaapcommon::reordering::MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
-  const std::vector<ReorderedMsProvider::ReorderedHandle>&
-      reordered_ms_handles_;
+  const std::vector<ReorderedHandle>& reordered_ms_handles_;
 };
 
 }  // namespace wsclean

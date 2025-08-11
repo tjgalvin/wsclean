@@ -112,11 +112,6 @@ class MSProvider {
   virtual double StartTime() = 0;
 
   /**
-   * To obtain a mapping between @ref RowId() and measurement set rows.
-   */
-  virtual void MakeIdToMSRowMapping(std::vector<size_t>& idToMSRow) = 0;
-
-  /**
    * Polarization that this msprovider provides.
    * Be aware that it may return 'DiagonalInstrumental' or 'Instrumental',
    * which means it provides 2 or 4 polarizations that are provided by the
@@ -177,12 +172,6 @@ class MSProvider {
       casacore::MeasurementSet& ms,
       const schaapcommon::reordering::MSSelection& selection, size_t& startRow,
       size_t& endRow);
-
-  static void GetRowRangeAndIDMap(
-      casacore::MeasurementSet& ms,
-      const schaapcommon::reordering::MSSelection& selection, size_t& startRow,
-      size_t& endRow, const std::set<size_t>& dataDescIdMap,
-      std::vector<size_t>& idToMSRow);
 
   static void CopyRealToComplex(std::complex<float>* dest, const float* source,
                                 size_t n) {
