@@ -31,6 +31,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(PORTABLE "Build portable binaries (with slightly decreased performance)"
        OFF)
 option(BUILD_PACKAGES "Build Debian packages" OFF)
+option(ENABLE_WTOWERS
+       "Enable compiling w-towers gridder (requires ska-sdp-func library)" OFF)
 
 set(RADLER_CXX_FLAGS
     " "
@@ -95,32 +97,35 @@ include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 # W-towers requires ska-sdp-func
-find_package(SKA_SDP_FUNC)
-if(SKA_SDP_FUNC_FOUND)
-  if(EXISTS
-     "${SKA_SDP_FUNC_INCLUDE_DIR}/ska-sdp-func/grid_data/sdp_grid_wstack_wtower.h"
-  )
-    message(
-      STATUS
-        "Enabling w-towers gridder; Using ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
+if(ENABLE_WTOWERS)
+  find_package(SKA_SDP_FUNC)
+  if(SKA_SDP_FUNC_FOUND)
+    if(EXISTS
+       "${SKA_SDP_FUNC_INCLUDE_DIR}/ska-sdp-func/grid_data/sdp_grid_wstack_wtower.h"
     )
-    add_definitions(-DBUILD_WTOWERS)
-    set(WTOWERS_CPP_FILES wtowers/wtowersmsgridder.cpp)
-  else()
+      message(
+        STATUS
+          "Enabling w-towers gridder; Using ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
+      )
+      add_definitions(-DBUILD_WTOWERS)
+      set(WTOWERS_CPP_FILES wtowers/wtowersmsgridder.cpp)
+    else()
+      message(
+        FATAL_ERROR
+          "Can't enable w-towers gridder: unsuitable ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
+      )
+    endif()
+  else(SKA_SDP_FUNC_FOUND)
     message(
-      STATUS
-        "Disabling w-towers gridder; unsuitable ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
-    )
-    set(WTOWERS_CPP_FILES "")
-    set(SKA_SDP_FUNC_LIBRARIES "")
-    set(SKA_SDP_FUNC_INCLUDE_DIR "")
-  endif()
-else()
-  message(STATUS "Disabling w-towers gridder; ska-sdp-func library not found.")
+      FATAL_ERROR
+        "Can't enable w-towers gridder: ska-sdp-func library not found.")
+  endif(SKA_SDP_FUNC_FOUND)
+else(ENABLE_WTOWERS)
+  message(STATUS "Disabling w-towers gridder.")
   set(WTOWERS_CPP_FILES "")
   set(SKA_SDP_FUNC_LIBRARIES "")
   set(SKA_SDP_FUNC_INCLUDE_DIR "")
-endif(SKA_SDP_FUNC_FOUND)
+endif(ENABLE_WTOWERS)
 
 find_package(
   HDF5
