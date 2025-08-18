@@ -1,0 +1,42 @@
+FROM ubuntu:25.04
+
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
+    apt-get install -y \
+    cmake \
+    g++-15 \
+    git \
+    pkg-config \
+    libblas-dev \
+    libboost-container1.88-dev \
+    libboost-date-time1.88-dev \
+    libboost-filesystem1.88-dev \
+    libboost-graph1.88-dev \
+    libboost-program-options1.88-dev \
+    libboost-system1.88-dev \
+    casacore-dev \
+    libcfitsio-dev \
+    libfftw3-dev \
+    libgsl-dev \
+    libhdf5-dev \
+    liblapack-dev \
+    libopenmpi-dev \
+    libpython3-dev \
+    pkg-config && \
+  rm -rf /var/lib/apt/lists/*
+
+ENV CC=/usr/bin/gcc-15
+ENV CXX=/usr/bin/g++-15
+
+# WSClean
+ADD . /src
+WORKDIR /src
+
+RUN \
+  mkdir /build && \
+  cd /build && \
+  cmake ../src && \
+  make -j`nproc` && \
+  make install && \
+  cd / && \
+  rm -rf /build && \
+  wsclean --version
