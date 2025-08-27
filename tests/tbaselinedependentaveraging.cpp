@@ -7,6 +7,8 @@
 
 #include <boost/filesystem/operations.hpp>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 const std::string kFilename(

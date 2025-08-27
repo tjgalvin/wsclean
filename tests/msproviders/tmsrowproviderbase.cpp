@@ -5,6 +5,10 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <schaapcommon/reordering/msselection.h>
+
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 BOOST_AUTO_TEST_SUITE(ms_row_provider_base)

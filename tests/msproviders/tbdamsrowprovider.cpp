@@ -4,6 +4,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+using schaapcommon::reordering::MSSelection;
+
 namespace wsclean {
 
 BOOST_AUTO_TEST_SUITE(bda_ms_row_provider)

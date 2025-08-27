@@ -20,7 +20,7 @@ void copyAndResize(const ArrayT& source, ArrayT& destination) {
 
 AveragingMSRowProvider::AveragingMSRowProvider(
     double nWavelengthsAveraging, const std::string& msPath,
-    const MSSelection& selection,
+    const schaapcommon::reordering::MSSelection& selection,
     const std::map<size_t, size_t>& selectedDataDescIds, size_t fieldId,
     const std::string& dataColumnName, const std::string& modelColumnName,
     bool requireModel)

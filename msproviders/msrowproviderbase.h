@@ -1,7 +1,6 @@
 #ifndef MSPROVIDERS_MSROWPROVIDER_BASE_H
 #define MSPROVIDERS_MSROWPROVIDER_BASE_H
 
-#include "../structures/msselection.h"
 #include "mscolumns.h"
 
 #include <casacore/casa/Arrays/Array.h>
@@ -12,7 +11,7 @@
 #include <map>
 #include <string>
 
-using schaapcommon::reordering::MSSelection;
+#include <schaapcommon/reordering/msselection.h>
 
 namespace wsclean {
 
@@ -23,10 +22,11 @@ class MsRowProviderBase {
   using WeightArray = casacore::Array<float>;
   using FlagArray = casacore::Array<bool>;
 
-  explicit MsRowProviderBase(const casacore::MeasurementSet& ms,
-                             const MSSelection& selection,
-                             const std::string& data_column_name,
-                             const std::string& model_column_name);
+  explicit MsRowProviderBase(
+      const casacore::MeasurementSet& ms,
+      const schaapcommon::reordering::MSSelection& selection,
+      const std::string& data_column_name,
+      const std::string& model_column_name);
 
   virtual ~MsRowProviderBase() = default;
 
@@ -64,7 +64,9 @@ class MsRowProviderBase {
 
   casacore::MeasurementSet& Ms() { return ms_; }
 
-  const MSSelection& Selection() const { return selection_; }
+  const schaapcommon::reordering::MSSelection& Selection() const {
+    return selection_;
+  }
 
   MsColumns& Columns() { return columns_; }
 
@@ -72,7 +74,7 @@ class MsRowProviderBase {
 
  private:
   casacore::MeasurementSet ms_;
-  MSSelection selection_;
+  schaapcommon::reordering::MSSelection selection_;
   MsColumns columns_;
   /**
    * Index of the beginning and end of the selected rows.
@@ -94,7 +96,8 @@ class MsRowProviderBase {
  * created.
  */
 std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
-    const std::string& ms_name, const MSSelection& selection,
+    const std::string& ms_name,
+    const schaapcommon::reordering::MSSelection& selection,
     const std::map<size_t, size_t>& selected_data_description_ids,
     const std::string& data_column_name, const std::string& model_column_name,
     bool require_model);

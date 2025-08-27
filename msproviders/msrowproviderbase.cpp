@@ -12,10 +12,10 @@
 
 namespace wsclean {
 
-MsRowProviderBase::MsRowProviderBase(const casacore::MeasurementSet& ms,
-                                     const MSSelection& selection,
-                                     const std::string& data_column_name,
-                                     const std::string& model_column_name)
+MsRowProviderBase::MsRowProviderBase(
+    const casacore::MeasurementSet& ms,
+    const schaapcommon::reordering::MSSelection& selection,
+    const std::string& data_column_name, const std::string& model_column_name)
     : ms_(ms),
       selection_(selection),
       columns_(ms_, data_column_name),
@@ -24,7 +24,8 @@ MsRowProviderBase::MsRowProviderBase(const casacore::MeasurementSet& ms,
 }
 
 std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
-    const std::string& ms_name, const MSSelection& selection,
+    const std::string& ms_name,
+    const schaapcommon::reordering::MSSelection& selection,
     const std::map<size_t, size_t>& selected_data_description_ids,
     const std::string& data_column_name, const std::string& model_column_name,
     bool require_model) {

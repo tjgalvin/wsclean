@@ -19,13 +19,15 @@ namespace wsclean {
  */
 class MSRowProvider : public MsRowProviderBase {
  public:
-  MSRowProvider(const string& msPath, const MSSelection& selection,
+  MSRowProvider(const string& msPath,
+                const schaapcommon::reordering::MSSelection& selection,
                 const std::map<size_t, size_t>& selectedDataDescIds,
                 const std::string& dataColumnName,
                 const std::string& model_column_name, bool requireModel);
 
   explicit MSRowProvider(
-      const casacore::MeasurementSet& ms, const MSSelection& selection,
+      const casacore::MeasurementSet& ms,
+      const schaapcommon::reordering::MSSelection& selection,
       const std::map<size_t, size_t>& selected_data_description_ids,
       const std::string& data_column_name, const std::string& model_column_name,
       bool require_model);

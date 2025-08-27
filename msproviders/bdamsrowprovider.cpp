@@ -97,11 +97,6 @@ void BdaMsRowProvider::ReadModel(DataArray& model) {
   model_->get(queue_.top().row_index, model, true);
 }
 
-template <class Container, class T>
-static bool Contains(const Container& container, const T& value) {
-  return container.find(value) != container.end();
-}
-
 bool BdaMsRowProvider::LoadCurrentRow() {
   MsColumns& columns = Columns();
   last_read_data_.antenna_1 = columns.antenna_1(current_row_);
@@ -120,7 +115,7 @@ bool BdaMsRowProvider::LoadCurrentRow() {
 }
 
 bool BdaMsRowProvider::IsRowSelected(const Data& data) const {
-  if (!Contains(selected_data_description_ids_, data.data_description_id)) {
+  if (!selected_data_description_ids_.contains(data.data_description_id)) {
     return false;
   }
 
