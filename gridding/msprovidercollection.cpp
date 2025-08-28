@@ -4,6 +4,8 @@
 
 #include <aocommon/logger.h>
 
+#include <schaapcommon/reordering/msselection.h>
+
 #include "msgridder.h"
 #include "msgriddermanager.h"
 
@@ -276,5 +278,34 @@ template void MsProviderCollection::CalculateMsLimits<2>(
 template void MsProviderCollection::CalculateMsLimits<4>(
     MsData& ms_data, double pixel_size_x, double pixel_size_y,
     size_t image_width, size_t image_height, const ImageWeights* image_weights);
+
+MSProvider& MsProviderCollection::MeasurementSet(
+    size_t internal_ms_index) const {
+  return *std::get<0>(ms_provider_collection_[internal_ms_index]);
+}
+const MSSelection& MsProviderCollection::Selection(
+    size_t internal_ms_index) const {
+  return std::get<1>(ms_provider_collection_[internal_ms_index]);
+}
+/**
+ * Maps an internal ms index to its original (command line) index.
+ */
+size_t MsProviderCollection::Index(size_t internal_ms_index) const {
+  return std::get<2>(ms_provider_collection_[internal_ms_index]);
+}
+
+size_t MsProviderCollection::Count() const {
+  return ms_provider_collection_.size();
+}
+
+/**
+ * @param index the original command line index of this measurement set. This
+ * allows associating the measurement set with the right h5parm solution file.
+ */
+void MsProviderCollection::Add(std::unique_ptr<MSProvider> ms_provider,
+                               const MSSelection& selection, size_t index) {
+  ms_provider_collection_.emplace_back(std::move(ms_provider), selection,
+                                       index);
+}
 
 }  // namespace wsclean

@@ -49,29 +49,22 @@ class MsProviderCollection {
     std::shared_ptr<std::vector<double>> unique_times;
   };
 
-  MSProvider& MeasurementSet(size_t internal_ms_index) const {
-    return *std::get<0>(ms_provider_collection_[internal_ms_index]);
-  }
-  const MSSelection& Selection(size_t internal_ms_index) const {
-    return std::get<1>(ms_provider_collection_[internal_ms_index]);
-  }
+  MSProvider& MeasurementSet(size_t internal_ms_index) const;
+  const MSSelection& Selection(size_t internal_ms_index) const;
+
   /**
    * Maps an internal ms index to its original (command line) index.
    */
-  size_t Index(size_t internal_ms_index) const {
-    return std::get<2>(ms_provider_collection_[internal_ms_index]);
-  }
-  size_t Count() const { return ms_provider_collection_.size(); }
+  size_t Index(size_t internal_ms_index) const;
+
+  size_t Count() const;
 
   /**
    * @param index the original command line index of this measurement set. This
    * allows associating the measurement set with the right h5parm solution file.
    */
   void Add(std::unique_ptr<MSProvider> ms_provider,
-           const MSSelection& selection, size_t index) {
-    ms_provider_collection_.emplace_back(std::move(ms_provider), selection,
-                                         index);
-  }
+           const MSSelection& selection, size_t index);
 
   double StartTime() const { return ms_limits_.start_time; }
 
