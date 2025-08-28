@@ -33,19 +33,29 @@ class ReorderedMsReader final : public MSReader {
 
   void WriteImagingWeights(const float* buffer) override;
 
- private:
-  uint64_t NVisibilitiesPerRow() const;
+  size_t CurrentDataDescId() const { return metadata_.data_desc_id; }
 
-  size_t current_input_row_;
+ private:
+  uint64_t NVisibilitiesPerRow(size_t data_desc_id) const;
+  void CacheMeta();
+
+  size_t current_input_row_ = 0;
+  size_t current_value_position_ = 0;
+  MSProvider::MetaData metadata_;
 
   // Chunkoffset counts the amount of data rows we are ahead or behind.
   // Positive values mean we are lagging, whereas negative values mean we are
   //  ahead of the current time step.
-  long read_ptr_row_offset_, meta_ptr_row_offset_, weight_ptr_row_offset_;
+  bool has_data_ = false;
+  bool has_weights_ = false;
 
-  std::ifstream meta_file_, weight_file_, data_file_;
+  std::ifstream meta_file_;
+  std::ifstream weight_file_;
+  std::ifstream data_file_;
 
   aocommon::UVector<float> imaging_weight_buffer_;
+  aocommon::UVector<std::complex<float>> data_buffer_;
+  aocommon::UVector<float> weight_buffer_;
   std::unique_ptr<std::fstream> imaging_weights_file_;
 };
 

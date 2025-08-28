@@ -245,16 +245,16 @@ ReorderedHandle ReorderMS(const std::string& ms_path,
       bands_per_part, nAntennas, settings.saveReorder,
       ReorderedMsProvider::StoreReorderedInMS);
 
-  aocommon::UVector<bool> file_is_regular;
-  std::tie(handle_data->metadata_indices_, file_is_regular) =
+  std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
+  std::tie(handle_data->metadata_indices_, data_desc_ids) =
       schaapcommon::reordering::MakeMetaFilesMap(handle_data->channels_);
 
-  Logger::Debug << "Using " << file_is_regular.size()
+  Logger::Debug << "Using " << data_desc_ids.size()
                 << " temporary metadata files.\n";
 
   FileWriter reordered_file_writer(*handle_data,
                                    ms_polarizations_per_data_desc_id,
-                                   file_is_regular, row_provider->StartTime());
+                                   data_desc_ids, row_provider->StartTime());
 
   if (settings.parallelReordering == 1)
     Logger::Info << "Reordering " << ms_path << " into " << channel_parts

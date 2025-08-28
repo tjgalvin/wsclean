@@ -85,8 +85,8 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
         initial_model_required, settings_.modelUpdateRequired,
         polarization_types, global_selection_, bands_per_part, n_antennas,
         settings_.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
-    aocommon::UVector<bool> file_is_regular;
-    std::tie(data->metadata_indices_, file_is_regular) =
+    std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
+    std::tie(data->metadata_indices_, data_desc_ids) =
         schaapcommon::reordering::MakeMetaFilesMap(data->channels_);
     ReorderedHandle part_ms = ReorderedHandle(std::move(data));
 
