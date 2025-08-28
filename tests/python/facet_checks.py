@@ -703,11 +703,17 @@ class TestFacets:
         assert not os.path.isfile(f"dd-psfs-with-faceting-MFS-psf.fits")
 
     def test_time_frequency_smearing(self):
+        das6_ms_path = "/var/scratch/offringa/Raw-RFI-Test-Set/processed/L2014581_SAP000_SB079_uv.ms"
+        if not os.path.isdir(das6_ms_path):
+            if '"das6"' in os.environ.get("CI_RUNNER_TAGS", []):
+                pytest.fail("MS not available while running on das6")
+            else:
+                pytest.skip("MS not available (not on das6?)")
 
         # Create a small test data set from a high time frequency resolution data set
         s = [
             "DP3",
-            "msin=/var/scratch/offringa/Raw-RFI-Test-Set/processed/L2014581_SAP000_SB079_uv.ms",
+            "msin=" + das6_ms_path,
             "msin.baseline=[CR]S*&",
             "msin.ntimes=8",
             "msin.nchan=32",

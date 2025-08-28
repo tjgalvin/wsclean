@@ -143,6 +143,7 @@ pages:
 test-nightly-das6:
   extends: .test-das6-common
   script:
+    - export CI_RUNNER_TAGS=$CI_RUNNER_TAGS
     - cd $CI_PROJECT_DIR/build
     - make nightlychecks
   rules:
