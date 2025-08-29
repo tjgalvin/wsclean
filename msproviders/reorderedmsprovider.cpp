@@ -369,7 +369,7 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
     ArrayColumn<casacore::Complex> model_column(ms, handle.model_column_name_);
     ArrayColumn<double> uvw_column(ms, ms.columnName(MSMainEnums::UVW));
 
-    const casacore::IPosition shape(data_column.shape(0));
+    casacore::IPosition shape(data_column.shape(0));
     const size_t maxchannels_ = GetMaxChannels(handle.channels_);
 
     const size_t polarizations_per_file =
@@ -400,7 +400,12 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
       }
       if (handle.selection_.IsSelected(field_id, timestep, antenna1, antenna2,
                                        uvw.data())) {
-        model_column.get(row, model_data_array, true);
+        if (handle.model_storage_manager_ == StorageManagerType::Sisco) {
+          shape = data_column.shape(row);
+          model_data_array.resize(shape);
+        } else {
+          model_column.get(row, model_data_array, true);
+        }
         size_t file_index = 0;
         for (size_t part = 0; part != channel_parts; ++part) {
           const ChannelRange& range = handle.channels_[part][data_desc_id];

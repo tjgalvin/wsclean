@@ -84,9 +84,13 @@ void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms,
     const bool is_defined = model_column.isDefined(0);
     bool is_same_shape = false;
     if (is_defined) {
-      casacore::IPosition model_shape = model_column.shape(0);
-      casacore::IPosition data_shape = data_column.shape(0);
-      is_same_shape = model_shape == data_shape;
+      if (type == StorageManagerType::Sisco) {
+        is_same_shape = true;
+      } else {
+        casacore::IPosition model_shape = model_column.shape(0);
+        casacore::IPosition data_shape = data_column.shape(0);
+        is_same_shape = model_shape.isEqual(data_shape);
+      }
     }
     if (!is_defined || !is_same_shape) {
       Logger::Warn << "WARNING: Your model column does not have the same shape "
@@ -98,17 +102,24 @@ void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms,
     Logger::Info.Flush();
     std::string st_man_name = "StandardStMan";
     bool use_direct_column = false;
+    casacore::Record dataman_specification;
     switch (type) {
       case StorageManagerType::Default:
         break;
       case StorageManagerType::StokesI:
         st_man_name = "StokesIStMan";
         use_direct_column = true;
+        break;
+      case StorageManagerType::Sisco:
+        st_man_name = "SiscoStMan";
+        dataman_specification.define("predict_level", 2);
+        dataman_specification.define("deflate_level", 9);
+        break;
     }
     casacore::DataManagerCtor constructor =
         casacore::DataManager::getCtor(st_man_name);
     std::unique_ptr<casacore::DataManager> st_man(
-        constructor(model_column_name + "_dm", casacore::Record()));
+        constructor(model_column_name + "_dm", dataman_specification));
     if (!st_man)
       throw std::runtime_error(
           st_man_name +
@@ -127,7 +138,8 @@ void MSProvider::InitializeModelColumn(casacore::MeasurementSet& ms,
 
     casacore::ArrayColumn<casacore::Complex> model_column(ms,
                                                           model_column_name);
-    FillModelColumn(data_column, model_column);
+    if (type != StorageManagerType::Sisco)
+      FillModelColumn(data_column, model_column);
 
     Logger::Info << "DONE\n";
   }

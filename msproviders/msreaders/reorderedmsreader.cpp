@@ -42,7 +42,6 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
 
   if (reordered_ms->meta_header_.data_desc_id) {
     metadata_.data_desc_id = *reordered_ms->meta_header_.data_desc_id;
-    std::cout << metadata_.data_desc_id << '\n';
   }
   CacheMeta();
 }
