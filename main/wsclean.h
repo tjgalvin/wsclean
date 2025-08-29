@@ -30,7 +30,6 @@
 
 #include "../msproviders/reorderedmsprovider.h"
 
-#include "imageweightinitializer.h"
 #include "mshelper.h"
 #include "stopwatch.h"
 #include "settings.h"
@@ -278,7 +277,6 @@ class WSClean {
   OutputChannelInfo _infoForMFS;
 
   std::unique_ptr<MsHelper> _msHelper;
-  std::unique_ptr<ImageWeightInitializer> _image_weight_initializer;
   std::unique_ptr<GriddingTaskFactory> _griddingTaskFactory;
   std::unique_ptr<GriddingTaskManager> _griddingTaskManager;
   std::unique_ptr<ImageWeightCache> _imageWeightCache;

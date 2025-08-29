@@ -1,4 +1,5 @@
 #include "../../scheduling/griddingtaskfactory.h"
+#include "../../io/imageweightcache.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -34,8 +35,6 @@ struct FactoryFixture {
         global_selection(),
         ms_bands(),
         ms_helper(settings, global_selection, ms_bands),
-        image_weight_initializer(settings, global_selection, ms_bands,
-                                 ms_helper.GetReorderedMsHandles()),
         observation_info{42.0, 6.0, "test_name", "test_observer", "test_field"},
         image_weight_cache(WeightMode(WeightClass::Natural), kImageSize,
                            kImageSize, kPixelScale, kPixelScale, 0.0, 1.0, 0.0,
@@ -45,8 +44,8 @@ struct FactoryFixture {
         average_beam_pointers(group.size()),
         model_images(group.size()),
         metadata_cache_pointers(group.size()),
-        factory(ms_helper, image_weight_initializer, observation_info, kLShift,
-                kMShift, group.size()) {
+        factory(ms_helper, settings, observation_info, kLShift, kMShift,
+                group.size()) {
     settings.pixelScaleX = kPixelScale;
     settings.pixelScaleY = kPixelScale;
     settings.writeImagingWeightSpectrumColumn = true;
@@ -172,7 +171,6 @@ struct FactoryFixture {
 
   // For initializing a GriddingTaskFactory:
   MsHelper ms_helper;
-  ImageWeightInitializer image_weight_initializer;
   ObservationInfo observation_info;
 
   // Data for the Create* calls in the tests.

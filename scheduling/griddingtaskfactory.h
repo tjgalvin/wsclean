@@ -21,12 +21,12 @@ namespace wsclean {
 class GriddingTaskFactory {
  public:
   explicit GriddingTaskFactory(const MsHelper& ms_helper,
-                               const ImageWeightInitializer& initializer,
+                               const Settings& settings,
                                const ObservationInfo& observation_info,
                                double l_shift, double m_shift,
                                size_t imaging_table_size)
       : ms_helper_(ms_helper),
-        image_weight_initializer_{initializer},
+        settings_{settings},
         observation_info_{observation_info},
         l_shift_{l_shift},
         m_shift_{m_shift},
@@ -105,7 +105,7 @@ class GriddingTaskFactory {
 
  private:
   const MsHelper& ms_helper_;
-  const ImageWeightInitializer& image_weight_initializer_;
+  const Settings& settings_;
   const ObservationInfo& observation_info_;
   const double l_shift_, m_shift_;
   std::vector<std::unique_ptr<MetaDataCache>> metadata_cache_;

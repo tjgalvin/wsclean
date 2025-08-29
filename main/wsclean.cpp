@@ -717,15 +717,13 @@ void WSClean::RunClean() {
 
     _imageWeightCache = createWeightCache();
 
-    _image_weight_initializer = std::make_unique<ImageWeightInitializer>(
-        _settings, _globalSelection, _msBands,
-        _msHelper->GetReorderedMsHandles());
-    if (_settings.mfWeighting)
-      _image_weight_initializer->InitializeMf(_imagingTable,
-                                              *_imageWeightCache);
+    if (_settings.mfWeighting) {
+      InitializeMfWeights(_settings, _imagingTable, *_imageWeightCache,
+                          *_msHelper);
+    }
     _griddingTaskFactory = std::make_unique<GriddingTaskFactory>(
-        *_msHelper, *_image_weight_initializer, _observationInfo, _l_shift,
-        _m_shift, _imagingTable.EntryCount());
+        *_msHelper, _settings, _observationInfo, _l_shift, _m_shift,
+        _imagingTable.EntryCount());
     _griddingTaskManager = GriddingTaskManager::Make(_settings);
     std::unique_ptr<PrimaryBeam> primaryBeam;
     for (size_t groupIndex = 0;
@@ -736,7 +734,6 @@ void WSClean::RunClean() {
 
     _griddingTaskManager.reset();
     _griddingTaskFactory.reset();
-    _image_weight_initializer.reset();
     // Resetting the MsHelper will destroy its reordered ms handles and
     // thereby clear the temporary files if -save-reordered is not present.
     _msHelper.reset();
@@ -920,13 +917,9 @@ void WSClean::RunPredict() {
     else if (_settings.doReorder)
       _msHelper->PerformReordering(_imagingTable, true);
 
-    _image_weight_initializer = std::make_unique<ImageWeightInitializer>(
-        _settings, _globalSelection, _msBands,
-        _msHelper->GetReorderedMsHandles());
-
     _griddingTaskFactory = std::make_unique<GriddingTaskFactory>(
-        *_msHelper, *_image_weight_initializer, _observationInfo, _l_shift,
-        _m_shift, _imagingTable.EntryCount());
+        *_msHelper, _settings, _observationInfo, _l_shift, _m_shift,
+        _imagingTable.EntryCount());
 
     if (_facetCount != 0) {
       std::string prefix =
@@ -1340,8 +1333,8 @@ void WSClean::readExistingModelImages(const ImagingTableEntry& entry,
       // because only now the image size and scale is known.
       _imageWeightCache = createWeightCache();
       if (_settings.mfWeighting)
-        _image_weight_initializer->InitializeMf(_imagingTable,
-                                                *_imageWeightCache);
+        InitializeMfWeights(_settings, _imagingTable, *_imageWeightCache,
+                            *_msHelper);
     }
 
     WSCFitsWriter writer(reader);
@@ -1535,8 +1528,7 @@ void WSClean::runFirstInversionGroup(
           !_settings.facetSolutionFiles.empty()) {
         std::vector<MsListItem> msList = _msHelper->InitializeMsList(*entry);
         std::shared_ptr<ImageWeights> weights =
-            _image_weight_initializer->Initialize(*entry, msList,
-                                                  *_imageWeightCache);
+            InitializeWeights(_settings, *entry, msList, *_imageWeightCache);
         primaryBeam = std::make_unique<PrimaryBeam>(_settings);
         for (MsListItem& item : msList)
           primaryBeam->AddMS(std::move(item.ms_description));
@@ -2054,8 +2046,8 @@ void WSClean::makeImagingTable(size_t outputIntervalIndex) {
         << channelSet.size() << " unique channels.";
     throw std::runtime_error(str.str());
   }
-  std::vector<aocommon::ChannelInfo> inputChannelFrequencies(channelSet.begin(),
-                                                             channelSet.end());
+  const std::vector<aocommon::ChannelInfo> inputChannelFrequencies(
+      channelSet.begin(), channelSet.end());
   Logger::Debug << "Total nr of channels found in measurement sets: "
                 << inputChannelFrequencies.size() << '\n';
 
