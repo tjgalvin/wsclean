@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <aocommon/multibanddata.h>
+#include <aocommon/vectormap.h>
 
 #include <schaapcommon/reordering/handledata.h>
 
@@ -39,8 +40,12 @@ class MsHelper {
     return reordered_ms_handles_;
   }
 
-  const std::vector<schaapcommon::reordering::ChannelRange> GenerateChannelInfo(
-      const ImagingTable& imaging_table, size_t ms_index) const;
+  std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>
+  GenerateChannelInfo(const ImagingTable& imaging_table, size_t ms_index) const;
+
+  aocommon::VectorMap<schaapcommon::reordering::ChannelRange>
+  GenerateChannelPartInfo(const ImagingTableEntry& entry,
+                          size_t ms_index) const;
 
   void ReuseReorderedFiles(const ImagingTable& imaging_table);
 

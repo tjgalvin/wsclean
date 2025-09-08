@@ -24,14 +24,20 @@ class MeasurementSet;
 
 namespace schaapcommon::reordering {
 struct ChannelRange;
+class MSSelection;
 }  // namespace schaapcommon::reordering
 
 namespace wsclean {
 class MSReader;
 
+aocommon::MultiBandData MakeSelectedPartBands(
+    const aocommon::MultiBandData& input,
+    const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& ranges);
+
 std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const aocommon::MultiBandData& input,
-    const std::vector<schaapcommon::reordering::ChannelRange>& channel_ranges);
+    const std::vector<
+        aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
 
 /**
  * The abstract MSProvider class is the base class for classes that read and

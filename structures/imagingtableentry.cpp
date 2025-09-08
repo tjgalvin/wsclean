@@ -24,7 +24,7 @@ ImagingTableEntry::ImagingTableEntry()
       centreShiftY(0),
       outputChannelIndex(0),
       outputIntervalIndex(0),
-      msData(),
+      part_index_per_ms(),
       squaredDeconvolutionIndex(0),
       joinedGroupIndex(0),
       imageCount(0),

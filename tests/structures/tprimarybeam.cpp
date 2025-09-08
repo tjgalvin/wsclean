@@ -13,8 +13,11 @@ BOOST_AUTO_TEST_SUITE(primary_beam)
 
 BOOST_AUTO_TEST_CASE(get_beam_intervals) {
   const std::string ms_path = "test_data/MWA_MOCK.ms";
+  const aocommon::VectorMap ranges{
+      schaapcommon::reordering::ChannelRange{0, 0, 768}};
   ContiguousMS ms(ms_path, "DATA", "MODEL_DATA", StorageManagerType::Default,
-                  MSSelection(), aocommon::PolarizationEnum::StokesI, 0, false);
+                  MSSelection(), ranges, aocommon::PolarizationEnum::StokesI,
+                  false);
   const std::vector<BeamInterval> intervals = GetBeamIntervals(ms, 1);
   BOOST_REQUIRE_EQUAL(intervals.size(), 1);
   BeamInterval first = intervals.front();

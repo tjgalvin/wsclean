@@ -1,53 +1,52 @@
 #include "msselection.h"
 
-#include <aocommon/logger.h>
+#include <algorithm>
 
-#include <limits>
+#include <aocommon/logger.h>
+#include <aocommon/multibanddata.h>
+
+using schaapcommon::reordering::ChannelRange;
 
 namespace wsclean {
 
-bool SelectMsChannels(schaapcommon::reordering::MSSelection& selection,
-                      const aocommon::MultiBandData& msBands, size_t dataDescId,
-                      const ImagingTableEntry& entry) {
-  const aocommon::BandData& band = msBands[dataDescId];
-  double firstCh = band.ChannelFrequency(0);
-  double lastCh = band.ChannelFrequency(band.ChannelCount() - 1);
+ChannelRange SelectMsChannels(const aocommon::MultiBandData& ms_bands,
+                              size_t data_desc_id, double lowest_frequency,
+                              double highest_frequency) {
+  const aocommon::BandData& band = ms_bands[data_desc_id];
+  double first_channel = band.ChannelFrequency(0);
+  double last_channel = band.ChannelFrequency(band.ChannelCount() - 1);
   // Some mses have decreasing (i.e. reversed) channel frequencies in them
-  bool isReversed = false;
-  if (firstCh > lastCh) {
-    std::swap(firstCh, lastCh);
-    isReversed = true;
+  bool is_reversed = false;
+  if (first_channel > last_channel) {
+    std::swap(first_channel, last_channel);
+    is_reversed = true;
     aocommon::Logger::Debug
         << "Warning: MS has reversed channel frequencies.\n";
   }
-  if (band.ChannelCount() != 0 && entry.lowestFrequency <= lastCh &&
-      entry.highestFrequency >= firstCh) {
-    size_t newStart, newEnd;
-    if (isReversed) {
-      aocommon::BandData::const_reverse_iterator lowPtr =
-          std::lower_bound(band.rbegin(), band.rend(), entry.lowestFrequency);
-      aocommon::BandData::const_reverse_iterator highPtr =
-          std::lower_bound(lowPtr, band.rend(), entry.highestFrequency);
+  if (band.ChannelCount() != 0 && lowest_frequency <= last_channel &&
+      highest_frequency >= first_channel) {
+    size_t range_start, range_end;
+    if (is_reversed) {
+      aocommon::BandData::const_reverse_iterator low_ptr =
+          std::lower_bound(band.rbegin(), band.rend(), lowest_frequency);
+      aocommon::BandData::const_reverse_iterator high_ptr =
+          std::upper_bound(low_ptr, band.rend(), highest_frequency);
 
-      if (highPtr == band.rend()) --highPtr;
-      newStart = band.ChannelCount() - 1 - (highPtr - band.rbegin());
-      newEnd = band.ChannelCount() - (lowPtr - band.rbegin());
+      range_start = band.ChannelCount() - (high_ptr - band.rbegin());
+      range_end = band.ChannelCount() - (low_ptr - band.rbegin());
     } else {
-      const aocommon::BandData::const_iterator lowPtr =
-          std::lower_bound(band.begin(), band.end(), entry.lowestFrequency);
-      aocommon::BandData::const_iterator highPtr =
-          std::lower_bound(lowPtr, band.end(), entry.highestFrequency);
+      const aocommon::BandData::const_iterator low_ptr =
+          std::lower_bound(band.begin(), band.end(), lowest_frequency);
+      aocommon::BandData::const_iterator high_ptr =
+          std::upper_bound(low_ptr, band.end(), highest_frequency);
 
-      if (highPtr == band.end()) --highPtr;
-      newStart = lowPtr - band.begin();
-      newEnd = highPtr - band.begin() + 1;
+      range_start = low_ptr - band.begin();
+      range_end = high_ptr - band.begin();
     }
 
-    selection.SetBandId(dataDescId);
-    selection.SetChannelRange(newStart, newEnd);
-    return true;
+    return ChannelRange{data_desc_id, range_start, range_end};
   } else {
-    return false;
+    return ChannelRange(data_desc_id, 0, 0);
   }
 }
 

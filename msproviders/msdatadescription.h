@@ -5,6 +5,9 @@
 #include "reorderedmsprovider.h"
 
 #include <aocommon/io/serialstreamfwd.h>
+#include <aocommon/vectormap.h>
+
+#include <schaapcommon/reordering/channelrange.h>
 #include <schaapcommon/reordering/storagemanagertype.h>
 
 #include <memory>
@@ -27,13 +30,15 @@ class MSDataDescription {
       const std::string& modelColumnName,
       schaapcommon::reordering::StorageManagerType modelStorageManager,
       const schaapcommon::reordering::MSSelection& selection,
-      aocommon::PolarizationEnum polarization, size_t dataDescId, bool useMPI) {
+      const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
+          channel_selection,
+      aocommon::PolarizationEnum polarization, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = false;
     mdd->_useMPI = useMPI;
     mdd->_polarization = polarization;
-    mdd->_dataDescId = dataDescId;
     mdd->_selection = selection;
+    mdd->_channel_selection = channel_selection;
     mdd->_filename = filename;
     mdd->_dataColumnName = dataColumnName;
     mdd->_modelColumnName = modelColumnName;
@@ -42,15 +47,12 @@ class MSDataDescription {
   }
 
   static std::unique_ptr<MSDataDescription> ForReordered(
-      ReorderedHandle reorderedHandle,
-      const schaapcommon::reordering::MSSelection& selection, size_t partIndex,
-      aocommon::PolarizationEnum polarization, size_t dataDescId, bool useMPI) {
+      ReorderedHandle reorderedHandle, size_t partIndex,
+      aocommon::PolarizationEnum polarization, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = true;
     mdd->_useMPI = useMPI;
     mdd->_polarization = polarization;
-    mdd->_dataDescId = dataDescId;
-    mdd->_selection = selection;
     mdd->_reorderedHandle = std::move(reorderedHandle);
     mdd->_partIndex = partIndex;
     return mdd;
@@ -60,14 +62,11 @@ class MSDataDescription {
 
   /**
    * A MSSelection object that identifies the data range of the
-   * measurement set that is selected. This includes separating
-   * channels caused by e.g. -channels-out and -channel-range.
+   * measurement set that is selected.
    */
   const schaapcommon::reordering::MSSelection& Selection() const {
     return _selection;
   }
-
-  size_t DataDescId() const { return _dataDescId; }
 
   void Serialize(aocommon::SerialOStream& stream) const;
   static std::unique_ptr<MSDataDescription> Unserialize(
@@ -80,14 +79,15 @@ class MSDataDescription {
   bool _isReordered;
   bool _useMPI;
   aocommon::PolarizationEnum _polarization;
-  size_t _dataDescId;
-  schaapcommon::reordering::MSSelection _selection;
 
   // Contiguous
   std::string _filename;
   std::string _dataColumnName;
   std::string _modelColumnName;
   schaapcommon::reordering::StorageManagerType _modelStorageManager;
+  schaapcommon::reordering::MSSelection _selection;
+  aocommon::VectorMap<schaapcommon::reordering::ChannelRange>
+      _channel_selection;
 
   // Reordered
   ReorderedHandle _reorderedHandle;

@@ -11,38 +11,54 @@
 
 #include <memory>
 
+using schaapcommon::reordering::ChannelRange;
+using schaapcommon::reordering::ContainsDataDescId;
 using schaapcommon::reordering::MSSelection;
 using schaapcommon::reordering::StorageManagerType;
 
 namespace wsclean {
+namespace {
+void OutputOpeningMessage(
+    const std::string& ms_path,
+    const aocommon::VectorMap<ChannelRange>& channel_ranges) {
+  std::vector<size_t> ids;
+  for (const ChannelRange& range : channel_ranges) {
+    if (!range.Empty()) ids.emplace_back(range.data_desc_id);
+  }
+  aocommon::Logger::Info << "Opening " << ms_path << ", ";
+  if (ids.size() == 1) {
+    aocommon::Logger::Info << "spw " << ids.front();
+  } else {
+    aocommon::Logger::Info << "multiple spws";
+  }
+  aocommon::Logger::Info << " with contiguous MS reader.\n";
+}
+}  // namespace
 
-ContiguousMS::ContiguousMS(const string& msPath,
-                           const std::string& dataColumnName,
-                           const std::string& modelColumnName,
-                           StorageManagerType modelStorageManager,
-                           const MSSelection& selection,
-                           aocommon::PolarizationEnum outputPolarization,
-                           size_t dataDescId, bool useMPI)
+ContiguousMS::ContiguousMS(
+    const string& msPath, const std::string& dataColumnName,
+    const std::string& modelColumnName, StorageManagerType modelStorageManager,
+    const MSSelection& selection,
+    const aocommon::VectorMap<ChannelRange>& channel_ranges,
+    aocommon::PolarizationEnum outputPolarization, bool useMPI)
     : _currentOutputRow(0),
       _currentOutputTimestep(0),
       _currentOutputTime(0.0),
-      _dataDescId(dataDescId),
       _useMPI(useMPI),
       _nAntenna(0),
       _isModelColumnPrepared(false),
-      _selection(selection),
+      selection_(selection),
+      channel_ranges_(channel_ranges),
       _outputPolarization(outputPolarization),
       _msPath(msPath),
       _dataColumnName(dataColumnName),
       _modelColumnName(modelColumnName),
       _modelStorageManager(modelStorageManager) {
+  OutputOpeningMessage(_msPath, channel_ranges_);
   open();
 }
 
 void ContiguousMS::open() {
-  aocommon::Logger::Info << "Opening " << _msPath << ", spw " << _dataDescId
-                         << " with contiguous MS reader.\n";
-
   _ms = SynchronizedMS(_msPath, _useMPI ? casacore::TableLock::UserNoReadLocking
                                         : casacore::TableLock::DefaultLocking);
 
@@ -62,14 +78,13 @@ void ContiguousMS::open() {
   _flagColumn = casacore::ArrayColumn<bool>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
 
-  _inputPolarizations = GetMSPolarizations(_dataDescId, *_ms);
-
   const casacore::IPosition shape(_dataColumn.shape(0));
   _dataArray = casacore::Array<std::complex<float>>(shape);
   _weightSpectrumArray = casacore::Array<float>(shape);
   _imagingWeightSpectrumArray = casacore::Array<float>(shape);
   _flagArray = casacore::Array<bool>(shape);
   original_bands_ = aocommon::MultiBandData(*_ms);
+  selected_bands_ = MakeSelectedPartBands(original_bands_, channel_ranges_);
   if (original_bands_.BandCount() > 1) {
     throw std::runtime_error(
         "This set contains multiple spws, and can therefore not be opened "
@@ -78,15 +93,11 @@ void ContiguousMS::open() {
         "line.");
   }
 
-  aocommon::BandData band;
-  if (_selection.HasChannelRange()) {
-    band = aocommon::BandData(original_bands_[_dataDescId],
-                              _selection.ChannelRangeStart(),
-                              _selection.ChannelRangeEnd());
-  } else {
-    band = aocommon::BandData(original_bands_[_dataDescId]);
+  for (const ChannelRange& range : channel_ranges_) {
+    const size_t data_desc_id = range.data_desc_id;
+    input_polarizations_.AlwaysEmplace(data_desc_id,
+                                       GetMSPolarizations(data_desc_id, *_ms));
   }
-  selected_bands_.SetBand(_dataDescId, band);
 
   _nAntenna = _ms->antenna().nrow();
 
@@ -98,7 +109,7 @@ void ContiguousMS::open() {
         *_ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
   }
 
-  GetRowRange(*_ms, _selection, _startRow, _endRow);
+  GetRowRange(*_ms, selection_, _startRow, _endRow);
   ResetWritePosition();
 }
 
@@ -111,10 +122,11 @@ void ContiguousMS::ResetWritePosition() {
   _currentOutputRow = _startRow - 1;
   _currentOutputTime = 0.0;
   // TODO: something similar needed in the ContiguousMSReader class?
-  if (_selection.HasInterval())
-    _currentOutputTimestep = _selection.IntervalStart() - 1;
-  else
+  if (selection_.HasInterval()) {
+    _currentOutputTimestep = selection_.IntervalStart() - 1;
+  } else {
     _currentOutputTimestep = -1;
+  }
   NextOutputRow();
 }
 
@@ -134,9 +146,9 @@ void ContiguousMS::NextOutputRow() {
       ++_currentOutputTimestep;
       _currentOutputTime = _timeColumn(_currentOutputRow);
     }
-  } while (!_selection.IsSelected(fieldId, _currentOutputTimestep, a1, a2,
+  } while (!selection_.IsSelected(fieldId, _currentOutputTimestep, a1, a2,
                                   uvw.data()) ||
-           (dataDescId != _dataDescId));
+           !ContainsDataDescId(channel_ranges_, dataDescId));
 }
 
 double ContiguousMS::StartTime() {
@@ -147,10 +159,7 @@ double ContiguousMS::StartTime() {
 }
 
 size_t ContiguousMS::NMaxChannels() {
-  if (_selection.HasChannelRange())
-    return _selection.ChannelRangeEnd() - _selection.ChannelRangeStart();
-  else
-    return original_bands_[_dataDescId].ChannelCount();
+  return selected_bands_.MaxBandChannels();
 }
 
 size_t ContiguousMS::NPolarizations() {
@@ -187,24 +196,19 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
 
   if (!_isModelColumnPrepared) prepareModelColumn();
 
-  size_t startChannel, endChannel;
-  if (_selection.HasChannelRange()) {
-    startChannel = _selection.ChannelRangeStart();
-    endChannel = _selection.ChannelRangeEnd();
-  } else {
-    startChannel = 0;
-    endChannel = original_bands_[_dataDescId].ChannelCount();
-  }
+  const size_t data_desc_id = _dataDescIdColumn(_currentOutputRow);
+  const size_t start_channel = channel_ranges_[data_desc_id].start;
+  const size_t end_channel = channel_ranges_[data_desc_id].end;
 
   _modelColumn.get(_currentOutputRow, _modelArray);
   if (addToMS) {
-    schaapcommon::reordering::StoreData<true>(_modelArray.data(), startChannel,
-                                              endChannel, _inputPolarizations,
-                                              buffer, _outputPolarization);
+    schaapcommon::reordering::StoreData<true>(
+        _modelArray.data(), start_channel, end_channel,
+        input_polarizations_[data_desc_id], buffer, _outputPolarization);
   } else {
-    schaapcommon::reordering::StoreData<false>(_modelArray.data(), startChannel,
-                                               endChannel, _inputPolarizations,
-                                               buffer, _outputPolarization);
+    schaapcommon::reordering::StoreData<false>(
+        _modelArray.data(), start_channel, end_channel,
+        input_polarizations_[data_desc_id], buffer, _outputPolarization);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);
 }

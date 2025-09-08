@@ -1,22 +1,23 @@
 #ifndef MS_SELECTION
 #define MS_SELECTION
 
-#include "imagingtableentry.h"
+#include <schaapcommon/reordering/channelrange.h>
 
-#include <schaapcommon/reordering/msselection.h>
-#include <aocommon/multibanddata.h>
+namespace aocommon {
+class MultiBandData;
+}  // namespace aocommon
 
 namespace wsclean {
 
 /**
- * Change this selection object so that its datadescid and channel range
- * correspond with the given entry. If the specified bands are not necessary
- * for this entry, the msselection is not changed and the function returns
- * false.
+ * Determines the channel index range that covers all channels of one
+ * data_desc_id between @p lowest_frequency and @p highest_frequency, inclusive
+ * on both sides. An empty range is returned when no channels match this
+ * criterion.
  */
-bool SelectMsChannels(schaapcommon::reordering::MSSelection& selection,
-                      const aocommon::MultiBandData& msBands, size_t dataDescId,
-                      const ImagingTableEntry& entry);
+schaapcommon::reordering::ChannelRange SelectMsChannels(
+    const aocommon::MultiBandData& ms_bands, size_t data_desc_id,
+    double lowest_frequency, double highest_frequency);
 
 }  // namespace wsclean
 

@@ -3,6 +3,8 @@
 
 #include <schaapcommon/reordering/reordering.h>
 
+using schaapcommon::reordering::ContainsDataDescId;
+
 namespace wsclean {
 
 ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
@@ -15,8 +17,8 @@ ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
       _isModelRead(false),
       _isWeightRead(false),
       _imagingWeightsColumn() {
-  if (contiguousms->_selection.HasInterval())
-    _currentInputTimestep = contiguousms->_selection.IntervalStart() - 1;
+  if (contiguousms->selection_.HasInterval())
+    _currentInputTimestep = contiguousms->selection_.IntervalStart() - 1;
   NextInputRow();
 }
 
@@ -32,9 +34,9 @@ bool ContiguousMSReader::CurrentRowAvailable() {
   int dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
   casacore::Vector<double> uvw = contiguousms._uvwColumn(_currentInputRow);
 
-  while (!contiguousms._selection.IsSelected(fieldId, _currentInputTimestep, a1,
+  while (!contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep, a1,
                                              a2, uvw.data()) ||
-         dataDescId != contiguousms._dataDescId) {
+         !ContainsDataDescId(contiguousms.channel_ranges_, dataDescId)) {
     ++_currentInputRow;
     if (_currentInputRow >= contiguousms._endRow) return false;
 
@@ -81,9 +83,9 @@ void ContiguousMSReader::NextInputRow() {
       ++_currentInputTimestep;
       _currentInputTime = contiguousms._timeColumn(_currentInputRow);
     }
-  } while (!contiguousms._selection.IsSelected(fieldId, _currentInputTimestep,
+  } while (!contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep,
                                                a1, a2, uvw.data()) ||
-           (dataDescId != contiguousms._dataDescId));
+           !ContainsDataDescId(contiguousms.channel_ranges_, dataDescId));
 }
 
 void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metadata) {
@@ -95,7 +97,7 @@ void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metadata) {
   metadata.v_in_m = uvwArray(1);
   metadata.w_in_m = uvwArray(2);
   metadata.time = contiguousms._timeColumn(_currentInputRow);
-  metadata.data_desc_id = contiguousms._dataDescId;
+  metadata.data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
   metadata.field_id = contiguousms._fieldIdColumn(_currentInputRow);
   metadata.antenna1 = contiguousms._antenna1Column(_currentInputRow);
   metadata.antenna2 = contiguousms._antenna2Column(_currentInputRow);
@@ -106,17 +108,12 @@ void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
 
   readData();
   readWeights();
-  size_t startChannel, endChannel;
-  if (contiguousms._selection.HasChannelRange()) {
-    startChannel = contiguousms._selection.ChannelRangeStart();
-    endChannel = contiguousms._selection.ChannelRangeEnd();
-  } else {
-    startChannel = 0;
-    endChannel =
-        contiguousms.original_bands_[contiguousms._dataDescId].ChannelCount();
-  }
+  const size_t data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
+  const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
+  const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
   schaapcommon::reordering::ExtractData(
-      buffer, startChannel, endChannel, contiguousms._inputPolarizations,
+      buffer, start_channel, end_channel,
+      contiguousms.input_polarizations_[data_desc_id],
       contiguousms._dataArray.data(), contiguousms._outputPolarization);
 }
 
@@ -127,17 +124,12 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
 
   readModel();
   readWeights();
-  size_t startChannel, endChannel;
-  if (contiguousms._selection.HasChannelRange()) {
-    startChannel = contiguousms._selection.ChannelRangeStart();
-    endChannel = contiguousms._selection.ChannelRangeEnd();
-  } else {
-    startChannel = 0;
-    endChannel =
-        contiguousms.original_bands_[contiguousms._dataDescId].ChannelCount();
-  }
+  const size_t data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
+  const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
+  const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
   schaapcommon::reordering::ExtractData(
-      buffer, startChannel, endChannel, contiguousms._inputPolarizations,
+      buffer, start_channel, end_channel,
+      contiguousms.input_polarizations_[data_desc_id],
       contiguousms._modelArray.data(), contiguousms._outputPolarization);
 }
 
@@ -147,17 +139,12 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
 
   readData();
   readWeights();
-  size_t startChannel, endChannel;
-  if (contiguousms._selection.HasChannelRange()) {
-    startChannel = contiguousms._selection.ChannelRangeStart();
-    endChannel = contiguousms._selection.ChannelRangeEnd();
-  } else {
-    startChannel = 0;
-    endChannel =
-        contiguousms.original_bands_[contiguousms._dataDescId].ChannelCount();
-  }
+  const size_t data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
+  const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
+  const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
   schaapcommon::reordering::ExtractWeights(
-      buffer, startChannel, endChannel, contiguousms._inputPolarizations,
+      buffer, start_channel, end_channel,
+      contiguousms.input_polarizations_[data_desc_id],
       contiguousms._dataArray.data(), contiguousms._weightSpectrumArray.data(),
       contiguousms._flagArray.data(), contiguousms._outputPolarization);
 }
@@ -169,21 +156,15 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
     _imagingWeightsColumn.reset(new casacore::ArrayColumn<float>(
         MSProvider::InitializeImagingWeightColumn(*(contiguousms._ms))));
   }
-  size_t dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
-  size_t startChannel, endChannel;
-  if (contiguousms._selection.HasChannelRange()) {
-    startChannel = contiguousms._selection.ChannelRangeStart();
-    endChannel = contiguousms._selection.ChannelRangeEnd();
-  } else {
-    startChannel = 0;
-    endChannel = contiguousms.original_bands_[dataDescId].ChannelCount();
-  }
+  const size_t data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
+  const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
+  const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
 
   _imagingWeightsColumn->get(_currentInputRow,
                              contiguousms._imagingWeightSpectrumArray);
   schaapcommon::reordering::StoreWeights(
-      contiguousms._imagingWeightSpectrumArray.data(), startChannel, endChannel,
-      contiguousms._inputPolarizations, buffer,
+      contiguousms._imagingWeightSpectrumArray.data(), start_channel,
+      end_channel, contiguousms.input_polarizations_[data_desc_id], buffer,
       contiguousms._outputPolarization);
   _imagingWeightsColumn->put(_currentInputRow,
                              contiguousms._imagingWeightSpectrumArray);

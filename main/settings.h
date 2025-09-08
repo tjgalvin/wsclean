@@ -15,6 +15,7 @@
 #include <aocommon/system.h>
 
 #include <schaapcommon/fitters/spectralfitter.h>
+#include <schaapcommon/reordering/msselection.h>
 #include <schaapcommon/reordering/storagemanagertype.h>
 
 #include <radler/settings.h>

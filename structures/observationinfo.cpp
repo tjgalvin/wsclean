@@ -11,7 +11,7 @@
 #include <aocommon/io/serialostream.h>
 #include <aocommon/io/serialistream.h>
 
-#include "../structures/msselection.h"
+#include <schaapcommon/reordering/msselection.h>
 
 namespace wsclean {
 

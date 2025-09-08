@@ -24,16 +24,6 @@ namespace wsclean {
 class CachedImageSet;
 
 struct ImagingTableEntry {
-  struct MSBandInfo {
-    size_t bandIndex;
-    size_t partIndex;
-  };
-
-  struct MSInfo {
-    // Indexed by data desc id.
-    std::vector<MSBandInfo> bands;
-  };
-
   ImagingTableEntry();
 
   /**
@@ -117,9 +107,10 @@ struct ImagingTableEntry {
   size_t outputIntervalIndex;
 
   /**
-   * This vector links a filename index to MS data
+   * This vector links a filename index to part-index of that MS that is
+   * associated with this table entry.
    */
-  std::vector<MSInfo> msData;
+  std::vector<size_t> part_index_per_ms;
 
   /**
    * The group of entries with equal squaredDeconvolutionIndex should be

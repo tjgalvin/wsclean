@@ -6,7 +6,10 @@
 #include "../structures/msselection.h"
 
 #include <aocommon/multibanddata.h>
+#include <aocommon/vectormap.h>
 
+#include <schaapcommon/reordering/channelrange.h>
+#include <schaapcommon/reordering/msselection.h>
 #include <schaapcommon/reordering/storagemanagertype.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
@@ -24,12 +27,14 @@ class ContiguousMS final : public MSProvider {
   friend class ContiguousMSReader;
 
  public:
-  ContiguousMS(const string& msPath, const std::string& dataColumnName,
-               const std::string& modelColumnName,
-               schaapcommon::reordering::StorageManagerType modelStorageManager,
-               const schaapcommon::reordering::MSSelection& selection,
-               aocommon::PolarizationEnum polOut, size_t dataDescIndex,
-               bool useMPI);
+  ContiguousMS(
+      const string& msPath, const std::string& dataColumnName,
+      const std::string& modelColumnName,
+      schaapcommon::reordering::StorageManagerType modelStorageManager,
+      const schaapcommon::reordering::MSSelection& selection,
+      const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
+          channel_selection,
+      aocommon::PolarizationEnum polOut, bool useMPI);
 
   ContiguousMS(const ContiguousMS&) = delete;
 
@@ -73,14 +78,15 @@ class ContiguousMS final : public MSProvider {
   size_t _currentOutputRow;
   size_t _currentOutputTimestep;
   double _currentOutputTime;
-  const int _dataDescId;
-  const bool _useMPI;
+  bool _useMPI;
   size_t _nAntenna;
   bool _isDataRead, _isModelRead, _isWeightRead;
   bool _isModelColumnPrepared;
   size_t _startRow, _endRow;
-  std::set<aocommon::PolarizationEnum> _inputPolarizations;
-  schaapcommon::reordering::MSSelection _selection;
+  aocommon::VectorMap<std::set<aocommon::PolarizationEnum>>
+      input_polarizations_;
+  schaapcommon::reordering::MSSelection selection_;
+  aocommon::VectorMap<schaapcommon::reordering::ChannelRange> channel_ranges_;
   aocommon::PolarizationEnum _outputPolarization;
   std::string _msPath;
   SynchronizedMS _ms;

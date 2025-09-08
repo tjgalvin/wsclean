@@ -84,10 +84,9 @@ std::map<size_t, size_t> GetSpwMap(const aocommon::MultiBandData& all_bands) {
 
 ReorderedMsProvider::ReorderedMsProvider(
     const ReorderedHandle& handle, size_t part_index,
-    aocommon::PolarizationEnum polarization, size_t data_desc_id)
+    aocommon::PolarizationEnum polarization)
     : handle_(handle),
       part_index_(part_index),
-      data_desc_id_(data_desc_id),
       current_output_row_(0),
       polarization_(polarization),
       polarization_count_in_file_(
@@ -98,15 +97,14 @@ ReorderedMsProvider::ReorderedMsProvider(
                                           meta_file_index));
   if (!meta_file) {
     throw std::runtime_error("Error opening meta file for ms " +
-                             handle.data_->ms_path_ + ", data_desc_id " +
-                             std::to_string(data_desc_id));
+                             handle.data_->ms_path_);
   }
 
   meta_header_.Read(meta_file);
   std::vector<char> ms_path(meta_header_.filename_length + 1, char(0));
   meta_file.read(ms_path.data(), meta_header_.filename_length);
-  Logger::Info << "Opening reordered part " << part_index << " spw "
-               << data_desc_id << " for " << ms_path.data() << '\n';
+  Logger::Info << "Opening reordered part " << part_index << " for "
+               << ms_path.data() << '\n';
   std::string part_prefix =
       GetPartPrefix(ms_path.data(), part_index, polarization,
                     handle.data_->temporary_directory_);
@@ -125,16 +123,31 @@ ReorderedMsProvider::ReorderedMsProvider(
   }
   meta_file.close();
   data_file.close();
+
+  if (!meta_header_.data_desc_id.HasValue()) reader_.emplace(this);
 }
 
 ReorderedMsProvider::~ReorderedMsProvider() = default;
 
 std::unique_ptr<MSReader> ReorderedMsProvider::MakeReader() {
-  std::unique_ptr<MSReader> reader(new ReorderedMsReader(this));
-  return reader;
+  return std::make_unique<ReorderedMsReader>(this);
 }
 
-void ReorderedMsProvider::NextOutputRow() { ++current_output_row_; }
+void ReorderedMsProvider::NextOutputRow() {
+  ++current_output_row_;
+  if (reader_) {
+    current_output_position_ +=
+        SelectedBands()[reader_->CurrentDataDescId()].ChannelCount() *
+        polarization_count_in_file_;
+    reader_->NextInputRow();
+  }
+}
+
+void ReorderedMsProvider::ResetWritePosition() {
+  current_output_row_ = 0;
+  current_output_position_ = 0;
+  if (!meta_header_.data_desc_id.HasValue()) reader_.emplace(this);
+}
 
 void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
                                      bool add_to_ms) {
@@ -142,13 +155,18 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
   if (!part_header_.has_model)
     throw std::runtime_error("Reordered MS initialized without model");
 #endif
-  // This class only provides regular MSs, hence max_channel_count is the
-  // channel count.
-  const size_t n_channels = part_header_.max_channel_count;
-  size_t row_length =
-      n_channels * polarization_count_in_file_ * sizeof(std::complex<float>);
-  std::complex<float>* model_write_ptr = reinterpret_cast<std::complex<float>*>(
-      model_file_.Data() + row_length * current_output_row_);
+  size_t n_channels;
+  uint64_t position;
+  if (reader_) {
+    n_channels = SelectedBands()[reader_->CurrentDataDescId()].ChannelCount();
+    position = current_output_position_;
+  } else {
+    n_channels = part_header_.max_channel_count;
+    position = n_channels * polarization_count_in_file_ * current_output_row_;
+  }
+
+  std::complex<float>* model_write_ptr =
+      reinterpret_cast<std::complex<float>*>(model_file_.Data()) + position;
 
   // In case the value was not sampled in this pass, it has been set to infinite
   // and should not overwrite the current value in the set.
@@ -178,14 +196,13 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
  * - Weights (single)
  * - Model, optionally
  */
-ReorderedHandle ReorderMS(const std::string& ms_path,
-                          const std::vector<ChannelRange>& channels,
-                          const MSSelection& selection,
-                          const std::string& data_column_name,
-                          const std::string& model_column_name,
-                          StorageManagerType model_storage_manager,
-                          bool include_model, bool initial_model_required,
-                          const Settings& settings) {
+ReorderedHandle ReorderMS(
+    const std::string& ms_path,
+    const std::vector<aocommon::VectorMap<ChannelRange>>& channels,
+    const MSSelection& selection, const std::string& data_column_name,
+    const std::string& model_column_name,
+    StorageManagerType model_storage_manager, bool include_model,
+    bool initial_model_required, const Settings& settings) {
   const bool model_update_required = settings.modelUpdateRequired;
   std::set<aocommon::PolarizationEnum> pols_out;
   for (aocommon::PolarizationEnum p : settings.polarizations)
@@ -239,11 +256,9 @@ ReorderedHandle ReorderMS(const std::string& ms_path,
       MakeSelectedBands(original_bands, channels);
   auto handle_data = std::make_unique<HandleData>(
       ms_path, data_column_name, model_column_name, model_storage_manager,
-      temporary_directory,
-      schaapcommon::reordering::MakeRegularChannelMap(channels),
-      initial_model_required, model_update_required, pols_out, selection,
-      bands_per_part, nAntennas, settings.saveReorder,
-      ReorderedMsProvider::StoreReorderedInMS);
+      temporary_directory, channels, initial_model_required,
+      model_update_required, pols_out, selection, bands_per_part, nAntennas,
+      settings.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
 
   std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
   std::tie(handle_data->metadata_indices_, data_desc_ids) =
@@ -291,6 +306,7 @@ ReorderedHandle ReorderMS(const std::string& ms_path,
                                        flag_array.data(), data_desc_id);
 
     row_provider->NextRow();
+    ++selected_rows_total;
   }
   progress1.reset();
   Logger::Debug << "Total selected rows: " << selected_rows_total << '\n';

@@ -2148,11 +2148,7 @@ void WSClean::makeImagingTableEntry(
                     << '\n';
   }
 
-  entry.msData.resize(_settings.filenames.size());
-  for (size_t msIndex = 0; msIndex != _settings.filenames.size(); ++msIndex) {
-    entry.msData[msIndex].bands.resize(_msBands[msIndex].HighestDataDescId() +
-                                       1);
-  }
+  entry.part_index_per_ms.resize(_settings.filenames.size());
 }
 
 void WSClean::makeImagingTableEntryChannelSettings(

@@ -7,6 +7,7 @@
 #include "../system/mappedfile.h"
 
 #include "reorderedhandle.h"
+#include "msreaders/reorderedmsreader.h"
 
 #include <schaapcommon/reordering/handledata.h>
 #include <schaapcommon/reordering/filewriter.h>
@@ -33,8 +34,7 @@ class ReorderedMsProvider final : public MSProvider {
 
  public:
   ReorderedMsProvider(const ReorderedHandle& handle, size_t part_index,
-                      aocommon::PolarizationEnum polarization,
-                      size_t data_desc_id);
+                      aocommon::PolarizationEnum polarization);
 
   ~ReorderedMsProvider() final;
 
@@ -53,7 +53,7 @@ class ReorderedMsProvider final : public MSProvider {
 
   void NextOutputRow() override;
 
-  void ResetWritePosition() override { current_output_row_ = 0; };
+  void ResetWritePosition() override;
 
   void WriteModel(const std::complex<float>* buffer, bool add_to_MS) override;
 
@@ -64,7 +64,9 @@ class ReorderedMsProvider final : public MSProvider {
   aocommon::PolarizationEnum Polarization() override { return polarization_; }
 
   size_t NMaxChannels() override { return part_header_.max_channel_count; }
-  bool IsRegular() const override { return true; }
+  bool IsRegular() const override {
+    return meta_header_.data_desc_id.HasValue();
+  }
   size_t NPolarizations() override { return polarization_count_in_file_; }
   size_t NAntennas() override { return handle_.data_->n_antennas_; }
 
@@ -78,12 +80,13 @@ class ReorderedMsProvider final : public MSProvider {
  private:
   const ReorderedHandle handle_;
   const size_t part_index_;
-  const size_t data_desc_id_;
   MappedFile model_file_;
-  size_t current_output_row_;
+  size_t current_output_row_ = 0;
+  size_t current_output_position_ = 0;
   std::unique_ptr<std::ofstream> model_data_file_;
   const aocommon::PolarizationEnum polarization_;
   size_t polarization_count_in_file_;
+  std::optional<ReorderedMsReader> reader_;
 
   schaapcommon::reordering::MetaHeader meta_header_;
   schaapcommon::reordering::PartHeader part_header_;
@@ -91,7 +94,8 @@ class ReorderedMsProvider final : public MSProvider {
 
 ReorderedHandle ReorderMS(
     const std::string& ms_path,
-    const std::vector<schaapcommon::reordering::ChannelRange>& channels,
+    const std::vector<
+        aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels,
     const schaapcommon::reordering::MSSelection& selection,
     const std::string& data_column_name, const std::string& model_column_name,
     schaapcommon::reordering::StorageManagerType model_storage_manager,

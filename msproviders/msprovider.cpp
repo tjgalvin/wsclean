@@ -29,16 +29,32 @@ void FillModelColumn(const casacore::ArrayColumn<casacore::Complex>& dataColumn,
     modelColumn.put(row, zeroArray);
   }
 }
+
 }  // namespace
+
+aocommon::MultiBandData MakeSelectedPartBands(
+    const aocommon::MultiBandData& input,
+    const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& ranges) {
+  aocommon::MultiBandData result;
+  for (const schaapcommon::reordering::ChannelRange& range : ranges) {
+    if (!range.Empty()) {
+      const aocommon::BandData& band = input[range.data_desc_id];
+      result.SetBand(range.data_desc_id,
+                     aocommon::BandData(band, range.start, range.end));
+    }
+  }
+  return result;
+}
 
 std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const aocommon::MultiBandData& input,
-    const std::vector<schaapcommon::reordering::ChannelRange>& channel_ranges) {
+    const std::vector<
+        aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>&
+        channels) {
   std::vector<aocommon::MultiBandData> result;
-  for (const schaapcommon::reordering::ChannelRange& range : channel_ranges) {
-    const aocommon::BandData& band = input[range.data_desc_id];
-    result.emplace_back().SetBand(
-        range.data_desc_id, aocommon::BandData(band, range.start, range.end));
+  for (const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
+           ranges : channels) {
+    result.emplace_back(MakeSelectedPartBands(input, ranges));
   }
   return result;
 }
