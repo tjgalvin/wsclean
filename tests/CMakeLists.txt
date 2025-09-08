@@ -23,6 +23,7 @@ add_executable(
   scheduling/tgriddingtaskfactory.cpp
   structures/timagingtable.cpp
   structures/tfacetutil.cpp
+  structures/tmsselection.cpp
   structures/toutputchannelinfo.cpp
   structures/tprimarybeam.cpp
   structures/tprimarybeamimageset.cpp

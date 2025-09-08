@@ -21,7 +21,7 @@ GriddingTaskManager::GriddingTaskManager(const Settings& settings)
       solution_data_(settings),
       writer_lock_manager_(this) {}
 
-GriddingTaskManager::~GriddingTaskManager() {}
+GriddingTaskManager::~GriddingTaskManager() = default;
 
 std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
     const Settings& settings) {
@@ -65,6 +65,7 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
                                     std::mutex& result_mutex) {
   assert(!facet_indices.empty());
   assert(result.facets.size() == task.facets.size());
+  assert(!task.msList.empty());
 
   // Wait tasks occupy a thread from the pool by waiting on
   // lock_excess_scheduler_tasks_ which will freeze the tasks thread until
