@@ -40,13 +40,7 @@ set(RADLER_CXX_FLAGS
 
 set(ExternalSubmoduleDirectories aocommon radler schaapcommon)
 
-find_package(pybind11 CONFIG QUIET)
-if(NOT pybind11_FOUND)
-  message(
-    "No system pybind11 version found, using the external/pybind11 submodule instead."
-  )
-  set(ExternalSubmoduleDirectories ${ExternalSubmoduleDirectories} pybind11)
-endif()
+find_package(pybind11 CONFIG REQUIRED)
 
 foreach(ExternalSubmodule ${ExternalSubmoduleDirectories})
   if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExternalSubmodule})

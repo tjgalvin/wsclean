@@ -12,6 +12,7 @@ module load hdf5
 module load openblas
 module load openmpi
 module load gsl
+module load py-pybind11
 
 module load dp3
 module load everybeam
