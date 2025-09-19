@@ -13,3 +13,4 @@ Imaging modes
    distributed_imaging
    primary_beam_correction
    facet_based_imaging
+   sub_pixel_rendering
