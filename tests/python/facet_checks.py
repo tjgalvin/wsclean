@@ -312,7 +312,10 @@ class TestFacets:
     @pytest.mark.parametrize(
         "apply_facet_beam", ["without facet beam", "with facet beam"]
     )
-    def test_shared_facet_reads_and_writes(self, apply_facet_beam):
+    @pytest.mark.parametrize("polarization", ["pol i", "pol iquv"])
+    def test_shared_facet_reads_and_writes(
+        self, apply_facet_beam, polarization
+    ):
         names = [
             "facets-no-shared",
             "facets-shared-reads",
@@ -320,6 +323,10 @@ class TestFacets:
             "facets-shared-reads-and-writes",
         ]
         do_apply_facet_beam = apply_facet_beam == "with facet beam"
+        do_all_polarization = polarization == "pol iquv"
+        polarization_settings = "-pol i"
+        if do_all_polarization:
+            polarization_settings = "-pol iquv -join-polarizations"
         facet_beam = (
             "-mwa-path . -apply-facet-beam" if do_apply_facet_beam else ""
         )
@@ -337,6 +344,7 @@ class TestFacets:
                 f"{tcf.WSCLEAN} -name {name}{name_suffix} "
                 f"{shared_args} "
                 f"{facet_beam} "
+                f"{polarization_settings} "
                 "-parallel-gridding 3 "
                 "-channels-out 3 -join-channels "
                 "-no-update-model-required "
@@ -348,14 +356,25 @@ class TestFacets:
             validate_call(s.split())
 
             if name != names[0]:
-                threshold = 5.0e-6
-                if do_apply_facet_beam:
+                if not do_all_polarization:
+                    threshold = 5.0e-6
+                    if do_apply_facet_beam:
+                        threshold = 9.0e-3
+                    compare_rms_fits(
+                        f"{names[0]}{name_suffix}-MFS-image.fits",
+                        f"{name}{name_suffix}-MFS-image.fits",
+                        threshold,
+                    )
+                else:
                     threshold = 9.0e-3
-                compare_rms_fits(
-                    f"{names[0]}{name_suffix}-MFS-image.fits",
-                    f"{name}{name_suffix}-MFS-image.fits",
-                    threshold,
-                )
+                    if do_apply_facet_beam:
+                        threshold = 6.0e-2
+                    for pol in ["I", "Q", "U", "V"]:
+                        compare_rms_fits(
+                            f"{names[0]}{name_suffix}-MFS-{pol}-image.fits",
+                            f"{name}{name_suffix}-MFS-{pol}-image.fits",
+                            threshold,
+                        )
 
     def test_parallel_gridding(self):
         """

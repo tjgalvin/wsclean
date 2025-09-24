@@ -1038,18 +1038,6 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                                  _settings.prefixName + "-matrix-beam");
   }
 
-  // In the case of IDG we have to directly ask for all four polarizations.
-  const bool requestPolarizationsAtOnce =
-      _settings.gridderType == GridderType::IDG &&
-      _settings.polarizations.size() > 1;
-
-  // In case XY/YX polarizations are requested, we should not parallelize over
-  // those since they need to be combined after imaging, and this currently
-  // requires XY before YX.
-  const bool parallelizePolarizations =
-      _settings.polarizations.count(Polarization::XY) == 0 &&
-      _settings.polarizations.count(Polarization::YX) == 0;
-
   _inversionWatch.Start();
   const bool doMakePSF = _settings.deconvolutionIterationCount > 0 ||
                          _settings.makePSF || _settings.makePSFOnly;
@@ -1081,15 +1069,13 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
   }
 
   if (!_settings.makePSFOnly) {
-    runFirstInversions(groupTable, primaryBeam, requestPolarizationsAtOnce,
-                       parallelizePolarizations);
+    runFirstInversions(groupTable, primaryBeam);
   }
 
   _inversionWatch.Pause();
 
   if (!_settings.makePSFOnly) {
-    runMajorIterations(groupTable, primaryBeam, requestPolarizationsAtOnce,
-                       parallelizePolarizations);
+    runMajorIterations(groupTable, primaryBeam);
   }
 
   Logger::Info << "Inversion: " << _inversionWatch.ToString()
@@ -1476,17 +1462,15 @@ void WSClean::resetModelColumns(const ImagingTableEntry& entry) {
 }
 
 void WSClean::runFirstInversions(ImagingTable& groupTable,
-                                 std::unique_ptr<PrimaryBeam>& primaryBeam,
-                                 bool requestPolarizationsAtOnce,
-                                 bool parallelizePolarizations) {
+                                 std::unique_ptr<PrimaryBeam>& primaryBeam) {
   std::vector<ImagingTable::Groups> facetGroupsQueue;
-  if (requestPolarizationsAtOnce) {
+  if (_settings.request_polarizations_at_once) {
     facetGroupsQueue.emplace_back(
         groupTable.FacetGroups([&](const ImagingTableEntry& entry) {
           return !entry.isDdPsf &&
                  (entry.polarization == *_settings.polarizations.begin());
         }));
-  } else if (parallelizePolarizations) {
+  } else if (_settings.parallelize_polarizations) {
     facetGroupsQueue.emplace_back(groupTable.FacetGroups());
   } else {
     // Only use parallelism for entries with the same polarization.
@@ -1504,7 +1488,7 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
     _griddingTaskManager->Finish();
   }
 
-  if (requestPolarizationsAtOnce) {
+  if (_settings.request_polarizations_at_once) {
     groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
   }
   if (!_settings.reuseDirty)
@@ -1561,9 +1545,7 @@ void WSClean::runFirstInversionGroup(
 }
 
 void WSClean::runMajorIterations(ImagingTable& groupTable,
-                                 std::unique_ptr<PrimaryBeam>& primaryBeam,
-                                 bool requestPolarizationsAtOnce,
-                                 bool parallelizePolarizations) {
+                                 std::unique_ptr<PrimaryBeam>& primaryBeam) {
   std::unique_ptr<radler::WorkTable> deconvolution_table =
       groupTable.CreateDeconvolutionTable(_settings.deconvolutionChannelCount,
                                           _psfImages, _modelImages,
@@ -1606,7 +1588,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
             getMaxNrMSProviders() *
             (tableWithoutDdPsf.MaxFacetGroupIndex() + 1));
 
-        if (requestPolarizationsAtOnce) {
+        if (_settings.request_polarizations_at_once) {
           // Only request one polarization for each facet/channel.
           // The gridder will grid all polarizations.
           const aocommon::PolarizationEnum first_polarization =
@@ -1628,7 +1610,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           }
           _griddingTaskManager->Finish();
           _inversionWatch.Pause();
-        } else if (parallelizePolarizations) {
+        } else if (_settings.parallelize_polarizations) {
           _predictingWatch.Start();
           for (const ImagingTable::Group& facetGroup : facetGroups) {
             Predict(facetGroup);

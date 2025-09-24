@@ -104,6 +104,8 @@ class Settings {
       schaapcommon::reordering::StorageManagerType::Default;
   std::set<aocommon::PolarizationEnum> polarizations{
       aocommon::Polarization::StokesI};
+  bool request_polarizations_at_once = false;
+  bool parallelize_polarizations = false;
   std::string facetRegionFilename;
   std::optional<size_t> featherSize;
   std::set<size_t> spectralWindows;

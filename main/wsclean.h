@@ -78,9 +78,7 @@ class WSClean {
   void predictGroup(const ImagingTable& groupTable);
 
   void runFirstInversions(ImagingTable& groupTable,
-                          std::unique_ptr<PrimaryBeam>& primaryBeam,
-                          bool requestPolarizationsAtOnce,
-                          bool parallelizePolarizations);
+                          std::unique_ptr<PrimaryBeam>& primaryBeam);
   /**
    * @brief Run first inversion on all entries within a group.
    * @details A group should contain all facets of a single image.
@@ -88,9 +86,7 @@ class WSClean {
   void runFirstInversionGroup(ImagingTable::Group& facetGroup,
                               std::unique_ptr<PrimaryBeam>& primaryBeam);
   void runMajorIterations(ImagingTable& groupTable,
-                          std::unique_ptr<PrimaryBeam>& primaryBeam,
-                          bool requestPolarizationsAtOnce,
-                          bool parallelizePolarizations);
+                          std::unique_ptr<PrimaryBeam>& primaryBeam);
 
   /**
    * Returns true when gridding is done with a-terms. This can either

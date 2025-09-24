@@ -502,6 +502,17 @@ void Settings::Propagate(bool verbose) {
     doReorder = determineReorder();
     dataColumnName = determineDataColumn(verbose);
   }
+
+  // In the case of IDG we have to directly ask for all four polarizations.
+  request_polarizations_at_once =
+      gridderType == GridderType::IDG && polarizations.size() > 1;
+  // In case XY/YX polarizations are requested, we should not parallelize over
+  // those since they need to be combined after imaging, and this currently
+  // requires XY before YX.
+  const bool has_xy = polarizations.count(aocommon::Polarization::XY) != 0;
+  const bool has_yx = polarizations.count(aocommon::Polarization::YX) != 0;
+  parallelize_polarizations = !request_polarizations_at_once &&
+                              polarizations.size() > 1 && (!has_xy || !has_yx);
 }
 
 void Settings::RecalculateDerivedDimensions(bool verbose) {

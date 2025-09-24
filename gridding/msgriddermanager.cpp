@@ -61,6 +61,8 @@ void MSGridderManager::InitializeGridders(
   Resources per_gridder_resources =
       resources.GetPart(task.num_parallel_gridders_);
   available_cores_per_gridder_ = per_gridder_resources.NCpus();
+  const bool is_first_polarization =
+      task.polarization == *settings_.polarizations.begin();
   for (size_t facet_index : facet_indices) {
     assert(facet_index < task.facets.size());
 
@@ -85,7 +87,7 @@ void MSGridderManager::InitializeGridders(
       idgGridder.SetAverageBeam(std::move(facet_task->averageBeam));
     }
 
-    InitializeGridderForFacet(*gridder, *facet_task);
+    InitializeGridderForFacet(is_first_polarization, *gridder, *facet_task);
 
     facet_tasks_.emplace_back(
         GriddingFacetTask{std::move(gridder), facet_task, facet_result});
@@ -855,7 +857,8 @@ size_t MSGridderManager::PredictChunk(
 void MSGridderManager::PredictChunks(
     aocommon::Lane<PredictionChunkData>& task_lane,
     const aocommon::UVector<double>& frequencies,
-    MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations) {
+    MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations,
+    bool add_assign_model) {
   PredictionChunkData chunk_data;
   size_t chunk_index = 0;
 
@@ -905,10 +908,9 @@ void MSGridderManager::PredictChunks(
           // of all facets.
           Logger::Info << "Writing chunk" << chunk_index << ".\n";
           std::complex<float>* visibilities = combined_visibilities.data();
-          const bool sum_with_ms_model = false;
           const size_t stride = band.ChannelCount() * n_vis_polarizations;
           for (size_t row = 0; row != chunk_data.n_rows; ++row) {
-            ms_data.ms_provider->WriteModel(visibilities, sum_with_ms_model);
+            ms_data.ms_provider->WriteModel(visibilities, add_assign_model);
             ms_data.ms_provider->NextOutputRow();
             visibilities += stride;
           }
@@ -1071,7 +1073,8 @@ void MSGridderManager::BatchPredict() {
       // Iterate over data in chunks until all visibilities have been predicted.
       aocommon::Lane<PredictionChunkData> task_lane(1);
       std::thread predict_chunks_thread([&] {
-        PredictChunks(task_lane, frequencies, ms_data, n_vis_polarizations);
+        PredictChunks(task_lane, frequencies, ms_data, n_vis_polarizations,
+                      gridders[0]->ShouldAddAssignModel());
       });
       ReadChunksForPredict(task_lane, n_max_rows_in_memory, ms_data,
                            shared_data, gridders, band, n_vis_polarizations,
@@ -1206,9 +1209,11 @@ void MSGridderManager::InitializeGridderForTask(
 }
 
 void MSGridderManager::InitializeGridderForFacet(
-    MsGridder& gridder, GriddingTask::FacetData& facet_task) {
+    bool is_first_polarization, MsGridder& gridder,
+    GriddingTask::FacetData& facet_task) {
   const schaapcommon::facets::Facet* facet = facet_task.facet.get();
-  gridder.SetIsFacet(facet != nullptr);
+  gridder.SetAddAssignModel(facet, is_first_polarization);
+  gridder.SetIsFacet(facet);
   if (facet) {
     gridder.SetFacetIndex(facet_task.index);
     gridder.SetImageWidth(facet->GetUntrimmedBoundingBox().Width());

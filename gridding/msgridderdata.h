@@ -101,6 +101,7 @@ class MsGridderData {
     main_image_dl_ = other.main_image_dl_;
     main_image_dm_ = other.main_image_dm_;
     facet_group_index_ = other.facet_group_index_;
+    add_assign_model_ = other.add_assign_model_;
     is_facet_ = other.is_facet_;
     do_subtract_model_ = other.do_subtract_model_;
     polarization_ = other.polarization_;
@@ -505,10 +506,28 @@ class MsGridderData {
   /**
    * @brief In case of facet-based imaging, the model data in the @param
    * MSProvider is reset to zeros in every major cycle, and predicted data
-   * should be add-assigned to the model data (_isFacet = true) rather
-   * than overwriting it. For standard imaging (_isFacet = false), the model
-   * data should be overwritten.
+   * should be add-assigned to the model data (add_assign_model_ = true) rather
+   * than overwriting it. For standard imaging (add_assign_model_ = false), the
+   * model data should be overwritten.
+   *
+   * Shared writes avoid the need for this as the add-assign is done in memory
+   * prior to writing. However add assign when writing is still necessary when
+   * doing multiple polarizations. This holds for all polarizations if gridding
+   * is done in parallel, otherwise it holds for all but the first polarization.
    */
+  void SetAddAssignModel(bool is_facet, bool is_first_polarization) {
+    // NB! It might seem like an oversight that add-assign is not also done for
+    // multiple polarizations without facets; however this is okay because in
+    // this case we write a separate model file per polarization instead of a
+    // single model file. The exception would be IDG; however IDG uses
+    // request_polarizations_at_once which bypasses this entirely.
+    add_assign_model_ = is_facet;
+    if (settings_.shared_facet_writes) {
+      add_assign_model_ =
+          settings_.parallelize_polarizations || !is_first_polarization;
+    }
+  }
+  bool ShouldAddAssignModel() const { return add_assign_model_; }
   void SetIsFacet(bool is_facet) { is_facet_ = is_facet; }
   bool IsFacet() const { return is_facet_; }
   void SetLShift(const double l_shift) { l_shift_ = l_shift; }
@@ -994,7 +1013,8 @@ class MsGridderData {
 
   // These members are set from the task during InitializeGridderForTask
   bool do_subtract_model_ = false;
-  bool is_facet_ = false;  /// @see SetIsFacet()
+  bool add_assign_model_ = false;
+  bool is_facet_ = false;
   bool store_imaging_weights_ = false;
   double main_image_dl_ = 0.0;
   double main_image_dm_ = 0.0;
@@ -1252,7 +1272,7 @@ void MsGridderData::WriteInstrumentalVisibilities(
   {
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
         writer_lock_manager_->GetLock(writer_lock_index_);
-    ms_provider.WriteModel(buffer, IsFacet());
+    ms_provider.WriteModel(buffer, ShouldAddAssignModel());
   }
   ms_provider.NextOutputRow();
 }

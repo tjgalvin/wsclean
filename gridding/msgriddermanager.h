@@ -365,7 +365,7 @@ class MSGridderManager {
   void PredictChunks(aocommon::Lane<PredictionChunkData>& task_lane,
                      const aocommon::UVector<double>& frequencies,
                      MsProviderCollection::MsData& ms_data,
-                     size_t n_vis_polarizations);
+                     size_t n_vis_polarizations, bool add_assign_model);
 
   std::unique_ptr<MsGridder> ConstructGridder(const Resources& resources);
   struct GriddingFacetTask {
@@ -405,7 +405,7 @@ class MSGridderManager {
                                 GriddingTaskManager* writer_lock_manager);
 
   /** Initializes 'gridder' with facet-specific values. */
-  void InitializeGridderForFacet(MsGridder& gridder,
+  void InitializeGridderForFacet(bool is_first_polarization, MsGridder& gridder,
                                  GriddingTask::FacetData& facet_task);
 
   const Settings& settings_;
