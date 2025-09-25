@@ -119,7 +119,8 @@ ReorderedMsProvider::ReorderedMsProvider(
                              ".tmp'");
 
   if (part_header_.has_model) {
-    model_file_ = MappedFile(part_prefix + "-m.tmp");
+    model_file_path_ = part_prefix + "-m.tmp";
+    model_file_ = MappedFile(model_file_path_);
   }
   meta_file.close();
   data_file.close();
@@ -179,6 +180,16 @@ void ReorderedMsProvider::WriteModel(const std::complex<float>* buffer,
       if (std::isfinite(buffer[i].real())) model_write_ptr[i] = buffer[i];
     }
   }
+}
+
+void ReorderedMsProvider::ResetModelColumn() {
+  model_file_.Close();
+  std::remove(model_file_path_.c_str());
+  schaapcommon::reordering::AllocateFile(model_file_path_,
+                                         NMaxChannels() * NPolarizations() *
+                                             meta_header_.selected_row_count *
+                                             sizeof(std::complex<float>));
+  model_file_ = MappedFile(model_file_path_);
 }
 
 /*

@@ -78,7 +78,9 @@ class MappedFile {
     }
   }
 
-  ~MappedFile() {
+  ~MappedFile() { Close(); }
+
+  void Close() {
     if (memory_map_ != nullptr) {
       if (reserved_size_ != 0) munmap(memory_map_, reserved_size_);
     }

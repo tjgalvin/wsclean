@@ -172,7 +172,7 @@ class MSProvider {
   /**
    * Reset model data in the MSProvider to zeros.
    */
-  void ResetModelColumn();
+  virtual void ResetModelColumn();
 
   static void GetRowRange(
       casacore::MeasurementSet& ms,

@@ -57,6 +57,8 @@ class ReorderedMsProvider final : public MSProvider {
 
   void WriteModel(const std::complex<float>* buffer, bool add_to_MS) override;
 
+  void ResetModelColumn() override;
+
   void ReopenRW() override {}
 
   double StartTime() override { return meta_header_.start_time; }
@@ -81,6 +83,7 @@ class ReorderedMsProvider final : public MSProvider {
   const ReorderedHandle handle_;
   const size_t part_index_;
   MappedFile model_file_;
+  std::string model_file_path_;
   size_t current_output_row_ = 0;
   size_t current_output_position_ = 0;
   std::unique_ptr<std::ofstream> model_data_file_;
