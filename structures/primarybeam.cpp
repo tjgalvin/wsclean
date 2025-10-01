@@ -21,6 +21,8 @@
 #include <optional>
 #include <stdexcept>
 
+#include <casacore/measures/Measures/MEpoch.h>
+
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/aterms/atermconfig.h>
 #include <EveryBeam/griddedresponse/griddedresponse.h>
