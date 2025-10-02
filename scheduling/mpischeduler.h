@@ -24,23 +24,23 @@ class MPIScheduler final : public GriddingTaskManager {
    * Either sends the task to another MPI node or runs it locally.
    */
   void Run(GriddingTask&& task,
-           std::function<void(GriddingResult&)> finishCallback) override;
+           std::function<void(GriddingResult&)> finish_callback) final;
 
-  void Finish() override;
+  void Finish() final;
 
-  void Start(size_t nWriterGroups) override;
+  void Start(size_t n_writer_groups) final;
 
-  std::unique_ptr<WriterLock> GetLock(size_t writerGroupIndex) override {
+  std::unique_ptr<WriterLock> GetLock(size_t writer_group_index) final {
     // Since WSClean uses a static outputchannel-to-node mapping,
     // synchronisation of writes only needs to happen within a node.
-    return _localScheduler.GetLock(writerGroupIndex);
+    return local_scheduler_.GetLock(writer_group_index);
   }
 
   /**
    * Send a task to a worker node or run it on the master
    * If all nodes are busy, the call will block until a node is available.
    */
-  void send(GriddingTask&& task,
+  void Send(GriddingTask&& task,
             std::function<void(GriddingResult&)>&& callback);
 
   /**
@@ -48,7 +48,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * The loop ends when Finish() is called and all tasks are finished.
    * This function runs in a separate thread.
    */
-  void receiveLoop();
+  void ReceiveLoop();
 
   /**
    * Gets a node index for executing a (compound) task according
@@ -57,8 +57,8 @@ class MPIScheduler final : public GriddingTaskManager {
    * the callback function.
    * @return The index of the node executing the task.
    */
-  int getNode(const GriddingTask& task,
-              std::function<void(GriddingResult&)>&& callback);
+  size_t GetNode(const GriddingTask& task,
+                 std::function<void(GriddingResult&)>&& callback);
 
   /**
    * If any results are available, call the callback functions and remove these
@@ -69,7 +69,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * This function is UNSYNCHRONIZED: the caller should
    * hold the mutex locked while calling it.
    */
-  void processReadyList_UNSYNCHRONIZED();
+  void ProcessReadyList_UNSYNCHRONIZED();
 
   /**
    * Return true if any tasks are still running on worker nodes.
@@ -82,21 +82,21 @@ class MPIScheduler final : public GriddingTaskManager {
    */
   bool AWorkerIsRunning_UNSYNCHRONIZED();
 
-  void processGriddingResult(int node, size_t bodySize);
+  void ProcessGriddingResult(size_t node, size_t body_size);
   /**
    * Stores 'result' in _readyList and updates the available slots of 'node'.
    */
   void StoreResult(GriddingResult&& result, int node);
 
-  bool _isRunning;
-  bool _isFinishing;
-  std::condition_variable _notify;
-  std::mutex _mutex;
-  std::thread _receiveThread;
+  bool is_running_ = false;
+  bool is_finishing_ = false;
+  std::condition_variable notify_;
+  std::mutex mutex_;
+  std::thread receive_thread_;
   /** Stores results of ready tasks. */
-  std::vector<GriddingResult> _readyList;
+  std::vector<GriddingResult> ready_list_;
   /** Stores callbacks, indexed by task id. */
-  std::map<size_t, std::function<void(GriddingResult&)>> _callbacks;
+  std::map<size_t, std::function<void(GriddingResult&)>> callbacks_;
 
   /**
    * Available execution room for tasks for each node.
@@ -111,13 +111,13 @@ class MPIScheduler final : public GriddingTaskManager {
    *   it can then immediately start with the prematurely sent task instead
    *   of waiting for a new task.
    */
-  std::vector<int> _availableRoom;
+  std::vector<int> available_room_;
 
   /**
    * The lower-level local scheduler on an MPI node.
    * Using the threaded scheduler ensures that gridding uses a separate thread.
    */
-  ThreadedScheduler _localScheduler;
+  ThreadedScheduler local_scheduler_;
 };
 
 }  // namespace wsclean
