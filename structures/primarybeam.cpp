@@ -22,6 +22,7 @@
 #include <stdexcept>
 
 #include <casacore/measures/Measures/MEpoch.h>
+#include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/aterms/atermconfig.h>
