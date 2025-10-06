@@ -19,8 +19,36 @@
 using aocommon::Logger;
 using aocommon::units::Angle;
 
-namespace wsclean {
-namespace math {
+namespace wsclean::math {
+namespace {
+
+void FitBeamSize(const Settings& settings, double& bMaj, double& bMin,
+                 double& bPA, const aocommon::Image& image,
+                 double beamEstimate) {
+  Logger::Info << "Fitting beam... ";
+  Logger::Info.Flush();
+  if (settings.circularBeam) {
+    bMaj = beamEstimate;
+    schaapcommon::fitters::Fit2DCircularGaussianCentred(
+        image.Data(), image.Width(), image.Height(), bMaj,
+        settings.beamFittingBoxSize);
+    bMin = bMaj;
+    bPA = 0.0;
+  } else {
+    const bool skip_negatives = !settings.fitBeamWithNegatives;
+    const schaapcommon::math::Ellipse ellipse =
+        schaapcommon::fitters::Fit2DGaussianCentred(
+            image.Data(), skip_negatives, image.Width(), image.Height(),
+            beamEstimate, settings.beamFittingBoxSize, false);
+    bMaj = ellipse.major;
+    bMin = ellipse.minor;
+    bPA = ellipse.position_angle;
+  }
+  bMaj = bMaj * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
+  bMin = bMin * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
+}
+
+}  // namespace
 
 void CorrectImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
                                    std::array<aocommon::Image*, 4>& images) {
@@ -74,39 +102,9 @@ void CorrectDualImagesForMuellerMatrix(
   }
 }
 
-}  // namespace math
-
-void ImageOperations::FitBeamSize(const Settings& settings, double& bMaj,
-                                  double& bMin, double& bPA,
-                                  const aocommon::Image& image,
-                                  double beamEstimate) {
-  Logger::Info << "Fitting beam... ";
-  Logger::Info.Flush();
-  if (settings.circularBeam) {
-    bMaj = beamEstimate;
-    schaapcommon::fitters::Fit2DCircularGaussianCentred(
-        image.Data(), image.Width(), image.Height(), bMaj,
-        settings.beamFittingBoxSize);
-    bMin = bMaj;
-    bPA = 0.0;
-  } else {
-    const schaapcommon::math::Ellipse ellipse =
-        schaapcommon::fitters::Fit2DGaussianCentred(
-            image.Data(), image.Width(), image.Height(), beamEstimate,
-            settings.beamFittingBoxSize);
-    bMaj = ellipse.major;
-    bMin = ellipse.minor;
-    bPA = ellipse.position_angle;
-  }
-  bMaj = bMaj * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
-  bMin = bMin * 0.5 * (settings.pixelScaleX + settings.pixelScaleY);
-}
-
-void ImageOperations::DetermineBeamSize(const Settings& settings, double& bMaj,
-                                        double& bMin, double& bPA,
-                                        double& bTheoretical,
-                                        const aocommon::Image& image,
-                                        double initialEstimate) {
+void DetermineBeamSize(const Settings& settings, double& bMaj, double& bMin,
+                       double& bPA, double& bTheoretical,
+                       const aocommon::Image& image, double initialEstimate) {
   bTheoretical = initialEstimate;
   if (settings.gaussianTaperBeamSize != 0.0) {
     if (settings.gaussianTaperBeamSize > bTheoretical) {
@@ -142,12 +140,12 @@ void ImageOperations::DetermineBeamSize(const Settings& settings, double& bMaj,
   }
 }
 
-void ImageOperations::MakeMFSImage(
-    const Settings& settings,
-    const std::vector<OutputChannelInfo>& infoPerChannel,
-    OutputChannelInfo& mfsInfo, const std::string& suffix, size_t intervalIndex,
-    aocommon::PolarizationEnum pol, ImageFilenameType image_type,
-    std::optional<size_t> directionIndex) {
+void MakeMFSImage(const Settings& settings,
+                  const std::vector<OutputChannelInfo>& infoPerChannel,
+                  OutputChannelInfo& mfsInfo, const std::string& suffix,
+                  size_t intervalIndex, aocommon::PolarizationEnum pol,
+                  ImageFilenameType image_type,
+                  std::optional<size_t> directionIndex) {
   double lowestFreq = 0.0, highestFreq = 0.0;
   aocommon::Image mfsImage;
   aocommon::UVector<double> addedImage;
@@ -202,9 +200,9 @@ void ImageOperations::MakeMFSImage(
     const double smallestTheoreticBeamSize =
         std::max(SmallestTheoreticBeamSize(infoPerChannel), pixelScale);
 
-    ImageOperations::DetermineBeamSize(
-        settings, mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA,
-        mfsInfo.theoreticBeamSize, mfsImage, smallestTheoreticBeamSize);
+    DetermineBeamSize(settings, mfsInfo.beamMaj, mfsInfo.beamMin,
+                      mfsInfo.beamPA, mfsInfo.theoreticBeamSize, mfsImage,
+                      smallestTheoreticBeamSize);
   }
   if (std::isfinite(mfsInfo.beamMaj))
     writer.SetBeamInfo(mfsInfo.beamMaj, mfsInfo.beamMin, mfsInfo.beamPA);
@@ -223,11 +221,9 @@ void ImageOperations::MakeMFSImage(
   writer.Write(mfs_name, mfsImage.Data());
 }
 
-void ImageOperations::RenderMFSImage(const Settings& settings,
-                                     const OutputChannelInfo& mfsInfo,
-                                     size_t intervalIndex,
-                                     aocommon::PolarizationEnum pol,
-                                     bool isImaginary, bool isPBCorrected) {
+void RenderMFSImage(const Settings& settings, const OutputChannelInfo& mfsInfo,
+                    size_t intervalIndex, aocommon::PolarizationEnum pol,
+                    bool isImaginary, bool isPBCorrected) {
   const size_t size = settings.trimmedImageWidth * settings.trimmedImageHeight;
 
   ImageFilenameType filename_type =
@@ -285,4 +281,4 @@ void ImageOperations::RenderMFSImage(const Settings& settings,
   imageWriter.Write(mfs_prefix + "-image" + postfix, image.data());
 }
 
-}  // namespace wsclean
+}  // namespace wsclean::math

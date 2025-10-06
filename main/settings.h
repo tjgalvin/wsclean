@@ -71,7 +71,10 @@ class Settings {
   std::string restoreModel, restoreInput, restoreOutput;
   double manualBeamMajorSize = 0.0, manualBeamMinorSize = 0.0;
   double manualBeamPA = 0.0;
-  bool fittedBeam = true, theoreticBeam = false, circularBeam = false;
+  bool fittedBeam = true;
+  bool theoreticBeam = false;
+  bool circularBeam = false;
+  bool fitBeamWithNegatives = true;
   double beamFittingBoxSize = 10.0;
   bool continuedRun = false;
   double memFraction = 1.0, absMemLimit = 0.0;

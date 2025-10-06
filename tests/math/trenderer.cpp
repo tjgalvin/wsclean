@@ -60,8 +60,8 @@ BOOST_FIXTURE_TEST_CASE(fit_with_bad_initial_value, RendererFixture) {
 
   const schaapcommon::math::Ellipse ellipse =
       schaapcommon::fitters::Fit2DGaussianCentred(
-          restored.Data(), restored.Width(), restored.Height(), estimatedBeamPx,
-          10.0, false);
+          restored.Data(), false, restored.Width(), restored.Height(),
+          estimatedBeamPx, 10.0, false);
 
   BOOST_CHECK_CLOSE_FRACTION(ellipse.major, 4.0, 1e-4);
   BOOST_CHECK_CLOSE_FRACTION(ellipse.minor, 4.0, 1e-4);
@@ -118,8 +118,8 @@ BOOST_FIXTURE_TEST_CASE(fit_small_beam, RendererFixture) {
 
   const schaapcommon::math::Ellipse ellipse =
       schaapcommon::fitters::Fit2DGaussianCentred(
-          restored.Data(), restored.Width(), restored.Height(), estimatedBeamPx,
-          10.0, false);
+          restored.Data(), false, restored.Width(), restored.Height(),
+          estimatedBeamPx, 10.0, false);
 
   BOOST_CHECK_CLOSE_FRACTION(ellipse.minor, 0.5, 1e-4);
 }

@@ -582,6 +582,8 @@ but subtract components from individual channels.
    Do not determine beam shape from the PSF.
 -beam-fitting-size <factor>
    Use a fitting box the size of <factor> times the theoretical beam size for fitting a Gaussian to the PSF.
+-fit-beam-with-negatives / -fit-beam-without-negatives
+   Include or don't include negative values when fitting a Gaussian to the PSF. Default: with negatives.
 -theoretic-beam
    Write the beam in output fits files as calculated from the longest projected baseline.
    This method results in slightly less accurate beam size/integrated fluxes, but provides a beam size
@@ -1291,6 +1293,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.circularBeam = true;
     } else if (param == "elliptical-beam") {
       settings.circularBeam = false;
+    } else if (param == "fit-beam-with-negatives") {
+      settings.fitBeamWithNegatives = true;
+    } else if (param == "fit-beam-without-negatives") {
+      settings.fitBeamWithNegatives = false;
     } else if (param == "reuse-reordered") {
       settings.reuseReorder = true;
       settings.forceReorder = true;
