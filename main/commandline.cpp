@@ -519,8 +519,8 @@ but subtract components from individual channels.
 -fits-mask <mask>
    Use the specified fits-file as mask during cleaning.
 -fits-scale-mask <scalemask>
-     Use the specified fits-file as mask during multi-scale cleaning. Scales are encoded as bit-mapped values.
-   -casa-mask <mask>
+   Use the specified fits-file as mask during multi-scale cleaning. Scales are encoded as bit-mapped values.
+-casa-mask <mask>
    Use the specified CASA mask as mask during cleaning.
 -horizon-mask <distance>
    Use a mask that avoids cleaning emission beyond the horizon. Distance is an angle (e.g. "5deg")
