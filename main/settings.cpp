@@ -619,6 +619,7 @@ radler::Settings Settings::GetRadlerSettings() const {
       radler_settings.multiscale.scale_list.assign(multiscaleScaleList.begin(),
                                                    multiscaleScaleList.end());
       radler_settings.multiscale.shape = multiscaleShapeFunction;
+      radler_settings.fits_scale_mask = fitsScalesMask; // bit mapped per scale pixel mask
       break;
     case radler::AlgorithmType::kIuwt:
       // IUWT has no algorithm-specific settings
