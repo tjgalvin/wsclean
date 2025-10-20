@@ -32,10 +32,19 @@ MPIScheduler::MPIScheduler(const Settings& settings)
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   available_room_.assign(world_size, settings.parallelGridding);
+  node_is_sending_.assign(world_size, false);
   if (!settings.masterDoesWork) {
     available_room_[0] = 0;
   }
   local_scheduler_.SetWriterLockManager(*this);
+
+  send_thread_pool_.SetNThreads(GetSettings().nMpiNodes + 1);
+  send_thread_pool_.StartParallelExecution([&](size_t) {
+    std::function<void()> operation;
+    while (send_task_queue_.Pop(operation)) {
+      operation();
+    }
+  });
 }
 
 void MPIScheduler::Run(GriddingTask&& task,
@@ -46,7 +55,23 @@ void MPIScheduler::Run(GriddingTask&& task,
       receive_thread_ = std::thread([&]() { ReceiveLoop(); });
     is_running_ = true;
   }
-  Send(std::move(task), std::move(finish_callback));
+  const size_t node = GetNode(task, std::move(finish_callback));
+  // Use shared_ptr to work around std::function restriction on moveable types.
+  // With C++23 this can become std::move_only_function instead.
+  std::shared_ptr<GriddingTask> shared_task =
+      std::make_shared<GriddingTask>(std::move(task));
+  {
+    std::unique_lock<std::mutex> lock(mutex_);
+    while (node_is_sending_[node] == true) {
+      notify_.wait(lock);
+    }
+    node_is_sending_[node] = true;
+    send_task_queue_.Emplace([=, this]() {
+      SendToNode(node, std::move(shared_task));
+      node_is_sending_[node] = false;
+      notify_.notify_all();
+    });
+  }
 
   std::lock_guard<std::mutex> lock(mutex_);
   ProcessReadyList_UNSYNCHRONIZED();
@@ -54,22 +79,27 @@ void MPIScheduler::Run(GriddingTask&& task,
 
 void MPIScheduler::Finish() {
   if (is_running_) {
-    Logger::Info << "Finishing scheduler.\n";
-    local_scheduler_.Finish();
+    send_task_queue_.WaitForIdle(send_thread_pool_.NThreads() - 1);
 
-    std::unique_lock<std::mutex> lock(mutex_);
-    is_finishing_ = true;
-    notify_.notify_all();
+    Logger::Debug << "Finishing scheduler.\n";
+    local_scheduler_.Finish();
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
+      is_finishing_ = true;
+      notify_.notify_all();
+    }
 
     // As long as receive tasks are running, wait and keep processing
     // the ready list
-    ProcessReadyList_UNSYNCHRONIZED();
-    while (AWorkerIsRunning_UNSYNCHRONIZED()) {
-      notify_.wait(lock);
+    Logger::Debug << "Waiting for all tasks to finish processing.\n";
+    {
+      std::unique_lock<std::mutex> lock(mutex_);
       ProcessReadyList_UNSYNCHRONIZED();
+      while (AWorkerIsRunning_UNSYNCHRONIZED()) {
+        notify_.wait(lock);
+        ProcessReadyList_UNSYNCHRONIZED();
+      }
     }
-
-    lock.unlock();
 
     if (available_room_.size() > 1) receive_thread_.join();
 
@@ -104,9 +134,9 @@ void MPIScheduler::Start(size_t n_writer_groups) {
   }
 }
 
-void MPIScheduler::Send(GriddingTask&& task,
-                        std::function<void(GriddingResult&)>&& callback) {
-  size_t node = GetNode(task, std::move(callback));
+void MPIScheduler::SendToNode(size_t node,
+                              std::shared_ptr<GriddingTask> wrapped_task) {
+  GriddingTask& task = *wrapped_task;
 
   if (node == 0) {
     Logger::Info << "Running gridding task " << task.unique_id
@@ -123,15 +153,14 @@ void MPIScheduler::Send(GriddingTask&& task,
     payload_stream.UInt64(0);
     task.Serialize(payload_stream);
 
-    Logger::Info << "Sending gridding task " << task.unique_id << " to node "
-                 << node << " (size: " << payload_stream.size() << ").\n";
-
     const TaskMessage message(TaskMessage::Type::kGriddingRequest,
                               payload_stream.size());
     aocommon::SerialOStream task_message_stream;
     message.Serialize(task_message_stream);
     assert(task_message_stream.size() == TaskMessage::kSerializedSize);
 
+    Logger::Info << "Sending gridding task " << task.unique_id << " to node "
+                 << node << " (size: " << payload_stream.size() << ").\n";
     MPI_Send(task_message_stream.data(), task_message_stream.size(), MPI_BYTE,
              node, 0, MPI_COMM_WORLD);
     MPI_Send_Big(payload_stream.data(), payload_stream.size(), node, 0,

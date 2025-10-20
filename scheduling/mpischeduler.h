@@ -7,6 +7,8 @@
 #include "threadedscheduler.h"
 
 #include <aocommon/queue.h>
+#include <aocommon/threadpool.h>
+#include <aocommon/uvector.h>
 
 #include <mutex>
 #include <thread>
@@ -16,8 +18,12 @@ namespace wsclean {
 
 class MPIScheduler final : public GriddingTaskManager {
  public:
-  MPIScheduler(const class Settings& settings);
-  ~MPIScheduler() { Finish(); }
+  MPIScheduler(const Settings& settings);
+  ~MPIScheduler() final {
+    send_task_queue_.Finish();
+    Finish();
+    send_thread_pool_.FinishParallelExecution();
+  }
 
   /**
    * Main Run function.
@@ -38,10 +44,8 @@ class MPIScheduler final : public GriddingTaskManager {
 
   /**
    * Send a task to a worker node or run it on the master
-   * If all nodes are busy, the call will block until a node is available.
    */
-  void Send(GriddingTask&& task,
-            std::function<void(GriddingResult&)>&& callback);
+  void SendToNode(size_t node, std::shared_ptr<GriddingTask> task);
 
   /**
    * Wait until results are available and push these to the 'ready list'.
@@ -114,10 +118,21 @@ class MPIScheduler final : public GriddingTaskManager {
   std::vector<int> available_room_;
 
   /**
+   * Prevent more than one concurrent send per node at a time.
+   */
+  aocommon::UVector<bool> node_is_sending_;
+
+  /**
    * The lower-level local scheduler on an MPI node.
    * Using the threaded scheduler ensures that gridding uses a separate thread.
    */
   ThreadedScheduler local_scheduler_;
+
+  /**
+   * Internal task queue to enable sending multiple MPI tasks in parallel.
+   */
+  aocommon::ThreadPool send_thread_pool_;
+  aocommon::TaskQueue<std::function<void()>> send_task_queue_;
 };
 
 }  // namespace wsclean
