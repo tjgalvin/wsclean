@@ -268,31 +268,33 @@ add_definitions(-DHAVE_GSL)
 set(RADLER_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/external/radler)
 set(RADLER_LIB
     ${RADLER_INSTALL_PREFIX}/lib/libradler${CMAKE_STATIC_LIBRARY_SUFFIX})
+
+# By default, CMake incorrectly forwards a prefix path with multiple items.
+# Using an alternate LIST_SEPARATOR works around this behavior. See
+# https://stackoverflow.com/questions/45414507/pass-a-list-of-prefix-paths-to-externalproject-add-in-cmake-args
+# Use ':', since the CMAKE_PREFIX_PATH environment variable already uses it.
+string(REPLACE ";" ":" ALT_CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
 ExternalProject_Add(
   radler-module
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/radler
   BINARY_DIR ${CMAKE_BINARY_DIR}/external/radler/build
   BUILD_ALWAYS TRUE
   BUILD_BYPRODUCTS ${RADLER_LIB}
+  LIST_SEPARATOR :
   CMAKE_ARGS
     -DCOMPILE_AS_EXTERNAL_PROJECT=On
     -DPORTABLE=${PORTABLE}
     -DTARGET_CPU=${TARGET_CPU}
-    -DPYTHON_EXECUTABLE=${Python3_EXECUTABLE}
     -DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}
     -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
-    -DBoost_INCLUDE_DIR=${Boost_INCLUDE_DIR}
-    -DCFITSIO_ROOT_DIR=${CFITSIO_ROOT_DIR}
     # The casacore root is set to the location where casacore was found.
     # Note that CASACORE_ROOT_DIR isn't set/updated by the find script, so we
     # shouldn't set Radler's CASACORE_ROOT_DIR to WSClean's one.
     -DCASACORE_ROOT_DIR=${CASACORE_INCLUDE_DIR}/..
-    -DHDF5_DIR=${HDF5_DIR}
     -DAOCOMMON_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/include/
     -DSCHAAPCOMMON_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/schaapcommon/
-    -DPYBIND11_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/pybind11
     -DBUILD_TESTING=OFF
-    -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
+    -DCMAKE_PREFIX_PATH=${ALT_CMAKE_PREFIX_PATH}:$ENV{CMAKE_PREFIX_PATH}
     -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_CXX_FLAGS=${RADLER_CXX_FLAGS})
