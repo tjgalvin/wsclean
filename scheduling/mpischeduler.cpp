@@ -38,6 +38,8 @@ MPIScheduler::MPIScheduler(const Settings& settings)
   }
   local_scheduler_.SetWriterLockManager(*this);
 
+  // Add 1 as we want 1 thread per MPI node and won't be making use of the
+  // current/main thread.
   send_thread_pool_.SetNThreads(GetSettings().nMpiNodes + 1);
   send_thread_pool_.StartParallelExecution([&](size_t) {
     std::function<void()> operation;
@@ -79,6 +81,8 @@ void MPIScheduler::Run(GriddingTask&& task,
 
 void MPIScheduler::Finish() {
   if (is_running_) {
+    // Subtract 1 as the current/main thread never waits for tasks so won't be
+    // registered as idling.
     send_task_queue_.WaitForIdle(send_thread_pool_.NThreads() - 1);
 
     Logger::Debug << "Finishing scheduler.\n";
