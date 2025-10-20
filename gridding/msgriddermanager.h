@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <aocommon/lane.h>
+#include <aocommon/overlappingtaskprocessor.h>
 #include <aocommon/taskqueue.h>
 
 #include "h5solutiondata.h"
@@ -44,7 +45,8 @@ class MSGridderManager {
  public:
   MSGridderManager(const Settings& settings,
                    const H5SolutionData& solution_data)
-      : settings_(settings),
+      : overlapping_scheduler_task_queue_(scheduler_task_queue_),
+        settings_(settings),
         solution_data_(solution_data),
         w_limit_(settings.wLimit / 100.0) {}
   ~MSGridderManager();
@@ -121,10 +123,15 @@ class MSGridderManager {
    * NB! Never make more than 2 concurrent calls if ordering is important.
    *
    * @param operation Functor taking two arguments (gridder, task).
+   * @param first_operation_started Should be in the acquired state.
+   * ExecuteForAllGriddersWithNCores will release this semaphore as a signal to
+   * the calling code that the first gridder has acquired a resource lock and
+   * will start its processing operation.
    */
   template <typename T>
-  void ExecuteForAllGriddersWithNCores(size_t n_cores_per_gridder,
-                                       T&& operation);
+  void ExecuteForAllGriddersWithNCores(
+      size_t n_cores_per_gridder,
+      std::binary_semaphore& first_operation_started, T&& operation);
 
   /**
    * Pointers to data buffers that are required by @ref ReadChunkForInvert to
@@ -319,7 +326,7 @@ class MSGridderManager {
                    const InversionChunkData& chunk_data,
                    const aocommon::UVector<double>& frequencies,
                    const MsProviderCollection::MsData& ms_data,
-                   size_t chunk_index);
+                   size_t chunk_index, std::binary_semaphore& gridding_started);
 
   /**
    * Perform gridding on chunks of @ref InversionChunkData by calling @ref
@@ -356,7 +363,8 @@ class MSGridderManager {
                       size_t n_vis_polarizations, size_t n_antennas,
                       std::vector<std::complex<float>>& combined_visibilities,
                       const aocommon::UVector<double>& frequencies,
-                      MsProviderCollection::MsData& ms_data);
+                      MsProviderCollection::MsData& ms_data,
+                      std::binary_semaphore& first_predict_started);
   /**
    * Perform predict on chunks of @ref PredictionChunkData by calling @ref
    * PredictChunk() sequentially on each chunk, as they become available in the
@@ -377,8 +385,9 @@ class MSGridderManager {
 
   void InitializeThreadTaskQueues();
   // All CPU intensive worker tasks should be scheduled through this queue.
-  // Non-CPU intensive tasks can be queued through `scheduler_task_queue_`
-  // instead so that they don't take resources away from CPU intensive tasks.
+  // Non-CPU intensive tasks can be queued through
+  // `overlapping_scheduler_task_queue_` instead so that they don't take
+  // resources away from CPU intensive tasks.
   aocommon::TaskQueue<std::function<void()>> worker_task_queue_;
   std::vector<std::thread> worker_thread_pool_;
   // Use this pool only to manage lightweight asynchronous scheduler type tasks.
@@ -386,6 +395,7 @@ class MSGridderManager {
   // Doing CPU intensive tasks in this queue can lead to oversubscription as
   // `worker_thread_pool_` will already attempt to use all cores that have been
   // made available to us.
+  aocommon::OverlappingTaskProcessor overlapping_scheduler_task_queue_;
   aocommon::TaskQueue<std::function<void()>> scheduler_task_queue_;
   std::vector<std::thread> scheduler_thread_pool_;
   const size_t scheduler_task_queue_size_ = 2;
@@ -437,17 +447,27 @@ void MSGridderManager::ExecuteForAllGridders(T&& operation,
 
 template <typename T>
 void MSGridderManager::ExecuteForAllGriddersWithNCores(
-    size_t n_cores_per_gridder, T&& operation) {
+    size_t n_cores_per_gridder, std::binary_semaphore& first_operation_started,
+    T&& operation) {
   std::vector<std::shared_ptr<CompletionSignal>> signals;
   signals.reserve(facet_tasks_.size());
   // Queue tasks in a way that each task will consume `n_cores_per_gridder` task
   // slots.
+  bool first_operation = true;
   for (const GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
 
     // Avoid gridder processing concurrently.
     gridder->processing_semaphore_.acquire();
 
+    // Signal to @ref OverlappingTaskProcessor that its okay for the next
+    // overlapping task to start without any risk of a race, as we have
+    // acquired the gridder semaphore. Ordering is maintained because as this
+    // task holds the semaphore the other task cannot overtake it.
+    if (first_operation) {
+      first_operation_started.release();
+      first_operation = false;
+    }
     // Task must consume N threads.
     // Pause N-1 threads so that they are unavailable to the pool.
     // Only once we have done so are we allowed to run the task.
