@@ -11,7 +11,7 @@
             "--platform=linux/x86_64"
         ]
     },
-    "privileged": true
+    "privileged": false
     // Features to add to the dev container. More info: https://containers.dev/features.
     // "features": {
     // 	"ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
