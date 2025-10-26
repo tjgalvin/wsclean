@@ -448,9 +448,12 @@ but subtract components from individual channels.
 -no-multiscale-fast-subminor
    Disable the 'fast subminor loop' optimization, that will only search a part of the
    image during the multi-scale subminor loop. The optimization is on by default.
+-multiscale-fits-mask <path>
+  Path to a fits image that describes per-scale clean masks. Pixel values represent
+  a bit-mapped quanitity, where n'th bit describes n'th scale.
 -python-deconvolution <filename>
-   Run a custom deconvolution algorithm written in Python. See manual
-   for the interface.
+  Run a custom deconvolution algorithm written in Python. See manual
+  for the interface.
 -iuwt
    Use the IUWT deconvolution algorithm.
 -iuwt-snr-test / -no-iuwt-snr-test
@@ -1008,6 +1011,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "multiscale-scales") {
       IncArgi(argi, argc);
       settings.multiscaleScaleList = NumberList::ParseDoubleList(argv[argi]);
+    } else if (param == "multiscale-fits-mask") {
+      IncArgi(argi, argc);
+      settings.multiscaleFitsScaleMask = argc[argi];
     } else if (param == "multiscale-shape") {
       IncArgi(argi, argc);
       std::string shape = argv[argi];

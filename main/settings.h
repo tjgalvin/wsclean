@@ -177,6 +177,7 @@ class Settings {
   double multiscaleGain = 0.2, multiscaleDeconvolutionScaleBias = 0.6;
   size_t multiscaleMaxScales = 0;
   double multiscaleConvolutionPadding = 1.1;
+  std::string multiscaleFitsScaleMask;
   aocommon::UVector<double> multiscaleScaleList;
   radler::MultiscaleShape multiscaleShapeFunction =
       radler::MultiscaleShape::kTaperedQuadraticShape;
