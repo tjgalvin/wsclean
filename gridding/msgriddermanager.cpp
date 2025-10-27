@@ -30,8 +30,31 @@ using aocommon::Logger;
 
 namespace wsclean {
 
-MSGridderManager::~MSGridderManager() {
-  // Clean up task queues and threads
+MSGridderManagerScheduler::MSGridderManagerScheduler(size_t n_workers)
+    : overlapping_task_processor_(scheduler_task_queue_) {
+  InitializeThreadPoolForTaskQueue(worker_thread_pool_, worker_task_queue_,
+                                   n_workers);
+  InitializeThreadPoolForTaskQueue(
+      scheduler_thread_pool_, scheduler_task_queue_, kSchedulerTaskQueueSize_);
+}
+
+void MSGridderManagerScheduler::InitializeThreadPoolForTaskQueue(
+    std::vector<std::thread>& thread_pool_,
+    aocommon::TaskQueue<std::function<void()>>& task_queue_, size_t n_threads) {
+  if (thread_pool_.size() == 0) {
+    thread_pool_.reserve(n_threads);
+    for (size_t i = 0; i < n_threads; ++i) {
+      thread_pool_.emplace_back([&] {
+        std::function<void()> operation;
+        while (task_queue_.Pop(operation)) {
+          operation();
+        }
+      });
+    }
+  }
+}
+
+MSGridderManagerScheduler::~MSGridderManagerScheduler() {
   worker_task_queue_.Finish();
   for (std::thread& thread : worker_thread_pool_) {
     thread.join();
@@ -584,7 +607,7 @@ void MSGridderManager::GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
   // still processing then the second predict can make use of cores that would
   // otherwise be idle when the last few facets of the first predict are
   // finishing up.
-  overlapping_scheduler_task_queue_.Process<InversionChunkData>(
+  scheduler_->overlapping_task_processor_.Process<InversionChunkData>(
       task_lane,
       [&](InversionChunkData&& chunk_data, size_t chunk_index,
           std::binary_semaphore& first_gridder_started) mutable {
@@ -597,38 +620,12 @@ void MSGridderManager::GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
       "Gridding");
 }
 
-void MSGridderManager::InitializeThreadTaskQueues() {
-  if (worker_thread_pool_.size() == 0) {
-    worker_thread_pool_.reserve(available_cores_);
-    for (size_t i = 0; i < available_cores_; ++i) {
-      worker_thread_pool_.emplace_back([&] {
-        std::function<void()> operation;
-        while (worker_task_queue_.Pop(operation)) {
-          operation();
-        }
-      });
-    }
-  }
-  if (scheduler_thread_pool_.size() == 0) {
-    scheduler_thread_pool_.reserve(scheduler_task_queue_size_);
-    for (size_t i = 0; i < scheduler_task_queue_size_; ++i) {
-      scheduler_thread_pool_.emplace_back([&] {
-        std::function<void()> operation;
-        while (scheduler_task_queue_.Pop(operation)) {
-          operation();
-        }
-      });
-    }
-  }
-}
-
 void MSGridderManager::BatchInvert() {
   assert(facet_tasks_.size() > 1);
+  assert(scheduler_);
   InitializeMSDataVectors();
 
   MsProviderCollection& providers = ms_provider_collection_;
-
-  InitializeThreadTaskQueues();
 
   std::vector<MsGridder*> gridders;
   gridders.reserve(facet_tasks_.size());
@@ -655,7 +652,7 @@ void MSGridderManager::BatchInvert() {
           },
           false);
       shared_data.StartMeasurementSet(providers.Count(), ms_data, false);
-      worker_task_queue_.WaitForIdle(available_cores_);
+      scheduler_->worker_task_queue_.WaitForIdle(available_cores_);
 
       const aocommon::MultiBandData& bands(
           ms_data.ms_provider->SelectedBands());
@@ -875,7 +872,7 @@ void MSGridderManager::PredictChunks(
   // still processing then the second predict can make use of cores that would
   // otherwise be idle when the last few facets of the first predict are
   // finishing up.
-  overlapping_scheduler_task_queue_.Process<PredictionChunkData>(
+  scheduler_->overlapping_task_processor_.Process<PredictionChunkData>(
       task_lane,
       [&](PredictionChunkData&& chunk_data, size_t chunk_index,
           std::binary_semaphore& first_predict_started) mutable {
@@ -970,11 +967,10 @@ void MSGridderManager::ReadChunksForPredict(
 
 void MSGridderManager::BatchPredict() {
   assert(facet_tasks_.size() > 1);
+  assert(scheduler_);
   InitializeMSDataVectors();
 
   MsProviderCollection& providers = ms_provider_collection_;
-
-  InitializeThreadTaskQueues();
 
   std::vector<MsGridder*> gridders;
   gridders.reserve(facet_tasks_.size());
@@ -1001,7 +997,7 @@ void MSGridderManager::BatchPredict() {
           },
           false);
       shared_data.StartMeasurementSet(providers.Count(), ms_data, true);
-      worker_task_queue_.WaitForIdle(available_cores_);
+      scheduler_->worker_task_queue_.WaitForIdle(available_cores_);
 
       // TODO
       if (!ms_data.ms_provider->IsRegular())

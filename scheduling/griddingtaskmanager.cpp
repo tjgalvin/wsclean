@@ -75,7 +75,15 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
     return;
   }
 
-  MSGridderManager manager(settings_, solution_data_);
+  std::unique_ptr<MSGridderManagerScheduler> scheduler;
+  bool batch_task =
+      task.operation == GriddingTask::Invert && settings_.shared_facet_reads;
+  batch_task |=
+      task.operation == GriddingTask::Predict && settings_.shared_facet_writes;
+  if (batch_task) {
+    scheduler = std::make_unique<MSGridderManagerScheduler>(resources.NCpus());
+  }
+  MSGridderManager manager(settings_, solution_data_, scheduler.get());
   manager.InitializeMS(task);
   manager.InitializeGridders(task, facet_indices, resources, result.facets,
                              writer_lock_manager_);
