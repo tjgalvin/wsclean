@@ -1013,7 +1013,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.multiscaleScaleList = NumberList::ParseDoubleList(argv[argi]);
     } else if (param == "multiscale-fits-mask") {
       IncArgi(argi, argc);
-      settings.multiscaleFitsScaleMask = argc[argi];
+      settings.multiscaleFitsScaleMask = argv[argi];
     } else if (param == "multiscale-shape") {
       IncArgi(argi, argc);
       std::string shape = argv[argi];
