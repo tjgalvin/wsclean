@@ -47,9 +47,6 @@ class ThreadedScheduler final : public GriddingTaskManager {
 
   friend class ThreadedWriterLock;
 
-  void ProcessQueue();
-  void ProcessReadyList();
-
   /// Contains all data for a single task.
   struct TaskData {
     GriddingTask task;
@@ -58,6 +55,17 @@ class ThreadedScheduler final : public GriddingTaskManager {
     std::atomic<std::size_t> finished_facet_count;
     std::function<void(GriddingResult&)> callback;
   };
+
+  /// Process all tasks from the queue as they become available.
+  /// Calls @ref ProcessTask() for each task.
+  void ProcessQueue();
+  /// Perform processing for an individual task.
+  void ProcessTask(size_t task_id, const std::vector<size_t>& facet_indexes,
+                   TaskData& task_data,
+                   std::shared_ptr<CompletionSignal>& lock_excess_tasks);
+  /// Execute post-processing callback on any tasks that have completed and
+  /// queued as ready.
+  void ProcessReadyList();
 
   /// The first value of the pair is the unique id for the tasks, for looking up
   /// the task and its callback into task_data_map_.

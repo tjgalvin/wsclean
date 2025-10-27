@@ -124,57 +124,75 @@ void ThreadedScheduler::Run(
   ProcessReadyList();
 }
 
+void ThreadedScheduler::ProcessTask(
+    size_t task_id, const std::vector<size_t>& facet_indexes,
+    TaskData& task_data, std::shared_ptr<CompletionSignal>& lock_excess_tasks) {
+  try {
+    assert(!facet_indexes.empty());
+    // As the gridder manager will potentially be running/managing N parallel
+    // gridding tasks internally instead of just a single one it is necessary
+    // to allocate it the appropriate resources for all N tasks.
+    Resources task_resources =
+        resources_per_task_.GetCombined(task_data.task.num_parallel_gridders_);
+    if (task_data.task.operation == GriddingTask::Wait) {
+      // Wait tasks occupy a thread from the pool by waiting on
+      // a completion signal.
+      assert(lock_excess_tasks);
+      lock_excess_tasks->WaitForCompletion();
+    } else {
+      RunDirect(task_data.task, facet_indexes, task_resources, task_data.result,
+                task_data.result_mutex);
+      if (lock_excess_tasks) {
+        // Notify wait tasks that they can resume and complete.
+        lock_excess_tasks->SignalCompletion();
+      }
+    }
+  } catch (std::exception&) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    latest_exception_ = std::current_exception();
+  }
+
+  if (task_data.task.operation == GriddingTask::Wait) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    task_data_map_.erase(task_id);
+    return;
+  }
+
+  // Extract the new value from task_data.finished_facet_count directly.
+  // When extracting the new value later, another thread may also have
+  // incremented the atomic value in the mean time, and multiple threads
+  // will think they have processed the last facet.
+  bool process = false;
+  {
+    std::lock_guard<std::mutex> result_lock(task_data.result_mutex);
+    task_data.finished_facet_count += facet_indexes.size();
+    process = (task_data.finished_facet_count == task_data.task.facets.size());
+  }
+  if (process) {
+    if (GetSettings().UseMpi()) {
+      // Execute callback immediately, from the processing thread.
+      // The MPIScheduler stores the result at the main node.
+      // The MPIWorkerScheduler sends the result to the main node.
+      task_data.callback(task_data.result);
+      std::lock_guard<std::mutex> lock(mutex_);
+      task_data_map_.erase(task_id);
+    } else {
+      // Store the task id and execute the callback on the main thread.
+      std::lock_guard<std::mutex> lock(mutex_);
+      ready_list_.emplace_back(task_id);
+    }
+  }
+}
+
 void ThreadedScheduler::ProcessQueue() {
   std::pair<size_t, std::vector<size_t>> facet_task_pair;
   while (task_queue_.Pop(facet_task_pair)) {
     const size_t task_id = facet_task_pair.first;
     const std::vector<size_t>& facet_indexes = facet_task_pair.second;
     TaskData& task_data = task_data_map_[task_id];
-    try {
-      assert(!facet_indexes.empty());
-      // As the gridder manager will potentially be running/managing N parallel
-      // gridding tasks internally instead of just a single one it is necessary
-      // to allocate it the appropriate resources for all N tasks.
-      Resources task_resources = resources_per_task_.GetCombined(
-          task_data.task.num_parallel_gridders_);
-      RunDirect(task_data.task, facet_indexes, task_resources, task_data.result,
-                task_data.result_mutex);
-    } catch (std::exception&) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      latest_exception_ = std::current_exception();
-    }
-
-    if (task_data.task.operation == GriddingTask::Wait) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      task_data_map_.erase(task_id);
-      continue;
-    }
-
-    // Extract the new value from task_data.finished_facet_count directly.
-    // When extracting the new value later, another thread may also have
-    // incremented the atomic value in the mean time, and multiple threads
-    // will think they have processed the last facet.
-    bool process = false;
-    {
-      std::lock_guard<std::mutex> result_lock(task_data.result_mutex);
-      task_data.finished_facet_count += facet_indexes.size();
-      process =
-          (task_data.finished_facet_count == task_data.task.facets.size());
-    }
-    if (process) {
-      if (GetSettings().UseMpi()) {
-        // Execute callback immediately, from the processing thread.
-        // The MPIScheduler stores the result at the main node.
-        // The MPIWorkerScheduler sends the result to the main node.
-        task_data.callback(task_data.result);
-        std::lock_guard<std::mutex> lock(mutex_);
-        task_data_map_.erase(task_id);
-      } else {
-        // Store the task id and execute the callback on the main thread.
-        std::lock_guard<std::mutex> lock(mutex_);
-        ready_list_.emplace_back(task_id);
-      }
-    }
+    std::shared_ptr<CompletionSignal> lock_excess_tasks =
+        task_data.task.lock_excess_scheduler_tasks_;
+    ProcessTask(task_id, facet_indexes, task_data, lock_excess_tasks);
   }
 }
 

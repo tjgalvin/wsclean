@@ -67,14 +67,6 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
   assert(result.facets.size() == task.facets.size());
   assert(!task.msList.empty());
 
-  // Wait tasks occupy a thread from the pool by waiting on
-  // lock_excess_scheduler_tasks_ which will freeze the tasks thread until
-  // lock_excess_scheduler_tasks_.SignalCompletion() is called.
-  if (task.operation == GriddingTask::Wait) {
-    task.lock_excess_scheduler_tasks_->WaitForCompletion();
-    return;
-  }
-
   std::unique_ptr<MSGridderManagerScheduler> scheduler;
   bool batch_task =
       task.operation == GriddingTask::Invert && settings_.shared_facet_reads;
@@ -105,14 +97,6 @@ void GriddingTaskManager::RunDirect(GriddingTask& task,
     result.unique_id = task.unique_id;
   }
   manager.ProcessResults(result_mutex, result, store_common_info);
-
-  if (GetSettings().shared_facet_reads || GetSettings().shared_facet_writes) {
-    // Allow wait tasks to resume
-    if (task.lock_excess_scheduler_tasks_) {
-      task.lock_excess_scheduler_tasks_->SignalCompletion();
-      task.lock_excess_scheduler_tasks_.reset();
-    }
-  }
 }
 
 }  // namespace wsclean
