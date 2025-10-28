@@ -607,7 +607,7 @@ void MSGridderManager::GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
   // still processing then the second predict can make use of cores that would
   // otherwise be idle when the last few facets of the first predict are
   // finishing up.
-  scheduler_->overlapping_task_processor_.Process<InversionChunkData>(
+  scheduler_->GetOverlappingTaskProcessor().Process<InversionChunkData>(
       task_lane,
       [&](InversionChunkData&& chunk_data, size_t chunk_index,
           std::binary_semaphore& first_gridder_started) mutable {
@@ -652,7 +652,7 @@ void MSGridderManager::BatchInvert() {
           },
           false);
       shared_data.StartMeasurementSet(providers.Count(), ms_data, false);
-      scheduler_->worker_task_queue_.WaitForIdle(available_cores_);
+      scheduler_->GetWorkerTaskQueue().WaitForIdle(available_cores_);
 
       const aocommon::MultiBandData& bands(
           ms_data.ms_provider->SelectedBands());
@@ -872,7 +872,7 @@ void MSGridderManager::PredictChunks(
   // still processing then the second predict can make use of cores that would
   // otherwise be idle when the last few facets of the first predict are
   // finishing up.
-  scheduler_->overlapping_task_processor_.Process<PredictionChunkData>(
+  scheduler_->GetOverlappingTaskProcessor().Process<PredictionChunkData>(
       task_lane,
       [&](PredictionChunkData&& chunk_data, size_t chunk_index,
           std::binary_semaphore& first_predict_started) mutable {
@@ -997,7 +997,7 @@ void MSGridderManager::BatchPredict() {
           },
           false);
       shared_data.StartMeasurementSet(providers.Count(), ms_data, true);
-      scheduler_->worker_task_queue_.WaitForIdle(available_cores_);
+      scheduler_->GetWorkerTaskQueue().WaitForIdle(available_cores_);
 
       // TODO
       if (!ms_data.ms_provider->IsRegular())

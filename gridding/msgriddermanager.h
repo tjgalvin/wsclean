@@ -37,16 +37,12 @@ class MSGridderManagerScheduler {
       delete;
   MSGridderManagerScheduler& operator=(MSGridderManagerScheduler&&) = delete;
 
-  // All CPU intensive worker tasks should be scheduled through this queue.
-  // Non-CPU intensive tasks can be queued through `overlapping_task_processor_`
-  // instead so that they don't take resources away from CPU intensive tasks.
-  aocommon::TaskQueue<std::function<void()>> worker_task_queue_;
-  // Use this pool only to manage scheduling tasks.
-  // CPU intensive worker tasks should instead use `worker_task_queue_`.
-  // Doing CPU intensive tasks in this queue can lead to oversubscription as
-  // `worker_thread_pool_` will already attempt to use all cores that have been
-  // made available to us.
-  aocommon::OverlappingTaskProcessor overlapping_task_processor_;
+  aocommon::TaskQueue<std::function<void()>>& GetWorkerTaskQueue() {
+    return worker_task_queue_;
+  }
+  aocommon::OverlappingTaskProcessor& GetOverlappingTaskProcessor() {
+    return overlapping_task_processor_;
+  }
 
  private:
   // Create desired number of threads and set them up to read/call tasks from a
@@ -59,6 +55,16 @@ class MSGridderManagerScheduler {
   std::vector<std::thread> scheduler_thread_pool_;
   aocommon::TaskQueue<std::function<void()>> scheduler_task_queue_;
   static constexpr size_t kSchedulerTaskQueueSize_ = 2;
+  // All CPU intensive worker tasks should be scheduled through this queue.
+  // Non-CPU intensive tasks can be queued through `overlapping_task_processor_`
+  // instead so that they don't take resources away from CPU intensive tasks.
+  aocommon::TaskQueue<std::function<void()>> worker_task_queue_;
+  // Use this pool only to manage scheduling tasks.
+  // CPU intensive worker tasks should instead use `worker_task_queue_`.
+  // Doing CPU intensive tasks in this queue can lead to oversubscription as
+  // `worker_thread_pool_` will already attempt to use all cores that have been
+  // made available to us.
+  aocommon::OverlappingTaskProcessor overlapping_task_processor_;
 };
 
 /**
@@ -461,14 +467,14 @@ void MSGridderManager::ExecuteForAllGridders(T&& operation,
   for (GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
     if constexpr (std::is_invocable<T, MsGridder*, GriddingFacetTask&>::value) {
-      scheduler_->worker_task_queue_.Emplace(
+      scheduler_->GetWorkerTaskQueue().Emplace(
           [=, &task]() { operation(gridder, task); });
     } else {
-      scheduler_->worker_task_queue_.Emplace([=]() { operation(gridder); });
+      scheduler_->GetWorkerTaskQueue().Emplace([=]() { operation(gridder); });
     }
   }
   if (wait_for_idle) {
-    scheduler_->worker_task_queue_.WaitForIdle(available_cores_);
+    scheduler_->GetWorkerTaskQueue().WaitForIdle(available_cores_);
   }
 }
 
@@ -505,12 +511,12 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
     // Queue "blocker" tasks to consume extra task slots.
     for (size_t i = 0; i < n_cores_per_gridder - 1; ++i) {
       // Consume 1 thread from the pool until completion is signalled.
-      scheduler_->worker_task_queue_.Emplace(
+      scheduler_->GetWorkerTaskQueue().Emplace(
           [=]() { signal->WaitForCompletion(); });
     }
     // Queue task to perform the operation.
     const size_t index = task.facet_task->index;
-    scheduler_->worker_task_queue_.Emplace([=]() {
+    scheduler_->GetWorkerTaskQueue().Emplace([=]() {
       // We are consuming N threads from the pool while this occurs.
       operation(gridder, index);
       gridder->processing_semaphore_.release();
