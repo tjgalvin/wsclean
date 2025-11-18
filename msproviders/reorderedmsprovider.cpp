@@ -461,6 +461,13 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
         }
         model_column.put(row, model_data_array);
         selected_row_count_for_debug++;
+      } else if (handle.model_storage_manager_ == StorageManagerType::Sisco) {
+        // When Sisco is used, the shape of every cell should be set, even
+        // unselected ones.
+        shape = data_column.shape(row);
+        model_data_array.resize(shape);
+        model_data_array = 0.0f;
+        model_column.put(row, model_data_array);
       }
     }
     progress.SetProgress(end_row - start_row, end_row - start_row);
