@@ -1059,8 +1059,9 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
 
     _griddingTaskManager->Finish();
 
-    if (!doMakeDdPsf && !_settings.reusePsf)
-      stitchFacets(groupTable, _psfImages, false, true, false);
+    if (!doMakeDdPsf && !_settings.reusePsf) {
+      stitchFacets(groupTable, _psfImages, StitchImageType::kPSF);
+    }
   }
 
   if (!_settings.makePSFOnly) {
@@ -1487,8 +1488,7 @@ void WSClean::runFirstInversions(ImagingTable& groupTable,
     groupTable.AssignGridDataFromPolarization(*_settings.polarizations.begin());
   }
   if (!_settings.reuseDirty)
-    stitchFacets(groupTable, _residualImages, _settings.isDirtySaved, false,
-                 false);
+    stitchFacets(groupTable, _residualImages, StitchImageType::kDirty);
 }
 
 void WSClean::runFirstInversionGroup(
@@ -1644,7 +1644,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
           }
           _inversionWatch.Pause();
         }
-        stitchFacets(tableWithoutDdPsf, _residualImages, false, false, false);
+        stitchFacets(tableWithoutDdPsf, _residualImages,
+                     StitchImageType::kOther);
       }
 
       ++_majorIterationNr;
@@ -1658,7 +1659,8 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     // The model facet images have already been corrected for their average gain
     // correction, so the full image can just be re-stitch from the facet images
     // to make the "fpb" facet corrected model images.
-    stitchFacets(tableWithoutDdPsf, _modelImages, false, false, true);
+    stitchFacets(tableWithoutDdPsf, _modelImages,
+                 StitchImageType::kFacetPbModel);
   }
 
   for (const ImagingTable::Group& facetGroup : facetGroups) {
@@ -1816,8 +1818,7 @@ void WSClean::ApplyFacetCorrectionForSingleChannel(
 }
 
 void WSClean::stitchFacets(const ImagingTable& table,
-                           CachedImageSet& image_cache, bool write_dirty,
-                           bool is_psf, bool is_facet_pb_model) {
+                           CachedImageSet& image_cache, StitchImageType type) {
   if (_facetCount != 0) {
     Logger::Info << "Stitching facets onto full image...\n";
     // Allocate full image
@@ -1828,8 +1829,9 @@ void WSClean::stitchFacets(const ImagingTable& table,
     for (size_t sq_group = 0; sq_group != table.SquaredGroupCount();
          ++sq_group) {
       const ImagingTable squared_group = table.GetSquaredGroup(sq_group);
-      const bool apply_correction =
-          !is_psf && !is_facet_pb_model && _settings.UseFacetCorrections();
+      const bool apply_correction = type != StitchImageType::kPSF &&
+                                    type != StitchImageType::kFacetPbModel &&
+                                    _settings.UseFacetCorrections();
       // If a matrix correction is needed, it is done before stitching. If a
       // scalar correction is needed, it's done "during" stitching to save time.
       const bool apply_matrix = _settings.polarizations.size() != 1;
@@ -1844,16 +1846,16 @@ void WSClean::stitchFacets(const ImagingTable& table,
       for (const ImagingTable::Group& facet_group :
            squared_group.FacetGroups()) {
         // The PSF is only once imaged for all polarizations
-        if (!is_psf || facet_group.front()->polarization ==
-                           *_settings.polarizations.begin()) {
+        if (type != StitchImageType::kPSF ||
+            facet_group.front()->polarization ==
+                *_settings.polarizations.begin()) {
           const size_t image_count = facet_group.front()->imageCount;
           for (size_t image_index = 0; image_index != image_count;
                ++image_index) {
-            stitchSingleGroup(facet_group, image_index, image_cache,
-                              write_dirty, is_psf, full_image, weight_image,
-                              facet_image, table.MaxFacetGroupIndex(),
-                              apply_correction && !apply_matrix,
-                              is_facet_pb_model);
+            stitchSingleGroup(facet_group, image_index, image_cache, type,
+                              full_image, weight_image, facet_image,
+                              table.MaxFacetGroupIndex(),
+                              apply_correction && !apply_matrix);
           }
         }
       }
@@ -1863,13 +1865,12 @@ void WSClean::stitchFacets(const ImagingTable& table,
 
 void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
                                 size_t imageIndex, CachedImageSet& imageCache,
-                                bool writeDirty, bool isPSF, Image& fullImage,
+                                StitchImageType type, Image& fullImage,
                                 std::unique_ptr<Image>& weight_image,
                                 schaapcommon::facets::FacetImage& facetImage,
-                                size_t maxFacetGroupIndex, bool apply_scalar,
-                                bool is_facet_pb_model) {
+                                size_t maxFacetGroupIndex, bool apply_scalar) {
   const size_t feather_size =
-      is_facet_pb_model ? 0 : _settings.GetFeatherSize();
+      (type == StitchImageType::kFacetPbModel) ? 0 : _settings.GetFeatherSize();
   const bool isImaginary = (imageIndex == 1);
   fullImage = 0.0f;
   if (feather_size != 0) {
@@ -1936,29 +1937,31 @@ void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
         fullImage[i] = 0.0;
     }
   }
-  if (writeDirty) {
+  if (type == StitchImageType::kDirty) {
     initializeModelImages(*facetGroup.front(), facetGroup.front()->polarization,
                           maxFacetGroupIndex);
     _residualImages.SetWSCFitsWriter(
         createWSCFitsWriter(*facetGroup.front(), false, false));
-    WSCFitsWriter writer(
-        createWSCFitsWriter(*facetGroup.front(), isImaginary, false));
-    Logger::Info << "Writing dirty image...\n";
-    writer.WriteImage("dirty.fits", fullImage);
+    if (_settings.isDirtySaved) {
+      WSCFitsWriter writer(
+          createWSCFitsWriter(*facetGroup.front(), isImaginary, false));
+      Logger::Info << "Writing dirty image...\n";
+      writer.WriteImage("dirty.fits", fullImage);
+    }
   }
-  if (is_facet_pb_model) {
+  if (type == StitchImageType::kFacetPbModel) {
     WSCFitsWriter writer(
         createWSCFitsWriter(*facetGroup.front(), isImaginary, false));
     Logger::Info << "Writing facet-corrected primary-beam model image...\n";
     writer.WriteImage("model-fpb.fits", fullImage);
   }
 
-  if (isPSF) {
+  if (type == StitchImageType::kPSF) {
     const ImagingTableEntry& entry = *facetGroup.front();
     processFullPSF(fullImage, entry);
   }
 
-  if (!is_facet_pb_model) {
+  if (type != StitchImageType::kFacetPbModel) {
     const size_t channelIndex = facetGroup.front()->outputChannelIndex;
     const PolarizationEnum polarization = facetGroup.front()->polarization;
     imageCache.Store(fullImage, polarization, channelIndex, isImaginary);

@@ -108,7 +108,10 @@ def create_pointsource_grid_skymodel(
 
 
 @pytest.mark.usefixtures(
-    "prepare_mock_ms", "prepare_model_image", "prepare_mock_soltab"
+    "prepare_mock_ms",
+    "prepare_model_image",
+    "prepare_mock_soltab",
+    "prepare_large_ms",
 )
 class TestFacets:
     def test_makepsfonly(self):
@@ -124,6 +127,25 @@ class TestFacets:
         validate_call(s.split())
 
         basic_image_check("facet-psf-only-psf.fits")
+
+    def test_intervals(self):
+        """
+        Test that faceting + intervals works (this produced an error before 2025-11-12 due to a bug when
+        -no-dirty was also specified).
+        We have to use the full mwa MS in this case, because multiple intervals are needed and the
+        mwa mock MSs have only one timestep.
+        """
+        s = (
+            f"{tcf.WSCLEAN} -name facet-with-intervals -intervals-out 4 -no-dirty -pol iquv -join-polarizations "
+            f"-facet-regions {tcf.FACETFILE_4FACETS} "
+            f"{tcf.DIMS_SMALL} {tcf.MWA_MS}"
+        )
+        validate_call(s.split())
+
+        basic_image_check("facet-with-intervals-t0000-I-image.fits")
+        basic_image_check("facet-with-intervals-t0003-I-image.fits")
+        basic_image_check("facet-with-intervals-t0000-V-image.fits")
+        basic_image_check("facet-with-intervals-t0003-V-image.fits")
 
     # Test assumes that IDG and EveryBeam are installed
     @pytest.mark.parametrize("gridder", ["wstacking", "wgridder", "idg"])

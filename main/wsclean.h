@@ -43,6 +43,8 @@ namespace wsclean {
 class ImageWeightCache;
 class PrimaryBeam;
 
+enum class StitchImageType { kPSF, kDirty, kFacetPbModel, kOther };
+
 class WSClean {
  public:
   WSClean();
@@ -189,7 +191,7 @@ class WSClean {
    * @brief Stitch facets for all FacetGroups
    */
   void stitchFacets(const ImagingTable& table, CachedImageSet& image_cache,
-                    bool write_dirty, bool is_psf, bool is_facet_pb_model);
+                    StitchImageType type);
 
   /**
    * Stitch facet for a single (Facet)Group
@@ -199,12 +201,10 @@ class WSClean {
    */
   void stitchSingleGroup(const ImagingTable::Group& facetGroup,
                          size_t imageIndex, CachedImageSet& imageCache,
-                         bool writeDirty, bool isPSF,
-                         aocommon::Image& fullImage,
+                         StitchImageType type, aocommon::Image& fullImage,
                          std::unique_ptr<aocommon::Image>& weight_image,
                          schaapcommon::facets::FacetImage& facetImage,
-                         size_t maxFacetGroupIndex, bool apply_scalar,
-                         bool is_facet_pb_model);
+                         size_t maxFacetGroupIndex, bool apply_scalar);
   /**
    * Partition model image into facets and save them into fits files
    */
