@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(primary_beam)
 BOOST_AUTO_TEST_CASE(get_beam_intervals) {
   const std::string ms_path = "test_data/MWA_MOCK.ms";
   const aocommon::VectorMap ranges{
-      schaapcommon::reordering::ChannelRange{0, 0, 768}};
+      schaapcommon::reordering::ChannelRange{0, 0, 24}};
   ContiguousMS ms(ms_path, "DATA", "MODEL_DATA", StorageManagerType::Default,
                   MSSelection(), ranges, aocommon::PolarizationEnum::StokesI,
                   false);
