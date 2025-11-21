@@ -12,6 +12,8 @@
 // Only needed for EB/H5Parm related options
 #include "../io/findmwacoefffile.h"
 
+#include "solutionchannelinterpolation.h"
+
 using aocommon::MC2x2F;
 
 namespace wsclean {
@@ -121,33 +123,39 @@ void VisibilityModifier::InitializeCacheParmResponse(
   // Only extract DD solutions if the corresponding cache entry is empty.
   SolutionsResponseMap& parm_response = _cachedParmResponse[ms_index];
   if (parm_response.Empty()) {
-    for (size_t data_desc_id : selected_bands.DataDescIds()) {
-      const size_t nparms = NValuesPerSolution(ms_index);
-      const aocommon::BandData& band = selected_bands[data_desc_id];
-      const std::vector<double> freqs(band.begin(), band.end());
-      const size_t response_size = _cachedMSTimes[ms_index]->size() *
-                                   freqs.size() * antennaNames.size() * nparms;
-      const std::string dir_name = (*_h5parms)[solution_index].GetNearestSource(
-          _facetDirectionRA, _facetDirectionDec);
-      schaapcommon::h5parm::SolTab* const first_solution =
-          (*_firstSolutions)[solution_index];
-      schaapcommon::h5parm::SolTab* const second_solution =
-          _secondSolutions->empty() ? nullptr
-                                    : (*_secondSolutions)[solution_index];
-      const size_t dir_index = first_solution->GetDirIndex(dir_name);
-      JonesParameters jones_parameters(
-          freqs, *_cachedMSTimes[ms_index], antennaNames,
-          (*_gainTypes)[solution_index],
-          JonesParameters::InterpolationType::NEAREST, dir_index,
-          first_solution, second_solution, false, 0u,
-          JonesParameters::MissingAntennaBehavior::kUnit);
-      // parms (Casacore::Cube) is column major
-      const casacore::Cube<std::complex<float>>& parms =
-          jones_parameters.GetParms();
+    const size_t max_channel_id = selected_bands.DataDescIdWithMaxChannels();
+    const size_t nparms = NValuesPerSolution(ms_index);
+    const aocommon::BandData& band = selected_bands[max_channel_id];
+    const std::vector<double> freqs(band.begin(), band.end());
+    const size_t n_times = _cachedMSTimes[ms_index]->size();
+    const size_t response_size =
+        n_times * freqs.size() * antennaNames.size() * nparms;
+    const std::string dir_name = (*_h5parms)[solution_index].GetNearestSource(
+        _facetDirectionRA, _facetDirectionDec);
+    schaapcommon::h5parm::SolTab* const first_solution =
+        (*_firstSolutions)[solution_index];
+    schaapcommon::h5parm::SolTab* const second_solution =
+        _secondSolutions->empty() ? nullptr
+                                  : (*_secondSolutions)[solution_index];
+    const size_t dir_index = first_solution->GetDirIndex(dir_name);
+    JonesParameters jones_parameters(
+        freqs, *_cachedMSTimes[ms_index], antennaNames,
+        (*_gainTypes)[solution_index],
+        JonesParameters::InterpolationType::NEAREST, dir_index, first_solution,
+        second_solution, false, 0u,
+        JonesParameters::MissingAntennaBehavior::kUnit);
+    // parms (Casacore::Cube) is column major
+    const casacore::Cube<std::complex<float>>& parms =
+        jones_parameters.GetParms();
 
+    std::vector<std::complex<float>> full_channel_response(
+        &parms(0, 0, 0), &parms(0, 0, 0) + response_size);
+    for (size_t data_desc_id : selected_bands.DataDescIds()) {
       std::vector<std::complex<float>>& band_response =
           parm_response.AlwaysEmplace(data_desc_id);
-      band_response.assign(&parms(0, 0, 0), &parms(0, 0, 0) + response_size);
+      InterpolateChannels(full_channel_response, band, band_response,
+                          selected_bands[data_desc_id], n_times,
+                          antennaNames.size() * nparms);
       setNonFiniteToZero(band_response);
     }
   }
