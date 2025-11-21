@@ -190,9 +190,8 @@ const std::complex<float> VisibilityCallback(
   }
 
   // Apply correction
-  const aocommon::VectorMap<aocommon::UVector<std::complex<float>>>
-      empty_beam_response;
-  const aocommon::VectorMap<aocommon::UVector<std::complex<float>>>
+  const aocommon::VectorMap<std::vector<aocommon::MC2x2F>> empty_beam_response;
+  const aocommon::VectorMap<std::vector<aocommon::MC2x2F>>
       &cached_beam_response =
           ApplyBeam ? beam_response.GetCachedBeamResponseForRow(row)
                     : empty_beam_response;

@@ -279,8 +279,8 @@ class MsGridderData {
     }
     const size_t n_channels = band.ChannelCount();
     const size_t n_visibilities = GetNVisibilities(Mode);
-    const aocommon::VectorMap<aocommon::UVector<std::complex<float>>>&
-        cached_beam_response = visibility_modifier_.GetCachedBeamResponse();
+    const BeamResponseMap& cached_beam_response =
+        visibility_modifier_.GetCachedBeamResponse();
     for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
       ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward,
                             HasH5Parm>(
@@ -313,16 +313,14 @@ class MsGridderData {
       size_t n_channels, size_t data_desc_id, size_t n_antennas,
       std::complex<float>* visibility_row, const float* weight_buffer,
       size_t antenna1, size_t antenna2, const size_t& time_offset,
-      const float* image_weights,
-      const aocommon::VectorMap<aocommon::UVector<std::complex<float>>>&
-          cached_beam_response) {
+      const float* image_weights, const BeamResponseMap& cached_beam_response) {
     if constexpr (ApplyBeam) {
 #ifdef HAVE_EVERYBEAM
       if constexpr (HasH5Parm) {
         // Apply (in conjugate) both the beam and the h5parm solutions
         visibility_modifier_.ApplyConjugatedDual<Behaviour, Mode, NParms>(
             parm_response, visibility_row, weight_buffer, image_weights,
-            n_channel, n_channels, data_desc_id, n_antennas, antenna1, antenna2,
+            n_channel, n_channels, data_desc_id, antenna1, antenna2,
             ApplyForward, time_offset, cached_beam_response);
       } else {
         // Apply only the conjugate beam

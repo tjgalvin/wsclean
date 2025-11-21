@@ -83,33 +83,30 @@ void VisibilityModifier::InitializePointResponse(
   // will fill the beam response cache.
   _pointResponse = _telescope->GetPointResponse(0.0);
   _pointResponse->SetUpdateInterval(facet_beam_update_time);
-  _pointResponseBufferSize = _pointResponse->GetAllStationsBufferSize();
+  n_stations_ = _telescope->GetNrStations();
   for (size_t data_desc_id : bands.DataDescIds()) {
-    aocommon::UVector<std::complex<float>>& band_response =
+    std::vector<aocommon::MC2x2F>& band_response =
         _cachedBeamResponse.AlwaysEmplace(data_desc_id);
-    band_response.resize(bands[data_desc_id].ChannelCount() *
-                         _pointResponseBufferSize);
+    band_response.resize(bands[data_desc_id].ChannelCount() * n_stations_);
   }
 #endif
 }
 
 void VisibilityModifier::InitializeMockResponse(
     size_t n_channels, size_t n_stations, size_t data_desc_id,
-    const std::vector<std::complex<double>>& beam_response,
+    const std::vector<aocommon::MC2x2F>& beam_response,
     const std::vector<std::complex<float>>& parm_response) {
-  _pointResponseBufferSize = n_stations * 4;
-  assert(beam_response.size() == n_channels * _pointResponseBufferSize);
+  n_stations_ = n_stations;
+  assert(beam_response.size() == n_channels * n_stations);
   assert(parm_response.size() == n_channels * n_stations * 2 ||
          parm_response.size() == n_channels * n_stations * 4);
 #ifdef HAVE_EVERYBEAM
-  aocommon::UVector<std::complex<float>>& band_beam_response =
+  std::vector<aocommon::MC2x2F>& band_beam_response =
       _cachedBeamResponse.AlwaysEmplace(data_desc_id);
   band_beam_response.assign(beam_response.begin(), beam_response.end());
 #endif
-  aocommon::VectorMap<std::vector<std::complex<float>>>& band_parm_response =
-      _cachedParmResponse
-          .emplace(0, aocommon::VectorMap<std::vector<std::complex<float>>>())
-          .first->second;
+  SolutionsResponseMap& band_parm_response =
+      _cachedParmResponse.emplace(0, SolutionsResponseMap()).first->second;
   band_parm_response.AlwaysEmplace(data_desc_id) = parm_response;
   time_offsets_ = {std::pair(0, 0)};
 }
@@ -122,8 +119,7 @@ void VisibilityModifier::InitializeCacheParmResponse(
   const size_t solution_index = (*_h5parms).size() == 1 ? 0 : ms_index;
 
   // Only extract DD solutions if the corresponding cache entry is empty.
-  aocommon::VectorMap<std::vector<std::complex<float>>>& parm_response =
-      _cachedParmResponse[ms_index];
+  SolutionsResponseMap& parm_response = _cachedParmResponse[ms_index];
   if (parm_response.Empty()) {
     for (size_t data_desc_id : selected_bands.DataDescIds()) {
       const size_t nparms = NValuesPerSolution(ms_index);
@@ -196,12 +192,12 @@ void VisibilityModifier::ApplyBeamResponse(std::complex<float>* data,
                                            size_t data_desc_id, size_t antenna1,
                                            size_t antenna2) {
   for (size_t ch = 0; ch < n_channels; ++ch) {
-    const size_t offset = ch * _pointResponseBufferSize;
-    const size_t offset1 = offset + antenna1 * 4u;
-    const size_t offset2 = offset + antenna2 * 4u;
+    const size_t offset = ch * n_stations_;
+    const size_t offset1 = offset + antenna1;
+    const size_t offset2 = offset + antenna2;
 
-    const MC2x2F gain1(&_cachedBeamResponse[data_desc_id][offset1]);
-    const MC2x2F gain2(&_cachedBeamResponse[data_desc_id][offset2]);
+    const MC2x2F& gain1(_cachedBeamResponse[data_desc_id][offset1]);
+    const MC2x2F& gain2(_cachedBeamResponse[data_desc_id][offset2]);
     internal::ApplyGain<Mode>(data, gain1, gain2);
     data += GetNVisibilities(Mode);
   }

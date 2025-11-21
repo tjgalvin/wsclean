@@ -33,9 +33,11 @@ struct ModifierFixture {
  public:
   static_assert(NTerms == 2 || NTerms == 4);
   ModifierFixture() {
-    const std::vector<std::complex<double>> beam_response = {
-        kAntenna1BeamGainX, 0.0, 0.0, kAntenna1BeamGainY,  // antenna 1
-        kAntenna2BeamGainX, 0.0, 0.0, kAntenna2BeamGainY   // antenna 2
+    const std::vector<aocommon::MC2x2F> beam_response = {
+        aocommon::MC2x2F(kAntenna1BeamGainX, 0.0, 0.0,
+                         kAntenna1BeamGainY),  // antenna 1
+        aocommon::MC2x2F(kAntenna2BeamGainX, 0.0, 0.0,
+                         kAntenna2BeamGainY)  // antenna 2
     };
     const std::vector<std::complex<float>> parm_response =
      NTerms == 2 ? std::vector<std::complex<float>>{
@@ -66,8 +68,8 @@ struct ModifierFixture {
     std::complex<float> data[] = {kXx, kYy};
     modifier.ApplyConjugatedDualForRow<ModifierBehaviour::kApplyAndSum,
                                        GainMode::k2VisDiagonal, NTerms>(
-        data, kWeights, kImageWeights, kNChannels, kDataDescId, kNStations,
-        kAntenna1, kAntenna2, kMsIndex, false);
+        data, kWeights, kImageWeights, kNChannels, kDataDescId, kAntenna1,
+        kAntenna2, kMsIndex, false);
     const float a1_parm_norm_x = std::norm(kAntenna1ParmGainX);
     const float a2_parm_norm_x = std::norm(kAntenna2ParmGainX);
     const float a1_beam_norm_x = std::norm(kAntenna1BeamGainX);
@@ -157,9 +159,9 @@ BOOST_FIXTURE_TEST_CASE(apply_beam, ModifierFixture<2>) {
 BOOST_AUTO_TEST_CASE(apply_unit_beam) {
   constexpr float kXx = 1.0;
   constexpr float kYy = 1.0;
-  const std::vector<std::complex<double>> beam_response = {
-      1.0, 0.0, 0.0, 1.0,  // antenna 1
-      1.0, 0.0, 0.0, 1.0   // antenna 2
+  const std::vector<aocommon::MC2x2F> beam_response = {
+      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0),  // antenna 1
+      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0)   // antenna 2
   };
   const std::vector<std::complex<float>> gain_response = {
       1.0, 0.0, 0.0, 1.0,  // antenna 1
@@ -233,8 +235,8 @@ BOOST_FIXTURE_TEST_CASE(apply_conjugated_dual_forward, ModifierFixture<2>) {
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyConjugatedDualForRow<ModifierBehaviour::kApplyAndSum,
                                      GainMode::k2VisDiagonal, 2>(
-      data, kWeights, kImageWeights, kNChannels, kDataDescId, kNStations,
-      kAntenna1, kAntenna2, kMsIndex, true);
+      data, kWeights, kImageWeights, kNChannels, kDataDescId, kAntenna1,
+      kAntenna2, kMsIndex, true);
   const float a1_parm_norm_x = std::norm(kAntenna1ParmGainX);
   const float a2_parm_norm_x = std::norm(kAntenna2ParmGainX);
   const float a1_beam_norm_x = std::norm(kAntenna1BeamGainX);
