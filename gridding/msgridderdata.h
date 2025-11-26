@@ -829,8 +829,9 @@ class MsGridderData {
                                    const MSProvider::MetaData& metadata) {
     switch (n_vis_polarizations_) {
       case 1:
-        ModifyVisibilities<1, true>(row_data.data, row_data.uvw,
-                                    bands[metadata.data_desc_id], model_buffer);
+        ModifyVisibilities<1, false>(row_data.data, row_data.uvw,
+                                     bands[metadata.data_desc_id],
+                                     model_buffer);
         CalculateWeightsImplementation<1>(
             weight_buffer, scratch_image_weights_.data(), row_data.uvw,
             bands[metadata.data_desc_id], is_selected);
@@ -838,8 +839,9 @@ class MsGridderData {
                                            weight_buffer, metadata);
         break;
       case 2:
-        ModifyVisibilities<2, true>(row_data.data, row_data.uvw,
-                                    bands[metadata.data_desc_id], model_buffer);
+        ModifyVisibilities<2, false>(row_data.data, row_data.uvw,
+                                     bands[metadata.data_desc_id],
+                                     model_buffer);
         CalculateWeightsImplementation<2>(
             weight_buffer, scratch_image_weights_.data(), row_data.uvw,
             bands[metadata.data_desc_id], is_selected);
@@ -849,8 +851,9 @@ class MsGridderData {
                                   row_data.data, Polarization());
         break;
       case 4:
-        ModifyVisibilities<4, true>(row_data.data, row_data.uvw,
-                                    bands[metadata.data_desc_id], model_buffer);
+        ModifyVisibilities<4, false>(row_data.data, row_data.uvw,
+                                     bands[metadata.data_desc_id],
+                                     model_buffer);
         CalculateWeightsImplementation<4>(
             weight_buffer, scratch_image_weights_.data(), row_data.uvw,
             bands[metadata.data_desc_id], is_selected);
@@ -954,7 +957,9 @@ class MsGridderData {
       // When using a shared visibility buffer for shared reads we need to delay
       // direction dependent visibility rotation to inside the same callback
       // where we handle corrections.
-      if (SharedReads || psf_mode != PsfMode::kDirectionDependent) {
+      const bool delay_rotation =
+          SharedReads && psf_mode == PsfMode::kDirectionDependent;
+      if (!delay_rotation) {
         RotateVisibilitiesToPhaseCenter<PolarizationCount>(
             l_shift, m_shift, band, uvws, visibilities);
       }

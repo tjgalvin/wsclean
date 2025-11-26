@@ -385,8 +385,8 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(
           uvws[1] = metadata.v_in_m;
           uvws[2] = metadata.w_in_m;
 
-          shared_data.ModifyVisibilities<false>(row_visibilities, uvws, band,
-                                                row_model);
+          shared_data.ModifyVisibilities<true>(row_visibilities, uvws, band,
+                                               row_model);
           shared_data.CalculateWeights(row_weights, image_weights.data(), uvws,
                                        band, selected_buffer);
 
