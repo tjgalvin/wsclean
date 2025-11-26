@@ -29,21 +29,27 @@ def name(name: str):
     return os.path.join(tcf.RESULTS_DIR, name)
 
 
-def check_image_pixel(position, expected_value, filename):
+def check_image_pixel(position, expected_value, filename, margin=0.03):
     """
-    Checks if a specified pixel in a fits file is within 0.03 units
+    Checks if a specified pixel in a fits file is within the margin (given in units of Jy)
     of the given expected value.
     """
     with fits.open(filename) as image:
         value = image[0].data[position]
-    assert expected_value - 0.03 < value < expected_value + 0.03
+    assert expected_value - margin < value < expected_value + margin
 
 
-def make_h5parm(solution_file, mode, solint):
+def make_h5parm(
+    solution_file, mode, solint, msin=tcf.LOFAR_3C196_MS, ntimes=0
+):
     """
     Perfoms a simple solve to make a hdf5 parm with the given mode (e.g. scalar, diagonal, fulljones).
     """
-    dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.mode={mode} ddecal.maxiter=1 ddecal.solint={solint}"
+    if ntimes != 0:
+        ntimes_str = f"msin.ntimes={ntimes}"
+    else:
+        ntimes_str = ""
+    dp3_run = f"DP3 msin={msin} {ntimes_str} msout= steps=[ddecal] ddecal.sourcedb=testmodel.txt ddecal.h5parm={solution_file} ddecal.solveralgorithm=directioniterative ddecal.mode={mode} ddecal.maxiter=1 ddecal.solint={solint}"
     validate_call(dp3_run.split())
 
 
@@ -63,7 +69,8 @@ def set_test_gains_in_solution_file(solution_file):
     with h5py.File(solution_file, "a") as table:
         solset = table["sol000"]
         # times, freq, ant, dir, pol
-        for i in range(0, 5):
+        n_directions = solset["amplitude000/val"].shape[3]
+        for i in range(0, n_directions):
             if solset["amplitude000/val"].ndim == 5:
                 solset["amplitude000/val"][:, :, :, i, :] = i + 2
                 solset["phase000/val"][:, :, :, i, :] = 0
@@ -75,7 +82,7 @@ def set_test_gains_in_solution_file(solution_file):
 
 
 @pytest.fixture
-def model_file_fixture():
+def lofar_model_file_fixture():
     model_3c196 = """Format = Name, Patch, Type, Ra, Dec, I, Q, U, V, SpectralIndex, LogarithmicSI, ReferenceFrequency='150.e6', MajorAxis, MinorAxis, Orientation
 ,A,POINT, 08:13:36.0, 48.13.03.000,
 ,B,POINT, 08:23:36.0, 48.13.03.000,
@@ -93,7 +100,23 @@ bottom, E, POINT, 08:13:36.0, 47.15.00.000, 0, -1, 0, 0, [0.0], false, , , ,
 
 
 @pytest.fixture
-def region_file_fixture():
+def mwa_model_file_fixture():
+    model_mwa = """Format = Name, Patch, Type, Ra, Dec, I, Q, U, V, SpectralIndex, LogarithmicSI, ReferenceFrequency='150.e6', MajorAxis, MinorAxis, Orientation
+,A,POINT, 10:45:38.660, -18.57.59.84,
+,B,POINT, 09:39:55.525, -18.37.50.39,
+,C,POINT, 10:45:40.373, -33.22.01.49,
+,D,POINT, 09:37:54.141, -33.44.39.62,
+topleft, A, POINT, 10:45:38.660, -18.57.59.84, 1, 0, 0, 0, [0.0], false, , , ,
+topright, B, POINT, 09:39:55.525, -18.37.50.39, 1, 0, 0, 0, [0.0], false, , , ,
+bottomleft, C, POINT, 10:45:40.373, -33.22.01.49, 1, 0, 0, 0, [0.0], false, , , ,
+bottomright, D, POINT, 09:37:54.141, -33.44.39.62, 1, 0, 0, 0, [0.0], false, , , ,
+"""
+    with open("testmodel.txt", "w") as f:
+        f.write(model_mwa)
+
+
+@pytest.fixture
+def lofar_region_file_fixture():
     # Created using:
     # ds9_facet_generator.py --h5 out.h5 --ms LOFAR_3C196.ms/ --imsize 2500 --pixelscale 600 --outputfile 3c196-with-5-facets.reg
     # The h5 parm can be created with Dp3, e.g.:
@@ -110,6 +133,28 @@ polygon(156.25106,-22.65241,124.65026,47.72693,122.14974,47.72693,90.54899,-22.6
 """
     with open("3c196-with-5-facets.reg", "w") as f:
         f.write(facets_3c196)
+
+
+@pytest.fixture
+def mwa_region_file_fixture():
+    # Because we phase shift the MWA set to zenith, we can't use
+    # the already existing region file from tests/data.
+    # Positions are in degrees (ra, dec)
+    # top left = 162.1875000, -17.8200000
+    # top right = 144.2041667, -17.7708333
+    # bottom left = 163.6416667, -34.8338889
+    # bottom right = 142.7583333, -34.8186111
+    facets_mwa = """# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1
+fk5
+
+polygon(164,-17,164,-23,154,-23,154,-17)
+polygon(154,-17,154,-23,142,-23,142,-17)
+polygon(164,-23,164,-35,154,-37,154,-23)
+polygon(154,-23,154,-37,142,-35,142,-23)
+"""
+    with open("mwa-with-4-facets.reg", "w") as f:
+        f.write(facets_mwa)
 
 
 # Dimensions are pol, freq, y, x
@@ -655,7 +700,7 @@ class TestLongSystem:
                 assert os.path.isfile(image_name)
 
     def test_iquv_facet_beam_corrections(
-        self, model_file_fixture, region_file_fixture
+        self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
         # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
         dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[predict] predict.sourcedb=testmodel.txt predict.usebeammodel=True"
@@ -751,7 +796,7 @@ class TestLongSystem:
         # assert_taql(taql_cmd, 0)
 
     def test_facet_scalar_corrections(
-        self, model_file_fixture, region_file_fixture
+        self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
         solution_file = "scalar_correction_solutions.h5"
         make_h5parm(solution_file, "scalar", 1)
@@ -784,7 +829,7 @@ class TestLongSystem:
         assert_taql(taql_cmd, 0)
 
     def test_iquv_facet_dual_corrections(
-        self, model_file_fixture, region_file_fixture
+        self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
         # Perform simple solve to get a hdf5 parm file
         solution_file = "dual_correction_solutions.h5"
@@ -844,17 +889,17 @@ class TestLongSystem:
         )
 
     def test_time_bda_facet_dual_corrections(
-        self, model_file_fixture, region_file_fixture
+        self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
         """
         Predict a skymodel with corruptions in DP3, writing the output with BDA.
         Check that wsclean corrects for the corruptions correctly.
         """
-        solution_file = "bda_dual_correction_solutions.h5"
+        solution_file = "time_bda_dual_correction_solutions.h5"
         make_h5parm(solution_file, "diagonal", 8)
         set_test_gains_in_solution_file(solution_file)
 
-        bda_set = "3c196-simulation-bda.ms"
+        bda_set = "3c196-simulation-time-bda.ms"
         # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
         # The input MS has 12 second intervals. We limit averaging to 8 timesteps, so 96 seconds.
         dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout={bda_set} msout.overwrite=True steps=[h5parmpredict,bda] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.usebeammodel=True h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=amplitude000 bda.timebase=200 bda.maxinterval=96.0 bda.type=bdaaverager bda.minchannels=1 bda.frequencybase=0.0"
@@ -865,11 +910,11 @@ class TestLongSystem:
 -apply-facet-solutions {solution_file} amplitude000,phase000 -size 2500 2500
 -scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8 -nmiter 1
 -maxuvw-m 20000 -no-update-model-required"""
-        cmd = f"{base_cmd} -name bda-facet-corrections {bda_set}"
+        cmd = f"{base_cmd} -name time-bda-facet-corrections {bda_set}"
         validate_call(cmd.split())
 
         check_image_pixel(
-            i_source_pos, 1.0, "bda-facet-corrections-image-pb.fits"
+            i_source_pos, 1.0, "time-bda-facet-corrections-image-pb.fits"
         )
 
         # Prepare for applying solutions to diagonal (XX,YY) vis. To do so, first
@@ -882,16 +927,75 @@ class TestLongSystem:
 
         cmd = (
             base_cmd
-            + f" -diagonal-visibilities -name bda-facet-beam-applied {bda_set}"
+            + f" -diagonal-visibilities -name time-bda-facet-beam-applied {bda_set}"
         )
         validate_call(cmd.split())
 
         check_image_pixel(
-            i_source_pos, 1.0, "bda-facet-beam-applied-image-pb.fits"
+            i_source_pos, 1.0, "time-bda-facet-beam-applied-image-pb.fits"
         )
 
+    # TODO enable this run. This is currently (2025-11-25) not yet possible on CI
+    # because it requires fixes in EveryBeam that are on master but not yet available on the CI runner. Should
+    # be enabled in a few months.
+    @pytest.mark.skip(
+        reason="Requires update of EveryBeam on CI runner (das6)"
+    )
+    @pytest.mark.parametrize("use_bda", ("without bda", "bda"))
+    def test_frequency_bda_facet_dual_corrections(
+        self, mwa_model_file_fixture, mwa_region_file_fixture, use_bda
+    ):
+        """
+        The 3c196 test set used for time bda has only one frequency channel, so is not
+        usable for frequency BDA. This test therefore uses the MWA set, which has
+        plenty of channels. This also tests a few more things, like using DP3 for predicting
+        MWA data with beam and correcting that with WSClean.
+
+        Start by predicting a skymodel with corruptions in DP3, writing the output with BDA.
+        Check that wsclean corrects for the corruptions correctly.
+        """
+        solution_file = "frequency_bda_dual_correction_solutions.h5"
+        make_h5parm(solution_file, "diagonal", 8, tcf.MWA_MS, 4)
+        set_test_gains_in_solution_file(solution_file)
+
+        bda_set = "mwa-simulation-frequency-bda.ms"
+        # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
+        # The input MS has 12 second intervals. We limit averaging to 8 timesteps, so 96 seconds.
+        steps = (
+            "phaseshift,h5parmpredict,bda"
+            if use_bda == "bda"
+            else "phaseshift,h5parmpredict"
+        )
+        dp3_run = f"DP3 msin={tcf.MWA_MS} msin.ntimes=4 msout={bda_set} msout.overwrite=True steps=[{steps}] phaseshift.phasecenter=[10h12m45.111,-26d37m20.486] h5parmpredict.sourcedb=testmodel.txt h5parmpredict.usebeammodel=True h5parmpredict.applycal.parmdb={solution_file} h5parmpredict.applycal.correction=amplitude000 h5parmpredict.coefficients_path=mwa_full_embedded_element_pattern.h5 h5parmpredict.applycal.missingantennabehavior=unit bda.type=bdaaverager bda.timebase=0.0 bda.frequencybase=200.0"
+        validate_call(dp3_run.split())
+
+        validate_call(f"taql update {bda_set} set FLAG=False".split())
+
+        base_cmd = f"{tcf.WSCLEAN} -v -parallel-gridding 4 -facet-regions mwa-with-4-facets.reg -apply-facet-solutions {solution_file} amplitude000,phase000 -apply-facet-beam -size 1024 1024 -scale 1amin -taper-gaussian 5amin -niter 1000 -mgain 0.8 -nmiter 1 -no-update-model-required -mwa-path . -pb-grid-size 32"
+        cmd = f"{base_cmd} -name frequency-bda-facet-corrections {bda_set}"
+        validate_call(cmd.split())
+
+        margin = 0.07
+        top_right_pos = (0, 0, 975, 977)
+        top_left_pos = (0, 0, 955, 47)
+        bottom_right_pos = (0, 0, 71, 945)
+        bottom_left_pos = (0, 0, 95, 101)
+        positions = [
+            top_right_pos,
+            top_left_pos,
+            bottom_right_pos,
+            bottom_left_pos,
+        ]
+        for position in positions:
+            check_image_pixel(
+                position,
+                1.0,
+                "frequency-bda-facet-corrections-image-pb.fits",
+                margin,
+            )
+
     def test_full_jones_facet_corrections(
-        self, model_file_fixture, region_file_fixture
+        self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
         solution_file = "full_jones_correction_solutions.h5"
         make_h5parm(solution_file, "fulljones", 1)

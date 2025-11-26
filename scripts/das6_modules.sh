@@ -1,6 +1,6 @@
 module purge
 
-module load spack/20250523
+module load spack/20251124
 
 module load gcc
 module load cmake
