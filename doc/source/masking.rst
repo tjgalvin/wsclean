@@ -27,7 +27,8 @@ Auto-masking allows automated deep cleaning and solves the two problems mentione
  * Only one run of wsclean is required;
  * It maintains scale-dependent masks, which improves multi-scale cleaning.
 
-Auto-masking works in all modes since :doc:`WSClean 2.2 <changelogs/v2.2>`. The general syntax is as follows:
+Auto-masking was first described in `Offringa and Smirnov (2017)  <http://arxiv.org/abs/1706.06786>`_.
+It works in all modes since :doc:`WSClean 2.2 <changelogs/v2.2>`. The general syntax is as follows:
 
 .. code-block:: bash
 
