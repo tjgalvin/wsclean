@@ -394,7 +394,7 @@ Options can be:
    Column to which the predicted data is written. Default: MODEL_DATA.
 -model-storage-manager <type>
    If a new model column needs to be written, create the model using this storage manager. Supported types:
-   "default" and "stokes-i".
+   "default", "stokes-i" and "sisco".
 -maxuvw-m <meters>
 -minuvw-m <meters>
    Set the min/max baseline distance in meters.
