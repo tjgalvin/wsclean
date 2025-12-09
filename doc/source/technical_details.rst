@@ -17,4 +17,4 @@ Contents:
     ds9_facet_file
     primary_beam_component_images
     time_frequency_smearing
-    
+    technical_bda_details
