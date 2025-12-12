@@ -162,10 +162,10 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.30")
   # Disable warning; both old and new policies are fine
   cmake_policy(SET CMP0167 NEW)
 endif()
-find_package(
-  Boost
-  COMPONENTS date_time filesystem system program_options
-  REQUIRED)
+#For providing compatibility with Boost 1.89+, the Boost COMPONENTS do not
+#include date_time and system, which were removed in Boost 1.89. They have been
+#header-only since Boost 1.73 / 1.69, so the minimum Boost version is 1.73.
+find_package(Boost 1.73 REQUIRED COMPONENTS filesystem program_options)
 find_package(Threads REQUIRED)
 find_library(DL_LIB dl REQUIRED)
 
@@ -442,10 +442,8 @@ set(EXTERNAL_LIBRARIES
     ${FFTW3_THREADS_LIB}
     ${FFTW3F_LIB}
     ${FFTW3F_THREADS_LIB}
-    Boost::date_time
     Boost::filesystem
     Boost::program_options
-    Boost::system
     ${CFITSIO_LIBRARY}
     ${GSL_LIB}
     ${GSL_CBLAS_LIB}

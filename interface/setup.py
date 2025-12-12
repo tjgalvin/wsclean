@@ -13,8 +13,6 @@ _wsclean = Extension(
         "casa_fits",
         "fftw3",
         "fftw3_threads",
-        "boost_date_time",
-        "boost_system",
         "boost_thread",
         "boost_filesystem",
         "boost_program_options",

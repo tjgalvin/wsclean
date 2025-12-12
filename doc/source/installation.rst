@@ -19,7 +19,7 @@ To retrieve the (experimental) master branch of WSClean, use git:
     git clone -b master git@gitlab.com:aroffringa/wsclean.git
 
 This will retrieve the *master* branch of WSClean.
-    
+
 Manual compilation
 ------------------
 
@@ -70,8 +70,7 @@ Binary packages are available on Ubuntu and Debian, and can be installed with ``
     apt install  \
       casacore-dev cmake g++ \
       git pkg-config libblas-dev \
-      libboost-date-time-dev libboost-filesystem-dev \
-      libboost-program-options-dev libboost-system-dev \
+      libboost-filesystem-dev libboost-program-options-dev \
       libcfitsio-dev libfftw3-dev libgsl-dev \
       libhdf5-dev liblapack-dev libopenmpi-dev \
       libpython3-dev pkg-config
@@ -106,7 +105,7 @@ To have these primary beams available in WSClean, CMake needs to find the EveryB
 .. code-block:: bash
 
     cmake ../ -DCMAKE_PREFIX_PATH="~/Software/EveryBeam-install/"
-    
+
 CMake will tell whether the LOFAR tree was found:
 
 .. code-block:: bash
@@ -114,7 +113,7 @@ CMake will tell whether the LOFAR tree was found:
     cmake ../ -DCMAKE_PREFIX_PATH="~/Software/EveryBeam-install/"
     [..]
     EveryBeam beam library found.
-    
+
 Extra paths can be added to e.g. also include IDG. Paths can be separated with a ; (semicolon).
 
 The MWA beam
@@ -148,4 +147,3 @@ After succesfully running ``make install``, the following programs will be insta
 
 ``chgcentre``
     A program to change the phase centre of measurement sets, see :doc:`chgcentre`.
-    

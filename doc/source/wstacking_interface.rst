@@ -18,8 +18,7 @@ The gridder can be compiled with two external libraries: FFTW and Boost. To avoi
       -DAVOID_CASACORE \
       wspredictionexample.cpp \
       ../wstackinggridder.cpp \
-      -lfftw3f -lfftw3 -lfftw3f_threads -lfftw3_threads \
-      -lboost_date_time -lboost_system
+      -lfftw3f -lfftw3 -lfftw3f_threads -lfftw3_threads
 
 This assumes you are in the ``wsclean/examples`` subdirectory. There's a separate makefile for this: `wsclean/examples/Makefile`.
 

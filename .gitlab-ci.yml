@@ -21,8 +21,7 @@ workflow:
       g++
       git
       libblas-dev liblapack-dev
-      libboost-filesystem-dev libboost-system-dev libboost-date-time-dev
-      libboost-program-options-dev libboost-test-dev
+      libboost-filesystem-dev libboost-program-options-dev libboost-test-dev
       libcfitsio-dev
       libfftw3-dev
       libgsl-dev
@@ -87,8 +86,11 @@ build-with-everybeam-gcc12:
   script:
     - apt-get install -y -qq g++-12
     - pip3 install pytest astropy gcovr
-    - mkdir -p /opt/everybeam/build && cd /opt/everybeam && git clone --branch v0.8.0 https://git.astron.nl/RD/EveryBeam.git
-    - cd build/ && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/
+    # Use a very recent EveryBeam version (as of Dec 2025), since older versions require the (now empty) Boost date_time library.
+    - mkdir -p /opt/everybeam/build
+    - cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
+    - cd /opt/everybeam/EveryBeam && git checkout a324cf1d154ff5b968f9844cf05841850bb27c01
+    - cd /opt/everybeam/build && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/
     - make -j`nproc` install
     - cd $CI_PROJECT_DIR && mkdir build && cd build
     - cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_PREFIX_PATH='/opt/everybeam' -DCMAKE_C_COMPILER=/usr/bin/gcc-12 -DCMAKE_CXX_COMPILER=/usr/bin/g++-12 -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
