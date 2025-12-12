@@ -224,8 +224,13 @@ ReorderedHandle ReorderMS(
 
   // This maps data_desc_id to spw index.
   // TODO use VectorMap instead
-  const std::map<size_t, size_t> selected_data_desc_ids =
-      GetSpwMap(aocommon::MultiBandData(casacore::MeasurementSet(ms_path)));
+  std::map<size_t, size_t> selected_data_desc_ids;
+  bool has_frequency_bda;
+  {  // close ms asap
+    casacore::MeasurementSet ms(ms_path);
+    selected_data_desc_ids = GetSpwMap(aocommon::MultiBandData(ms));
+    has_frequency_bda = wsclean::HasFrequencyBda(ms);
+  }
 
   std::unique_ptr<MsRowProviderBase> row_provider;
   if (settings.baselineDependentAveragingInWavelengths == 0.0) {
@@ -268,8 +273,9 @@ ReorderedHandle ReorderMS(
   auto handle_data = std::make_unique<HandleData>(
       ms_path, data_column_name, model_column_name, model_storage_manager,
       temporary_directory, channels, initial_model_required,
-      model_update_required, pols_out, selection, bands_per_part, nAntennas,
-      settings.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
+      model_update_required, pols_out, selection, bands_per_part,
+      has_frequency_bda, nAntennas, settings.saveReorder,
+      ReorderedMsProvider::StoreReorderedInMS);
 
   std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
   std::tie(handle_data->metadata_indices_, data_desc_ids) =

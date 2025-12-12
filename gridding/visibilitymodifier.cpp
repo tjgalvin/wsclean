@@ -123,13 +123,8 @@ void VisibilityModifier::InitializeCacheParmResponse(
   // Only extract DD solutions if the corresponding cache entry is empty.
   SolutionsResponseMap& parm_response = _cachedParmResponse[ms_index];
   if (parm_response.Empty()) {
-    const size_t max_channel_id = selected_bands.DataDescIdWithMaxChannels();
     const size_t nparms = NValuesPerSolution(ms_index);
-    const aocommon::BandData& band = selected_bands[max_channel_id];
-    const std::vector<double> freqs(band.begin(), band.end());
     const size_t n_times = _cachedMSTimes[ms_index]->size();
-    const size_t response_size =
-        n_times * freqs.size() * antennaNames.size() * nparms;
     const std::string dir_name = (*_h5parms)[solution_index].GetNearestSource(
         _facetDirectionRA, _facetDirectionDec);
     schaapcommon::h5parm::SolTab* const first_solution =
@@ -138,25 +133,55 @@ void VisibilityModifier::InitializeCacheParmResponse(
         _secondSolutions->empty() ? nullptr
                                   : (*_secondSolutions)[solution_index];
     const size_t dir_index = first_solution->GetDirIndex(dir_name);
-    JonesParameters jones_parameters(
-        freqs, *_cachedMSTimes[ms_index], antennaNames,
-        (*_gainTypes)[solution_index],
-        JonesParameters::InterpolationType::NEAREST, dir_index, first_solution,
-        second_solution, false, 0u,
-        JonesParameters::MissingAntennaBehavior::kUnit);
-    // parms (Casacore::Cube) is column major
-    const casacore::Cube<std::complex<float>>& parms =
-        jones_parameters.GetParms();
 
-    std::vector<std::complex<float>> full_channel_response(
-        &parms(0, 0, 0), &parms(0, 0, 0) + response_size);
-    for (size_t data_desc_id : selected_bands.DataDescIds()) {
-      std::vector<std::complex<float>>& band_response =
-          parm_response.AlwaysEmplace(data_desc_id);
-      InterpolateChannels(full_channel_response, band, band_response,
-                          selected_bands[data_desc_id], n_times,
-                          antennaNames.size() * nparms);
-      setNonFiniteToZero(band_response);
+    if (uses_bda_) {
+      // In BDA mode, the channels are interpolated from the data_desc_id with
+      // the most channels, to avoid rereading the file many times.
+      const size_t max_channel_id = selected_bands.DataDescIdWithMaxChannels();
+      const aocommon::BandData& band = selected_bands[max_channel_id];
+      const std::vector<double> freqs(band.begin(), band.end());
+      const size_t response_size =
+          n_times * freqs.size() * antennaNames.size() * nparms;
+      JonesParameters jones_parameters(
+          freqs, *_cachedMSTimes[ms_index], antennaNames,
+          (*_gainTypes)[solution_index],
+          JonesParameters::InterpolationType::NEAREST, dir_index,
+          first_solution, second_solution, false, 0u,
+          JonesParameters::MissingAntennaBehavior::kUnit);
+      // parms (Casacore::Cube) is column major
+      const casacore::Cube<std::complex<float>>& parms =
+          jones_parameters.GetParms();
+
+      std::vector<std::complex<float>> full_channel_response(
+          &parms(0, 0, 0), &parms(0, 0, 0) + response_size);
+      for (size_t data_desc_id : selected_bands.DataDescIds()) {
+        std::vector<std::complex<float>>& band_response =
+            parm_response.AlwaysEmplace(data_desc_id);
+        InterpolateChannels(full_channel_response, band, band_response,
+                            selected_bands[data_desc_id], n_times,
+                            antennaNames.size() * nparms);
+        setNonFiniteToZero(band_response);
+      }
+    } else {
+      for (size_t data_desc_id : selected_bands.DataDescIds()) {
+        const aocommon::BandData& band = selected_bands[data_desc_id];
+        const std::vector<double> freqs(band.begin(), band.end());
+        const size_t response_size =
+            n_times * freqs.size() * antennaNames.size() * nparms;
+        JonesParameters jones_parameters(
+            freqs, *_cachedMSTimes[ms_index], antennaNames,
+            (*_gainTypes)[solution_index],
+            JonesParameters::InterpolationType::NEAREST, dir_index,
+            first_solution, second_solution, false, 0u,
+            JonesParameters::MissingAntennaBehavior::kUnit);
+
+        const casacore::Cube<std::complex<float>>& parms =
+            jones_parameters.GetParms();
+        std::vector<std::complex<float>>& band_response =
+            parm_response.AlwaysEmplace(data_desc_id);
+        band_response.assign(&parms(0, 0, 0), &parms(0, 0, 0) + response_size);
+        setNonFiniteToZero(band_response);
+      }
     }
   }
 }
@@ -194,6 +219,60 @@ void VisibilityModifier::CacheParmResponse(double time,
 }
 
 #ifdef HAVE_EVERYBEAM
+
+void VisibilityModifier::GetBeamResponse(
+    const aocommon::BandData& band, size_t field_id,
+    std::vector<aocommon::MC2x2F>& result) const {
+  std::vector<double> frequencies(band.ChannelCount());
+  std::vector<aocommon::MC2x2F> response(n_stations_ * band.ChannelCount());
+  for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
+    frequencies[ch] = band.ChannelFrequency(ch);
+  }
+  _pointResponse->ResponseAllStations(_beamMode, response.data(),
+                                      _facetDirectionRA, _facetDirectionDec,
+                                      frequencies, field_id);
+  // Transpose the structure
+  for (size_t station = 0; station != n_stations_; ++station) {
+    for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
+      result[ch * n_stations_ + station] =
+          response[station * band.ChannelCount() + ch];
+    }
+  }
+}
+
+bool VisibilityModifier::UpdateCachedBeamResponseForRow(
+    double time, size_t field_id, const aocommon::MultiBandData& bands,
+    BeamResponseMap& cached_beam_response) {
+  _pointResponse->UpdateTime(time);
+  if (_pointResponse->HasTimeUpdate()) {
+    if (uses_bda_) {
+      // In BDA mode, interpolate the channels from the data_desc_id with the
+      // highest nr of channels.
+      const size_t max_channels_id = bands.DataDescIdWithMaxChannels();
+      const aocommon::BandData& band = bands[max_channels_id];
+      std::vector<aocommon::MC2x2F>& full_cached_response =
+          cached_beam_response[max_channels_id];
+      GetBeamResponse(band, field_id, full_cached_response);
+      for (size_t data_desc_id : bands.DataDescIds()) {
+        std::vector<aocommon::MC2x2F>& destination =
+            cached_beam_response[data_desc_id];
+        const aocommon::BandData& destination_band = bands[data_desc_id];
+        InterpolateChannels(full_cached_response, band, destination,
+                            destination_band, 1, n_stations_);
+      }
+    } else {
+      for (size_t data_desc_id : bands.DataDescIds()) {
+        const aocommon::BandData& band = bands[data_desc_id];
+        std::vector<aocommon::MC2x2F>& response =
+            cached_beam_response[data_desc_id];
+        GetBeamResponse(band, field_id, response);
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 template <GainMode Mode>
 void VisibilityModifier::ApplyBeamResponse(std::complex<float>* data,
                                            size_t n_channels,

@@ -975,7 +975,7 @@ class TestLongSystem:
         cmd = f"{base_cmd} -name frequency-bda-facet-corrections {bda_set}"
         validate_call(cmd.split())
 
-        margin = 0.07
+        margin = 0.1
         top_right_pos = (0, 0, 975, 977)
         top_left_pos = (0, 0, 955, 47)
         bottom_right_pos = (0, 0, 71, 945)

@@ -16,6 +16,7 @@ MsGridderData::MsGridderData(const Settings& settings)
 void MsGridderData::StartMeasurementSet(
     size_t ms_count, const MsProviderCollection::MsData& ms_data,
     bool is_predict) {
+  visibility_modifier_.InitializeBda(ms_data.ms_provider->HasFrequencyBda());
   InitializePointResponse(ms_data);
   if (settings_.applyTimeFrequencySmearing) {
     visibility_modifier_.InitializeTimeFrequencySmearing(

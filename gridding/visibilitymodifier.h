@@ -180,6 +180,8 @@ class VisibilityModifier {
  public:
   VisibilityModifier() = default;
 
+  void InitializeBda(bool uses_bda) { uses_bda_ = uses_bda; }
+
   void InitializePointResponse(SynchronizedMS&& ms,
                                double facet_beam_update_time,
                                const std::string& element_response,
@@ -502,33 +504,7 @@ class VisibilityModifier {
    */
   bool UpdateCachedBeamResponseForRow(double time, size_t field_id,
                                       const aocommon::MultiBandData& bands,
-                                      BeamResponseMap& cached_beam_response) {
-    _pointResponse->UpdateTime(time);
-    if (_pointResponse->HasTimeUpdate()) {
-      std::vector<double> frequencies;
-      std::vector<aocommon::MC2x2F> response;
-      for (size_t data_desc_id : bands.DataDescIds()) {
-        const aocommon::BandData& band = bands[data_desc_id];
-        frequencies.resize(band.ChannelCount());
-        response.resize(n_stations_ * band.ChannelCount());
-        for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
-          frequencies[ch] = band.ChannelFrequency(ch);
-        }
-        _pointResponse->ResponseAllStations(
-            _beamMode, response.data(), _facetDirectionRA, _facetDirectionDec,
-            frequencies, field_id);
-        // Transpose the structure
-        for (size_t station = 0; station != n_stations_; ++station) {
-          for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
-            cached_beam_response[data_desc_id][ch * n_stations_ + station] =
-                response[station * band.ChannelCount() + ch];
-          }
-        }
-      }
-      return true;
-    }
-    return false;
-  }
+                                      BeamResponseMap& cached_beam_response);
 
   template <GainMode Mode>
   void ApplyBeamResponse(std::complex<float>* data, size_t n_channels,
@@ -664,6 +640,9 @@ class VisibilityModifier {
 
  private:
 #ifdef HAVE_EVERYBEAM
+  void GetBeamResponse(const aocommon::BandData& band, size_t field_id,
+                       std::vector<aocommon::MC2x2F>& result) const;
+
   // _telescope attribute needed to keep the telecope in _pointResponse alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
   std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
@@ -741,6 +720,7 @@ class VisibilityModifier {
   AverageCorrection correction_sum_;
   AverageCorrection beam_correction_sum_;
   double scaled_ncp_uvw_[3];
+  bool uses_bda_ = false;
 };
 
 #ifdef HAVE_EVERYBEAM

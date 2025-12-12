@@ -80,18 +80,20 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
     const std::vector<aocommon::VectorMap<ChannelRange>> channels =
         GenerateChannelInfo(imaging_table, ms_index);
     casacore::MeasurementSet ms_data_obj(settings_.filenames[ms_index]);
-
+    const bool has_frequency_bda = wsclean::HasFrequencyBda(ms_data_obj);
     const size_t n_antennas = ms_data_obj.antenna().nrow();
     const aocommon::MultiBandData original_bands(ms_data_obj);
     const std::vector<aocommon::MultiBandData> bands_per_part =
         MakeSelectedBands(original_bands, channels);
+
     auto data = std::make_unique<schaapcommon::reordering::HandleData>(
         settings_.filenames[ms_index], settings_.dataColumnName,
         settings_.modelColumnName, settings_.modelStorageManager,
         settings_.temporaryDirectory, channels, initial_model_required,
         settings_.modelUpdateRequired, polarization_types, global_selection_,
-        bands_per_part, n_antennas, settings_.saveReorder,
+        bands_per_part, has_frequency_bda, n_antennas, settings_.saveReorder,
         ReorderedMsProvider::StoreReorderedInMS);
+
     std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
     std::tie(data->metadata_indices_, data_desc_ids) =
         schaapcommon::reordering::MakeMetaFilesMap(data->channels_);

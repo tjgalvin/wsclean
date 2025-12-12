@@ -41,12 +41,7 @@ ContiguousMS::ContiguousMS(
     const MSSelection& selection,
     const aocommon::VectorMap<ChannelRange>& channel_ranges,
     aocommon::PolarizationEnum outputPolarization, bool useMPI)
-    : _currentOutputRow(0),
-      _currentOutputTimestep(0),
-      _currentOutputTime(0.0),
-      _useMPI(useMPI),
-      _nAntenna(0),
-      _isModelColumnPrepared(false),
+    : _useMPI(useMPI),
       selection_(selection),
       channel_ranges_(channel_ranges),
       _outputPolarization(outputPolarization),
@@ -61,6 +56,7 @@ ContiguousMS::ContiguousMS(
 void ContiguousMS::open() {
   _ms = SynchronizedMS(_msPath, _useMPI ? casacore::TableLock::UserNoReadLocking
                                         : casacore::TableLock::DefaultLocking);
+  has_frequency_bda_ = wsclean::HasFrequencyBda(*_ms);
 
   _antenna1Column = casacore::ScalarColumn<int>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
@@ -211,6 +207,13 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
         input_polarizations_[data_desc_id], buffer, _outputPolarization);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);
+}
+
+bool ContiguousMS::IsRegular() const {
+  auto IsNotEmpty = [](const ChannelRange& range) { return !range.Empty(); };
+
+  const size_t n_data_desc_ids = channel_ranges_.CountKeysIf(IsNotEmpty);
+  return n_data_desc_ids <= 1;
 }
 
 }  // namespace wsclean

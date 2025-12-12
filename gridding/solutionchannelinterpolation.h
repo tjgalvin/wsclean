@@ -15,9 +15,10 @@ namespace wsclean {
  * solution parameter x n_antennas whereas n_sets is set to n_times.
  * @param [out] to is resized and filled with the interpolated values.
  */
-inline void InterpolateChannels(const std::vector<std::complex<float>>& from,
+template <typename ValueType>
+inline void InterpolateChannels(const std::vector<ValueType>& from,
                                 const aocommon::BandData& from_band,
-                                std::vector<std::complex<float>>& to,
+                                std::vector<ValueType>& to,
                                 const aocommon::BandData& to_band,
                                 size_t n_values_per_channel, size_t n_sets) {
   const size_t n_from_channels = from_band.ChannelCount();
@@ -29,10 +30,9 @@ inline void InterpolateChannels(const std::vector<std::complex<float>>& from,
   to.resize(n_sets * n_to_channels * n_values_per_channel);
 
   for (size_t set_index = 0; set_index != n_sets; ++set_index) {
-    const std::complex<float>* from_ptr =
+    const ValueType* from_ptr =
         &from[set_index * n_from_channels * n_values_per_channel];
-    std::complex<float>* to_ptr =
-        &to[set_index * n_to_channels * n_values_per_channel];
+    ValueType* to_ptr = &to[set_index * n_to_channels * n_values_per_channel];
     size_t from_channel = 0;
     for (size_t to_channel = 0; to_channel != n_to_channels; ++to_channel) {
       // Continue increasing from_channel when the next channel is closer to the
@@ -51,7 +51,7 @@ inline void InterpolateChannels(const std::vector<std::complex<float>>& from,
         }
         at_end = from_channel + 1 >= n_from_channels;
       }
-      const std::complex<float>* from_location =
+      const ValueType* from_location =
           from_ptr + from_channel * n_values_per_channel;
       to_ptr = std::copy_n(from_location, n_values_per_channel, to_ptr);
     }

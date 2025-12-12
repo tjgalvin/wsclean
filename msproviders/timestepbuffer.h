@@ -54,6 +54,10 @@ class TimestepBuffer final : public MSProvider {
 
   bool IsRegular() const final { return ms_provider_->IsRegular(); }
 
+  bool HasFrequencyBda() const override {
+    return ms_provider_->HasFrequencyBda();
+  }
+
   size_t NMaxChannels() final { return ms_provider_->NMaxChannels(); }
 
   size_t NAntennas() final { return ms_provider_->NAntennas(); }

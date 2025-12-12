@@ -62,7 +62,9 @@ class ContiguousMS final : public MSProvider {
 
   size_t NMaxChannels() override;
 
-  bool IsRegular() const override { return true; }
+  bool IsRegular() const override;
+
+  bool HasFrequencyBda() const override { return has_frequency_bda_; }
 
   size_t NPolarizations() override;
 
@@ -75,18 +77,19 @@ class ContiguousMS final : public MSProvider {
  private:
   void open();
 
-  size_t _currentOutputRow;
-  size_t _currentOutputTimestep;
-  double _currentOutputTime;
+  size_t _currentOutputRow = 0;
+  size_t _currentOutputTimestep = 0;
+  double _currentOutputTime = 0.0;
   bool _useMPI;
-  size_t _nAntenna;
+  size_t _nAntenna = 0;
   bool _isDataRead, _isModelRead, _isWeightRead;
-  bool _isModelColumnPrepared;
+  bool _isModelColumnPrepared = false;
   size_t _startRow, _endRow;
   aocommon::VectorMap<std::set<aocommon::PolarizationEnum>>
       input_polarizations_;
   schaapcommon::reordering::MSSelection selection_;
   aocommon::VectorMap<schaapcommon::reordering::ChannelRange> channel_ranges_;
+  bool has_frequency_bda_ = false;
   aocommon::PolarizationEnum _outputPolarization;
   std::string _msPath;
   SynchronizedMS _ms;

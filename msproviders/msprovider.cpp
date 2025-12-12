@@ -59,6 +59,11 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
   return result;
 }
 
+bool HasFrequencyBda(const casacore::MeasurementSet& ms) {
+  return ms.spectralWindow().actualTableDesc().isColumn(
+      "BDA_SPECTRAL_WINDOW_ID");
+}
+
 MSProvider::~MSProvider() = default;
 
 void MSProvider::GetRowRange(casacore::MeasurementSet& ms,

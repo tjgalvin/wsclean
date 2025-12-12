@@ -69,6 +69,9 @@ class ReorderedMsProvider final : public MSProvider {
   bool IsRegular() const override {
     return meta_header_.data_desc_id.HasValue();
   }
+  bool HasFrequencyBda() const override {
+    return handle_.data_->has_frequency_bda_;
+  }
   size_t NPolarizations() override { return polarization_count_in_file_; }
   size_t NAntennas() override { return handle_.data_->n_antennas_; }
 

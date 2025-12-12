@@ -39,6 +39,8 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const std::vector<
         aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
 
+bool HasFrequencyBda(const casacore::MeasurementSet& ms);
+
 /**
  * The abstract MSProvider class is the base class for classes that read and
  * write the visibilities. Write functionality is directly provided by classes
@@ -134,9 +136,32 @@ class MSProvider {
   virtual size_t NMaxChannels() = 0;
 
   /**
-   * Does every row have the same number of channels?
+   * Does every row have the same number of channels? If true, fixed size
+   * arrays can be allocated beforehand for reading/writing. This is also
+   * used in reordering to determine whether a size-per-row needs to be
+   * stored.
+   *
+   * Both BDA or the use of multiple spectral windows with different number of
+   * channels can make the data irregular. Even if a MS has regular subbands,
+   * the data can become irregular because of selection or output channel
+   * splitting.
+   *
+   * In the reordering, a stricter definition is used: being regular
+   * means there that a provider is strictly for one spectral window. This means
+   * that a provider for two SPWs with the same nr of channels would still
+   * return 'false'.
    */
   virtual bool IsRegular() const = 0;
+
+  /**
+   * Are data_desc_ids in this measurement sets part of a BDA averaging
+   * scheme? If true, @ref IsRegular() will also always return false. If this
+   * methods returns false, the ms may still have multiple data_desc_ids, but
+   * these then represent genuine bands instead of different averaging factors.
+   * In this situation, @ref IsRegular() may still return true if those bands
+   * have different number of channels.
+   */
+  virtual bool HasFrequencyBda() const = 0;
 
   /**
    * Count of antennas in the underlying measurement set (irrespective of
