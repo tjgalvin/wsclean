@@ -21,7 +21,7 @@ There are several IDG related WSClean parameters:
 
 .. code-block:: text
 
-    -use-idg
+    -gridder idg
     
 This option turns on the IDG gridder. If IDG is not available, WSClean will show an error.  
 
@@ -34,23 +34,15 @@ IDG mode to use. The default is CPU, which works on any computer. GPU and Hybrid
 Gridding with the beam
 ----------------------
 
-IDG allows gridding with a time-variable beam -- currently (as of 2.6), this includes the LOFAR, AARTFAAC and MWA beam. This would increase the accuracy of with which sources are deconvolved (in theory, but it depends of course on the accuracy of the beam model). The option to do this is ``-grid-with-beam``, and optionally, if the differential beam needs to be applied (which is common; see the LOFAR beam page for more info) one would also add ``-use-differential-lofar-beam``.
+IDG allows gridding with a time-variable beam -- currently (as of 2.6), this includes the LOFAR, AARTFAAC and MWA beam. This would increase the accuracy of with which sources are deconvolved (in theory, but it depends of course on the accuracy of the beam model). The option to do this is ``-grid-with-beam``.
 
 In summary; IDG with full beam correction:
 
 .. code-block:: text
 
-    wsclean -use-idg -grid-with-beam ...
+    wsclean -gridder idg -grid-with-beam ...
     
-IDG with differential beam correction:    
-
-.. code-block:: text
-
-    wsclean -use-idg -grid-with-beam -use-differential-lofar-beam ...
-
-For more information about the differential lofar beam, see :doc:`primary beam correction <primary_beam_correction>`. Note that you do not have to add ``-apply-primary-beam``: if you don't specify this parameter, WSClean will grid with the beam and output both the "flat noise" image and the pb corrected image.
-
-NB: In earlier versions, specifying both ``-apply-primary-beam`` and ``-use-idg`` would apply the wrong beam!
+Note that you do not have to add ``-apply-primary-beam`` to output a pb corrected image: even if you don't specify this parameter, WSClean will grid with the beam and output both the "flat noise" image and the pb corrected image when gridding with the beam.
 
 Polarization settings for IDG
 -----------------------------
@@ -68,7 +60,7 @@ Some further explanation on this: IDG in combination with ``-pol iquv -join-pola
 
 .. code-block:: bash
 
-    wsclean -link-polarization i -use-idg [..]
+    wsclean -link-polarization i -gridder idg [..]
 
 This will clean Stokes I fully, and clean the components found in I also from the other polarizations. However, it will *not* clean structure from QUV that is not found in I.
 
