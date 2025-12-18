@@ -80,7 +80,7 @@ explicitly decided not to include these.
 +--------------------------------+--------+-------+---------+---------------------+
 | FIELD_ID                       | Int    |       |         | Field id            |
 +--------------------------------+--------+-------+---------+---------------------+
-| BDA_SPECTRAL_WINDOW_ID         | Int    |       |         | Spectral window id. |
+| BDA_FREQ_AXIS_ID               | Int    |       |         | Spectral window id. |
 +--------------------------------+--------+-------+---------+---------------------+
 | *(BDA_TIME_AXIS_ID)*           | Int    |       |         | Row id, Only in     |
 |                                |        |       |         | MSv3                |
@@ -110,10 +110,10 @@ explicitly decided not to include these.
 
    Field identiﬁer (≥ 0).
 
-**BDA_SPECTRAL_WINDOW_ID**
+**BDA_FREQ_AXIS_ID**
 
    Spectral window identifier (≥ 0). Together with the field identifier,
-   this key uniquely identifies a row. The ``BDA_SPECTRAL_WINDOW_ID``
+   this key uniquely identifies a row. The ``BDA_SET_ID``
    values in the ``SPECTRAL_WINDOW`` table refer to this key.
 
 **BDA_TIME_AXIS_ID**
@@ -220,23 +220,23 @@ SPECTRAL_WINDOW: continued (Metadata for frequency)
 
 All other requirements (such as specified for the time metadata) can be
 deduced from the metadata already in the ``SPECTRAL_WINDOW`` table.
-Spectral BDA has been applied when: i) the BDA_SPECTRAL_WINDOW_ID column
+Spectral BDA has been applied when: i) the BDA_SET_ID column
 exists; and ii) multiple SPWs (rows in the table) have the same value in
-the BDA_SPECTRAL_WINDOW_ID column.
+the BDA_SET_ID column.
 
 ========================== ====== ===== ======= ==========
 \
 Name                       Format Units Measure Comments
 *Data*
-*(BDA_SPECTRAL_WINDOW_ID)* Int                  BDA set id
+*(BDA_SET_ID)*             Int
 ========================== ====== ===== ======= ==========
 
-**BDA_SPECTRAL_WINDOW_ID**
+**BDA_SET_ID**
 
    An id that links a set of spectral windows that cover the same
    (true/original) spectral window. It is the equal for all spectral
    windows where the only difference is the amount of frequency
-   averaging. This id refers to the ``BDA_SPECTRAL_WINDOW_ID`` in the
+   averaging. This id refers to the ``BDA_FREQ_AXIS_ID`` in the
    ``BDA_TIME_AXIS`` table, which contains information regarding the time
    averaging for the spectral window.
 
@@ -273,7 +273,7 @@ Use cases
    This can be done if INTEGER_INTERVAL_FACTORS is True, using
    MAX_TIME_INTERVAL and MIN_TIME_INTERVAL, and the metadata computed
    from the SPECTRAL_WINDOW table for each of the
-   BDA_SPECTRAL_WINDOW_IDs. If the BDA_FACTOR table is filled, the max
+   BDA_SET_IDs. If the BDA_FACTOR table is filled, the max
    and min factor in that table can be used.
 5. Use different time averaging for different parts of the observation.
    E.g. if a specific part of the observation requires higher time
@@ -331,7 +331,7 @@ factor are equal. In reality, they may differ.
 BDA_FACTORS table:
 
 +------------------+--------------------+----------+----------+-------------+-----------+
-| BDA_TIME_AXIS_ID | SPECTRAL_WINDOW_ID | ANTENNA1 | ANTENNA2 | TIME_FACTOR |           |
+| BDA_TIME_AXIS_ID | BDA_FREQ_AXIS_ID   | ANTENNA1 | ANTENNA2 | TIME_FACTOR |           |
 +==================+====================+==========+==========+=============+===========+
 | 0                | 0                  | 0        | 1        | 4           | (short    |
 |                  |                    |          |          |             | baseline) |
@@ -351,7 +351,7 @@ BDA_FACTORS table:
 SPECTRAL_WINDOW table:
 
 +--------------------+------------------+------------------+------------------------+
-| SPECTRAL_WINDOW_ID | CHAN_FREQ (MHz)  | CHAN_WIDTH (MHz) | BDA_SPECTRAL_WINDOW_ID |
+| SPECTRAL_WINDOW_ID | CHAN_FREQ (MHz)  | CHAN_WIDTH (MHz) | BDA_FREQ_AXIS_ID       |
 +====================+==================+==================+========================+
 | 0                  | [115]            | [40]             | 0                      |
 +--------------------+------------------+------------------+------------------------+
@@ -403,7 +403,7 @@ BDA_TIME_AXIS table (flipped):
 ========================== ====== ======
 BDA_TIME_AXIS_ID           0      1
 FIELD_ID                   0      0
-BDA_SPECTRAL_WINDOW_ID     0      1
+BDA_FREQ_AXIS_ID           0      1
 IS_BDA_APPLIED             True   True
 SINGLE_FACTOR_PER_BASELINE True   True
 MAX_TIME_INTERVAL          0:04.0 0:03.0

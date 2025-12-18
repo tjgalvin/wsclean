@@ -60,8 +60,10 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
 }
 
 bool HasFrequencyBda(const casacore::MeasurementSet& ms) {
-  return ms.spectralWindow().actualTableDesc().isColumn(
-      "BDA_SPECTRAL_WINDOW_ID");
+  // This is a simple test that works in all current use-cases. Formally, we
+  // should check if there are rows with the same BDA_SET_ID to conclude BDA is
+  // enabled.
+  return ms.spectralWindow().actualTableDesc().isColumn("BDA_SET_ID");
 }
 
 MSProvider::~MSProvider() = default;
