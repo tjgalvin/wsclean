@@ -367,7 +367,6 @@ add_library(
   gridding/wsmsgridder.cpp
   gridding/wstackinggridder.cpp
   idg/averagebeam.cpp
-  interface/wscleaninterface.cpp
   io/componentlistwriter.cpp
   io/facetreader.cpp
   io/parsetreader.cpp
@@ -492,9 +491,6 @@ add_executable(chgcentre chgcentre/main.cpp main/progressbar.cpp)
 target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB}
                       ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 
-add_executable(wsuvbinning EXCLUDE_FROM_ALL gridding/examples/wsuvbinning.cpp)
-target_link_libraries(wsuvbinning PRIVATE wsclean-lib)
-
 add_executable(
   wspredictionexample EXCLUDE_FROM_ALL gridding/examples/wspredictionexample.cpp
                                        gridding/wstackinggridder.cpp)
@@ -503,7 +499,6 @@ target_link_libraries(wspredictionexample ${EXTERNAL_LIBRARIES})
 install(TARGETS wsclean DESTINATION bin)
 install(TARGETS wsclean-lib DESTINATION lib)
 install(TARGETS chgcentre DESTINATION bin)
-install(FILES interface/wscleaninterface.h DESTINATION include)
 
 if(MPI_FOUND)
   install(TARGETS wsclean-mp DESTINATION bin)

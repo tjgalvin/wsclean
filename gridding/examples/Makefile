@@ -1,5 +1,2 @@
-wsgridderexample:	wspredictionexample.cpp ../wstackinggridder.cpp ../../fftwmultithreadenabler.cpp
-	g++ -Wall -o wspredictionexample -I ../../external/aocommon/include/ -std=c++17 -DAVOID_CASACORE wspredictionexample.cpp ../wstackinggridder.cpp ../../fftwmultithreadenabler.cpp -lfftw3 -lfftw3_threads -lboost_thread
-
-channelfitexample:	channelfitexample.cpp
-	g++ -Wall -o channelfitexample -I ../../external/aocommon/include/ -std=c++17 channelfitexample.cpp ../../polynomialchannelfitter.cpp ../../polynomialfitter.cpp -lgsl -lgslcblas
+wsgridderexample:	wspredictionexample.cpp ../wstackinggridder.cpp
+	g++ -Wall -o wspredictionexample -I ../../external/aocommon/include/ -std=c++20 -DAVOID_CASACORE wspredictionexample.cpp ../wstackinggridder.cpp -lfftw3 -lfftw3f -lfftw3_threads -lfftw3f_threads

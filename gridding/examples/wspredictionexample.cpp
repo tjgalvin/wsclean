@@ -26,8 +26,8 @@ int main(int argc, char* argv[]) {
   // 15) and oversampling factor (here: 201). Often, the default values are good
   // enough and provide a better compromise between accuracy and performance. To
   // get the default values, the last two parameters can be left out.
-  WStackingGridder<float> gridder(width, height, pixelScale, pixelScale,
-                                  threadCount, 15, 1023);
+  wsclean::WStackingGridder<float> gridder(width, height, pixelScale,
+                                           pixelScale, threadCount, 15, 1023);
 
   // Prepare the w-layers. This example disables w-term correction by setting
   // the number of w-layers to 1, and therefore this call becomes quite simple.
