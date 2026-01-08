@@ -109,9 +109,9 @@ class MSGridderManager {
                           std::vector<GriddingResult::FacetData>& facet_results,
                           GriddingTaskManager* writer_lock_manager);
   void Invert();
-  void BatchInvert();
+  void BatchInvert(std::function<void()> signal_last_gridding_work_has_started);
   void Predict();
-  void BatchPredict();
+  void BatchPredict(std::function<void()> signal_last_predict_work_has_started);
   void ProcessResults(std::mutex& result_mutex, GriddingResult& result,
                       bool store_common_info);
 
@@ -171,15 +171,19 @@ class MSGridderManager {
    * NB! Never make more than 2 concurrent calls if ordering is important.
    *
    * @param operation Functor taking two arguments (gridder, task).
-   * @param first_operation_started Should be in the acquired state.
-   * ExecuteForAllGriddersWithNCores will release this semaphore as a signal to
-   * the calling code that the first gridder has acquired a resource lock and
-   * will start its processing operation.
+   * @param signal_first_operation_started
+   * ExecuteForAllGriddersWithNCores will call this as a signal to the calling
+   * code that the first gridder has acquired a resource lock and will start its
+   * processing operation.
+   * @param signal_last_operation_started
+   * ExecuteForAllGriddersWithNCores will call this as a signal to the calling
+   * code that the last gridder has started performing its operation.
    */
   template <typename T>
   void ExecuteForAllGriddersWithNCores(
-      size_t n_cores_per_gridder,
-      std::binary_semaphore& first_operation_started, T&& operation);
+      size_t n_cores_per_gridder, T&& operation,
+      std::function<void()>&& signal_first_operation_started = {},
+      std::function<void()>&& signal_last_operation_started = {});
 
   /**
    * Pointers to data buffers that are required by @ref ReadChunkForInvert to
@@ -362,11 +366,11 @@ class MSGridderManager {
                            MsGridderData& shared_data,
                            const std::vector<MsGridder*>& gridders,
                            size_t n_vis_polarizations,
-                           const bool* selected_buffer);
+                           const bool* selected_buffer, size_t& n_total_chunks);
 
   /**
    * Perform gridding on a single block of data stored in @ref
-   * InversionChunkData.
+   * InversionChunkData, for all gridders/facets.
    * @return The number of rows processed.
    */
   size_t GridChunk(bool apply_corrections, size_t n_vis_polarizations,
@@ -374,19 +378,34 @@ class MSGridderManager {
                    const InversionChunkData& chunk_data,
                    const aocommon::UVector<double>& frequencies,
                    const MsProviderCollection::MsData& ms_data,
-                   size_t chunk_index, std::binary_semaphore& gridding_started);
+                   size_t chunk_index,
+                   std::function<void()> signal_first_gridder_has_started,
+                   std::function<void()> signal_last_gridder_has_started);
+
+  /**
+   * Perform gridding on a single block of data stored in @ref
+   * InversionChunkData, for a single gridder/facet.
+   */
+  void GridChunkForFacet(MsGridder& gridder, size_t facet_index,
+                         bool apply_corrections, size_t n_vis_polarizations,
+                         const aocommon::BandData& band, size_t data_desc_id,
+                         const InversionChunkData& chunk_data,
+                         const aocommon::UVector<double>& frequencies,
+                         const MsProviderCollection::MsData& ms_data,
+                         size_t chunk_index);
 
   /**
    * Perform gridding on chunks of @ref InversionChunkData by calling @ref
    * GridChunk() sequentailly on each chunk, as they become available in the
    * task_lane, until all chunks have been processed.
    */
-  void GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
-                  bool apply_corrections,
-                  const aocommon::UVector<double>& frequencies,
-                  const aocommon::MultiBandData& bands,
-                  MsProviderCollection::MsData& ms_data,
-                  size_t n_vis_polarizations);
+  void GridChunks(
+      aocommon::Lane<InversionChunkData>& task_lane, bool apply_corrections,
+      const aocommon::UVector<double>& frequencies,
+      const aocommon::MultiBandData& bands,
+      MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations,
+      const size_t& n_chunks,
+      std::function<void()> signal_last_gridder_of_last_chunk_has_started);
 
   /**
    * Read data from an @ref MSReader into a single @ref PredictionChunkData at a
@@ -394,34 +413,50 @@ class MSGridderManager {
    * processing and then continue reading a new @ref PredictionChunkData until
    * all data has been consumed.
    */
-  void ReadChunksForPredict(aocommon::Lane<PredictionChunkData>& task_lane,
-                            size_t n_max_rows_in_memory,
-                            MsProviderCollection::MsData& ms_data,
-                            MsGridderData& shared_data,
-                            const std::vector<MsGridder*>& gridders,
-                            const aocommon::BandData band,
-                            size_t n_vis_polarizations,
-                            const bool* selected_buffer);
+  void ReadChunksForPredict(
+      aocommon::Lane<PredictionChunkData>& task_lane,
+      size_t n_max_rows_in_memory, MsProviderCollection::MsData& ms_data,
+      MsGridderData& shared_data, const std::vector<MsGridder*>& gridders,
+      const aocommon::BandData band, size_t n_vis_polarizations,
+      const bool* selected_buffer, size_t& n_total_chunks);
 
   /**
    * Perform predict on a single block of data stored in @ref
-   * PredictionChunkData
+   * PredictionChunkData, for all gridders/facets
    */
   size_t PredictChunk(const PredictionChunkData& chunk_data,
                       size_t n_vis_polarizations, size_t n_antennas,
                       std::vector<std::complex<float>>& combined_visibilities,
                       const aocommon::UVector<double>& frequencies,
                       MsProviderCollection::MsData& ms_data,
-                      std::binary_semaphore& first_predict_started);
+                      std::function<void()> signal_first_predict_has_started,
+                      std::function<void()> signal_last_predict_has_started);
+
+  /**
+   * Perform predict on a single block of data stored in @ref
+   * PredictionChunkData, for a single gridder/facet.
+   */
+  void PredictChunkForFacet(
+      MsGridder& gridder, size_t facet_index,
+      const PredictionChunkData& chunk_data, size_t n_vis_polarizations,
+      size_t n_antennas,
+      std::vector<std::complex<float>>& combined_visibilities,
+      const aocommon::UVector<double>& frequencies,
+      MsProviderCollection::MsData& ms_data,
+      std::vector<std::mutex>& sum_visibilities_mutexes,
+      size_t mutex_chunk_size);
+
   /**
    * Perform predict on chunks of @ref PredictionChunkData by calling @ref
    * PredictChunk() sequentially on each chunk, as they become available in the
    * task_lane, until all chunks have been processed.
    */
-  void PredictChunks(aocommon::Lane<PredictionChunkData>& task_lane,
-                     const aocommon::UVector<double>& frequencies,
-                     MsProviderCollection::MsData& ms_data,
-                     size_t n_vis_polarizations, bool add_assign_model);
+  void PredictChunks(
+      aocommon::Lane<PredictionChunkData>& task_lane,
+      const aocommon::UVector<double>& frequencies,
+      MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations,
+      bool add_assign_model, const size_t& n_total_chunks,
+      std::function<void()> signal_last_predict_of_last_chunk_has_started);
 
   std::unique_ptr<MsGridder> ConstructGridder(const Resources& resources);
   struct GriddingFacetTask {
@@ -480,13 +515,13 @@ void MSGridderManager::ExecuteForAllGridders(T&& operation,
 
 template <typename T>
 void MSGridderManager::ExecuteForAllGriddersWithNCores(
-    size_t n_cores_per_gridder, std::binary_semaphore& first_operation_started,
-    T&& operation) {
+    size_t n_cores_per_gridder, T&& operation,
+    std::function<void()>&& signal_first_operation_started,
+    std::function<void()>&& signal_last_operation_started) {
   std::vector<std::shared_ptr<CompletionSignal>> signals;
-  signals.reserve(facet_tasks_.size());
+  signals.reserve(facet_tasks_.size() + 1);
   // Queue tasks in a way that each task will consume `n_cores_per_gridder` task
   // slots.
-  bool first_operation = true;
   for (const GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
 
@@ -497,9 +532,9 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
     // overlapping task to start without any risk of a race, as we have
     // acquired the gridder semaphore. Ordering is maintained because as this
     // task holds the semaphore the other task cannot overtake it.
-    if (first_operation) {
-      first_operation_started.release();
-      first_operation = false;
+    if (signal_first_operation_started) {
+      signal_first_operation_started();
+      signal_first_operation_started = {};
     }
     // Task must consume N threads.
     // Pause N-1 threads so that they are unavailable to the pool.
@@ -521,6 +556,20 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
       operation(gridder, index);
       gridder->processing_semaphore_.release();
       // Return the additional threads to the pool.
+      signal->SignalCompletion();
+    });
+  }
+  // Signal to higher level schedulers (e.g. @ref ThreadedScheduler) that we
+  // have reached a point where this ExecuteForAllGriddersWithNCores call will
+  // no longer be able to fully occupy all of our threading resources. This
+  // gives the scheduler an opportunity to schedule additional work on our queue
+  // to make use of the otherwise idle threading resources.
+  if (signal_last_operation_started) {
+    std::shared_ptr<CompletionSignal> signal =
+        std::make_shared<CompletionSignal>();
+    signals.push_back(signal);
+    scheduler_->GetWorkerTaskQueue().Emplace([=]() {
+      signal_last_operation_started();
       signal->SignalCompletion();
     });
   }

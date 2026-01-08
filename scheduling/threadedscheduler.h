@@ -60,9 +60,19 @@ class ThreadedScheduler final : public GriddingTaskManager {
   /// Calls @ref ProcessTask() for each task.
   void ProcessQueue();
   /// Perform processing for an individual task.
-  void ProcessTask(size_t task_id, const std::vector<size_t>& facet_indexes,
-                   TaskData& task_data,
-                   std::shared_ptr<CompletionSignal>& lock_excess_tasks);
+  void ProcessTask(
+      size_t task_id, const std::vector<size_t>& facet_indexes,
+      TaskData& task_data, std::shared_ptr<CompletionSignal>& lock_excess_tasks,
+      std::unique_ptr<MSGridderManagerScheduler> scheduler = nullptr);
+  /// Attempt to immediately pop a task from the queue and call @ref
+  /// ProcessTask() on it using the passed in resources of a currently running
+  /// task. This allows for the resources of tasks that are near completion to
+  /// be reused in an overlapped way by the next task to improve throughput.
+  bool TryStealTask(
+      std::shared_ptr<CompletionSignal>& parent_task_completion_signal,
+      std::shared_ptr<CompletionSignal>& signal_stolen_task_completion,
+      std::unique_ptr<MSGridderManagerScheduler>& parent_scheduler,
+      size_t n_work_size);
   /// Execute post-processing callback on any tasks that have completed and
   /// queued as ready.
   void ProcessReadyList();

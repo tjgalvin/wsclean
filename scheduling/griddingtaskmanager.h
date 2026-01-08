@@ -13,6 +13,8 @@
 
 namespace wsclean {
 
+class MSGridderManagerScheduler;
+
 class GriddingTaskManager {
  public:
   class WriterLock {
@@ -91,9 +93,13 @@ class GriddingTaskManager {
    * @param result_mutex Protects concurrent accesses to result fields that
    *        are updated for each facet.
    */
-  void RunDirect(GriddingTask& task, const std::vector<size_t>& facet_indices,
-                 const Resources& resources, GriddingResult& result,
-                 std::mutex& result_mutex);
+  void RunDirect(
+      GriddingTask& task, const std::vector<size_t>& facet_indices,
+      const Resources& resources, GriddingResult& result,
+      std::mutex& result_mutex,
+      std::function<void(std::unique_ptr<MSGridderManagerScheduler>&)>
+          signal_last_work_has_started,
+      std::unique_ptr<MSGridderManagerScheduler> scheduler = nullptr);
 
  private:
   const Settings& settings_;
@@ -107,6 +113,15 @@ class GriddingTaskManager {
    * it may point to the MPIScheduler.
    */
   GriddingTaskManager* writer_lock_manager_;
+
+  /**
+   * Instead of deleting schedulers after use keep a reusable cache. That way we
+   * can re-use them across the entire program run (if doing e.g. multiple major
+   * cycles) Rather then repeatedly creating/destroying threading resources.
+   */
+  std::mutex scheduler_creation_mutex_;
+  std::map<size_t, std::deque<std::unique_ptr<MSGridderManagerScheduler>>>
+      scheduler_cache_;
 };
 
 }  // namespace wsclean

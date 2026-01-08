@@ -476,7 +476,8 @@ size_t MSGridderManager::GridChunk(
     const aocommon::MultiBandData& bands, const InversionChunkData& chunk_data,
     const aocommon::UVector<double>& frequencies,
     const MsProviderCollection::MsData& ms_data, size_t chunk_index,
-    std::binary_semaphore& first_gridder_started) {
+    std::function<void()> signal_first_gridder_has_started,
+    std::function<void()> signal_last_gridder_has_started) {
   Logger::Info << "Gridding " + std::to_string(chunk_data.n_rows) +
                       " rows for " + std::to_string(facet_tasks_.size()) +
                       " facets using " + std::to_string(available_cores_) +
@@ -491,44 +492,56 @@ size_t MSGridderManager::GridChunk(
   const size_t data_desc_id = *bands.DataDescIds().begin();
 
   ExecuteForAllGriddersWithNCores(
-      available_cores_per_gridder_, first_gridder_started,
+      available_cores_per_gridder_,
       [&](MsGridder* gridder, size_t facet_index) {
-        Logger::Info << "Gridding facet " + std::to_string(facet_index) + "\n";
-
-        const std::vector<std::complex<float>>& parm_response =
-            gridder->GetVisibilityModifier().GetCachedParmResponse(
-                ms_data.original_ms_index)[data_desc_id];
-
-        std::shared_ptr<BeamResponseCacheChunk> beam_response =
-            gridder->GetVisibilityModifier().TakeCachedBeamResponse(
-                chunk_index);
-
-        gridder->gridded_visibility_count_ =
-            chunk_data.gridded_visibility_count;
-        gridder->visibility_weight_sum_ = chunk_data.visibility_weight_sum;
-        gridder->max_gridded_weight_ = chunk_data.max_gridded_weight;
-        gridder->total_weight_ = chunk_data.total_weight;
-
-        gridder->GridSharedMeasurementSetChunk(
-            apply_corrections, n_vis_polarizations, chunk_data.n_rows,
-            chunk_data.uvw.data(), frequencies.data(), band, data_desc_id,
-            chunk_data.antennas.data(), chunk_data.visibilities.data(),
-            apply_corrections ? chunk_data.time_offsets.data() + 1 : nullptr,
-            ms_data.antenna_names.size(), parm_response, *beam_response.get());
-        Logger::Info << "Done gridding facet " + std::to_string(facet_index) +
-                            "\n";
-      });
+        GridChunkForFacet(*gridder, facet_index, apply_corrections,
+                          n_vis_polarizations, band, data_desc_id, chunk_data,
+                          frequencies, ms_data, chunk_index);
+      },
+      std::move(signal_first_gridder_has_started),
+      std::move(signal_last_gridder_has_started));
   Logger::Info << "Finished gridding " + std::to_string(chunk_data.n_rows) +
                       " rows for " + std::to_string(facet_tasks_.size()) +
                       " facets.\n";
   return chunk_data.n_rows * facet_tasks_.size();
 }
 
+void MSGridderManager::GridChunkForFacet(
+    MsGridder& gridder, size_t facet_index, bool apply_corrections,
+    size_t n_vis_polarizations, const aocommon::BandData& band,
+    size_t data_desc_id, const InversionChunkData& chunk_data,
+    const aocommon::UVector<double>& frequencies,
+    const MsProviderCollection::MsData& ms_data, size_t chunk_index) {
+  Logger::Info << "Gridding facet " + std::to_string(facet_index) + "\n";
+
+  const std::vector<std::complex<float>>& parm_response =
+      gridder.GetVisibilityModifier().GetCachedParmResponse(
+          ms_data.original_ms_index)[data_desc_id];
+
+  std::shared_ptr<BeamResponseCacheChunk> beam_response =
+      gridder.GetVisibilityModifier().TakeCachedBeamResponse(chunk_index);
+
+  gridder.gridded_visibility_count_ = chunk_data.gridded_visibility_count;
+  gridder.visibility_weight_sum_ = chunk_data.visibility_weight_sum;
+  gridder.max_gridded_weight_ = chunk_data.max_gridded_weight;
+  gridder.total_weight_ = chunk_data.total_weight;
+
+  gridder.GridSharedMeasurementSetChunk(
+      apply_corrections, n_vis_polarizations, chunk_data.n_rows,
+      chunk_data.uvw.data(), frequencies.data(), band, data_desc_id,
+      chunk_data.antennas.data(), chunk_data.visibilities.data(),
+      apply_corrections ? chunk_data.time_offsets.data() + 1 : nullptr,
+      ms_data.antenna_names.size(), parm_response, *beam_response.get());
+
+  Logger::Info << "Done gridding facet " + std::to_string(facet_index) + "\n";
+}
+
 void MSGridderManager::ReadChunksForInvert(
     aocommon::Lane<InversionChunkData>& task_lane, size_t n_max_rows_in_memory,
     bool apply_corrections, MsProviderCollection::MsData& ms_data,
     MsGridderData& shared_data, const std::vector<MsGridder*>& gridders,
-    size_t n_vis_polarizations, const bool* selected_buffer) {
+    size_t n_vis_polarizations, const bool* selected_buffer,
+    size_t& n_total_chunks) {
   // TODO
   const aocommon::MultiBandData& bands = ms_data.ms_provider->SelectedBands();
   assert(bands.BandCount() == 1);
@@ -546,20 +559,23 @@ void MSGridderManager::ReadChunksForInvert(
   // NB! This should be revised in future if/when loading is faster
   // than gridding which would be ideal but is not the case currently.
   const size_t n_rows_per_chunk = n_max_rows_in_memory / 1.5;
-  size_t total_chunks = (n_total_rows_in_ms / n_rows_per_chunk);
+  n_total_chunks = n_total_rows_in_ms / n_rows_per_chunk;
   size_t target_chunk_size = n_rows_per_chunk;
   // Compute the partial chunk remainder that might be left over.
   size_t n_rows_in_smaller_chunk = n_max_rows_in_memory % n_rows_per_chunk;
   if (n_rows_in_smaller_chunk > 0) {
-    total_chunks += 1;
+    n_total_chunks += 1;
     target_chunk_size = n_rows_in_smaller_chunk;
   } else {
     n_rows_in_smaller_chunk = n_rows_per_chunk;
   }
   size_t chunk_index = 0;
-  Logger::Info << "Reading " << total_chunks << " chunks with "
-               << n_rows_in_smaller_chunk << " rows in first chunk and "
-               << n_rows_per_chunk << " rows per remaining chunk.\n";
+  Logger::Info << "Reading " + std::to_string(n_total_chunks) +
+                      " chunks with " +
+                      std::to_string(n_rows_in_smaller_chunk) +
+                      " rows in the first chunk and " +
+                      std::to_string(n_rows_per_chunk) +
+                      " rows per remaining chunk.\n";
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
   while (ms_reader->CurrentRowAvailable()) {
     Logger::Info << "Loading " << target_chunk_size
@@ -596,12 +612,12 @@ void MSGridderManager::ReadChunksForInvert(
   task_lane.write_end();
 }
 
-void MSGridderManager::GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
-                                  bool apply_corrections,
-                                  const aocommon::UVector<double>& frequencies,
-                                  const aocommon::MultiBandData& bands,
-                                  MsProviderCollection::MsData& ms_data,
-                                  size_t n_vis_polarizations) {
+void MSGridderManager::GridChunks(
+    aocommon::Lane<InversionChunkData>& task_lane, bool apply_corrections,
+    const aocommon::UVector<double>& frequencies,
+    const aocommon::MultiBandData& bands, MsProviderCollection::MsData& ms_data,
+    size_t n_vis_polarizations, const size_t& n_chunks,
+    std::function<void()> signal_last_gridder_of_last_chunk_has_started) {
   // Process up to two chunks at a time in parallel.
   // If data for a second predict chunk becomes available while the first is
   // still processing then the second predict can make use of cores that would
@@ -611,16 +627,24 @@ void MSGridderManager::GridChunks(aocommon::Lane<InversionChunkData>& task_lane,
       task_lane,
       [&](InversionChunkData&& chunk_data, size_t chunk_index,
           std::binary_semaphore& first_gridder_started) mutable {
-        Logger::Debug << "Gridding chunk" << chunk_index << ".\n";
-        ms_data.total_rows_processed +=
-            GridChunk(apply_corrections, n_vis_polarizations, bands, chunk_data,
-                      frequencies, ms_data, chunk_index, first_gridder_started);
-        Logger::Debug << "Done gridding chunk" << chunk_index << ".\n";
+        Logger::Debug << "Gridding chunk " + std::to_string(chunk_index + 1) +
+                             "/" + std::to_string(n_chunks) + ".\n";
+        const bool is_last_chunk = chunk_index == n_chunks - 1;
+        ms_data.total_rows_processed += GridChunk(
+            apply_corrections, n_vis_polarizations, bands, chunk_data,
+            frequencies, ms_data, chunk_index,
+            [&]() { first_gridder_started.release(); },
+            is_last_chunk ? signal_last_gridder_of_last_chunk_has_started
+                          : nullptr);
+        Logger::Debug << "Done gridding chunk " +
+                             std::to_string(chunk_index + 1) + "/" +
+                             std::to_string(n_chunks) + ".\n";
       },
       "Gridding");
 }
 
-void MSGridderManager::BatchInvert() {
+void MSGridderManager::BatchInvert(
+    std::function<void()> signal_last_gridding_work_has_started) {
   assert(facet_tasks_.size() > 1);
   assert(scheduler_);
   InitializeMSDataVectors();
@@ -696,14 +720,16 @@ void MSGridderManager::BatchInvert() {
       // Iterate over data in chunks until all visibilities
       // have been gridded.
       aocommon::Lane<InversionChunkData> task_lane(1);
-      std::thread grid_chunks_thread([&] {
-        GridChunks(task_lane, apply_corrections, frequencies, bands, ms_data,
-                   n_vis_polarizations);
+      size_t n_total_chunks = 0;
+      std::thread read_chunks_thread([&]() {
+        ReadChunksForInvert(task_lane, n_max_rows_in_memory, apply_corrections,
+                            ms_data, shared_data, gridders, n_vis_polarizations,
+                            selected_buffer.data(), n_total_chunks);
       });
-      ReadChunksForInvert(task_lane, n_max_rows_in_memory, apply_corrections,
-                          ms_data, shared_data, gridders, n_vis_polarizations,
-                          selected_buffer.data());
-      grid_chunks_thread.join();
+      GridChunks(task_lane, apply_corrections, frequencies, bands, ms_data,
+                 n_vis_polarizations, n_total_chunks,
+                 signal_last_gridding_work_has_started);
+      read_chunks_thread.join();
     }
     ExecuteForAllGridders(
         [=](MsGridder* gridder) { gridder->FinishInversionPass(pass_index); });
@@ -748,7 +774,7 @@ void ExpandAndCombineFacetVisibilities(
     const size_t* data_desc_ids, const size_t* antennas1,
     const size_t* antennas2, const size_t* field_ids, const double* times,
     const double* uvw, const std::complex<float>* facet_visibilities,
-    MsGridder* gridder, std::complex<float>* combined_visibilities,
+    MsGridder& gridder, std::complex<float>* combined_visibilities,
     std::vector<std::mutex>& sum_visibilities_mutexes,
     size_t mutex_chunk_size) {
   aocommon::UVector<std::complex<float>> visibilities_scratch(
@@ -767,15 +793,15 @@ void ExpandAndCombineFacetVisibilities(
         case 2:
           internal::ExpandData<2>(n_channels, facet_visibilities,
                                   visibilities_scratch.data(),
-                                  gridder->Polarization());
+                                  gridder.Polarization());
           break;
         case 4:
           internal::ExpandData<4>(n_channels, facet_visibilities,
                                   visibilities_scratch.data(),
-                                  gridder->Polarization());
+                                  gridder.Polarization());
           break;
       }
-      gridder->CorrectInstrumentalVisibilities(
+      gridder.CorrectInstrumentalVisibilities(
           n_antennas, bands, *data_desc_ids, visibilities_scratch.data(), uvw,
           *field_ids, *antennas1, *antennas2, *times);
 
@@ -806,14 +832,15 @@ size_t MSGridderManager::PredictChunk(
     size_t n_antennas, std::vector<std::complex<float>>& combined_visibilities,
     const aocommon::UVector<double>& frequencies,
     MsProviderCollection::MsData& ms_data,
-    std::binary_semaphore& first_predict_started) {
-  using internal::ExpandAndCombineFacetVisibilities;
+    std::function<void()> signal_first_predict_has_started,
+    std::function<void()> signal_last_predict_has_started) {
   Logger::Info << "Predicting " + std::to_string(chunk_data.n_rows) +
                       " rows for " + std::to_string(facet_tasks_.size()) +
                       " facets using " + std::to_string(available_cores_) +
                       " threads " +
                       std::to_string(available_cores_per_gridder_) +
                       " threads per gridder...\n";
+
   // As all facets are summing their values into combined_visibilities we have
   // to protect it with a mutex to avoid data corruption.
   // Chunk into ranges and use a mutex per range instead of a single mutex to
@@ -821,46 +848,64 @@ size_t MSGridderManager::PredictChunk(
   constexpr size_t kMutexChunkSize = 2048;
   std::vector<std::mutex> sum_visibilities_mutexes(
       (chunk_data.n_rows / kMutexChunkSize) + 1);
+
   ExecuteForAllGriddersWithNCores(
-      available_cores_per_gridder_, first_predict_started,
+      available_cores_per_gridder_,
       [&](MsGridder* gridder, size_t facet_index) {
-        Logger::Info << "Predicting facet " + std::to_string(facet_index) +
-                            "\n";
+        PredictChunkForFacet(*gridder, facet_index, chunk_data,
+                             n_vis_polarizations, n_antennas,
+                             combined_visibilities, frequencies, ms_data,
+                             sum_visibilities_mutexes, kMutexChunkSize);
+      },
+      std::move(signal_first_predict_has_started),
+      std::move(signal_last_predict_has_started));
 
-        // TODO
-        if (!ms_data.ms_provider->IsRegular())
-          throw std::runtime_error("Can't use bulk inversion with BDA yet");
-        const size_t n_channels = frequencies.size();
-
-        aocommon::UVector<std::complex<float>> facet_visibilities(
-            chunk_data.n_rows * n_channels);
-        gridder->PredictChunk(chunk_data.n_rows, n_channels, frequencies.data(),
-                              chunk_data.uvws.data(),
-                              facet_visibilities.data());
-
-        ExpandAndCombineFacetVisibilities(
-            n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
-            ms_data.ms_provider->SelectedBands(),
-            chunk_data.data_desc_ids.data(), chunk_data.antennas1.data(),
-            chunk_data.antennas2.data(), chunk_data.field_ids.data(),
-            chunk_data.times.data(), chunk_data.uvws.data(),
-            facet_visibilities.data(), gridder, combined_visibilities.data(),
-            sum_visibilities_mutexes, kMutexChunkSize);
-
-        Logger::Info << "Done predicting facet " + std::to_string(facet_index) +
-                            "\n";
-      });
   Logger::Info << "Finished Predicting " + std::to_string(chunk_data.n_rows) +
                       " rows for " + std::to_string(facet_tasks_.size()) +
                       " facets.\n";
+
   return chunk_data.n_rows * facet_tasks_.size();
+}
+
+void MSGridderManager::PredictChunkForFacet(
+    MsGridder& gridder, size_t facet_index,
+    const PredictionChunkData& chunk_data, size_t n_vis_polarizations,
+    size_t n_antennas, std::vector<std::complex<float>>& combined_visibilities,
+    const aocommon::UVector<double>& frequencies,
+    MsProviderCollection::MsData& ms_data,
+    std::vector<std::mutex>& sum_visibilities_mutexes,
+    size_t mutex_chunk_size) {
+  using internal::ExpandAndCombineFacetVisibilities;
+
+  Logger::Info << "Predicting facet " + std::to_string(facet_index) + "\n";
+
+  // TODO
+  if (!ms_data.ms_provider->IsRegular())
+    throw std::runtime_error("Can't use bulk inversion with BDA yet");
+  const size_t n_channels = frequencies.size();
+
+  aocommon::UVector<std::complex<float>> facet_visibilities(chunk_data.n_rows *
+                                                            n_channels);
+  gridder.PredictChunk(chunk_data.n_rows, n_channels, frequencies.data(),
+                       chunk_data.uvws.data(), facet_visibilities.data());
+
+  ExpandAndCombineFacetVisibilities(
+      n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
+      ms_data.ms_provider->SelectedBands(), chunk_data.data_desc_ids.data(),
+      chunk_data.antennas1.data(), chunk_data.antennas2.data(),
+      chunk_data.field_ids.data(), chunk_data.times.data(),
+      chunk_data.uvws.data(), facet_visibilities.data(), gridder,
+      combined_visibilities.data(), sum_visibilities_mutexes, mutex_chunk_size);
+
+  Logger::Info << "Done predicting facet " + std::to_string(facet_index) + "\n";
 }
 
 void MSGridderManager::PredictChunks(
     aocommon::Lane<PredictionChunkData>& task_lane,
     const aocommon::UVector<double>& frequencies,
     MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations,
-    bool add_assign_model) {
+    bool add_assign_model, const size_t& n_chunks,
+    std::function<void()> signal_last_predict_of_last_chunk_has_started) {
   // TODO
   if (!ms_data.ms_provider->IsRegular())
     throw std::runtime_error("Can't use bulk inversion with BDA yet");
@@ -880,15 +925,24 @@ void MSGridderManager::PredictChunks(
             chunk_data.n_rows * band.ChannelCount() * n_vis_polarizations);
         // Predict the per facet visibilities; expand and apply corrections
         // then combine them together.
-        Logger::Debug << "Predicting chunk" << chunk_index << ".\n";
+        Logger::Debug << "Predicting chunk " + std::to_string(chunk_index + 1) +
+                             "/" + std::to_string(n_chunks) + ".\n";
+        bool is_last_chunk = chunk_index == n_chunks - 1;
         ms_data.total_rows_processed += PredictChunk(
             chunk_data, n_vis_polarizations, ms_data.antenna_names.size(),
-            combined_visibilities, frequencies, ms_data, first_predict_started);
-        Logger::Debug << "Done predicting chunk" << chunk_index << ".\n";
+            combined_visibilities, frequencies, ms_data,
+            [&]() { first_predict_started.release(); },
+            is_last_chunk ? signal_last_predict_of_last_chunk_has_started
+                          : nullptr);
+        Logger::Debug << "Done predicting chunk " +
+                             std::to_string(chunk_index + 1) + "/" +
+                             std::to_string(n_chunks) + ".\n";
 
         // Do a single write for the combined/expanded chunk of visibilities
         // of all facets.
-        Logger::Debug << "Writing chunk" << chunk_index << ".\n";
+        Logger::Debug << "Writing predicted chunk " +
+                             std::to_string(chunk_index + 1) + "/" +
+                             std::to_string(n_chunks) + ".\n";
         std::complex<float>* visibilities = combined_visibilities.data();
         const size_t stride = band.ChannelCount() * n_vis_polarizations;
         for (size_t row = 0; row != chunk_data.n_rows; ++row) {
@@ -896,7 +950,9 @@ void MSGridderManager::PredictChunks(
           ms_data.ms_provider->NextOutputRow();
           visibilities += stride;
         }
-        Logger::Debug << "Done writing chunk" << chunk_index << ".\n";
+        Logger::Debug << "Done writing predicted chunk " +
+                             std::to_string(chunk_index + 1) + "/" +
+                             std::to_string(n_chunks) + ".\n";
       },
       "Predict");
 }
@@ -905,7 +961,8 @@ void MSGridderManager::ReadChunksForPredict(
     aocommon::Lane<PredictionChunkData>& task_lane, size_t n_max_rows_in_memory,
     MsProviderCollection::MsData& ms_data, MsGridderData& shared_data,
     const std::vector<MsGridder*>& gridders, const aocommon::BandData band,
-    size_t n_vis_polarizations, const bool* selected_buffer) {
+    size_t n_vis_polarizations, const bool* selected_buffer,
+    size_t& n_total_chunks) {
   // We read chunks based on the maximum amount of rows we think we can fit
   // in memory at a time.
   Logger::Info << "Max " << n_max_rows_in_memory << " rows fit in memory.\n";
@@ -918,20 +975,23 @@ void MSGridderManager::ReadChunksForPredict(
   // NB! This should be revised in future if/when loading is faster
   // than gridding which would be ideal but is not the case currently.
   const size_t n_rows_per_chunk = n_max_rows_in_memory / 1.5;
-  size_t total_chunks = (n_total_rows_in_ms / n_rows_per_chunk);
+  n_total_chunks = (n_total_rows_in_ms / n_rows_per_chunk);
   size_t target_chunk_size = n_rows_per_chunk;
   // Compute the partial chunk remainder that might be left over.
   size_t n_rows_in_smaller_chunk = n_max_rows_in_memory % n_rows_per_chunk;
   if (n_rows_in_smaller_chunk > 0) {
-    total_chunks += 1;
+    n_total_chunks += 1;
     target_chunk_size = n_rows_in_smaller_chunk;
   } else {
     n_rows_in_smaller_chunk = n_rows_per_chunk;
   }
   size_t chunk_index = 0;
-  Logger::Info << "Reading " << total_chunks << " chunks with "
-               << n_rows_in_smaller_chunk << " rows in first chunk and "
-               << n_rows_per_chunk << " rows per remaining chunk.\n";
+  Logger::Info << "Reading " + std::to_string(n_total_chunks) +
+                      " chunks with " +
+                      std::to_string(n_rows_in_smaller_chunk) +
+                      " rows in first chunk and " +
+                      std::to_string(n_rows_per_chunk) +
+                      " rows per remaining chunk.\n";
   // Set provider up for writing
   ms_data.ms_provider->ReopenRW();
   ms_data.ms_provider->ResetWritePosition();
@@ -965,7 +1025,8 @@ void MSGridderManager::ReadChunksForPredict(
   task_lane.write_end();
 }
 
-void MSGridderManager::BatchPredict() {
+void MSGridderManager::BatchPredict(
+    std::function<void()> signal_last_predict_work_has_started) {
   assert(facet_tasks_.size() > 1);
   assert(scheduler_);
   InitializeMSDataVectors();
@@ -1048,14 +1109,16 @@ void MSGridderManager::BatchPredict() {
 
       // Iterate over data in chunks until all visibilities have been predicted.
       aocommon::Lane<PredictionChunkData> task_lane(1);
-      std::thread predict_chunks_thread([&] {
-        PredictChunks(task_lane, frequencies, ms_data, n_vis_polarizations,
-                      gridders[0]->ShouldAddAssignModel());
+      size_t n_total_chunks = 0;
+      std::thread read_chunks_thread([&] {
+        ReadChunksForPredict(task_lane, n_max_rows_in_memory, ms_data,
+                             shared_data, gridders, band, n_vis_polarizations,
+                             selected_buffer.data(), n_total_chunks);
       });
-      ReadChunksForPredict(task_lane, n_max_rows_in_memory, ms_data,
-                           shared_data, gridders, band, n_vis_polarizations,
-                           selected_buffer.data());
-      predict_chunks_thread.join();
+      PredictChunks(task_lane, frequencies, ms_data, n_vis_polarizations,
+                    gridders[0]->ShouldAddAssignModel(), n_total_chunks,
+                    signal_last_predict_work_has_started);
+      read_chunks_thread.join();
     }
     ExecuteForAllGridders(
         [=](MsGridder* gridder) { gridder->FinishPredictPass(pass_index); });
