@@ -97,7 +97,7 @@ build-with-everybeam-gcc12:
     - make -j`nproc` install
     # For a push pipeline, run unittests only, otherwise run both unit and integration tests
     - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make unitchecks; else make check; fi
-    - gcovr --gcov-executable gcov-12 -r .. -e '.*/external/.*' -e '.*/build/.*' -e '.*/tests/.*' --txt --xml coverage.xml --json coverage.json .
+    - gcovr --gcov-executable gcov-12 --merge-mode-functions=separate -r .. -e '.*/external/.*' -e '.*/build/.*' -e '.*/tests/.*' --txt --xml coverage.xml --json coverage.json .
   artifacts:
     paths:
       - build/coverage.json
@@ -119,7 +119,7 @@ pages:
   script:
     - echo Deploying GitLab pages to $CI_PAGES_URL/$CI_COMMIT_REF_SLUG
     - mkdir -p $OUTPUT
-    - gcovr -e 'build/.*' -a build/coverage.json --html-details $OUTPUT/index.html
+    - gcovr --merge-mode-functions=separate -e 'build/.*' -a build/coverage.json --html-details $OUTPUT/index.html
   artifacts:
     name: $CI_COMMIT_REF_SLUG
     paths:
