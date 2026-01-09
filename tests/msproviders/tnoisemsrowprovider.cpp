@@ -1,4 +1,4 @@
-#include "../../msproviders/noisemsrowprovider.h"
+#include "../../msproviders/rowproviders/noisemsrowprovider.h"
 
 #include <aocommon/logger.h>
 

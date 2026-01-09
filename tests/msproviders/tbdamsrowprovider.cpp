@@ -1,4 +1,4 @@
-#include "../../msproviders/bdamsrowprovider.h"
+#include "../../msproviders/rowproviders/bdamsrowprovider.h"
 
 #include "tbdamsrowproviderdata.h"
 

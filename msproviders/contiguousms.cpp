@@ -1,5 +1,6 @@
 #include "contiguousms.h"
-#include "msreaders/contiguousmsreader.h"
+
+#include <memory>
 
 #include <aocommon/logger.h>
 
@@ -9,7 +10,8 @@
 #include <casacore/measures/TableMeasures/ScalarMeasColumn.h>
 #include <casacore/tables/Tables/TableLocker.h>
 
-#include <memory>
+#include "operations.h"
+#include "msreaders/contiguousmsreader.h"
 
 using schaapcommon::reordering::ChannelRange;
 using schaapcommon::reordering::ContainsDataDescId;

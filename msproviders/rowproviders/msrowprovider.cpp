@@ -1,5 +1,6 @@
 #include "directmsrowprovider.h"
-#include "msprovider.h"
+
+#include "../operations.h"
 
 #include <aocommon/throwruntimeerror.h>
 
@@ -43,8 +44,7 @@ void MSRowProvider::Initialize() {
         new casacore::ArrayColumn<casacore::Complex>(Ms(), ModelColumnName()));
 
   MsColumns& columns = Columns();
-  _msHasWeights =
-      MSProvider::OpenWeightSpectrumColumn(Ms(), _weightSpectrumColumn);
+  _msHasWeights = OpenWeightSpectrumColumn(Ms(), _weightSpectrumColumn);
   if (!_msHasWeights) {
     _weightScalarColumn.reset(new casacore::ArrayColumn<float>(
         Ms(), casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
@@ -115,7 +115,7 @@ void MSRowProvider::getCurrentWeights(WeightArray& weights,
   else {
     _weightScalarColumn->get(_currentRow, _scratchWeightScalarArray, true);
     weights.resize(shape);
-    MSProvider::ExpandScalarWeights(_scratchWeightScalarArray, weights);
+    ExpandScalarWeights(_scratchWeightScalarArray, weights);
   }
 }
 

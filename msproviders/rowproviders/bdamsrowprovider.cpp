@@ -1,7 +1,5 @@
 #include "bdamsrowprovider.h"
 
-#include "msprovider.h"
-
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include <cassert>

@@ -1,7 +1,5 @@
 #include "directmsrowprovider.h"
 
-#include "msprovider.h"
-
 namespace wsclean {
 
 void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data,

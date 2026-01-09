@@ -1,13 +1,13 @@
 #include "msweightcolumn.h"
 
-#include "msprovider.h"
+#include "../operations.h"
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 namespace wsclean {
 
 MsWeightColumn::MsWeightColumn(const casacore::MeasurementSet& ms) {
-  if (!MSProvider::OpenWeightSpectrumColumn(ms, weight_column_)) {
+  if (!OpenWeightSpectrumColumn(ms, weight_column_)) {
     weight_column_.reset(new casacore::ArrayColumn<float>(
         ms, casacore::MS::columnName(casacore::MSMainEnums::WEIGHT)));
     type_ = Type::kScalar;
@@ -25,7 +25,7 @@ void MsWeightColumn::ReadData(MsRowProviderBase::WeightArray& weights,
       casacore::Array<float> scratch_weights;
       weight_column_->get(row, scratch_weights);
       weights.resize(shape);
-      MSProvider::ExpandScalarWeights(scratch_weights, weights);
+      ExpandScalarWeights(scratch_weights, weights);
     } break;
   }
 }

@@ -377,23 +377,24 @@ add_library(
   math/fourierdomainrenderer.cpp
   math/tophatconvolution.cpp
   model/model.cpp
-  msproviders/averagingmsrowprovider.cpp
-  msproviders/mscolumns.cpp
-  msproviders/bdamsrowprovider.cpp
   msproviders/contiguousms.cpp
   msproviders/msdatadescription.cpp
-  msproviders/directmsrowprovider.cpp
   msproviders/msprovider.cpp
-  msproviders/msrowprovider.cpp
-  msproviders/msrowproviderbase.cpp
-  msproviders/noisemsrowprovider.cpp
+  msproviders/operations.cpp
   msproviders/reorderedmsprovider.cpp
   msproviders/synchronizedms.cpp
   msproviders/timestepbuffer.cpp
   msproviders/msreaders/contiguousmsreader.cpp
   msproviders/msreaders/reorderedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
-  msproviders/msweightcolumn.cpp
+  msproviders/rowproviders/averagingmsrowprovider.cpp
+  msproviders/rowproviders/bdamsrowprovider.cpp
+  msproviders/rowproviders/directmsrowprovider.cpp
+  msproviders/rowproviders/mscolumns.cpp
+  msproviders/rowproviders/msrowprovider.cpp
+  msproviders/rowproviders/msrowproviderbase.cpp
+  msproviders/rowproviders/msweightcolumn.cpp
+  msproviders/rowproviders/noisemsrowprovider.cpp
   scheduling/griddingtask.cpp
   scheduling/griddingtaskfactory.cpp
   scheduling/griddingtaskmanager.cpp

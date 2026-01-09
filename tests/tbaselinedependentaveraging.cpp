@@ -1,5 +1,5 @@
-#include "../msproviders/averagingmsrowprovider.h"
-#include "../msproviders/directmsrowprovider.h"
+#include "../msproviders/rowproviders/averagingmsrowprovider.h"
+#include "../msproviders/rowproviders/directmsrowprovider.h"
 
 #include <aocommon/logger.h>
 

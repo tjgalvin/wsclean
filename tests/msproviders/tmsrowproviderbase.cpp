@@ -1,7 +1,6 @@
-#include "../../msproviders/msrowproviderbase.h"
-
-#include "../../msproviders/directmsrowprovider.h"
-#include "../../msproviders/bdamsrowprovider.h"
+#include "../../msproviders/rowproviders/msrowproviderbase.h"
+#include "../../msproviders/rowproviders/directmsrowprovider.h"
+#include "../../msproviders/rowproviders/bdamsrowprovider.h"
 
 #include <boost/test/unit_test.hpp>
 

@@ -6,13 +6,6 @@
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 
-#include <schaapcommon/reordering/storagemanagertype.h>
-
-#include "../structures/msselection.h"
-
-#include <casacore/casa/Arrays/Array.h>
-#include <casacore/tables/Tables/ArrayColumn.h>
-
 #include <complex>
 #include <set>
 #include <type_traits>
@@ -184,25 +177,12 @@ class MSProvider {
    */
   virtual const aocommon::MultiBandData& SelectedBands() = 0;
 
-  /**
-   * Get a set of polarizations in the measurement set for a given data desc
-   * id. This will always list the individual polarizations, and not return one
-   * of the special polarization values (like FullJones or Instrumental).
-   */
-  static std::set<aocommon::PolarizationEnum> GetMSPolarizations(
-      size_t data_desc_id, const casacore::MeasurementSet& ms);
-
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
 
   /**
    * Reset model data in the MSProvider to zeros.
    */
   virtual void ResetModelColumn();
-
-  static void GetRowRange(
-      casacore::MeasurementSet& ms,
-      const schaapcommon::reordering::MSSelection& selection, size_t& startRow,
-      size_t& endRow);
 
   static void CopyRealToComplex(std::complex<float>* dest, const float* source,
                                 size_t n) {
@@ -211,36 +191,6 @@ class MSProvider {
       *dest = *source;
       ++dest;
       ++source;
-    }
-  }
-
-  static void InitializeModelColumn(
-      casacore::MeasurementSet& ms, const std::string& model_column_name,
-      schaapcommon::reordering::StorageManagerType type);
-
-  static casacore::ArrayColumn<float> InitializeImagingWeightColumn(
-      casacore::MeasurementSet& ms);
-
-  /**
-   * Make an arraycolumn object for the weight spectrum column if it exists and
-   * is valid. The weight spectrum column is an optional column, the weight
-   * column should be used if it doesn't exist. Moreover, some measurement sets
-   * have an empty weight spectrum column; this method only
-   * returns true if the column can be used.
-   */
-  static bool OpenWeightSpectrumColumn(
-      const casacore::MeasurementSet& ms,
-      std::unique_ptr<casacore::ArrayColumn<float>>& weightColumn);
-
-  static void ExpandScalarWeights(
-      const casacore::Array<float>& weightScalarArray,
-      casacore::Array<float>& weightSpectrumArray) {
-    casacore::Array<float>::const_contiter src = weightScalarArray.cbegin();
-    for (casacore::Array<float>::contiter i = weightSpectrumArray.cbegin();
-         i != weightSpectrumArray.cend(); ++i) {
-      *i = *src;
-      ++src;
-      if (src == weightScalarArray.cend()) src = weightScalarArray.cbegin();
     }
   }
 };

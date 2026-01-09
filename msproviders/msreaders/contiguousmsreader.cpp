@@ -1,5 +1,7 @@
 #include "contiguousmsreader.h"
+
 #include "../contiguousms.h"
+#include "../operations.h"
 
 #include <schaapcommon/reordering/reordering.h>
 
@@ -154,7 +156,7 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
 
   if (_imagingWeightsColumn == nullptr) {
     _imagingWeightsColumn.reset(new casacore::ArrayColumn<float>(
-        MSProvider::InitializeImagingWeightColumn(*(contiguousms._ms))));
+        InitializeImagingWeightColumn(*(contiguousms._ms))));
   }
   const size_t data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
   const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
@@ -189,8 +191,8 @@ void ContiguousMSReader::readWeights() {
     else {
       contiguousms._weightScalarColumn->get(_currentInputRow,
                                             contiguousms._weightScalarArray);
-      contiguousms.ExpandScalarWeights(contiguousms._weightScalarArray,
-                                       contiguousms._weightSpectrumArray);
+      ExpandScalarWeights(contiguousms._weightScalarArray,
+                          contiguousms._weightSpectrumArray);
     }
     _isWeightRead = true;
   }

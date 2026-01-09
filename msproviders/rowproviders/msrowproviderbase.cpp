@@ -2,7 +2,8 @@
 
 #include "bdamsrowprovider.h"
 #include "directmsrowprovider.h"
-#include "msprovider.h"
+
+#include "../operations.h"
 
 #include <aocommon/throwruntimeerror.h>
 
@@ -20,7 +21,7 @@ MsRowProviderBase::MsRowProviderBase(
       selection_(selection),
       columns_(ms_, data_column_name),
       model_column_name_(model_column_name) {
-  MSProvider::GetRowRange(ms_, selection_, begin_row_, end_row_);
+  GetRowRange(ms_, selection_, begin_row_, end_row_);
 }
 
 std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(

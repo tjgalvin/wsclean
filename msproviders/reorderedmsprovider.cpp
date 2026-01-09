@@ -1,10 +1,13 @@
 #include "reorderedmsprovider.h"
+
+#include "operations.h"
+
 #include "msreaders/reorderedmsreader.h"
 
-#include "averagingmsrowprovider.h"
-#include "directmsrowprovider.h"
-#include "msrowprovider.h"
-#include "noisemsrowprovider.h"
+#include "rowproviders/averagingmsrowprovider.h"
+#include "rowproviders/directmsrowprovider.h"
+#include "rowproviders/msrowprovider.h"
+#include "rowproviders/noisemsrowprovider.h"
 
 #include "../main/progressbar.h"
 #include "../main/settings.h"
@@ -62,8 +65,7 @@ GetMSPolarizationsPerDataDescId(casacore::MeasurementSet& ms) {
   for (size_t data_desc_id = 0; data_desc_id != data_description_table.nrow();
        ++data_desc_id) {
     ms_polarizations_per_data_desc_id.emplace(
-        data_desc_id,
-        ReorderedMsProvider::GetMSPolarizations(data_desc_id, ms));
+        data_desc_id, GetMSPolarizations(data_desc_id, ms));
   }
   return ms_polarizations_per_data_desc_id;
 }
