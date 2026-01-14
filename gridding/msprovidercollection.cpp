@@ -106,32 +106,13 @@ void MsProviderCollection::InitializeMSDataVector(
 
 void MsProviderCollection::InitializeMS() { ms_data_vector_.resize(Count()); }
 
-std::vector<std::string> MsProviderCollection::GetAntennaNames(
-    const casacore::MSAntenna& antenna) {
-  const casacore::ScalarColumn<casacore::String> antennaNameColumn(
-      antenna, antenna.columnName(casacore::MSAntenna::NAME));
-
-  std::vector<std::string> antenna_names;
-  antenna_names.reserve(antennaNameColumn.nrow());
-  for (size_t i = 0; i < antennaNameColumn.nrow(); ++i) {
-    antenna_names.push_back(antennaNameColumn(i));
-  }
-  return antenna_names;
-}
-
 void MsProviderCollection::InitializeMeasurementSet(
     MsData& ms_data, const std::vector<MsGridder*>& gridders, bool is_cached,
     bool has_solution_data) {
   MSProvider& ms_provider = MeasurementSet(ms_data.internal_ms_index);
+
   ms_data.ms_provider = &ms_provider;
-
-  {
-    SynchronizedMS ms(ms_provider.MS());
-    if (ms->nrow() == 0)
-      throw std::runtime_error("Table has no rows (no data)");
-
-    ms_data.antenna_names = GetAntennaNames(ms->antenna());
-  }
+  ms_data.antenna_names = ms_provider.GetAntennaNames();
 
   // wlimits will vary across facets in a facet group, however these limits are
   // "estimates".

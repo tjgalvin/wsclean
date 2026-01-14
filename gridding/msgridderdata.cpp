@@ -20,7 +20,8 @@ void MsGridderData::StartMeasurementSet(
   InitializePointResponse(ms_data);
   if (settings_.applyTimeFrequencySmearing) {
     visibility_modifier_.InitializeTimeFrequencySmearing(
-        ms_data.ms_provider->MS());
+        ms_data.ms_provider->GetObservationInfo(0),
+        ms_data.ms_provider->Interval());
   }
   if (visibility_modifier_.HasH5Parm()) {
     visibility_modifier_.InitializeCacheParmResponse(
@@ -57,8 +58,14 @@ void MsGridderData::InitializePointResponse(
   if (settings_.applyFacetBeam || settings_.gridWithBeam) {
     const std::string element_response_string =
         !settings_.beamModel.empty() ? settings_.beamModel : "DEFAULT";
+    std::optional<SynchronizedMS> optional_ms =
+        ms_data.ms_provider->MsIfAvailable();
+    if (!optional_ms) {
+      throw std::runtime_error(
+          "Can not compute the beam without an on-disk measurement set");
+    }
     visibility_modifier_.InitializePointResponse(
-        ms_data.ms_provider->MS(), settings_.facetBeamUpdateTime,
+        std::move(*optional_ms), settings_.facetBeamUpdateTime,
         element_response_string, ms_data.ms_provider->SelectedBands(),
         settings_.dataColumnName, settings_.mwaPath);
   } else {

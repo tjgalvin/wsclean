@@ -90,7 +90,7 @@ class ImageWeightCache {
       std::unique_ptr<MSProvider> provider = item.ms_description->GetProvider();
       weights->Grid(*provider);
       if (msList.size() > 1)
-        (aocommon::Logger::Info << provider->MS().Filename() << ' ').Flush();
+        (aocommon::Logger::Info << provider->PartDescription() << ' ').Flush();
     }
     weights->FinishGridding();
     initializeWeightTapers(*weights);

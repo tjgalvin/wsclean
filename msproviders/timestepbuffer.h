@@ -27,8 +27,6 @@ class TimestepBuffer final : public MSProvider {
 
   virtual ~TimestepBuffer(){};
 
-  SynchronizedMS MS() final { return ms_provider_->MS(); }
-
   std::unique_ptr<MSReader> MakeReader() final;
 
   const std::string& DataColumnName() final {
@@ -64,8 +62,28 @@ class TimestepBuffer final : public MSProvider {
 
   size_t NPolarizations() final { return ms_provider_->NPolarizations(); }
 
+  size_t NRows() final { return ms_provider_->NRows(); }
+
+  double Interval() final { return ms_provider_->Interval(); }
+
+  ObservationInfo GetObservationInfo(size_t field_id) final {
+    return ms_provider_->GetObservationInfo(field_id);
+  }
+
+  std::vector<std::string> GetAntennaNames() final {
+    return ms_provider_->GetAntennaNames();
+  }
+
   const aocommon::MultiBandData& SelectedBands() final {
     return ms_provider_->SelectedBands();
+  }
+
+  std::optional<SynchronizedMS> MsIfAvailable() final {
+    return ms_provider_->MsIfAvailable();
+  }
+
+  std::string PartDescription() const final {
+    return ms_provider_->PartDescription();
   }
 
  private:

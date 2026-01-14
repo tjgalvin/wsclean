@@ -23,6 +23,7 @@
 namespace wsclean {
 
 class SynchronizedMS;
+struct ObservationInfo;
 
 /**
  * Control whether to apply the modifier, sum the corrections or both when
@@ -189,7 +190,8 @@ class VisibilityModifier {
                                const std::string& data_column,
                                const std::string& mwa_path);
 
-  void InitializeTimeFrequencySmearing(SynchronizedMS&& ms);
+  void InitializeTimeFrequencySmearing(const ObservationInfo& observation_info,
+                                       double interval);
 
   /**
    * A function that initializes this visibility modifier for testing. After

@@ -588,7 +588,13 @@ double PrimaryBeam::MakeBeamForMS(
       GetBeamIntervals(ms_provider, seconds_before_beam_update_);
   Logger::Debug << "Dividing MS in " << intervals.size() << " intervals.\n";
 
-  SynchronizedMS ms = ms_provider.MS();
+  std::optional<SynchronizedMS> optional_ms = ms_provider.MsIfAvailable();
+  if (!optional_ms) {
+    throw std::runtime_error(
+        "To correct for the beam, an on-disk measurement set is currently "
+        "required");
+  }
+  SynchronizedMS& ms = *optional_ms;
   const everybeam::TelescopeType telescope_type =
       everybeam::GetTelescopeType(*ms);
   std::unique_ptr<everybeam::telescope::Telescope> telescope =

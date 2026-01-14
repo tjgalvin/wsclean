@@ -3,10 +3,13 @@
 
 #include "synchronizedms.h"
 
+#include "../structures/observationinfo.h"
+
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 
 #include <complex>
+#include <optional>
 #include <set>
 #include <type_traits>
 #include <vector>
@@ -75,7 +78,12 @@ class MSProvider {
   MSProvider(const MSProvider&) = delete;
   MSProvider& operator=(const MSProvider&) = delete;
 
-  virtual SynchronizedMS MS() = 0;
+  /**
+   * Returns a descriptive string that identifies the part. In the case of a
+   * on-disk ms provider, this could e.g. be the filename + part index. It
+   * is used by WSClean to notify the user what it is working on.
+   */
+  virtual std::string PartDescription() const = 0;
 
   /**
    * The column name from which data is read.
@@ -170,6 +178,22 @@ class MSProvider {
    */
   virtual size_t NPolarizations() = 0;
 
+  virtual size_t NRows() = 0;
+
+  /**
+   * Integration time of one timestep, in seconds. If time BDA is used, then it
+   * is undefined what is returned.
+   */
+  virtual double Interval() = 0;
+
+  virtual ObservationInfo GetObservationInfo(size_t field_id) = 0;
+
+  /**
+   * When applying facet solutions, the antenna names of the msprovider should
+   * match the names given in h5parm solution files.
+   */
+  virtual std::vector<std::string> GetAntennaNames() = 0;
+
   /**
    * Get the band information that this MSProvider covers after applying
    * any selection. The indexing of channels matches therefore with
@@ -178,6 +202,16 @@ class MSProvider {
   virtual const aocommon::MultiBandData& SelectedBands() = 0;
 
   virtual std::unique_ptr<MSReader> MakeReader() = 0;
+
+  /**
+   * Returns the underlying measurement set if it is available. Requiring an
+   * on-disk measurement set should be avoided as much as possible, since not
+   * all providers have an on-disk measurement set (e.g. the InMemoryProvider).
+   * Nevertheless, certain very specific features may require access to the
+   * MS to read in non-standard data. As of yet, applying the beam is one of
+   * those cases.
+   */
+  virtual std::optional<SynchronizedMS> MsIfAvailable() { return {}; }
 
   /**
    * Reset model data in the MSProvider to zeros.

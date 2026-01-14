@@ -43,10 +43,6 @@ class ReorderedMsProvider final : public MSProvider {
 
   std::unique_ptr<MSReader> MakeReader() override;
 
-  SynchronizedMS MS() override {
-    return SynchronizedMS(handle_.data_->ms_path_.data());
-  }
-
   const std::string& DataColumnName() override {
     return handle_.data_->data_column_name_;
   }
@@ -65,6 +61,10 @@ class ReorderedMsProvider final : public MSProvider {
 
   aocommon::PolarizationEnum Polarization() override { return polarization_; }
 
+  std::string PartDescription() const final;
+
+  size_t NRows() final { return meta_header_.selected_row_count; }
+
   size_t NMaxChannels() override { return part_header_.max_channel_count; }
   bool IsRegular() const override {
     return meta_header_.data_desc_id.HasValue();
@@ -79,10 +79,20 @@ class ReorderedMsProvider final : public MSProvider {
     return handle_.data_->bands_per_part_[part_index_];
   }
 
+  double Interval() final;
+
+  ObservationInfo GetObservationInfo(size_t field_id) final;
+
+  std::vector<std::string> GetAntennaNames() final;
+
   static void StoreReorderedInMS(
       const schaapcommon::reordering::HandleData& handle);
 
+  std::optional<SynchronizedMS> MsIfAvailable() final { return MS(); }
+
  private:
+  SynchronizedMS MS() { return SynchronizedMS(handle_.data_->ms_path_.data()); }
+
   const ReorderedHandle handle_;
   const size_t part_index_;
   MappedFile model_file_;

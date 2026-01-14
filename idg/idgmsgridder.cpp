@@ -639,7 +639,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 
   // TODO for now we map the ms antennas directly to the gridder's antenna,
   // including non-selected antennas. Later this can be made more efficient.
-  const size_t nStations = ms_data.ms_provider->MS()->antenna().nrow();
+  const size_t nStations = ms_data.ms_provider->NAntennas();
 
   std::vector<std::vector<double>> bands;
   bands.emplace_back(selected_band.begin(), selected_band.end());
@@ -700,8 +700,7 @@ bool IdgMsGridder::prepareForMeasurementSet(
 #ifdef HAVE_EVERYBEAM
 std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
     const MsProviderCollection::MsData& ms_data) {
-  SynchronizedMS ms = ms_data.ms_provider->MS();
-  size_t nr_stations = ms->antenna().nrow();
+  const size_t nr_stations = ms_data.ms_provider->NAntennas();
   if (!GetSettings().atermConfigFilename.empty() ||
       GetSettings().gridWithBeam) {
     // IDG uses a flipped coordinate system which is moved by half a pixel:
@@ -724,10 +723,17 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
     aterm_settings.trimmed_image_width = GetSettings().trimmedImageWidth;
     aterm_settings.max_support = GetSettings().atermKernelSize;
 
+    std::optional<SynchronizedMS> optional_ms =
+        ms_data.ms_provider->MsIfAvailable();
+    if (!optional_ms) {
+      throw std::runtime_error(
+          "Gridding with beam or a-term configuration file is currently not "
+          "supported without an on-disk measurement set");
+    }
     if (!GetSettings().atermConfigFilename.empty()) {
       ParsetReader parset_aterms(GetSettings().atermConfigFilename);
       // If MWA MS and "beam" in aterms, get the path to the coefficient file
-      if (everybeam::GetTelescopeType(*ms) ==
+      if (everybeam::GetTelescopeType(**optional_ms) ==
           everybeam::TelescopeType::kMWATelescope) {
         std::vector<std::string> aterms = parset_aterms.GetStringList("aterms");
         if (std::find(aterms.begin(), aterms.end(), "beam") != aterms.end()) {
@@ -739,11 +745,11 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
       std::unique_ptr<ATermConfig> config(
           new ATermConfig(nr_stations, system, aterm_settings));
       config->SetSaveATerms(GetSettings().saveATerms, GetSettings().prefixName);
-      config->Read(*ms, parset_aterms, ms.Filename());
+      config->Read(**optional_ms, parset_aterms, optional_ms->Filename());
       return config;
     } else {
       // If MWA MS, get the path to the coefficient file
-      if (everybeam::GetTelescopeType(*ms) ==
+      if (everybeam::GetTelescopeType(**optional_ms) ==
           everybeam::TelescopeType::kMWATelescope) {
         aterm_settings.coeff_path =
             wsclean::mwa::FindCoeffFile(GetSettings().mwaPath);
@@ -755,7 +761,7 @@ std::unique_ptr<class ATermBase> IdgMsGridder::getATermMaker(
                                              : "DEFAULT";
 
       std::unique_ptr<ATermBeam> beam = ATermConfig::GetATermBeam(
-          *ms, system, aterm_settings, frequencyInterpolation,
+          **optional_ms, system, aterm_settings, frequencyInterpolation,
           GetSettings().beamNormalisationMode, useChannelFrequency,
           elementResponseModel, GetSettings().beamMode);
       beam->SetSaveATerms(GetSettings().saveATerms, GetSettings().prefixName);

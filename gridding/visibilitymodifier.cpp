@@ -28,12 +28,8 @@ void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
 }
 }  // namespace
 
-void VisibilityModifier::InitializeTimeFrequencySmearing(SynchronizedMS&& ms) {
-  ObservationInfo observation_info = ReadObservationInfo(*ms, 0);
-  const casacore::ScalarColumn<double> intervalColumn(
-      *ms, ms->columnName(casacore::MSMainEnums::INTERVAL));
-  const double interval = intervalColumn(0);
-
+void VisibilityModifier::InitializeTimeFrequencySmearing(
+    const ObservationInfo& observation_info, double interval) {
   /**
    * Length of a sidereal day in seconds.
    */

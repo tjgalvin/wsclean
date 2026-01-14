@@ -218,4 +218,14 @@ bool ContiguousMS::IsRegular() const {
   return n_data_desc_ids <= 1;
 }
 
+double ContiguousMS::Interval() { return GetMsInterval(*_ms); }
+
+ObservationInfo ContiguousMS::GetObservationInfo(size_t field_id) {
+  return ReadObservationInfo(*_ms, field_id);
+}
+
+std::vector<std::string> ContiguousMS::GetAntennaNames() {
+  return wsclean::GetAntennaNames(_ms->antenna());
+}
+
 }  // namespace wsclean

@@ -25,8 +25,7 @@ class MSReader {
    * This provides a unique, consecutive number that corresponds to
    * the current reading position. Note that this number does not have
    * to map directly to measurement set row indices, because unselected
-   * data does not affect the RowId. @ref MSProvider::MakeIdToMSRowMapping()
-   * can be used to convert this Id to a measurement row number.
+   * data does not affect the RowId.
    */
   virtual size_t RowId() const = 0;
 

@@ -42,8 +42,6 @@ class ContiguousMS final : public MSProvider {
 
   std::unique_ptr<MSReader> MakeReader() override;
 
-  SynchronizedMS MS() override { return _ms; }
-
   const std::string& DataColumnName() override { return _dataColumnName; }
 
   void NextOutputRow() override;
@@ -66,13 +64,25 @@ class ContiguousMS final : public MSProvider {
 
   bool HasFrequencyBda() const override { return has_frequency_bda_; }
 
+  std::string PartDescription() const final { return _msPath; }
+
   size_t NPolarizations() override;
 
   size_t NAntennas() override { return _nAntenna; }
 
+  size_t NRows() final { return _endRow - _startRow; }
+
   const aocommon::MultiBandData& SelectedBands() final {
     return selected_bands_;
   }
+
+  double Interval() final;
+
+  ObservationInfo GetObservationInfo(size_t field_id) final;
+
+  std::vector<std::string> GetAntennaNames() final;
+
+  std::optional<SynchronizedMS> MsIfAvailable() final { return _ms; }
 
  private:
   void open();

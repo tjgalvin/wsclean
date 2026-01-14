@@ -550,8 +550,7 @@ void MSGridderManager::ReadChunksForInvert(
   // We read chunks based on the maximum amount of rows we think we can fit
   // in memory at a time.
   Logger::Info << "Max " << n_max_rows_in_memory << " rows fit in memory.\n";
-  SynchronizedMS ms = ms_data.ms_provider->MS();
-  const size_t n_total_rows_in_ms = ms->nrow();
+  const size_t n_total_rows_in_ms = ms_data.ms_provider->NRows();
   n_max_rows_in_memory = std::min(n_max_rows_in_memory, n_total_rows_in_ms);
   // We want two chunks of memory, one reading while one processes.
   // However estimate that we can read 50% of the next chunk before
@@ -966,8 +965,7 @@ void MSGridderManager::ReadChunksForPredict(
   // We read chunks based on the maximum amount of rows we think we can fit
   // in memory at a time.
   Logger::Info << "Max " << n_max_rows_in_memory << " rows fit in memory.\n";
-  SynchronizedMS ms = ms_data.ms_provider->MS();
-  const size_t n_total_rows_in_ms = ms->nrow();
+  const size_t n_total_rows_in_ms = ms_data.ms_provider->NRows();
   n_max_rows_in_memory = std::min(n_max_rows_in_memory, n_total_rows_in_ms);
   // We want two chunks of memory, one reading while one processes.
   // However estimate that we can read 50% of the next chunk before

@@ -200,4 +200,22 @@ std::set<aocommon::PolarizationEnum> GetMSPolarizations(
   return pols;
 }
 
+double GetMsInterval(const casacore::MeasurementSet& ms) {
+  const casacore::ScalarColumn<double> interval_column(
+      ms, ms.columnName(casacore::MSMainEnums::INTERVAL));
+  return interval_column(0);
+}
+
+std::vector<std::string> GetAntennaNames(const casacore::MSAntenna& antenna) {
+  const casacore::ScalarColumn<casacore::String> antennaNameColumn(
+      antenna, antenna.columnName(casacore::MSAntenna::NAME));
+
+  std::vector<std::string> antenna_names;
+  antenna_names.reserve(antennaNameColumn.nrow());
+  for (size_t i = 0; i < antennaNameColumn.nrow(); ++i) {
+    antenna_names.push_back(antennaNameColumn(i));
+  }
+  return antenna_names;
+}
+
 }  // namespace wsclean

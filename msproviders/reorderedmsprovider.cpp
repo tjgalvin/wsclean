@@ -136,6 +136,10 @@ std::unique_ptr<MSReader> ReorderedMsProvider::MakeReader() {
   return std::make_unique<ReorderedMsReader>(this);
 }
 
+std::string ReorderedMsProvider::PartDescription() const {
+  return handle_.data_->ms_path_ + ":" + std::to_string(part_index_);
+}
+
 void ReorderedMsProvider::NextOutputRow() {
   ++current_output_row_;
   if (reader_) {
@@ -484,6 +488,16 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
         << "Row count for writing reordered data back to the measurement set: "
         << selected_row_count_for_debug << '\n';
   }
+}
+
+double ReorderedMsProvider::Interval() { return GetMsInterval(*MS()); }
+
+ObservationInfo ReorderedMsProvider::GetObservationInfo(size_t field_id) {
+  return ReadObservationInfo(*MS(), field_id);
+}
+
+std::vector<std::string> ReorderedMsProvider::GetAntennaNames() {
+  return wsclean::GetAntennaNames(MS()->antenna());
 }
 
 }  // namespace wsclean
