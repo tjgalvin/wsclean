@@ -42,6 +42,7 @@ class MPIScheduler final : public GriddingTaskManager {
     return local_scheduler_.GetLock(writer_group_index);
   }
 
+ private:
   /**
    * Send a task to a worker node or run it on the master
    */
@@ -104,18 +105,23 @@ class MPIScheduler final : public GriddingTaskManager {
 
   /**
    * Available execution room for tasks for each node.
-   * A compound task, with multiple facets, counts as n_facets tasks.
-   * The value is negative if the scheduler sent more tasks to the
-   * node than it can execute in parallel. This situation occurs if:
-   * - A compound task contains more sub-tasks than the available room.
-   *   The scheduler still schedules such tasks, since there's no need to wait
-   *   until the node has room for the entire task. In it's available room,
-   *   the node can start with sub-tasks instead of being idle.
-   * - The scheduler sends tasks prematurely. When a node finishes a task,
-   *   it can then immediately start with the prematurely sent task instead
-   *   of waiting for a new task.
+   * This is intially set to `room_per_node_` and is reduced/increased as tasks
+   * are sent/completed.
+   * A compound task; with multiple facets, counts as multiple tasks,
+   * with the quantity determined by `task.num_parallel_gridders_`.
+   * When room is <= 0 no further tasks are sent until room becomes > 0.
+   * The room can become negative if the scheduler has sent more tasks to the
+   * node than `room_per_node_` suggests it is capable of executing in parallel.
+   * This situation occurs if a compound task is being sent pre-emptively. When
+   * the node finishes a task, it can then immediately start with the
+   * pre-emptively sent task instead of waiting for a new task. Or even start to
+   * process the second in an overlapped manner as the first task starts to
+   * complete.
    */
   std::vector<int> available_room_;
+  int room_per_node_;
+  /** Stores task size, indexed by task id. */
+  std::map<size_t, size_t> task_size_;
 
   /**
    * Prevent more than one concurrent send per node at a time.

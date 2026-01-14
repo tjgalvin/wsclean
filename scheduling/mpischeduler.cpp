@@ -31,7 +31,13 @@ MPIScheduler::MPIScheduler(const Settings& settings)
     : GriddingTaskManager(settings), local_scheduler_(settings) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  available_room_.assign(world_size, settings.parallelGridding);
+
+  // Set enough room for one pre-emptive send over and above what a node is
+  // capable of processing in parallel. As 'available_room_' can become
+  // negative; for compound tasks this will allow pre-emptive sending of an
+  // additional compound task even if its size is much larger than 1.
+  room_per_node_ = settings.parallelGridding + 1;
+  available_room_.assign(world_size, room_per_node_);
   node_is_sending_.assign(world_size, false);
   if (!settings.masterDoesWork) {
     available_room_[0] = 0;
@@ -128,7 +134,7 @@ void MPIScheduler::Start(size_t n_writer_groups) {
 
   for (size_t rank = 1; rank < available_room_.size(); ++rank) {
     assert(available_room_[rank] > 0 &&
-           size_t(available_room_[rank]) == GetSettings().parallelGridding);
+           available_room_[rank] == room_per_node_);
     MPI_Send(message_stream.data(), TaskMessage::kSerializedSize, MPI_BYTE,
              rank, kTag, MPI_COMM_WORLD);
   }
@@ -182,7 +188,9 @@ size_t MPIScheduler::GetNode(const GriddingTask& task,
   while (available_room_[node] <= 0) {
     notify_.wait(lock);
   }
-  available_room_[node] -= task.facets.size();
+  const size_t task_size = task.num_parallel_gridders_;
+  available_room_[node] -= task_size;
+  task_size_[task.unique_id] = task_size;
   notify_.notify_all();  // Notify receiveLoop(). It should stop waiting.
 
   // Store the callback function.
@@ -238,7 +246,7 @@ void MPIScheduler::ProcessReadyList_UNSYNCHRONIZED() {
 
 bool MPIScheduler::AWorkerIsRunning_UNSYNCHRONIZED() {
   for (size_t i = 1; i != available_room_.size(); ++i) {
-    if (available_room_[i] < static_cast<int>(GetSettings().parallelGridding)) {
+    if (available_room_[i] < room_per_node_) {
       return true;
     }
   }
@@ -259,7 +267,9 @@ void MPIScheduler::ProcessGriddingResult(size_t node, size_t body_size) {
 
 void MPIScheduler::StoreResult(GriddingResult&& result, int node) {
   std::lock_guard<std::mutex> lock(mutex_);
-  available_room_[node] += result.facets.size();
+  const size_t task_id = result.unique_id;
+  available_room_[node] += task_size_[task_id];
+  task_size_.erase(task_id);
   ready_list_.emplace_back(std::move(result));
   notify_.notify_all();
 }
