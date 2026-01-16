@@ -378,6 +378,7 @@ add_library(
   math/tophatconvolution.cpp
   model/model.cpp
   msproviders/contiguousms.cpp
+  msproviders/inmemoryprovider.cpp
   msproviders/msdatadescription.cpp
   msproviders/msprovider.cpp
   msproviders/operations.cpp

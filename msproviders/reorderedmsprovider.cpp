@@ -492,8 +492,9 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
 
 double ReorderedMsProvider::Interval() { return GetMsInterval(*MS()); }
 
-ObservationInfo ReorderedMsProvider::GetObservationInfo(size_t field_id) {
-  return ReadObservationInfo(*MS(), field_id);
+ObservationInfo ReorderedMsProvider::GetObservationInfo() {
+  return ReadObservationInfo(*MS(),
+                             handle_.data_->selection_.FieldIds().front());
 }
 
 std::vector<std::string> ReorderedMsProvider::GetAntennaNames() {

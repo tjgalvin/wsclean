@@ -5,7 +5,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     cmake \
     g++ \
     git \
-    pkg-config \
     libblas-dev \
     libboost-filesystem-dev \
     libboost-program-options-dev \

@@ -29,10 +29,6 @@ class TimestepBuffer final : public MSProvider {
 
   std::unique_ptr<MSReader> MakeReader() final;
 
-  const std::string& DataColumnName() final {
-    return ms_provider_->DataColumnName();
-  }
-
   void NextOutputRow() final { ms_provider_->NextOutputRow(); }
 
   void ResetWritePosition() final { ms_provider_->ResetWritePosition(); }
@@ -66,8 +62,8 @@ class TimestepBuffer final : public MSProvider {
 
   double Interval() final { return ms_provider_->Interval(); }
 
-  ObservationInfo GetObservationInfo(size_t field_id) final {
-    return ms_provider_->GetObservationInfo(field_id);
+  ObservationInfo GetObservationInfo() final {
+    return ms_provider_->GetObservationInfo();
   }
 
   std::vector<std::string> GetAntennaNames() final {

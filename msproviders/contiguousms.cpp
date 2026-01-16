@@ -161,14 +161,7 @@ size_t ContiguousMS::NMaxChannels() {
 }
 
 size_t ContiguousMS::NPolarizations() {
-  switch (_outputPolarization) {
-    case aocommon::Polarization::Instrumental:
-      return 4;
-    case aocommon::Polarization::DiagonalInstrumental:
-      return 2;
-    default:
-      return 1;
-  }
+  return aocommon::Polarization::GetVisibilityCount(_outputPolarization);
 }
 
 void ContiguousMS::prepareModelColumn() {
@@ -220,8 +213,8 @@ bool ContiguousMS::IsRegular() const {
 
 double ContiguousMS::Interval() { return GetMsInterval(*_ms); }
 
-ObservationInfo ContiguousMS::GetObservationInfo(size_t field_id) {
-  return ReadObservationInfo(*_ms, field_id);
+ObservationInfo ContiguousMS::GetObservationInfo() {
+  return ReadObservationInfo(*_ms, selection_.FieldIds().front());
 }
 
 std::vector<std::string> ContiguousMS::GetAntennaNames() {

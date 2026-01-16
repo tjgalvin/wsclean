@@ -133,6 +133,7 @@ class Settings {
   bool doReorder = true;
   bool reuseReorder = false;
   bool saveReorder = false;
+  bool inMemoryData = false;
   bool subtractModel = false, modelUpdateRequired = true, mfWeighting = false;
   size_t fullResOffset = 0, fullResWidth = 0, fullResPad = 0;
   std::string beamModel, beamMode = "default";

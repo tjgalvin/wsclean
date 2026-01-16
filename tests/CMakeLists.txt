@@ -19,6 +19,7 @@ add_executable(
   msproviders/tnoisemsrowprovider.cpp
   msproviders/tbdamsrowprovider.cpp
   msproviders/tbdamsrowproviderdata.cpp
+  msproviders/tinmemoryprovider.cpp
   msproviders/tmsrowproviderbase.cpp
   scheduling/tgriddingtaskfactory.cpp
   structures/timagingtable.cpp

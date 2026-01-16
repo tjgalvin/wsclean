@@ -86,12 +86,6 @@ class MSProvider {
   virtual std::string PartDescription() const = 0;
 
   /**
-   * The column name from which data is read.
-   * Writing is done to a different column.
-   */
-  virtual const std::string& DataColumnName() = 0;
-
-  /**
    * Move the model writing position to the next row.
    */
   virtual void NextOutputRow() = 0;
@@ -186,7 +180,7 @@ class MSProvider {
    */
   virtual double Interval() = 0;
 
-  virtual ObservationInfo GetObservationInfo(size_t field_id) = 0;
+  virtual ObservationInfo GetObservationInfo() = 0;
 
   /**
    * When applying facet solutions, the antenna names of the msprovider should

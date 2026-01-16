@@ -43,10 +43,6 @@ class ReorderedMsProvider final : public MSProvider {
 
   std::unique_ptr<MSReader> MakeReader() override;
 
-  const std::string& DataColumnName() override {
-    return handle_.data_->data_column_name_;
-  }
-
   void NextOutputRow() override;
 
   void ResetWritePosition() override;
@@ -81,7 +77,7 @@ class ReorderedMsProvider final : public MSProvider {
 
   double Interval() final;
 
-  ObservationInfo GetObservationInfo(size_t field_id) final;
+  ObservationInfo GetObservationInfo() final;
 
   std::vector<std::string> GetAntennaNames() final;
 

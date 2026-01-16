@@ -20,7 +20,7 @@ void MsGridderData::StartMeasurementSet(
   InitializePointResponse(ms_data);
   if (settings_.applyTimeFrequencySmearing) {
     visibility_modifier_.InitializeTimeFrequencySmearing(
-        ms_data.ms_provider->GetObservationInfo(0),
+        ms_data.ms_provider->GetObservationInfo(),
         ms_data.ms_provider->Interval());
   }
   if (visibility_modifier_.HasH5Parm()) {

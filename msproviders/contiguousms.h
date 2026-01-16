@@ -42,8 +42,6 @@ class ContiguousMS final : public MSProvider {
 
   std::unique_ptr<MSReader> MakeReader() override;
 
-  const std::string& DataColumnName() override { return _dataColumnName; }
-
   void NextOutputRow() override;
 
   void ResetWritePosition() override;
@@ -78,7 +76,7 @@ class ContiguousMS final : public MSProvider {
 
   double Interval() final;
 
-  ObservationInfo GetObservationInfo(size_t field_id) final;
+  ObservationInfo GetObservationInfo() final;
 
   std::vector<std::string> GetAntennaNames() final;
 
