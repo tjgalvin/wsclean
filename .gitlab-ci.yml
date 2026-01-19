@@ -70,15 +70,17 @@ build-debug-without-everybeam:
   extends: .dependencies
   script:
     - pip3 install pytest astropy
-    - mkdir build
-    - cd build
-    - sed -i 's=-O3=-O1=' ../CMakeLists.txt # Disable optimizations
-    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON  ../
+    - sed -i 's=-O3=-O1=' CMakeLists.txt # Disable optimizations
+    # To test in and out of source builds, some builds do an in-source build whereas
+    # here we do an out-of-source build.
+    - mkdir $CI_PROJECT_DIR/../wsclean-build && cd $CI_PROJECT_DIR/../wsclean-build
+    - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON  $CI_PROJECT_DIR/
     - make -j`nproc`
     - make -j`nproc` doc
     - make -j`nproc` install
     # For a push pipeline, run unittests only, otherwise run both unit and integration tests
     - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make unitchecks; else make check; fi
+    - cd $CI_PROJECT_DIR
 
 build-with-everybeam-gcc12:
   stage: build

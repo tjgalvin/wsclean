@@ -5,7 +5,7 @@
 
 #include "msreader.h"
 
-#include "../structures/inmemorypart.h"
+#include "../../structures/inmemorypart.h"
 
 namespace wsclean {
 
