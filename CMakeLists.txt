@@ -102,7 +102,7 @@ if(ENABLE_WTOWERS)
           "Enabling w-towers gridder; Using ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
       )
       add_definitions(-DBUILD_WTOWERS)
-      set(WTOWERS_CPP_FILES wtowers/wtowersmsgridder.cpp)
+      include_directories(SYSTEM ${SKA_SDP_FUNC_INCLUDE_DIR})
     else()
       message(
         FATAL_ERROR
@@ -116,9 +116,6 @@ if(ENABLE_WTOWERS)
   endif(SKA_SDP_FUNC_FOUND)
 else(ENABLE_WTOWERS)
   message(STATUS "Disabling w-towers gridder.")
-  set(WTOWERS_CPP_FILES "")
-  set(SKA_SDP_FUNC_LIBRARIES "")
-  set(SKA_SDP_FUNC_INCLUDE_DIR "")
 endif(ENABLE_WTOWERS)
 
 find_package(
@@ -149,12 +146,6 @@ find_package(
   Python3
   COMPONENTS Interpreter Development
   REQUIRED)
-
-if(NOT pybind11_FOUND)
-  # Include pybind11
-  add_subdirectory("${CMAKE_SOURCE_DIR}/external/pybind11")
-  include_directories(SYSTEM ${pybind11_INCLUDE_DIRS})
-endif()
 
 #Prevent accidentally finding old BoostConfig.cmake file from casapy
 set(Boost_NO_BOOST_CMAKE ON)
@@ -256,7 +247,6 @@ include_directories(SYSTEM ${FFTW3_INCLUDE_DIR})
 include_directories(SYSTEM ${GSL_INCLUDE_DIR})
 include_directories(SYSTEM ${HDF5_INCLUDE_DIRS})
 include_directories(SYSTEM ${Python3_INCLUDE_DIRS})
-include_directories(SYSTEM ${SKA_SDP_FUNC_INCLUDE_DIR})
 
 include(CheckCXXSourceCompiles)
 
@@ -298,8 +288,7 @@ ExternalProject_Add(
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DCMAKE_CXX_FLAGS=${RADLER_CXX_FLAGS})
 
-set(RADLER_INCLUDE_DIR ${RADLER_INSTALL_PREFIX}/include)
-include_directories(${RADLER_INCLUDE_DIR})
+include_directories(${RADLER_INSTALL_PREFIX}/include)
 
 # The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
@@ -413,9 +402,7 @@ add_library(
   system/pythonfilepath.cpp
   ${IDG_FILES}
   ${MPI_CPP_FILES}
-  ${WTOWERS_CPP_FILES})
-
-set(wsclean-object-all wsclean-object)
+  $<$<BOOL:${ENABLE_WTOWERS}>:wtowers/wtowersmsgridder.cpp>)
 
 # A number of files perform the 'core' high-performance floating point
 # operations. In these files, NaNs are avoided and thus -ffast-math is
@@ -428,14 +415,13 @@ set_source_files_properties(
 
 # Add radler-module dependency to wsclean-object to ensure all
 # wsclean targets can link against ${RADLER_LIB}
-foreach(X ${wsclean-object-all})
-  add_dependencies(${X} radler-module)
-endforeach()
+add_dependencies(wsclean-object radler-module)
 
-set_property(TARGET ${wsclean-object-all} PROPERTY POSITION_INDEPENDENT_CODE 1)
+set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-target_link_libraries(wsclean-object PUBLIC schaapcommon
-                                            ${SKA_SDP_FUNC_LIBRARIES})
+target_link_libraries(
+  wsclean-object PRIVATE schaapcommon
+                         $<$<BOOL:${ENABLE_WTOWERS}>:${SKA_SDP_FUNC_LIBRARIES}>)
 
 set(EXTERNAL_LIBRARIES
     ${CASACORE_LIBRARIES}
@@ -465,14 +451,13 @@ check_blas(LIBRARIES ${EXTERNAL_LIBRARIES})
 list(PREPEND EXTERNAL_LIBRARIES ${RADLER_LIB})
 
 add_library(wsclean-lib STATIC)
-target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES}
-                                          ${wsclean-object-all})
+target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES} wsclean-object)
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 add_library(wsclean-shared SHARED)
 target_link_libraries(wsclean-shared PRIVATE ${EXTERNAL_LIBRARIES}
-                                             ${wsclean-object-all})
+                                             wsclean-object)
 set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
 # Make schaapcommon a PUBLIC dependency, since some WSClean headers use
