@@ -1,4 +1,4 @@
-image: ubuntu:22.04
+image: ubuntu:24.04
 
 stages:
  - format
@@ -54,10 +54,7 @@ format:
   script:
     # Update external/aocommon, which contains format.sh.
     - git submodule update --init external/aocommon
-    - apt-get install -y -qq clang-format-12
-    # The formatter needs a binary named 'clang-format', not 'clang-format-12'.
-    - ln -sf clang-format-12 /usr/bin/clang-format
-    - pip3 install black cmake-format isort
+    - apt-get install -y -qq black clang-format-14 cmake-format isort
     # Check formatting of header (*.h), source (*.cpp), python and CMake files.
     - ./scripts/run-format.sh
   rules:
@@ -69,7 +66,7 @@ build-debug-without-everybeam:
   stage: build
   extends: .dependencies
   script:
-    - pip3 install pytest astropy
+    - apt-get install -y -qq python3-astropy python3-pytest
     - sed -i 's=-O3=-O1=' CMakeLists.txt # Disable optimizations
     # To test in and out of source builds, some builds do an in-source build whereas
     # here we do an out-of-source build.
@@ -87,8 +84,7 @@ build-with-everybeam-gcc12:
   stage: build
   extends: .dependencies
   script:
-    - apt-get install -y -qq g++-12
-    - pip3 install pytest astropy gcovr
+    - apt-get install -y -qq g++-12 python3-astropy gcovr
     # Use a very recent EveryBeam version (as of Dec 2025), since older versions require the (now empty) Boost date_time library.
     - mkdir -p /opt/everybeam/build
     - cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
@@ -117,8 +113,7 @@ pages:
     OUTPUT: public/$CI_COMMIT_REF_SLUG
   before_script:
     - apt-get update -qq
-    - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq python3-pip
-    - pip3 install gcovr
+    - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq gcovr
   script:
     - echo Deploying GitLab pages to $CI_PAGES_URL/$CI_COMMIT_REF_SLUG
     - mkdir -p $OUTPUT
@@ -193,7 +188,7 @@ package:
   before_script:
     - apt-get update -qq
     - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq curl git python3-pip
-    - pip3 install git-archive-all
+    - pip3 install git-archive-all --break-system-packages
   script:
     - |
       git-archive-all --force-submodules ${PACKAGE_FILE}

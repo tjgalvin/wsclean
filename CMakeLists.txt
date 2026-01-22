@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.23)
 
 project(wsclean LANGUAGES CXX)
 
@@ -453,12 +453,42 @@ list(PREPEND EXTERNAL_LIBRARIES ${RADLER_LIB})
 add_library(wsclean-lib STATIC)
 target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES} wsclean-object)
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
-set_target_properties(wsclean-lib PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
 
-add_library(wsclean-shared SHARED)
+add_library(wsclean-shared SHARED interface/wsclean.cpp)
 target_link_libraries(wsclean-shared PRIVATE ${EXTERNAL_LIBRARIES}
                                              wsclean-object)
-set_target_properties(wsclean-shared PROPERTIES SOVERSION ${WSCLEAN_VERSION_SO})
+set_target_properties(wsclean-shared PROPERTIES OUTPUT_NAME wsclean)
+# Define the headers. Because we use aocommon, we also have to install some files
+# from aocommon. Only dependent aocommon files are installed.
+target_sources(
+  wsclean-shared
+  INTERFACE FILE_SET
+            wsclean_headers
+            TYPE
+            HEADERS
+            BASE_DIRS
+            "${CMAKE_CURRENT_SOURCE_DIR}/interface"
+            FILES
+            interface/wsclean.h
+            interface/inmemoryms.h)
+target_sources(
+  wsclean-shared
+  INTERFACE FILE_SET
+            aocommon_headers
+            TYPE
+            HEADERS
+            BASE_DIRS
+            "${CMAKE_CURRENT_SOURCE_DIR}/external/aocommon/include"
+            FILES
+            external/aocommon/include/aocommon/banddata.h
+            external/aocommon/include/aocommon/constants.h
+            external/aocommon/include/aocommon/multibanddata.h
+            external/aocommon/include/aocommon/optionalnumber.h
+            external/aocommon/include/aocommon/polarization.h
+            external/aocommon/include/aocommon/uvector.h
+            external/aocommon/include/aocommon/vectormap.h
+            external/aocommon/include/aocommon/io/serialistream.h
+            external/aocommon/include/aocommon/io/serialostream.h)
 
 # Make schaapcommon a PUBLIC dependency, since some WSClean headers use
 # schaapcommon headers. An application/test linking to wsclean-lib or
@@ -484,9 +514,14 @@ add_executable(
 target_link_libraries(wspredictionexample ${EXTERNAL_LIBRARIES})
 
 install(TARGETS wsclean DESTINATION bin)
-install(TARGETS wsclean-lib DESTINATION lib)
+install(
+  TARGETS wsclean-shared
+  LIBRARY DESTINATION lib
+          FILE_SET wsclean_headers
+          DESTINATION include/wsclean
+          FILE_SET aocommon_headers
+          DESTINATION include)
 install(TARGETS chgcentre DESTINATION bin)
-
 if(MPI_FOUND)
   install(TARGETS wsclean-mp DESTINATION bin)
 endif(MPI_FOUND)
