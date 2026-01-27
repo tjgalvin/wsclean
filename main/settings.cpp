@@ -313,6 +313,15 @@ void Settings::Validate() const {
     throw std::runtime_error(
         "Can not both force reordering and force not reordering!");
 
+  if (deconvolutionChannelCount > channelsOut) {
+    throw std::runtime_error("The '-deconvolution-channels' option is set to " +
+                             std::to_string(deconvolutionChannelCount) +
+                             ", whereas the number of output channels is " +
+                             std::to_string(channelsOut) +
+                             ". The deconvolution channels must be equal to or "
+                             "less than the number of output channels.");
+  }
+
   if (deconvolutionChannelCount != 0 &&
       deconvolutionChannelCount != channelsOut &&
       spectralFittingMode ==

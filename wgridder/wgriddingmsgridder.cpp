@@ -589,7 +589,7 @@ void WGriddingMSGridder::StartPredict(std::vector<Image>&& images) {
 
   if (ImageWidth() != ActualInversionWidth() ||
       ImageHeight() != ActualInversionHeight()) {
-    Image resampled_image(ImageWidth(), ImageHeight());
+    Image resampled_image(ActualInversionWidth(), ActualInversionHeight());
     schaapcommon::math::Resampler resampler(
         ImageWidth(), ImageHeight(), ActualInversionWidth(),
         ActualInversionHeight(), resources_.NCpus());
