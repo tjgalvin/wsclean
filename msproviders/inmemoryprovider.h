@@ -67,7 +67,7 @@ class InMemoryProvider final : public MSProvider {
 
  public:
   InMemoryPart& data_;
-  std::vector<InMemoryDataRow>::iterator output_iterator_;
+  std::vector<InMemoryPartRow>::iterator output_iterator_;
 };
 
 }  // namespace wsclean

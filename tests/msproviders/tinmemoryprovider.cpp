@@ -74,28 +74,28 @@ BOOST_AUTO_TEST_CASE(read_write) {
   data.meta_data->emplace_back(meta0);
 
   std::vector<std::complex<float>> data0{42.0, 43.0, 44.0, 45.0, 46.0, 47.0};
-  InMemoryDataRow row0;
+  InMemoryPartRow row0;
   row0.data = data0;
   row0.model_data.assign(data0.size(), 0.0);
   row0.weights.assign(data0.size(), 13.0f);
   data.rows.emplace_back(row0);
 
   std::vector<std::complex<float>> data1{48.0, 49.0, 50.0, 51.0, 52.0, 53.0};
-  InMemoryDataRow row1;
+  InMemoryPartRow row1;
   row1.data = data1;
   row1.model_data.assign(data1.size(), 0.0);
   row1.weights.assign(data1.size(), 14.0f);
   data.rows.emplace_back(row1);
 
   std::vector<std::complex<float>> data2{54.0, 55.0, 56.0, 57.0};
-  InMemoryDataRow row2;
+  InMemoryPartRow row2;
   row2.data = data2;
   row2.model_data.assign(data2.size(), 0.0);
   row2.weights.assign(data2.size(), 15.0f);
   data.rows.emplace_back(row2);
 
   std::vector<std::complex<float>> data3{58.0, 59.0, 60.0, 61.0, 62.0, 63.0};
-  InMemoryDataRow row3;
+  InMemoryPartRow row3;
   row3.data = data3;
   row3.model_data.assign(data3.size(), 0.0);
   row3.weights.assign(data3.size(), 16.0f);

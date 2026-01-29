@@ -1,5 +1,5 @@
-#ifndef WSCLEAN_INTERFACE_IN_MEMORY_MS_H_
-#define WSCLEAN_INTERFACE_IN_MEMORY_MS_H_
+#ifndef WSCLEAN_INTERFACE_IN_MEMORY_PART_H_
+#define WSCLEAN_INTERFACE_IN_MEMORY_PART_H_
 
 #include <array>
 #include <complex>
@@ -16,7 +16,7 @@
 
 namespace wsclean {
 
-struct InMemoryDataRow {
+struct InMemoryPartRow {
   std::vector<std::complex<float>> data;
   std::vector<std::complex<float>> model_data;
   std::vector<float> weights;
@@ -38,7 +38,7 @@ struct InMemoryInfo {
  */
 struct InMemoryPart {
   std::string description;
-  std::vector<InMemoryDataRow> rows;
+  std::vector<InMemoryPartRow> rows;
   std::shared_ptr<std::vector<MSProvider::MetaData>> meta_data;
   std::shared_ptr<InMemoryInfo> info;
   aocommon::MultiBandData selected_bands;

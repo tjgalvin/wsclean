@@ -395,6 +395,7 @@ add_library(
   structures/imageweights.cpp
   structures/imagingtable.cpp
   structures/imagingtableentry.cpp
+  structures/inmemoryreordering.cpp
   structures/msselection.cpp
   structures/observationinfo.cpp
   structures/primarybeam.cpp

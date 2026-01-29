@@ -28,7 +28,8 @@ struct InMemoryRow {
    */
   std::vector<std::complex<float>> data;
   /**
-   * Weights associated with the @c data values, with the same shape.
+   * Weights associated with the @c data values, with the same shape. For
+   * flagged values, the weight should be set to zero.
    */
   std::vector<float> weights;
   std::array<double, 3> uvw{0.0, 0.0, 0.0};

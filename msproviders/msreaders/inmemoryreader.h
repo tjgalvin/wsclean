@@ -12,7 +12,7 @@ namespace wsclean {
 class InMemoryReader final : public MSReader {
  public:
   InMemoryReader(
-      MSProvider* ms_provider, std::span<const InMemoryDataRow> rows,
+      MSProvider* ms_provider, std::span<const InMemoryPartRow> rows,
       std::vector<MSProvider::MetaData>::const_iterator meta_data_iterator)
       : MSReader(ms_provider),
         rows_(rows),
@@ -51,8 +51,8 @@ class InMemoryReader final : public MSReader {
   }
 
  private:
-  std::span<const InMemoryDataRow> rows_;
-  std::span<const InMemoryDataRow>::iterator data_iterator_;
+  std::span<const InMemoryPartRow> rows_;
+  std::span<const InMemoryPartRow>::iterator data_iterator_;
   std::vector<MSProvider::MetaData>::const_iterator meta_data_iterator_;
 };
 
