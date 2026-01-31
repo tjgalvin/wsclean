@@ -71,10 +71,10 @@ bool OpenWeightSpectrumColumn(
 }
 
 void InitializeModelColumn(casacore::MeasurementSet& ms,
+                           const std::string& data_column_name,
                            const std::string& model_column_name,
                            StorageManagerType type) {
-  casacore::ArrayColumn<casacore::Complex> data_column(
-      ms, casacore::MS::columnName(casacore::MSMainEnums::DATA));
+  casacore::ArrayColumn<casacore::Complex> data_column(ms, data_column_name);
   ms.reopenRW();
   if (ms.tableDesc().isColumn(model_column_name)) {
     casacore::ArrayColumn<casacore::Complex> model_column(ms,

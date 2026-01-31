@@ -50,6 +50,7 @@ std::set<aocommon::PolarizationEnum> GetMSPolarizations(
     size_t data_desc_id, const casacore::MeasurementSet& ms);
 
 void InitializeModelColumn(casacore::MeasurementSet& ms,
+                           const std::string& data_column_name,
                            const std::string& model_column_name,
                            schaapcommon::reordering::StorageManagerType type);
 

@@ -396,7 +396,8 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
     casacore::MeasurementSet ms(handle.ms_path_, casacore::Table::Update);
     const aocommon::VectorMap<std::set<aocommon::PolarizationEnum>>
         ms_polarizations_per_data_desc_id(GetMSPolarizationsPerDataDescId(ms));
-    InitializeModelColumn(ms, handle.model_column_name_,
+    InitializeModelColumn(ms, handle.data_column_name_,
+                          handle.model_column_name_,
                           handle.model_storage_manager_);
     ScalarColumn<int> antenna1_column(ms, ms.columnName(MSMainEnums::ANTENNA1));
     ScalarColumn<int> antenna2_column(ms, ms.columnName(MSMainEnums::ANTENNA2));

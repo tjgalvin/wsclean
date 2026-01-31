@@ -165,7 +165,8 @@ size_t ContiguousMS::NPolarizations() {
 }
 
 void ContiguousMS::prepareModelColumn() {
-  InitializeModelColumn(*_ms, _modelColumnName, _modelStorageManager);
+  InitializeModelColumn(*_ms, _dataColumnName, _modelColumnName,
+                        _modelStorageManager);
   _modelColumn =
       casacore::ArrayColumn<casacore::Complex>(*_ms, _modelColumnName);
   const casacore::IPosition shape(_modelColumn.shape(0));
