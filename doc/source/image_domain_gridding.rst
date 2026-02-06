@@ -77,3 +77,12 @@ Advanced *a*-term corrections
 -----------------------------
 
 WSClean+IDG allows a combination of several direction-dependent corrections to be applied, including TEC screens, diagonal gain correction and position shifts ("dldm screens"). These are discussed on the :doc:`a-term correction page <idg_a_term_correction>`.
+
+Image domain gridding with faceting
+-----------------------------------
+
+While the option `-gridder idg` uses IDG with screens, i.e. direction-dependent effects are handled by IDG, there's also an option to use IDG with facet corrections: `-gridder facet-idg`, in this case direction-dependent solutions and beam corrections are corrected for each facet.
+
+There are some things to take into account when using this mode, mainly that IDG in general grids all (4) instrumental polarizations together, however, combined with faceting `facet-idg` will delegate IDG to grid only a single polarization. Hence, in this mode IDG can grid any polarization provided (not just IQUV). 
+
+Since parallel gridding is not compatible with IDG, it will likely impact performance when imaging multiple polarizations, though by how much depends on the use-case.

@@ -29,7 +29,8 @@ enum class GridderType {
   TunedWGridder,
   WTowers,
   DirectFT,
-  IDG
+  IDG,
+  FacetIDG
 };
 enum class VisibilityReadMode { kScalar, kDiagonal, kFull };
 

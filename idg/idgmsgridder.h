@@ -19,6 +19,8 @@
 
 #include "../main/stopwatch.h"
 
+#include "idgcommon.h"
+
 namespace wsclean {
 
 struct ImagingTableEntry;
@@ -30,7 +32,7 @@ class IdgMsGridder final : public MsGridder {
   IdgMsGridder(const Settings& settings, const Resources& resources,
                MsProviderCollection& measurement_sets);
 
-  ~IdgMsGridder() final;
+  ~IdgMsGridder() final = default;
 
   // If we are computing a PSF or have a cached average beam then we only do one
   // pass. Otherwise we do an additional first pass to compute the average beam.
@@ -71,8 +73,6 @@ class IdgMsGridder final : public MsGridder {
 
   void readConfiguration();
 
-  void setIdgType();
-
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<class everybeam::aterms::ATermBase> getATermMaker(
       const MsProviderCollection::MsData& msData);
@@ -88,13 +88,6 @@ class IdgMsGridder final : public MsGridder {
       idg::api::BufferSetType);
 #endif  // HAVE_EVERYBEAM
 
-  struct IDGInversionRow : public MsGridderData::InversionRow {
-    size_t antenna1, antenna2, timeIndex;
-  };
-  struct IDGPredictionRow {
-    double uvw[3];
-    size_t antenna1, antenna2, timeIndex, rowId;
-  };
   void predictRow(IDGPredictionRow& row,
                   const std::vector<std::string>& antennaNames);
   void computePredictionBuffer(const std::vector<std::string>& antennaNames);
@@ -109,8 +102,6 @@ class IdgMsGridder final : public MsGridder {
   idg::api::Type _proxyType;
   int _buffersize;
   idg::api::options_type _options;
-  Stopwatch _griddingWatch;
-  Stopwatch _degriddingWatch;
   const Resources _resources;
 };
 

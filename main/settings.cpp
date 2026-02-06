@@ -239,6 +239,39 @@ void Settings::Validate() const {
     }
   }
 
+  if (gridderType == GridderType::FacetIDG) {
+    if (trimmedImageWidth != trimmedImageHeight) {
+      throw std::runtime_error(
+          "IDG can not yet make rectangular images -- this will be implemented "
+          "at a later time.");
+    }
+
+    if (parallelGridding != 1) {
+      throw std::runtime_error(
+          "Parallel gridding can not be combined with IDG");
+    }
+
+    if (baselineDependentAveragingInWavelengths != 0.0) {
+      throw std::runtime_error(
+          "IDG cannot be combined with baseline-dependent averaging. Please "
+          "remove baseline-averaging "
+          "option from your command.");
+    }
+
+    for (const auto& filename : filenames) {
+      casacore::MeasurementSet ms(filename);
+      const std::string& bda_factors = "BDA_FACTORS";
+      const bool has_bda = ms.keywordSet().isDefined(bda_factors) &&
+                           (ms.keywordSet().asTable(bda_factors).nrow() > 0);
+      if (has_bda) {
+        throw std::runtime_error(
+            "IDG cannot be combined with the baseline-dependently averaged "
+            "measurement set " +
+            filename);
+      }
+    }
+  }
+
   if (UseMpi()) {
     if (!masterDoesWork && nMpiNodes <= 1) {
       throw std::runtime_error(

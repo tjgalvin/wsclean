@@ -23,6 +23,7 @@
 #include "../main/settings.h"
 
 #include "averagebeam.h"
+#include "idgcommon.h"
 #include "idgconfiguration.h"
 
 #ifdef HAVE_EVERYBEAM
@@ -55,7 +56,7 @@ IdgMsGridder::IdgMsGridder(const Settings& settings, const Resources& resources,
       _buffersize(0),
       _resources(resources) {
   IdgConfiguration::Read(_proxyType, _buffersize, _options);
-  setIdgType();
+  _proxyType = GetIdgType(GetSettings());
   _bufferset = std::unique_ptr<idg::api::BufferSet>(
       idg::api::BufferSet::create(_proxyType));
   if (settings.gridWithBeam || !settings.atermConfigFilename.empty())
@@ -63,11 +64,6 @@ IdgMsGridder::IdgMsGridder(const Settings& settings, const Resources& resources,
   _options["max_threads"] = int(resources.NCpus());
   if (settings.gridMode == GriddingKernelMode::BlackmanHarris)
     _options["taper"] = std::string("blackman-harris");
-}
-
-IdgMsGridder::~IdgMsGridder() {
-  Logger::Info << "Gridding: " << _griddingWatch.ToString()
-               << ", degridding: " << _degriddingWatch.ToString() << '\n';
 }
 
 size_t IdgMsGridder::GetNInversionPasses() const {
@@ -194,8 +190,6 @@ size_t IdgMsGridder::GridMeasurementSet(
   aocommon::UVector<std::complex<float>> model_buffer(data_size);
   aocommon::UVector<bool> selection_buffer(selected_band.ChannelCount(), true);
 
-  _griddingWatch.Start();
-
   // The gridder doesn't need to know the absolute time index; this value
   // indexes relatively to where we start in the measurement set, and only
   // increases when the time changes.
@@ -239,7 +233,7 @@ size_t IdgMsGridder::GridMeasurementSet(
 
     row_data.antenna1 = metadata.antenna1;
     row_data.antenna2 = metadata.antenna2;
-    row_data.timeIndex = time_index;
+    row_data.time_index = time_index;
 
     const size_t n_parms = NumValuesPerSolution();
     if (n_vis_polarizations == 1) {
@@ -322,8 +316,6 @@ size_t IdgMsGridder::GridMeasurementSet(
   }
   _bufferset->finished();
 
-  _griddingWatch.Pause();
-
   return 0;
 }
 
@@ -388,22 +380,6 @@ void IdgMsGridder::StartPredict(std::vector<Image>&& images) {
 
 void IdgMsGridder::FinishPredict() {}
 
-void IdgMsGridder::setIdgType() {
-  switch (GetSettings().idgMode) {
-    default:
-      return;
-    case Settings::IDG_CPU:
-      _proxyType = idg::api::Type::CPU_OPTIMIZED;
-      return;
-    case Settings::IDG_GPU:
-      _proxyType = idg::api::Type::CUDA_GENERIC;
-      return;
-    case Settings::IDG_HYBRID:
-      _proxyType = idg::api::Type::HYBRID_CUDA_CPU_OPTIMIZED;
-      return;
-  }
-}
-
 size_t IdgMsGridder::PredictMeasurementSet(
     const MsProviderCollection::MsData& ms_data) {
   aocommon::UVector<std::complex<float>> aterm_buffer;
@@ -433,7 +409,6 @@ size_t IdgMsGridder::PredictMeasurementSet(
   constexpr size_t n_idg_polarizations = 4;
   aocommon::UVector<std::complex<float>> buffer(selected_band.ChannelCount() *
                                                 n_idg_polarizations);
-  _degriddingWatch.Start();
 
   int time_index = -1;
   double current_time = -1.0;
@@ -475,8 +450,8 @@ size_t IdgMsGridder::PredictMeasurementSet(
     row.uvw[2] = -metadata.w_in_m;
     row.antenna1 = metadata.antenna1;
     row.antenna2 = metadata.antenna2;
-    row.timeIndex = time_index;
-    row.rowId = provRowId;
+    row.time_index = time_index;
+    row.row_id = provRowId;
     predictRow(row, ms_data.antenna_names);
   }
 
@@ -487,7 +462,7 @@ size_t IdgMsGridder::PredictMeasurementSet(
 void IdgMsGridder::predictRow(IDGPredictionRow& row,
                               const std::vector<std::string>& antenna_names) {
   while (_bufferset->get_degridder(kGridderIndex)
-             ->request_visibilities(row.rowId, row.timeIndex, row.antenna1,
+             ->request_visibilities(row.row_id, row.time_index, row.antenna1,
                                     row.antenna2, row.uvw)) {
     computePredictionBuffer(antenna_names);
   }
@@ -526,7 +501,6 @@ void IdgMsGridder::computePredictionBuffer(
                                   metadata.antenna2, metadata.time);
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();
-  _degriddingWatch.Pause();
 }
 
 std::vector<Image> IdgMsGridder::ResultImages() {

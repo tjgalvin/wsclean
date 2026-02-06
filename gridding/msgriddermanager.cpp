@@ -21,6 +21,7 @@
 
 #include "../idg/averagebeam.h"
 #include "../idg/idgmsgridder.h"
+#include "../idg/facetidgmsgridder.h"
 #include "../main/settings.h"
 #include "../structures/resources.h"
 #include "../wgridder/wgriddingmsgridder.h"
@@ -1169,6 +1170,9 @@ std::unique_ptr<MsGridder> MSGridderManager::ConstructGridder(
     case GridderType::IDG:
       return std::make_unique<IdgMsGridder>(settings_, resources,
                                             ms_provider_collection_);
+    case GridderType::FacetIDG:
+      return std::make_unique<FacetIdgMsGridder>(settings_, resources,
+                                                 ms_provider_collection_);
     case GridderType::WGridder:
       return std::make_unique<WGriddingMSGridder>(
           settings_, resources, ms_provider_collection_, false);

@@ -226,7 +226,8 @@ if(IDGAPI_FOUND)
         "WSClean needs IDG version 0.8.x - with x >= 1 - but found version ${IDGAPI_VERSION}"
     )
   else()
-    set(IDG_FILES idg/idgmsgridder.cpp)
+    set(IDG_FILES idg/idgcommon.cpp idg/idgmsgridder.cpp
+                  idg/facetidgmsgridder.cpp)
     include_directories(${IDGAPI_INCLUDE_DIRS})
     add_definitions(-DHAVE_IDG)
     message(STATUS "Image domain gridder libraries found.")

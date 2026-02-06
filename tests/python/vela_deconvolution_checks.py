@@ -15,7 +15,7 @@ import config_vars as tcf
 
 @pytest.mark.usefixtures("prepare_mock_ms")
 class TestVelaDeconvolution:
-    @pytest.mark.parametrize("gridder", ["wstacking", "wgridder"])
+    @pytest.mark.parametrize("gridder", ["wstacking", "wgridder", "facet-idg"])
     def test_veladeconvolution(self, gridder):
         if (
             gridder == "wgridder"

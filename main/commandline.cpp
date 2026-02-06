@@ -1465,6 +1465,14 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
 #endif
         settings.gridderType = GridderType::IDG;
         settings.minGridResolution = false;
+      } else if (gridder_str == "facet-idg") {
+#if !defined(HAVE_IDG)
+        throw std::runtime_error(
+            "WSClean was not compiled with IDG: to use it, install IDG and "
+            "recompile WSClean");
+#endif
+        settings.gridderType = GridderType::FacetIDG;
+        settings.minGridResolution = false;
       } else if (gridder_str == "wgridder") {
         settings.gridderType = GridderType::WGridder;
       } else if (gridder_str == "wtowers") {
