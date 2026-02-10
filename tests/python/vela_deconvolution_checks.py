@@ -24,10 +24,15 @@ class TestVelaDeconvolution:
         ):
             pytest.skip("WSClean was not compiled with WGridder.")
 
+        # The parallel-gridding option is not compatible with IDG.
+        parallel_gridding_option = (
+            "" if "idg" in gridder else "-parallel-gridding 2"
+        )
+
         nchannels = 8
         npixels = 1024
         name = "mwa_veladeconvolution_" + gridder
-        s = f"{tcf.WSCLEAN} -quiet -gridder {gridder} -size {npixels} {npixels} -scale 1amin -parallel-gridding 2 -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 3 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {tcf.MWA_MOCK_MS}"
+        s = f"{tcf.WSCLEAN} -quiet -gridder {gridder} -size {npixels} {npixels} -scale 1amin {parallel_gridding_option} -multiscale -parallel-deconvolution 512 -niter 1000000 -mgain 0.8 -channels-out {nchannels} -join-channels -deconvolution-channels 3 -fit-spectral-pol 2 -auto-threshold 1 -auto-mask 4 -name {name} {tcf.MWA_MOCK_MS}"
         validate_call(s.split())
         imagenames = ["dirty", "image", "model", "psf", "residual"]
         fpaths = [
