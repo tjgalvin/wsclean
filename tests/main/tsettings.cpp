@@ -99,6 +99,17 @@ BOOST_AUTO_TEST_CASE(invalid_mpi_message_size) {
   BOOST_CHECK_THROW(settings.Validate(), std::runtime_error);
 }
 
+BOOST_AUTO_TEST_CASE(get_provider_polarization) {
+  Settings settings = ValidSettings();
+  settings.polarizations = {aocommon::PolarizationEnum::StokesU,
+                            aocommon::PolarizationEnum::StokesU};
+  settings.facetRegionFilename = "somefile.reg";
+  settings.applyFacetBeam = true;
+  BOOST_CHECK(
+      settings.GetProviderPolarization(aocommon::PolarizationEnum::StokesU) ==
+      aocommon::PolarizationEnum::Instrumental);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }  // namespace wsclean

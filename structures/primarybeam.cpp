@@ -317,7 +317,27 @@ void PrimaryBeam::CorrectBeamForFacetGain(
 void PrimaryBeam::CorrectImages(aocommon::FitsWriter& writer,
                                 const ImageFilename& image_name,
                                 const std::string& filename_kind) {
-  if (settings_.polarizations.size() == 1 || filename_kind == "psf") {
+  // In the future, this condition could potentially also include IDG to allow
+  // making image sets other than only I or IQUV with IDG.
+  const bool use_squared_beam = settings_.UseFacetCorrections();
+  if (use_squared_beam) {
+    // This creates four images of which only one is used, so this can be
+    // made more efficient with some refactoring.
+    const PrimaryBeamImageSet beam_images = LoadStokesI(image_name);
+    for (PolarizationEnum polarization : settings_.polarizations) {
+      ImageFilename name(image_name);
+      name.SetPolarization(polarization);
+      aocommon::FitsReader reader(name.GetPrefix(settings_) + "-" +
+                                  filename_kind + ".fits");
+      Image image(reader.ImageWidth(), reader.ImageHeight());
+      reader.Read(image.Data());
+
+      beam_images.ApplyStokesI(image.Data(), settings_.primaryBeamLimit);
+      writer.SetPolarization(polarization);
+      writer.Write(name.GetPrefix(settings_) + "-" + filename_kind + "-pb.fits",
+                   image.Data());
+    }
+  } else if (settings_.polarizations.size() == 1 || filename_kind == "psf") {
     const PrimaryBeamImageSet beam_images = LoadStokesI(image_name);
     PolarizationEnum pol = *settings_.polarizations.begin();
 

@@ -940,8 +940,20 @@ class MsGridderData {
     const PsfMode psf_mode = GetPsfMode();
     const std::size_t data_size = band.ChannelCount() * PolarizationCount;
     if (psf_mode != PsfMode::kNone) {
-      // Visibilities for a point source at the phase centre are all ones
-      std::fill_n(visibilities, data_size, 1.0);
+      if constexpr (PolarizationCount == 4) {
+        // Construct a unit visibility of the right polarization.
+        std::complex<float> polarized_unit_visibility[4];
+        aocommon::Polarization::ConvertToLinear<float>(
+            1.0f, polarization_, polarized_unit_visibility);
+        for (size_t i = 0; i != data_size; i += PolarizationCount) {
+          std::copy_n(polarized_unit_visibility, PolarizationCount,
+                      &visibilities[i]);
+        }
+      } else {
+        // Visibilities for a Stokes I point source at the phase centre are all
+        // ones
+        std::fill_n(visibilities, data_size, 1.0f);
+      }
       double l_shift = 0.0;
       double m_shift = 0.0;
       if (psf_mode == PsfMode::kSingle) {

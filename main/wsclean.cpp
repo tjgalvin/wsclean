@@ -1788,19 +1788,50 @@ void WSClean::ApplyFacetCorrectionForSingleChannel(
                                   .averageFacetCorrection[facet_index]
                                   .GetMatrixValue();
     if (matrix.Invert()) {
-      if (facet_images.size() == 4) {
+      if (Polarization::HasFullStokesPolarization(_settings.polarizations)) {
         std::array<Image*, 4> images{&facet_images[0], &facet_images[1],
                                      &facet_images[2], &facet_images[3]};
         math::CorrectImagesForMuellerMatrix(matrix * stokes_i_sqrt, images);
-      } else if (facet_images.size() == 2) {
+      } else if (_settings.polarizations ==
+                 std::set{PolarizationEnum::XX, PolarizationEnum::YY}) {
         std::array<Image*, 2> images{&facet_images[0], &facet_images[1]};
         math::CorrectDualImagesForMuellerMatrix(matrix * stokes_i_sqrt, images);
       } else {
-        throw std::runtime_error(
-            "A polarized facet correction was requested that is not "
-            "implemented");
+        Logger::Warn << "Warning: Performing facet corrections with incomplete "
+                        "Stokes images. This may not\n"
+                        "correct for polarization leakage well.\n";
+
+        for (PolarizationEnum p : _settings.polarizations) {
+          if (!Polarization::IsStokes(p)) {
+            throw std::runtime_error(
+                "A polarized facet correction was requested that is not "
+                "implemented: facet corrections can only be applied on Stokes "
+                "images or on the combination of XX and YY.");
+          }
+        }
+
+        std::array<Image*, 4> images{nullptr, nullptr, nullptr, nullptr};
+        std::vector<Image>::iterator facet_image_iterator =
+            facet_images.begin();
+        for (PolarizationEnum p : _settings.polarizations) {
+          const size_t pol_index = Polarization::StokesToIndex(p);
+          images[pol_index] = &*facet_image_iterator;
+          ++facet_image_iterator;
+        }
+
+        Image zero_images[4];
+        for (size_t i = 0; i != images.size(); ++i) {
+          if (!images[i]) {
+            zero_images[i] = Image(facet_images.front().Width(),
+                                   facet_images.front().Height(), 0.0f);
+            images[i] = &zero_images[i];
+          }
+        }
+        math::CorrectImagesForMuellerMatrix(matrix * stokes_i_sqrt, images);
       }
     } else {
+      Logger::Warn << "Warning: Facet correction matrix is singular: can't be "
+                      "inverted.\n";
       for (Image& image : facet_images)
         image = std::numeric_limits<float>::quiet_NaN();
     }

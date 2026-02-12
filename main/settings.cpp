@@ -12,6 +12,8 @@
 #include "../io/facetreader.h"
 
 using aocommon::Logger;
+using aocommon::Polarization;
+using aocommon::PolarizationEnum;
 
 namespace wsclean {
 
@@ -81,16 +83,17 @@ void Settings::Validate() const {
     }
     if (visibilityReadMode == VisibilityReadMode::kDiagonal &&
         (polarizations.size() != 1 ||
-         *polarizations.begin() != aocommon::PolarizationEnum::StokesI)) {
+         *polarizations.begin() != PolarizationEnum::StokesI)) {
       throw std::runtime_error(
           "-diagonal-visibilities can only be used when making Stokes I "
           "images");
     }
   }
 
-  if (facetRegionFilename.empty() && ddPsfGridWidth == 1 &&
-      ddPsfGridHeight == 1) {
-    if (!facetSolutionFiles.empty())
+  const bool uses_dd_psf = !(ddPsfGridWidth == 1 && ddPsfGridHeight == 1);
+  const bool apply_facet_solutions = !facetSolutionFiles.empty();
+  if (facetRegionFilename.empty() && !uses_dd_psf) {
+    if (apply_facet_solutions)
       throw std::runtime_error(
           "A facet solution file can only be specified in conjunction with a "
           "facet regions file. Either remove -apply-facet-solutions from the "
@@ -104,6 +107,7 @@ void Settings::Validate() const {
           "regions file with -facet-regions, or specify a grid of dd-psfs with "
           "-dd-psf-grid.");
   } else {
+    // Either DD PSFs or facets are used in this branch.
     if (polarizations.size() > 1) {
       // -join-polarizations required in order to write the pb.fits images
       // in PrimaryBeam::CorrectImages
@@ -114,17 +118,23 @@ void Settings::Validate() const {
             "independently. Add -join-polarizations to the command line to "
             "apply the facet beam for multiple polarizations");
       }
-      // This condition might become a bit more specific once xx,yy polarization
-      // correction for h5 AND beam are implemented
-      if (applyFacetBeam && !facetSolutionFiles.empty() &&
-          !aocommon::Polarization::HasFullStokesPolarization(polarizations)) {
-        throw std::runtime_error(
-            "Applying h5parm solutions AND beam correction on multiple "
-            "polarizations is not yet supported.");
+    }
+
+    if (apply_facet_solutions || applyFacetBeam) {
+      if (polarizations !=
+          std::set{PolarizationEnum::XX, PolarizationEnum::YY}) {
+        for (PolarizationEnum p : polarizations) {
+          if (!Polarization::IsStokes(p)) {
+            throw std::runtime_error(
+                "A polarized facet correction was requested that is not "
+                "implemented: facet corrections can only be applied on Stokes "
+                "images or on the combination of XX and YY.");
+          }
+        }
       }
     }
 
-    if (!facetSolutionFiles.empty()) {
+    if (apply_facet_solutions) {
       if (facetSolutionFiles.size() != 1 &&
           facetSolutionFiles.size() != filenames.size()) {
         throw std::runtime_error(
@@ -463,7 +473,7 @@ void Settings::checkPolarizations() const {
           "'-join-polarizations' or disable cleaning.");
   }
 
-  for (aocommon::PolarizationEnum p : linkedPolarizations) {
+  for (PolarizationEnum p : linkedPolarizations) {
     if (polarizations.count(p) == 0) {
       std::ostringstream str;
       str << "Linked polarization cleaning was requested for polarization "
@@ -499,20 +509,6 @@ void Settings::checkPolarizations() const {
         "Combined XY/YX imaging is not possible with gridders other than the "
         "w-stacking gridder. Either add '-gridder wstacking' to the command "
         "line, or image a different set of polarizations (e.g. iquv).");
-  }
-  if (UseFacetCorrections()) {
-    const bool is_i =
-        (polarizations == std::set{aocommon::PolarizationEnum::StokesI});
-    const bool is_xx_yy =
-        (polarizations == std::set{aocommon::PolarizationEnum::XX,
-                                   aocommon::PolarizationEnum::YY});
-    const bool is_iquv =
-        aocommon::Polarization::HasFullStokesPolarization(polarizations);
-    if (!(is_i || is_xx_yy || is_iquv)) {
-      throw std::runtime_error(
-          "Facet imaging with facet corrections is only possible for Stokes I, "
-          "XX+YY or Stokes IQUV imaging");
-    }
   }
 }
 
@@ -683,11 +679,10 @@ radler::Settings Settings::GetRadlerSettings() const {
   return radler_settings;
 }
 
-aocommon::PolarizationEnum Settings::GetProviderPolarization(
-    aocommon::PolarizationEnum entry_polarization) const {
+PolarizationEnum Settings::GetProviderPolarization(
+    PolarizationEnum entry_polarization) const {
   const bool xx_and_yy =
-      polarizations ==
-      std::set{aocommon::PolarizationEnum::XX, aocommon::PolarizationEnum::YY};
+      polarizations == std::set{PolarizationEnum::XX, PolarizationEnum::YY};
   const bool stokes_i =
       polarizations.size() == 1 &&
       (*polarizations.begin()) == aocommon::Polarization::StokesI;
@@ -709,9 +704,9 @@ aocommon::PolarizationEnum Settings::GetProviderPolarization(
     return aocommon::Polarization::Instrumental;
   } else {
     bool requires_instrumental = false;
-    for (aocommon::PolarizationEnum p : polarizations) {
+    for (PolarizationEnum p : polarizations) {
       if (aocommon::Polarization::IsStokes(p) &&
-          p != aocommon::PolarizationEnum::StokesI) {
+          p != PolarizationEnum::StokesI) {
         requires_instrumental = UseFacetCorrections();
         break;
       }

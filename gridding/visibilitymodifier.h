@@ -39,8 +39,6 @@ namespace internal {
 /**
  * @brief Apply gains to the visibilities.
  *
- * @tparam PolarizationCount polarization count, 2 or 4 for IDG, 1 for all other
- * gridders.
  * @tparam Mode Which entry or entries from the gain matrices should be
  * taken into account when correcting the visibilities? See also the
  * documentation of GainMode.
@@ -71,6 +69,7 @@ void ApplyGain(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
     result.AssignTo(visibilities);
   }
 }
+
 /**
  * @brief Apply conjugated gains to the visibilities.
  *
