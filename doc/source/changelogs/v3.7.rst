@@ -1,0 +1,40 @@
+WSClean version 3.7
+===================
+
+Released 2026-02-16
+
+Summary:
+
+Version 3.7 contains numerous new features, bug fixes and performance improvements. The most substantial new feature is the support of baseline-dependent averaging in the frequency-direction. 
+
+Full change list
+----------------
+* Full support for :doc:`baseline-dependent averaging <../baseline_dependent_averaging>` in the frequency direction.
+* Allow facetted runs on custom polarization selection (e.g. I+V or Q+U).
+* Support facetted IDG runs with facet corrections (``-gridder facet-idg``).
+* Support for `Sisco <https://arxiv.org/abs/2512.23490>`_ compression of model data.
+* New option ``-fit-beam-without-negatives`` which can improve beam fitting in rare cases.
+* Add a :doc:`sub-pixel rendering <../sub_pixel_rendering>` option (``-draw-model``).
+* Add a new gridder: the w-towers gridder (``-gridder wtowers``).
+* Add ``-major-iteration-mode`` option to control Radler's deconvolution strategy.
+* Add ``-component-optimization`` option to control Radler's optimization algorithm.
+* Support for smearing corrections (still experimental).
+* Allow skipping the final prediction-gridding iteration (``-skip-final-iteration``).
+* Control number of auto-masked iterations (``-auto-mask-nmiter``).
+
+Bug fixes and refactoring
+-------------------------
+* Implementation of fast IO MPI mode (using facet-shared reads and writes).
+* No longer require the ``DATA`` column to exist in a Casacore MS when imaging other columns.
+* Faster beam solution by using the multi-frequency EveryBeam interface.
+* Base implementation of an in-memory interface was added. Full support expected in version 3.8.
+* Improvement command line checking.
+* Fix crash when very small facets are defined.
+* Fix the use of ``-no-dirty`` with facets and intervals.
+* Turn off deconvolution boosting by default.
+* Initialize the model column only when neccessary and with a faster approach (sparse file).
+* Fix degridding operation of single-facet runs.
+* Fix a skymodel parse issue causing last keyword to be misread.
+* Avoid that very small Gaussian sources disappear when rendered.
+* Support for new compilers and dependent library versions.
+* Support EveryBeam 0.8.x.
