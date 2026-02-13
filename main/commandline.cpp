@@ -313,10 +313,17 @@ Options can be:
 -wgridder-accuracy <value>
    Set the w-gridding accuracy. Default: 1e-4
    Useful range: 1e-2 to 1e-6
+-wtowers-subgrid-size <value>
+   Set w-towers subgrid size. Default: 256
+-wtowers-kernel-size <value>
+-wtowers-w-kernel-size <value>
+-wtowers-padding <value>
+-wtowers-w-padding <value>
+   Gridding antialiasing kernel sizes and padding. Defaults: 8, 8, 1.5, 1.5.
 -wtowers-accuracy <value>
-   Set the w-towers accuracy. Default: 0
-   When zero w-towers will compute a value internally based on other gridding parameters.
-   Useful range: 1e-2 to 1e-6
+   Set the w-towers accuracy for the purpose of w-tower height calculation. Default: 0
+   When zero, w-towers will set it to the gridder's accuracy (depends on kernel size)
+   Useful range: 1e-2 to 1e-4 (will fail if base accuracy of gridder is worse!)
 -compound-tasks
    Schedule compound gridding tasks which contain all facets for a single image.
 -shared-facet-reads
@@ -1518,6 +1525,26 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.gridder_accuracy =
           ParseDouble(argv[argi], 0.0, "wtowers-accuracy", false);
+    } else if (param == "wtowers-subgrid-size") {
+      IncArgi(argi, argc);
+      settings.wtowers_subgrid_size = int(
+          ceil(ParseDouble(argv[argi], 0.0, "wtowers-subgrid-size", false)));
+    } else if (param == "wtowers-support") {
+      IncArgi(argi, argc);
+      settings.wtowers_support =
+          int(ceil(ParseDouble(argv[argi], 0.0, "wtowers-support", false)));
+    } else if (param == "wtowers-w-support") {
+      IncArgi(argi, argc);
+      settings.wtowers_w_support =
+          int(ceil(ParseDouble(argv[argi], 0.0, "wtowers-w-support", false)));
+    } else if (param == "wtowers-padding") {
+      IncArgi(argi, argc);
+      settings.wtowers_padding =
+          ParseDouble(argv[argi], 0.0, "wtowers-padding", false);
+    } else if (param == "wtowers-w-padding") {
+      IncArgi(argi, argc);
+      settings.wtowers_padding =
+          ParseDouble(argv[argi], 0.0, "wtowers-w-padding", false);
     } else if (param == "no-dirty") {
       settings.isDirtySaved = false;
     } else if (param == "save-first-residual") {

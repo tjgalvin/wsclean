@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <vector>
 
+#include <ska-sdp-func/grid_data/sdp_gridder_utils.h>
+
 #include "../gridding/msgridder.h"
 
 namespace wsclean {
@@ -50,7 +52,10 @@ class WTowersGridder final : public WTowersGridderBase {
   WTowersGridder(size_t width, size_t height, size_t trimmed_width,
                  size_t trimmed_height, double pixel_size_x,
                  double pixel_size_y, double l_shift, double m_shift,
-                 size_t n_threads, double accuracy, size_t verbosity = 0);
+                 int wtowers_subgrid_size, int wtowers_support,
+                 int wtowers_w_support, double wtowers_padding,
+                 double wtowers_w_padding, size_t n_threads, double accuracy,
+                 double max_abs_w, size_t verbosity = 0);
 
   WTowersGridder(const WTowersGridder &) = delete;
   WTowersGridder &operator=(const WTowersGridder &) = delete;
@@ -139,30 +144,26 @@ class WTowersGridder final : public WTowersGridderBase {
   double pixel_size_y_;
   double l_shift_;
   double m_shift_;
-  std::vector<NumT> image_;
+  int subgrid_size_;
+  int support_;
+  int w_support_;
+  double padding_factor_;
+  double padding_factor_w_;
   size_t verbosity_;
+  std::vector<NumT> image_;
 
   // W-towers specific paramaters
   struct {
     // Determined algorithmically
-    double cell_size_rad;
-    size_t image_size;
-    double field_of_view;
-    size_t grid_size;
-    double grid_resolution;
+    sdp_GridProjection projection;
+    double field_of_view_l;
+    double field_of_view_m;
     double w_step;
+    int w_towers_height;
+    int oversampling = 32768;
+    int w_oversampling = 32768;
     // User configurable
-    int support = 8;
-    int w_support = 8;
-    int oversampling = 16384;
-    int w_oversampling = 16384;
-    double padding_factor = 1.2;
     double subgrid_frac = 2.0f / 3.0f;
-    double w_towers_height = 150;
-    int subgrid_size = 512;
-    double shear_u = 0.0;
-    double shear_v = 0.0;
-    int verbosity = 1;
   } wtowers_parameters_;
 };
 

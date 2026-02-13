@@ -239,7 +239,15 @@ class MsGridder : public MsGridderData {
     return std::move(metadata_cache_);
   }
 
+  /**
+   * Calculate overall metadata that is common to all types of gridders.
+   */
   void CalculateOverallMetaData();
+  /**
+   * Calculate additional gridder specific metadata that was not calculated in
+   * @ref CalculateOverallMetaData().
+   */
+  virtual void CalculateGridderMetaData(){};
 
   void SetMaxW(double max_w) { max_w_ = max_w; }
   void SetMaxBaseline(double max_baseline) { max_baseline_ = max_baseline; }

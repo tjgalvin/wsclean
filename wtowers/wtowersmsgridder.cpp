@@ -26,6 +26,11 @@ WTowersMsGridder::WTowersMsGridder(const Settings& settings,
                                    MsProviderCollection& ms_provider_collection)
     : MsGridder(settings, ms_provider_collection),
       resources_(resources),
+      wtowers_subgrid_size_(GetSettings().wtowers_subgrid_size),
+      wtowers_support_(GetSettings().wtowers_support),
+      wtowers_w_support_(GetSettings().wtowers_w_support),
+      wtowers_padding_(GetSettings().wtowers_padding),
+      wtowers_w_padding_(GetSettings().wtowers_w_padding),
       accuracy_(GetSettings().gridder_accuracy) {
   // It may happen that several schaapcommon::fft::Resamplers are created
   // concurrently, so we must make sure that the FFTW planner can deal with
@@ -41,12 +46,16 @@ std::unique_ptr<WTowersGridderBase> WTowersMsGridder::MakeGridder(
     return std::make_unique<WTowersGridder<double>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        resources_.NCpus(), 0);
+        wtowers_subgrid_size_, wtowers_support_, wtowers_w_support_,
+        wtowers_padding_, wtowers_w_padding_, resources_.NCpus(), accuracy_,
+        max_abs_w_);
   } else {
     return std::make_unique<WTowersGridder<float>>(
         ActualInversionWidth(), ActualInversionHeight(), width, height,
         ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        resources_.NCpus(), 0);
+        wtowers_subgrid_size_, wtowers_support_, wtowers_w_support_,
+        wtowers_padding_, wtowers_w_padding_, resources_.NCpus(), accuracy_,
+        max_abs_w_);
   }
 }
 
@@ -281,6 +290,15 @@ void WTowersMsGridder::GetActualTrimmedSize(size_t& trimmed_width,
   }
   trimmed_width = std::min(trimmed_width, ActualInversionWidth());
   trimmed_height = std::min(trimmed_height, ActualInversionHeight());
+}
+
+void WTowersMsGridder::CalculateGridderMetaData() {
+  max_abs_w_ = 0;
+  for (size_t ms_index = 0; ms_index < GetMsCount(); ++ms_index) {
+    MsProviderCollection::MsData& ms_data = GetMsData(ms_index);
+    max_abs_w_ = std::max(max_abs_w_, -ms_data.min_w);
+    max_abs_w_ = std::max(max_abs_w_, ms_data.max_w);
+  }
 }
 
 void WTowersMsGridder::StartInversion() {

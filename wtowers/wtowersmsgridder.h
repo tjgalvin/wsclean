@@ -30,6 +30,8 @@ class WTowersMsGridder final : public MsGridder {
                    MsProviderCollection& ms_provider_collection);
   ~WTowersMsGridder() final;
 
+  void CalculateGridderMetaData() final;
+
   void StartInversion() final;
   size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
   void FinishInversion() final;
@@ -64,7 +66,13 @@ class WTowersMsGridder final : public MsGridder {
 
   aocommon::Image image_;
   const Resources resources_;
+  int wtowers_subgrid_size_;
+  int wtowers_support_;
+  int wtowers_w_support_;
+  double wtowers_padding_;
+  double wtowers_w_padding_;
   double accuracy_;
+  double max_abs_w_;
   std::unique_ptr<WTowersGridderBase> gridder_;
 };
 

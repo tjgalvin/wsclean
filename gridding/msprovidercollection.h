@@ -67,6 +67,9 @@ class MsProviderCollection {
            const MSSelection& selection, size_t index);
 
   double StartTime() const { return ms_limits_.start_time; }
+  double MaxAbsW() const {
+    return std::max(-ms_limits_.min_w, ms_limits_.max_w);
+  }
 
   void InitializeMS();
   void InitializeMSDataVector(const std::vector<MsGridder*>& gridders,

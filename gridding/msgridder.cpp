@@ -79,6 +79,9 @@ void MsGridder::CalculateOverallMetaData() {
   const size_t suggestedGridSize =
       (IsFirstTask() || !hasWGridSize()) ? GetSuggestedWGridSize() : 0;
   actual_w_grid_size_ = hasWGridSize() ? w_grid_size_ : suggestedGridSize;
+
+  // Allow derived gridders a chance to compute their own additional metadata.
+  CalculateGridderMetaData();
 }
 
 }  // namespace wsclean

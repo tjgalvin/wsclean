@@ -15,7 +15,8 @@ add_compile_options(
   -Wvla
   -Wpointer-arith
   -Wextra
-  -Wno-unused-parameter)
+  -Wno-unused-parameter
+  -Wno-psabi)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Debug build selected: setting linking flag --no-undefined")
@@ -92,7 +93,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
 
 # W-towers requires ska-sdp-func
 if(ENABLE_WTOWERS)
-  find_package(SKA_SDP_FUNC)
+  find_package(SKA_SDP_FUNC NAMES ska-sdp-func)
   if(SKA_SDP_FUNC_FOUND)
     if(EXISTS
        "${SKA_SDP_FUNC_INCLUDE_DIR}/ska-sdp-func/grid_data/sdp_grid_wstack_wtower.h"
@@ -102,7 +103,7 @@ if(ENABLE_WTOWERS)
           "Enabling w-towers gridder; Using ska-sdp-func library found in ${SKA_SDP_FUNC_INCLUDE_DIR}"
       )
       add_definitions(-DBUILD_WTOWERS)
-      include_directories(SYSTEM ${SKA_SDP_FUNC_INCLUDE_DIR})
+      include_directories(BEFORE SYSTEM ${SKA_SDP_FUNC_INCLUDE_DIR})
     else()
       message(
         FATAL_ERROR
@@ -423,7 +424,7 @@ set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 target_link_libraries(
   wsclean-object PRIVATE schaapcommon
-                         $<$<BOOL:${ENABLE_WTOWERS}>:${SKA_SDP_FUNC_LIBRARIES}>)
+                         $<$<BOOL:${ENABLE_WTOWERS}>:${SKA_SDP_FUNC_LIBRARY}>)
 
 set(EXTERNAL_LIBRARIES
     ${CASACORE_LIBRARIES}

@@ -147,6 +147,13 @@ class Settings {
   size_t ddPsfGridHeight = 1, ddPsfGridWidth = 1;
   DirectFTPrecision directFTPrecision = DirectFTPrecision::Double;
   double gridder_accuracy = 0.0f;
+  // TODO: W-towers parameters should be determined automatically from
+  // gridder accuracy. Will need systematic testing / optimisation
+  int wtowers_subgrid_size = 256;
+  int wtowers_support = 8;
+  int wtowers_w_support = 8;
+  double wtowers_padding = 1.5;
+  double wtowers_w_padding = 1.5;
   std::string atermConfigFilename;
   double atermKernelSize = 5.0;
   bool gridWithBeam = false;
