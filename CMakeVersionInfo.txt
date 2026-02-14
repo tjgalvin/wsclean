@@ -1,7 +1,7 @@
-set(WSCLEAN_VERSION_STR   3.6)
+set(WSCLEAN_VERSION_STR   3.7)
 set(WSCLEAN_VERSION_MAJOR 3)
-set(WSCLEAN_VERSION_MINOR 6)
-set(WSCLEAN_VERSION_DATE  2025-02-07)
+set(WSCLEAN_VERSION_MINOR 7)
+set(WSCLEAN_VERSION_DATE  2026-02-16)
 
 # Get the latest abbreviated commit hash of the working branch
 execute_process(
