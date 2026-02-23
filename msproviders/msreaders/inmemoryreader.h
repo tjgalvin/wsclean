@@ -33,17 +33,18 @@ class InMemoryReader final : public MSReader {
   }
 
   void ReadData(std::complex<float>* buffer) final {
-    std::copy(data_iterator_->data.begin(), data_iterator_->data.end(), buffer);
+    std::copy(data_iterator_->Data().begin(), data_iterator_->Data().end(),
+              buffer);
   }
 
   void ReadModel(std::complex<float>* buffer) final {
-    std::copy(data_iterator_->model_data.begin(),
-              data_iterator_->model_data.end(), buffer);
+    std::copy(data_iterator_->Model().begin(), data_iterator_->Model().end(),
+              buffer);
   }
 
   void ReadWeights(float* buffer) final {
-    std::copy(data_iterator_->weights.begin(), data_iterator_->weights.end(),
-              buffer);
+    std::copy(data_iterator_->Weights().begin(),
+              data_iterator_->Weights().end(), buffer);
   }
 
   void WriteImagingWeights(const float* buffer) final {

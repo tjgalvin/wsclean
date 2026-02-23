@@ -38,7 +38,7 @@ std::shared_ptr<InMemoryInfo> GetInMemoryInfo(InMemoryMs& data) {
 InMemoryHandle ReorderInMemory(
     InMemoryMs&& data, const std::vector<VectorMap<ChannelRange>>& channels,
     const MSSelection& selection, const std::string& data_column_name,
-    const std::string& model_column_name, bool include_model,
+    const std::string& model_column_name, bool set_model_to_zero,
     const Settings& settings) {
   InMemoryHandle result;
 
@@ -75,15 +75,14 @@ InMemoryHandle ReorderInMemory(
           const size_t part_start_ch = ranges[row.data_desc_id].start;
           const size_t part_end_ch = ranges[row.data_desc_id].end;
           const size_t n_channels = part_end_ch - part_start_ch;
-          part_row.data.resize(n_provider_correlations * n_channels);
-          part_row.weights.resize(n_provider_correlations * n_channels);
-          if (include_model) {
-            part_row.model_data.assign(n_provider_correlations * n_channels,
-                                       0.0f);
+          part_row.data_model_weights = InMemoryPartRow::DataModelWeightsArray(
+              n_provider_correlations * n_channels, false);
+          if (set_model_to_zero) {
+            std::fill(part_row.Model().begin(), part_row.Model().end(), 0.0f);
           }
-          ExtractData(part_row.data.data(), part_start_ch, part_end_ch,
+          ExtractData(part_row.Data().data(), part_start_ch, part_end_ch,
                       input_polarizations, row.data.data(), out_polarization);
-          ExtractWeights(part_row.weights.data(), part_start_ch, part_end_ch,
+          ExtractWeights(part_row.Weights().data(), part_start_ch, part_end_ch,
                          input_polarizations, row.data.data(),
                          row.weights.data(), flag_buffer.get(),
                          out_polarization);

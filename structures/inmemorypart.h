@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <aocommon/banddata.h>
+#include <aocommon/multiarray.h>
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 
@@ -17,9 +18,28 @@
 namespace wsclean {
 
 struct InMemoryPartRow {
-  std::vector<std::complex<float>> data;
-  std::vector<std::complex<float>> model_data;
-  std::vector<float> weights;
+  // This class uses the MultiArray class to limit the number of allocations
+  // done
+  using DataModelWeightsArray =
+      aocommon::MultiArray<std::complex<float>, std::complex<float>, float>;
+  DataModelWeightsArray data_model_weights;
+
+  std::span<std::complex<float>> Data() { return data_model_weights.Span<0>(); }
+  std::span<const std::complex<float>> Data() const {
+    return data_model_weights.Span<0>();
+  }
+
+  std::span<std::complex<float>> Model() {
+    return data_model_weights.Span<1>();
+  }
+  std::span<const std::complex<float>> Model() const {
+    return data_model_weights.Span<1>();
+  }
+
+  std::span<float> Weights() { return data_model_weights.Span<2>(); }
+  std::span<const float> Weights() const {
+    return data_model_weights.Span<2>();
+  }
 };
 
 struct InMemoryInfo {

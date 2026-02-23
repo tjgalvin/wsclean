@@ -19,13 +19,13 @@ class InMemoryProvider final : public MSProvider {
   void ResetWritePosition() final { output_iterator_ = data_.rows.begin(); }
 
   void WriteModel(const std::complex<float>* buffer, bool add) final {
-    std::vector<std::complex<float>>& data = output_iterator_->model_data;
+    std::span<std::complex<float>> model_data = output_iterator_->Model();
     if (add) {
-      for (size_t i = 0; i != data.size(); ++i) {
-        data[i] += buffer[i];
+      for (size_t i = 0; i != model_data.size(); ++i) {
+        model_data[i] += buffer[i];
       }
     } else {
-      std::copy_n(buffer, data.size(), data.begin());
+      std::copy_n(buffer, model_data.size(), model_data.begin());
     }
   }
 
