@@ -3,6 +3,8 @@
 
 #include "inmemorypart.h"
 
+#include "../interface/inmemoryms.h"
+
 #include <cassert>
 #include <map>
 #include <string>
@@ -21,8 +23,14 @@ class Settings;
 
 class InMemoryHandle {
  public:
+  InMemoryHandle() noexcept = default;
+  InMemoryHandle(const InMemoryHandle&) = delete;
+  InMemoryHandle(InMemoryHandle&&) noexcept = default;
+  InMemoryHandle& operator=(const InMemoryHandle&) = delete;
+  InMemoryHandle& operator=(InMemoryHandle&&) noexcept = default;
+
   /**
-   * Get a part that does or doest not exist. This function is typically
+   * Get a part that does or does not exist. This function is typically
    * used during reordering. Use @ref GetExistingPart() after reordering.
    */
   InMemoryPart& GetPart(aocommon::PolarizationEnum polarization,
@@ -42,6 +50,13 @@ class InMemoryHandle {
     return iterator->second;
   }
 
+  InMemoryPart& GetExistingPart(aocommon::PolarizationEnum polarization,
+                                size_t out_channel) {
+    return const_cast<InMemoryPart&>(
+        static_cast<const InMemoryHandle*>(this)->GetExistingPart(polarization,
+                                                                  out_channel));
+  }
+
  private:
   std::map<std::pair<aocommon::PolarizationEnum, size_t>, InMemoryPart> parts_;
 };
@@ -56,7 +71,7 @@ InMemoryHandle ReorderInMemory(
         aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels,
     const schaapcommon::reordering::MSSelection& selection,
     const std::string& data_column_name, const std::string& model_column_name,
-    bool include_model, const Settings& settings);
+    bool set_model_to_zero, const Settings& settings);
 
 }  // namespace wsclean
 

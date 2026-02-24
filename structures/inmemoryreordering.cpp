@@ -1,11 +1,14 @@
 #include "inmemoryreordering.h"
 
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
+
 #include <aocommon/banddata.h>
 
 #include <schaapcommon/reordering/reordering.h>
 
 #include "../interface/inmemoryms.h"
 #include "../main/settings.h"
+#include "../msproviders/operations.h"
 
 using aocommon::Polarization;
 using aocommon::PolarizationEnum;
@@ -50,7 +53,7 @@ InMemoryHandle ReorderInMemory(
     output_polarizations.emplace(settings.GetProviderPolarization(p));
   }
 
-  std::shared_ptr<InMemoryInfo> meta_data = GetInMemoryInfo(data);
+  std::shared_ptr<InMemoryInfo> info = GetInMemoryInfo(data);
 
   const size_t n_provider_correlations =
       Polarization::GetVisibilityCount(*output_polarizations.begin());
@@ -61,7 +64,40 @@ InMemoryHandle ReorderInMemory(
   const std::unique_ptr<bool[]> flag_buffer(
       std::make_unique<bool[]>(max_n_flags));
 
+  std::shared_ptr<std::vector<MSProvider::MetaData>> row_meta_data =
+      std::make_shared<std::vector<MSProvider::MetaData>>();
+
+  const std::vector<aocommon::MultiBandData> bands_per_part =
+      MakeSelectedBands(data.bands, channels);
+
+  for (size_t output_channel = 0; output_channel != channels.size();
+       ++output_channel) {
+    for (aocommon::PolarizationEnum out_polarization : output_polarizations) {
+      InMemoryPart& part_data =
+          result.GetPart(out_polarization, output_channel);
+
+      part_data.info = info;
+      part_data.meta_data = row_meta_data;
+      part_data.is_regular = bands_per_part[output_channel].BandCount() == 1;
+      part_data.polarization = out_polarization;
+      part_data.selected_bands = bands_per_part[output_channel];
+      part_data.description =
+          "Output channel " + std::to_string(output_channel) +
+          ", polarization " + Polarization::TypeToFullString(out_polarization);
+    }
+  }
+
   for (const InMemoryRow& row : data.rows) {
+    MSProvider::MetaData& meta_data = row_meta_data->emplace_back();
+    meta_data.antenna1 = row.antenna1;
+    meta_data.antenna2 = row.antenna2;
+    meta_data.data_desc_id = row.data_desc_id;
+    meta_data.field_id = row.field_id;
+    meta_data.time = row.time;
+    meta_data.u_in_m = row.uvw[0];
+    meta_data.v_in_m = row.uvw[1];
+    meta_data.w_in_m = row.uvw[2];
+
     for (size_t output_channel = 0; output_channel != channels.size();
          ++output_channel) {
       const VectorMap<ChannelRange>& ranges = channels[output_channel];

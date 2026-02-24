@@ -361,6 +361,7 @@ add_library(
   io/componentlistwriter.cpp
   io/facetreader.cpp
   io/parsetreader.cpp
+  io/readinmemory.cpp
   io/wscfitswriter.cpp
   math/imageoperations.cpp
   math/renderer.cpp

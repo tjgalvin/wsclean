@@ -211,16 +211,6 @@ class MSProvider {
    * Reset model data in the MSProvider to zeros.
    */
   virtual void ResetModelColumn();
-
-  static void CopyRealToComplex(std::complex<float>* dest, const float* source,
-                                size_t n) {
-    const float* end = source + n;
-    while (source != end) {
-      *dest = *source;
-      ++dest;
-      ++source;
-    }
-  }
 };
 
 }  // namespace wsclean
