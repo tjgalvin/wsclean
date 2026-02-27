@@ -14,6 +14,8 @@
 
 namespace wsclean {
 
+class InMemoryHandle;
+
 /**
  * This class contains all the information necessary to open
  * a dataset. In particular, it provides all the information
@@ -58,6 +60,19 @@ class MSDataDescription {
     return mdd;
   }
 
+  static std::unique_ptr<MSDataDescription> ForInMemory(
+      InMemoryHandle& in_memory_handle, size_t partIndex,
+      aocommon::PolarizationEnum polarization, bool useMPI) {
+    std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
+    mdd->_isReordered = false;
+    mdd->_isInMemory = true;
+    mdd->_useMPI = useMPI;
+    mdd->_polarization = polarization;
+    mdd->_inMemoryHandle = &in_memory_handle;
+    mdd->_partIndex = partIndex;
+    return mdd;
+  }
+
   std::unique_ptr<MSProvider> GetProvider() const;
 
   /**
@@ -73,11 +88,12 @@ class MSDataDescription {
       aocommon::SerialIStream& stream);
 
  private:
-  MSDataDescription(){};
+  MSDataDescription() = default;
 
   // Common
-  bool _isReordered;
-  bool _useMPI;
+  bool _isReordered = false;
+  bool _isInMemory = false;
+  bool _useMPI = false;
   aocommon::PolarizationEnum _polarization;
 
   // Contiguous
@@ -92,6 +108,9 @@ class MSDataDescription {
   // Reordered
   ReorderedHandle _reorderedHandle;
   size_t _partIndex;
+
+  // In memory
+  InMemoryHandle* _inMemoryHandle;
 };
 
 }  // namespace wsclean

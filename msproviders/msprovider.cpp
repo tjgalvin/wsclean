@@ -58,7 +58,7 @@ void MSProvider::ResetModelColumn() {
       NMaxChannels() * NPolarizations(), {0.0f, 0.0f});
   while (msReader->CurrentRowAvailable()) {
     // Always overwrite
-    const bool addToMS = false;
+    constexpr bool addToMS = false;
     WriteModel(buffer.data(), addToMS);
     NextOutputRow();
     msReader->NextInputRow();

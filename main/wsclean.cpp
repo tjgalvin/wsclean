@@ -703,11 +703,17 @@ void WSClean::RunClean() {
 
     _msHelper =
         std::make_unique<MsHelper>(_settings, _globalSelection, _msBands);
+    if (!in_memory_data_.empty()) {
+      assert(_settings.inMemoryData);
+      _msHelper->SetInMemoryData(std::move(in_memory_data_));
+    }
 
     // Read reordered files if the option reuse-reordered is
     // specified.
     if (_settings.reuseReorder)
       _msHelper->ReuseReorderedFiles(_imagingTable);
+    else if (_settings.inMemoryData)
+      _msHelper->PrepareInMemoryData(_imagingTable, false);
     else if (_settings.doReorder)
       _msHelper->PerformReordering(_imagingTable, false);
 

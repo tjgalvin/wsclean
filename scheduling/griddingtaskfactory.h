@@ -20,8 +20,7 @@ namespace wsclean {
 
 class GriddingTaskFactory {
  public:
-  explicit GriddingTaskFactory(const MsHelper& ms_helper,
-                               const Settings& settings,
+  explicit GriddingTaskFactory(MsHelper& ms_helper, const Settings& settings,
                                const ObservationInfo& observation_info,
                                double l_shift, double m_shift,
                                size_t imaging_table_size)
@@ -104,7 +103,7 @@ class GriddingTaskFactory {
                           bool is_first_task);
 
  private:
-  const MsHelper& ms_helper_;
+  MsHelper& ms_helper_;
   const Settings& settings_;
   const ObservationInfo& observation_info_;
   const double l_shift_, m_shift_;

@@ -71,6 +71,11 @@ class WSClean {
    */
   void DrawModel();
 
+  void SetInMemoryData(
+      std::vector<std::unique_ptr<InMemoryMs>>&& in_memory_data) {
+    in_memory_data_ = std::move(in_memory_data);
+  }
+
  private:
   void runIndependentGroup(ImagingTable& groupTable,
                            std::unique_ptr<PrimaryBeam>& primaryBeam);
@@ -266,6 +271,7 @@ class WSClean {
 
   MSSelection _globalSelection;
   std::string _commandLine;
+  std::vector<std::unique_ptr<InMemoryMs>> in_memory_data_;
 
   Settings _settings;
 

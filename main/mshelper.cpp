@@ -6,6 +6,8 @@
 #include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>
 
+#include "../io/readinmemory.h"
+
 using aocommon::Logger;
 
 using schaapcommon::reordering::ChannelRange;
@@ -105,9 +107,10 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
 
 void MsHelper::PerformReordering(const ImagingTable& imaging_table,
                                  bool is_predict_mode) {
-  std::mutex mutex;
-
   assert(reordered_ms_handles_.empty());
+  assert(in_memory_handles_.empty());
+
+  std::mutex mutex;
 
   reordered_ms_handles_.resize(settings_.filenames.size());
   bool use_model = settings_.deconvolutionMGain != 1.0 || is_predict_mode ||
@@ -136,8 +139,74 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
   });
 }
 
+void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
+                                   bool is_predict_mode) {
+  assert(reordered_ms_handles_.empty());
+  assert(in_memory_handles_.empty());
+  // This function handles two cases:
+  // - If the user asked for in-memory data via the cmdline, the data must still
+  // be read
+  //   from disk and then reordered.
+  // - If the API was used and data was supplied, it only needs to be reordered.
+  // If the following variable is true, we are in the second case:
+  const bool is_in_memory_data_supplied =
+      !in_memory_data_before_reordering_.empty();
+  assert((!is_in_memory_data_supplied && !settings_.filenames.empty()) ||
+         (is_in_memory_data_supplied && settings_.filenames.empty()));
+
+  std::mutex mutex;
+
+  const size_t ms_count = is_in_memory_data_supplied
+                              ? in_memory_data_before_reordering_.size()
+                              : settings_.filenames.size();
+  in_memory_handles_.resize(ms_count);
+
+  if (settings_.parallelReordering != 1) {
+    if (is_in_memory_data_supplied)
+      Logger::Info << "In-memory reordering of the data...\n";
+    else
+      Logger::Info << "Reading into memory...\n";
+  }
+
+  aocommon::CountingSemaphore semaphore(settings_.parallelReordering);
+  aocommon::DynamicFor<size_t> loop;
+  loop.Run(0, ms_count, [&](size_t ms_index) {
+    aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
+
+    InMemoryMs in_memory_ms;
+    if (is_in_memory_data_supplied) {
+      in_memory_ms = std::move(*in_memory_data_before_reordering_[ms_index]);
+    } else {
+      in_memory_ms =
+          wsclean::ReadMsInMemory(settings_.filenames[ms_index],
+                                  settings_.dataColumnName, global_selection_);
+    }
+
+    const std::vector<aocommon::VectorMap<ChannelRange>> channels =
+        GenerateChannelInfo(imaging_table, ms_index);
+    // The model data is always overwritten in the first iteration, so it does
+    // not need to be initialized.
+    constexpr bool initial_model_required = false;
+    InMemoryHandle handle =
+        ReorderInMemory(std::move(in_memory_ms), channels, global_selection_,
+                        settings_.dataColumnName, settings_.modelColumnName,
+                        initial_model_required, settings_);
+
+    std::lock_guard<std::mutex> lock(mutex);
+    in_memory_handles_[ms_index] = std::move(handle);
+    if (settings_.parallelReordering != 1) {
+      if (is_in_memory_data_supplied) {
+        Logger::Info << "Finished reordering ms " << ms_index << "\n";
+      } else {
+        Logger::Info << "Finished reading " << settings_.filenames[ms_index]
+                     << " [" << ms_index << "]\n";
+      }
+    }
+  });
+}
+
 std::vector<MsListItem> MsHelper::InitializeMsList(
-    const ImagingTableEntry& entry) const {
+    const ImagingTableEntry& entry) {
   const aocommon::PolarizationEnum polarization =
       settings_.GetProviderPolarization(entry.polarization);
 
@@ -149,7 +218,11 @@ std::vector<MsListItem> MsHelper::InitializeMsList(
     aocommon::VectorMap<ChannelRange> channels =
         GenerateChannelPartInfo(entry, ms_index);
     if (!channels.Empty()) {
-      if (settings_.doReorder) {
+      if (settings_.inMemoryData) {
+        item.ms_description = MSDataDescription::ForInMemory(
+            in_memory_handles_[ms_index], entry.part_index_per_ms[ms_index],
+            polarization, settings_.UseMpi());
+      } else if (settings_.doReorder) {
         item.ms_description = MSDataDescription::ForReordered(
             reordered_ms_handles_[ms_index], entry.part_index_per_ms[ms_index],
             polarization, settings_.UseMpi());

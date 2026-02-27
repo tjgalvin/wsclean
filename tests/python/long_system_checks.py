@@ -229,11 +229,12 @@ class TestLongSystem:
                -niter 1000000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
-    def test_mutifrequency_multiscale_parallel(self):
-        # Multi-frequency multi-scale clean with spectral fitting, pallel gridding & cleaning
+    def test_mutifrequency_multiscale_parallel_inmemory(self):
+        # Multi-frequency multi-scale clean with spectral fitting, pallel gridding & cleaning.
+        # The 'in-memory' MS provider is used for testing that feature.
         s = f"{tcf.WSCLEAN} -name {name('mfms-fitted')} -channels-out 4 -join-channels -parallel-gridding 4 \
              -parallel-deconvolution 1000 -fit-spectral-pol 2 -multiscale -auto-threshold 0.5 \
-                  -auto-mask 3 -mgain 0.8 -niter 1000000 {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
+                  -auto-mask 3 -mgain 0.8 -niter 1000000 -in-memory -no-update-model-required {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_save_components(self):

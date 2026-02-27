@@ -13,9 +13,9 @@ class MSSelection;
 
 namespace wsclean {
 
-InMemoryMs ReadInMemory(const std::string& measurement_set,
-                        const std::string& data_column_name,
-                        const schaapcommon::reordering::MSSelection& selection);
+InMemoryMs ReadMsInMemory(
+    const std::string& measurement_set, const std::string& data_column_name,
+    const schaapcommon::reordering::MSSelection& selection);
 
 }
 

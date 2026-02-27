@@ -10,13 +10,17 @@
 #include <schaapcommon/reordering/handledata.h>
 
 #include "../msproviders/reorderedmsprovider.h"
+
 #include "../structures/imagingtable.h"
+#include "../structures/inmemoryreordering.h"
 #include "../structures/mslistitem.h"
 #include "../structures/msselection.h"
 
 #include "settings.h"
 
 namespace wsclean {
+
+struct InMemoryMs;
 
 /**
  * Class with helper routines for managing measurement sets.
@@ -47,19 +51,28 @@ class MsHelper {
   GenerateChannelPartInfo(const ImagingTableEntry& entry,
                           size_t ms_index) const;
 
+  void SetInMemoryData(
+      std::vector<std::unique_ptr<InMemoryMs>>&& in_memory_data) {
+    in_memory_data_before_reordering_ = std::move(in_memory_data);
+  }
+
   void ReuseReorderedFiles(const ImagingTable& imaging_table);
+
+  void PrepareInMemoryData(const ImagingTable& imaging_table,
+                           bool is_predict_mode);
 
   void PerformReordering(const ImagingTable& imaging_table,
                          bool is_predict_mode);
 
-  std::vector<MsListItem> InitializeMsList(
-      const ImagingTableEntry& entry) const;
+  std::vector<MsListItem> InitializeMsList(const ImagingTableEntry& entry);
 
  private:
   const Settings& settings_;
   const schaapcommon::reordering::MSSelection& global_selection_;
   const std::vector<aocommon::MultiBandData>& ms_bands_;
   std::vector<ReorderedHandle> reordered_ms_handles_;
+  std::vector<InMemoryHandle> in_memory_handles_;
+  std::vector<std::unique_ptr<InMemoryMs>> in_memory_data_before_reordering_;
 };
 
 }  // namespace wsclean

@@ -120,6 +120,8 @@ Options can be:
    Force or disable reordering of Measurement Set. This can be faster when the measurement set needs to
    be iterated several times, such as with many major iterations or in channel imaging mode.
    Default: only reorder when in channel imaging mode.
+-in-memory
+   Read entire data into memory at the start of the run.
 -temp-dir <directory>
    Set the temporary directory used when reordering files. Default: same directory as input measurement set.
 -reuse-reordered
@@ -1318,6 +1320,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "no-reorder") {
       settings.forceNoReorder = true;
       settings.forceReorder = false;
+    } else if (param == "in-memory") {
+      settings.inMemoryData = true;
     } else if (param == "update-model-required") {
       settings.modelUpdateRequired = true;
     } else if (param == "no-update-model-required") {
