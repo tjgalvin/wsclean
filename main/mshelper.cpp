@@ -1,6 +1,7 @@
 #include "mshelper.h"
 
 #include <mutex>
+#include <semaphore>
 
 #include <aocommon/counting_semaphore.h>
 #include <aocommon/dynamicfor.h>
@@ -120,7 +121,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
 
   if (settings_.parallelReordering != 1) Logger::Info << "Reordering...\n";
 
-  aocommon::CountingSemaphore semaphore(settings_.parallelReordering);
+  std::counting_semaphore semaphore(settings_.parallelReordering);
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, settings_.filenames.size(), [&](size_t ms_index) {
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
@@ -168,7 +169,7 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
       Logger::Info << "Reading into memory...\n";
   }
 
-  aocommon::CountingSemaphore semaphore(settings_.parallelReordering);
+  std::counting_semaphore semaphore(settings_.parallelReordering);
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, ms_count, [&](size_t ms_index) {
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
