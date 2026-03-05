@@ -2,8 +2,6 @@
 
 #include "../math/imageoperations.h"
 
-#include "../gridding/directmsgridder.h"
-
 #include "../io/componentlistwriter.h"
 #include "../io/facetreader.h"
 #include "../io/imagefilename.h"

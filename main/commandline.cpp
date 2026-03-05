@@ -330,6 +330,8 @@ Options can be:
    Set the w-towers accuracy for the purpose of w-tower height calculation. Default: 0
    When zero, w-towers will set it to the gridder's accuracy (depends on kernel size)
    Useful range: 1e-2 to 1e-4 (will fail if base accuracy of gridder is worse!)
+-direct-ft-precision <float / double / ldouble>
+   Set numerical precision of the direct Fourier transforming gridder: 32, 64 or 80-128 bit, respectively.
 -compound-tasks
    Schedule compound gridding tasks which contain all facets for a single image.
 -shared-facet-reads
