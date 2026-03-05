@@ -8,7 +8,12 @@ import h5py
 import numpy as np
 import pytest
 from astropy.io import fits
-from utils import assert_taql, compute_rms, validate_call
+from utils import (
+    assert_taql,
+    compute_rms,
+    validate_call,
+    validate_failing_call,
+)
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -192,6 +197,25 @@ class TestLongSystem:
         # Multiple intervals
         s = f"{tcf.WSCLEAN} -name {name('intervals')} -intervals-out 3 \
             {tcf.DIMS_RECTANGULAR} {tcf.MWA_MS}"
+        validate_call(s.split())
+
+    def test_multiple_intervals_with_sorting(self):
+        # Multiple intervals
+        taql_cmd = f"taql select from {tcf.MWA_MS} orderby DESC TIME giving reversed.ms"
+        validate_call(taql_cmd.split())
+
+        # The options -channel-range and -interval are added to make the imaging quick. One of the intervals options
+        # is also necessary in order to require time-ordered measurement sets (without it, the first two cmds won't fail).
+        base_parameters = f"-channel-range 0 24 -name {name('intervals-with-sort-ms')} \
+            -intervals-out 3 -interval 0 6 {tcf.DIMS_RECTANGULAR} reversed.ms"
+        s = f"{tcf.WSCLEAN} -reorder {base_parameters}"
+        validate_failing_call(s.split())
+        s = f"{tcf.WSCLEAN} -no-reorder {base_parameters}"
+        validate_failing_call(s.split())
+
+        s = f"{tcf.WSCLEAN} -sort-ms -reorder {base_parameters}"
+        validate_call(s.split())
+        s = f"{tcf.WSCLEAN} -sort-ms -no-reorder {base_parameters}"
         validate_call(s.split())
 
     def test_multiple_intervals_and_channels(self):

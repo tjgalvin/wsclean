@@ -77,6 +77,7 @@ void MSRowProvider::Initialize() {
 }
 
 void MSRowProvider::NextRow() {
+  const bool require_time_ordering = Selection().HasInterval();
   bool isRowSelected;
   do {
     ++_currentRow;
@@ -91,7 +92,10 @@ void MSRowProvider::NextRow() {
 
       if (_currentTime != columns.time(_currentRow)) {
         ++_currentTimestep;
-        _currentTime = columns.time(_currentRow);
+        const double next_time = columns.time(_currentRow);
+        if (require_time_ordering && next_time < _currentTime)
+          ThrowTimeOrderException();
+        _currentTime = next_time;
       }
       _currentUVWArray = columns.uvw(_currentRow);
       isRowSelected = isCurrentRowSelected(fieldId, a1, a2);

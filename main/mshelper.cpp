@@ -94,8 +94,8 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
         settings_.modelColumnName, settings_.modelStorageManager,
         settings_.temporaryDirectory, channels, initial_model_required,
         settings_.modelUpdateRequired, polarization_types, global_selection_,
-        bands_per_part, has_frequency_bda, n_antennas, settings_.saveReorder,
-        ReorderedMsProvider::StoreReorderedInMS);
+        settings_.sortMsInTime, bands_per_part, has_frequency_bda, n_antennas,
+        settings_.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
 
     std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
     std::tie(data->metadata_indices_, data_desc_ids) =
@@ -230,8 +230,9 @@ std::vector<MsListItem> MsHelper::InitializeMsList(
       } else {
         item.ms_description = MSDataDescription::ForContiguous(
             settings_.filenames[ms_index], settings_.dataColumnName,
-            settings_.modelColumnName, settings_.modelStorageManager,
-            global_selection_, channels, polarization, settings_.UseMpi());
+            settings_.modelColumnName, settings_.sortMsInTime,
+            settings_.modelStorageManager, global_selection_, channels,
+            polarization, settings_.UseMpi());
       }
       item.ms_index = ms_index;
       ms_list.emplace_back(std::move(item));

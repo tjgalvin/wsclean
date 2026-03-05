@@ -29,7 +29,7 @@ std::unique_ptr<MSProvider> MSDataDescription::GetProvider() const {
   } else
     return std::make_unique<ContiguousMS>(
         _filename, _dataColumnName, _modelColumnName, _modelStorageManager,
-        _selection, _channel_selection, _polarization, _useMPI);
+        _selection, _channel_selection, _polarization, _useMPI, _sortMsInTime);
 }
 
 void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
@@ -41,6 +41,7 @@ void MSDataDescription::Serialize(aocommon::SerialOStream& stream) const {
       .String(_filename)
       .String(_dataColumnName)
       .String(_modelColumnName)
+      .Bool(_sortMsInTime)
       .UInt32(static_cast<unsigned>(_modelStorageManager))
       .Object(_selection)
       .UInt64(_channel_selection.Size());
@@ -64,7 +65,8 @@ std::unique_ptr<MSDataDescription> MSDataDescription::Unserialize(
       .UInt16(mdd->_polarization)
       .String(mdd->_filename)
       .String(mdd->_dataColumnName)
-      .String(mdd->_modelColumnName);
+      .String(mdd->_modelColumnName)
+      .Bool(mdd->_sortMsInTime);
   mdd->_modelStorageManager = static_cast<StorageManagerType>(stream.UInt32());
   stream.Object(mdd->_selection);
   const size_t n = stream.UInt64();

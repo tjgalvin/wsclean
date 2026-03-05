@@ -11,6 +11,7 @@
 #include <casacore/tables/Tables/TableLocker.h>
 
 #include "operations.h"
+#include "rowproviders/msrowproviderbase.h"
 #include "msreaders/contiguousmsreader.h"
 
 using schaapcommon::reordering::ChannelRange;
@@ -42,8 +43,10 @@ ContiguousMS::ContiguousMS(
     const std::string& modelColumnName, StorageManagerType modelStorageManager,
     const MSSelection& selection,
     const aocommon::VectorMap<ChannelRange>& channel_ranges,
-    aocommon::PolarizationEnum outputPolarization, bool useMPI)
+    aocommon::PolarizationEnum outputPolarization, bool useMPI,
+    bool sort_in_time)
     : _useMPI(useMPI),
+      sort_in_time_(sort_in_time),
       selection_(selection),
       channel_ranges_(channel_ranges),
       _outputPolarization(outputPolarization),
@@ -58,6 +61,11 @@ ContiguousMS::ContiguousMS(
 void ContiguousMS::open() {
   _ms = SynchronizedMS(_msPath, _useMPI ? casacore::TableLock::UserNoReadLocking
                                         : casacore::TableLock::DefaultLocking);
+  if (sort_in_time_) {
+    aocommon::Logger::Debug << "Sorting measurement set...\n";
+    _ms.MS() =
+        _ms.MS().sort(casacore::MS::columnName(casacore::MSMainEnums::TIME));
+  }
   has_frequency_bda_ = wsclean::HasFrequencyBda(*_ms);
 
   _antenna1Column = casacore::ScalarColumn<int>(
@@ -131,6 +139,7 @@ void ContiguousMS::ResetWritePosition() {
 void ContiguousMS::NextOutputRow() {
   int fieldId, a1, a2, dataDescId;
   casacore::Vector<double> uvw;
+  const bool require_time_ordering = selection_.HasInterval();
   do {
     ++_currentOutputRow;
     if (_currentOutputRow >= _endRow) return;
@@ -140,9 +149,12 @@ void ContiguousMS::NextOutputRow() {
     a2 = _antenna2Column(_currentOutputRow);
     uvw = _uvwColumn(_currentOutputRow);
     dataDescId = _dataDescIdColumn(_currentOutputRow);
-    if (_currentOutputTime != _timeColumn(_currentOutputRow)) {
+    const double time = _timeColumn(_currentOutputRow);
+    if (_currentOutputTime != time) {
       ++_currentOutputTimestep;
-      _currentOutputTime = _timeColumn(_currentOutputRow);
+      if (require_time_ordering && _currentOutputTime > time)
+        ThrowTimeOrderException();
+      _currentOutputTime = time;
     }
   } while (!selection_.IsSelected(fieldId, _currentOutputTimestep, a1, a2,
                                   uvw.data()) ||

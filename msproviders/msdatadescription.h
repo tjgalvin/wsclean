@@ -29,7 +29,7 @@ class MSDataDescription {
  public:
   static std::unique_ptr<MSDataDescription> ForContiguous(
       const std::string& filename, const std::string& dataColumnName,
-      const std::string& modelColumnName,
+      const std::string& modelColumnName, bool sortMsInTime,
       schaapcommon::reordering::StorageManagerType modelStorageManager,
       const schaapcommon::reordering::MSSelection& selection,
       const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
@@ -38,6 +38,7 @@ class MSDataDescription {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = false;
     mdd->_useMPI = useMPI;
+    mdd->_sortMsInTime = sortMsInTime;
     mdd->_polarization = polarization;
     mdd->_selection = selection;
     mdd->_channel_selection = channel_selection;
@@ -94,6 +95,7 @@ class MSDataDescription {
   bool _isReordered = false;
   bool _isInMemory = false;
   bool _useMPI = false;
+  bool _sortMsInTime = false;
   aocommon::PolarizationEnum _polarization;
 
   // Contiguous

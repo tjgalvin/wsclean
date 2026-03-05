@@ -254,7 +254,7 @@ ReorderedHandle ReorderMS(
     } else
       row_provider = MakeMsRowProvider(
           ms_path, selection, selected_data_desc_ids, data_column_name,
-          model_column_name, initial_model_required);
+          model_column_name, initial_model_required, settings.sortMsInTime);
   } else {
     if (initial_model_required)
       throw std::runtime_error(
@@ -279,8 +279,8 @@ ReorderedHandle ReorderMS(
   auto handle_data = std::make_unique<HandleData>(
       ms_path, data_column_name, model_column_name, model_storage_manager,
       temporary_directory, channels, initial_model_required,
-      model_update_required, pols_out, selection, bands_per_part,
-      has_frequency_bda, nAntennas, settings.saveReorder,
+      model_update_required, pols_out, selection, settings.sortMsInTime,
+      bands_per_part, has_frequency_bda, nAntennas, settings.saveReorder,
       ReorderedMsProvider::StoreReorderedInMS);
 
   std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
@@ -394,6 +394,10 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
     }
 
     casacore::MeasurementSet ms(handle.ms_path_, casacore::Table::Update);
+    if (handle.sort_in_time_) {
+      aocommon::Logger::Debug << "Sorting measurement set...\n";
+      ms = ms.sort(casacore::MS::columnName(casacore::MSMainEnums::TIME));
+    }
     const aocommon::VectorMap<std::set<aocommon::PolarizationEnum>>
         ms_polarizations_per_data_desc_id(GetMSPolarizationsPerDataDescId(ms));
     InitializeModelColumn(ms, handle.data_column_name_,
@@ -424,6 +428,7 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
     GetRowRange(ms, handle.selection_, start_row, end_row);
     size_t timestep =
         handle.selection_.HasInterval() ? handle.selection_.IntervalStart() : 0;
+    const bool require_time_ordering = handle.selection_.HasInterval();
     double time = time_column(start_row);
     size_t selected_row_count_for_debug = 0;
     for (size_t row = start_row; row != end_row; ++row) {
@@ -436,7 +441,10 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
 
       if (time != time_column(row)) {
         ++timestep;
-        time = time_column(row);
+        const double next_time = time_column(row);
+        if (require_time_ordering && time > next_time)
+          ThrowTimeOrderException();
+        time = next_time;
       }
       if (handle.selection_.IsSelected(field_id, timestep, antenna1, antenna2,
                                        uvw.data())) {

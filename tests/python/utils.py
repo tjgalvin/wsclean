@@ -95,3 +95,17 @@ def validate_call(cmdline):
             + " and execute: "
             + " ".join(cmdline)
         )
+
+
+def validate_failing_call(cmdline):
+    try:
+        print("Running: " + " ".join(cmdline))
+        check_call(cmdline)
+        raise RuntimeError(
+            "Command was expected to fail, but didn't. To run manually, cd to "
+            + tcf.WORKING_DIR
+            + " and execute: "
+            + " ".join(cmdline)
+        )
+    except:
+        pass

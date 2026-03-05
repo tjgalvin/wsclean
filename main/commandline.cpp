@@ -122,6 +122,10 @@ Options can be:
    Default: only reorder when in channel imaging mode.
 -in-memory
    Read entire data into memory at the start of the run.
+-sort-ms
+   Sort the measurement set in time before processing. Most observatories make sure data is ordered in
+   time, but some observatories order by e.g. subband. For timestep selection, time ordering is required.
+   This option allows doing so (at a small cost).
 -temp-dir <directory>
    Set the temporary directory used when reordering files. Default: same directory as input measurement set.
 -reuse-reordered
@@ -1322,6 +1326,8 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       settings.forceReorder = false;
     } else if (param == "in-memory") {
       settings.inMemoryData = true;
+    } else if (param == "sort-ms") {
+      settings.sortMsInTime = true;
     } else if (param == "update-model-required") {
       settings.modelUpdateRequired = true;
     } else if (param == "no-update-model-required") {

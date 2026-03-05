@@ -2,6 +2,7 @@
 
 #include "../contiguousms.h"
 #include "../operations.h"
+#include "../rowproviders/msrowproviderbase.h"
 
 #include <schaapcommon/reordering/reordering.h>
 
@@ -24,6 +25,16 @@ ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
   NextInputRow();
 }
 
+inline void ContiguousMSReader::UpdateTime(double time,
+                                           bool require_time_ordering) {
+  if (_currentInputTime != time) {
+    if (require_time_ordering && _currentInputTime > time)
+      ThrowTimeOrderException();
+    ++_currentInputTimestep;
+    _currentInputTime = time;
+  }
+}
+
 bool ContiguousMSReader::CurrentRowAvailable() {
   const ContiguousMS& contiguousms =
       static_cast<const ContiguousMS&>(*ms_provider_);
@@ -35,6 +46,7 @@ bool ContiguousMSReader::CurrentRowAvailable() {
   int a2 = contiguousms._antenna2Column(_currentInputRow);
   int dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
   casacore::Vector<double> uvw = contiguousms._uvwColumn(_currentInputRow);
+  const bool require_time_ordering = contiguousms.selection_.HasInterval();
 
   while (!contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep, a1,
                                              a2, uvw.data()) ||
@@ -47,10 +59,8 @@ bool ContiguousMSReader::CurrentRowAvailable() {
     a2 = contiguousms._antenna2Column(_currentInputRow);
     contiguousms._uvwColumn.get(_currentInputRow, uvw, true);
     dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
-    if (_currentInputTime != contiguousms._timeColumn(_currentInputRow)) {
-      ++_currentInputTimestep;
-      _currentInputTime = contiguousms._timeColumn(_currentInputRow);
-    }
+    const double time = contiguousms._timeColumn(_currentInputRow);
+    UpdateTime(time, require_time_ordering);
 
     _isDataRead = false;
     _isWeightRead = false;
@@ -71,6 +81,7 @@ void ContiguousMSReader::NextInputRow() {
   ++_currentRowId;
   int fieldId, a1, a2, dataDescId;
   casacore::Vector<double> uvw;
+  const bool require_time_ordering = contiguousms.selection_.HasInterval();
 
   do {
     ++_currentInputRow;
@@ -81,10 +92,8 @@ void ContiguousMSReader::NextInputRow() {
     a2 = contiguousms._antenna2Column(_currentInputRow);
     uvw = contiguousms._uvwColumn(_currentInputRow);
     dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
-    if (_currentInputTime != contiguousms._timeColumn(_currentInputRow)) {
-      ++_currentInputTimestep;
-      _currentInputTime = contiguousms._timeColumn(_currentInputRow);
-    }
+    const double time = contiguousms._timeColumn(_currentInputRow);
+    UpdateTime(time, require_time_ordering);
   } while (!contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep,
                                                a1, a2, uvw.data()) ||
            !ContainsDataDescId(contiguousms.channel_ranges_, dataDescId));

@@ -43,6 +43,8 @@ class ContiguousMSReader final : public MSReader {
   void readWeights();
 
   void readModel();
+
+  void UpdateTime(double time, bool require_time_ordering);
 };
 
 }  // namespace wsclean

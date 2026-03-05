@@ -34,7 +34,7 @@ class ContiguousMS final : public MSProvider {
       const schaapcommon::reordering::MSSelection& selection,
       const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
           channel_selection,
-      aocommon::PolarizationEnum polOut, bool useMPI);
+      aocommon::PolarizationEnum polOut, bool useMPI, bool sort_in_time);
 
   ContiguousMS(const ContiguousMS&) = delete;
 
@@ -89,6 +89,7 @@ class ContiguousMS final : public MSProvider {
   size_t _currentOutputTimestep = 0;
   double _currentOutputTime = 0.0;
   bool _useMPI;
+  bool sort_in_time_ = false;
   size_t _nAntenna = 0;
   bool _isDataRead, _isModelRead, _isWeightRead;
   bool _isModelColumnPrepared = false;

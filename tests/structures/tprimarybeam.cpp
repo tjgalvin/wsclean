@@ -12,12 +12,14 @@ namespace wsclean {
 BOOST_AUTO_TEST_SUITE(primary_beam)
 
 BOOST_AUTO_TEST_CASE(get_beam_intervals) {
+  constexpr bool kUseMpi = false;
+  constexpr bool kSortInTime = false;
   const std::string ms_path = "test_data/MWA_MOCK.ms";
   const aocommon::VectorMap ranges{
       schaapcommon::reordering::ChannelRange{0, 0, 24}};
   ContiguousMS ms(ms_path, "DATA", "MODEL_DATA", StorageManagerType::Default,
                   MSSelection(), ranges, aocommon::PolarizationEnum::StokesI,
-                  false);
+                  kUseMpi, kSortInTime);
   const std::vector<BeamInterval> intervals = GetBeamIntervals(ms, 1);
   BOOST_REQUIRE_EQUAL(intervals.size(), 1);
   BeamInterval first = intervals.front();
