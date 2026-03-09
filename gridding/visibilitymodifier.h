@@ -338,8 +338,8 @@ class VisibilityModifier {
                                  size_t antenna2, size_t time_offset);
 
   void ApplyTimeFrequencySmearing(std::complex<float>* data, const double* uvw,
-                                  const aocommon::BandData& band, int n,
-                                  double l, double m);
+                                  const aocommon::BandData& band,
+                                  size_t n_pol_per_vis, double l, double m);
 
   void SetMSTimes(size_t ms_index, std::shared_ptr<std::vector<double>> times) {
     _cachedMSTimes[ms_index] = std::move(times);
@@ -852,7 +852,8 @@ inline double Sinc(double x) {
 
 inline void VisibilityModifier::ApplyTimeFrequencySmearing(
     std::complex<float>* data, const double* uvw,
-    const aocommon::BandData& band, int n_pol_per_vis, double dl, double dm) {
+    const aocommon::BandData& band, size_t n_pol_per_vis, double dl,
+    double dm) {
   using internal::Sinc;
   if (dl != 0.0 || dm != 0.0) {
     const double dn = std::sqrt(1.0 - dl * dl - dm * dm) - 1.0;
@@ -873,11 +874,14 @@ inline void VisibilityModifier::ApplyTimeFrequencySmearing(
         aocommon::kSpeedOfLight;
 
     const size_t n_channels = band.ChannelCount();
-    const size_t n = n_pol_per_vis * n_channels;
 
-    for (size_t i = 0; i < n; ++i) {
-      data[i] *= smearing_factor_frequency *
-                 Sinc(delta_time * band.ChannelFrequency(i));
+    for (size_t ch = 0; ch != n_channels; ++ch) {
+      const double full_factor = smearing_factor_frequency *
+                                 Sinc(delta_time * band.ChannelFrequency(ch));
+      for (size_t p = 0; p != n_pol_per_vis; ++p) {
+        (*data) *= full_factor;
+        ++data;
+      }
     }
   }
 }
