@@ -680,9 +680,10 @@ double ParseDouble(const char* param, double lowerLimit, const char* name,
 }  // namespace
 
 bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
-                                         const char* argv[], bool isSlave) {
+                                         const char* argv[], bool is_slave,
+                                         bool use_in_memory_data) {
   if (argc < 2) {
-    if (!isSlave) {
+    if (!is_slave) {
       PrintHeader();
       PrintHelp();
     }
@@ -698,7 +699,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     const std::string param =
         argv[argi][1] == '-' ? (&argv[argi][2]) : (&argv[argi][1]);
     if (param == "version") {
-      if (!isSlave) {
+      if (!is_slave) {
         PrintHeader(true);
 #ifdef HAVE_EVERYBEAM
         Logger::Info << "EveryBeam is available.\n";
@@ -713,7 +714,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       }
       return false;
     } else if (param == "help") {
-      if (!isSlave) {
+      if (!is_slave) {
         PrintHeader();
         PrintHelp();
       }
@@ -764,24 +765,24 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     }
     // == w-stacking-specific parameters ==
     else if (param == "nwlayers" || param == "wstack-nwlayers") {
-      CheckDeprecated(isSlave, param, "wstack-nwlayers");
+      CheckDeprecated(is_slave, param, "wstack-nwlayers");
       IncArgi(argi, argc);
       settings.nWLayers = ParseSizeT(argv[argi], param);
     } else if (param == "nwlayers-factor" ||
                param == "wstack-nwlayers-factor") {
-      CheckDeprecated(isSlave, param, "wstack-nwlayers-factor");
+      CheckDeprecated(is_slave, param, "wstack-nwlayers-factor");
       IncArgi(argi, argc);
       settings.nWLayersFactor =
           ParseDouble(argv[argi], 0.0, "nwlayers-factor", false);
     } else if (param == "nwlayers-for-size" ||
                param == "wstack-nwlayers-for-size") {
-      CheckDeprecated(isSlave, param, "wstack-nwlayers-for-size");
+      CheckDeprecated(is_slave, param, "wstack-nwlayers-for-size");
       IncArgi(argi, argc);
       settings.widthForNWCalculation = ParseSizeT(argv[argi], param);
       IncArgi(argi, argc);
       settings.heightForNWCalculation = ParseSizeT(argv[argi], param);
     } else if (param == "grid-mode" || param == "wstack-grid-mode") {
-      CheckDeprecated(isSlave, param, "wstack-grid-mode");
+      CheckDeprecated(is_slave, param, "wstack-grid-mode");
       IncArgi(argi, argc);
       std::string gridModeStr = argv[argi];
       boost::to_lower(gridModeStr);
@@ -805,12 +806,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
             "Invalid gridding mode: should be either kb (Kaiser-Bessel), nn "
             "(NearestNeighbour), bn, bh, gaus, kb-no-sinc or rect");
     } else if (param == "kernel-size" || param == "wstack-kernel-size") {
-      CheckDeprecated(isSlave, param, "wstack-kernel-size");
+      CheckDeprecated(is_slave, param, "wstack-kernel-size");
       IncArgi(argi, argc);
       settings.antialiasingKernelSize =
           ParseSizeT(argv[argi], "wstack-kernel-size");
     } else if (param == "oversampling" || param == "wstack-oversampling") {
-      CheckDeprecated(isSlave, param, "wstack-oversampling");
+      CheckDeprecated(is_slave, param, "wstack-oversampling");
       IncArgi(argi, argc);
       settings.overSamplingFactor = ParseSizeT(argv[argi], param);
     }
@@ -845,7 +846,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.majorIterationCount = ParseSizeT(argv[argi], "nmiter");
     } else if (param == "threshold" || param == "abs-threshold") {
-      CheckDeprecated(isSlave, param, "abs-threshold");
+      CheckDeprecated(is_slave, param, "abs-threshold");
       IncArgi(argi, argc);
       settings.absoluteDeconvolutionThreshold = FluxDensity::Parse(
           argv[argi], "absolute threshold parameter", FluxDensity::kJansky);
@@ -1010,11 +1011,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       IncArgi(argi, argc);
       settings.prefixName = argv[argi];
     } else if (param == "min-grid-resolution" || param == "small-inversion") {
-      CheckDeprecated(isSlave, param, "min-grid-resolution");
+      CheckDeprecated(is_slave, param, "min-grid-resolution");
       settings.minGridResolution = true;
     } else if (param == "no-min-grid-resolution" ||
                param == "no-small-inversion") {
-      CheckDeprecated(isSlave, param, "no-min-grid-resolution");
+      CheckDeprecated(is_slave, param, "no-min-grid-resolution");
       settings.minGridResolution = false;
     } else if (param == "interval") {
       IncArgi(argi, argc);
@@ -1081,11 +1082,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "mf-weighting" || param == "mfs-weighting") {
       mfWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
-      CheckDeprecated(isSlave, param, "mf-weighting");
+      CheckDeprecated(is_slave, param, "mf-weighting");
     } else if (param == "no-mf-weighting" || param == "no-mfs-weighting") {
       noMFWeighting = true;
       // mfs was renamed to mf in wsclean 2.7
-      CheckDeprecated(isSlave, param, "no-mf-weighting");
+      CheckDeprecated(is_slave, param, "no-mf-weighting");
     } else if (param == "spectral-correction") {
       IncArgi(argi, argc);
       settings.spectralCorrectionFrequency =
@@ -1428,7 +1429,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     } else if (param == "diagonal-solutions" ||
                param == "diagonal-visibilities") {
       // Deprecated July 2024
-      CheckDeprecated(isSlave, param, "diagonal-visibilities");
+      CheckDeprecated(is_slave, param, "diagonal-visibilities");
       settings.visibilityReadMode = VisibilityReadMode::kDiagonal;
     } else if (param == "apply-facet-beam") {
       settings.applyFacetBeam = true;
@@ -1456,7 +1457,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else
         throw std::runtime_error("Unknown weighting mode: " + modeStr);
     } else if (param == "direct-ft") {
-      Deprecated(isSlave, param, "gridder");
+      Deprecated(is_slave, param, "gridder");
       settings.gridderType = GridderType::DirectFT;
       settings.imagePadding = 1.0;
       settings.minGridResolution = false;
@@ -1506,7 +1507,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
         throw std::runtime_error("Invalid gridder requested: '" + gridder_str +
                                  "'");
     } else if (param == "use-idg") {
-      Deprecated(isSlave, param, "gridder");
+      Deprecated(is_slave, param, "gridder");
 #if !defined(HAVE_IDG)
       throw std::runtime_error(
           "WSClean was not compiled with IDG: to use it, install IDG and "
@@ -1527,7 +1528,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
       else
         throw std::runtime_error("Unknown IDG mode: " + mode);
     } else if (param == "use-wgridder") {
-      Deprecated(isSlave, param, "gridder");
+      Deprecated(is_slave, param, "gridder");
       settings.gridderType = GridderType::WGridder;
     } else if (param == "wgridder-accuracy") {
       IncArgi(argi, argc);
@@ -1568,7 +1569,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
     ++argi;
   }
 
-  if (argi == argc && settings.mode != Settings::RestoreMode &&
+  settings.inMemoryData = use_in_memory_data;
+
+  if (argi == argc && !use_in_memory_data &&
+      settings.mode != Settings::RestoreMode &&
       settings.mode != Settings::RestoreListMode &&
       settings.mode != Settings::DrawModelMode)
     throw std::runtime_error("No input measurement sets given.");
@@ -1577,7 +1581,7 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
 
   // We print the header only now, because the logger has now been set up
   // and possibly set to quiet.
-  if (!isSlave) PrintHeader();
+  if (!is_slave) PrintHeader();
 
   if (settings.shared_facet_reads &&
       settings.gridderType != GridderType::WGridder) {
@@ -1611,8 +1615,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc,
 
   for (int i = argi; i != argc; ++i) settings.filenames.push_back(argv[i]);
 
-  settings.parallelReordering =
-      std::min(settings.parallelReordering, settings.filenames.size());
+  if (!settings.inMemoryData) {
+    settings.parallelReordering =
+        std::min(settings.parallelReordering, settings.filenames.size());
+  }
 
   std::ostringstream commandLineStr;
   commandLineStr << "wsclean";

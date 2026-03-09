@@ -92,7 +92,8 @@ class Settings {
   double nWLayersFactor = 1.0;
   size_t antialiasingKernelSize = 7, overSamplingFactor = 1023;
   size_t threadCount = aocommon::system::ProcessorCount();
-  size_t parallelReordering = 4, parallelGridding = 1;
+  size_t parallelReordering = 4;
+  size_t parallelGridding = 1;
   size_t nMpiNodes = 0;  // 0 if MPI is disabled.
   size_t maxMpiMessageSize =
       std::numeric_limits<std::int32_t>::max();  // Only used if MPI is enabled.

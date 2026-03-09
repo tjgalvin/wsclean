@@ -529,7 +529,7 @@ void Settings::Propagate(bool verbose) {
   if (mode == ImagingMode || mode == PredictMode) {
     RecalculateDerivedDimensions(verbose);
     doReorder = determineReorder();
-    dataColumnName = determineDataColumn(verbose);
+    if (!inMemoryData) dataColumnName = determineDataColumn(verbose);
   }
 
   // In the case of IDG we have to directly ask for all four polarizations.

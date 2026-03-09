@@ -16,8 +16,10 @@ int main(int argc, char* argv[]) {
   try {
     check_openblas_multithreading();
     WSClean wsclean;
+    constexpr bool kSlave = false;
+    constexpr bool kInMemoryData = false;
     if (CommandLine::Parse(wsclean, argc, const_cast<const char**>(argv),
-                           false))
+                           kSlave, kInMemoryData))
       CommandLine::Run(wsclean);
     return 0;
   } catch (std::exception& e) {

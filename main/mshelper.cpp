@@ -35,7 +35,6 @@ aocommon::VectorMap<ChannelRange> MsHelper::GenerateChannelPartInfo(
 
 std::vector<aocommon::VectorMap<ChannelRange>> MsHelper::GenerateChannelInfo(
     const ImagingTable& imaging_table, size_t ms_index) const {
-  const std::string ms_name(settings_.filenames[ms_index]);
   std::vector<aocommon::VectorMap<ChannelRange>> channels;
   std::map<aocommon::PolarizationEnum, size_t> next_index;
   for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
@@ -155,26 +154,28 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
   assert((!is_in_memory_data_supplied && !settings_.filenames.empty()) ||
          (is_in_memory_data_supplied && settings_.filenames.empty()));
 
-  std::mutex mutex;
-
   const size_t ms_count = is_in_memory_data_supplied
                               ? in_memory_data_before_reordering_.size()
                               : settings_.filenames.size();
   in_memory_handles_.resize(ms_count);
 
-  if (settings_.parallelReordering != 1) {
+  const size_t parallel_reordering =
+      std::clamp<size_t>(settings_.parallelReordering, 0, ms_count);
+  if (parallel_reordering != 1) {
     if (is_in_memory_data_supplied)
       Logger::Info << "In-memory reordering of the data...\n";
     else
       Logger::Info << "Reading into memory...\n";
   }
 
-  std::counting_semaphore semaphore(settings_.parallelReordering);
+  std::mutex mutex;
+  std::counting_semaphore semaphore(parallel_reordering);
   aocommon::DynamicFor<size_t> loop;
   loop.Run(0, ms_count, [&](size_t ms_index) {
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
 
     InMemoryMs in_memory_ms;
+
     if (is_in_memory_data_supplied) {
       in_memory_ms = std::move(*in_memory_data_before_reordering_[ms_index]);
     } else {
@@ -213,8 +214,9 @@ std::vector<MsListItem> MsHelper::InitializeMsList(
 
   std::vector<MsListItem> ms_list;
 
-  for (size_t ms_index = 0; ms_index != settings_.filenames.size();
-       ++ms_index) {
+  const size_t ms_count = settings_.inMemoryData ? in_memory_handles_.size()
+                                                 : settings_.filenames.size();
+  for (size_t ms_index = 0; ms_index != ms_count; ++ms_index) {
     MsListItem item;
     aocommon::VectorMap<ChannelRange> channels =
         GenerateChannelPartInfo(entry, ms_index);

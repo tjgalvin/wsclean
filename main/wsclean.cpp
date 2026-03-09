@@ -621,10 +621,18 @@ void WSClean::Predict(const ImagingTable::Group& facet_group) {
 }
 
 ObservationInfo WSClean::getObservationInfo() const {
-  casacore::MeasurementSet ms(_settings.filenames[0]);
-  ObservationInfo observationInfo =
-      ReadObservationInfo(ms, _settings.fieldIds[0]);
-  return observationInfo;
+  if (in_memory_data_.empty()) {
+    casacore::MeasurementSet ms(_settings.filenames[0]);
+    return ReadObservationInfo(ms, _settings.fieldIds[0]);
+  } else {
+    ObservationInfo observation;
+    observation.fieldName = in_memory_data_[0]->field_name;
+    observation.observer = in_memory_data_[0]->observer;
+    observation.phaseCentreDec = in_memory_data_[0]->phase_centre_dec;
+    observation.phaseCentreRA = in_memory_data_[0]->phase_centre_ra;
+    observation.telescopeName = in_memory_data_[0]->telescope_name;
+    return observation;
+  }
 }
 
 std::pair<double, double> WSClean::getLMShift() const {
@@ -1697,42 +1705,55 @@ MSSelection WSClean::selectInterval(MSSelection& fullSelection,
   if (_settings.intervalsOut == 1)
     return fullSelection;
   else {
-    size_t tS, tE;
+    size_t start_index;
+    size_t end_index;
     if (fullSelection.HasInterval()) {
-      tS = fullSelection.IntervalStart();
-      tE = fullSelection.IntervalEnd();
+      start_index = fullSelection.IntervalStart();
+      end_index = fullSelection.IntervalEnd();
     } else {
-      casacore::MeasurementSet ms(_settings.filenames[0]);
       Logger::Info << "Counting number of scans... ";
       Logger::Info.Flush();
-      casacore::ScalarColumn<double> timeColumn(
-          ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
-      double time = timeColumn(0);
-      size_t timestepIndex = 1;
-      for (size_t row = 0; row != ms.nrow(); ++row) {
-        if (time != timeColumn(row)) {
-          ++timestepIndex;
-          time = timeColumn(row);
+      start_index = 0;
+      if (in_memory_data_.empty()) {
+        casacore::MeasurementSet ms(_settings.filenames[0]);
+        casacore::ScalarColumn<double> timeColumn(
+            ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
+        double time = timeColumn(0);
+        end_index = 1;
+        for (size_t row = 0; row != ms.nrow(); ++row) {
+          if (time != timeColumn(row)) {
+            ++end_index;
+            time = timeColumn(row);
+          }
+        }
+      } else {
+        double time = in_memory_data_[0]->rows[0].time;
+        end_index = 1;
+        for (const InMemoryRow& row : in_memory_data_[0]->rows) {
+          if (time != row.time) {
+            ++end_index;
+            time = row.time;
+          }
         }
       }
-      Logger::Info << "DONE (" << timestepIndex << ")\n";
-      tS = 0;
-      tE = timestepIndex;
+      Logger::Info << "DONE (" << end_index << ")\n";
       // Store the full interval in the selection, so that it doesn't need to
       // be determined again.
-      fullSelection.SetInterval(tS, tE);
+      fullSelection.SetInterval(start_index, end_index);
     }
-    if (_settings.intervalsOut > tE - tS) {
+    if (_settings.intervalsOut > end_index - start_index) {
       std::ostringstream str;
       str << "Invalid interval selection: " << _settings.intervalsOut
-          << " intervals requested, but measurement set has only " << tE - tS
-          << " intervals.";
+          << " intervals requested, but measurement set has only "
+          << end_index - start_index << " intervals.";
       throw std::runtime_error(str.str());
     }
     MSSelection newSelection(fullSelection);
     newSelection.SetInterval(
-        tS + (tE - tS) * intervalIndex / _settings.intervalsOut,
-        tS + (tE - tS) * (intervalIndex + 1) / _settings.intervalsOut);
+        start_index +
+            (end_index - start_index) * intervalIndex / _settings.intervalsOut,
+        start_index + (end_index - start_index) * (intervalIndex + 1) /
+                          _settings.intervalsOut);
     return newSelection;
   }
 }
@@ -2006,14 +2027,25 @@ void WSClean::stitchSingleGroup(const ImagingTable::Group& facetGroup,
 
 void WSClean::makeImagingTable(size_t outputIntervalIndex) {
   std::set<aocommon::ChannelInfo> channelSet;
-  _msBands.assign(_settings.filenames.size(), aocommon::MultiBandData());
-  for (size_t i = 0; i != _settings.filenames.size(); ++i) {
-    casacore::MeasurementSet ms(_settings.filenames[i]);
-    _msBands[i] = aocommon::MultiBandData(ms);
-    std::set<size_t> dataDescIds = _msBands[i].GetUsedDataDescIds(ms);
-    if (dataDescIds.size() != _msBands[i].BandCount()) {
-      Logger::Debug << dataDescIds.size() << "/" << _msBands[i].BandCount()
-                    << " spws are used of " << _settings.filenames[i] << '\n';
+  const bool use_in_memory_data = !in_memory_data_.empty();
+  const size_t ms_count =
+      use_in_memory_data ? in_memory_data_.size() : _settings.filenames.size();
+  _msBands.assign(ms_count, aocommon::MultiBandData());
+  for (size_t i = 0; i != ms_count; ++i) {
+    std::set<size_t> dataDescIds;
+
+    if (use_in_memory_data) {
+      _msBands[i] = in_memory_data_[i]->bands;
+      dataDescIds = std::set<size_t>(_msBands[i].DataDescIds().begin(),
+                                     _msBands[i].DataDescIds().end());
+    } else {
+      casacore::MeasurementSet ms(_settings.filenames[i]);
+      _msBands[i] = aocommon::MultiBandData(ms);
+      dataDescIds = _msBands[i].GetUsedDataDescIds(ms);
+      if (dataDescIds.size() != _msBands[i].BandCount()) {
+        Logger::Debug << dataDescIds.size() << "/" << _msBands[i].BandCount()
+                      << " spws are used of " << _settings.filenames[i] << '\n';
+      }
     }
 
     // Apply user selection: remove unselected spws
@@ -2164,7 +2196,9 @@ void WSClean::makeImagingTableEntry(
                     << '\n';
   }
 
-  entry.part_index_per_ms.resize(_settings.filenames.size());
+  entry.part_index_per_ms.resize(in_memory_data_.empty()
+                                     ? _settings.filenames.size()
+                                     : in_memory_data_.size());
 }
 
 void WSClean::makeImagingTableEntryChannelSettings(

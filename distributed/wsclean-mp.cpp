@@ -68,8 +68,9 @@ int main(int argc, char* argv[]) {
   try {
     bool parseResult = false;
     shortException = !main;
+    constexpr bool kInMemory = false;
     parseResult = CommandLine::ParseWithoutValidation(
-        wsclean, argc, const_cast<const char**>(argv), !main);
+        wsclean, argc, const_cast<const char**>(argv), !main, kInMemory);
     shortException = !main && !Logger::IsVerbose();
     check_openblas_multithreading();
     if (parseResult) {

@@ -15,7 +15,18 @@
 
 namespace wsclean {
 
-void Image(const std::string& command_line_parameters, InMemoryMs&& ms);
+/**
+ * Perform a WSClean imaging run on in-memory data. The @p
+ * command_line_parameters should specify the settings of the run, and should be
+ * similar to a normal wsclean command line parameter list. The parameters
+ * should not include the executable ("wsclean") and should not include
+ * measurement set filenames.
+ *
+ * By default, WSClean will produce logging output on the command line. If this
+ * is undesirable, the option "-quiet" can be added to surpress this output.
+ */
+void Image(const std::string& command_line_parameters,
+           std::vector<InMemoryMs>&& ms_list);
 
 }  // namespace wsclean
 

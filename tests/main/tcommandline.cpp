@@ -7,11 +7,14 @@
 namespace wsclean {
 
 namespace {
-const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
-const char* kMWA_BDA_MS = "test_data/MWA_BDA_MOCK.ms/";
-const char* kFacetFile2Facets = FACET_DEFINITION_FILE_2FACETS;
-const char* kFacetFile4Facets = FACET_DEFINITION_FILE_4FACETS;
-const char* kFacetSolutionFile = "test_data/mock_soltab_2pol.h5";
+constexpr const char* kMWA_MS = "test_data/MWA_MOCK.ms/";
+constexpr const char* kMWA_BDA_MS = "test_data/MWA_BDA_MOCK.ms/";
+constexpr const char* kFacetFile2Facets = FACET_DEFINITION_FILE_2FACETS;
+constexpr const char* kFacetFile4Facets = FACET_DEFINITION_FILE_4FACETS;
+constexpr const char* kFacetSolutionFile = "test_data/mock_soltab_2pol.h5";
+
+constexpr bool kSlave = false;
+constexpr bool kInMemoryData = false;
 
 // Include sizes ending in "k", "m", which should yield kilobytes / megabytes.
 std::vector<const char*> baseArgs() {
@@ -41,7 +44,7 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   std::vector<const char*> args1 = baseArgs();
   args1.push_back("-apply-primary-beam");
   args1.push_back(kMWA_MS);
-  commandLine.Parse(wsclean, args1.size(), args1.data(), false);
+  commandLine.Parse(wsclean, args1.size(), args1.data(), kSlave, kInMemoryData);
   const Settings settings1 = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings1.trimmedImageWidth, 1024);
   BOOST_CHECK_EQUAL(settings1.trimmedImageHeight, 512);
@@ -62,7 +65,7 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   args2.push_back("-max-mpi-message-size");
   args2.push_back("1g");  // Test that a "g" suffix yields gigabytes.
   args2.push_back(kMWA_MS);
-  commandLine.Parse(wsclean, args2.size(), args2.data(), false);
+  commandLine.Parse(wsclean, args2.size(), args2.data(), kSlave, kInMemoryData);
   const Settings settings2 = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings2.primaryBeamGridSize, 64u);
   PrimaryBeam primaryBeam2(settings2);
@@ -91,7 +94,7 @@ BOOST_AUTO_TEST_CASE(h5parm_one_file) {
   args.push_back(kFacetSolutionFile);
   args.push_back("amplitude000,phase000");
   args.push_back(kMWA_MS);
-  commandLine.Parse(wsclean, args.size(), args.data(), false);
+  commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData);
   settings = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings.facetSolutionFiles.size(), 1u);
   BOOST_CHECK_EQUAL(settings.facetSolutionFiles[0], kFacetSolutionFile);
@@ -99,7 +102,7 @@ BOOST_AUTO_TEST_CASE(h5parm_one_file) {
   // One solution file, two MSets
   wsclean.ResetSettings();
   args.push_back(kMWA_MS);
-  commandLine.Parse(wsclean, args.size(), args.data(), false);
+  commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData);
   settings = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings.filenames.size(), 2u);
   BOOST_CHECK_EQUAL(settings.facetSolutionFiles.size(), 1u);
@@ -122,13 +125,14 @@ BOOST_AUTO_TEST_CASE(h5parm_multiple_files) {
   args.push_back(facet_solutions_char);
   args.push_back("amplitude000,phase000");
   args.push_back(kMWA_MS);
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
+                                      kInMemoryData),
                     std::runtime_error);
 
   // Two solution files, two MSets
   wsclean.ResetSettings();
   args.push_back(kMWA_MS);
-  commandLine.Parse(wsclean, args.size(), args.data(), false);
+  commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData);
   settings = wsclean.GetSettings();
   BOOST_CHECK_EQUAL(settings.filenames.size(), 2u);
   BOOST_CHECK_EQUAL(settings.facetSolutionFiles.size(), 2u);
@@ -147,7 +151,8 @@ BOOST_AUTO_TEST_CASE(h5parm_inconsistent) {
   args.push_back(kFacetSolutionFile);
   args.push_back("amplitude000,phase000");
   args.push_back(kMWA_MS);
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
+                                      kInMemoryData),
                     std::runtime_error);
 }
 
@@ -163,7 +168,8 @@ BOOST_AUTO_TEST_CASE(idg_bda_averaging) {
   args.push_back("10.0");
   args.push_back(kMWA_MS);
 
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
+                                      kInMemoryData),
                     std::runtime_error);
 }
 
@@ -176,7 +182,8 @@ BOOST_AUTO_TEST_CASE(idg_bda_mset) {
   std::vector<const char*> args = baseArgsBda();
   args.push_back(kMWA_BDA_MS);
 
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
+                                      kInMemoryData),
                     std::runtime_error);
 }
 
@@ -186,7 +193,8 @@ BOOST_AUTO_TEST_CASE(incomplete_commandline) {
 
   std::vector<const char*> args{"wsclean", "-name"};
 
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), false),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
+                                      kInMemoryData),
                     std::runtime_error);
 }
 

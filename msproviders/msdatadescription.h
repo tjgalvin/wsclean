@@ -7,6 +7,8 @@
 #include <aocommon/io/serialstreamfwd.h>
 #include <aocommon/vectormap.h>
 
+#include "../structures/inmemoryreordering.h"
+
 #include <schaapcommon/reordering/channelrange.h>
 #include <schaapcommon/reordering/storagemanagertype.h>
 

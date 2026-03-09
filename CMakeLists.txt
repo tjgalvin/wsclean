@@ -358,6 +358,7 @@ add_library(
   gridding/wsmsgridder.cpp
   gridding/wstackinggridder.cpp
   idg/averagebeam.cpp
+  interface/wsclean.cpp
   io/componentlistwriter.cpp
   io/facetreader.cpp
   io/parsetreader.cpp
@@ -458,7 +459,7 @@ add_library(wsclean-lib STATIC)
 target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES} wsclean-object)
 set_target_properties(wsclean-lib PROPERTIES OUTPUT_NAME wsclean)
 
-add_library(wsclean-shared SHARED interface/wsclean.cpp)
+add_library(wsclean-shared SHARED)
 target_link_libraries(wsclean-shared PRIVATE ${EXTERNAL_LIBRARIES}
                                              wsclean-object)
 set_target_properties(wsclean-shared PROPERTIES OUTPUT_NAME wsclean)
