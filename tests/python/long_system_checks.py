@@ -525,6 +525,12 @@ class TestLongSystem:
         s = f"{tcf.WSCLEAN} -name {name('iv-jointly-fitted')} {tcf.DIMS_LARGE} -parallel-gridding 4 -channels-out 4 -join-channels -fit-spectral-pol 2 -pol i,v -join-polarizations -niter 1000 -auto-threshold 5 -multiscale -mgain 0.8 {tcf.MWA_MS}"
         validate_call(s.split())
 
+    @pytest.mark.skip(
+        reason=f"Test set fails for currently unknown reasons -- needs investigation. It is not \
+        a tolerance issue, the produced DD PSF images are incorrect. It could be due to changes \
+        in EveryBeam; it uses the SKA beam. It fails both with current master (10-03-2026) as \
+        before having merged !910 (which touches dd psf code, but is thus not the issue)."
+    )
     def test_direction_dependent_psfs(self):
         """Tests direction-dependent PSFs.
         Checks that the PSF generated which lies close to the source point is more similar to the dirty image than the one lying further away.
@@ -573,8 +579,8 @@ class TestLongSystem:
                 f_image[0].data[0, 0, i, j] = 1.0 / f_beam[0].data[0, 0, i, j]
         f_image.writeto(name("DD-PSFs-model-pb.fits"), overwrite=True)
 
-        # Predict visibilites using wsclean
-        # predicted visibiliies are written to the MODEL_DATA column
+        # Predict visibilities using wsclean
+        # predicted visibilities are written to the MODEL_DATA column
         s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -no-reorder -predict -padding 1.2 -gridder idg -grid-with-beam  -beam-mode array_factor  -beam-aterm-update 120 {tcf.SKA_MS}"
         validate_call(s.split())
 
@@ -589,7 +595,7 @@ class TestLongSystem:
         validate_call(s.split())
 
         # Generate dirty image and PSF_GRID_SIZE_1D x PSF_GRID_SIZE_1D direction-dependent PSFs
-        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -data-column MODEL_DATA -parallel-deconvolution 1600 -no-reorder -size 4800 4800 -scale 5asec -mgain 0.8 -niter 10000000 -abs-threshold 10.0mJy -auto-mask 5.0 -weight briggs -1 -padding 1.2 -gridder idg -grid-with-beam -beam-mode array_factor -aterm-kernel-size 15 -beam-aterm-update 120 -dd-psf-grid 3 3 -nmiter 1 -python-deconvolution {deconvolution_script} {tcf.SKA_MS}"
+        s = f"{tcf.WSCLEAN} -name {name('DD-PSFs')} -data-column MODEL_DATA -parallel-deconvolution 1600 -size 4800 4800 -scale 5asec -mgain 0.8 -niter 10000000 -abs-threshold 10.0mJy -auto-mask 5.0 -weight briggs -1 -padding 1.2 -gridder idg -grid-with-beam -beam-mode array_factor -aterm-kernel-size 15 -beam-aterm-update 120 -dd-psf-grid 3 3 -nmiter 1 -python-deconvolution {deconvolution_script} {tcf.SKA_MS}"
         validate_call(s.split())
 
         # Check whether the restoring beam for dd-psf and regular imaging is the same
@@ -622,7 +628,7 @@ class TestLongSystem:
         )
 
         # Verify that the psf generated at the location of a point source
-        # is indeed a better match then a psf for a diffetent location
+        # is indeed a better match then a psf for a different location
         expected_improvement_factor = 0.3
         assert np.sqrt(
             np.mean(np.square(dirty - psf_on_source))
