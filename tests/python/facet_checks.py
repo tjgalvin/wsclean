@@ -31,7 +31,7 @@ RUN_EXPENSIVE_TESTS = (
 
 def predict_full_image(ms, gridder):
     """Predict full image"""
-    s = f"{tcf.WSCLEAN} -predict -gridder {gridder} -name point-source {ms}"
+    s = f"{tcf.WSCLEAN} -predict -gridder {gridder} -maxuvw-m 650 -no-min-grid-resolution -name point-source {ms}"
     validate_call(s.split())
 
 
@@ -46,7 +46,7 @@ def predict_facet_image(
     # Predict facet based image
     s = (
         f"{wsclean_command} -predict -gridder {gridder} {facet_beam} "
-        f"-facet-regions {tcf.FACETFILE_4FACETS} -name {name} {ms}"
+        f"-facet-regions {tcf.FACETFILE_4FACETS} -maxuvw-m 650 -no-min-grid-resolution -name {name} {ms}"
     )
     validate_call(s.split())
 
@@ -81,21 +81,16 @@ def deconvolve_facets(
     thread_cmd = f"{tcf.WSCLEAN} -parallel-gridding {n_threads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
     facet_beam = "-mwa-path . -apply-facet-beam" if apply_beam else ""
-    image_prefix = "facet-imaging-{gridder}"
+    image_prefix = f"facet-imaging-{gridder}"
 
-    # Since IDG assumes square facets, the facets described in in FACETFILE_4FACETS
-    # will be extended outside of the bound of the default dimensions (DIMS_SMALL)
-    # and, hence, will result in segfaults when stitching the facets back together.
-    image_dims = (
-        "-size 320 320 -scale 4amin"
-        if gridder == "facet-idg"
-        else tcf.DIMS_SMALL
-    )
+    # -maxuvw-m 650 is added because IDG has problems when visibilities are near
+    # the uv-plane's edge. The edge is around 800 meters.
+
     s = (
         f"{mpi_cmd if mpi else thread_cmd} -gridder {gridder} {reorder_ms} "
-        f"{image_dims} -niter 1000000 -auto-threshold 5 -mgain 0.8 "
+        f"{tcf.DIMS_SMALL} -niter 1000000 -auto-threshold 5 -mgain 0.8 "
         f"-facet-regions {tcf.FACETFILE_4FACETS} {facet_beam} "
-        f"-name {image_prefix} {reorder_ms} -v {ms}"
+        f"-name {image_prefix} {reorder_ms} -maxuvw-m 650 -no-min-grid-resolution -v {ms}"
     )
     validate_call(s.split())
 
