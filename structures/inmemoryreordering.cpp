@@ -17,7 +17,6 @@ using aocommon::VectorMap;
 using schaapcommon::reordering::ChannelRange;
 using schaapcommon::reordering::ExtractData;
 using schaapcommon::reordering::ExtractWeights;
-using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 namespace {
@@ -40,9 +39,8 @@ std::shared_ptr<InMemoryInfo> GetInMemoryInfo(InMemoryMs& data) {
 
 InMemoryHandle ReorderInMemory(
     InMemoryMs&& data, const std::vector<VectorMap<ChannelRange>>& channels,
-    const MSSelection& selection, const std::string& data_column_name,
-    const std::string& model_column_name, bool set_model_to_zero,
-    const Settings& settings) {
+    const std::string& data_column_name, const std::string& model_column_name,
+    bool set_model_to_zero, const Settings& settings) {
   InMemoryHandle result;
 
   // Make a list of the independent output polarizations. Note that this list

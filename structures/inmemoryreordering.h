@@ -69,7 +69,6 @@ InMemoryHandle ReorderInMemory(
     InMemoryMs&& data,
     const std::vector<
         aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels,
-    const schaapcommon::reordering::MSSelection& selection,
     const std::string& data_column_name, const std::string& model_column_name,
     bool set_model_to_zero, const Settings& settings);
 

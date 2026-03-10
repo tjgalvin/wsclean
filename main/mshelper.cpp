@@ -178,10 +178,11 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
 
     if (is_in_memory_data_supplied) {
       in_memory_ms = std::move(*in_memory_data_before_reordering_[ms_index]);
+      ApplyRowSelectionToMs(in_memory_ms, global_selection_);
     } else {
-      in_memory_ms =
-          wsclean::ReadMsInMemory(settings_.filenames[ms_index],
-                                  settings_.dataColumnName, global_selection_);
+      in_memory_ms = ReadMsInMemory(settings_.filenames[ms_index],
+                                    settings_.dataColumnName, global_selection_,
+                                    settings_.sortMsInTime);
     }
 
     const std::vector<aocommon::VectorMap<ChannelRange>> channels =
@@ -189,10 +190,9 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
     // The model data is always overwritten in the first iteration, so it does
     // not need to be initialized.
     constexpr bool initial_model_required = false;
-    InMemoryHandle handle =
-        ReorderInMemory(std::move(in_memory_ms), channels, global_selection_,
-                        settings_.dataColumnName, settings_.modelColumnName,
-                        initial_model_required, settings_);
+    InMemoryHandle handle = ReorderInMemory(
+        std::move(in_memory_ms), channels, settings_.dataColumnName,
+        settings_.modelColumnName, initial_model_required, settings_);
 
     std::lock_guard<std::mutex> lock(mutex);
     in_memory_handles_[ms_index] = std::move(handle);

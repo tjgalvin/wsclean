@@ -421,10 +421,13 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
     std::vector<std::complex<float>> model_data_buffer(maxchannels_ *
                                                        polarizations_per_file);
     casacore::Array<std::complex<float>> model_data_array(shape);
+    casacore::Array<double> uvw(casacore::IPosition{3});
 
     ProgressBar progress(std::string("Writing changed model back to ") +
                          handle.ms_path_);
-    size_t start_row, end_row;
+
+    size_t start_row;
+    size_t end_row;
     GetRowRange(ms, handle.selection_, start_row, end_row);
     size_t timestep =
         handle.selection_.HasInterval() ? handle.selection_.IntervalStart() : 0;
@@ -437,7 +440,7 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
       const int antenna2 = antenna2_column(row);
       const int field_id = field_id_column(row);
       const size_t data_desc_id = data_desc_id_column(row);
-      casacore::Vector<double> uvw = uvw_column(row);
+      uvw_column.get(row, uvw, false);
 
       if (time != time_column(row)) {
         ++timestep;
