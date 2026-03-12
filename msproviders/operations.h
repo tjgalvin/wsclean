@@ -57,6 +57,9 @@ void InitializeModelColumn(casacore::MeasurementSet& ms,
 casacore::ArrayColumn<float> InitializeImagingWeightColumn(
     casacore::MeasurementSet& ms);
 
+bool HasTimeBda(const casacore::MeasurementSet& ms);
+bool HasFrequencyBda(const casacore::MeasurementSet& ms);
+
 double GetMsInterval(const casacore::MeasurementSet& ms);
 
 std::vector<std::string> GetAntennaNames(const casacore::MSAntenna& antenna);

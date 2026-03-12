@@ -35,8 +35,6 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const std::vector<
         aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
 
-bool HasFrequencyBda(const casacore::MeasurementSet& ms);
-
 /**
  * The abstract MSProvider class is the base class for classes that read and
  * write the visibilities. Write functionality is directly provided by classes
@@ -176,7 +174,8 @@ class MSProvider {
 
   /**
    * Integration time of one timestep, in seconds. If time BDA is used, then it
-   * is undefined what is returned.
+   * should return the shortest interval (i.e. interval for the longest
+   * baseline).
    */
   virtual double Interval() = 0;
 

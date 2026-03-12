@@ -4,6 +4,7 @@
 
 #include <casacore/tables/DataMan/DataManager.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
+#include <casacore/tables/Tables/TableRecord.h>
 
 using aocommon::Logger;
 using schaapcommon::reordering::MSSelection;
@@ -11,6 +12,7 @@ using schaapcommon::reordering::StorageManagerType;
 
 namespace wsclean {
 namespace {
+constexpr const char* kBdaTimeAxisTable = "BDA_TIME_AXIS";
 
 void FillModelColumn(const casacore::ArrayColumn<casacore::Complex>& dataColumn,
                      casacore::ArrayColumn<casacore::Complex>& modelColumn) {
@@ -200,10 +202,37 @@ std::set<aocommon::PolarizationEnum> GetMSPolarizations(
   return pols;
 }
 
+bool HasFrequencyBda(const casacore::MeasurementSet& ms) {
+  // This is a simple test that works in all current use-cases. Formally, we
+  // should check if there are rows with the same BDA_SET_ID to conclude BDA is
+  // enabled.
+  const casacore::MSSpectralWindow& spw_table = ms.spectralWindow();
+  return spw_table.nrow() > 1 &&
+         spw_table.actualTableDesc().isColumn("BDA_SET_ID");
+}
+
+bool HasTimeBda(const casacore::MeasurementSet& ms) {
+  if (!ms.keywordSet().isDefined(kBdaTimeAxisTable)) return false;
+  casacore::Table table = ms.keywordSet().asTable(kBdaTimeAxisTable);
+  casacore::ScalarColumn<bool> is_applied_column(table, "IS_BDA_APPLIED");
+  if (is_applied_column.nrow() > 1)
+    throw std::runtime_error("Unsupported time-direction BDA format");
+  return is_applied_column.nrow() == 1 && is_applied_column(0);
+}
+
 double GetMsInterval(const casacore::MeasurementSet& ms) {
-  const casacore::ScalarColumn<double> interval_column(
-      ms, ms.columnName(casacore::MSMainEnums::INTERVAL));
-  return interval_column(0);
+  const bool has_time_bda = HasTimeBda(ms);
+  if (has_time_bda) {
+    casacore::Table time_axis_table =
+        ms.keywordSet().asTable(kBdaTimeAxisTable);
+    const casacore::ScalarColumn<double> min_time_column(time_axis_table,
+                                                         "MIN_TIME_INTERVAL");
+    return min_time_column(0);
+  } else {
+    const casacore::ScalarColumn<double> interval_column(
+        ms, ms.columnName(casacore::MSMainEnums::INTERVAL));
+    return interval_column(0);
+  }
 }
 
 std::vector<std::string> GetAntennaNames(const casacore::MSAntenna& antenna) {

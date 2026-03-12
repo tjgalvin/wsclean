@@ -8,6 +8,7 @@
 #include <aocommon/logger.h>
 
 #include "../io/readinmemory.h"
+#include "../msproviders/operations.h"
 
 using aocommon::Logger;
 

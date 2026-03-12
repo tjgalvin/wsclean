@@ -11,20 +11,21 @@ add_executable(
   io/tcachedimageset.cpp
   io/tparsetreader.cpp
   main/tcommandline.cpp
-  main/tmshelper.cpp
-  main/tsettings.cpp
   math/timageoperations.cpp
+  main/tmshelper.cpp
   math/trenderer.cpp
+  main/tsettings.cpp
   math/ttophatconvolution.cpp
   model/tbbsmodel.cpp
-  msproviders/tnoisemsrowprovider.cpp
   msproviders/tbdamsrowprovider.cpp
   msproviders/tbdamsrowproviderdata.cpp
   msproviders/tinmemoryprovider.cpp
   msproviders/tmsrowproviderbase.cpp
+  msproviders/tnoisemsrowprovider.cpp
+  msproviders/toperations.cpp
   scheduling/tgriddingtaskfactory.cpp
-  structures/timagingtable.cpp
   structures/tfacetutil.cpp
+  structures/timagingtable.cpp
   structures/tmsselection.cpp
   structures/toutputchannelinfo.cpp
   structures/tprimarybeam.cpp
