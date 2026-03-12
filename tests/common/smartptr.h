@@ -23,8 +23,7 @@ class UniquePtr {
    * Constructor. It uses perfect forwarding for calling T's constructor.
    */
   template <typename... Args>
-  UniquePtr(Args&&... args)
-      : _unique(new T(std::forward<Args>(args)...)), _raw(_unique.get()) {}
+  UniquePtr(Args&&... args) : _unique(new T(std::forward<Args>(args)...)), _raw(_unique.get()) {}
 
   /**
    * Extract the unique_ptr from the helper class.

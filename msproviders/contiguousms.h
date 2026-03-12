@@ -27,14 +27,12 @@ class ContiguousMS final : public MSProvider {
   friend class ContiguousMSReader;
 
  public:
-  ContiguousMS(
-      const string& msPath, const std::string& dataColumnName,
-      const std::string& modelColumnName,
-      schaapcommon::reordering::StorageManagerType modelStorageManager,
-      const schaapcommon::reordering::MSSelection& selection,
-      const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
-          channel_selection,
-      aocommon::PolarizationEnum polOut, bool useMPI, bool sort_in_time);
+  ContiguousMS(const string& msPath, const std::string& dataColumnName,
+               const std::string& modelColumnName,
+               schaapcommon::reordering::StorageManagerType modelStorageManager,
+               const schaapcommon::reordering::MSSelection& selection,
+               const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& channel_selection,
+               aocommon::PolarizationEnum polOut, bool useMPI, bool sort_in_time);
 
   ContiguousMS(const ContiguousMS&) = delete;
 
@@ -52,9 +50,7 @@ class ContiguousMS final : public MSProvider {
 
   double StartTime() override;
 
-  aocommon::PolarizationEnum Polarization() override {
-    return _outputPolarization;
-  }
+  aocommon::PolarizationEnum Polarization() override { return _outputPolarization; }
 
   size_t NMaxChannels() override;
 
@@ -70,9 +66,7 @@ class ContiguousMS final : public MSProvider {
 
   size_t NRows() final { return _endRow - _startRow; }
 
-  const aocommon::MultiBandData& SelectedBands() final {
-    return selected_bands_;
-  }
+  const aocommon::MultiBandData& SelectedBands() final { return selected_bands_; }
 
   double Interval() final;
 
@@ -94,8 +88,7 @@ class ContiguousMS final : public MSProvider {
   bool _isDataRead, _isModelRead, _isWeightRead;
   bool _isModelColumnPrepared = false;
   size_t _startRow, _endRow;
-  aocommon::VectorMap<std::set<aocommon::PolarizationEnum>>
-      input_polarizations_;
+  aocommon::VectorMap<std::set<aocommon::PolarizationEnum>> input_polarizations_;
   schaapcommon::reordering::MSSelection selection_;
   aocommon::VectorMap<schaapcommon::reordering::ChannelRange> channel_ranges_;
   bool has_frequency_bda_ = false;
@@ -106,8 +99,7 @@ class ContiguousMS final : public MSProvider {
   aocommon::MultiBandData selected_bands_;
   bool _msHasWeightSpectrum;
 
-  casacore::ScalarColumn<int> _antenna1Column, _antenna2Column, _fieldIdColumn,
-      _dataDescIdColumn;
+  casacore::ScalarColumn<int> _antenna1Column, _antenna2Column, _fieldIdColumn, _dataDescIdColumn;
   casacore::ScalarColumn<double> _timeColumn;
   casacore::ArrayColumn<double> _uvwColumn;
   std::unique_ptr<casacore::ArrayColumn<float>> _weightSpectrumColumn;
@@ -120,8 +112,7 @@ class ContiguousMS final : public MSProvider {
   schaapcommon::reordering::StorageManagerType _modelStorageManager;
 
   casacore::Array<std::complex<float>> _dataArray, _modelArray;
-  casacore::Array<float> _weightSpectrumArray, _weightScalarArray,
-      _imagingWeightSpectrumArray;
+  casacore::Array<float> _weightSpectrumArray, _weightScalarArray, _imagingWeightSpectrumArray;
   casacore::Array<bool> _flagArray;
 
   void prepareModelColumn();

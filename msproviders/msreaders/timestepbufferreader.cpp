@@ -25,18 +25,16 @@ void TimestepBufferReader::ReadMeta(MSProvider::MetaData& metadata) {
 }
 
 void TimestepBufferReader::ReadData(std::complex<float>* buffer) {
-  std::copy(buffer_[buffer_position_].data.begin(),
-            buffer_[buffer_position_].data.end(), buffer);
+  std::copy(buffer_[buffer_position_].data.begin(), buffer_[buffer_position_].data.end(), buffer);
 }
 
 void TimestepBufferReader::ReadModel(std::complex<float>* buffer) {
-  std::copy(buffer_[buffer_position_].model.begin(),
-            buffer_[buffer_position_].model.end(), buffer);
+  std::copy(buffer_[buffer_position_].model.begin(), buffer_[buffer_position_].model.end(), buffer);
 }
 
 void TimestepBufferReader::ReadWeights(float* buffer) {
-  std::copy(buffer_[buffer_position_].weights.begin(),
-            buffer_[buffer_position_].weights.end(), buffer);
+  std::copy(buffer_[buffer_position_].weights.begin(), buffer_[buffer_position_].weights.end(),
+            buffer);
 }
 
 void TimestepBufferReader::WriteImagingWeights(const float* buffer) {
@@ -51,8 +49,8 @@ void TimestepBufferReader::readTimeblock() {
   buffer_position_ = 0;
   buffer_.clear();
   MSProvider::MetaData metadata;
-  const size_t max_size = tstepbuffer.ms_provider_->NPolarizations() *
-                          tstepbuffer.ms_provider_->NMaxChannels();
+  const size_t max_size =
+      tstepbuffer.ms_provider_->NPolarizations() * tstepbuffer.ms_provider_->NMaxChannels();
 
   if (ms_reader_->CurrentRowAvailable()) {
     ms_reader_->ReadMeta(metadata);

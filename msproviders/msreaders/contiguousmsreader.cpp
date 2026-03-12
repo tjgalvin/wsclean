@@ -25,19 +25,16 @@ ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
   NextInputRow();
 }
 
-inline void ContiguousMSReader::UpdateTime(double time,
-                                           bool require_time_ordering) {
+inline void ContiguousMSReader::UpdateTime(double time, bool require_time_ordering) {
   if (_currentInputTime != time) {
-    if (require_time_ordering && _currentInputTime > time)
-      ThrowTimeOrderException();
+    if (require_time_ordering && _currentInputTime > time) ThrowTimeOrderException();
     ++_currentInputTimestep;
     _currentInputTime = time;
   }
 }
 
 bool ContiguousMSReader::CurrentRowAvailable() {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*ms_provider_);
+  const ContiguousMS& contiguousms = static_cast<const ContiguousMS&>(*ms_provider_);
 
   if (_currentInputRow >= contiguousms._endRow) return false;
 
@@ -48,8 +45,7 @@ bool ContiguousMSReader::CurrentRowAvailable() {
   casacore::Vector<double> uvw = contiguousms._uvwColumn(_currentInputRow);
   const bool require_time_ordering = contiguousms.selection_.HasInterval();
 
-  while (!contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep, a1,
-                                             a2, uvw.data()) ||
+  while (!contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw.data()) ||
          !ContainsDataDescId(contiguousms.channel_ranges_, dataDescId)) {
     ++_currentInputRow;
     if (_currentInputRow >= contiguousms._endRow) return false;
@@ -71,8 +67,7 @@ bool ContiguousMSReader::CurrentRowAvailable() {
 }
 
 void ContiguousMSReader::NextInputRow() {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*ms_provider_);
+  const ContiguousMS& contiguousms = static_cast<const ContiguousMS&>(*ms_provider_);
 
   _isDataRead = false;
   _isWeightRead = false;
@@ -94,14 +89,13 @@ void ContiguousMSReader::NextInputRow() {
     dataDescId = contiguousms._dataDescIdColumn(_currentInputRow);
     const double time = contiguousms._timeColumn(_currentInputRow);
     UpdateTime(time, require_time_ordering);
-  } while (!contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep,
-                                               a1, a2, uvw.data()) ||
-           !ContainsDataDescId(contiguousms.channel_ranges_, dataDescId));
+  } while (
+      !contiguousms.selection_.IsSelected(fieldId, _currentInputTimestep, a1, a2, uvw.data()) ||
+      !ContainsDataDescId(contiguousms.channel_ranges_, dataDescId));
 }
 
 void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metadata) {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*ms_provider_);
+  const ContiguousMS& contiguousms = static_cast<const ContiguousMS&>(*ms_provider_);
 
   casacore::Vector<double> uvwArray = contiguousms._uvwColumn(_currentInputRow);
   metadata.u_in_m = uvwArray(0);
@@ -123,8 +117,7 @@ void ContiguousMSReader::ReadData(std::complex<float>* buffer) {
   const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
   const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
   schaapcommon::reordering::ExtractData(
-      buffer, start_channel, end_channel,
-      contiguousms.input_polarizations_[data_desc_id],
+      buffer, start_channel, end_channel, contiguousms.input_polarizations_[data_desc_id],
       contiguousms._dataArray.data(), contiguousms._outputPolarization);
 }
 
@@ -139,14 +132,12 @@ void ContiguousMSReader::ReadModel(std::complex<float>* buffer) {
   const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
   const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
   schaapcommon::reordering::ExtractData(
-      buffer, start_channel, end_channel,
-      contiguousms.input_polarizations_[data_desc_id],
+      buffer, start_channel, end_channel, contiguousms.input_polarizations_[data_desc_id],
       contiguousms._modelArray.data(), contiguousms._outputPolarization);
 }
 
 void ContiguousMSReader::ReadWeights(float* buffer) {
-  const ContiguousMS& contiguousms =
-      static_cast<const ContiguousMS&>(*ms_provider_);
+  const ContiguousMS& contiguousms = static_cast<const ContiguousMS&>(*ms_provider_);
 
   readData();
   readWeights();
@@ -154,8 +145,7 @@ void ContiguousMSReader::ReadWeights(float* buffer) {
   const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
   const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
   schaapcommon::reordering::ExtractWeights(
-      buffer, start_channel, end_channel,
-      contiguousms.input_polarizations_[data_desc_id],
+      buffer, start_channel, end_channel, contiguousms.input_polarizations_[data_desc_id],
       contiguousms._dataArray.data(), contiguousms._weightSpectrumArray.data(),
       contiguousms._flagArray.data(), contiguousms._outputPolarization);
 }
@@ -164,21 +154,18 @@ void ContiguousMSReader::WriteImagingWeights(const float* buffer) {
   ContiguousMS& contiguousms = static_cast<ContiguousMS&>(*ms_provider_);
 
   if (_imagingWeightsColumn == nullptr) {
-    _imagingWeightsColumn.reset(new casacore::ArrayColumn<float>(
-        InitializeImagingWeightColumn(*(contiguousms._ms))));
+    _imagingWeightsColumn.reset(
+        new casacore::ArrayColumn<float>(InitializeImagingWeightColumn(*(contiguousms._ms))));
   }
   const size_t data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
   const size_t start_channel = contiguousms.channel_ranges_[data_desc_id].start;
   const size_t end_channel = contiguousms.channel_ranges_[data_desc_id].end;
 
-  _imagingWeightsColumn->get(_currentInputRow,
-                             contiguousms._imagingWeightSpectrumArray);
+  _imagingWeightsColumn->get(_currentInputRow, contiguousms._imagingWeightSpectrumArray);
   schaapcommon::reordering::StoreWeights(
-      contiguousms._imagingWeightSpectrumArray.data(), start_channel,
-      end_channel, contiguousms.input_polarizations_[data_desc_id], buffer,
-      contiguousms._outputPolarization);
-  _imagingWeightsColumn->put(_currentInputRow,
-                             contiguousms._imagingWeightSpectrumArray);
+      contiguousms._imagingWeightSpectrumArray.data(), start_channel, end_channel,
+      contiguousms.input_polarizations_[data_desc_id], buffer, contiguousms._outputPolarization);
+  _imagingWeightsColumn->put(_currentInputRow, contiguousms._imagingWeightSpectrumArray);
 }
 
 void ContiguousMSReader::readData() {
@@ -195,13 +182,10 @@ void ContiguousMSReader::readWeights() {
   if (!_isWeightRead) {
     contiguousms._flagColumn.get(_currentInputRow, contiguousms._flagArray);
     if (contiguousms._msHasWeightSpectrum)
-      contiguousms._weightSpectrumColumn->get(
-          _currentInputRow, contiguousms._weightSpectrumArray);
+      contiguousms._weightSpectrumColumn->get(_currentInputRow, contiguousms._weightSpectrumArray);
     else {
-      contiguousms._weightScalarColumn->get(_currentInputRow,
-                                            contiguousms._weightScalarArray);
-      ExpandScalarWeights(contiguousms._weightScalarArray,
-                          contiguousms._weightSpectrumArray);
+      contiguousms._weightScalarColumn->get(_currentInputRow, contiguousms._weightScalarArray);
+      ExpandScalarWeights(contiguousms._weightScalarArray, contiguousms._weightSpectrumArray);
     }
     _isWeightRead = true;
   }

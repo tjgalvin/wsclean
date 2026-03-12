@@ -47,10 +47,9 @@ struct ImagingTableEntry {
    * @return A new DeconvolutionTableEntry.
    */
   std::unique_ptr<radler::WorkTableEntry> CreateDeconvolutionEntry(
-      size_t channel_index_offset, CachedImageSet* psf_images,
-      CachedImageSet& model_images, CachedImageSet& residual_images,
-      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>&
-          psf_facets,
+      size_t channel_index_offset, CachedImageSet* psf_images, CachedImageSet& model_images,
+      CachedImageSet& residual_images,
+      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& psf_facets,
       bool is_imaginary) const;
 
   /**
@@ -136,9 +135,7 @@ struct ImagingTableEntry {
 
   std::string tmpFilePrefix;
 
-  double CentralFrequency() const {
-    return 0.5 * (bandStartFrequency + bandEndFrequency);
-  }
+  double CentralFrequency() const { return 0.5 * (bandStartFrequency + bandEndFrequency); }
 
   /**
    * A number that scales with the estimated inverse-variance of the image. It

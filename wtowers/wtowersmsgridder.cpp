@@ -21,8 +21,7 @@ using aocommon::Logger;
 
 namespace wsclean {
 
-WTowersMsGridder::WTowersMsGridder(const Settings& settings,
-                                   const Resources& resources,
+WTowersMsGridder::WTowersMsGridder(const Settings& settings, const Resources& resources,
                                    MsProviderCollection& ms_provider_collection)
     : MsGridder(settings, ms_provider_collection),
       resources_(resources),
@@ -40,21 +39,19 @@ WTowersMsGridder::WTowersMsGridder(const Settings& settings,
 
 WTowersMsGridder::~WTowersMsGridder() = default;
 
-std::unique_ptr<WTowersGridderBase> WTowersMsGridder::MakeGridder(
-    size_t width, size_t height) const {
+std::unique_ptr<WTowersGridderBase> WTowersMsGridder::MakeGridder(size_t width,
+                                                                  size_t height) const {
   if (accuracy_ <= 1.01e-5) {
     return std::make_unique<WTowersGridder<double>>(
-        ActualInversionWidth(), ActualInversionHeight(), width, height,
-        ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        wtowers_subgrid_size_, wtowers_support_, wtowers_w_support_,
-        wtowers_padding_, wtowers_w_padding_, resources_.NCpus(), accuracy_,
+        ActualInversionWidth(), ActualInversionHeight(), width, height, ActualPixelSizeX(),
+        ActualPixelSizeY(), LShift(), MShift(), wtowers_subgrid_size_, wtowers_support_,
+        wtowers_w_support_, wtowers_padding_, wtowers_w_padding_, resources_.NCpus(), accuracy_,
         max_abs_w_);
   } else {
     return std::make_unique<WTowersGridder<float>>(
-        ActualInversionWidth(), ActualInversionHeight(), width, height,
-        ActualPixelSizeX(), ActualPixelSizeY(), LShift(), MShift(),
-        wtowers_subgrid_size_, wtowers_support_, wtowers_w_support_,
-        wtowers_padding_, wtowers_w_padding_, resources_.NCpus(), accuracy_,
+        ActualInversionWidth(), ActualInversionHeight(), width, height, ActualPixelSizeX(),
+        ActualPixelSizeY(), LShift(), MShift(), wtowers_subgrid_size_, wtowers_support_,
+        wtowers_w_support_, wtowers_padding_, wtowers_w_padding_, resources_.NCpus(), accuracy_,
         max_abs_w_);
   }
 }
@@ -65,10 +62,11 @@ size_t WTowersMsGridder::CalculateConstantMemory() const {
   return constant_mem;
 }
 
-size_t WTowersMsGridder::CalculateMaxRowsInMemory(
-    int64_t available_memory, size_t constant_memory,
-    double additional_per_row_consumption, size_t per_row_uvw_consumption,
-    size_t channel_count, size_t num_polarizations_stored) const {
+size_t WTowersMsGridder::CalculateMaxRowsInMemory(int64_t available_memory, size_t constant_memory,
+                                                  double additional_per_row_consumption,
+                                                  size_t per_row_uvw_consumption,
+                                                  size_t channel_count,
+                                                  size_t num_polarizations_stored) const {
   if (static_cast<int64_t>(constant_memory) >= available_memory) {
     // Assume that half the memory is necessary for the constant parts (like
     // image grid), and the other half remains available for the dynamic buffers
@@ -77,8 +75,7 @@ size_t WTowersMsGridder::CalculateMaxRowsInMemory(
                     "swapping might occur!\n";
   }
 
-  const size_t per_visibility_ducc_overhead =
-      gridder_->PerVisibilityMemoryUsage();
+  const size_t per_visibility_ducc_overhead = gridder_->PerVisibilityMemoryUsage();
   // Internal DUCC size and size we might be storing in memory are different as
   // we collapse the visibilities before passing them in to DUCC
   const size_t per_row_visibility_memory =
@@ -90,13 +87,11 @@ size_t WTowersMsGridder::CalculateMaxRowsInMemory(
   // memory overheads with each other. In this instance we allocate a fractional
   // portion of this shared memory to each gridder to help compute maximum rows
   // more accurately.
-  const double memory_per_row =
-      additional_per_row_consumption  // external overheads
-      + per_row_visibility_memory     // visibilities
-      + per_row_uvw_consumption;      // uvw
+  const double memory_per_row = additional_per_row_consumption  // external overheads
+                                + per_row_visibility_memory     // visibilities
+                                + per_row_uvw_consumption;      // uvw
   const uint64_t memory_for_buffers = available_memory - constant_memory;
-  const size_t max_n_rows =
-      std::max(uint64_t(memory_for_buffers / memory_per_row), uint64_t(100));
+  const size_t max_n_rows = std::max(uint64_t(memory_for_buffers / memory_per_row), uint64_t(100));
   if (max_n_rows < 1000) {
     Logger::Warn << "Less than 1000 data rows fit in memory: this probably "
                     "means performance is going to be very poor!\n";
@@ -105,16 +100,13 @@ size_t WTowersMsGridder::CalculateMaxRowsInMemory(
   return max_n_rows;
 }
 
-size_t WTowersMsGridder::GridMeasurementSet(
-    const MsProviderCollection::MsData& ms_data) {
+size_t WTowersMsGridder::GridMeasurementSet(const MsProviderCollection::MsData& ms_data) {
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
 
   // TODO For now we do not allow multiple bands in one msprovider
-  const aocommon::MultiBandData& selected_bands(
-      ms_data.ms_provider->SelectedBands());
+  const aocommon::MultiBandData& selected_bands(ms_data.ms_provider->SelectedBands());
   if (!ms_data.ms_provider->IsRegular())
-    throw std::runtime_error(
-        "w-towers implementation does not support irregular data yet");
+    throw std::runtime_error("w-towers implementation does not support irregular data yet");
   // Regular data should always have one band...
   assert(selected_bands.BandCount() == 1);
   const aocommon::BandData& selected_band = *selected_bands.begin();
@@ -129,12 +121,12 @@ size_t WTowersMsGridder::GridMeasurementSet(
     frequencies[i] = selected_band.ChannelFrequency(i);
 
   const size_t per_row_uvw_memory_consumption = sizeof(double) * 3;
-  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
-      resources_.Memory(), CalculateConstantMemory(), 0,
-      per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
+  size_t max_rows_per_chunk =
+      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(), 0,
+                               per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
 
-  aocommon::UVector<std::complex<float>> visibility_buffer(
-      max_rows_per_chunk * selected_band.ChannelCount());
+  aocommon::UVector<std::complex<float>> visibility_buffer(max_rows_per_chunk *
+                                                           selected_band.ChannelCount());
   aocommon::UVector<double> uvw_buffer(max_rows_per_chunk * 3);
 
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
@@ -153,8 +145,7 @@ size_t WTowersMsGridder::GridMeasurementSet(
     size_t n_chunk_rows_read = 0;
 
     // Read / fill the chunk
-    while (ms_reader->CurrentRowAvailable() &&
-           n_chunk_rows_read < max_rows_per_chunk) {
+    while (ms_reader->CurrentRowAvailable() && n_chunk_rows_read < max_rows_per_chunk) {
       MSProvider::MetaData metadata;
       ms_reader->ReadMeta(metadata);
       row_data.uvw[0] = metadata.u_in_m;
@@ -162,20 +153,17 @@ size_t WTowersMsGridder::GridMeasurementSet(
       row_data.uvw[2] = metadata.w_in_m;
 
       if (n_parms == 2) {
-        GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
-                                    row_data, weight_buffer.data(),
-                                    model_buffer.data(),
+        GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(), row_data,
+                                    weight_buffer.data(), model_buffer.data(),
                                     selection_buffer.data(), metadata);
       } else {
-        GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
-                                    row_data, weight_buffer.data(),
-                                    model_buffer.data(),
+        GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(), row_data,
+                                    weight_buffer.data(), model_buffer.data(),
                                     selection_buffer.data(), metadata);
       }
 
-      std::copy_n(
-          row_data.data, selected_band.ChannelCount(),
-          &visibility_buffer[n_chunk_rows_read * selected_band.ChannelCount()]);
+      std::copy_n(row_data.data, selected_band.ChannelCount(),
+                  &visibility_buffer[n_chunk_rows_read * selected_band.ChannelCount()]);
       std::copy_n(row_data.uvw, 3, &uvw_buffer[n_chunk_rows_read * 3]);
 
       // Negate v; otherwise image is flipped compared to other gridders like
@@ -190,25 +178,21 @@ size_t WTowersMsGridder::GridMeasurementSet(
     }
 
     Logger::Info << "Gridding " << n_chunk_rows_read << " rows...\n";
-    gridder_->AddInversionData(n_chunk_rows_read, selected_band.ChannelCount(),
-                               uvw_buffer.data(), frequencies.data(),
-                               visibility_buffer.data());
+    gridder_->AddInversionData(n_chunk_rows_read, selected_band.ChannelCount(), uvw_buffer.data(),
+                               frequencies.data(), visibility_buffer.data());
 
     n_total_rows_read += n_chunk_rows_read;
   }  // end of chunk
   return n_total_rows_read;
 }
 
-size_t WTowersMsGridder::PredictMeasurementSet(
-    const MsProviderCollection::MsData& ms_data) {
+size_t WTowersMsGridder::PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) {
   ms_data.ms_provider->ReopenRW();
 
   // TODO For now we do not allow multiple bands in one msprovider
-  const aocommon::MultiBandData& selected_bands(
-      ms_data.ms_provider->SelectedBands());
+  const aocommon::MultiBandData& selected_bands(ms_data.ms_provider->SelectedBands());
   if (!ms_data.ms_provider->IsRegular())
-    throw std::runtime_error(
-        "w-towers implementation does not support irregular data yet");
+    throw std::runtime_error("w-towers implementation does not support irregular data yet");
   // Regular data should always have one band...
   assert(selected_bands.BandCount() == 1);
   const aocommon::BandData& selected_band = *selected_bands.begin();
@@ -221,9 +205,9 @@ size_t WTowersMsGridder::PredictMeasurementSet(
     frequencies[i] = selected_band.ChannelFrequency(i);
 
   const size_t per_row_uvw_memory_consumption = sizeof(double) * 3;
-  size_t max_rows_per_chunk = CalculateMaxRowsInMemory(
-      resources_.Memory(), CalculateConstantMemory(), 0,
-      per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
+  size_t max_rows_per_chunk =
+      CalculateMaxRowsInMemory(resources_.Memory(), CalculateConstantMemory(), 0,
+                               per_row_uvw_memory_consumption, selected_band.ChannelCount(), 1);
 
   aocommon::UVector<double> uvw_buffer(max_rows_per_chunk * 3);
   // Iterate over chunks until all data has been gridded
@@ -236,8 +220,7 @@ size_t WTowersMsGridder::PredictMeasurementSet(
     Logger::Info << "Loading metadata...\n";
     // Read from metadata buffer
     std::vector<MSProvider::MetaData> metadata_buffer;
-    while (ms_reader->CurrentRowAvailable() &&
-           n_chunk_rows_read < max_rows_per_chunk) {
+    while (ms_reader->CurrentRowAvailable() && n_chunk_rows_read < max_rows_per_chunk) {
       MSProvider::MetaData metadata;
       ReadPredictMetaData(metadata);
       uvw_buffer[n_chunk_rows_read * 3] = metadata.u_in_m;
@@ -253,28 +236,25 @@ size_t WTowersMsGridder::PredictMeasurementSet(
     }
 
     Logger::Info << "Predicting " << n_chunk_rows_read << " rows...\n";
-    aocommon::UVector<std::complex<float>> visibility_buffer(
-        max_rows_per_chunk * selected_band.ChannelCount());
-    gridder_->PredictVisibilities(
-        n_chunk_rows_read, selected_band.ChannelCount(), uvw_buffer.data(),
-        frequencies.data(), visibility_buffer.data());
+    aocommon::UVector<std::complex<float>> visibility_buffer(max_rows_per_chunk *
+                                                             selected_band.ChannelCount());
+    gridder_->PredictVisibilities(n_chunk_rows_read, selected_band.ChannelCount(),
+                                  uvw_buffer.data(), frequencies.data(), visibility_buffer.data());
 
     Logger::Info << "Writing...\n";
     for (size_t row = 0; row != n_chunk_rows_read; ++row) {
-      WriteCollapsedVisibilities(
-          *ms_data.ms_provider, ms_data.antenna_names.size(), data_desc_id,
-          &visibility_buffer[row * selected_band.ChannelCount()],
-          &uvw_buffer[row * 3], metadata_buffer[row].field_id,
-          metadata_buffer[row].antenna1, metadata_buffer[row].antenna2,
-          metadata_buffer[row].time);
+      WriteCollapsedVisibilities(*ms_data.ms_provider, ms_data.antenna_names.size(), data_desc_id,
+                                 &visibility_buffer[row * selected_band.ChannelCount()],
+                                 &uvw_buffer[row * 3], metadata_buffer[row].field_id,
+                                 metadata_buffer[row].antenna1, metadata_buffer[row].antenna2,
+                                 metadata_buffer[row].time);
     }
     n_total_rows_read += n_chunk_rows_read;
   }  // end of chunk
   return n_total_rows_read;
 }
 
-void WTowersMsGridder::GetActualTrimmedSize(size_t& trimmed_width,
-                                            size_t& trimmed_height) const {
+void WTowersMsGridder::GetActualTrimmedSize(size_t& trimmed_width, size_t& trimmed_height) const {
   trimmed_width = std::ceil(ActualInversionWidth() / ImagePadding());
   trimmed_height = std::ceil(ActualInversionHeight() / ImagePadding());
 
@@ -315,11 +295,10 @@ void WTowersMsGridder::StartInversion() {
 void WTowersMsGridder::FinishInversion() {
   gridder_->FinalizeImage(1.0 / ImageWeight());
 
-  std::string log_message =
-      "Gridded visibility count: " + std::to_string(GriddedVisibilityCount());
+  std::string log_message = "Gridded visibility count: " + std::to_string(GriddedVisibilityCount());
   if (Weighting().IsNatural()) {
-    log_message += ", effective count after weighting: " +
-                   std::to_string(EffectiveGriddedVisibilityCount());
+    log_message +=
+        ", effective count after weighting: " + std::to_string(EffectiveGriddedVisibilityCount());
   }
   Logger::Info << log_message + '\n';
 
@@ -329,13 +308,11 @@ void WTowersMsGridder::FinishInversion() {
     std::copy(image_float.begin(), image_float.end(), image_.begin());
   }
 
-  if (ImageWidth() != ActualInversionWidth() ||
-      ImageHeight() != ActualInversionHeight()) {
+  if (ImageWidth() != ActualInversionWidth() || ImageHeight() != ActualInversionHeight()) {
     // Interpolate the image
     // The input is of size ActualInversionWidth() x ActualInversionHeight()
-    schaapcommon::math::Resampler resampler(
-        ActualInversionWidth(), ActualInversionHeight(), ImageWidth(),
-        ImageHeight(), resources_.NCpus());
+    schaapcommon::math::Resampler resampler(ActualInversionWidth(), ActualInversionHeight(),
+                                            ImageWidth(), ImageHeight(), resources_.NCpus());
 
     Image resized(ImageWidth(), ImageHeight());
     resampler.Resample(image_.Data(), resized.Data());
@@ -343,8 +320,8 @@ void WTowersMsGridder::FinishInversion() {
   }
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
-    Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight()
-                  << " -> " << TrimWidth() << " x " << TrimHeight() << '\n';
+    Logger::Debug << "Trimming " << ImageWidth() << " x " << ImageHeight() << " -> " << TrimWidth()
+                  << " x " << TrimHeight() << '\n';
 
     image_ = image_.Trim(TrimWidth(), TrimHeight());
   }
@@ -359,19 +336,17 @@ void WTowersMsGridder::StartPredict(std::vector<Image>&& images) {
 
   if (TrimWidth() != ImageWidth() || TrimHeight() != ImageHeight()) {
     Image untrimmed_image(ImageWidth(), ImageHeight());
-    Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight()
-                  << " -> " << ImageWidth() << " x " << ImageHeight() << '\n';
-    Image::Untrim(untrimmed_image.Data(), ImageWidth(), ImageHeight(),
-                  images[0].Data(), TrimWidth(), TrimHeight());
+    Logger::Debug << "Untrimming " << TrimWidth() << " x " << TrimHeight() << " -> " << ImageWidth()
+                  << " x " << ImageHeight() << '\n';
+    Image::Untrim(untrimmed_image.Data(), ImageWidth(), ImageHeight(), images[0].Data(),
+                  TrimWidth(), TrimHeight());
     images[0] = std::move(untrimmed_image);
   }
 
-  if (ImageWidth() != ActualInversionWidth() ||
-      ImageHeight() != ActualInversionHeight()) {
+  if (ImageWidth() != ActualInversionWidth() || ImageHeight() != ActualInversionHeight()) {
     Image resampled_image(ImageWidth(), ImageHeight());
-    schaapcommon::math::Resampler resampler(
-        ImageWidth(), ImageHeight(), ActualInversionWidth(),
-        ActualInversionHeight(), resources_.NCpus());
+    schaapcommon::math::Resampler resampler(ImageWidth(), ImageHeight(), ActualInversionWidth(),
+                                            ActualInversionHeight(), resources_.NCpus());
 
     resampler.Resample(images[0].Data(), resampled_image.Data());
     images[0] = std::move(resampled_image);

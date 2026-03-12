@@ -27,17 +27,15 @@ class FourierDomainRenderer {
    * and renders the source onto an image.
    * @details Beware, this function is not thread safe.
    */
-  void RenderModelComponent(float* image, const ModelComponent& component,
-                            size_t width, size_t height, float flux, float x,
-                            float y);
+  void RenderModelComponent(float* image, const ModelComponent& component, size_t width,
+                            size_t height, float flux, float x, float y);
 
  private:
   /**
    * @brief Determines whether a source is an outlier. This is the case when the
    * sampled sub-grid is outside of the boundary of the image.
    */
-  bool IsOutlier(int rounded_x, int rounded_y, int image_width,
-                 int image_height) const;
+  bool IsOutlier(int rounded_x, int rounded_y, int image_width, int image_height) const;
 
   size_t subgrid_width_;
   size_t subgrid_size_;

@@ -27,12 +27,12 @@ using aocommon::Logger;
 namespace wsclean {
 
 template <typename NumT>
-WTowersGridder<NumT>::WTowersGridder(
-    size_t width, size_t height, size_t trimmed_width, size_t trimmed_height,
-    double pixel_size_x, double pixel_size_y, double l_shift, double m_shift,
-    int subgrid_size, int support, int w_support, double padding,
-    double w_padding, size_t n_threads, double accuracy, double max_abs_w,
-    size_t verbosity)
+WTowersGridder<NumT>::WTowersGridder(size_t width, size_t height, size_t trimmed_width,
+                                     size_t trimmed_height, double pixel_size_x,
+                                     double pixel_size_y, double l_shift, double m_shift,
+                                     int subgrid_size, int support, int w_support, double padding,
+                                     double w_padding, size_t n_threads, double accuracy,
+                                     double max_abs_w, size_t verbosity)
     : width_(width),
       height_(height),
       trimmed_width_(trimmed_width),
@@ -58,10 +58,8 @@ WTowersGridder<NumT>::WTowersGridder(
   // Determine projection to use for the image we are generating
   double cell_size_l = std::sin(pixel_size_x);
   double cell_size_m = std::sin(pixel_size_y);
-  int image_size_l =
-      2 * sdp_fft_padded_size(int(trimmed_width / 2), padding_factor_);
-  int image_size_m =
-      2 * sdp_fft_padded_size(int(trimmed_height / 2), padding_factor_);
+  int image_size_l = 2 * sdp_fft_padded_size(int(trimmed_width / 2), padding_factor_);
+  int image_size_m = 2 * sdp_fft_padded_size(int(trimmed_height / 2), padding_factor_);
   wtowers_parameters_.projection =
       sdp_GridProjection(image_size_l, image_size_m, cell_size_l * image_size_l,
                          cell_size_m * image_size_m, -l_shift, m_shift,
@@ -74,10 +72,10 @@ WTowersGridder<NumT>::WTowersGridder(
   const double fov_m = cell_size_m * trimmed_height;
   wtowers_parameters_.field_of_view_l = fov_l;
   wtowers_parameters_.field_of_view_m = fov_m;
-  wtowers_parameters_.projection.shift_n = sdp_gridder_determine_n_shift(
-      wtowers_parameters_.projection, fov_l, fov_m);
-  wtowers_parameters_.w_step = sdp_gridder_determine_w_step(
-      wtowers_parameters_.projection, fov_l, fov_m, 1. / padding_factor_w_);
+  wtowers_parameters_.projection.shift_n =
+      sdp_gridder_determine_n_shift(wtowers_parameters_.projection, fov_l, fov_m);
+  wtowers_parameters_.w_step = sdp_gridder_determine_w_step(wtowers_parameters_.projection, fov_l,
+                                                            fov_m, 1. / padding_factor_w_);
 
   // Determine maximum w-tower height (i.e. at what point it needs to fall
   // back to w-stacking). This does a bunch of test-imaging internally. To
@@ -89,12 +87,10 @@ WTowersGridder<NumT>::WTowersGridder(
   sdp_GridProjection test_projection = wtowers_parameters_.projection;
   test_projection.size_l = test_projection.size_m = 2 * subgrid_size_;
 
-  wtowers_parameters_.w_towers_height =
-      sdp_gridder_determine_max_w_tower_height(
-          test_projection, subgrid_size_, wtowers_parameters_.w_step, max_abs_w,
-          support_, wtowers_parameters_.oversampling, w_support_,
-          wtowers_parameters_.w_oversampling, fov_l, fov_m,
-          wtowers_parameters_.subgrid_frac, 3, accuracy, &status);
+  wtowers_parameters_.w_towers_height = sdp_gridder_determine_max_w_tower_height(
+      test_projection, subgrid_size_, wtowers_parameters_.w_step, max_abs_w, support_,
+      wtowers_parameters_.oversampling, w_support_, wtowers_parameters_.w_oversampling, fov_l,
+      fov_m, wtowers_parameters_.subgrid_frac, 3, accuracy, &status);
   if (status != SDP_SUCCESS) {
     throw std::runtime_error("Error computing w_towers_height");
   }
@@ -114,11 +110,9 @@ WTowersGridder<NumT>::WTowersGridder(
 template <typename NumT>
 size_t WTowersGridder<NumT>::ConstantMemoryUsage() const {
   // Storage for "grid": pessimistically assume an oversampling factor of 2
-  size_t constant =
-      4.0 * trimmed_width_ * trimmed_height_ * sizeof(std::complex<float>);
+  size_t constant = 4.0 * trimmed_width_ * trimmed_height_ * sizeof(std::complex<float>);
   // For prediction, we also need a copy of the dirty image
-  constant +=
-      trimmed_width_ * trimmed_height_ * sizeof(NumT);  // trimmed dirty image
+  constant += trimmed_width_ * trimmed_height_ * sizeof(NumT);  // trimmed dirty image
   return constant;
 }
 
@@ -138,39 +132,32 @@ void WTowersGridder<NumT>::InitializeInversion() {
 
 template <typename NumT>
 void WTowersGridder<NumT>::LogParameters() const {
-  Logger::Debug << "field_of_view:  " << wtowers_parameters_.field_of_view_l
-                << ", " << wtowers_parameters_.field_of_view_m << "\n";
-  Logger::Debug << "image_size:     " << wtowers_parameters_.projection.size_l
-                << " x " << wtowers_parameters_.projection.size_m << "\n";
+  Logger::Debug << "field_of_view:  " << wtowers_parameters_.field_of_view_l << ", "
+                << wtowers_parameters_.field_of_view_m << "\n";
+  Logger::Debug << "image_size:     " << wtowers_parameters_.projection.size_l << " x "
+                << wtowers_parameters_.projection.size_m << "\n";
   Logger::Debug << "subgrid_size:   " << subgrid_size_ << "\n";
-  Logger::Debug << "grid_resolution / theta: "
-                << wtowers_parameters_.projection.theta_l << ", "
+  Logger::Debug << "grid_resolution / theta: " << wtowers_parameters_.projection.theta_l << ", "
                 << wtowers_parameters_.projection.theta_m << "\n";
-  double cell_size_l = wtowers_parameters_.projection.theta_l /
-                       wtowers_parameters_.projection.size_l;
-  double cell_size_m = wtowers_parameters_.projection.theta_m /
-                       wtowers_parameters_.projection.size_m;
-  Logger::Debug << "cell_size_rad:  " << cell_size_l << ", " << cell_size_m
-                << "\n";
+  double cell_size_l =
+      wtowers_parameters_.projection.theta_l / wtowers_parameters_.projection.size_l;
+  double cell_size_m =
+      wtowers_parameters_.projection.theta_m / wtowers_parameters_.projection.size_m;
+  Logger::Debug << "cell_size_rad:  " << cell_size_l << ", " << cell_size_m << "\n";
   Logger::Debug << "w_step: " << wtowers_parameters_.w_step << "\n";
-  Logger::Debug << "w_towers_height: " << wtowers_parameters_.w_towers_height
-                << "\n";
+  Logger::Debug << "w_towers_height: " << wtowers_parameters_.w_towers_height << "\n";
   Logger::Debug << "support:        " << support_ << "\n";
-  Logger::Debug << "oversampling:   " << wtowers_parameters_.oversampling
-                << "\n";
+  Logger::Debug << "oversampling:   " << wtowers_parameters_.oversampling << "\n";
   Logger::Debug << "w_support:      " << w_support_ << "\n";
-  Logger::Debug << "w_oversampling: " << wtowers_parameters_.w_oversampling
-                << "\n";
-  Logger::Debug << "subgrid_frac:   " << wtowers_parameters_.subgrid_frac
-                << "\n";
+  Logger::Debug << "w_oversampling: " << wtowers_parameters_.w_oversampling << "\n";
+  Logger::Debug << "subgrid_frac:   " << wtowers_parameters_.subgrid_frac << "\n";
 }
 
 template <typename NumT>
-void WTowersGridder<NumT>::AddInversionData(
-    size_t n_rows, size_t n_channels, const double *uvws,
-    const double *frequencies, const std::complex<float> *visibilities) {
-  const bool decreasing_freq =
-      (n_channels > 1) && (frequencies[1] < frequencies[0]);
+void WTowersGridder<NumT>::AddInversionData(size_t n_rows, size_t n_channels, const double *uvws,
+                                            const double *frequencies,
+                                            const std::complex<float> *visibilities) {
+  const bool decreasing_freq = (n_channels > 1) && (frequencies[1] < frequencies[0]);
   if (decreasing_freq) {
     throw std::runtime_error(
         "W-towers does not currently support frequencies that aren't in "
@@ -187,65 +174,54 @@ void WTowersGridder<NumT>::AddInversionData(
   sdp_Error status = SDP_SUCCESS;
 
   std::vector<NumT> dirty_image;
-  dirty_image.assign(wtowers_parameters_.projection.size_l *
-                         wtowers_parameters_.projection.size_m,
+  dirty_image.assign(wtowers_parameters_.projection.size_l * wtowers_parameters_.projection.size_m,
                      0);
 
   const int64_t visibilities_shape[2] = {static_cast<int64_t>(n_rows),
                                          static_cast<int64_t>(n_channels)};
-  sdp_Mem *wrapped_visibilities =
-      sdp_mem_create_wrapper(visibilities, SDP_MEM_COMPLEX_FLOAT, SDP_MEM_CPU,
-                             2, visibilities_shape, nullptr, &status);
+  sdp_Mem *wrapped_visibilities = sdp_mem_create_wrapper(
+      visibilities, SDP_MEM_COMPLEX_FLOAT, SDP_MEM_CPU, 2, visibilities_shape, nullptr, &status);
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Fatal error while wrapping memory for visibilities");
+    throw std::runtime_error("w-towers: Fatal error while wrapping memory for visibilities");
   }
   const int64_t uvws_shape[2] = {static_cast<int64_t>(n_rows), 3};
-  sdp_Mem *wrapped_uvws = sdp_mem_create_wrapper(
-      uvws, SDP_MEM_DOUBLE, SDP_MEM_CPU, 2, uvws_shape, nullptr, &status);
+  sdp_Mem *wrapped_uvws =
+      sdp_mem_create_wrapper(uvws, SDP_MEM_DOUBLE, SDP_MEM_CPU, 2, uvws_shape, nullptr, &status);
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Fatal error while wrapping memory for uvws");
+    throw std::runtime_error("w-towers: Fatal error while wrapping memory for uvws");
   }
-  const int64_t image_shape[2] = {
-      static_cast<int64_t>(wtowers_parameters_.projection.size_l),
-      static_cast<int64_t>(wtowers_parameters_.projection.size_m)};
-  const int64_t image_strides[2] = {sdp_mem_type_size(image_data_type),
-                                    sdp_mem_type_size(image_data_type) *
-                                        wtowers_parameters_.projection.size_l};
-  sdp_Mem *wrapped_dirty =
-      sdp_mem_create_wrapper(dirty_image.data(), image_data_type, SDP_MEM_CPU,
-                             2, image_shape, image_strides, &status);
+  const int64_t image_shape[2] = {static_cast<int64_t>(wtowers_parameters_.projection.size_l),
+                                  static_cast<int64_t>(wtowers_parameters_.projection.size_m)};
+  const int64_t image_strides[2] = {
+      sdp_mem_type_size(image_data_type),
+      sdp_mem_type_size(image_data_type) * wtowers_parameters_.projection.size_l};
+  sdp_Mem *wrapped_dirty = sdp_mem_create_wrapper(dirty_image.data(), image_data_type, SDP_MEM_CPU,
+                                                  2, image_shape, image_strides, &status);
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Fatal error while wrapping memory for dirty image");
+    throw std::runtime_error("w-towers: Fatal error while wrapping memory for dirty image");
   }
 
   LogParameters();
 
   sdp_grid_wstack_wtower_grid_all(
       wrapped_visibilities, frequencies[0], frequency_step, wrapped_uvws,
-      wtowers_parameters_.projection, subgrid_size_, wtowers_parameters_.w_step,
-      support_, wtowers_parameters_.oversampling, w_support_,
-      wtowers_parameters_.w_oversampling, wtowers_parameters_.subgrid_frac,
-      wtowers_parameters_.w_towers_height, verbosity_, wrapped_dirty,
-      n_threads_, &status);
+      wtowers_parameters_.projection, subgrid_size_, wtowers_parameters_.w_step, support_,
+      wtowers_parameters_.oversampling, w_support_, wtowers_parameters_.w_oversampling,
+      wtowers_parameters_.subgrid_frac, wtowers_parameters_.w_towers_height, verbosity_,
+      wrapped_dirty, n_threads_, &status);
 
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Failure inside sdp_grid_wstack_wtower_grid_all");
+    throw std::runtime_error("w-towers: Failure inside sdp_grid_wstack_wtower_grid_all");
   }
 
   sdp_mem_free(wrapped_dirty);
   sdp_mem_free(wrapped_uvws);
   sdp_mem_free(wrapped_visibilities);
 
-  aocommon::ImageBase<NumT>::Trim(dirty_image.data(), trimmed_width_,
-                                  trimmed_height_, dirty_image.data(),
-                                  wtowers_parameters_.projection.size_l,
+  aocommon::ImageBase<NumT>::Trim(dirty_image.data(), trimmed_width_, trimmed_height_,
+                                  dirty_image.data(), wtowers_parameters_.projection.size_l,
                                   wtowers_parameters_.projection.size_m);
-  for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i)
-    image_[i] += dirty_image[i];
+  for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i) image_[i] += dirty_image[i];
 }
 
 template <typename NumT>
@@ -257,8 +233,7 @@ template <typename NumT>
 std::vector<float> WTowersGridder<NumT>::RealImage() {
   const size_t dx = (width_ - trimmed_width_) / 2;
   const size_t dy = (height_ - trimmed_height_) / 2;
-  std::vector<float> image(width_ * height_,
-                           std::numeric_limits<float>::quiet_NaN());
+  std::vector<float> image(width_ * height_, std::numeric_limits<float>::quiet_NaN());
   for (size_t j = 0; j < trimmed_height_; ++j)
     for (size_t i = 0; i < trimmed_width_; ++i)
       image[(i + dx) + (j + dy) * width_] = image_[i + j * trimmed_width_];
@@ -276,11 +251,10 @@ void WTowersGridder<NumT>::InitializePrediction(const float *image_data) {
 }
 
 template <typename NumT>
-void WTowersGridder<NumT>::PredictVisibilities(
-    size_t n_rows, size_t n_channels, const double *uvws,
-    const double *frequencies, std::complex<float> *visibilities) const {
-  const bool decreasing_freq =
-      (n_channels > 1) && (frequencies[1] < frequencies[0]);
+void WTowersGridder<NumT>::PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
+                                               const double *frequencies,
+                                               std::complex<float> *visibilities) const {
+  const bool decreasing_freq = (n_channels > 1) && (frequencies[1] < frequencies[0]);
   if (decreasing_freq) {
     throw std::runtime_error(
         "W-towers does not currently support frequencies that aren't in "
@@ -296,57 +270,47 @@ void WTowersGridder<NumT>::PredictVisibilities(
 
   sdp_Error status = SDP_SUCCESS;
 
-  aocommon::ImageBase<NumT> untrimmed_image(
-      wtowers_parameters_.projection.size_l,
-      wtowers_parameters_.projection.size_m);
-  aocommon::ImageBase<NumT>::Untrim(
-      untrimmed_image.Data(), wtowers_parameters_.projection.size_l,
-      wtowers_parameters_.projection.size_m, image_.data(), trimmed_width_,
-      trimmed_height_);
+  aocommon::ImageBase<NumT> untrimmed_image(wtowers_parameters_.projection.size_l,
+                                            wtowers_parameters_.projection.size_m);
+  aocommon::ImageBase<NumT>::Untrim(untrimmed_image.Data(), wtowers_parameters_.projection.size_l,
+                                    wtowers_parameters_.projection.size_m, image_.data(),
+                                    trimmed_width_, trimmed_height_);
 
-  const std::vector<int64_t> visibilities_shape{
-      static_cast<int64_t>(n_rows), static_cast<int64_t>(n_channels)};
+  const std::vector<int64_t> visibilities_shape{static_cast<int64_t>(n_rows),
+                                                static_cast<int64_t>(n_channels)};
   sdp_Mem *wrapped_visibilities =
-      sdp_mem_create_wrapper(visibilities, SDP_MEM_COMPLEX_FLOAT, SDP_MEM_CPU,
-                             2, visibilities_shape.data(), nullptr, &status);
+      sdp_mem_create_wrapper(visibilities, SDP_MEM_COMPLEX_FLOAT, SDP_MEM_CPU, 2,
+                             visibilities_shape.data(), nullptr, &status);
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Fatal error while wrapping memory for visibilities");
+    throw std::runtime_error("w-towers: Fatal error while wrapping memory for visibilities");
   }
   const int64_t uvws_shape[2] = {static_cast<int64_t>(n_rows), 3};
-  sdp_Mem *wrapped_uvws = sdp_mem_create_wrapper(
-      uvws, SDP_MEM_DOUBLE, SDP_MEM_CPU, 2, uvws_shape, nullptr, &status);
+  sdp_Mem *wrapped_uvws =
+      sdp_mem_create_wrapper(uvws, SDP_MEM_DOUBLE, SDP_MEM_CPU, 2, uvws_shape, nullptr, &status);
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Fatal error while wrapping memory for uvws");
+    throw std::runtime_error("w-towers: Fatal error while wrapping memory for uvws");
   }
-  const int64_t image_shape[2] = {
-      static_cast<int64_t>(wtowers_parameters_.projection.size_l),
-      static_cast<int64_t>(wtowers_parameters_.projection.size_m)};
-  const int64_t image_strides[2] = {sdp_mem_type_size(image_data_type),
-                                    sdp_mem_type_size(image_data_type) *
-                                        wtowers_parameters_.projection.size_l};
+  const int64_t image_shape[2] = {static_cast<int64_t>(wtowers_parameters_.projection.size_l),
+                                  static_cast<int64_t>(wtowers_parameters_.projection.size_m)};
+  const int64_t image_strides[2] = {
+      sdp_mem_type_size(image_data_type),
+      sdp_mem_type_size(image_data_type) * wtowers_parameters_.projection.size_l};
   sdp_Mem *wrapped_dirty = sdp_mem_create_wrapper(
-      untrimmed_image.Data(), image_data_type, SDP_MEM_CPU, 2, image_shape,
-      image_strides, &status);
+      untrimmed_image.Data(), image_data_type, SDP_MEM_CPU, 2, image_shape, image_strides, &status);
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Fatal error while wrapping memory for dirty image");
+    throw std::runtime_error("w-towers: Fatal error while wrapping memory for dirty image");
   }
 
   LogParameters();
 
   sdp_grid_wstack_wtower_degrid_all(
-      wrapped_dirty, wtowers_parameters_.projection, frequencies[0],
-      frequency_step, wrapped_uvws, subgrid_size_, wtowers_parameters_.w_step,
-      support_, wtowers_parameters_.oversampling, w_support_,
-      wtowers_parameters_.w_oversampling, wtowers_parameters_.subgrid_frac,
-      wtowers_parameters_.w_towers_height, verbosity_, wrapped_visibilities,
-      n_threads_, &status);
+      wrapped_dirty, wtowers_parameters_.projection, frequencies[0], frequency_step, wrapped_uvws,
+      subgrid_size_, wtowers_parameters_.w_step, support_, wtowers_parameters_.oversampling,
+      w_support_, wtowers_parameters_.w_oversampling, wtowers_parameters_.subgrid_frac,
+      wtowers_parameters_.w_towers_height, verbosity_, wrapped_visibilities, n_threads_, &status);
 
   if (status != SDP_SUCCESS) {
-    throw std::runtime_error(
-        "w-towers: Failure inside sdp_grid_wstack_wtower_degrid_all");
+    throw std::runtime_error("w-towers: Failure inside sdp_grid_wstack_wtower_degrid_all");
   }
 
   sdp_mem_free(wrapped_dirty);

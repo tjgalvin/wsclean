@@ -9,8 +9,7 @@ namespace wsclean {
 class Resources {
  public:
   Resources() = default;
-  Resources(std::size_t n_cpus, int64_t memory)
-      : n_cpus_(n_cpus), memory_(memory) {}
+  Resources(std::size_t n_cpus, int64_t memory) : n_cpus_(n_cpus), memory_(memory) {}
 
   size_t NCpus() const { return n_cpus_; }
   int64_t Memory() const { return memory_; }

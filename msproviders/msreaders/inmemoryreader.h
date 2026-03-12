@@ -11,9 +11,8 @@ namespace wsclean {
 
 class InMemoryReader final : public MSReader {
  public:
-  InMemoryReader(
-      MSProvider* ms_provider, std::span<const InMemoryPartRow> rows,
-      std::vector<MSProvider::MetaData>::const_iterator meta_data_iterator)
+  InMemoryReader(MSProvider* ms_provider, std::span<const InMemoryPartRow> rows,
+                 std::vector<MSProvider::MetaData>::const_iterator meta_data_iterator)
       : MSReader(ms_provider),
         rows_(rows),
         data_iterator_(rows.begin()),
@@ -28,23 +27,18 @@ class InMemoryReader final : public MSReader {
     ++meta_data_iterator_;
   }
 
-  void ReadMeta(MSProvider::MetaData& metadata) final {
-    metadata = *meta_data_iterator_;
-  }
+  void ReadMeta(MSProvider::MetaData& metadata) final { metadata = *meta_data_iterator_; }
 
   void ReadData(std::complex<float>* buffer) final {
-    std::copy(data_iterator_->Data().begin(), data_iterator_->Data().end(),
-              buffer);
+    std::copy(data_iterator_->Data().begin(), data_iterator_->Data().end(), buffer);
   }
 
   void ReadModel(std::complex<float>* buffer) final {
-    std::copy(data_iterator_->Model().begin(), data_iterator_->Model().end(),
-              buffer);
+    std::copy(data_iterator_->Model().begin(), data_iterator_->Model().end(), buffer);
   }
 
   void ReadWeights(float* buffer) final {
-    std::copy(data_iterator_->Weights().begin(),
-              data_iterator_->Weights().end(), buffer);
+    std::copy(data_iterator_->Weights().begin(), data_iterator_->Weights().end(), buffer);
   }
 
   void WriteImagingWeights(const float* buffer) final {

@@ -22,18 +22,14 @@ class H5SolutionData {
 
   bool HasData() const { return !h5parms_.empty(); }
 
-  const std::vector<schaapcommon::h5parm::H5Parm>& GetH5Parms() const {
-    return h5parms_;
-  }
+  const std::vector<schaapcommon::h5parm::H5Parm>& GetH5Parms() const { return h5parms_; }
   const std::vector<schaapcommon::h5parm::SolTab*>& GetFirstSolutions() const {
     return first_solutions_;
   }
   const std::vector<schaapcommon::h5parm::SolTab*>& GetSecondSolutions() const {
     return second_solutions_;
   }
-  const std::vector<schaapcommon::h5parm::GainType>& GetGainTypes() const {
-    return gain_types_;
-  }
+  const std::vector<schaapcommon::h5parm::GainType>& GetGainTypes() const { return gain_types_; }
 
  private:
   void LoadSolutions();

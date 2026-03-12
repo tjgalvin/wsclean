@@ -34,8 +34,7 @@ class MSDataDescription {
       const std::string& modelColumnName, bool sortMsInTime,
       schaapcommon::reordering::StorageManagerType modelStorageManager,
       const schaapcommon::reordering::MSSelection& selection,
-      const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
-          channel_selection,
+      const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& channel_selection,
       aocommon::PolarizationEnum polarization, bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = false;
@@ -51,9 +50,10 @@ class MSDataDescription {
     return mdd;
   }
 
-  static std::unique_ptr<MSDataDescription> ForReordered(
-      ReorderedHandle reorderedHandle, size_t partIndex,
-      aocommon::PolarizationEnum polarization, bool useMPI) {
+  static std::unique_ptr<MSDataDescription> ForReordered(ReorderedHandle reorderedHandle,
+                                                         size_t partIndex,
+                                                         aocommon::PolarizationEnum polarization,
+                                                         bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = true;
     mdd->_useMPI = useMPI;
@@ -63,9 +63,10 @@ class MSDataDescription {
     return mdd;
   }
 
-  static std::unique_ptr<MSDataDescription> ForInMemory(
-      InMemoryHandle& in_memory_handle, size_t partIndex,
-      aocommon::PolarizationEnum polarization, bool useMPI) {
+  static std::unique_ptr<MSDataDescription> ForInMemory(InMemoryHandle& in_memory_handle,
+                                                        size_t partIndex,
+                                                        aocommon::PolarizationEnum polarization,
+                                                        bool useMPI) {
     std::unique_ptr<MSDataDescription> mdd(new MSDataDescription());
     mdd->_isReordered = false;
     mdd->_isInMemory = true;
@@ -82,13 +83,10 @@ class MSDataDescription {
    * A MSSelection object that identifies the data range of the
    * measurement set that is selected.
    */
-  const schaapcommon::reordering::MSSelection& Selection() const {
-    return _selection;
-  }
+  const schaapcommon::reordering::MSSelection& Selection() const { return _selection; }
 
   void Serialize(aocommon::SerialOStream& stream) const;
-  static std::unique_ptr<MSDataDescription> Unserialize(
-      aocommon::SerialIStream& stream);
+  static std::unique_ptr<MSDataDescription> Unserialize(aocommon::SerialIStream& stream);
 
  private:
   MSDataDescription() = default;
@@ -106,8 +104,7 @@ class MSDataDescription {
   std::string _modelColumnName;
   schaapcommon::reordering::StorageManagerType _modelStorageManager;
   schaapcommon::reordering::MSSelection _selection;
-  aocommon::VectorMap<schaapcommon::reordering::ChannelRange>
-      _channel_selection;
+  aocommon::VectorMap<schaapcommon::reordering::ChannelRange> _channel_selection;
 
   // Reordered
   ReorderedHandle _reorderedHandle;

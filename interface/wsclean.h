@@ -25,8 +25,7 @@ namespace wsclean {
  * By default, WSClean will produce logging output on the command line. If this
  * is undesirable, the option "-quiet" can be added to surpress this output.
  */
-void Image(const std::string& command_line_parameters,
-           std::vector<InMemoryMs>&& ms_list);
+void Image(const std::string& command_line_parameters, std::vector<InMemoryMs>&& ms_list);
 
 }  // namespace wsclean
 

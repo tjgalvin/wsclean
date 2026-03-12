@@ -34,9 +34,8 @@ namespace {
 constexpr const size_t kGridderIndex = 0;
 }
 
-FacetIdgMsGridder::FacetIdgMsGridder(
-    const Settings& settings, const Resources& resources,
-    MsProviderCollection& ms_provider_collection)
+FacetIdgMsGridder::FacetIdgMsGridder(const Settings& settings, const Resources& resources,
+                                     MsProviderCollection& ms_provider_collection)
     : MsGridder(settings, ms_provider_collection),
       output_provider_(nullptr),
       proxy_type_(idg::api::Type::CPU_OPTIMIZED),
@@ -46,8 +45,7 @@ FacetIdgMsGridder::FacetIdgMsGridder(
 
   proxy_type_ = GetIdgType(GetSettings());
 
-  buffer_set_ = std::unique_ptr<idg::api::BufferSet>(
-      idg::api::BufferSet::create(proxy_type_));
+  buffer_set_ = std::unique_ptr<idg::api::BufferSet>(idg::api::BufferSet::create(proxy_type_));
   options_["max_threads"] = int(resources.NCpus());
 
   if (settings.gridMode == GriddingKernelMode::BlackmanHarris) {
@@ -74,10 +72,8 @@ void FacetIdgMsGridder::StartInversion() {
 
   const double shift_l = LShift();
   const double shift_m = MShift();
-  buffer_set_->init(TrimWidth(), ActualPixelSizeX(), max_w + 1.0, shift_l,
-                    shift_m, options_);
-  Logger::Debug << "IDG subgrid size: " << buffer_set_->get_subgridsize()
-                << '\n';
+  buffer_set_->init(TrimWidth(), ActualPixelSizeX(), max_w + 1.0, shift_l, shift_m, options_);
+  Logger::Debug << "IDG subgrid size: " << buffer_set_->get_subgridsize() << '\n';
 }
 
 void FacetIdgMsGridder::FinishInversion() {
@@ -91,8 +87,7 @@ void FacetIdgMsGridder::FinishInversion() {
   // Can be accessed by subsequent calls to ResultImages()
 }
 
-size_t FacetIdgMsGridder::GridMeasurementSet(
-    const MsProviderCollection::MsData& ms_data) {
+size_t FacetIdgMsGridder::GridMeasurementSet(const MsProviderCollection::MsData& ms_data) {
   if (!PrepareForMeasurementSet(ms_data, idg::api::BufferSetType::gridding)) {
     return 0;
   }
@@ -121,8 +116,7 @@ size_t FacetIdgMsGridder::GridMeasurementSet(
 
   TimestepBuffer timestep_buffer(ms_data.ms_provider, DoSubtractModel());
   std::unique_ptr<MSReader> ms_reader = timestep_buffer.MakeReader();
-  TimestepBufferReader& timestep_reader =
-      static_cast<TimestepBufferReader&>(*ms_reader);
+  TimestepBufferReader& timestep_reader = static_cast<TimestepBufferReader&>(*ms_reader);
   aocommon::UVector<std::complex<float>> row_visibilities(data_size);
   IDGInversionRow row_data;
   row_data.data = row_visibilities.data();
@@ -146,15 +140,13 @@ size_t FacetIdgMsGridder::GridMeasurementSet(
 
     const size_t n_parms = NumValuesPerSolution();
     if (n_parms == 2) {
-      GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
-                                  row_data, weight_buffer.data(),
-                                  model_buffer.data(), selection_buffer.data(),
-                                  metadata);
+      GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(), row_data,
+                                  weight_buffer.data(), model_buffer.data(),
+                                  selection_buffer.data(), metadata);
     } else {
-      GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
-                                  row_data, weight_buffer.data(),
-                                  model_buffer.data(), selection_buffer.data(),
-                                  metadata);
+      GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(), row_data,
+                                  weight_buffer.data(), model_buffer.data(),
+                                  selection_buffer.data(), metadata);
     }
 
     size_t source_index = row_visibilities.size() / 4;
@@ -174,8 +166,8 @@ size_t FacetIdgMsGridder::GridMeasurementSet(
     row_data.uvw[2] = -metadata.w_in_m;  //
 
     buffer_set_->get_gridder(kGridderIndex)
-        ->grid_visibilities(time_index, metadata.antenna1, metadata.antenna2,
-                            row_data.uvw, row_data.data, weight_buffer.data());
+        ->grid_visibilities(time_index, metadata.antenna1, metadata.antenna2, row_data.uvw,
+                            row_data.data, weight_buffer.data());
 
     ms_reader->NextInputRow();
   }
@@ -185,8 +177,7 @@ size_t FacetIdgMsGridder::GridMeasurementSet(
 }
 
 void FacetIdgMsGridder::StartPredict(std::vector<Image>&& images) {
-  if (images.size() == 2)
-    throw std::runtime_error("IDG gridder cannot make complex images");
+  if (images.size() == 2) throw std::runtime_error("IDG gridder cannot make complex images");
   const size_t untrimmed_width = ImageWidth();
   const size_t width = TrimWidth();
   const size_t height = TrimHeight();
@@ -211,8 +202,7 @@ void FacetIdgMsGridder::StartPredict(std::vector<Image>&& images) {
 
   const double shift_l = LShift();
   const double shift_m = MShift();
-  buffer_set_->init(width, ActualPixelSizeX(), max_w + 1.0, shift_l, shift_m,
-                    options_);
+  buffer_set_->init(width, ActualPixelSizeX(), max_w + 1.0, shift_l, shift_m, options_);
 
   // FacetIdgMsGridder doesn't require scaling since we don't apply the average
   // beam.
@@ -220,8 +210,7 @@ void FacetIdgMsGridder::StartPredict(std::vector<Image>&& images) {
   buffer_set_->set_image(image_.data(), do_scale);
 }
 
-size_t FacetIdgMsGridder::PredictMeasurementSet(
-    const MsProviderCollection::MsData& ms_data) {
+size_t FacetIdgMsGridder::PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) {
   if (!PrepareForMeasurementSet(ms_data, idg::api::BufferSetType::degridding)) {
     return 0;
   }
@@ -233,8 +222,7 @@ size_t FacetIdgMsGridder::PredictMeasurementSet(
   const aocommon::BandData& selected_band = *selected_bands_.begin();
 
   constexpr size_t n_idg_polarizations = 4;
-  aocommon::UVector<std::complex<float>> buffer(selected_band.ChannelCount() *
-                                                n_idg_polarizations);
+  aocommon::UVector<std::complex<float>> buffer(selected_band.ChannelCount() * n_idg_polarizations);
 
   int time_index = -1;
   double current_time = -1.0;
@@ -244,8 +232,7 @@ size_t FacetIdgMsGridder::PredictMeasurementSet(
   timestep_buffer.ResetWritePosition();
   for (std::unique_ptr<MSReader> ms_reader = timestep_buffer.MakeReader();
        ms_reader->CurrentRowAvailable(); ms_reader->NextInputRow()) {
-    TimestepBufferReader& timestep_reader =
-        static_cast<TimestepBufferReader&>(*ms_reader);
+    TimestepBufferReader& timestep_reader = static_cast<TimestepBufferReader&>(*ms_reader);
 
     MSProvider::MetaData metadata;
     timestep_reader.ReadMeta(metadata);
@@ -271,21 +258,19 @@ size_t FacetIdgMsGridder::PredictMeasurementSet(
   return 0;
 }
 
-void FacetIdgMsGridder::PredictRow(
-    IDGPredictionRow& row, const std::vector<std::string>& antenna_names) {
-  while (buffer_set_->get_degridder(kGridderIndex)
-             ->request_visibilities(row.row_id, row.time_index, row.antenna1,
-                                    row.antenna2, row.uvw)) {
+void FacetIdgMsGridder::PredictRow(IDGPredictionRow& row,
+                                   const std::vector<std::string>& antenna_names) {
+  while (
+      buffer_set_->get_degridder(kGridderIndex)
+          ->request_visibilities(row.row_id, row.time_index, row.antenna1, row.antenna2, row.uvw)) {
     ComputePredictionBuffer(antenna_names);
   }
 }
 
-void FacetIdgMsGridder::ComputePredictionBuffer(
-    const std::vector<std::string>& antenna_names) {
+void FacetIdgMsGridder::ComputePredictionBuffer(const std::vector<std::string>& antenna_names) {
   auto available_row_ids = buffer_set_->get_degridder(kGridderIndex)->compute();
   Logger::Debug << "Computed " << available_row_ids.size() << " rows.\n";
-  for (std::pair<long unsigned, std::complex<float>*>& row :
-       available_row_ids) {
+  for (std::pair<long unsigned, std::complex<float>*>& row : available_row_ids) {
     MSProvider::MetaData metadata;
     ReadPredictMetaData(metadata);
     const aocommon::BandData& band = selected_bands_[metadata.data_desc_id];
@@ -294,9 +279,8 @@ void FacetIdgMsGridder::ComputePredictionBuffer(
       row.second[i] = (row.second[i * 4] + row.second[i * 4 + 3]) / 2.0f;
     }
     const double* uvw = nullptr;
-    WriteCollapsedVisibilities(*output_provider_, antenna_names.size(),
-                               metadata.data_desc_id, row.second, uvw,
-                               metadata.field_id, metadata.antenna1,
+    WriteCollapsedVisibilities(*output_provider_, antenna_names.size(), metadata.data_desc_id,
+                               row.second, uvw, metadata.field_id, metadata.antenna1,
                                metadata.antenna2, metadata.time);
   }
   buffer_set_->get_degridder(kGridderIndex)->finished_reading();
@@ -313,9 +297,8 @@ std::vector<Image> FacetIdgMsGridder::ResultImages() {
   return images;
 }
 
-bool FacetIdgMsGridder::PrepareForMeasurementSet(
-    const MsProviderCollection::MsData& ms_data,
-    idg::api::BufferSetType bufferSetType) {
+bool FacetIdgMsGridder::PrepareForMeasurementSet(const MsProviderCollection::MsData& ms_data,
+                                                 idg::api::BufferSetType bufferSetType) {
   const float max_baseline = ms_data.max_baseline_in_m;
   // Skip this ms if there is no data in it
   if (!max_baseline) return false;
@@ -324,8 +307,7 @@ bool FacetIdgMsGridder::PrepareForMeasurementSet(
 
   // TODO For now we do not allow multiple bands in one msprovider
   if (!ms_data.ms_provider->IsRegular())
-    throw std::runtime_error(
-        "IDG implementation does not support irregular data yet");
+    throw std::runtime_error("IDG implementation does not support irregular data yet");
   // Regular data should always have one band...
   assert(selected_bands_.BandCount() == 1);
   const aocommon::BandData& selected_band = *selected_bands_.begin();
@@ -341,21 +323,19 @@ bool FacetIdgMsGridder::PrepareForMeasurementSet(
   // Only one-third of the mem is allocated to the buffers, so that memory
   // remains available for the images and other things done by IDG.
   // Never use more than 16 GB
-  const size_t memSize = std::min<uint64_t>(16ul * 1024ul * 1024ul * 1024ul,
-                                            resources_.Memory() / 3);
-  uint64_t memPerTimestep =
-      idg::api::BufferSet::get_memory_per_timestep(nStations, nChannels);
+  const size_t memSize =
+      std::min<uint64_t>(16ul * 1024ul * 1024ul * 1024ul, resources_.Memory() / 3);
+  uint64_t memPerTimestep = idg::api::BufferSet::get_memory_per_timestep(nStations, nChannels);
 
   // IDG can allocate two visibility buffers: (for parallel processing)
   memPerTimestep *= 2;
 
   buffer_size_ = std::max<size_t>(1, memSize / memPerTimestep);
 
-  Logger::Debug << "Allocatable timesteps (" << nStations << " stations, "
-                << nChannels << " channels, " << memSize / (1024 * 1024 * 1024)
-                << " GB mem): " << buffer_size_ << '\n';
-  buffer_set_->init_buffers(buffer_size_, bands, nStations, max_baseline,
-                            options_, bufferSetType);
+  Logger::Debug << "Allocatable timesteps (" << nStations << " stations, " << nChannels
+                << " channels, " << memSize / (1024 * 1024 * 1024) << " GB mem): " << buffer_size_
+                << '\n';
+  buffer_set_->init_buffers(buffer_size_, bands, nStations, max_baseline, options_, bufferSetType);
 
   return true;
 }

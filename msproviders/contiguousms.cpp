@@ -21,9 +21,8 @@ using schaapcommon::reordering::StorageManagerType;
 
 namespace wsclean {
 namespace {
-void OutputOpeningMessage(
-    const std::string& ms_path,
-    const aocommon::VectorMap<ChannelRange>& channel_ranges) {
+void OutputOpeningMessage(const std::string& ms_path,
+                          const aocommon::VectorMap<ChannelRange>& channel_ranges) {
   std::vector<size_t> ids;
   for (const ChannelRange& range : channel_ranges) {
     if (!range.Empty()) ids.emplace_back(range.data_desc_id);
@@ -38,13 +37,12 @@ void OutputOpeningMessage(
 }
 }  // namespace
 
-ContiguousMS::ContiguousMS(
-    const string& msPath, const std::string& dataColumnName,
-    const std::string& modelColumnName, StorageManagerType modelStorageManager,
-    const MSSelection& selection,
-    const aocommon::VectorMap<ChannelRange>& channel_ranges,
-    aocommon::PolarizationEnum outputPolarization, bool useMPI,
-    bool sort_in_time)
+ContiguousMS::ContiguousMS(const string& msPath, const std::string& dataColumnName,
+                           const std::string& modelColumnName,
+                           StorageManagerType modelStorageManager, const MSSelection& selection,
+                           const aocommon::VectorMap<ChannelRange>& channel_ranges,
+                           aocommon::PolarizationEnum outputPolarization, bool useMPI,
+                           bool sort_in_time)
     : _useMPI(useMPI),
       sort_in_time_(sort_in_time),
       selection_(selection),
@@ -63,26 +61,25 @@ void ContiguousMS::open() {
                                         : casacore::TableLock::DefaultLocking);
   if (sort_in_time_) {
     aocommon::Logger::Debug << "Sorting measurement set...\n";
-    _ms.MS() =
-        _ms.MS().sort(casacore::MS::columnName(casacore::MSMainEnums::TIME));
+    _ms.MS() = _ms.MS().sort(casacore::MS::columnName(casacore::MSMainEnums::TIME));
   }
   has_frequency_bda_ = wsclean::HasFrequencyBda(*_ms);
 
-  _antenna1Column = casacore::ScalarColumn<int>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
-  _antenna2Column = casacore::ScalarColumn<int>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
-  _fieldIdColumn = casacore::ScalarColumn<int>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
+  _antenna1Column =
+      casacore::ScalarColumn<int>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1));
+  _antenna2Column =
+      casacore::ScalarColumn<int>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2));
+  _fieldIdColumn =
+      casacore::ScalarColumn<int>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID));
   _dataDescIdColumn = casacore::ScalarColumn<int>(
       *_ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID));
-  _timeColumn = casacore::ScalarColumn<double>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
-  _uvwColumn = casacore::ArrayColumn<double>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
+  _timeColumn =
+      casacore::ScalarColumn<double>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::TIME));
+  _uvwColumn =
+      casacore::ArrayColumn<double>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::UVW));
   _dataColumn = casacore::ArrayColumn<casacore::Complex>(*_ms, _dataColumnName);
-  _flagColumn = casacore::ArrayColumn<bool>(
-      *_ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
+  _flagColumn =
+      casacore::ArrayColumn<bool>(*_ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG));
 
   const casacore::IPosition shape(_dataColumn.shape(0));
   _dataArray = casacore::Array<std::complex<float>>(shape);
@@ -101,8 +98,7 @@ void ContiguousMS::open() {
 
   for (const ChannelRange& range : channel_ranges_) {
     const size_t data_desc_id = range.data_desc_id;
-    input_polarizations_.AlwaysEmplace(data_desc_id,
-                                       GetMSPolarizations(data_desc_id, *_ms));
+    input_polarizations_.AlwaysEmplace(data_desc_id, GetMSPolarizations(data_desc_id, *_ms));
   }
 
   _nAntenna = _ms->antenna().nrow();
@@ -152,35 +148,29 @@ void ContiguousMS::NextOutputRow() {
     const double time = _timeColumn(_currentOutputRow);
     if (_currentOutputTime != time) {
       ++_currentOutputTimestep;
-      if (require_time_ordering && _currentOutputTime > time)
-        ThrowTimeOrderException();
+      if (require_time_ordering && _currentOutputTime > time) ThrowTimeOrderException();
       _currentOutputTime = time;
     }
-  } while (!selection_.IsSelected(fieldId, _currentOutputTimestep, a1, a2,
-                                  uvw.data()) ||
+  } while (!selection_.IsSelected(fieldId, _currentOutputTimestep, a1, a2, uvw.data()) ||
            !ContainsDataDescId(channel_ranges_, dataDescId));
 }
 
 double ContiguousMS::StartTime() {
-  return casacore::MEpoch::ScalarColumn(
-             *_ms, casacore::MS::columnName(casacore::MS::TIME))(_startRow)
+  return casacore::MEpoch::ScalarColumn(*_ms,
+                                        casacore::MS::columnName(casacore::MS::TIME))(_startRow)
       .getValue()
       .get();
 }
 
-size_t ContiguousMS::NMaxChannels() {
-  return selected_bands_.MaxBandChannels();
-}
+size_t ContiguousMS::NMaxChannels() { return selected_bands_.MaxBandChannels(); }
 
 size_t ContiguousMS::NPolarizations() {
   return aocommon::Polarization::GetVisibilityCount(_outputPolarization);
 }
 
 void ContiguousMS::prepareModelColumn() {
-  InitializeModelColumn(*_ms, _dataColumnName, _modelColumnName,
-                        _modelStorageManager);
-  _modelColumn =
-      casacore::ArrayColumn<casacore::Complex>(*_ms, _modelColumnName);
+  InitializeModelColumn(*_ms, _dataColumnName, _modelColumnName, _modelStorageManager);
+  _modelColumn = casacore::ArrayColumn<casacore::Complex>(*_ms, _modelColumnName);
   const casacore::IPosition shape(_modelColumn.shape(0));
   _modelArray = casacore::Array<std::complex<float>>(shape);
   _isModelColumnPrepared = true;
@@ -191,8 +181,7 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
   if (_useMPI) {
     // When using different MPI processes, automatic casacore locks do not work.
     // -> Use UserNoReadLocking with explicit write locks.
-    lock = std::make_unique<casacore::TableLocker>(*_ms,
-                                                   casacore::FileLocker::Write);
+    lock = std::make_unique<casacore::TableLocker>(*_ms, casacore::FileLocker::Write);
 
     // This resync() is required for synchronizing different MPI processes.
     _ms->resync();
@@ -206,13 +195,13 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
 
   _modelColumn.get(_currentOutputRow, _modelArray);
   if (addToMS) {
-    schaapcommon::reordering::StoreData<true>(
-        _modelArray.data(), start_channel, end_channel,
-        input_polarizations_[data_desc_id], buffer, _outputPolarization);
+    schaapcommon::reordering::StoreData<true>(_modelArray.data(), start_channel, end_channel,
+                                              input_polarizations_[data_desc_id], buffer,
+                                              _outputPolarization);
   } else {
-    schaapcommon::reordering::StoreData<false>(
-        _modelArray.data(), start_channel, end_channel,
-        input_polarizations_[data_desc_id], buffer, _outputPolarization);
+    schaapcommon::reordering::StoreData<false>(_modelArray.data(), start_channel, end_channel,
+                                               input_polarizations_[data_desc_id], buffer,
+                                               _outputPolarization);
   }
   _modelColumn.put(_currentOutputRow, _modelArray);
 }

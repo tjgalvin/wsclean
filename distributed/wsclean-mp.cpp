@@ -29,8 +29,7 @@ void SetMpiSettings(Settings& settings, size_t n_nodes) {
     // Create a default channel-to-node mapping.
     settings.channelToNode.reserve(settings.channelsOut);
     if (!settings.masterDoesWork) --n_nodes;
-    for (size_t channelIndex = 0; channelIndex < settings.channelsOut;
-         ++channelIndex) {
+    for (size_t channelIndex = 0; channelIndex < settings.channelsOut; ++channelIndex) {
       // Use a round-robin distribution, since later channels have higher
       // frequencies and gridding is therefore more expensive.
       size_t node_index = channelIndex % n_nodes;
@@ -58,8 +57,7 @@ int main(int argc, char* argv[]) {
 
   char hostname[256];
   gethostname(hostname, sizeof(hostname));
-  std::cout << "Node " << rank << ", PID " << getpid() << " on " << hostname
-            << "\n";
+  std::cout << "Node " << rank << ", PID " << getpid() << " on " << hostname << "\n";
 
   // During parsing of parameters, we don't want all processes to report
   // bad parameters. This variable is used to keep track if full errors
@@ -69,8 +67,8 @@ int main(int argc, char* argv[]) {
     bool parseResult = false;
     shortException = !main;
     constexpr bool kInMemory = false;
-    parseResult = CommandLine::ParseWithoutValidation(
-        wsclean, argc, const_cast<const char**>(argv), !main, kInMemory);
+    parseResult = CommandLine::ParseWithoutValidation(wsclean, argc, const_cast<const char**>(argv),
+                                                      !main, kInMemory);
     shortException = !main && !Logger::IsVerbose();
     check_openblas_multithreading();
     if (parseResult) {
@@ -84,8 +82,7 @@ int main(int argc, char* argv[]) {
         aocommon::SerialOStream msgStream;
         message.Serialize(msgStream);
         for (int i = 1; i != world_size; ++i) {
-          MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, i, 0,
-                   MPI_COMM_WORLD);
+          MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, i, 0, MPI_COMM_WORLD);
         }
       } else {
         Worker worker(settings);
@@ -95,8 +92,7 @@ int main(int argc, char* argv[]) {
     Logger::Error << "Process " << rank << " finished.\n";
   } catch (std::exception& e) {
     if (shortException)
-      Logger::Error << "Process " << rank
-                    << " stopped because of an exception.\n";
+      Logger::Error << "Process " << rank << " stopped because of an exception.\n";
     else {
       Logger::Error << "+ + + + + + + + + + + + + + + + + + +\n"
                     << "+ An exception occured in process " << rank << ":\n";

@@ -30,8 +30,7 @@ void CheckBeam(const AverageBeam& average_beam) {
   BOOST_CHECK_EQUAL(average_beam.MatrixHeight(), kMatrixHeight);
   BOOST_CHECK_EQUAL(average_beam.MatrixInverseBeam()->at(8), kMatrixValue);
   BOOST_REQUIRE(average_beam.ScalarBeam());
-  BOOST_CHECK_EQUAL(average_beam.ScalarBeam()->size(),
-                    kScalarWidth * kScalarHeight);
+  BOOST_CHECK_EQUAL(average_beam.ScalarBeam()->size(), kScalarWidth * kScalarHeight);
   BOOST_CHECK_EQUAL(average_beam.ScalarWidth(), kScalarWidth);
   BOOST_CHECK_EQUAL(average_beam.ScalarHeight(), kScalarHeight);
   BOOST_CHECK_EQUAL(average_beam.ScalarBeam()->at(7), kScalarValue);
@@ -39,8 +38,8 @@ void CheckBeam(const AverageBeam& average_beam) {
 
 AverageBeam FilledBeam() {
   AverageBeam result;
-  auto scalar_beam = std::make_shared<std::vector<float>>(
-      kScalarWidth * kScalarHeight, kScalarValue);
+  auto scalar_beam =
+      std::make_shared<std::vector<float>>(kScalarWidth * kScalarHeight, kScalarValue);
   auto matrix_beam = std::make_shared<std::vector<std::complex<float>>>(
       kMatrixWidth * kMatrixHeight * kNPol * kNPol, kMatrixValue);
   result.SetScalarBeam(scalar_beam, kScalarWidth, kScalarHeight);
@@ -91,8 +90,7 @@ BOOST_AUTO_TEST_CASE(empty_store_load) {
   BOOST_CHECK(scalar_cache.Empty());
   BOOST_CHECK(matrix_cache.Empty());
 
-  std::unique_ptr<AverageBeam> b =
-      AverageBeam::Load(scalar_cache, matrix_cache, frequency_index);
+  std::unique_ptr<AverageBeam> b = AverageBeam::Load(scalar_cache, matrix_cache, frequency_index);
   BOOST_CHECK(b == nullptr);
 }
 
@@ -110,8 +108,7 @@ BOOST_AUTO_TEST_CASE(filled_store_load) {
   BOOST_CHECK(!scalar_cache.Empty());
   BOOST_CHECK(!matrix_cache.Empty());
 
-  std::unique_ptr<AverageBeam> b =
-      AverageBeam::Load(scalar_cache, matrix_cache, frequency_index);
+  std::unique_ptr<AverageBeam> b = AverageBeam::Load(scalar_cache, matrix_cache, frequency_index);
   CheckBeam(*b);
 }
 

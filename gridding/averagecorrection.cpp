@@ -2,9 +2,8 @@
 
 #include <complex>
 
-extern "C" void zheev_(const char* jobz, const char* uplo, const int* n,
-                       std::complex<double>* a, const int* lda, double* w,
-                       std::complex<double>* work, const int* lwork,
+extern "C" void zheev_(const char* jobz, const char* uplo, const int* n, std::complex<double>* a,
+                       const int* lda, double* w, std::complex<double>* work, const int* lwork,
                        double* rwork, int* info);
 
 namespace wsclean {
@@ -43,9 +42,7 @@ aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix) {
     }
 
     if (is_positive_semi_definite) {
-      const auto c = [](std::complex<double> z) -> std::complex<double> {
-        return std::conj(z);
-      };
+      const auto c = [](std::complex<double> z) -> std::complex<double> { return std::conj(z); };
       // Recompose the full matrix: Calculate M = A Λ^1/2 A^H
       // where A is the 4 × 4 matrix whose ith column is the eigenvector qi of
       // the matrix. Λ is the diagonal matrix whose diagonal elements are the
@@ -55,34 +52,33 @@ aocommon::HMC4x4 PrincipalSquareRoot(const aocommon::HMC4x4& matrix) {
       // Therefore, the LAPACK results are transposed Because the last term
       // (A^H) was already transposed, it is transposed twice and thus does not
       // need to be transposed.
-      return aocommon::HMC4x4{
-          // Row 1
-          std::norm(a[0]) * ev[0] + std::norm(a[4]) * ev[1] +
-              std::norm(a[8]) * ev[2] + std::norm(a[12]) * ev[3],
-          0, 0, 0,
-          // Row 2
-          a[1] * ev[0] * c(a[0]) + a[5] * ev[1] * c(a[4]) +
-              a[9] * ev[2] * c(a[8]) + a[13] * ev[3] * c(a[12]),
-          std::norm(a[1]) * ev[0] + std::norm(a[5]) * ev[1] +
-              std::norm(a[9]) * ev[2] + std::norm(a[13]) * ev[3],
-          0, 0,
-          // Row 3
-          a[2] * ev[0] * c(a[0]) + a[6] * ev[1] * c(a[4]) +
-              a[10] * ev[2] * c(a[8]) + a[14] * ev[3] * c(a[12]),
-          a[2] * ev[0] * c(a[1]) + a[6] * ev[1] * c(a[5]) +
-              a[10] * ev[2] * c(a[9]) + a[14] * ev[3] * c(a[13]),
-          std::norm(a[2]) * ev[0] + std::norm(a[6]) * ev[1] +
-              std::norm(a[10]) * ev[2] + std::norm(a[14]) * ev[3],
-          0,
-          // Row 4
-          a[3] * ev[0] * c(a[0]) + a[7] * ev[1] * c(a[4]) +
-              a[11] * ev[2] * c(a[8]) + a[15] * ev[3] * c(a[12]),
-          a[3] * ev[0] * c(a[1]) + a[7] * ev[1] * c(a[5]) +
-              a[11] * ev[2] * c(a[9]) + a[15] * ev[3] * c(a[13]),
-          a[3] * ev[0] * c(a[2]) + a[7] * ev[1] * c(a[6]) +
-              a[11] * ev[2] * c(a[10]) + a[15] * ev[3] * c(a[14]),
-          std::norm(a[3]) * ev[0] + std::norm(a[7]) * ev[1] +
-              std::norm(a[11]) * ev[2] + std::norm(a[15]) * ev[3]};
+      return aocommon::HMC4x4{// Row 1
+                              std::norm(a[0]) * ev[0] + std::norm(a[4]) * ev[1] +
+                                  std::norm(a[8]) * ev[2] + std::norm(a[12]) * ev[3],
+                              0, 0, 0,
+                              // Row 2
+                              a[1] * ev[0] * c(a[0]) + a[5] * ev[1] * c(a[4]) +
+                                  a[9] * ev[2] * c(a[8]) + a[13] * ev[3] * c(a[12]),
+                              std::norm(a[1]) * ev[0] + std::norm(a[5]) * ev[1] +
+                                  std::norm(a[9]) * ev[2] + std::norm(a[13]) * ev[3],
+                              0, 0,
+                              // Row 3
+                              a[2] * ev[0] * c(a[0]) + a[6] * ev[1] * c(a[4]) +
+                                  a[10] * ev[2] * c(a[8]) + a[14] * ev[3] * c(a[12]),
+                              a[2] * ev[0] * c(a[1]) + a[6] * ev[1] * c(a[5]) +
+                                  a[10] * ev[2] * c(a[9]) + a[14] * ev[3] * c(a[13]),
+                              std::norm(a[2]) * ev[0] + std::norm(a[6]) * ev[1] +
+                                  std::norm(a[10]) * ev[2] + std::norm(a[14]) * ev[3],
+                              0,
+                              // Row 4
+                              a[3] * ev[0] * c(a[0]) + a[7] * ev[1] * c(a[4]) +
+                                  a[11] * ev[2] * c(a[8]) + a[15] * ev[3] * c(a[12]),
+                              a[3] * ev[0] * c(a[1]) + a[7] * ev[1] * c(a[5]) +
+                                  a[11] * ev[2] * c(a[9]) + a[15] * ev[3] * c(a[13]),
+                              a[3] * ev[0] * c(a[2]) + a[7] * ev[1] * c(a[6]) +
+                                  a[11] * ev[2] * c(a[10]) + a[15] * ev[3] * c(a[14]),
+                              std::norm(a[3]) * ev[0] + std::norm(a[7]) * ev[1] +
+                                  std::norm(a[11]) * ev[2] + std::norm(a[15]) * ev[3]};
     }
   }
   // Return a matrix with NaNs on the diagonal.
@@ -115,10 +111,9 @@ aocommon::HMC4x4 AddConjugateCorrectionPart(const aocommon::HMC4x4& m) {
   // r33 = q11 * p11 = m33;
   RT r33 = m[15].real();
 
-  return (m + aocommon::HMC4x4::FromData(
-                  {r00, r10.real(), r10.imag(), r11, r20.real(), r20.imag(),
-                   r21.real(), r21.imag(), r22, r30.real(), r30.imag(),
-                   r31.real(), r31.imag(), r32.real(), r32.imag(), r33})) *
+  return (m + aocommon::HMC4x4::FromData({r00, r10.real(), r10.imag(), r11, r20.real(), r20.imag(),
+                                          r21.real(), r21.imag(), r22, r30.real(), r30.imag(),
+                                          r31.real(), r31.imag(), r32.real(), r32.imag(), r33})) *
          0.5;
 }
 

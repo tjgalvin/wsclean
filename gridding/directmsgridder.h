@@ -24,13 +24,10 @@ class DirectMSGridder final : public MsGridder {
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;
-  size_t PredictMeasurementSet(
-      const MsProviderCollection::MsData& ms_data) final;
+  size_t PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
   void FinishPredict() final;
 
-  std::vector<aocommon::Image> ResultImages() final {
-    return {std::move(_image)};
-  }
+  std::vector<aocommon::Image> ResultImages() final { return {std::move(_image)}; }
   size_t GetSuggestedWGridSize() const final { return 1; }
 
  private:
@@ -44,8 +41,7 @@ class DirectMSGridder final : public MsGridder {
   std::vector<aocommon::ImageBase<num_t>> _layers;
   aocommon::Lane<InversionSample> _inversionLane;
 
-  void InvertMeasurementSet(const MsProviderCollection::MsData& ms_data,
-                            size_t ms_index);
+  void InvertMeasurementSet(const MsProviderCollection::MsData& ms_data, size_t ms_index);
   void gridSample(const InversionSample& sample, size_t layer);
   aocommon::ImageBase<num_t> GetSqrtLMLookupTable() const;
   std::unique_ptr<ProgressBar> progress_bar_;

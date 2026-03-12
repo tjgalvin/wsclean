@@ -39,24 +39,18 @@ namespace wsclean {
  */
 class WSCFitsWriter {
  public:
-  WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
-                const Settings& settings,
+  WSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary, const Settings& settings,
                 const std::optional<radler::Radler>& deconvolution,
-                const ObservationInfo& observationInfo, double l_shift,
-                double m_shift, size_t majorIterationNr,
-                const std::string& commandLine,
-                const OutputChannelInfo& channelInfo, bool isModel,
-                double startTime);
+                const ObservationInfo& observationInfo, double l_shift, double m_shift,
+                size_t majorIterationNr, const std::string& commandLine,
+                const OutputChannelInfo& channelInfo, bool isModel, double startTime);
 
-  WSCFitsWriter(const ImagingTableEntry& entry,
-                aocommon::PolarizationEnum polarization, bool isImaginary,
-                const Settings& settings,
+  WSCFitsWriter(const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
+                bool isImaginary, const Settings& settings,
                 const std::optional<radler::Radler>& deconvolution,
-                const ObservationInfo& observationInfo, double l_shift,
-                double m_shift, size_t majorIterationNr,
-                const std::string& commandLine,
-                const OutputChannelInfo& channelInfo, bool isModel,
-                double startTime);
+                const ObservationInfo& observationInfo, double l_shift, double m_shift,
+                size_t majorIterationNr, const std::string& commandLine,
+                const OutputChannelInfo& channelInfo, bool isModel, double startTime);
 
   explicit WSCFitsWriter(aocommon::FitsReader& templateReader);
 
@@ -73,11 +67,9 @@ class WSCFitsWriter {
 
   void WriteImage(const std::string& suffix, const aocommon::Image& image);
 
-  void WriteFullNameImage(const std::string& fullname,
-                          const aocommon::Image& image);
+  void WriteFullNameImage(const std::string& fullname, const aocommon::Image& image);
 
-  void WriteFullNameImage(const std::string& fullname,
-                          const aocommon::Image& image,
+  void WriteFullNameImage(const std::string& fullname, const aocommon::Image& image,
                           const schaapcommon::facets::Facet& facet);
 
   void WriteFullNameImage(const std::string& fullname,
@@ -94,21 +86,16 @@ class WSCFitsWriter {
   static void RestoreList(const class Settings& settings);
 
  private:
-  void setSettingsKeywords(const Settings& settings,
-                           const std::string& commandLine);
+  void setSettingsKeywords(const Settings& settings, const std::string& commandLine);
 
-  void setGridderConfiguration(const Settings& settings,
-                               const ObservationInfo& observationInfo,
-                               double l_shift, double m_shift,
-                               double startTime);
+  void setGridderConfiguration(const Settings& settings, const ObservationInfo& observationInfo,
+                               double l_shift, double m_shift, double startTime);
 
   void setDeconvolutionKeywords(const Settings& settings);
 
-  void setDeconvolutionResultKeywords(size_t minorIterationNr,
-                                      size_t majorIterationNr);
+  void setDeconvolutionResultKeywords(size_t minorIterationNr, size_t majorIterationNr);
 
-  void setChannelKeywords(const ImagingTableEntry& entry,
-                          aocommon::PolarizationEnum polarization,
+  void setChannelKeywords(const ImagingTableEntry& entry, aocommon::PolarizationEnum polarization,
                           const OutputChannelInfo& channelInfo);
 
   void copyWSCleanKeywords(aocommon::FitsReader& reader);

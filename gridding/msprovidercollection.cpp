@@ -15,11 +15,9 @@ namespace wsclean {
 
 namespace {
 template <size_t NPolInMSProvider>
-inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
-                              double v, double w, double baseline_in_m,
-                              double wavelength, double pixel_size_x,
-                              double pixel_size_y, size_t image_width,
-                              size_t image_height,
+inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u, double v, double w,
+                              double baseline_in_m, double wavelength, double pixel_size_x,
+                              double pixel_size_y, size_t image_width, size_t image_height,
                               const ImageWeights* image_weights) {
   const double half_width = 0.5 * image_width;
   const double half_height = 0.5 * image_height;
@@ -27,14 +25,12 @@ inline void CalculateMsLimits(MsProviderCollection::MsData& ms_data, double u,
   const double y = u * pixel_size_y * image_height;
   const double imaging_weight = image_weights->GetWeight(u, v);
   if (imaging_weight != 0.0) {
-    if (std::floor(x) > -half_width && std::ceil(x) < half_width &&
-        std::floor(y) > -half_height && std::ceil(y) < half_height) {
+    if (std::floor(x) > -half_width && std::ceil(x) < half_width && std::floor(y) > -half_height &&
+        std::ceil(y) < half_height) {
       ms_data.max_w = std::max(ms_data.max_w, std::fabs(w));
       ms_data.min_w = std::min(ms_data.min_w, std::fabs(w));
-      ms_data.max_baseline_uvw =
-          std::max(ms_data.max_baseline_uvw, baseline_in_m / wavelength);
-      ms_data.max_baseline_in_m =
-          std::max(ms_data.max_baseline_in_m, baseline_in_m);
+      ms_data.max_baseline_uvw = std::max(ms_data.max_baseline_uvw, baseline_in_m / wavelength);
+      ms_data.max_baseline_in_m = std::max(ms_data.max_baseline_in_m, baseline_in_m);
     }
   }
 }
@@ -59,9 +55,8 @@ std::vector<double> SelectH5parmTimes(MSProvider& ms_provider) {
 }
 }  // namespace
 
-void MsProviderCollection::InitializeMSDataVector(
-    const std::vector<MsGridder*>& gridders, double w_limit,
-    bool has_solution_data) {
+void MsProviderCollection::InitializeMSDataVector(const std::vector<MsGridder*>& gridders,
+                                                  double w_limit, bool has_solution_data) {
   assert(Count() != 0);
 
   bool has_cache = false;
@@ -81,10 +76,8 @@ void MsProviderCollection::InitializeMSDataVector(
     ms_data.original_ms_index = Index(i);
     InitializeMeasurementSet(ms_data, gridders, has_cache, has_solution_data);
 
-    ms_limits_.Calculate(ms_data.ms_provider->SelectedBands(),
-                         ms_data.ms_provider->StartTime());
-    ms_limits_.max_baseline =
-        std::max(ms_limits_.max_baseline, ms_data.max_baseline_uvw);
+    ms_limits_.Calculate(ms_data.ms_provider->SelectedBands(), ms_data.ms_provider->StartTime());
+    ms_limits_.max_baseline = std::max(ms_limits_.max_baseline, ms_data.max_baseline_uvw);
     ms_limits_.max_w = std::max(ms_limits_.max_w, ms_data.max_w);
     ms_limits_.min_w = std::min(ms_limits_.min_w, ms_data.min_w);
   }
@@ -93,8 +86,7 @@ void MsProviderCollection::InitializeMSDataVector(
 
   if (w_limit != 0.0) {
     ms_limits_.max_w *= (1.0 - w_limit);
-    if (ms_limits_.max_w < ms_limits_.min_w)
-      ms_limits_.max_w = ms_limits_.min_w;
+    if (ms_limits_.max_w < ms_limits_.min_w) ms_limits_.max_w = ms_limits_.min_w;
   }
 
   for (MsGridder* facet_gridder : gridders) {
@@ -106,9 +98,9 @@ void MsProviderCollection::InitializeMSDataVector(
 
 void MsProviderCollection::InitializeMS() { ms_data_vector_.resize(Count()); }
 
-void MsProviderCollection::InitializeMeasurementSet(
-    MsData& ms_data, const std::vector<MsGridder*>& gridders, bool is_cached,
-    bool has_solution_data) {
+void MsProviderCollection::InitializeMeasurementSet(MsData& ms_data,
+                                                    const std::vector<MsGridder*>& gridders,
+                                                    bool is_cached, bool has_solution_data) {
   MSProvider& ms_provider = MeasurementSet(ms_data.internal_ms_index);
 
   ms_data.ms_provider = &ms_provider;
@@ -128,8 +120,7 @@ void MsProviderCollection::InitializeMeasurementSet(
     min_image_height = std::min(min_image_height, gridder->ImageHeight());
   }
 
-  MetaDataCache::Entry& cache_entry =
-      gridders[0]->GetMetaDataCacheItem(ms_data.internal_ms_index);
+  MetaDataCache::Entry& cache_entry = gridders[0]->GetMetaDataCacheItem(ms_data.internal_ms_index);
 
   if (is_cached) {
     ms_data.max_w = cache_entry.max_w;
@@ -140,17 +131,14 @@ void MsProviderCollection::InitializeMeasurementSet(
     ms_data.integration_time = cache_entry.integration_time;
   } else {
     if (ms_provider.NPolarizations() == 4)
-      CalculateMsLimits<4>(ms_data, gridders[0]->PixelSizeX(),
-                           gridders[0]->PixelSizeY(), min_image_width,
-                           min_image_height, gridders[0]->GetImageWeights());
+      CalculateMsLimits<4>(ms_data, gridders[0]->PixelSizeX(), gridders[0]->PixelSizeY(),
+                           min_image_width, min_image_height, gridders[0]->GetImageWeights());
     else if (ms_provider.NPolarizations() == 2)
-      CalculateMsLimits<2>(ms_data, gridders[0]->PixelSizeX(),
-                           gridders[0]->PixelSizeY(), min_image_width,
-                           min_image_height, gridders[0]->GetImageWeights());
+      CalculateMsLimits<2>(ms_data, gridders[0]->PixelSizeX(), gridders[0]->PixelSizeY(),
+                           min_image_width, min_image_height, gridders[0]->GetImageWeights());
     else
-      CalculateMsLimits<1>(ms_data, gridders[0]->PixelSizeX(),
-                           gridders[0]->PixelSizeY(), min_image_width,
-                           min_image_height, gridders[0]->GetImageWeights());
+      CalculateMsLimits<1>(ms_data, gridders[0]->PixelSizeX(), gridders[0]->PixelSizeY(),
+                           min_image_width, min_image_height, gridders[0]->GetImageWeights());
     cache_entry.max_w = ms_data.max_w;
     cache_entry.max_w_with_flags = ms_data.max_w_with_flags;
     cache_entry.min_w = ms_data.min_w;
@@ -160,20 +148,18 @@ void MsProviderCollection::InitializeMeasurementSet(
   }
 
   if (has_solution_data) {
-    ms_data.unique_times =
-        std::make_shared<std::vector<double>>(SelectH5parmTimes(ms_provider));
+    ms_data.unique_times = std::make_shared<std::vector<double>>(SelectH5parmTimes(ms_provider));
     for (MsGridder* gridder : gridders) {
-      gridder->GetVisibilityModifier().SetMSTimes(ms_data.original_ms_index,
-                                                  ms_data.unique_times);
+      gridder->GetVisibilityModifier().SetMSTimes(ms_data.original_ms_index, ms_data.unique_times);
     }
   }
 }
 
 template <size_t NPolInMSProvider>
-void MsProviderCollection::CalculateMsLimits(
-    MsData& ms_data, double pixel_size_x, double pixel_size_y,
-    size_t image_width, size_t image_height,
-    const ImageWeights* image_weights) {
+void MsProviderCollection::CalculateMsLimits(MsData& ms_data, double pixel_size_x,
+                                             double pixel_size_y, size_t image_width,
+                                             size_t image_height,
+                                             const ImageWeights* image_weights) {
   Logger::Info << "Determining min and max w & theoretical beam size... ";
   Logger::Info.Flush();
   ms_data.max_w = 0.0;
@@ -181,10 +167,8 @@ void MsProviderCollection::CalculateMsLimits(
   ms_data.min_w = 1e100;
   ms_data.max_baseline_uvw = 0.0;
   ms_data.max_baseline_in_m = 0.0;
-  const aocommon::MultiBandData& selected_bands =
-      ms_data.ms_provider->SelectedBands();
-  std::vector<float> weightArray(selected_bands.MaxBandChannels() *
-                                 NPolInMSProvider);
+  const aocommon::MultiBandData& selected_bands = ms_data.ms_provider->SelectedBands();
+  std::vector<float> weightArray(selected_bands.MaxBandChannels() * NPolInMSProvider);
   double curTimestep = -1, firstTime = -1, lastTime = -1;
   size_t nTimesteps = 0;
   std::unique_ptr<MSReader> msReader = ms_data.ms_provider->MakeReader();
@@ -204,9 +188,9 @@ void MsProviderCollection::CalculateMsLimits(
     const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
     const double wHi = std::fabs(metadata.w_in_m / shortest_wavelength);
     const double wLo = std::fabs(metadata.w_in_m / longest_wavelength);
-    const double baselineInM = std::sqrt(metadata.u_in_m * metadata.u_in_m +
-                                         metadata.v_in_m * metadata.v_in_m +
-                                         metadata.w_in_m * metadata.w_in_m);
+    const double baselineInM =
+        std::sqrt(metadata.u_in_m * metadata.u_in_m + metadata.v_in_m * metadata.v_in_m +
+                  metadata.w_in_m * metadata.w_in_m);
     if (wHi > ms_data.max_w || wLo < ms_data.min_w ||
         baselineInM / band.SmallestWavelength() > ms_data.max_baseline_uvw) {
       msReader->ReadWeights(weightArray.data());
@@ -215,14 +199,13 @@ void MsProviderCollection::CalculateMsLimits(
       for (size_t ch = 0; ch != band.ChannelCount(); ++ch) {
         const double wavelength = band.ChannelWavelength(ch);
         double wInL = metadata.w_in_m / wavelength;
-        ms_data.max_w_with_flags =
-            std::max(ms_data.max_w_with_flags, fabs(wInL));
+        ms_data.max_w_with_flags = std::max(ms_data.max_w_with_flags, fabs(wInL));
         if (*weightPtr != 0.0) {
           double uInL = metadata.u_in_m / wavelength;
           double vInL = metadata.v_in_m / wavelength;
-          wsclean::CalculateMsLimits<NPolInMSProvider>(
-              ms_data, uInL, vInL, wInL, baselineInM, wavelength, pixel_size_x,
-              pixel_size_y, image_width, image_height, image_weights);
+          wsclean::CalculateMsLimits<NPolInMSProvider>(ms_data, uInL, vInL, wInL, baselineInM,
+                                                       wavelength, pixel_size_x, pixel_size_y,
+                                                       image_width, image_height, image_weights);
         }
         weightPtr += NPolInMSProvider;
       }
@@ -237,11 +220,10 @@ void MsProviderCollection::CalculateMsLimits(
   }
 
   Logger::Info << "DONE (w=[" << ms_data.min_w << ":" << ms_data.max_w
-               << "] lambdas, maxuvw=" << ms_data.max_baseline_uvw
-               << " lambda)\n";
+               << "] lambdas, maxuvw=" << ms_data.max_baseline_uvw << " lambda)\n";
   if (ms_data.max_w_with_flags != ms_data.max_w) {
-    Logger::Debug << "Discarded data has higher w value of "
-                  << ms_data.max_w_with_flags << " lambda.\n";
+    Logger::Debug << "Discarded data has higher w value of " << ms_data.max_w_with_flags
+                  << " lambda.\n";
   }
 
   if (lastTime == firstTime || nTimesteps < 2)
@@ -250,22 +232,23 @@ void MsProviderCollection::CalculateMsLimits(
     ms_data.integration_time = (lastTime - firstTime) / (nTimesteps - 1);
 }
 
-template void MsProviderCollection::CalculateMsLimits<1>(
-    MsData& ms_data, double pixel_size_x, double pixel_size_y,
-    size_t image_width, size_t image_height, const ImageWeights* image_weights);
-template void MsProviderCollection::CalculateMsLimits<2>(
-    MsData& ms_data, double pixel_size_x, double pixel_size_y,
-    size_t image_width, size_t image_height, const ImageWeights* image_weights);
-template void MsProviderCollection::CalculateMsLimits<4>(
-    MsData& ms_data, double pixel_size_x, double pixel_size_y,
-    size_t image_width, size_t image_height, const ImageWeights* image_weights);
+template void MsProviderCollection::CalculateMsLimits<1>(MsData& ms_data, double pixel_size_x,
+                                                         double pixel_size_y, size_t image_width,
+                                                         size_t image_height,
+                                                         const ImageWeights* image_weights);
+template void MsProviderCollection::CalculateMsLimits<2>(MsData& ms_data, double pixel_size_x,
+                                                         double pixel_size_y, size_t image_width,
+                                                         size_t image_height,
+                                                         const ImageWeights* image_weights);
+template void MsProviderCollection::CalculateMsLimits<4>(MsData& ms_data, double pixel_size_x,
+                                                         double pixel_size_y, size_t image_width,
+                                                         size_t image_height,
+                                                         const ImageWeights* image_weights);
 
-MSProvider& MsProviderCollection::MeasurementSet(
-    size_t internal_ms_index) const {
+MSProvider& MsProviderCollection::MeasurementSet(size_t internal_ms_index) const {
   return *std::get<0>(ms_provider_collection_[internal_ms_index]);
 }
-const MSSelection& MsProviderCollection::Selection(
-    size_t internal_ms_index) const {
+const MSSelection& MsProviderCollection::Selection(size_t internal_ms_index) const {
   return std::get<1>(ms_provider_collection_[internal_ms_index]);
 }
 /**
@@ -275,9 +258,7 @@ size_t MsProviderCollection::Index(size_t internal_ms_index) const {
   return std::get<2>(ms_provider_collection_[internal_ms_index]);
 }
 
-size_t MsProviderCollection::Count() const {
-  return ms_provider_collection_.size();
-}
+size_t MsProviderCollection::Count() const { return ms_provider_collection_.size(); }
 
 /**
  * @param index the original command line index of this measurement set. This
@@ -285,8 +266,7 @@ size_t MsProviderCollection::Count() const {
  */
 void MsProviderCollection::Add(std::unique_ptr<MSProvider> ms_provider,
                                const MSSelection& selection, size_t index) {
-  ms_provider_collection_.emplace_back(std::move(ms_provider), selection,
-                                       index);
+  ms_provider_collection_.emplace_back(std::move(ms_provider), selection, index);
 }
 
 }  // namespace wsclean

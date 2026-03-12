@@ -17,10 +17,9 @@ class CommandLine {
    * @returns @c true when parameters indicate wsclean should
    * be run, @c false e.g. when this is a dry run.
    */
-  static bool Parse(WSClean& wsclean, int argc, const char* argv[],
-                    bool is_slave, bool use_in_memory_data) {
-    bool fullRun = ParseWithoutValidation(wsclean, argc, argv, is_slave,
-                                          use_in_memory_data);
+  static bool Parse(WSClean& wsclean, int argc, const char* argv[], bool is_slave,
+                    bool use_in_memory_data) {
+    bool fullRun = ParseWithoutValidation(wsclean, argc, argv, is_slave, use_in_memory_data);
     if (fullRun) Validate(wsclean);
     return fullRun;
   }
@@ -32,8 +31,7 @@ class CommandLine {
    * is done, as is used in distributed/wsclean-mp.cpp.
    * Otherwise similar to @ref Parse().
    */
-  static bool ParseWithoutValidation(WSClean& wsclean, int argc,
-                                     const char* argv[], bool is_slave,
+  static bool ParseWithoutValidation(WSClean& wsclean, int argc, const char* argv[], bool is_slave,
                                      bool use_in_memory_data);
   /**
    * Finish a call to ParseWithoutValidation().

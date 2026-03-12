@@ -17,14 +17,11 @@
 namespace wsclean {
 
 GriddingTaskManager::GriddingTaskManager(const Settings& settings)
-    : settings_(settings),
-      solution_data_(settings),
-      writer_lock_manager_(this) {}
+    : settings_(settings), solution_data_(settings), writer_lock_manager_(this) {}
 
 GriddingTaskManager::~GriddingTaskManager() = default;
 
-std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
-    const Settings& settings) {
+std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(const Settings& settings) {
   if (settings.UseMpi()) {
 #ifdef HAVE_MPI
     return std::make_unique<MPIScheduler>(settings);
@@ -39,13 +36,12 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(
 }
 
 Resources GriddingTaskManager::GetResources() const {
-  return Resources(
-      settings_.threadCount,
-      GetAvailableMemory(settings_.memFraction, settings_.absMemLimit));
+  return Resources(settings_.threadCount,
+                   GetAvailableMemory(settings_.memFraction, settings_.absMemLimit));
 }
 
-void GriddingTaskManager::Run(
-    GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) {
+void GriddingTaskManager::Run(GriddingTask&& task,
+                              std::function<void(GriddingResult&)> finishCallback) {
   std::vector<size_t> facet_indices(task.facets.size());
   std::iota(facet_indices.begin(), facet_indices.end(), 0);
 
@@ -59,20 +55,16 @@ void GriddingTaskManager::Run(
 }
 
 void GriddingTaskManager::RunDirect(
-    GriddingTask& task, const std::vector<size_t>& facet_indices,
-    const Resources& resources, GriddingResult& result,
-    std::mutex& result_mutex,
-    std::function<void(std::unique_ptr<MSGridderManagerScheduler>&)>
-        signal_last_work_has_started,
+    GriddingTask& task, const std::vector<size_t>& facet_indices, const Resources& resources,
+    GriddingResult& result, std::mutex& result_mutex,
+    std::function<void(std::unique_ptr<MSGridderManagerScheduler>&)> signal_last_work_has_started,
     std::unique_ptr<MSGridderManagerScheduler> scheduler) {
   assert(!facet_indices.empty());
   assert(result.facets.size() == task.facets.size());
   assert(!task.msList.empty());
 
-  bool batch_task =
-      task.operation == GriddingTask::Invert && settings_.shared_facet_reads;
-  batch_task |=
-      task.operation == GriddingTask::Predict && settings_.shared_facet_writes;
+  bool batch_task = task.operation == GriddingTask::Invert && settings_.shared_facet_reads;
+  batch_task |= task.operation == GriddingTask::Predict && settings_.shared_facet_writes;
   const size_t n_threads = resources.NCpus();
 
   // Select which scheduler to use.
@@ -91,14 +83,12 @@ void GriddingTaskManager::RunDirect(
       }
     }
     if (!selected_scheduler) {
-      selected_scheduler =
-          std::make_unique<MSGridderManagerScheduler>(n_threads);
+      selected_scheduler = std::make_unique<MSGridderManagerScheduler>(n_threads);
     }
   }
   MSGridderManager manager(settings_, solution_data_, selected_scheduler.get());
   manager.InitializeMS(task);
-  manager.InitializeGridders(task, facet_indices, resources, result.facets,
-                             writer_lock_manager_);
+  manager.InitializeGridders(task, facet_indices, resources, result.facets, writer_lock_manager_);
   if (task.operation == GriddingTask::Invert) {
     if (settings_.shared_facet_reads) {
       manager.BatchInvert([&]() {

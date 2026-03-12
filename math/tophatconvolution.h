@@ -22,8 +22,7 @@ void Convolve(aocommon::Image& input, double radius);
  * When using an odd size, the tophat filter is circular/symmetric,
  * and that is the recommended usage.
  */
-aocommon::Image MakeTopHatImage(size_t width, size_t height,
-                                double tophat_radius);
+aocommon::Image MakeTopHatImage(size_t width, size_t height, double tophat_radius);
 
 }  // namespace wsclean::tophat_convolution
 

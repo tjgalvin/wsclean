@@ -11,20 +11,17 @@ class AveragingMSRowProvider : public MSRowProvider {
  public:
   AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath,
                          const schaapcommon::reordering::MSSelection& selection,
-                         const std::map<size_t, size_t>& selectedDataDescIds,
-                         size_t fieldId, const std::string& dataColumnName,
-                         const std::string& modelColumnName, bool requireModel);
+                         const std::map<size_t, size_t>& selectedDataDescIds, size_t fieldId,
+                         const std::string& dataColumnName, const std::string& modelColumnName,
+                         bool requireModel);
 
-  virtual bool AtEnd() const final override {
-    return _flushPosition >= _nElements;
-  }
+  virtual bool AtEnd() const final override { return _flushPosition >= _nElements; }
 
   virtual void NextRow() final override;
 
-  virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights,
-                        double& u, double& v, double& w, uint32_t& dataDescId,
-                        uint32_t& antenna1, uint32_t& antenna2,
-                        uint32_t& fieldId, double& time) final override;
+  virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u,
+                        double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1,
+                        uint32_t& antenna2, uint32_t& fieldId, double& time) final override;
 
   virtual void ReadModel(DataArray& model) final override;
 
@@ -47,22 +44,20 @@ class AveragingMSRowProvider : public MSRowProvider {
 
     void Initialize(size_t bufferSize, bool includeModel);
 
-    void AddData(size_t n, const std::complex<float>* data, const bool* flags,
-                 const float* weights, const double* uvw, double time);
+    void AddData(size_t n, const std::complex<float>* data, const bool* flags, const float* weights,
+                 const double* uvw, double time);
 
     void AddDataAndModel(size_t n, const std::complex<float>* data,
-                         const std::complex<float>* modelData,
-                         const bool* flags, const float* weights,
-                         const double* uvw, double time);
+                         const std::complex<float>* modelData, const bool* flags,
+                         const float* weights, const double* uvw, double time);
 
     size_t AveragedDataCount() const { return _averagedDataCount; }
 
-    void Get(size_t n, std::complex<float>* data, bool* flags, float* weights,
-             double* uvw, double& time);
+    void Get(size_t n, std::complex<float>* data, bool* flags, float* weights, double* uvw,
+             double& time);
 
-    void Get(size_t n, std::complex<float>* data,
-             std::complex<float>* modelData, bool* flags, float* weights,
-             double* uvw, double& time);
+    void Get(size_t n, std::complex<float>* data, std::complex<float>* modelData, bool* flags,
+             float* weights, double* uvw, double& time);
 
     void Reset(size_t n);
 

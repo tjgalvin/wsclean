@@ -42,9 +42,7 @@ class PrimaryBeamImageSet {
     return stokes_i != 0.0 ? (1.0 / stokes_i) : 0.0;
   }
 
-  const aocommon::Image& operator[](size_t index) const {
-    return _beamImages[index];
-  }
+  const aocommon::Image& operator[](size_t index) const { return _beamImages[index]; }
   aocommon::Image& operator[](size_t index) { return _beamImages[index]; }
 
   PrimaryBeamImageSet& operator+=(const PrimaryBeamImageSet& rhs) {
@@ -95,8 +93,7 @@ class PrimaryBeamImageSet {
         images[0][j] = xx * beam.Get(0).real() + yy * beam.Get(1).real();
         images[1][j] = xx * beam.Get(2).real() + yy * beam.Get(3).real();
       } else {
-        for (size_t p = 0; p != 2; ++p)
-          images[p][j] = std::numeric_limits<float>::quiet_NaN();
+        for (size_t p = 0; p != 2; ++p) images[p][j] = std::numeric_limits<float>::quiet_NaN();
       }
     }
   };
@@ -110,16 +107,14 @@ class PrimaryBeamImageSet {
       aocommon::HMC4x4 beam = Value(j);
       if (beam.Norm() > beamLimit) {
         if (!beam.Invert()) beam = aocommon::HMC4x4::Zero();
-        double stokesVal[4] = {images[0][j], images[1][j], images[2][j],
-                               images[3][j]};
+        double stokesVal[4] = {images[0][j], images[1][j], images[2][j], images[3][j]};
         aocommon::Vector4 v;
         aocommon::Polarization::StokesToLinear(stokesVal, v.data());
         v = beam * v;
         aocommon::Polarization::LinearToStokes(v.data(), stokesVal);
         for (size_t p = 0; p != 4; ++p) images[p][j] = stokesVal[p];
       } else {
-        for (size_t p = 0; p != 4; ++p)
-          images[p][j] = std::numeric_limits<float>::quiet_NaN();
+        for (size_t p = 0; p != 4; ++p) images[p][j] = std::numeric_limits<float>::quiet_NaN();
       }
     }
   }
@@ -128,8 +123,7 @@ class PrimaryBeamImageSet {
    * @brief Correct component list for primary beam given a (output)
    * channel index.
    */
-  void CorrectComponentList(radler::ComponentList& componentList,
-                            size_t channel) {
+  void CorrectComponentList(radler::ComponentList& componentList, size_t channel) {
     componentList.MergeDuplicates();
 
     for (size_t i = 0; i != componentList.NScales(); ++i) {
@@ -138,8 +132,7 @@ class PrimaryBeamImageSet {
       for (size_t j = 0; j != positions.size(); ++j) {
         const double beamCorrectionFactor =
             GetUnpolarizedCorrectionFactor(positions[j].x, positions[j].y);
-        componentList.MultiplyScaleComponent(i, j, channel,
-                                             beamCorrectionFactor);
+        componentList.MultiplyScaleComponent(i, j, channel, beamCorrectionFactor);
       }
     }
   }
@@ -149,9 +142,7 @@ class PrimaryBeamImageSet {
   size_t Height() const { return _beamImages[0].Height(); }
 
  private:
-  aocommon::HMC4x4 Value(size_t x, size_t y) const {
-    return Value(x + y * Width());
-  }
+  aocommon::HMC4x4 Value(size_t x, size_t y) const { return Value(x + y * Width()); }
 
   aocommon::HMC4x4 Value(size_t pixel_index) const {
     aocommon::HMC4x4 beam_values;
@@ -169,22 +160,16 @@ class PrimaryBeamImageSet {
   aocommon::MC2x2 Value2x2(size_t pixel_index) const {
     const double xx_to_xx = _beamImages[0][pixel_index];   // m_00
     const double yy_to_yy = _beamImages[15][pixel_index];  // m_33
-    const double xx_to_yy_r =
-        _beamImages[9].Empty() ? 0.0 : _beamImages[9][pixel_index];
-    const double xx_to_yy_i =
-        _beamImages[10].Empty() ? 0.0 : _beamImages[10][pixel_index];
-    return aocommon::MC2x2{xx_to_xx,
-                           {xx_to_yy_r, -xx_to_yy_i},
-                           {xx_to_yy_r, xx_to_yy_i},
-                           yy_to_yy};
+    const double xx_to_yy_r = _beamImages[9].Empty() ? 0.0 : _beamImages[9][pixel_index];
+    const double xx_to_yy_i = _beamImages[10].Empty() ? 0.0 : _beamImages[10][pixel_index];
+    return aocommon::MC2x2{xx_to_xx, {xx_to_yy_r, -xx_to_yy_i}, {xx_to_yy_r, xx_to_yy_i}, yy_to_yy};
   }
 
   double StokesIValue(size_t pixel_index) const {
     const double xx_to_xx = _beamImages[0][pixel_index];   // m_00
     const double yy_to_yy = _beamImages[15][pixel_index];  // m_33
-    const double xx_to_yy = _beamImages[9].Empty()
-                                ? 0.0
-                                : _beamImages[9][pixel_index];  // real(m_30)
+    const double xx_to_yy =
+        _beamImages[9].Empty() ? 0.0 : _beamImages[9][pixel_index];  // real(m_30)
     // (xx_to_xx + yy_to_yy + m_30 + m_03) / 2
     // = 0.5 * (xx_to_xx + yy_to_yy + m_30 + conj(m_30))
     // = 0.5 * (xx_to_xx + yy_to_yy) + real(m_30)

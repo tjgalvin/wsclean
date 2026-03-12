@@ -19,13 +19,11 @@ void H5SolutionData::LoadSolutions() {
   using schaapcommon::h5parm::SolTab;
 
   const std::vector<std::string>& solution_files = settings_.facetSolutionFiles;
-  const std::vector<std::string>& solution_table_names =
-      settings_.facetSolutionTables;
+  const std::vector<std::string>& solution_table_names = settings_.facetSolutionTables;
 
   h5parms_.reserve(solution_files.size());
   first_solutions_.reserve(solution_files.size());
-  if (solution_table_names.size() == 2)
-    second_solutions_.reserve(solution_files.size());
+  if (solution_table_names.size() == 2) second_solutions_.reserve(solution_files.size());
 
   for (const std::string& solution_file : solution_files) {
     schaapcommon::h5parm::H5Parm& h5parm =
@@ -39,10 +37,8 @@ void H5SolutionData::LoadSolutions() {
       const std::string kPhase = "phase";
 
       const std::array<schaapcommon::h5parm::SolTab*, 2> tables{
-          &h5parm.GetSolTab(solution_table_names[0]),
-          &h5parm.GetSolTab(solution_table_names[1])};
-      const std::array<std::string, 2> types{tables[0]->GetType(),
-                                             tables[1]->GetType()};
+          &h5parm.GetSolTab(solution_table_names[0]), &h5parm.GetSolTab(solution_table_names[1])};
+      const std::array<std::string, 2> types{tables[0]->GetType(), tables[1]->GetType()};
 
       if (types[0] == kAmplitude && types[1] == kPhase) {
         first_solutions_.emplace_back(tables[0]);
@@ -51,10 +47,9 @@ void H5SolutionData::LoadSolutions() {
         first_solutions_.emplace_back(tables[1]);
         second_solutions_.emplace_back(tables[0]);
       } else {
-        throw std::runtime_error(
-            "WSClean expects solution tables with names '" + kAmplitude +
-            "' and '" + kPhase + "', but received '" + types[0] + "' and '" +
-            types[1] + "'");
+        throw std::runtime_error("WSClean expects solution tables with names '" + kAmplitude +
+                                 "' and '" + kPhase + "', but received '" + types[0] + "' and '" +
+                                 types[1] + "'");
       }
     }
   }
@@ -69,8 +64,7 @@ void H5SolutionData::LoadGainTypes() {
   if (second_solutions_.empty()) {
     for (const SolTab* table : first_solutions_) {
       gain_types_.emplace_back(
-          schaapcommon::h5parm::JonesParameters::H5ParmTypeStringToGainType(
-              table->GetType()));
+          schaapcommon::h5parm::JonesParameters::H5ParmTypeStringToGainType(table->GetType()));
     }
   } else {
     assert(second_solutions_.size() == first_solutions_.size());
@@ -79,13 +73,9 @@ void H5SolutionData::LoadGainTypes() {
 
     for (size_t i = 0; i < first_solutions_.size(); ++i) {
       const size_t n_amplitude_polarizations =
-          first_solutions_[i]->HasAxis(kPol)
-              ? first_solutions_[i]->GetAxis(kPol).size
-              : 1;
+          first_solutions_[i]->HasAxis(kPol) ? first_solutions_[i]->GetAxis(kPol).size : 1;
       const size_t n_phase_polarizations =
-          second_solutions_[i]->HasAxis(kPol)
-              ? second_solutions_[i]->GetAxis(kPol).size
-              : 1;
+          second_solutions_[i]->HasAxis(kPol) ? second_solutions_[i]->GetAxis(kPol).size : 1;
 
       if (n_amplitude_polarizations == 1 && n_phase_polarizations == 1) {
         gain_types_.emplace_back(GainType::kScalarComplex);

@@ -10,8 +10,7 @@ using aocommon::MC2x2;
 
 BOOST_AUTO_TEST_SUITE(image_operations)
 
-void CheckConstantImage(const Image& image, float expected,
-                        const std::string& description) {
+void CheckConstantImage(const Image& image, float expected, const std::string& description) {
   for (float value : image) {
     if (std::fabs(value - expected) > 1e-6) {
       std::ostringstream str;
@@ -35,8 +34,7 @@ BOOST_AUTO_TEST_CASE(correct_images_for_mueller_matrix) {
   CheckConstantImage(u, 0.0, "Stokes U");
   CheckConstantImage(v, 0.0, "Stokes V");
 
-  const HMC4x4 i_to_q =
-      HMC4x4::KroneckerProduct(MC2x2{2, 0, 0, 0}, MC2x2{1, 0, 0, 0});
+  const HMC4x4 i_to_q = HMC4x4::KroneckerProduct(MC2x2{2, 0, 0, 0}, MC2x2{1, 0, 0, 0});
   math::CorrectImagesForMuellerMatrix(i_to_q, images);
   CheckConstantImage(i, 77.0, "Stokes I");
   CheckConstantImage(q, 77.0, "Stokes Q");
@@ -70,8 +68,7 @@ BOOST_AUTO_TEST_CASE(correct_dual_images_for_mueller_matrix) {
   CheckConstantImage(xx, 37.0, "XX");
   CheckConstantImage(yy, 42.0, "YY");
 
-  const HMC4x4 zero_yy =
-      HMC4x4::KroneckerProduct(MC2x2{2, 0, 0, 0}, MC2x2{1, 0, 0, 0});
+  const HMC4x4 zero_yy = HMC4x4::KroneckerProduct(MC2x2{2, 0, 0, 0}, MC2x2{1, 0, 0, 0});
   math::CorrectDualImagesForMuellerMatrix(zero_yy, images);
   CheckConstantImage(xx, 74.0, "XX");
   CheckConstantImage(yy, 0.0, "YY");
@@ -79,9 +76,8 @@ BOOST_AUTO_TEST_CASE(correct_dual_images_for_mueller_matrix) {
   xx = 10.0;
   yy = 3.0;
   const HMC4x4 swap{
-      0.0, 0.0, 0.0,         {2.0, 4.0},  // XX=(2+4i) YY
-      0.0, 0.0, 0.0,         0.0,        0.0, 0.0,
-      0.0, 0.0, {2.0, -4.0}, 0.0,        0.0, 0.0  // YY=(2-4i) XX
+      0.0, 0.0, 0.0, {2.0, 4.0},                                                 // XX=(2+4i) YY
+      0.0, 0.0, 0.0, 0.0,        0.0, 0.0, 0.0, 0.0, {2.0, -4.0}, 0.0, 0.0, 0.0  // YY=(2-4i) XX
   };
   math::CorrectDualImagesForMuellerMatrix(swap, images);
   CheckConstantImage(xx, 6.0, "XX");

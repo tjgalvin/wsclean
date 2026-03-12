@@ -19,14 +19,12 @@ std::string FindPythonFilePath(const std::string& filename) {
   std::mt19937 gen(rndDev());
   std::stringstream filenameStr;
   filenameStr << "/tmp/ao-python-path-list" << gen() << ".tmp";
-  boost::filesystem::path tempPath =
-      filenameStr.str();  // boost::filesystem::unique_path();
-  const std::string tempFilename = tempPath.string();  // optional
-  std::string command =
-      std::string(
-          "echo \"from __future__ import print_function\nimport sys\nfor a in "
-          "sys.path:\n  print(a)\"|python>") +
-      tempFilename;
+  boost::filesystem::path tempPath = filenameStr.str();  // boost::filesystem::unique_path();
+  const std::string tempFilename = tempPath.string();    // optional
+  std::string command = std::string(
+                            "echo \"from __future__ import print_function\nimport sys\nfor a in "
+                            "sys.path:\n  print(a)\"|python>") +
+                        tempFilename;
   int status = std::system(command.c_str());
   if (status != 0) {
     // retry with python3
@@ -70,8 +68,7 @@ std::string FindPythonFilePath(const std::string& filename) {
   }
   searchPathsFile.clear();
   searchPathsFile.seekg(0, std::ios::beg);
-  std::string err(std::string("Could not find Python file ") + filename +
-                  ". Paths searched:\n");
+  std::string err(std::string("Could not find Python file ") + filename + ". Paths searched:\n");
   while (searchPathsFile.good()) {
     std::string prefixPath;
     std::getline(searchPathsFile, prefixPath);

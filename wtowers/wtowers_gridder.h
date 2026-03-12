@@ -19,14 +19,12 @@ class WTowersGridderBase {
   virtual size_t ConstantMemoryUsage() const = 0;
   virtual size_t PerVisibilityMemoryUsage() const = 0;
   virtual void InitializeInversion() = 0;
-  virtual void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw,
-                                const double *freq,
+  virtual void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw, const double *freq,
                                 const std::complex<float> *vis) = 0;
   virtual void FinalizeImage(double multiplication_factor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
-  virtual void PredictVisibilities(size_t n_rows, size_t n_channels,
-                                   const double *uvws,
+  virtual void PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
                                    const double *frequencies,
                                    std::complex<float> *visibilities) const = 0;
 };
@@ -49,13 +47,11 @@ class WTowersGridder final : public WTowersGridderBase {
    *   0: no output
    *   1: print information for planes and subgrids
    */
-  WTowersGridder(size_t width, size_t height, size_t trimmed_width,
-                 size_t trimmed_height, double pixel_size_x,
-                 double pixel_size_y, double l_shift, double m_shift,
-                 int wtowers_subgrid_size, int wtowers_support,
-                 int wtowers_w_support, double wtowers_padding,
-                 double wtowers_w_padding, size_t n_threads, double accuracy,
-                 double max_abs_w, size_t verbosity = 0);
+  WTowersGridder(size_t width, size_t height, size_t trimmed_width, size_t trimmed_height,
+                 double pixel_size_x, double pixel_size_y, double l_shift, double m_shift,
+                 int wtowers_subgrid_size, int wtowers_support, int wtowers_w_support,
+                 double wtowers_padding, double wtowers_w_padding, size_t n_threads,
+                 double accuracy, double max_abs_w, size_t verbosity = 0);
 
   WTowersGridder(const WTowersGridder &) = delete;
   WTowersGridder &operator=(const WTowersGridder &) = delete;
@@ -88,8 +84,7 @@ class WTowersGridder final : public WTowersGridderBase {
    * vis[row*n_channels + chan]
    */
   void AddInversionData(size_t n_rows, size_t n_channels, const double *uvws,
-                        const double *frequencies,
-                        const std::complex<float> *visibilities) final;
+                        const double *frequencies, const std::complex<float> *visibilities) final;
 
   /**
    * Print the various computed paramaters with which w-towers will be run to

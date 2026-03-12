@@ -23,8 +23,7 @@ aocommon::MultiBandData MakeSelectedPartBands(
   for (const schaapcommon::reordering::ChannelRange& range : ranges) {
     if (!range.Empty()) {
       const aocommon::BandData& band = input[range.data_desc_id];
-      result.SetBand(range.data_desc_id,
-                     aocommon::BandData(band, range.start, range.end));
+      result.SetBand(range.data_desc_id, aocommon::BandData(band, range.start, range.end));
     }
   }
   return result;
@@ -32,12 +31,9 @@ aocommon::MultiBandData MakeSelectedPartBands(
 
 std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const aocommon::MultiBandData& input,
-    const std::vector<
-        aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>&
-        channels) {
+    const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels) {
   std::vector<aocommon::MultiBandData> result;
-  for (const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>&
-           ranges : channels) {
+  for (const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& ranges : channels) {
     result.emplace_back(MakeSelectedPartBands(input, ranges));
   }
   return result;
@@ -47,8 +43,7 @@ MSProvider::~MSProvider() = default;
 
 void MSProvider::ResetModelColumn() {
   std::unique_ptr<MSReader> msReader = MakeReader();
-  const std::vector<std::complex<float>> buffer(
-      NMaxChannels() * NPolarizations(), {0.0f, 0.0f});
+  const std::vector<std::complex<float>> buffer(NMaxChannels() * NPolarizations(), {0.0f, 0.0f});
   while (msReader->CurrentRowAvailable()) {
     // Always overwrite
     constexpr bool addToMS = false;

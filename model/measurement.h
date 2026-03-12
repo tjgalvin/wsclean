@@ -12,11 +12,7 @@ namespace wsclean {
 
 class Measurement {
  public:
-  Measurement()
-      : _frequencyHz(0.0),
-        _bandWidthHz(0.0),
-        _fluxDensities{},
-        _fluxDensityStddevs{} {}
+  Measurement() : _frequencyHz(0.0), _bandWidthHz(0.0), _fluxDensities{}, _fluxDensityStddevs{} {}
 
   void operator+=(const Measurement &rhs) {
     for (size_t p = 0; p != 4; ++p) {
@@ -32,8 +28,7 @@ class Measurement {
 
   void AverageWidth(const Measurement &rhs, double weight) {
     for (size_t p = 0; p != 4; ++p) {
-      _fluxDensities[p] =
-          (_fluxDensities[p] * (1.0 - weight) + rhs._fluxDensities[p] * weight);
+      _fluxDensities[p] = (_fluxDensities[p] * (1.0 - weight) + rhs._fluxDensities[p] * weight);
     }
   }
 
@@ -57,13 +52,11 @@ class Measurement {
     _fluxDensities[polarizationIndex] = flux;
   }
 
-  void SetFluxDensity(aocommon::PolarizationEnum polarization,
-                      long double flux) {
+  void SetFluxDensity(aocommon::PolarizationEnum polarization, long double flux) {
     _fluxDensities[aocommon::Polarization::StokesToIndex(polarization)] = flux;
   }
 
-  void SetZeroExceptSinglePol(aocommon::PolarizationEnum polarization,
-                              long double flux) {
+  void SetZeroExceptSinglePol(aocommon::PolarizationEnum polarization, long double flux) {
     _fluxDensities.fill(0.0);
     _fluxDensities[aocommon::Polarization::StokesToIndex(polarization)] = flux;
 #ifdef EXTRA_ASSERTIONS
@@ -72,15 +65,12 @@ class Measurement {
 #endif
   }
 
-  void SetFluxDensityStddevFromIndex(size_t polarizationIndex,
-                                     long double stddev) {
+  void SetFluxDensityStddevFromIndex(size_t polarizationIndex, long double stddev) {
     _fluxDensityStddevs[polarizationIndex] = stddev;
   }
 
-  void SetFluxDensityStddev(aocommon::PolarizationEnum polarization,
-                            long double stddev) {
-    _fluxDensityStddevs[aocommon::Polarization::StokesToIndex(polarization)] =
-        stddev;
+  void SetFluxDensityStddev(aocommon::PolarizationEnum polarization, long double stddev) {
+    _fluxDensityStddevs[aocommon::Polarization::StokesToIndex(polarization)] = stddev;
 #ifdef EXTRA_ASSERTIONS
     if (!aocommon::Polarization::IsStokes(polarization))
       throw std::runtime_error("Cannot store specified polarization in model");
@@ -95,8 +85,8 @@ class Measurement {
       << (_frequencyHz / 1000000.0)
       << " MHz\n"
          "      fluxdensity Jy "
-      << _fluxDensities[0] << ' ' << _fluxDensities[1] << ' '
-      << _fluxDensities[2] << ' ' << _fluxDensities[3] << '\n';
+      << _fluxDensities[0] << ' ' << _fluxDensities[1] << ' ' << _fluxDensities[2] << ' '
+      << _fluxDensities[3] << '\n';
     if (_bandWidthHz > 0.0) s << "      bandwidth " << _bandWidthHz << " Hz\n";
     s << "    }\n";
   }

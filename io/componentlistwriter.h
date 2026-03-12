@@ -18,24 +18,20 @@ class Settings;
  */
 class ComponentListWriter {
  public:
-  ComponentListWriter(const Settings& settings,
-                      std::unique_ptr<radler::WorkTable> table)
+  ComponentListWriter(const Settings& settings, std::unique_ptr<radler::WorkTable> table)
       : settings_(settings), deconvolution_table_(std::move(table)) {}
 
   /**
    * @brief Save source component list to disk.
    */
-  void SaveSourceList(const radler::Radler& deconvolution,
-                      long double phase_centre_ra, long double phase_centre_dec,
-                      long double l_shift, long double m_shift) const;
+  void SaveSourceList(const radler::Radler& deconvolution, long double phase_centre_ra,
+                      long double phase_centre_dec, long double l_shift, long double m_shift) const;
 
   /**
    * @brief Save primary beam corrected source components to disk.
    */
-  void SavePbCorrectedSourceList(const radler::Radler& deconvolution,
-                                 long double phase_centre_ra,
-                                 long double phase_centre_dec,
-                                 long double l_shift,
+  void SavePbCorrectedSourceList(const radler::Radler& deconvolution, long double phase_centre_ra,
+                                 long double phase_centre_dec, long double l_shift,
                                  long double m_shift) const;
 
  private:

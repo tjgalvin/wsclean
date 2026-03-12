@@ -32,35 +32,30 @@ class MeasuredSED : public SpectralEnergyDistribution {
     AddMeasurement(fluxDensityJy, frequencyHz);
   }
 
-  MeasuredSED(long double fluxDensityJy, long double frequencyHz,
-              long double spectralIndex,
-              aocommon::PolarizationEnum polarization =
-                  aocommon::Polarization::StokesI) {
+  MeasuredSED(long double fluxDensityJy, long double frequencyHz, long double spectralIndex,
+              aocommon::PolarizationEnum polarization = aocommon::Polarization::StokesI) {
     AddMeasurement(fluxDensityJy, frequencyHz, spectralIndex, polarization);
   }
 
-  MeasuredSED(long double fluxDensityAJy, long double frequencyAHz,
-              long double fluxDensityBJy, long double frequencyBHz) {
+  MeasuredSED(long double fluxDensityAJy, long double frequencyAHz, long double fluxDensityBJy,
+              long double frequencyBHz) {
     AddMeasurement(fluxDensityAJy, frequencyAHz);
     AddMeasurement(fluxDensityBJy, frequencyBHz);
   }
 
-  MeasuredSED(const MeasuredSED& source)
-      : _measurements(source._measurements) {}
+  MeasuredSED(const MeasuredSED& source) : _measurements(source._measurements) {}
 
   virtual MeasuredSED* Clone() const { return new MeasuredSED(*this); }
 
-  void operator=(const MeasuredSED& source) {
-    _measurements = source._measurements;
-  }
+  void operator=(const MeasuredSED& source) { _measurements = source._measurements; }
 
   void operator+=(const SpectralEnergyDistribution& rhs) {
     for (iterator i = begin(); i != end(); ++i) {
       double freq = i->first;
       Measurement& m = i->second;
       for (size_t p = 0; p != 4; ++p) {
-        m.SetFluxDensityFromIndex(p, m.FluxDensityFromIndex(p) +
-                                         rhs.FluxAtFrequencyFromIndex(freq, p));
+        m.SetFluxDensityFromIndex(
+            p, m.FluxDensityFromIndex(p) + rhs.FluxAtFrequencyFromIndex(freq, p));
       }
     }
   }
@@ -86,8 +81,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
     }
   }
 
-  void CombineMeasurementsWithAveraging(const MeasuredSED& other,
-                                        double weight = 0.5) {
+  void CombineMeasurementsWithAveraging(const MeasuredSED& other, double weight = 0.5) {
     for (const_iterator i = other.begin(); i != other.end(); ++i) {
       double freq = i->first;
       FluxMap::iterator pos = _measurements.find(freq);
@@ -102,8 +96,8 @@ class MeasuredSED : public SpectralEnergyDistribution {
   }
 
   void AddMeasurement(const Measurement& measurement) {
-    _measurements.insert(std::pair<long double, Measurement>(
-        measurement.FrequencyHz(), measurement));
+    _measurements.insert(
+        std::pair<long double, Measurement>(measurement.FrequencyHz(), measurement));
   }
 
   void AddMeasurement(long double fluxDensityJy, long double frequencyHz) {
@@ -113,24 +107,19 @@ class MeasuredSED : public SpectralEnergyDistribution {
     measurement.SetFluxDensityFromIndex(2, 0.0);
     measurement.SetFluxDensityFromIndex(3, 0.0);
     measurement.SetFrequencyHz(frequencyHz);
-    _measurements.insert(
-        std::pair<long double, Measurement>(frequencyHz, measurement));
+    _measurements.insert(std::pair<long double, Measurement>(frequencyHz, measurement));
   }
 
   template <typename T>
   void AddMeasurement(const T* fluxDensityJyPerPol, long double frequencyHz) {
     Measurement measurement;
-    for (size_t p = 0; p != 4; ++p)
-      measurement.SetFluxDensityFromIndex(p, fluxDensityJyPerPol[p]);
+    for (size_t p = 0; p != 4; ++p) measurement.SetFluxDensityFromIndex(p, fluxDensityJyPerPol[p]);
     measurement.SetFrequencyHz(frequencyHz);
-    _measurements.insert(
-        std::pair<long double, Measurement>(frequencyHz, measurement));
+    _measurements.insert(std::pair<long double, Measurement>(frequencyHz, measurement));
   }
 
-  void AddMeasurement(long double fluxDensityJy, long double frequencyHz,
-                      long double spectralIndex,
-                      aocommon::PolarizationEnum polarization =
-                          aocommon::Polarization::StokesI) {
+  void AddMeasurement(long double fluxDensityJy, long double frequencyHz, long double spectralIndex,
+                      aocommon::PolarizationEnum polarization = aocommon::Polarization::StokesI) {
 #ifdef EXTRA_ASSERTIONS
     if (!aocommon::Polarization::IsStokes(polarization))
       throw std::runtime_error("Cannot store specified polarization in model");
@@ -138,8 +127,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
     Measurement measurementA, measurementB;
     measurementA.SetZeroExceptSinglePol(polarization, fluxDensityJy);
     measurementA.SetFrequencyHz(frequencyHz);
-    _measurements.insert(
-        std::pair<long double, Measurement>(frequencyHz, measurementA));
+    _measurements.insert(std::pair<long double, Measurement>(frequencyHz, measurementA));
     if (spectralIndex != 0.0) {
       long double fluxB = /* Calculate the flux density for 1 Hz frequency */
           fluxDensityJy * std::pow(1.0 / frequencyHz, spectralIndex);
@@ -150,23 +138,20 @@ class MeasuredSED : public SpectralEnergyDistribution {
       fluxB = fluxB * std::pow(refFreqB, spectralIndex);
       measurementB.SetZeroExceptSinglePol(polarization, fluxB);
       measurementB.SetFrequencyHz(refFreqB);
-      _measurements.insert(
-          std::pair<long double, Measurement>(refFreqB, measurementB));
+      _measurements.insert(std::pair<long double, Measurement>(refFreqB, measurementB));
     }
   }
 
   std::string ToString() const {
     std::ostringstream s;
     s.precision(15);
-    for (FluxMap::const_iterator i = _measurements.begin();
-         i != _measurements.end(); ++i) {
+    for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
       i->second.ToStream(s);
     }
     return s.str();
   }
 
-  long double FluxAtFrequencyFromIndex(long double frequencyHz,
-                                       size_t pIndex) const {
+  long double FluxAtFrequencyFromIndex(long double frequencyHz, size_t pIndex) const {
     if (_measurements.size() <= 1) {
       if (_measurements.empty())
         return 0.0;
@@ -193,20 +178,15 @@ class MeasuredSED : public SpectralEnergyDistribution {
       --left;
     }
 
-    long double freqA = left->first,
-                fluxA = left->second.FluxDensityFromIndex(pIndex),
-                freqB = right->first,
-                fluxB = right->second.FluxDensityFromIndex(pIndex);
+    long double freqA = left->first, fluxA = left->second.FluxDensityFromIndex(pIndex),
+                freqB = right->first, fluxB = right->second.FluxDensityFromIndex(pIndex);
 
-    return SpectralEnergyDistribution::FluxAtFrequency(fluxA, freqA, fluxB,
-                                                       freqB, frequencyHz);
+    return SpectralEnergyDistribution::FluxAtFrequency(fluxA, freqA, fluxB, freqB, frequencyHz);
   }
 
-  long double IntegratedFlux(long double startFrequency,
-                             long double endFrequency,
+  long double IntegratedFlux(long double startFrequency, long double endFrequency,
                              aocommon::PolarizationEnum polarization) const {
-    if (startFrequency == endFrequency)
-      return FluxAtFrequency(startFrequency, polarization);
+    if (startFrequency == endFrequency) return FluxAtFrequency(startFrequency, polarization);
 
     FluxMap::const_iterator iter = _measurements.lower_bound(startFrequency);
 
@@ -218,25 +198,20 @@ class MeasuredSED : public SpectralEnergyDistribution {
         return _measurements.begin()->second.FluxDensity(polarization);
       else {  // _measurements.size()==2
         long double freqA = _measurements.begin()->first,
-                    fluxA =
-                        _measurements.begin()->second.FluxDensity(polarization),
+                    fluxA = _measurements.begin()->second.FluxDensity(polarization),
                     freqB = _measurements.rbegin()->first,
-                    fluxB = _measurements.rbegin()->second.FluxDensity(
-                        polarization);
-        return SpectralEnergyDistribution::IntegratedFlux(
-            fluxA, freqA, fluxB, freqB, startFrequency, endFrequency);
+                    fluxB = _measurements.rbegin()->second.FluxDensity(polarization);
+        return SpectralEnergyDistribution::IntegratedFlux(fluxA, freqA, fluxB, freqB,
+                                                          startFrequency, endFrequency);
       }
     }
-    if (iter ==
-        _measurements.end()) {  // all keys are lower, so take entire range
+    if (iter == _measurements.end()) {  // all keys are lower, so take entire range
       long double freqA = _measurements.begin()->first,
-                  fluxA =
-                      _measurements.begin()->second.FluxDensity(polarization),
+                  fluxA = _measurements.begin()->second.FluxDensity(polarization),
                   freqB = _measurements.rbegin()->first,
-                  fluxB =
-                      _measurements.rbegin()->second.FluxDensity(polarization);
-      return SpectralEnergyDistribution::IntegratedFlux(
-          fluxA, freqA, fluxB, freqB, startFrequency, endFrequency);
+                  fluxB = _measurements.rbegin()->second.FluxDensity(polarization);
+      return SpectralEnergyDistribution::IntegratedFlux(fluxA, freqA, fluxB, freqB, startFrequency,
+                                                        endFrequency);
     }
 
     if (iter != _measurements.begin()) --iter;
@@ -244,13 +219,11 @@ class MeasuredSED : public SpectralEnergyDistribution {
     if (iter->first >= endFrequency) {
       // all keys are outside range, higher than range
       long double freqA = _measurements.begin()->first,
-                  fluxA =
-                      _measurements.begin()->second.FluxDensity(polarization),
+                  fluxA = _measurements.begin()->second.FluxDensity(polarization),
                   freqB = _measurements.rbegin()->first,
-                  fluxB =
-                      _measurements.rbegin()->second.FluxDensity(polarization);
-      return SpectralEnergyDistribution::IntegratedFlux(
-          fluxA, freqA, fluxB, freqB, startFrequency, endFrequency);
+                  fluxB = _measurements.rbegin()->second.FluxDensity(polarization);
+      return SpectralEnergyDistribution::IntegratedFlux(fluxA, freqA, fluxB, freqB, startFrequency,
+                                                        endFrequency);
     }
 
     long double integratedSum = 0.0;
@@ -258,13 +231,11 @@ class MeasuredSED : public SpectralEnergyDistribution {
     if (leftFrequency < iter->first) {
       // requested frequency is below first item; extrapolate
       long double freqA = _measurements.begin()->first,
-                  fluxA =
-                      _measurements.begin()->second.FluxDensity(polarization),
+                  fluxA = _measurements.begin()->second.FluxDensity(polarization),
                   freqB = _measurements.rbegin()->first,
-                  fluxB =
-                      _measurements.rbegin()->second.FluxDensity(polarization);
-      long double sumTerm = SpectralEnergyDistribution::IntegratedFlux(
-          fluxA, freqA, fluxB, freqB, startFrequency, iter->first);
+                  fluxB = _measurements.rbegin()->second.FluxDensity(polarization);
+      long double sumTerm = SpectralEnergyDistribution::IntegratedFlux(fluxA, freqA, fluxB, freqB,
+                                                                       startFrequency, iter->first);
       integratedSum += sumTerm * (iter->first - startFrequency);
       leftFrequency = iter->first;
     }
@@ -287,19 +258,16 @@ class MeasuredSED : public SpectralEnergyDistribution {
         if (rightFrequency > endFrequency) rightFrequency = endFrequency;
       }
 
-      long double freqA = left->first,
-                  fluxA = left->second.FluxDensity(polarization),
-                  freqB = right->first,
-                  fluxB = right->second.FluxDensity(polarization);
+      long double freqA = left->first, fluxA = left->second.FluxDensity(polarization),
+                  freqB = right->first, fluxB = right->second.FluxDensity(polarization);
 
       if (leftFrequency < rightFrequency) {
         long double sumTerm = SpectralEnergyDistribution::IntegratedFlux(
             fluxA, freqA, fluxB, freqB, leftFrequency, rightFrequency);
         if (!std::isfinite(sumTerm)) {
-          std::cerr << "Warning: integrating flux between " << leftFrequency
-                    << " and " << rightFrequency << " with fluxes " << fluxA
-                    << '@' << freqA << ',' << fluxB << '@' << freqB
-                    << " gave non-finite result\n";
+          std::cerr << "Warning: integrating flux between " << leftFrequency << " and "
+                    << rightFrequency << " with fluxes " << fluxA << '@' << freqA << ',' << fluxB
+                    << '@' << freqB << " gave non-finite result\n";
         }
 
         integratedSum += sumTerm * (rightFrequency - leftFrequency);
@@ -313,8 +281,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
   long double AverageFlux(aocommon::PolarizationEnum polarization) const {
     long double sum = 0.0;
     size_t count = 0;
-    for (FluxMap::const_iterator i = _measurements.begin();
-         i != _measurements.end(); ++i) {
+    for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
       const Measurement& m = i->second;
       long double flux = m.FluxDensity(polarization);
       if (std::isfinite(flux)) {
@@ -327,8 +294,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
 
   long double AverageFlux(long double startFrequency, long double endFrequency,
                           aocommon::PolarizationEnum polarization) const {
-    if (startFrequency == endFrequency)
-      return FluxAtFrequency(startFrequency, polarization);
+    if (startFrequency == endFrequency) return FluxAtFrequency(startFrequency, polarization);
 
     /** Handle special cases */
     if (_measurements.empty()) return 0.0;
@@ -360,8 +326,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
     long double sumxy = 0.0, sumx = 0.0, sumy = 0.0, sumxx = 0.0;
     size_t n = 0;
     bool requireNonLinear = false;
-    for (FluxMap::const_iterator i = _measurements.begin();
-         i != _measurements.end(); ++i) {
+    for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
       const Measurement& m = i->second;
       long double flux = m.FluxDensity(polarization);
       if (flux <= 0) {
@@ -380,8 +345,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
     if (requireNonLinear) {
       schaapcommon::fitters::NonLinearPowerLawFitter fitter;
       n = 0;
-      for (FluxMap::const_iterator i = _measurements.begin();
-           i != _measurements.end(); ++i) {
+      for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
         const Measurement& m = i->second;
         long double flux = m.FluxDensity(polarization);
         if (std::isfinite(m.FrequencyHz()) && std::isfinite(flux)) {
@@ -413,8 +377,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
                            aocommon::PolarizationEnum polarization) const {
     schaapcommon::fitters::NonLinearPowerLawFitter fitter;
     size_t n = 0;
-    for (FluxMap::const_iterator i = _measurements.begin();
-         i != _measurements.end(); ++i) {
+    for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
       const Measurement& m = i->second;
       long double flux = m.FluxDensity(polarization);
       if (std::isfinite(m.FrequencyHz()) && std::isfinite(flux)) {
@@ -434,8 +397,7 @@ class MeasuredSED : public SpectralEnergyDistribution {
                         double referenceFrequencyHz = 1.0) const {
     schaapcommon::fitters::NonLinearPowerLawFitter fitter;
     size_t n = 0;
-    for (FluxMap::const_iterator i = _measurements.begin();
-         i != _measurements.end(); ++i) {
+    for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
       const Measurement& m = i->second;
       long double flux = m.FluxDensity(polarization);
       if (std::isfinite(m.FrequencyHz()) && std::isfinite(flux)) {
@@ -458,14 +420,10 @@ class MeasuredSED : public SpectralEnergyDistribution {
   }
 
   bool HasValidMeasurement() const {
-    for (FluxMap::const_iterator i = _measurements.begin();
-         i != _measurements.end(); ++i) {
-      if (std::isfinite(
-              i->second.FluxDensity(aocommon::Polarization::StokesI)) ||
-          std::isfinite(
-              i->second.FluxDensity(aocommon::Polarization::StokesQ)) ||
-          std::isfinite(
-              i->second.FluxDensity(aocommon::Polarization::StokesU)) ||
+    for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
+      if (std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesI)) ||
+          std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesQ)) ||
+          std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesU)) ||
           std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesV)))
         return true;
     }
@@ -475,14 +433,10 @@ class MeasuredSED : public SpectralEnergyDistribution {
   void RemoveInvalidMeasurements() {
     FluxMap::iterator i = _measurements.begin();
     while (i != _measurements.end()) {
-      if (!std::isfinite(
-              i->second.FluxDensity(aocommon::Polarization::StokesI)) ||
-          !std::isfinite(
-              i->second.FluxDensity(aocommon::Polarization::StokesQ)) ||
-          !std::isfinite(
-              i->second.FluxDensity(aocommon::Polarization::StokesU)) ||
-          !std::isfinite(
-              i->second.FluxDensity(aocommon::Polarization::StokesV))) {
+      if (!std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesI)) ||
+          !std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesQ)) ||
+          !std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesU)) ||
+          !std::isfinite(i->second.FluxDensity(aocommon::Polarization::StokesV))) {
         _measurements.erase(i);
         i = _measurements.begin();
       } else {
@@ -496,20 +450,16 @@ class MeasuredSED : public SpectralEnergyDistribution {
     double thisFrequency = _measurements.begin()->first;
     double otherFrequency = msed._measurements.begin()->first;
     double minFreq = std::min(thisFrequency, otherFrequency);
-    return FluxAtFrequencyFromIndex(minFreq, 0) <
-           msed.FluxAtFrequencyFromIndex(minFreq, 0);
+    return FluxAtFrequencyFromIndex(minFreq, 0) < msed.FluxAtFrequencyFromIndex(minFreq, 0);
   }
 
   size_t MeasurementCount() const { return _measurements.size(); }
   long double LowestFrequency() const { return _measurements.begin()->first; }
   long double HighestFrequency() const { return _measurements.rbegin()->first; }
-  long double CentreFrequency() const {
-    return 0.5 * (LowestFrequency() + HighestFrequency());
-  }
+  long double CentreFrequency() const { return 0.5 * (LowestFrequency() + HighestFrequency()); }
 
   void GetMeasurements(std::vector<Measurement>& measurements) const {
-    for (FluxMap::const_iterator i = _measurements.begin();
-         i != _measurements.end(); ++i) {
+    for (FluxMap::const_iterator i = _measurements.begin(); i != _measurements.end(); ++i) {
       measurements.push_back(i->second);
     }
   }

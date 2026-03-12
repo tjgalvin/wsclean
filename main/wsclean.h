@@ -71,29 +71,24 @@ class WSClean {
    */
   void DrawModel();
 
-  void SetInMemoryData(
-      std::vector<std::unique_ptr<InMemoryMs>>&& in_memory_data) {
+  void SetInMemoryData(std::vector<std::unique_ptr<InMemoryMs>>&& in_memory_data) {
     in_memory_data_ = std::move(in_memory_data);
   }
 
  private:
-  void runIndependentGroup(ImagingTable& groupTable,
-                           std::unique_ptr<PrimaryBeam>& primaryBeam);
-  void saveRestoredImagesForGroup(
-      const ImagingTable::Group& group,
-      std::unique_ptr<PrimaryBeam>& primaryBeam) const;
+  void runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<PrimaryBeam>& primaryBeam);
+  void saveRestoredImagesForGroup(const ImagingTable::Group& group,
+                                  std::unique_ptr<PrimaryBeam>& primaryBeam) const;
   void predictGroup(const ImagingTable& groupTable);
 
-  void runFirstInversions(ImagingTable& groupTable,
-                          std::unique_ptr<PrimaryBeam>& primaryBeam);
+  void runFirstInversions(ImagingTable& groupTable, std::unique_ptr<PrimaryBeam>& primaryBeam);
   /**
    * @brief Run first inversion on all entries within a group.
    * @details A group should contain all facets of a single image.
    */
   void runFirstInversionGroup(ImagingTable::Group& facetGroup,
                               std::unique_ptr<PrimaryBeam>& primaryBeam);
-  void runMajorIterations(ImagingTable& groupTable,
-                          std::unique_ptr<PrimaryBeam>& primaryBeam);
+  void runMajorIterations(ImagingTable& groupTable, std::unique_ptr<PrimaryBeam>& primaryBeam);
 
   /**
    * Returns true when gridding is done with a-terms. This can either
@@ -117,9 +112,8 @@ class WSClean {
   std::string PredictModelFileSuffix() const {
     return _settings.applyFacetBeam
                ? "-model-fpb.fits"
-               : ((_settings.UseFacetCorrections() || griddingUsesATerms())
-                      ? "-model-pb.fits"
-                      : "-model.fits");
+               : ((_settings.UseFacetCorrections() || griddingUsesATerms()) ? "-model-pb.fits"
+                                                                            : "-model.fits");
   }
 
   ObservationInfo getObservationInfo() const;
@@ -129,24 +123,21 @@ class WSClean {
   void resetModelColumns(const ImagingTableEntry& entry);
   void storeAndCombineXYandYX(CachedImageSet& dest, size_t joinedChannelIndex,
                               const ImagingTableEntry& entry,
-                              aocommon::PolarizationEnum polarization,
-                              bool isImaginary, const aocommon::Image& image);
+                              aocommon::PolarizationEnum polarization, bool isImaginary,
+                              const aocommon::Image& image);
   MSSelection selectInterval(MSSelection& fullSelection, size_t intervalIndex);
 
   void makeImagingTable(size_t outputIntervalIndex);
   void makeImagingTableEntry(const std::vector<aocommon::ChannelInfo>& channels,
                              size_t outIntervalIndex, size_t outChannelIndex,
                              ImagingTableEntry& entry);
-  void makeImagingTableEntryChannelSettings(
-      const std::vector<aocommon::ChannelInfo>& channels,
-      size_t outIntervalIndex, size_t outChannelIndex, size_t nOutChannels,
-      ImagingTableEntry& entry);
+  void makeImagingTableEntryChannelSettings(const std::vector<aocommon::ChannelInfo>& channels,
+                                            size_t outIntervalIndex, size_t outChannelIndex,
+                                            size_t nOutChannels, ImagingTableEntry& entry);
   void addPolarizationsToImagingTable(ImagingTableEntry& templateEntry);
-  void addFacetsToImagingTable(ImagingTableEntry& templateEntry,
-                               const size_t facet_count);
+  void addFacetsToImagingTable(ImagingTableEntry& templateEntry, const size_t facet_count);
   void updateFacetsInImagingTable(
-      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets,
-      bool updateDdPsfs);
+      const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets, bool updateDdPsfs);
   std::unique_ptr<ImageWeightCache> createWeightCache();
 
   /**
@@ -155,11 +146,9 @@ class WSClean {
    * them to zero.
    */
   void initializeModelImages(const ImagingTableEntry& entry,
-                             aocommon::PolarizationEnum polarization,
-                             size_t nFacetGroups);
+                             aocommon::PolarizationEnum polarization, size_t nFacetGroups);
   void readExistingModelImages(const ImagingTableEntry& entry,
-                               aocommon::PolarizationEnum polarization,
-                               size_t nFacetGroups);
+                               aocommon::PolarizationEnum polarization, size_t nFacetGroups);
   /**
    * Override the image settings given a FitsReader object.
    * The boolean return value indicates whether the gridder needs
@@ -169,19 +158,16 @@ class WSClean {
   void loadExistingImage(ImagingTableEntry& entry, bool isPSF);
 
   void ImagePsf(ImagingTable::Group&& facet_group);
-  void ImagePsfCallback(ImagingTable::Group facet_group,
-                        GriddingResult& result);
+  void ImagePsfCallback(ImagingTable::Group facet_group, GriddingResult& result);
 
-  void ImageMain(ImagingTable::Group& facet_group, bool is_first_inversion,
-                 bool update_beam_info);
-  void ImageMainCallback(ImagingTable::Group facet_group,
-                         GriddingResult& result, bool update_beam_info,
-                         bool is_first_inversion);
+  void ImageMain(ImagingTable::Group& facet_group, bool is_first_inversion, bool update_beam_info);
+  void ImageMainCallback(ImagingTable::Group facet_group, GriddingResult& result,
+                         bool update_beam_info, bool is_first_inversion);
 
   void Predict(const ImagingTable::Group& facet_group);
 
-  void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry,
-                   bool isImaginary, const std::string& prefix) const;
+  void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry, bool isImaginary,
+                   const std::string& prefix) const;
 
   void saveUVImage(const aocommon::Image& image, const ImagingTableEntry& entry,
                    const OutputChannelInfo& channel_info, bool isImaginary,
@@ -195,8 +181,7 @@ class WSClean {
   /**
    * @brief Stitch facets for all FacetGroups
    */
-  void stitchFacets(const ImagingTable& table, CachedImageSet& image_cache,
-                    StitchImageType type);
+  void stitchFacets(const ImagingTable& table, CachedImageSet& image_cache, StitchImageType type);
 
   /**
    * Stitch facet for a single (Facet)Group
@@ -204,26 +189,22 @@ class WSClean {
    * or should be an image with the right size. This can be used to reuse
    * the same weight image over multiple calls and prevent re-allocation.
    */
-  void stitchSingleGroup(const ImagingTable::Group& facetGroup,
-                         size_t imageIndex, CachedImageSet& imageCache,
-                         StitchImageType type, aocommon::Image& fullImage,
-                         std::unique_ptr<aocommon::Image>& weight_image,
-                         schaapcommon::facets::FacetImage& facetImage,
-                         size_t maxFacetGroupIndex, bool apply_scalar);
+  void stitchSingleGroup(const ImagingTable::Group& facetGroup, size_t imageIndex,
+                         CachedImageSet& imageCache, StitchImageType type,
+                         aocommon::Image& fullImage, std::unique_ptr<aocommon::Image>& weight_image,
+                         schaapcommon::facets::FacetImage& facetImage, size_t maxFacetGroupIndex,
+                         bool apply_scalar);
   /**
    * Partition model image into facets and save them into fits files
    */
-  void partitionModelIntoFacets(const ImagingTable::Groups& facetGroups,
-                                bool isPredictOnly);
+  void partitionModelIntoFacets(const ImagingTable::Groups& facetGroups, bool isPredictOnly);
 
   /**
    * Partition image into facets for a single (Facet)Group
    */
-  void partitionSingleGroup(const ImagingTable::Group& facetGroup,
-                            size_t imageIndex, CachedImageSet& imageCache,
-                            const aocommon::Image& fullImage,
-                            schaapcommon::facets::FacetImage& facetImage,
-                            bool isPredictOnly);
+  void partitionSingleGroup(const ImagingTable::Group& facetGroup, size_t imageIndex,
+                            CachedImageSet& imageCache, const aocommon::Image& fullImage,
+                            schaapcommon::facets::FacetImage& facetImage, bool isPredictOnly);
 
   void writeFirstResidualImages(const ImagingTable& groupTable) const;
   void WriteModelImages(const ImagingTable::Groups& facet_groups) const;
@@ -233,26 +214,23 @@ class WSClean {
   void makeBeam();
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
-                                    const OutputChannelInfo& channel_info,
-                                    bool isImaginary, bool isModel) const;
+                                    const OutputChannelInfo& channel_info, bool isImaginary,
+                                    bool isModel) const;
+
+  WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry, bool isImaginary,
+                                    bool isModel) const;
 
   WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
-                                    bool isImaginary, bool isModel) const;
-
-  WSCFitsWriter createWSCFitsWriter(const ImagingTableEntry& entry,
-                                    aocommon::PolarizationEnum polarization,
-                                    bool isImaginary, bool isModel) const;
+                                    aocommon::PolarizationEnum polarization, bool isImaginary,
+                                    bool isModel) const;
   /**
    * @brief Apply the H5 solution to the (restored) image and save as -pb.fits
    * file. Method is only invoked in case no beam corrections are applied.
    */
-  void correctImagesH5(aocommon::FitsWriter& writer,
-                       const ImagingTable::Group& group,
-                       const ImageFilename& imageName,
-                       const std::string& filenameKind) const;
+  void correctImagesH5(aocommon::FitsWriter& writer, const ImagingTable::Group& group,
+                       const ImageFilename& imageName, const std::string& filenameKind) const;
 
-  void storeAverageBeam(const ImagingTableEntry& entry,
-                        std::unique_ptr<AverageBeam>& averageBeam);
+  void storeAverageBeam(const ImagingTableEntry& entry, std::unique_ptr<AverageBeam>& averageBeam);
 
   /**
    * @brief Compute the total amount of MSProviders that will be generated.
@@ -264,8 +242,7 @@ class WSClean {
    */
   size_t getMaxNrMSProviders() const {
     size_t msCount = 0;
-    for (const auto& msBand : _msBands)
-      msCount += msBand.HighestDataDescId() + 1;
+    for (const auto& msBand : _msBands) msCount += msBand.HighestDataDescId() + 1;
     return msCount;
   }
 

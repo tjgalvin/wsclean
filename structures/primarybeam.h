@@ -56,13 +56,11 @@ class PrimaryBeam {
    * Read the beam images in and multiply facets with their solution
    * gain corrections.
    */
-  void CorrectBeamForFacetGain(const ImageFilename& image_name,
-                               const ImagingTable::Group& group,
+  void CorrectBeamForFacetGain(const ImageFilename& image_name, const ImagingTable::Group& group,
                                const OutputChannelInfo& channel_info);
 
   PrimaryBeamImageSet LoadFull(const ImageFilename& image_name) {
-    const std::set<size_t> kFullIndices = {0, 1, 2,  3,  4,  5,  6,  7,
-                                           8, 9, 10, 11, 12, 13, 14, 15};
+    const std::set<size_t> kFullIndices = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
     return Load(image_name, kFullIndices);
   }
 
@@ -78,13 +76,11 @@ class PrimaryBeam {
 
   void AddMS(std::unique_ptr<MSDataDescription> description);
 
-  void MakeOrReuse(const ImageFilename& image_name,
-                   const ImagingTableEntry& entry,
-                   std::shared_ptr<ImageWeights> image_weights,
-                   size_t field_id);
+  void MakeOrReuse(const ImageFilename& image_name, const ImagingTableEntry& entry,
+                   std::shared_ptr<ImageWeights> image_weights, size_t field_id);
 
-  void MakeUnitary(const ImagingTableEntry& entry,
-                   const ImageFilename& image_name, const Settings& settings);
+  void MakeUnitary(const ImagingTableEntry& entry, const ImageFilename& image_name,
+                   const Settings& settings);
 
   /**
    * Correct images for the primary beam by multiplying the input image
@@ -95,8 +91,7 @@ class PrimaryBeam {
    * be derived.
    * @param filename_kind string specifying which image will be corrected.
    */
-  void CorrectImages(aocommon::FitsWriter& writer,
-                     const ImageFilename& image_name,
+  void CorrectImages(aocommon::FitsWriter& writer, const ImageFilename& image_name,
                      const std::string& filename_kind);
 
   size_t GetUndersamplingFactor() const { return undersample_; };
@@ -118,8 +113,7 @@ class PrimaryBeam {
 #endif
   std::vector<std::unique_ptr<MSDataDescription>> ms_list_;
   struct MSProviderInfo {
-    MSProviderInfo(MSProvider* _provider,
-                   const schaapcommon::reordering::MSSelection* _selection,
+    MSProviderInfo(MSProvider* _provider, const schaapcommon::reordering::MSSelection* _selection,
                    size_t _ms_index)
         : provider(_provider), selection(_selection), ms_index(_ms_index) {}
     MSProvider* provider;
@@ -128,8 +122,7 @@ class PrimaryBeam {
   };
   std::vector<MSProviderInfo> ms_providers_;
 
-  PrimaryBeamImageSet Load(const ImageFilename& image_name,
-                           const std::set<size_t>& elements);
+  PrimaryBeamImageSet Load(const ImageFilename& image_name, const std::set<size_t>& elements);
 #ifdef HAVE_EVERYBEAM
   /**
    * @brief Lower triangular matrix representation of baseline weights.
@@ -176,26 +169,24 @@ class PrimaryBeam {
     aocommon::UVector<double> weights_;
   };
 
-  void MakeImage(const ImageFilename& image_name,
-                 const ImagingTableEntry& entry,
+  void MakeImage(const ImageFilename& image_name, const ImagingTableEntry& entry,
                  std::shared_ptr<ImageWeights> image_weights, size_t field_id);
 
   /**
    * Calculate the average beam for one measurement set.
    * @param result The average beam values are assigned to this vector.
    */
-  double MakeBeamForMS(std::vector<aocommon::HMC4x4>& result,
-                       MSProvider& ms_provider,
+  double MakeBeamForMS(std::vector<aocommon::HMC4x4>& result, MSProvider& ms_provider,
                        const schaapcommon::reordering::MSSelection& selection,
                        const ImageWeights& image_weights,
                        const aocommon::CoordinateSystem& coordinate_system,
                        double central_frequency, size_t field_id);
 
-  static void CalculateStationWeights(
-      const ImageWeights& image_weights, WeightMatrix& baseline_weights,
-      SynchronizedMS& ms, MSReader& ms_reader,
-      const schaapcommon::reordering::MSSelection& selection,
-      size_t& current_row, size_t end_row);
+  static void CalculateStationWeights(const ImageWeights& image_weights,
+                                      WeightMatrix& baseline_weights, SynchronizedMS& ms,
+                                      MSReader& ms_reader,
+                                      const schaapcommon::reordering::MSSelection& selection,
+                                      size_t& current_row, size_t end_row);
 #endif  // HAVE_EVERYBEAM
 };
 

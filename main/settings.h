@@ -23,15 +23,7 @@
 namespace wsclean {
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
-enum class GridderType {
-  WStacking,
-  WGridder,
-  TunedWGridder,
-  WTowers,
-  DirectFT,
-  IDG,
-  FacetIDG
-};
+enum class GridderType { WStacking, WGridder, TunedWGridder, WTowers, DirectFT, IDG, FacetIDG };
 enum class VisibilityReadMode { kScalar, kDiagonal, kFull };
 
 /**
@@ -64,8 +56,8 @@ class Settings {
   double imagePadding = 1.2;
   size_t widthForNWCalculation = 0, heightForNWCalculation = 0;
   size_t channelsOut = 1, intervalsOut = 1;
-  enum schaapcommon::reordering::MSSelection::EvenOddSelection
-      evenOddTimesteps = schaapcommon::reordering::MSSelection::kAllTimesteps;
+  enum schaapcommon::reordering::MSSelection::EvenOddSelection evenOddTimesteps =
+      schaapcommon::reordering::MSSelection::kAllTimesteps;
   bool divideChannelsByGaps = false;
   aocommon::UVector<double> divideChannelFrequencies;
   double pixelScaleX = 0.0, pixelScaleY = 0.0;
@@ -107,8 +99,7 @@ class Settings {
   std::string modelColumnName = "MODEL_DATA";
   schaapcommon::reordering::StorageManagerType modelStorageManager =
       schaapcommon::reordering::StorageManagerType::Default;
-  std::set<aocommon::PolarizationEnum> polarizations{
-      aocommon::Polarization::StokesI};
+  std::set<aocommon::PolarizationEnum> polarizations{aocommon::Polarization::StokesI};
   bool request_polarizations_at_once = false;
   bool parallelize_polarizations = false;
   std::string facetRegionFilename;
@@ -168,12 +159,7 @@ class Settings {
   bool applyTimeFrequencySmearing = false;
   double facetBeamUpdateTime = 120.0;  // in seconds.
   bool saveATerms = false;
-  enum IDGMode {
-    IDG_DEFAULT,
-    IDG_GPU,
-    IDG_CPU,
-    IDG_HYBRID
-  } idgMode = IDG_DEFAULT;
+  enum IDGMode { IDG_DEFAULT, IDG_GPU, IDG_CPU, IDG_HYBRID } idgMode = IDG_DEFAULT;
   enum GriddingKernelMode gridMode = GriddingKernelMode::KaiserBessel;
   enum VisibilityWeightingMode visibilityWeightingMode =
       VisibilityWeightingMode::NormalVisibilityWeighting;
@@ -201,8 +187,7 @@ class Settings {
   double deconvolutionGain = 0.1;
   double deconvolutionMGain = 1.0;
   double deconvolutionBoosting = 1.0;
-  radler::MajorIterationStrategy majorIterationStrategy =
-      radler::MajorIterationStrategy::kDual;
+  radler::MajorIterationStrategy majorIterationStrategy = radler::MajorIterationStrategy::kDual;
   double localRMSWindow = 25.0;
   double localRMSStrength = 1.0;
   radler::LocalRmsMethod localRMSMethod = radler::LocalRmsMethod::kNone;
@@ -220,8 +205,7 @@ class Settings {
   size_t multiscaleMaxScales = 0;
   double multiscaleConvolutionPadding = 1.1;
   aocommon::UVector<double> multiscaleScaleList;
-  radler::MultiscaleShape multiscaleShapeFunction =
-      radler::MultiscaleShape::kTaperedQuadraticShape;
+  radler::MultiscaleShape multiscaleShapeFunction = radler::MultiscaleShape::kTaperedQuadraticShape;
   double deconvolutionBorderRatio = 0.0;
   std::string fitsDeconvolutionMask, casaDeconvolutionMask;
   bool horizonMask = false;
@@ -277,8 +261,7 @@ class Settings {
   }
 
   bool IsSpectralFittingEnabled() const {
-    return spectralFittingMode !=
-           schaapcommon::fitters::SpectralFittingMode::kNoFitting;
+    return spectralFittingMode != schaapcommon::fitters::SpectralFittingMode::kNoFitting;
   }
 
   size_t GetFeatherSize() const {
@@ -286,8 +269,7 @@ class Settings {
       return *featherSize;
     } else {
       // Return the default: 1% of sqrt(width * height)
-      return std::ceil(std::sqrt(trimmedImageWidth * trimmedImageHeight) *
-                       0.01);
+      return std::ceil(std::sqrt(trimmedImageWidth * trimmedImageHeight) * 0.01);
     }
   }
 
@@ -295,8 +277,7 @@ class Settings {
 
   bool IsBandSelected(size_t band_index) const {
     // An empty selection means that all bands are selected
-    return spectralWindows.empty() ||
-           spectralWindows.find(band_index) != spectralWindows.end();
+    return spectralWindows.empty() || spectralWindows.find(band_index) != spectralWindows.end();
   }
 
   /**
@@ -310,9 +291,7 @@ class Settings {
    * True if either a h5parm solution file was specified or the beam is applied
    * while faceting.
    */
-  bool UseFacetCorrections() const {
-    return applyFacetBeam || !facetSolutionFiles.empty();
-  }
+  bool UseFacetCorrections() const { return applyFacetBeam || !facetSolutionFiles.empty(); }
 
  private:
   void checkPolarizations() const;

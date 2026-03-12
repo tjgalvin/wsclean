@@ -17,8 +17,7 @@ size_t Model::npos = std::numeric_limits<size_t>::max();
 
 void Model::read(const char* filename) {
   std::ifstream stream(filename);
-  if (!stream.good())
-    throw std::runtime_error(std::string("Could not open model ") + filename);
+  if (!stream.good()) throw std::runtime_error(std::string("Could not open model ") + filename);
   if (ModelParser::IsInModelFormat(stream)) {
     stream.seekg(0);
     ModelParser().Parse(*this, stream);
@@ -33,8 +32,7 @@ void Model::operator+=(const Model& rhs) {
     (*this) = rhs;
   else {
     for (const ModelSource& s : rhs) add(s);
-    for (const std::pair<const std::string, ModelCluster>& c : rhs._clusters)
-      _clusters.emplace(c);
+    for (const std::pair<const std::string, ModelCluster>& c : rhs._clusters) _clusters.emplace(c);
   }
 }
 
@@ -48,8 +46,7 @@ void Model::combineMeasurements(const ModelSource& source) {
       return;
     }
   }
-  throw std::runtime_error(
-      "Combining measurements while not same sources were measured!");
+  throw std::runtime_error("Combining measurements while not same sources were measured!");
 }
 
 void Model::Save(const char* filename) const {

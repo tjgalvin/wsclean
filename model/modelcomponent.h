@@ -63,16 +63,10 @@ class ModelComponent {
   bool HasSED() const { return _sed != nullptr; }
   SpectralEnergyDistribution& SED() { return *_sed; }
   const SpectralEnergyDistribution& SED() const { return *_sed; }
-  bool HasMeasuredSED() const {
-    return dynamic_cast<MeasuredSED*>(_sed.get()) != nullptr;
-  }
-  bool HasPowerLawSED() const {
-    return dynamic_cast<PowerLawSED*>(_sed.get()) != nullptr;
-  }
+  bool HasMeasuredSED() const { return dynamic_cast<MeasuredSED*>(_sed.get()) != nullptr; }
+  bool HasPowerLawSED() const { return dynamic_cast<PowerLawSED*>(_sed.get()) != nullptr; }
   MeasuredSED& MSED() { return static_cast<MeasuredSED&>(*_sed); }
-  const MeasuredSED& MSED() const {
-    return static_cast<const MeasuredSED&>(*_sed);
-  }
+  const MeasuredSED& MSED() const { return static_cast<const MeasuredSED&>(*_sed); }
   long double L() const { return _l; }
   long double M() const { return _m; }
   /** PA in radians. */
@@ -87,9 +81,7 @@ class ModelComponent {
   void SetType(enum Type type) { _type = type; }
   void SetPosRA(long double posRA) { _posRA = posRA; }
   void SetPosDec(long double posDec) { _posDec = posDec; }
-  void SetSED(const SpectralEnergyDistribution& sed) {
-    _sed.reset(sed.Clone());
-  }
+  void SetSED(const SpectralEnergyDistribution& sed) { _sed.reset(sed.Clone()); }
   void SetL(long double l) { _l = l; }
   void SetM(long double m) { _m = m; }
   void SetPositionAngle(long double pa) { _positionAngle = pa; }
@@ -106,10 +98,8 @@ class ModelComponent {
         s << "    type point";
         break;
       case GaussianSource:
-        s << "    type gaussian\n    shape "
-          << _majorAxis * (60.0 * 60.0 * 180.0 / M_PI) << ' '
-          << _minorAxis * (60.0 * 60.0 * 180.0 / M_PI) << ' '
-          << _positionAngle * (180.0 / M_PI);
+        s << "    type gaussian\n    shape " << _majorAxis * (60.0 * 60.0 * 180.0 / M_PI) << ' '
+          << _minorAxis * (60.0 * 60.0 * 180.0 / M_PI) << ' ' << _positionAngle * (180.0 / M_PI);
         break;
     }
     s << "\n    position " << RaDecCoord::RAToString(_posRA) << ' '
@@ -119,13 +109,9 @@ class ModelComponent {
     return s.str();
   }
 
-  bool HasValidMeasurement() const {
-    return HasMeasuredSED() && MSED().HasValidMeasurement();
-  }
+  bool HasValidMeasurement() const { return HasMeasuredSED() && MSED().HasValidMeasurement(); }
 
-  bool operator<(const ModelComponent& rhs) const {
-    return (*_sed) < (*rhs._sed);
-  }
+  bool operator<(const ModelComponent& rhs) const { return (*_sed) < (*rhs._sed); }
 
   void operator*=(double factor) { (*_sed) *= factor; }
 

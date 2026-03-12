@@ -24,9 +24,9 @@
 namespace wsclean {
 
 enum class PsfMode {
-  kNone,    // Not a psf, grid the visibilities in the MS
-  kSingle,  // Grid generated visibilities for a point source at the centre of
-            // the main image
+  kNone,               // Not a psf, grid the visibilities in the MS
+  kSingle,             // Grid generated visibilities for a point source at the centre of
+                       // the main image
   kDirectionDependent  // Grid generated visibilities for a point source at the
                        // centre of the current facet
 };
@@ -34,9 +34,8 @@ enum class PsfMode {
 namespace internal {
 
 template <size_t PolarizationCount>
-inline void CollapseData(
-    size_t n_channels, std::complex<float>* buffer,
-    [[maybe_unused]] aocommon::PolarizationEnum polarization) {
+inline void CollapseData(size_t n_channels, std::complex<float>* buffer,
+                         [[maybe_unused]] aocommon::PolarizationEnum polarization) {
   if constexpr (PolarizationCount == 2) {
     for (size_t ch = 0; ch != n_channels; ++ch) {
       buffer[ch] = buffer[ch * PolarizationCount] +
@@ -44,18 +43,17 @@ inline void CollapseData(
     }
   } else if constexpr (PolarizationCount == 4) {
     for (size_t ch = 0; ch != n_channels; ++ch) {
-      buffer[ch] = aocommon::Polarization::ConvertFromLinear(
-          buffer + ch * PolarizationCount, polarization);
+      buffer[ch] =
+          aocommon::Polarization::ConvertFromLinear(buffer + ch * PolarizationCount, polarization);
     }
   } else
     throw std::runtime_error("Invalid polarization conversion");
 }
 
 template <size_t PolarizationCount>
-inline void ExpandData(
-    size_t n_channels, const std::complex<float>* input,
-    std::complex<float>* output,
-    [[maybe_unused]] aocommon::PolarizationEnum polarization) {
+inline void ExpandData(size_t n_channels, const std::complex<float>* input,
+                       std::complex<float>* output,
+                       [[maybe_unused]] aocommon::PolarizationEnum polarization) {
   if constexpr (PolarizationCount == 2) {
     for (size_t ch = 0; ch != n_channels; ++ch) {
       output[ch * 2] = input[ch];
@@ -64,8 +62,7 @@ inline void ExpandData(
   } else if constexpr (PolarizationCount == 4) {
     for (size_t i = 0; i != n_channels; ++i) {
       const size_t ch = n_channels - 1 - i;
-      aocommon::Polarization::ConvertToLinear(input[ch], polarization,
-                                              &output[ch * 4]);
+      aocommon::Polarization::ConvertToLinear(input[ch], polarization, &output[ch * 4]);
     }
   } else
     throw std::runtime_error("Invalid polarization conversion");
@@ -110,18 +107,16 @@ class MsGridderData {
     SetImageWeights(other.GetImageWeights());
 
     if (solution_data.HasData()) {
-      visibility_modifier_.SetMSTimes(ms_data.original_ms_index,
-                                      ms_data.unique_times);
-      visibility_modifier_.SetH5Parm(
-          solution_data.GetH5Parms(), solution_data.GetFirstSolutions(),
-          solution_data.GetSecondSolutions(), solution_data.GetGainTypes());
+      visibility_modifier_.SetMSTimes(ms_data.original_ms_index, ms_data.unique_times);
+      visibility_modifier_.SetH5Parm(solution_data.GetH5Parms(), solution_data.GetFirstSolutions(),
+                                     solution_data.GetSecondSolutions(),
+                                     solution_data.GetGainTypes());
     }
   }
   bool WillApplyCorrections() const {
     if (IsFacet() && GetPsfMode() != PsfMode::kSingle) {
 #ifdef HAVE_EVERYBEAM
-      const bool apply_beam =
-          settings_.applyFacetBeam || settings_.gridWithBeam;
+      const bool apply_beam = settings_.applyFacetBeam || settings_.gridWithBeam;
       if (apply_beam) return true;
 #endif
       if (visibility_modifier_.HasH5Parm()) {
@@ -146,21 +141,17 @@ class MsGridderData {
   template <GainMode Mode, size_t NParms>
   void LoadAndApplyCorrections(size_t n_antennas, const double* uvw,
                                std::complex<float>* visibility_row,
-                               const aocommon::MultiBandData& bands,
-                               const float* weight_buffer,
+                               const aocommon::MultiBandData& bands, const float* weight_buffer,
                                const MSProvider::MetaData& metadata) {
     size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
     if (IsFacet() && GetPsfMode() != PsfMode::kSingle) {
-      const bool apply_beam =
-          settings_.applyFacetBeam || settings_.gridWithBeam;
+      const bool apply_beam = settings_.applyFacetBeam || settings_.gridWithBeam;
       if (apply_beam) {
-        LoadAndApplyCorrections<Mode, NParms, true>(
-            n_antennas, uvw, visibility_row, bands, weight_buffer, metadata,
-            time_offset);
+        LoadAndApplyCorrections<Mode, NParms, true>(n_antennas, uvw, visibility_row, bands,
+                                                    weight_buffer, metadata, time_offset);
       } else {
-        LoadAndApplyCorrections<Mode, NParms, false>(
-            n_antennas, uvw, visibility_row, bands, weight_buffer, metadata,
-            time_offset);
+        LoadAndApplyCorrections<Mode, NParms, false>(n_antennas, uvw, visibility_row, bands,
+                                                     weight_buffer, metadata, time_offset);
       }
     }
     visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
@@ -168,86 +159,67 @@ class MsGridderData {
   template <GainMode Mode, size_t NParms, bool ApplyBeam>
   void LoadAndApplyCorrections(size_t n_antennas, const double* uvw,
                                std::complex<float>* visibility_row,
-                               const aocommon::MultiBandData& bands,
-                               const float* weight_buffer,
-                               const MSProvider::MetaData& metadata,
-                               size_t& time_offset) {
+                               const aocommon::MultiBandData& bands, const float* weight_buffer,
+                               const MSProvider::MetaData& metadata, size_t& time_offset) {
     const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
     if (apply_forward) {
-      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, true>(
-          n_antennas, visibility_row, bands, weight_buffer, metadata,
-          time_offset);
+      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, true>(n_antennas, visibility_row, bands,
+                                                             weight_buffer, metadata, time_offset);
       if (settings_.applyTimeFrequencySmearing) {
-        visibility_modifier_.ApplyTimeFrequencySmearing(
-            visibility_row, uvw, bands[metadata.data_desc_id],
-            n_vis_polarizations_, LShift(), MShift());
+        visibility_modifier_.ApplyTimeFrequencySmearing(visibility_row, uvw,
+                                                        bands[metadata.data_desc_id],
+                                                        n_vis_polarizations_, LShift(), MShift());
       }
 
     } else {
-      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, false>(
-          n_antennas, visibility_row, bands, weight_buffer, metadata,
-          time_offset);
+      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, false>(n_antennas, visibility_row, bands,
+                                                              weight_buffer, metadata, time_offset);
     }
   }
   template <GainMode Mode, size_t NParms, bool ApplyBeam, bool ApplyForward>
-  void LoadAndApplyCorrections(size_t n_antennas,
-                               std::complex<float>* visibility_row,
-                               const aocommon::MultiBandData& bands,
-                               const float* weight_buffer,
-                               const MSProvider::MetaData& metadata,
-                               size_t& time_offset) {
+  void LoadAndApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
+                               const aocommon::MultiBandData& bands, const float* weight_buffer,
+                               const MSProvider::MetaData& metadata, size_t& time_offset) {
     const bool has_h5_parm = visibility_modifier_.HasH5Parm();
     if (has_h5_parm) {
       LoadAndApplyCorrections<Mode, NParms, ApplyBeam, ApplyForward, true>(
-          n_antennas, visibility_row, bands, weight_buffer, metadata,
-          time_offset);
+          n_antennas, visibility_row, bands, weight_buffer, metadata, time_offset);
     } else {
       LoadAndApplyCorrections<Mode, NParms, ApplyBeam, ApplyForward, false>(
-          n_antennas, visibility_row, bands, weight_buffer, metadata,
-          time_offset);
+          n_antennas, visibility_row, bands, weight_buffer, metadata, time_offset);
     }
   }
-  template <GainMode Mode, size_t NParms, bool ApplyBeam, bool ApplyForward,
-            bool HasH5Parm>
-  void LoadAndApplyCorrections(size_t n_antennas,
-                               std::complex<float>* visibility_row,
-                               const aocommon::MultiBandData& bands,
-                               const float* weight_buffer,
-                               const MSProvider::MetaData& metadata,
-                               size_t& time_offset) {
+  template <GainMode Mode, size_t NParms, bool ApplyBeam, bool ApplyForward, bool HasH5Parm>
+  void LoadAndApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
+                               const aocommon::MultiBandData& bands, const float* weight_buffer,
+                               const MSProvider::MetaData& metadata, size_t& time_offset) {
     constexpr bool kCacheEntireBeam = false;
-    LoadCorrections<ApplyBeam, HasH5Parm>(
-        bands, metadata.time, metadata.field_id, time_offset, kCacheEntireBeam);
-    ApplyCorrections<Mode, NParms, ModifierBehaviour::kApplyAndSum, ApplyBeam,
-                     ApplyForward, HasH5Parm>(
-        n_antennas, visibility_row, bands[metadata.data_desc_id],
-        metadata.data_desc_id, weight_buffer, metadata.antenna1,
-        metadata.antenna2, time_offset, scratch_image_weights_.data());
+    LoadCorrections<ApplyBeam, HasH5Parm>(bands, metadata.time, metadata.field_id, time_offset,
+                                          kCacheEntireBeam);
+    ApplyCorrections<Mode, NParms, ModifierBehaviour::kApplyAndSum, ApplyBeam, ApplyForward,
+                     HasH5Parm>(n_antennas, visibility_row, bands[metadata.data_desc_id],
+                                metadata.data_desc_id, weight_buffer, metadata.antenna1,
+                                metadata.antenna2, time_offset, scratch_image_weights_.data());
   }
   template <bool ApplyBeam, bool HasH5Parm>
-  void LoadCorrections(const aocommon::MultiBandData& bands, double time,
-                       size_t field_id, size_t& time_offset,
-                       bool cache_entire_beam) {
+  void LoadCorrections(const aocommon::MultiBandData& bands, double time, size_t field_id,
+                       size_t& time_offset, bool cache_entire_beam) {
     if constexpr (ApplyBeam) {
 #ifdef HAVE_EVERYBEAM
       if constexpr (HasH5Parm) {
         // Load both the beam and the h5parm solutions
-        visibility_modifier_.CacheBeamResponse(time, field_id, bands,
-                                               cache_entire_beam);
-        visibility_modifier_.CacheParmResponse(time, bands, original_ms_index_,
-                                               time_offset);
+        visibility_modifier_.CacheBeamResponse(time, field_id, bands, cache_entire_beam);
+        visibility_modifier_.CacheParmResponse(time, bands, original_ms_index_, time_offset);
       } else {
         // Load only the conjugate beam
-        visibility_modifier_.CacheBeamResponse(time, field_id, bands,
-                                               cache_entire_beam);
+        visibility_modifier_.CacheBeamResponse(time, field_id, bands, cache_entire_beam);
       }
 #else
       assert(false);
 #endif
     } else if constexpr (HasH5Parm) {
       // Load the h5parm solutions
-      visibility_modifier_.CacheParmResponse(time, bands, original_ms_index_,
-                                             time_offset);
+      visibility_modifier_.CacheParmResponse(time, bands, original_ms_index_, time_offset);
     }
   }
   /**
@@ -261,32 +233,26 @@ class MsGridderData {
    * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
    * ApplyConjugatedParmResponse for more information
    */
-  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour,
-            bool ApplyBeam, bool ApplyForward, bool HasH5Parm>
+  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour, bool ApplyBeam,
+            bool ApplyForward, bool HasH5Parm>
   void ApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
                         const aocommon::BandData& band, size_t data_desc_id,
-                        const float* weight_buffer, size_t antenna1,
-                        size_t antenna2, size_t& time_offset,
-                        const float* image_weights) {
+                        const float* weight_buffer, size_t antenna1, size_t antenna2,
+                        size_t& time_offset, const float* image_weights) {
     const std::complex<float>* parm_response;
     if constexpr (HasH5Parm) {
       parm_response =
-          visibility_modifier_
-              .GetCachedParmResponse(original_ms_index_)[data_desc_id]
-              .data();
+          visibility_modifier_.GetCachedParmResponse(original_ms_index_)[data_desc_id].data();
     } else {
       parm_response = nullptr;
     }
     const size_t n_channels = band.ChannelCount();
     const size_t n_visibilities = GetNVisibilities(Mode);
-    const BeamResponseMap& cached_beam_response =
-        visibility_modifier_.GetCachedBeamResponse();
+    const BeamResponseMap& cached_beam_response = visibility_modifier_.GetCachedBeamResponse();
     for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
-      ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward,
-                            HasH5Parm>(
-          parm_response, n_channel, n_channels, data_desc_id, n_antennas,
-          visibility_row, weight_buffer, antenna1, antenna2, time_offset,
-          image_weights, cached_beam_response);
+      ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
+          parm_response, n_channel, n_channels, data_desc_id, n_antennas, visibility_row,
+          weight_buffer, antenna1, antenna2, time_offset, image_weights, cached_beam_response);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         visibility_row += n_visibilities;
       }
@@ -306,40 +272,35 @@ class MsGridderData {
    * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
    * ApplyConjugatedParmResponse for more information
    */
-  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour,
-            bool ApplyBeam, bool ApplyForward, bool HasH5Parm>
-  inline void ApplySingleCorrection(
-      const std::complex<float>* parm_response, size_t n_channel,
-      size_t n_channels, size_t data_desc_id, size_t n_antennas,
-      std::complex<float>* visibility_row, const float* weight_buffer,
-      size_t antenna1, size_t antenna2, const size_t& time_offset,
-      const float* image_weights, const BeamResponseMap& cached_beam_response) {
+  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour, bool ApplyBeam,
+            bool ApplyForward, bool HasH5Parm>
+  inline void ApplySingleCorrection(const std::complex<float>* parm_response, size_t n_channel,
+                                    size_t n_channels, size_t data_desc_id, size_t n_antennas,
+                                    std::complex<float>* visibility_row, const float* weight_buffer,
+                                    size_t antenna1, size_t antenna2, const size_t& time_offset,
+                                    const float* image_weights,
+                                    const BeamResponseMap& cached_beam_response) {
     if constexpr (ApplyBeam) {
 #ifdef HAVE_EVERYBEAM
       if constexpr (HasH5Parm) {
         // Apply (in conjugate) both the beam and the h5parm solutions
         visibility_modifier_.ApplyConjugatedDual<Behaviour, Mode, NParms>(
-            parm_response, visibility_row, weight_buffer, image_weights,
-            n_channel, n_channels, data_desc_id, antenna1, antenna2,
-            ApplyForward, time_offset, cached_beam_response);
+            parm_response, visibility_row, weight_buffer, image_weights, n_channel, n_channels,
+            data_desc_id, antenna1, antenna2, ApplyForward, time_offset, cached_beam_response);
       } else {
         // Apply only the conjugate beam
-        visibility_modifier_
-            .ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(
-                visibility_row, weight_buffer, image_weights, n_channel,
-                n_channels, data_desc_id, antenna1, antenna2,
-                cached_beam_response);
+        visibility_modifier_.ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(
+            visibility_row, weight_buffer, image_weights, n_channel, n_channels, data_desc_id,
+            antenna1, antenna2, cached_beam_response);
       }
 #else
       assert(!ApplyBeam);
 #endif
     } else if constexpr (HasH5Parm) {
       // Apply the h5parm solutions
-      visibility_modifier_
-          .ApplyConjugatedParmResponse<Behaviour, Mode, NParms, ApplyForward>(
-              parm_response, visibility_row, weight_buffer, image_weights,
-              n_channel, n_channels, n_antennas, antenna1, antenna2,
-              time_offset);
+      visibility_modifier_.ApplyConjugatedParmResponse<Behaviour, Mode, NParms, ApplyForward>(
+          parm_response, visibility_row, weight_buffer, image_weights, n_channel, n_channels,
+          n_antennas, antenna1, antenna2, time_offset);
     }
   }
 
@@ -349,8 +310,7 @@ class MsGridderData {
    * EveryBeam is available and the @c _predictReader data member in case
    * @c isPredict is true.
    */
-  void StartMeasurementSet(size_t ms_count,
-                           const MsProviderCollection::MsData& ms_data,
+  void StartMeasurementSet(size_t ms_count, const MsProviderCollection::MsData& ms_data,
                            bool is_predict);
 
   /**
@@ -363,33 +323,27 @@ class MsGridderData {
    * @param buffer should on entry contain n_channels visibilities to be
    * written.
    */
-  void WriteCollapsedVisibilities(MSProvider& ms_provider, size_t n_antennas,
-                                  size_t data_desc_id,
-                                  std::complex<float>* buffer,
-                                  const double* uvw, size_t field_id,
-                                  size_t antenna1, size_t antenna2,
-                                  double time) {
+  void WriteCollapsedVisibilities(MSProvider& ms_provider, size_t n_antennas, size_t data_desc_id,
+                                  std::complex<float>* buffer, const double* uvw, size_t field_id,
+                                  size_t antenna1, size_t antenna2, double time) {
     switch (n_vis_polarizations_) {
       case 1:
-        WriteInstrumentalVisibilities(ms_provider, n_antennas, data_desc_id,
-                                      buffer, uvw, field_id, antenna1, antenna2,
-                                      time);
+        WriteInstrumentalVisibilities(ms_provider, n_antennas, data_desc_id, buffer, uvw, field_id,
+                                      antenna1, antenna2, time);
         break;
       case 2:
-        internal::ExpandData<2>(
-            ms_provider.SelectedBands()[data_desc_id].ChannelCount(), buffer,
-            scratch_model_data_.data(), Polarization());
+        internal::ExpandData<2>(ms_provider.SelectedBands()[data_desc_id].ChannelCount(), buffer,
+                                scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, n_antennas, data_desc_id,
-                                      scratch_model_data_.data(), uvw, field_id,
-                                      antenna1, antenna2, time);
+                                      scratch_model_data_.data(), uvw, field_id, antenna1, antenna2,
+                                      time);
         break;
       case 4:
-        internal::ExpandData<4>(
-            ms_provider.SelectedBands()[data_desc_id].ChannelCount(), buffer,
-            scratch_model_data_.data(), Polarization());
+        internal::ExpandData<4>(ms_provider.SelectedBands()[data_desc_id].ChannelCount(), buffer,
+                                scratch_model_data_.data(), Polarization());
         WriteInstrumentalVisibilities(ms_provider, n_antennas, data_desc_id,
-                                      scratch_model_data_.data(), uvw, field_id,
-                                      antenna1, antenna2, time);
+                                      scratch_model_data_.data(), uvw, field_id, antenna1, antenna2,
+                                      time);
         break;
     }
   }
@@ -404,27 +358,21 @@ class MsGridderData {
    * instrumental visibilities.
    */
   void WriteInstrumentalVisibilities(MSProvider& ms_provider, size_t n_antennas,
-                                     size_t data_desc_id,
-                                     std::complex<float>* buffer,
-                                     const double* uvw, size_t field_id,
-                                     size_t antenna1, size_t antenna2,
-                                     double time);
+                                     size_t data_desc_id, std::complex<float>* buffer,
+                                     const double* uvw, size_t field_id, size_t antenna1,
+                                     size_t antenna2, double time);
   /**
    * Perform the corrections required by to @ref WriteCollapsedVisibilities() in
    * memory.
    */
-  void CorrectInstrumentalVisibilities(
-      size_t n_antennas, const aocommon::MultiBandData& bands,
-      size_t data_desc_id, std::complex<float>* buffer, const double* uvw,
-      size_t field_id, size_t antenna1, size_t antenna2, double time);
+  void CorrectInstrumentalVisibilities(size_t n_antennas, const aocommon::MultiBandData& bands,
+                                       size_t data_desc_id, std::complex<float>* buffer,
+                                       const double* uvw, size_t field_id, size_t antenna1,
+                                       size_t antenna2, double time);
 
-  bool HasDenormalPhaseCentre() const {
-    return l_shift_ != 0.0 || m_shift_ != 0.0;
-  }
+  bool HasDenormalPhaseCentre() const { return l_shift_ != 0.0 || m_shift_ != 0.0; }
 
-  double ImageWeight() const {
-    return total_weight_ / GetNVisibilities(gain_mode_);
-  }
+  double ImageWeight() const { return total_weight_ / GetNVisibilities(gain_mode_); }
 
   void ReadPredictMetaData(MSProvider::MetaData& metadata);
 
@@ -453,9 +401,7 @@ class MsGridderData {
    * a weight of 4 were gridded, the effective number of visibilities is
    * (10 + 5 x 4) / 10 = 3
    */
-  double EffectiveGriddedVisibilityCount() const {
-    return ImageWeight() / MaxGriddedWeight();
-  }
+  double EffectiveGriddedVisibilityCount() const { return ImageWeight() / MaxGriddedWeight(); }
 
   void ResetVisibilityCounters() {
     gridded_visibility_count_ = 0;
@@ -465,8 +411,7 @@ class MsGridderData {
   }
 
   void AddVisibilityCounts(size_t gridded_visibility_count, double total_weight,
-                           double max_gridded_weight,
-                           double visibility_weight_sum) {
+                           double max_gridded_weight, double visibility_weight_sum) {
     std::lock_guard<std::mutex> lock(visibility_counter_mutex_);
     gridded_visibility_count_ += gridded_visibility_count;
     total_weight_ += total_weight;
@@ -475,31 +420,19 @@ class MsGridderData {
   }
 
   bool DoSubtractModel() const { return do_subtract_model_; }
-  void SetDoSubtractModel(bool do_subtract_model) {
-    do_subtract_model_ = do_subtract_model;
-  }
+  void SetDoSubtractModel(bool do_subtract_model) { do_subtract_model_ = do_subtract_model; }
   PsfMode GetPsfMode() const { return psf_mode_; }
   void SetPsfMode(PsfMode psf_mode) { psf_mode_ = psf_mode; }
-  VisibilityWeightingMode GetVisibilityWeightingMode() const {
-    return visibility_weighting_mode_;
-  }
+  VisibilityWeightingMode GetVisibilityWeightingMode() const { return visibility_weighting_mode_; }
   double MainImageDL() const { return main_image_dl_; }
-  void SetMainImageDL(const double main_image_dl) {
-    main_image_dl_ = main_image_dl;
-  }
+  void SetMainImageDL(const double main_image_dl) { main_image_dl_ = main_image_dl; }
   double MainImageDM() const { return main_image_dm_; }
-  void SetMainImageDM(const double main_image_dm) {
-    main_image_dm_ = main_image_dm;
-  }
+  void SetMainImageDM(const double main_image_dm) { main_image_dm_ = main_image_dm; }
   aocommon::PolarizationEnum Polarization() const { return polarization_; }
-  void SetPolarization(aocommon::PolarizationEnum polarization) {
-    polarization_ = polarization;
-  }
+  void SetPolarization(aocommon::PolarizationEnum polarization) { polarization_ = polarization; }
 
   VisibilityModifier& GetVisibilityModifier() { return visibility_modifier_; };
-  const VisibilityModifier& GetVisibilityModifier() const {
-    return visibility_modifier_;
-  };
+  const VisibilityModifier& GetVisibilityModifier() const { return visibility_modifier_; };
 
   /**
    * @brief In case of facet-based imaging, the model data in the @param
@@ -521,8 +454,7 @@ class MsGridderData {
     // request_polarizations_at_once which bypasses this entirely.
     add_assign_model_ = is_facet;
     if (settings_.shared_facet_writes) {
-      add_assign_model_ =
-          settings_.parallelize_polarizations || !is_first_polarization;
+      add_assign_model_ = settings_.parallelize_polarizations || !is_first_polarization;
     }
   }
   bool ShouldAddAssignModel() const { return add_assign_model_; }
@@ -533,12 +465,8 @@ class MsGridderData {
   void SetMShift(const double m_shift) { m_shift_ = m_shift; }
   double MShift() const { return m_shift_; }
 
-  const ImageWeights* GetImageWeights() const {
-    return precalculated_weight_info_;
-  }
-  void SetImageWeights(const ImageWeights* weights) {
-    precalculated_weight_info_ = weights;
-  }
+  const ImageWeights* GetImageWeights() const { return precalculated_weight_info_; }
+  void SetImageWeights(const ImageWeights* weights) { precalculated_weight_info_ = weights; }
 
   bool StoreImagingWeights() const { return store_imaging_weights_; }
   void SetStoreImagingWeights(bool store_imaging_weights) {
@@ -587,35 +515,29 @@ class MsGridderData {
   };
 
   /* Compute shift factor for rotation toward phase center. */
-  static double ComputePhaseCenterShift(double l_shift, double m_shift,
-                                        const double* uvws) {
-    const double dn =
-        std::sqrt(1.0 - l_shift * l_shift - m_shift * m_shift) - 1.0;
-    const double shift_factor =
-        2.0 * M_PI * (uvws[0] * l_shift + uvws[1] * m_shift + uvws[2] * dn);
+  static double ComputePhaseCenterShift(double l_shift, double m_shift, const double* uvws) {
+    const double dn = std::sqrt(1.0 - l_shift * l_shift - m_shift * m_shift) - 1.0;
+    const double shift_factor = 2.0 * M_PI * (uvws[0] * l_shift + uvws[1] * m_shift + uvws[2] * dn);
     return shift_factor;
   }
 
   /* Rotate visibilities toward phase center if necessary. */
   template <size_t PolarizationCount>
-  static void RotateVisibilitiesToPhaseCenter(
-      double l_shift, double m_shift, const aocommon::BandData& band,
-      const double* uvws, std::complex<float>* visibilities) {
+  static void RotateVisibilitiesToPhaseCenter(double l_shift, double m_shift,
+                                              const aocommon::BandData& band, const double* uvws,
+                                              std::complex<float>* visibilities) {
     if (l_shift != 0.0 || m_shift != 0.0) {
-      const double shift_factor =
-          ComputePhaseCenterShift(l_shift, m_shift, uvws);
+      const double shift_factor = ComputePhaseCenterShift(l_shift, m_shift, uvws);
       RotateVisibilities<PolarizationCount>(band, shift_factor, visibilities);
     }
   }
 
   /* Rotate visibilities by pre-determined shift factor. */
   template <size_t PolarizationCount>
-  static void RotateVisibilities(const aocommon::BandData& band,
-                                 double shift_factor,
+  static void RotateVisibilities(const aocommon::BandData& band, double shift_factor,
                                  std::complex<float>* visibilities) {
     for (size_t channel = 0; channel != band.ChannelCount(); ++channel) {
-      RotateSingleVisibility<PolarizationCount>(band, shift_factor, channel,
-                                                visibilities);
+      RotateSingleVisibility<PolarizationCount>(band, shift_factor, channel, visibilities);
       visibilities += PolarizationCount;
     }
   }
@@ -624,28 +546,23 @@ class MsGridderData {
    * if necessary. To rotate all channels see @RotateVisibilitiesToPhaseCenter
    */
   template <size_t PolarizationCount>
-  static void RotateSingleVisibilityToPhaseCenter(
-      double l_shift, double m_shift, size_t channel,
-      const aocommon::BandData& band, const double* uvws,
-      std::complex<float>* visibilities) {
+  static void RotateSingleVisibilityToPhaseCenter(double l_shift, double m_shift, size_t channel,
+                                                  const aocommon::BandData& band,
+                                                  const double* uvws,
+                                                  std::complex<float>* visibilities) {
     if (l_shift != 0.0 || m_shift != 0.0) {
-      const double shift_factor =
-          ComputePhaseCenterShift(l_shift, m_shift, uvws);
-      RotateSingleVisibility<PolarizationCount>(band, shift_factor, channel,
-                                                visibilities);
+      const double shift_factor = ComputePhaseCenterShift(l_shift, m_shift, uvws);
+      RotateSingleVisibility<PolarizationCount>(band, shift_factor, channel, visibilities);
     }
   }
 
   /* Rotate all polarizations of a single channel visibily by pre-determined
    * shift factor. */
   template <size_t PolarizationCount>
-  static void RotateSingleVisibility(const aocommon::BandData& band,
-                                     double shift_factor, size_t channel,
-                                     std::complex<float>* visibilities) {
-    const double w_shift_radians =
-        shift_factor / band.ChannelWavelength(channel);
-    const std::complex<float> phasor(std::cos(w_shift_radians),
-                                     std::sin(w_shift_radians));
+  static void RotateSingleVisibility(const aocommon::BandData& band, double shift_factor,
+                                     size_t channel, std::complex<float>* visibilities) {
+    const double w_shift_radians = shift_factor / band.ChannelWavelength(channel);
+    const std::complex<float> phasor(std::cos(w_shift_radians), std::sin(w_shift_radians));
     for (size_t p = 0; p != PolarizationCount; ++p) {
       visibilities[p] *= phasor;
     }
@@ -678,10 +595,8 @@ class MsGridderData {
    * @param model_buffer An allocated buffer of size n_chan x n_pol to store
    * intermediate model data in.
    */
-  inline void ReadVisibilities(MSReader& ms_reader,
-                               std::complex<float>* row_data,
-                               float* weight_buffer,
-                               std::complex<float>* model_buffer) {
+  inline void ReadVisibilities(MSReader& ms_reader, std::complex<float>* row_data,
+                               float* weight_buffer, std::complex<float>* model_buffer) {
     if (GetPsfMode() == PsfMode::kNone) {
       ms_reader.ReadData(row_data);
     }
@@ -727,19 +642,15 @@ class MsGridderData {
    */
   template <size_t NParms>
   inline void GetCollapsedVisibilities(MSReader& ms_reader, size_t n_antennas,
-                                       InversionRow& row_data,
-                                       float* weight_buffer,
-                                       std::complex<float>* model_buffer,
-                                       const bool* is_selected,
+                                       InversionRow& row_data, float* weight_buffer,
+                                       std::complex<float>* model_buffer, const bool* is_selected,
                                        const MSProvider::MetaData& metadata) {
     ReadVisibilities(ms_reader, row_data.data, weight_buffer, model_buffer);
 
-    CollapseVisibilities<NParms>(
-        n_antennas, row_data, ms_reader.Provider().SelectedBands(),
-        weight_buffer, model_buffer, is_selected, metadata);
+    CollapseVisibilities<NParms>(n_antennas, row_data, ms_reader.Provider().SelectedBands(),
+                                 weight_buffer, model_buffer, is_selected, metadata);
 
-    if (StoreImagingWeights())
-      ms_reader.WriteImagingWeights(scratch_image_weights_.data());
+    if (StoreImagingWeights()) ms_reader.WriteImagingWeights(scratch_image_weights_.data());
   }
 
   /**
@@ -748,26 +659,23 @@ class MsGridderData {
    * the row_data structure will contain n_channel x n_polarization elements.
    */
   template <size_t PolarizationCount, size_t NParms>
-  inline void GetInstrumentalVisibilities(
-      MSReader& ms_reader, size_t n_antennas, InversionRow& row_data,
-      float* weight_buffer, std::complex<float>* model_buffer,
-      const bool* is_selected, const MSProvider::MetaData& metadata) {
+  inline void GetInstrumentalVisibilities(MSReader& ms_reader, size_t n_antennas,
+                                          InversionRow& row_data, float* weight_buffer,
+                                          std::complex<float>* model_buffer,
+                                          const bool* is_selected,
+                                          const MSProvider::MetaData& metadata) {
     const aocommon::MultiBandData& bands = ms_reader.Provider().SelectedBands();
     const aocommon::BandData& band = bands[metadata.data_desc_id];
     ReadVisibilities(ms_reader, row_data.data, weight_buffer, model_buffer);
 
-    ModifyVisibilities<PolarizationCount, true>(row_data.data, row_data.uvw,
-                                                band, model_buffer);
+    ModifyVisibilities<PolarizationCount, true>(row_data.data, row_data.uvw, band, model_buffer);
 
-    CalculateWeightsImplementation<PolarizationCount>(
-        weight_buffer, scratch_image_weights_.data(), row_data.uvw, band,
-        is_selected);
+    CalculateWeightsImplementation<PolarizationCount>(weight_buffer, scratch_image_weights_.data(),
+                                                      row_data.uvw, band, is_selected);
 
-    ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands,
-                                       weight_buffer, metadata);
+    ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands, weight_buffer, metadata);
 
-    if (StoreImagingWeights())
-      ms_reader.WriteImagingWeights(scratch_image_weights_.data());
+    if (StoreImagingWeights()) ms_reader.WriteImagingWeights(scratch_image_weights_.data());
   }
 
   /**
@@ -780,8 +688,7 @@ class MsGridderData {
    */
   template <size_t NParms>
   void ApplyWeightsAndCorrections(size_t n_antennas, InversionRow& row_data,
-                                  const aocommon::MultiBandData& bands,
-                                  float* weight_buffer,
+                                  const aocommon::MultiBandData& bands, float* weight_buffer,
                                   const MSProvider::MetaData& metadata);
 
   /**
@@ -822,45 +729,34 @@ class MsGridderData {
    */
   template <size_t NParms>
   inline void CollapseVisibilities(size_t n_antennas, InversionRow& row_data,
-                                   const aocommon::MultiBandData& bands,
-                                   float* weight_buffer,
-                                   std::complex<float>* model_buffer,
-                                   const bool* is_selected,
+                                   const aocommon::MultiBandData& bands, float* weight_buffer,
+                                   std::complex<float>* model_buffer, const bool* is_selected,
                                    const MSProvider::MetaData& metadata) {
     switch (n_vis_polarizations_) {
       case 1:
-        ModifyVisibilities<1, false>(row_data.data, row_data.uvw,
-                                     bands[metadata.data_desc_id],
+        ModifyVisibilities<1, false>(row_data.data, row_data.uvw, bands[metadata.data_desc_id],
                                      model_buffer);
-        CalculateWeightsImplementation<1>(
-            weight_buffer, scratch_image_weights_.data(), row_data.uvw,
-            bands[metadata.data_desc_id], is_selected);
-        ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands,
-                                           weight_buffer, metadata);
+        CalculateWeightsImplementation<1>(weight_buffer, scratch_image_weights_.data(),
+                                          row_data.uvw, bands[metadata.data_desc_id], is_selected);
+        ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands, weight_buffer, metadata);
         break;
       case 2:
-        ModifyVisibilities<2, false>(row_data.data, row_data.uvw,
-                                     bands[metadata.data_desc_id],
+        ModifyVisibilities<2, false>(row_data.data, row_data.uvw, bands[metadata.data_desc_id],
                                      model_buffer);
-        CalculateWeightsImplementation<2>(
-            weight_buffer, scratch_image_weights_.data(), row_data.uvw,
-            bands[metadata.data_desc_id], is_selected);
-        ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands,
-                                           weight_buffer, metadata);
-        internal::CollapseData<2>(bands[metadata.data_desc_id].ChannelCount(),
-                                  row_data.data, Polarization());
+        CalculateWeightsImplementation<2>(weight_buffer, scratch_image_weights_.data(),
+                                          row_data.uvw, bands[metadata.data_desc_id], is_selected);
+        ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands, weight_buffer, metadata);
+        internal::CollapseData<2>(bands[metadata.data_desc_id].ChannelCount(), row_data.data,
+                                  Polarization());
         break;
       case 4:
-        ModifyVisibilities<4, false>(row_data.data, row_data.uvw,
-                                     bands[metadata.data_desc_id],
+        ModifyVisibilities<4, false>(row_data.data, row_data.uvw, bands[metadata.data_desc_id],
                                      model_buffer);
-        CalculateWeightsImplementation<4>(
-            weight_buffer, scratch_image_weights_.data(), row_data.uvw,
-            bands[metadata.data_desc_id], is_selected);
-        ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands,
-                                           weight_buffer, metadata);
-        internal::CollapseData<4>(bands[metadata.data_desc_id].ChannelCount(),
-                                  row_data.data, Polarization());
+        CalculateWeightsImplementation<4>(weight_buffer, scratch_image_weights_.data(),
+                                          row_data.uvw, bands[metadata.data_desc_id], is_selected);
+        ApplyWeightsAndCorrections<NParms>(n_antennas, row_data, bands, weight_buffer, metadata);
+        internal::CollapseData<4>(bands[metadata.data_desc_id].ChannelCount(), row_data.data,
+                                  Polarization());
         break;
     }
   }
@@ -872,18 +768,16 @@ class MsGridderData {
    * calling @ref CalculateWeights()
    */
   template <GainMode Mode>
-  void ApplyWeights(std::complex<float>* visibility_row,
-                    const size_t channel_count, float* weight_buffer,
-                    float* image_weights, size_t& gridded_visibility_count,
+  void ApplyWeights(std::complex<float>* visibility_row, const size_t channel_count,
+                    float* weight_buffer, float* image_weights, size_t& gridded_visibility_count,
                     double& total_weight, double& max_gridded_weight,
                     double& visibility_weight_sum);
 
   template <GainMode Mode>
-  void ApplyWeights(std::complex<float>* visibility_row,
-                    const size_t channel_count, float* weight_buffer) {
-    ApplyWeights<Mode>(visibility_row, channel_count, weight_buffer,
-                       scratch_image_weights_.data(), gridded_visibility_count_,
-                       total_weight_, max_gridded_weight_,
+  void ApplyWeights(std::complex<float>* visibility_row, const size_t channel_count,
+                    float* weight_buffer) {
+    ApplyWeights<Mode>(visibility_row, channel_count, weight_buffer, scratch_image_weights_.data(),
+                       gridded_visibility_count_, total_weight_, max_gridded_weight_,
                        visibility_weight_sum_);
   }
 
@@ -899,17 +793,13 @@ class MsGridderData {
    *                      and the conjugate gain for the gridding step
    */
   template <size_t PolarizationCount, GainMode GainEntry>
-  void ApplyConjugatedH5Parm(MSReader& ms_reader,
-                             const std::vector<std::string>& antenna_names,
-                             InversionRow& row_data,
-                             const aocommon::BandData& band,
-                             const float* weight_buffer,
-                             bool apply_forward = false);
+  void ApplyConjugatedH5Parm(MSReader& ms_reader, const std::vector<std::string>& antenna_names,
+                             InversionRow& row_data, const aocommon::BandData& band,
+                             const float* weight_buffer, bool apply_forward = false);
 
   template <bool SharedReads>
   void ModifyVisibilities(std::complex<float>* visibilities, const double* uvws,
-                          const aocommon::BandData& band,
-                          const std::complex<float>* model) const {
+                          const aocommon::BandData& band, const std::complex<float>* model) const {
     switch (n_vis_polarizations_) {
       case 1:
         ModifyVisibilities<1, SharedReads>(visibilities, uvws, band, model);
@@ -935,19 +825,17 @@ class MsGridderData {
    */
   template <size_t PolarizationCount, bool SharedReads>
   void ModifyVisibilities(std::complex<float>* visibilities, const double* uvws,
-                          const aocommon::BandData& band,
-                          const std::complex<float>* model) const {
+                          const aocommon::BandData& band, const std::complex<float>* model) const {
     const PsfMode psf_mode = GetPsfMode();
     const std::size_t data_size = band.ChannelCount() * PolarizationCount;
     if (psf_mode != PsfMode::kNone) {
       if constexpr (PolarizationCount == 4) {
         // Construct a unit visibility of the right polarization.
         std::complex<float> polarized_unit_visibility[4];
-        aocommon::Polarization::ConvertToLinear<float>(
-            1.0f, polarization_, polarized_unit_visibility);
+        aocommon::Polarization::ConvertToLinear<float>(1.0f, polarization_,
+                                                       polarized_unit_visibility);
         for (size_t i = 0; i != data_size; i += PolarizationCount) {
-          std::copy_n(polarized_unit_visibility, PolarizationCount,
-                      &visibilities[i]);
+          std::copy_n(polarized_unit_visibility, PolarizationCount, &visibilities[i]);
         }
       } else {
         // Visibilities for a Stokes I point source at the phase centre are all
@@ -969,32 +857,27 @@ class MsGridderData {
       // When using a shared visibility buffer for shared reads we need to delay
       // direction dependent visibility rotation to inside the same callback
       // where we handle corrections.
-      const bool delay_rotation =
-          SharedReads && psf_mode == PsfMode::kDirectionDependent;
+      const bool delay_rotation = SharedReads && psf_mode == PsfMode::kDirectionDependent;
       if (!delay_rotation) {
-        RotateVisibilitiesToPhaseCenter<PolarizationCount>(
-            l_shift, m_shift, band, uvws, visibilities);
+        RotateVisibilitiesToPhaseCenter<PolarizationCount>(l_shift, m_shift, band, uvws,
+                                                           visibilities);
       }
     }
 
     if (DoSubtractModel()) {
       const std::complex<float>* model_iter = model;
-      for (std::complex<float>* iter = visibilities;
-           iter != visibilities + data_size; ++iter) {
+      for (std::complex<float>* iter = visibilities; iter != visibilities + data_size; ++iter) {
         *iter -= *model_iter;
         model_iter++;
       }
     }
   }
 
-  inline void CalculateWeights(float* weights, float* image_weights,
-                               const double* uvws,
-                               const aocommon::BandData& band,
-                               const bool* is_selected) const;
+  inline void CalculateWeights(float* weights, float* image_weights, const double* uvws,
+                               const aocommon::BandData& band, const bool* is_selected) const;
 
   template <size_t PolarizationCount>
-  void CalculateWeightsImplementation(float* weights, float* image_weights,
-                                      const double* uvws,
+  void CalculateWeightsImplementation(float* weights, float* image_weights, const double* uvws,
                                       const aocommon::BandData& band,
                                       const bool* is_selected) const;
 
@@ -1002,16 +885,14 @@ class MsGridderData {
 
   template <GainMode Mode>
   void WriteInstrumentalVisibilities(MSProvider& ms_provider, size_t n_antennas,
-                                     size_t data_desc_id,
-                                     std::complex<float>* buffer,
-                                     const double* uvw, size_t field_id,
-                                     size_t antenna1, size_t antenna2,
-                                     double time);
+                                     size_t data_desc_id, std::complex<float>* buffer,
+                                     const double* uvw, size_t field_id, size_t antenna1,
+                                     size_t antenna2, double time);
   template <GainMode Mode>
-  void CorrectInstrumentalVisibilities(
-      size_t n_antennas, const aocommon::MultiBandData& bands,
-      size_t data_desc_id, std::complex<float>* buffer, const double* uvw,
-      size_t field_id, size_t antenna1, size_t antenna2, double time);
+  void CorrectInstrumentalVisibilities(size_t n_antennas, const aocommon::MultiBandData& bands,
+                                       size_t data_desc_id, std::complex<float>* buffer,
+                                       const double* uvw, size_t field_id, size_t antenna1,
+                                       size_t antenna2, double time);
 
   const Settings& settings_;
 
@@ -1066,11 +947,11 @@ class MsGridderData {
 };
 
 template <GainMode Mode>
-inline void MsGridderData::ApplyWeights(
-    std::complex<float>* visibility_row, const size_t channel_count,
-    float* weight_buffer, float* image_weights,
-    size_t& gridded_visibility_count, double& total_weight,
-    double& max_gridded_weight, double& visibility_weight_sum) {
+inline void MsGridderData::ApplyWeights(std::complex<float>* visibility_row,
+                                        const size_t channel_count, float* weight_buffer,
+                                        float* image_weights, size_t& gridded_visibility_count,
+                                        double& total_weight, double& max_gridded_weight,
+                                        double& visibility_weight_sum) {
   const size_t n_pols = GetNVisibilities(Mode);
 
   for (size_t channel = 0; channel < channel_count; channel++) {
@@ -1085,8 +966,7 @@ inline void MsGridderData::ApplyWeights(
       if (pol == 0) {
         // Visibility weight sum is the sum of weights excluding imaging weights
         visibility_weight_sum += weight_buffer[i] * has_weight;
-        max_gridded_weight =
-            std::max(static_cast<double>(cumWeight), max_gridded_weight);
+        max_gridded_weight = std::max(static_cast<double>(cumWeight), max_gridded_weight);
         gridded_visibility_count += has_weight;
       }
       // Total weight includes imaging weights
@@ -1097,32 +977,28 @@ inline void MsGridderData::ApplyWeights(
   }
 }
 
-inline void MsGridderData::CalculateWeights(float* weights,
-                                            float* image_weights,
-                                            const double* uvws,
-                                            const aocommon::BandData& band,
+inline void MsGridderData::CalculateWeights(float* weights, float* image_weights,
+                                            const double* uvws, const aocommon::BandData& band,
                                             const bool* is_selected) const {
   switch (n_vis_polarizations_) {
     case 1:
-      CalculateWeightsImplementation<1>(weights, image_weights, uvws, band,
-                                        is_selected);
+      CalculateWeightsImplementation<1>(weights, image_weights, uvws, band, is_selected);
 
       break;
     case 2:
-      CalculateWeightsImplementation<2>(weights, image_weights, uvws, band,
-                                        is_selected);
+      CalculateWeightsImplementation<2>(weights, image_weights, uvws, band, is_selected);
       break;
     case 4:
-      CalculateWeightsImplementation<4>(weights, image_weights, uvws, band,
-                                        is_selected);
+      CalculateWeightsImplementation<4>(weights, image_weights, uvws, band, is_selected);
       break;
   }
 }
 
 template <size_t PolarizationCount>
-void MsGridderData::CalculateWeightsImplementation(
-    float* weights, float* image_weights, const double* uvws,
-    const aocommon::BandData& band, const bool* is_selected) const {
+void MsGridderData::CalculateWeightsImplementation(float* weights, float* image_weights,
+                                                   const double* uvws,
+                                                   const aocommon::BandData& band,
+                                                   const bool* is_selected) const {
   // Any visibilities that are not gridded in this pass
   // should not contribute to the weight sum, so set these
   // to have zero weight.
@@ -1159,131 +1035,108 @@ void MsGridderData::CalculateWeightsImplementation(
 
 // Apply corrections as well as visibility and imaging weights
 template <size_t NParms>
-void MsGridderData::ApplyWeightsAndCorrections(
-    size_t n_antennas, InversionRow& row_data,
-    const aocommon::MultiBandData& bands, float* weight_buffer,
-    const MSProvider::MetaData& metadata) {
+void MsGridderData::ApplyWeightsAndCorrections(size_t n_antennas, InversionRow& row_data,
+                                               const aocommon::MultiBandData& bands,
+                                               float* weight_buffer,
+                                               const MSProvider::MetaData& metadata) {
   switch (gain_mode_) {
     case GainMode::kXX:
-      LoadAndApplyCorrections<GainMode::kXX, NParms>(n_antennas, row_data.uvw,
-                                                     row_data.data, bands,
+      LoadAndApplyCorrections<GainMode::kXX, NParms>(n_antennas, row_data.uvw, row_data.data, bands,
                                                      weight_buffer, metadata);
-      ApplyWeights<GainMode::kXX>(row_data.data,
-                                  bands[metadata.data_desc_id].ChannelCount(),
+      ApplyWeights<GainMode::kXX>(row_data.data, bands[metadata.data_desc_id].ChannelCount(),
                                   weight_buffer);
       break;
     case GainMode::kYY:
-      LoadAndApplyCorrections<GainMode::kYY, NParms>(n_antennas, row_data.uvw,
-                                                     row_data.data, bands,
+      LoadAndApplyCorrections<GainMode::kYY, NParms>(n_antennas, row_data.uvw, row_data.data, bands,
                                                      weight_buffer, metadata);
-      ApplyWeights<GainMode::kYY>(row_data.data,
-                                  bands[metadata.data_desc_id].ChannelCount(),
+      ApplyWeights<GainMode::kYY>(row_data.data, bands[metadata.data_desc_id].ChannelCount(),
                                   weight_buffer);
       break;
     case GainMode::kTrace:
-      LoadAndApplyCorrections<GainMode::kTrace, NParms>(
-          n_antennas, row_data.uvw, row_data.data, bands, weight_buffer,
-          metadata);
-      ApplyWeights<GainMode::kTrace>(
-          row_data.data, bands[metadata.data_desc_id].ChannelCount(),
-          weight_buffer);
+      LoadAndApplyCorrections<GainMode::kTrace, NParms>(n_antennas, row_data.uvw, row_data.data,
+                                                        bands, weight_buffer, metadata);
+      ApplyWeights<GainMode::kTrace>(row_data.data, bands[metadata.data_desc_id].ChannelCount(),
+                                     weight_buffer);
       break;
     case GainMode::k2VisDiagonal:
       LoadAndApplyCorrections<GainMode::k2VisDiagonal, NParms>(
-          n_antennas, row_data.uvw, row_data.data, bands, weight_buffer,
-          metadata);
+          n_antennas, row_data.uvw, row_data.data, bands, weight_buffer, metadata);
       ApplyWeights<GainMode::k2VisDiagonal>(
-          row_data.data, bands[metadata.data_desc_id].ChannelCount(),
-          weight_buffer);
+          row_data.data, bands[metadata.data_desc_id].ChannelCount(), weight_buffer);
       break;
     case GainMode::kFull:
-      LoadAndApplyCorrections<GainMode::kFull, NParms>(n_antennas, row_data.uvw,
-                                                       row_data.data, bands,
-                                                       weight_buffer, metadata);
-      ApplyWeights<GainMode::kFull>(row_data.data,
-                                    bands[metadata.data_desc_id].ChannelCount(),
+      LoadAndApplyCorrections<GainMode::kFull, NParms>(n_antennas, row_data.uvw, row_data.data,
+                                                       bands, weight_buffer, metadata);
+      ApplyWeights<GainMode::kFull>(row_data.data, bands[metadata.data_desc_id].ChannelCount(),
                                     weight_buffer);
       break;
     default:
-      throw std::runtime_error(
-          "Invalid combination of visibility polarizations and gain mode");
+      throw std::runtime_error("Invalid combination of visibility polarizations and gain mode");
   }
 }
 
 inline void MsGridderData::WriteInstrumentalVisibilities(
-    MSProvider& ms_provider, size_t n_antennas, size_t data_desc_id,
-    std::complex<float>* buffer, const double* uvw, size_t field_id,
-    size_t antenna1, size_t antenna2, double time) {
+    MSProvider& ms_provider, size_t n_antennas, size_t data_desc_id, std::complex<float>* buffer,
+    const double* uvw, size_t field_id, size_t antenna1, size_t antenna2, double time) {
   switch (gain_mode_) {
     case GainMode::kXX:
-      WriteInstrumentalVisibilities<GainMode::kXX>(
-          ms_provider, n_antennas, data_desc_id, buffer, uvw, field_id,
-          antenna1, antenna2, time);
+      WriteInstrumentalVisibilities<GainMode::kXX>(ms_provider, n_antennas, data_desc_id, buffer,
+                                                   uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::kYY:
-      WriteInstrumentalVisibilities<GainMode::kYY>(
-          ms_provider, n_antennas, data_desc_id, buffer, uvw, field_id,
-          antenna1, antenna2, time);
+      WriteInstrumentalVisibilities<GainMode::kYY>(ms_provider, n_antennas, data_desc_id, buffer,
+                                                   uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::kTrace:
-      WriteInstrumentalVisibilities<GainMode::kTrace>(
-          ms_provider, n_antennas, data_desc_id, buffer, uvw, field_id,
-          antenna1, antenna2, time);
+      WriteInstrumentalVisibilities<GainMode::kTrace>(ms_provider, n_antennas, data_desc_id, buffer,
+                                                      uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::k2VisDiagonal:
       WriteInstrumentalVisibilities<GainMode::k2VisDiagonal>(
-          ms_provider, n_antennas, data_desc_id, buffer, uvw, field_id,
-          antenna1, antenna2, time);
+          ms_provider, n_antennas, data_desc_id, buffer, uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::kFull:
-      WriteInstrumentalVisibilities<GainMode::kFull>(
-          ms_provider, n_antennas, data_desc_id, buffer, uvw, field_id,
-          antenna1, antenna2, time);
+      WriteInstrumentalVisibilities<GainMode::kFull>(ms_provider, n_antennas, data_desc_id, buffer,
+                                                     uvw, field_id, antenna1, antenna2, time);
       break;
   }
 }
 
 inline void MsGridderData::CorrectInstrumentalVisibilities(
-    size_t n_antennas, const aocommon::MultiBandData& bands,
-    size_t data_desc_id, std::complex<float>* buffer, const double* uvw,
-    size_t field_id, size_t antenna1, size_t antenna2, double time) {
+    size_t n_antennas, const aocommon::MultiBandData& bands, size_t data_desc_id,
+    std::complex<float>* buffer, const double* uvw, size_t field_id, size_t antenna1,
+    size_t antenna2, double time) {
   switch (gain_mode_) {
     case GainMode::kXX:
-      CorrectInstrumentalVisibilities<GainMode::kXX>(
-          n_antennas, bands, data_desc_id, buffer, uvw, field_id, antenna1,
-          antenna2, time);
+      CorrectInstrumentalVisibilities<GainMode::kXX>(n_antennas, bands, data_desc_id, buffer, uvw,
+                                                     field_id, antenna1, antenna2, time);
       break;
     case GainMode::kYY:
-      CorrectInstrumentalVisibilities<GainMode::kYY>(
-          n_antennas, bands, data_desc_id, buffer, uvw, field_id, antenna1,
-          antenna2, time);
+      CorrectInstrumentalVisibilities<GainMode::kYY>(n_antennas, bands, data_desc_id, buffer, uvw,
+                                                     field_id, antenna1, antenna2, time);
       break;
     case GainMode::kTrace:
-      CorrectInstrumentalVisibilities<GainMode::kTrace>(
-          n_antennas, bands, data_desc_id, buffer, uvw, field_id, antenna1,
-          antenna2, time);
+      CorrectInstrumentalVisibilities<GainMode::kTrace>(n_antennas, bands, data_desc_id, buffer,
+                                                        uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::k2VisDiagonal:
       CorrectInstrumentalVisibilities<GainMode::k2VisDiagonal>(
-          n_antennas, bands, data_desc_id, buffer, uvw, field_id, antenna1,
-          antenna2, time);
+          n_antennas, bands, data_desc_id, buffer, uvw, field_id, antenna1, antenna2, time);
       break;
     case GainMode::kFull:
-      CorrectInstrumentalVisibilities<GainMode::kFull>(
-          n_antennas, bands, data_desc_id, buffer, uvw, field_id, antenna1,
-          antenna2, time);
+      CorrectInstrumentalVisibilities<GainMode::kFull>(n_antennas, bands, data_desc_id, buffer, uvw,
+                                                       field_id, antenna1, antenna2, time);
       break;
   }
 }
 
 template <GainMode Mode>
-void MsGridderData::WriteInstrumentalVisibilities(
-    MSProvider& ms_provider, size_t n_antennas, size_t data_desc_id,
-    std::complex<float>* buffer, const double* uvw, size_t field_id,
-    size_t antenna1, size_t antenna2, double time) {
-  CorrectInstrumentalVisibilities<Mode>(n_antennas, ms_provider.SelectedBands(),
-                                        data_desc_id, buffer, uvw, field_id,
-                                        antenna1, antenna2, time);
+void MsGridderData::WriteInstrumentalVisibilities(MSProvider& ms_provider, size_t n_antennas,
+                                                  size_t data_desc_id, std::complex<float>* buffer,
+                                                  const double* uvw, size_t field_id,
+                                                  size_t antenna1, size_t antenna2, double time) {
+  CorrectInstrumentalVisibilities<Mode>(n_antennas, ms_provider.SelectedBands(), data_desc_id,
+                                        buffer, uvw, field_id, antenna1, antenna2, time);
   {
     std::unique_ptr<GriddingTaskManager::WriterLock> lock =
         writer_lock_manager_->GetLock(writer_lock_index_);
@@ -1293,37 +1146,35 @@ void MsGridderData::WriteInstrumentalVisibilities(
 }
 
 template <GainMode Mode>
-void MsGridderData::CorrectInstrumentalVisibilities(
-    size_t n_antennas, const aocommon::MultiBandData& bands,
-    size_t data_desc_id, std::complex<float>* buffer, const double* uvw,
-    size_t field_id, size_t antenna1, size_t antenna2, double time) {
+void MsGridderData::CorrectInstrumentalVisibilities(size_t n_antennas,
+                                                    const aocommon::MultiBandData& bands,
+                                                    size_t data_desc_id,
+                                                    std::complex<float>* buffer, const double* uvw,
+                                                    size_t field_id, size_t antenna1,
+                                                    size_t antenna2, double time) {
   assert(GetPsfMode() == PsfMode::kNone);  // The PSF is never predicted.
 
 #ifdef HAVE_EVERYBEAM
   constexpr bool kCacheEntireBeam = false;
   if (settings_.applyFacetBeam) {
-    visibility_modifier_.CacheBeamResponse(time, field_id, bands,
-                                           kCacheEntireBeam);
-    visibility_modifier_.ApplyBeamResponse<Mode>(
-        buffer, bands[data_desc_id].ChannelCount(), data_desc_id, antenna1,
-        antenna2);
+    visibility_modifier_.CacheBeamResponse(time, field_id, bands, kCacheEntireBeam);
+    visibility_modifier_.ApplyBeamResponse<Mode>(buffer, bands[data_desc_id].ChannelCount(),
+                                                 data_desc_id, antenna1, antenna2);
   }
 #endif
 
   if (visibility_modifier_.HasH5Parm()) {
     assert(!settings_.facetRegionFilename.empty());
     size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
-    visibility_modifier_.CacheParmResponse(time, bands, original_ms_index_,
-                                           time_offset);
+    visibility_modifier_.CacheParmResponse(time, bands, original_ms_index_, time_offset);
     visibility_modifier_.ApplyParmResponseWithTime<Mode>(
-        buffer, original_ms_index_, bands[data_desc_id].ChannelCount(),
-        data_desc_id, n_antennas, antenna1, antenna2, time_offset);
+        buffer, original_ms_index_, bands[data_desc_id].ChannelCount(), data_desc_id, n_antennas,
+        antenna1, antenna2, time_offset);
     visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
   }
   if (settings_.applyTimeFrequencySmearing) {
-    visibility_modifier_.ApplyTimeFrequencySmearing(
-        buffer, uvw, bands[data_desc_id], n_vis_polarizations_, LShift(),
-        MShift());
+    visibility_modifier_.ApplyTimeFrequencySmearing(buffer, uvw, bands[data_desc_id],
+                                                    n_vis_polarizations_, LShift(), MShift());
   }
 }
 

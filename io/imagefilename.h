@@ -24,8 +24,7 @@ class ImageFilename {
         _isImaginary(false) {}
 
   std::string GetPrefix(const Settings& settings) const {
-    return GetPrefix(settings, _polarization, _channelIndex, _intervalIndex,
-                     _isImaginary);
+    return GetPrefix(settings, _polarization, _channelIndex, _intervalIndex, _isImaginary);
   }
 
   std::string GetPSFPrefix(const Settings& settings) const {
@@ -40,79 +39,63 @@ class ImageFilename {
   void SetPolarization(aocommon::PolarizationEnum p) { _polarization = p; }
   void SetIsImaginary(bool isImaginary) { _isImaginary = isImaginary; }
 
-  static std::string GetPrefix(
-      ImageFilenameType type, const Settings& settings,
-      aocommon::PolarizationEnum polarization, size_t channelIndex,
-      size_t intervalIndex,
-      std::optional<size_t> directionIndex = std::nullopt) {
+  static std::string GetPrefix(ImageFilenameType type, const Settings& settings,
+                               aocommon::PolarizationEnum polarization, size_t channelIndex,
+                               size_t intervalIndex,
+                               std::optional<size_t> directionIndex = std::nullopt) {
     switch (type) {
       case ImageFilenameType::Normal:
-        return GetPrefix(settings, polarization, channelIndex, intervalIndex,
-                         false);
+        return GetPrefix(settings, polarization, channelIndex, intervalIndex, false);
       case ImageFilenameType::Imaginary:
-        return GetPrefix(settings, polarization, channelIndex, intervalIndex,
-                         true);
+        return GetPrefix(settings, polarization, channelIndex, intervalIndex, true);
       case ImageFilenameType::Psf:
-        return GetPSFPrefix(settings, channelIndex, intervalIndex,
-                            directionIndex);
+        return GetPSFPrefix(settings, channelIndex, intervalIndex, directionIndex);
       case ImageFilenameType::Beam:
         return GetBeamPrefix(settings, channelIndex, intervalIndex);
     }
     return {};
   }
 
-  static std::string GetPSFPrefix(
-      const Settings& settings, size_t channelIndex, size_t intervalIndex,
-      std::optional<size_t> ddPsfIndex = std::nullopt) {
+  static std::string GetPSFPrefix(const Settings& settings, size_t channelIndex,
+                                  size_t intervalIndex,
+                                  std::optional<size_t> ddPsfIndex = std::nullopt) {
     std::ostringstream partPrefixNameStr;
     partPrefixNameStr << settings.prefixName;
-    if (settings.intervalsOut != 1)
-      partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
+    if (settings.intervalsOut != 1) partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
     if (ddPsfIndex) partPrefixNameStr << "-d" << fourDigitStr(*ddPsfIndex);
-    if (settings.channelsOut != 1)
-      partPrefixNameStr << '-' << fourDigitStr(channelIndex);
+    if (settings.channelsOut != 1) partPrefixNameStr << '-' << fourDigitStr(channelIndex);
     return partPrefixNameStr.str();
   }
 
-  static std::string GetPrefix(const Settings& settings,
-                               aocommon::PolarizationEnum polarization,
-                               size_t channelIndex, size_t intervalIndex,
-                               bool isImaginary) {
+  static std::string GetPrefix(const Settings& settings, aocommon::PolarizationEnum polarization,
+                               size_t channelIndex, size_t intervalIndex, bool isImaginary) {
     std::ostringstream partPrefixNameStr;
     partPrefixNameStr << settings.prefixName;
-    if (settings.intervalsOut != 1)
-      partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
-    if (settings.channelsOut != 1)
-      partPrefixNameStr << '-' << fourDigitStr(channelIndex);
+    if (settings.intervalsOut != 1) partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
+    if (settings.channelsOut != 1) partPrefixNameStr << '-' << fourDigitStr(channelIndex);
     if (settings.polarizations.size() != 1) {
-      partPrefixNameStr << '-'
-                        << aocommon::Polarization::TypeToShortString(
-                               polarization);
+      partPrefixNameStr << '-' << aocommon::Polarization::TypeToShortString(polarization);
       if (isImaginary) partPrefixNameStr << 'i';
     }
     return partPrefixNameStr.str();
   }
 
-  static std::string GetBeamPrefix(const Settings& settings,
-                                   size_t channelIndex, size_t intervalIndex) {
+  static std::string GetBeamPrefix(const Settings& settings, size_t channelIndex,
+                                   size_t intervalIndex) {
     std::ostringstream partPrefixNameStr;
     partPrefixNameStr << settings.prefixName;
-    if (settings.intervalsOut != 1)
-      partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
-    if (settings.channelsOut != 1)
-      partPrefixNameStr << '-' << fourDigitStr(channelIndex);
+    if (settings.intervalsOut != 1) partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
+    if (settings.channelsOut != 1) partPrefixNameStr << '-' << fourDigitStr(channelIndex);
     partPrefixNameStr << "-beam";
     return partPrefixNameStr.str();
   }
 
-  static std::string GetMFSPrefix(
-      const Settings& settings, aocommon::PolarizationEnum polarization,
-      size_t intervalIndex, ImageFilenameType type,
-      std::optional<size_t> directionIndex = std::nullopt) {
+  static std::string GetMFSPrefix(const Settings& settings, aocommon::PolarizationEnum polarization,
+                                  size_t intervalIndex, ImageFilenameType type,
+                                  std::optional<size_t> directionIndex = std::nullopt) {
     std::ostringstream partPrefixNameStr;
     partPrefixNameStr << settings.prefixName;
-    if (settings.intervalsOut != 1)
-      partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
+    if (settings.intervalsOut != 1) partPrefixNameStr << "-t" << fourDigitStr(intervalIndex);
     if (type == ImageFilenameType::Psf && directionIndex) {
       partPrefixNameStr << "-d" << fourDigitStr(*directionIndex);
     }
@@ -126,8 +109,7 @@ class ImageFilename {
       case ImageFilenameType::Normal:
       case ImageFilenameType::Imaginary:
         if (settings.polarizations.size() != 1) {
-          partPrefixNameStr
-              << '-' << aocommon::Polarization::TypeToShortString(polarization);
+          partPrefixNameStr << '-' << aocommon::Polarization::TypeToShortString(polarization);
           if (type == ImageFilenameType::Imaginary) partPrefixNameStr << 'i';
         }
         break;

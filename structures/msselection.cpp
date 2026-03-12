@@ -9,9 +9,8 @@ using schaapcommon::reordering::ChannelRange;
 
 namespace wsclean {
 
-ChannelRange SelectMsChannels(const aocommon::MultiBandData& ms_bands,
-                              size_t data_desc_id, double lowest_frequency,
-                              double highest_frequency) {
+ChannelRange SelectMsChannels(const aocommon::MultiBandData& ms_bands, size_t data_desc_id,
+                              double lowest_frequency, double highest_frequency) {
   const aocommon::BandData& band = ms_bands[data_desc_id];
   double first_channel = band.ChannelFrequency(0);
   double last_channel = band.ChannelFrequency(band.ChannelCount() - 1);
@@ -20,8 +19,7 @@ ChannelRange SelectMsChannels(const aocommon::MultiBandData& ms_bands,
   if (first_channel > last_channel) {
     std::swap(first_channel, last_channel);
     is_reversed = true;
-    aocommon::Logger::Debug
-        << "Warning: MS has reversed channel frequencies.\n";
+    aocommon::Logger::Debug << "Warning: MS has reversed channel frequencies.\n";
   }
   if (band.ChannelCount() != 0 && lowest_frequency <= last_channel &&
       highest_frequency >= first_channel) {

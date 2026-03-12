@@ -13,13 +13,11 @@ using aocommon::MC2x2;
 
 namespace wsclean {
 
-void CheckMatrix(const HMC4x4& m, const HMC4x4& reference,
-                 const std::string& msg = {}) {
+void CheckMatrix(const HMC4x4& m, const HMC4x4& reference, const std::string& msg = {}) {
   for (size_t i = 0; i != 16; ++i) {
     std::ostringstream str;
-    str << "index " << i << ", diff "
-        << std::round(std::abs(m[i] - reference[i]) * 100.0) / 100.0 << ", got "
-        << m[i] << ", expected " << reference[i];
+    str << "index " << i << ", diff " << std::round(std::abs(m[i] - reference[i]) * 100.0) / 100.0
+        << ", got " << m[i] << ", expected " << reference[i];
     if (!msg.empty()) str << "(" << msg << ")";
     BOOST_TEST(std::abs(m[i] - reference[i]) < 1e-2, str.str());
   }
@@ -45,24 +43,21 @@ BOOST_AUTO_TEST_CASE(square_root_diagonal) {
 
 BOOST_AUTO_TEST_CASE(square_root_zero_eigenvalue) {
   const std::complex<double> j(0, 1);
-  const HMC4x4 input{5, 2.0 + j, 0, 0, 2.0 - j, 5, 0, 0,
-                     0, 0,       0, 0, 0,       0, 0, 0};
+  const HMC4x4 input{5, 2.0 + j, 0, 0, 2.0 - j, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   const HMC4x4 result = PrincipalSquareRoot(input);
   CheckMatrix(result.Square(), input);
 }
 
 BOOST_AUTO_TEST_CASE(square_root_complex) {
   const std::complex<double> j(0, 1);
-  const HMC4x4 complex_matrix{2,  j,  j, j, -j, 2,  j, j,
-                              -j, -j, 2, 1, -j, -j, 1, 2};
+  const HMC4x4 complex_matrix{2, j, j, j, -j, 2, j, j, -j, -j, 2, 1, -j, -j, 1, 2};
   const HMC4x4 result = PrincipalSquareRoot(complex_matrix);
   CheckMatrix(result.Square(), complex_matrix);
 }
 
 BOOST_AUTO_TEST_CASE(square_root_non_positive_semi_definite) {
   const std::complex<double> j(0, 1);
-  const HMC4x4 complex_matrix{2,  j,  j, j, -j, 2,  j,  j,
-                              -j, -j, 2, j, -j, -j, -j, 2};
+  const HMC4x4 complex_matrix{2, j, j, j, -j, 2, j, j, -j, -j, 2, j, -j, -j, -j, 2};
   const HMC4x4 result = PrincipalSquareRoot(complex_matrix);
   BOOST_CHECK(!std::isfinite(result[0].real()));
   BOOST_CHECK(!std::isfinite(result[5].real()));
@@ -71,18 +66,16 @@ BOOST_AUTO_TEST_CASE(square_root_non_positive_semi_definite) {
 }
 
 void CheckConjugateCorrection(const MC2x2& a, const MC2x2& b) {
-  const HMC4x4 partial_a = aocommon::HMC4x4::KroneckerProduct(
-      a.HermitianSquare().Transpose(), b.HermitianSquare());
-  const HMC4x4 partial_b = aocommon::HMC4x4::KroneckerProduct(
-      b.HermitianSquare().Transpose(), a.HermitianSquare());
+  const HMC4x4 partial_a =
+      aocommon::HMC4x4::KroneckerProduct(a.HermitianSquare().Transpose(), b.HermitianSquare());
+  const HMC4x4 partial_b =
+      aocommon::HMC4x4::KroneckerProduct(b.HermitianSquare().Transpose(), a.HermitianSquare());
 
   const HMC4x4 reference_full = (partial_a + partial_b) * 0.5;
   std::stringstream str_full;
   str_full << "CheckConjugateCorrection(), full: a=" << a << ", b=" << b
-           << ", \nleft=" << partial_a.String()
-           << "\nright=" << partial_b.String();
-  CheckMatrix(AddConjugateCorrectionPart(partial_a), reference_full,
-              str_full.str());
+           << ", \nleft=" << partial_a.String() << "\nright=" << partial_b.String();
+  CheckMatrix(AddConjugateCorrectionPart(partial_a), reference_full, str_full.str());
 }
 
 BOOST_AUTO_TEST_CASE(add_conjugate_correction_part) {
@@ -93,8 +86,7 @@ BOOST_AUTO_TEST_CASE(add_conjugate_correction_part) {
   const MC2x2 ones{1.0, 1.0, 1.0, 1.0};
   CheckConjugateCorrection(ones, ones);
   CheckConjugateCorrection(ones * -3.0, ones * 2.0);
-  CheckConjugateCorrection(ones * std::complex{1.0, 2.0},
-                           ones * std::complex{3.0, 4.0});
+  CheckConjugateCorrection(ones * std::complex{1.0, 2.0}, ones * std::complex{3.0, 4.0});
   const MC2x2 a{1.0, 2.0, 2.0, 1.0};
   CheckConjugateCorrection(a, ones);
   const MC2x2 b{3.0, 4.0, 4.0, 3.0};
@@ -108,8 +100,7 @@ BOOST_AUTO_TEST_CASE(add_conjugate_correction_part) {
   CheckConjugateCorrection(p, q);
 }
 
-BOOST_AUTO_TEST_CASE(kronecker_square_benchmark_old,
-                     *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(kronecker_square_benchmark_old, *boost::unit_test::disabled()) {
   MC2x2 a{{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
   MC2x2 b{{0.8, 0.7}, {0.6, 0.5}, {0.4, 0.3}, {0.2, 0.1}};
   HMC4x4 r = HMC4x4::Zero();
@@ -123,14 +114,12 @@ BOOST_AUTO_TEST_CASE(kronecker_square_benchmark_old,
   BOOST_CHECK(r.Norm() != 0.0);
 }
 
-BOOST_AUTO_TEST_CASE(kronecker_square_benchmark_new,
-                     *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(kronecker_square_benchmark_new, *boost::unit_test::disabled()) {
   MC2x2 a{{1.0, 2.0}, {3.0, 4.0}, {5.0, 6.0}, {7.0, 8.0}};
   MC2x2 b{{0.8, 0.7}, {0.6, 0.5}, {0.4, 0.3}, {0.2, 0.1}};
   HMC4x4 r = HMC4x4::Zero();
   for (size_t i = 0; i != 100000000; ++i) {
-    r += aocommon::HMC4x4::KroneckerProduct(a.HermitianSquare().Transpose(),
-                                            b.HermitianSquare());
+    r += aocommon::HMC4x4::KroneckerProduct(a.HermitianSquare().Transpose(), b.HermitianSquare());
   }
   BOOST_CHECK(r.Norm() != 0.0);
 }

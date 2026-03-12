@@ -37,32 +37,25 @@ class WTowersMsGridder final : public MsGridder {
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;
-  size_t PredictMeasurementSet(
-      const MsProviderCollection::MsData& ms_data) final;
+  size_t PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
   void FinishPredict() final;
 
-  std::vector<aocommon::Image> ResultImages() final {
-    return {std::move(image_)};
-  }
+  std::vector<aocommon::Image> ResultImages() final { return {std::move(image_)}; }
 
   void FreeImagingData() final {}
 
   size_t GetSuggestedWGridSize() const final { return 1; }
 
  private:
-  std::unique_ptr<WTowersGridderBase> MakeGridder(size_t width,
-                                                  size_t height) const;
+  std::unique_ptr<WTowersGridderBase> MakeGridder(size_t width, size_t height) const;
 
   size_t CalculateConstantMemory() const final;
-  size_t CalculateMaxRowsInMemory(int64_t available_memory,
-                                  size_t constant_memory,
+  size_t CalculateMaxRowsInMemory(int64_t available_memory, size_t constant_memory,
                                   double additional_per_row_consumption,
-                                  size_t per_row_uvw_consumption,
-                                  size_t channel_count,
+                                  size_t per_row_uvw_consumption, size_t channel_count,
                                   size_t num_polarizations_stored) const final;
 
-  void GetActualTrimmedSize(size_t& trimmed_width,
-                            size_t& trimmed_height) const;
+  void GetActualTrimmedSize(size_t& trimmed_width, size_t& trimmed_height) const;
 
   aocommon::Image image_;
   const Resources resources_;

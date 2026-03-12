@@ -25,21 +25,13 @@ struct InMemoryPartRow {
   DataModelWeightsArray data_model_weights;
 
   std::span<std::complex<float>> Data() { return data_model_weights.Span<0>(); }
-  std::span<const std::complex<float>> Data() const {
-    return data_model_weights.Span<0>();
-  }
+  std::span<const std::complex<float>> Data() const { return data_model_weights.Span<0>(); }
 
-  std::span<std::complex<float>> Model() {
-    return data_model_weights.Span<1>();
-  }
-  std::span<const std::complex<float>> Model() const {
-    return data_model_weights.Span<1>();
-  }
+  std::span<std::complex<float>> Model() { return data_model_weights.Span<1>(); }
+  std::span<const std::complex<float>> Model() const { return data_model_weights.Span<1>(); }
 
   std::span<float> Weights() { return data_model_weights.Span<2>(); }
-  std::span<const float> Weights() const {
-    return data_model_weights.Span<2>();
-  }
+  std::span<const float> Weights() const { return data_model_weights.Span<2>(); }
 };
 
 struct InMemoryInfo {

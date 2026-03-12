@@ -33,8 +33,7 @@ class InMemoryHandle {
    * Get a part that does or does not exist. This function is typically
    * used during reordering. Use @ref GetExistingPart() after reordering.
    */
-  InMemoryPart& GetPart(aocommon::PolarizationEnum polarization,
-                        size_t out_channel) {
+  InMemoryPart& GetPart(aocommon::PolarizationEnum polarization, size_t out_channel) {
     return parts_[std::pair(polarization, out_channel)];
   }
 
@@ -50,11 +49,9 @@ class InMemoryHandle {
     return iterator->second;
   }
 
-  InMemoryPart& GetExistingPart(aocommon::PolarizationEnum polarization,
-                                size_t out_channel) {
+  InMemoryPart& GetExistingPart(aocommon::PolarizationEnum polarization, size_t out_channel) {
     return const_cast<InMemoryPart&>(
-        static_cast<const InMemoryHandle*>(this)->GetExistingPart(polarization,
-                                                                  out_channel));
+        static_cast<const InMemoryHandle*>(this)->GetExistingPart(polarization, out_channel));
   }
 
  private:
@@ -67,8 +64,7 @@ class InMemoryHandle {
  */
 InMemoryHandle ReorderInMemory(
     InMemoryMs&& data,
-    const std::vector<
-        aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels,
+    const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels,
     const std::string& data_column_name, const std::string& model_column_name,
     bool set_model_to_zero, const Settings& settings);
 

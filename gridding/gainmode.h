@@ -44,9 +44,7 @@ constexpr std::size_t GetNVisibilities(GainMode mode) {
   return 0;
 }
 
-constexpr bool AllowScalarCorrection(GainMode mode) {
-  return mode == GainMode::kTrace;
-}
+constexpr bool AllowScalarCorrection(GainMode mode) { return mode == GainMode::kTrace; }
 
 /**
  * @param polarization The polarization requested
@@ -74,24 +72,21 @@ inline GainMode SelectGainMode(aocommon::PolarizationEnum polarization,
       // IDG could in theory do this, although it's currently not implemented.
       if (polarization == aocommon::Polarization::StokesI ||
           polarization == aocommon::Polarization::DiagonalInstrumental ||
-          polarization == aocommon::Polarization::XX ||
-          polarization == aocommon::Polarization::YY)
+          polarization == aocommon::Polarization::XX || polarization == aocommon::Polarization::YY)
         return GainMode::k2VisDiagonal;
       break;
     case 4:
       if (polarization == aocommon::Polarization::FullStokes ||
           polarization == aocommon::Polarization::Instrumental ||
           aocommon::Polarization::IsStokes(polarization) ||
-          polarization == aocommon::Polarization::XX ||
-          polarization == aocommon::Polarization::YY)
+          polarization == aocommon::Polarization::XX || polarization == aocommon::Polarization::YY)
         return GainMode::kFull;
       break;
   }
-  throw std::runtime_error(
-      "Invalid combination of polarization (" +
-      aocommon::Polarization::TypeToFullString(polarization) +
-      ") and n_visibility_polarizations (" +
-      std::to_string(n_visibility_polarizations) + ") in GetGainMode()");
+  throw std::runtime_error("Invalid combination of polarization (" +
+                           aocommon::Polarization::TypeToFullString(polarization) +
+                           ") and n_visibility_polarizations (" +
+                           std::to_string(n_visibility_polarizations) + ") in GetGainMode()");
 }
 
 }  // namespace wsclean

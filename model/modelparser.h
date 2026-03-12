@@ -47,8 +47,7 @@ class ModelParser : private Tokenizer {
     }
   }
 
-  void Stream(std::ifstream &stream,
-              std::function<void(ModelSource &source)> processSource) {
+  void Stream(std::ifstream &stream, std::function<void(ModelSource &source)> processSource) {
     SetStream(stream);
 
     std::string line;
@@ -80,20 +79,18 @@ class ModelParser : private Tokenizer {
   void parseVersionLine(const std::string &line) {
     const std::string headerStart = "skymodel fileformat ";
     if (line.substr(0, headerStart.size()) != headerStart)
-      throw std::runtime_error(
-          "The model file didn't start with a skymodel header");
+      throw std::runtime_error("The model file didn't start with a skymodel header");
     std::string version = line.substr(headerStart.size());
     if (version == "1.0") {
       _fileVersion1_0 = true;
-      std::cout
-          << "Warning: this model is written in the old sky-model file format. "
-             "The old format does \n"
-             "         not properly support polarization, so is deprecated.\n"
-             "         Use \"editmodel -m new_model.txt old_model.txt\" to "
-             "convert the model.\n";
+      std::cout << "Warning: this model is written in the old sky-model file format. "
+                   "The old format does \n"
+                   "         not properly support polarization, so is deprecated.\n"
+                   "         Use \"editmodel -m new_model.txt old_model.txt\" to "
+                   "convert the model.\n";
     } else if (version != "1.1") {
-      throw std::runtime_error("This model specified file version \"" +
-                               version + "\": don't know how to read.\n");
+      throw std::runtime_error("This model specified file version \"" + version +
+                               "\": don't know how to read.\n");
     } else
       _fileVersion1_0 = false;
   }
@@ -134,15 +131,13 @@ class ModelParser : private Tokenizer {
         try {
           component.SetPosRA(RaDecCoord::ParseRA(token));
         } catch (std::exception &e) {
-          throw std::runtime_error("Failed to parse RA: " + token + ",\n" +
-                                   e.what());
+          throw std::runtime_error("Failed to parse RA: " + token + ",\n" + e.what());
         }
         getToken(token);
         try {
           component.SetPosDec(RaDecCoord::ParseDec(token));
         } catch (std::exception &e) {
-          throw std::runtime_error("Failed to parse dec: " + token + ",\n" +
-                                   e.what());
+          throw std::runtime_error("Failed to parse dec: " + token + ",\n" + e.what());
         }
       } else if (token == "measurement") {
         Measurement measurement;
@@ -161,27 +156,22 @@ class ModelParser : private Tokenizer {
         PowerLawSED plSED;
         parsePowerLawSED(plSED);
         if (component.HasSED())
-          throw std::runtime_error(
-              "Invalid 'sed' combined with other brightness specification");
+          throw std::runtime_error("Invalid 'sed' combined with other brightness specification");
         else
           component.SetSED(plSED);
       } else if (token == "shape") {
         getToken(token);
-        component.SetMajorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 /
-                               180.0);
+        component.SetMajorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 / 180.0);
         getToken(token);
-        component.SetMinorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 /
-                               180.0);
+        component.SetMinorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 / 180.0);
         getToken(token);
         component.SetPositionAngle(atof(token.c_str()) * M_PI / 180.0);
       } else if (token == "major-axis") {
         getToken(token);
-        component.SetMajorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 /
-                               180.0);
+        component.SetMajorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 / 180.0);
       } else if (token == "minor-axis") {
         getToken(token);
-        component.SetMinorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 /
-                               180.0);
+        component.SetMinorAxis(atof(token.c_str()) * M_PI / 60.0 / 60.0 / 180.0);
       } else if (token == "position-angle") {
         getToken(token);
         component.SetPositionAngle(atof(token.c_str()) * M_PI / 180.0);
@@ -204,8 +194,7 @@ class ModelParser : private Tokenizer {
           for (size_t p = 0; p != 4; ++p) linFluxes[p] = getTokenAsDouble();
           double stokesFluxes[4];
           aocommon::Polarization::LinearToStokes(linFluxes, stokesFluxes);
-          for (size_t p = 0; p != 4; ++p)
-            measurement.SetFluxDensityFromIndex(p, stokesFluxes[p]);
+          for (size_t p = 0; p != 4; ++p) measurement.SetFluxDensityFromIndex(p, stokesFluxes[p]);
         } else {
           for (size_t p = 0; p != 4; ++p)
             measurement.SetFluxDensityFromIndex(p, getTokenAsDouble());
@@ -217,8 +206,7 @@ class ModelParser : private Tokenizer {
         else if (token == "apparent")
           throw std::runtime_error("Model no longer allows apparent values");
         else
-          throw std::runtime_error(
-              "Measurement type should be absolute or apparent");
+          throw std::runtime_error("Measurement type should be absolute or apparent");
       } else if (token == "bandwidth") {
         measurement.SetBandWidthHz(getTokenAsDouble());
         getToken(token);
@@ -244,21 +232,18 @@ class ModelParser : private Tokenizer {
     bool hasFrequency = false, hasBrightness = false;
     while (getToken(token) && token != "}") {
       if (token == "frequency") {
-        if (hasFrequency)
-          throw std::runtime_error("Double frequency specification");
+        if (hasFrequency) throw std::runtime_error("Double frequency specification");
         refFrequency = getTokenAsDouble() * 1000000.0;
         getToken(token);  // unit
         hasFrequency = true;
       } else if (token == "fluxdensity") {
-        if (hasBrightness)
-          throw std::runtime_error("Double brightness specification");
+        if (hasBrightness) throw std::runtime_error("Double brightness specification");
         getToken(token);  // unit
         for (size_t p = 0; p != 4; ++p) brightness[p] = getTokenAsDouble();
         hasBrightness = true;
       } else if (token == "spectral-index" || token == "polynomial") {
         isLogarithmic = (token == "spectral-index");
-        if (!terms.empty())
-          throw std::runtime_error("Double SI/polynomial specification");
+        if (!terms.empty()) throw std::runtime_error("Double SI/polynomial specification");
         getToken(token);
         if (token != "{") throw std::runtime_error("Expecting {");
         while (getToken(token) && token != "}") {

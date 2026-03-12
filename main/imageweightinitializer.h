@@ -14,12 +14,12 @@ class MsHelper;
 class MsListItem;
 class Settings;
 
-std::shared_ptr<ImageWeights> InitializeWeights(
-    const Settings& settings, const ImagingTableEntry& entry,
-    const std::vector<MsListItem>& ms_list, ImageWeightCache& cache);
+std::shared_ptr<ImageWeights> InitializeWeights(const Settings& settings,
+                                                const ImagingTableEntry& entry,
+                                                const std::vector<MsListItem>& ms_list,
+                                                ImageWeightCache& cache);
 
-void InitializeMfWeights(const Settings& settings,
-                         const ImagingTable& imaging_table,
+void InitializeMfWeights(const Settings& settings, const ImagingTable& imaging_table,
                          ImageWeightCache& cache, MsHelper& ms_helper);
 
 }  // namespace wsclean

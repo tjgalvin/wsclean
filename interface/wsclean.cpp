@@ -7,8 +7,7 @@
 
 namespace wsclean {
 
-void Image(const std::string& command_line_parameters,
-           std::vector<InMemoryMs>&& ms_list) {
+void Image(const std::string& command_line_parameters, std::vector<InMemoryMs>&& ms_list) {
   const std::vector<std::string> parameters =
       boost::program_options::split_unix(command_line_parameters);
   std::vector<const char*> argv;

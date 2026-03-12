@@ -19,28 +19,28 @@ using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
-std::shared_ptr<ImageWeights> InitializeWeights(
-    const Settings& settings, const ImagingTableEntry& entry,
-    const std::vector<MsListItem>& ms_list, ImageWeightCache& cache) {
+std::shared_ptr<ImageWeights> InitializeWeights(const Settings& settings,
+                                                const ImagingTableEntry& entry,
+                                                const std::vector<MsListItem>& ms_list,
+                                                ImageWeightCache& cache) {
   if (settings.mfWeighting) {
     return cache.GetMFWeights();
   } else {
     std::shared_ptr<ImageWeights> weights =
         cache.Get(ms_list, entry.outputChannelIndex, entry.outputIntervalIndex);
     if (settings.isWeightImageSaved) {
-      const std::string prefix = ImageFilename::GetPSFPrefix(
-          settings, entry.outputChannelIndex, entry.outputIntervalIndex);
+      const std::string prefix = ImageFilename::GetPSFPrefix(settings, entry.outputChannelIndex,
+                                                             entry.outputIntervalIndex);
       weights->Save(prefix + "-weights.fits");
     }
     return weights;
   }
 }
 
-void InitializeMfWeights(const Settings& settings,
-                         const ImagingTable& imaging_table,
+void InitializeMfWeights(const Settings& settings, const ImagingTable& imaging_table,
                          ImageWeightCache& cache, MsHelper& ms_helper) {
-  Logger::Info << "Precalculating MF weights for "
-               << settings.weightMode.ToString() << " weighting...\n";
+  Logger::Info << "Precalculating MF weights for " << settings.weightMode.ToString()
+               << " weighting...\n";
   std::unique_ptr<ImageWeights> weights = cache.MakeEmptyWeights();
   for (const ImagingTable::Group& group : imaging_table.SquaredGroups()) {
     const ImagingTableEntry& entry = *group.front();

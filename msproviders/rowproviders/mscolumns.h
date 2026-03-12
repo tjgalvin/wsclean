@@ -16,8 +16,7 @@ namespace wsclean {
 
 /** Helper class to provide the columns in a measurement set. */
 struct MsColumns {
-  explicit MsColumns(const casacore::MeasurementSet& ms,
-                     const std::string& data_column_name);
+  explicit MsColumns(const casacore::MeasurementSet& ms, const std::string& data_column_name);
 
   casacore::ScalarColumn<int> antenna_1;
   casacore::ScalarColumn<int> antenna_2;

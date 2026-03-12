@@ -22,15 +22,13 @@ class CachedImageSet {
   CachedImageSet() : _polCount(0), _freqCount(0), _facetCount(0), _image() {}
 
   ~CachedImageSet() {
-    for (const std::string& filename : _storedNames)
-      std::remove(filename.c_str());
+    for (const std::string& filename : _storedNames) std::remove(filename.c_str());
   }
 
   CachedImageSet(const CachedImageSet& source) = delete;
   CachedImageSet& operator=(const CachedImageSet& source) = delete;
 
-  void Initialize(const WSCFitsWriter& writer, size_t polCount,
-                  size_t freqCount, size_t facetCount,
+  void Initialize(const WSCFitsWriter& writer, size_t polCount, size_t freqCount, size_t facetCount,
                   const std::string& prefix) {
     _writer = writer;
     _polCount = polCount;
@@ -40,9 +38,8 @@ class CachedImageSet {
     _image.Reset();
   }
 
-  void Initialize(const aocommon::FitsWriter& writer, size_t polCount,
-                  size_t freqCount, size_t facetCount,
-                  const std::string& prefix) {
+  void Initialize(const aocommon::FitsWriter& writer, size_t polCount, size_t freqCount,
+                  size_t facetCount, const std::string& prefix) {
     Initialize(WSCFitsWriter(writer), polCount, freqCount, facetCount, prefix);
   }
 
@@ -52,19 +49,17 @@ class CachedImageSet {
   const WSCFitsWriter& Writer() const { return *_writer; }
 
   template <typename NumT>
-  void Load(NumT* image, aocommon::PolarizationEnum polarization,
-            size_t freqIndex, bool isImaginary) const {
+  void Load(NumT* image, aocommon::PolarizationEnum polarization, size_t freqIndex,
+            bool isImaginary) const {
     if (_writer->Width() == 0 || _writer->Height() == 0)
       throw std::runtime_error("Writer is not set.");
-    aocommon::Logger::Debug
-        << "Loading " << name(polarization, freqIndex, isImaginary) << '\n';
+    aocommon::Logger::Debug << "Loading " << name(polarization, freqIndex, isImaginary) << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       assert(!isImaginary);
       if (_image.Empty())
         throw std::runtime_error("Loading image before store");
       else
-        std::copy(_image.Data(),
-                  _image.Data() + _writer->Width() * _writer->Height(), image);
+        std::copy(_image.Data(), _image.Data() + _writer->Width() * _writer->Height(), image);
     } else {
       aocommon::FitsReader reader(name(polarization, freqIndex, isImaginary));
       reader.Read(image);
@@ -72,17 +67,14 @@ class CachedImageSet {
   }
 
   template <typename NumT>
-  void LoadFacet(
-      NumT* image, aocommon::PolarizationEnum polarization, size_t freqIndex,
-      size_t facetIndex,
-      const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
-      bool isImaginary) const {
+  void LoadFacet(NumT* image, aocommon::PolarizationEnum polarization, size_t freqIndex,
+                 size_t facetIndex, const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
+                 bool isImaginary) const {
     if (!facet) {
       Load<NumT>(image, polarization, freqIndex, isImaginary);
     } else {
       // No need to check width and height here, because we do not cache
-      const std::string filename =
-          FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
+      const std::string filename = FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
       aocommon::Logger::Debug << "Loading " << filename << '\n';
       aocommon::FitsReader reader(filename);
       reader.Read(image);
@@ -99,18 +91,16 @@ class CachedImageSet {
    * @param image pointer to data of type NumT
    */
   template <typename NumT>
-  void Store(const NumT* image, aocommon::PolarizationEnum polarization,
-             size_t freqIndex, bool isImaginary) {
+  void Store(const NumT* image, aocommon::PolarizationEnum polarization, size_t freqIndex,
+             bool isImaginary) {
     if (!_writer) throw std::runtime_error("Writer is not set.");
-    aocommon::Logger::Debug
-        << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
+    aocommon::Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       assert(!isImaginary);
       if (_image.Empty()) {
         _image = aocommon::Image(_writer->Width(), _writer->Height());
       }
-      std::copy(image, image + _writer->Width() * _writer->Height(),
-                _image.Data());
+      std::copy(image, image + _writer->Width() * _writer->Height(), _image.Data());
     } else {
       std::string filename = name(polarization, freqIndex, isImaginary);
       _writer->Writer().Write(filename, image);
@@ -121,20 +111,16 @@ class CachedImageSet {
   /**
    * @brief Store an Image object.
    */
-  void Store(const aocommon::Image& image,
-             aocommon::PolarizationEnum polarization, size_t freqIndex,
-             bool isImaginary) {
+  void Store(const aocommon::Image& image, aocommon::PolarizationEnum polarization,
+             size_t freqIndex, bool isImaginary) {
     if (!_writer) throw std::runtime_error("Writer is not set.");
-    aocommon::Logger::Debug
-        << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
+    aocommon::Logger::Debug << "Storing " << name(polarization, freqIndex, isImaginary) << '\n';
     if (_polCount == 1 && _freqCount == 1 && _facetCount == 0) {
       assert(!isImaginary);
       if (_image.Empty()) {
         _image = aocommon::Image(_writer->Width(), _writer->Height());
       }
-      std::copy(image.Data(),
-                image.Data() + _writer->Width() * _writer->Height(),
-                _image.Data());
+      std::copy(image.Data(), image.Data() + _writer->Width() * _writer->Height(), _image.Data());
     } else {
       std::string filename = name(polarization, freqIndex, isImaginary);
       _writer->WriteFullNameImage(filename, image);
@@ -148,17 +134,15 @@ class CachedImageSet {
    * main Store is used if no facet is given,
    * otherwise facet parameter is used to shift the coordinate system
    */
-  void StoreFacet(
-      const aocommon::Image& image, aocommon::PolarizationEnum polarization,
-      size_t freqIndex, size_t facetIndex,
-      const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
-      bool isImaginary) {
+  void StoreFacet(const aocommon::Image& image, aocommon::PolarizationEnum polarization,
+                  size_t freqIndex, size_t facetIndex,
+                  const std::shared_ptr<const schaapcommon::facets::Facet>& facet,
+                  bool isImaginary) {
     if (!facet) {
       // If _facetCount 0, use the main "Store" as is
       Store(image, polarization, freqIndex, isImaginary);
     } else {
-      const std::string filename =
-          FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
+      const std::string filename = FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
       aocommon::Logger::Debug << "Storing " << filename << '\n';
       _writer->WriteFullNameImage(filename, image, *facet);
       _storedNames.insert(filename);
@@ -171,10 +155,9 @@ class CachedImageSet {
    * @param facetimage contains both image data and facet metadata
    */
   void StoreFacet(const schaapcommon::facets::FacetImage& facetimage,
-                  aocommon::PolarizationEnum polarization, size_t freqIndex,
-                  size_t facetIndex, bool isImaginary) {
-    const std::string filename =
-        FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
+                  aocommon::PolarizationEnum polarization, size_t freqIndex, size_t facetIndex,
+                  bool isImaginary) {
+    const std::string filename = FacetFilename(polarization, freqIndex, facetIndex, isImaginary);
     aocommon::Logger::Debug << "Storing " << filename << '\n';
     _writer->WriteFullNameImage(filename, facetimage);
     _storedNames.insert(filename);
@@ -196,9 +179,8 @@ class CachedImageSet {
     return nameTrunk(polarization, freqIndex, isImaginary) + "-tmp.fits";
   }
 
-  std::string FacetFilename(aocommon::PolarizationEnum polarization,
-                            size_t freqIndex, size_t facetIndex,
-                            bool isImaginary) const {
+  std::string FacetFilename(aocommon::PolarizationEnum polarization, size_t freqIndex,
+                            size_t facetIndex, bool isImaginary) const {
     std::ostringstream str;
     str << nameTrunk(polarization, freqIndex, isImaginary);
     if (_facetCount > 0) {
@@ -209,12 +191,10 @@ class CachedImageSet {
     return str.str();
   }
 
-  std::string nameTrunk(aocommon::PolarizationEnum polarization,
-                        size_t freq_index, bool is_imaginary) const {
+  std::string nameTrunk(aocommon::PolarizationEnum polarization, size_t freq_index,
+                        bool is_imaginary) const {
     const std::string pol_string =
-        (_polCount == 1)
-            ? ""
-            : '-' + aocommon::Polarization::TypeToShortString(polarization);
+        (_polCount == 1) ? "" : '-' + aocommon::Polarization::TypeToShortString(polarization);
     if (_freqCount == 1) {
       if (is_imaginary)
         return _prefix + pol_string + "i";

@@ -14,10 +14,9 @@ namespace wsclean {
 
 class ImageWeightCache {
  public:
-  ImageWeightCache(const WeightMode& weightMode, size_t imageWidth,
-                   size_t imageHeight, double pixelScaleX, double pixelScaleY,
-                   double minUVInLambda, double maxUVInLambda,
-                   double rankFilterLevel, size_t rankFilterSize,
+  ImageWeightCache(const WeightMode& weightMode, size_t imageWidth, size_t imageHeight,
+                   double pixelScaleX, double pixelScaleY, double minUVInLambda,
+                   double maxUVInLambda, double rankFilterLevel, size_t rankFilterSize,
                    bool weightsAsTaper)
       : _weightMode(weightMode),
         _imageWidth(imageWidth),
@@ -47,12 +46,10 @@ class ImageWeightCache {
     _edgeTukeyTaperInLambda = edgeTukeyTaperInLambda;
   }
 
-  std::shared_ptr<ImageWeights> Get(const std::vector<MsListItem>& msList,
-                                    size_t outChannelIndex,
+  std::shared_ptr<ImageWeights> Get(const std::vector<MsListItem>& msList, size_t outChannelIndex,
                                     size_t outIntervalIndex) {
     std::unique_lock<std::mutex> lock(_mutex);
-    if (outChannelIndex != _currentWeightChannel ||
-        outIntervalIndex != _currentWeightInterval) {
+    if (outChannelIndex != _currentWeightChannel || outIntervalIndex != _currentWeightInterval) {
       lock.unlock();
       std::unique_ptr<ImageWeights> weights = recalculateWeights(msList);
       lock.lock();
@@ -64,9 +61,9 @@ class ImageWeightCache {
   }
 
   std::unique_ptr<ImageWeights> MakeEmptyWeights() const {
-    std::unique_ptr<ImageWeights> weights(new ImageWeights(
-        _weightMode, _imageWidth, _imageHeight, _pixelScaleX, _pixelScaleY,
-        _weightsAsTaper, _weightMode.SuperWeight()));
+    std::unique_ptr<ImageWeights> weights(
+        new ImageWeights(_weightMode, _imageWidth, _imageHeight, _pixelScaleX, _pixelScaleY,
+                         _weightsAsTaper, _weightMode.SuperWeight()));
     return weights;
   };
 
@@ -81,16 +78,14 @@ class ImageWeightCache {
   }
 
  private:
-  std::unique_ptr<ImageWeights> recalculateWeights(
-      const std::vector<MsListItem>& msList) {
-    aocommon::Logger::Info << "Precalculating weights for "
-                           << _weightMode.ToString() << " weighting...\n";
+  std::unique_ptr<ImageWeights> recalculateWeights(const std::vector<MsListItem>& msList) {
+    aocommon::Logger::Info << "Precalculating weights for " << _weightMode.ToString()
+                           << " weighting...\n";
     std::unique_ptr<ImageWeights> weights = MakeEmptyWeights();
     for (const MsListItem& item : msList) {
       std::unique_ptr<MSProvider> provider = item.ms_description->GetProvider();
       weights->Grid(*provider);
-      if (msList.size() > 1)
-        (aocommon::Logger::Info << provider->PartDescription() << ' ').Flush();
+      if (msList.size() > 1) (aocommon::Logger::Info << provider->PartDescription() << ' ').Flush();
     }
     weights->FinishGridding();
     initializeWeightTapers(*weights);
@@ -98,11 +93,9 @@ class ImageWeightCache {
   }
 
   void initializeWeightTapers(ImageWeights& weights) {
-    if (_rankFilterLevel >= 1.0)
-      weights.RankFilter(_rankFilterLevel, _rankFilterSize);
+    if (_rankFilterLevel >= 1.0) weights.RankFilter(_rankFilterLevel, _rankFilterSize);
 
-    if (_gaussianTaperBeamSize != 0.0)
-      weights.SetGaussianTaper(_gaussianTaperBeamSize);
+    if (_gaussianTaperBeamSize != 0.0) weights.SetGaussianTaper(_gaussianTaperBeamSize);
 
     if (_tukeyInnerTaperInLambda != 0.0)
       weights.SetTukeyInnerTaper(_tukeyInnerTaperInLambda, _minUVInLambda);

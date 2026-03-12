@@ -43,14 +43,12 @@ struct OutputChannelInfo {
  * Non-finite/NaN values are skipped. If no finite values are present,
  * NaN is returned.
  */
-inline double SmallestTheoreticBeamSize(
-    const std::vector<OutputChannelInfo>& channels) {
+inline double SmallestTheoreticBeamSize(const std::vector<OutputChannelInfo>& channels) {
   double smallest_theoretic_beam_size = std::numeric_limits<double>::max();
   for (const OutputChannelInfo& channel : channels) {
     const double value = channel.theoreticBeamSize;
     if (std::isfinite(value)) {
-      smallest_theoretic_beam_size =
-          std::min(smallest_theoretic_beam_size, value);
+      smallest_theoretic_beam_size = std::min(smallest_theoretic_beam_size, value);
     }
   }
   return (smallest_theoretic_beam_size == std::numeric_limits<double>::max())

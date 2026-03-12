@@ -37,8 +37,7 @@ class Application {
       // all good
       // const int exitStatus = WEXITSTATUS(pStatus);
     } else {
-      throw std::runtime_error(
-          "Running command line application returned an error");
+      throw std::runtime_error("Running command line application returned an error");
     }
   }
 };

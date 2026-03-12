@@ -26,13 +26,11 @@ class BBSModel {
    * @returns The model containing all sources specified by the file.
    * @{
    */
-  static Model Read(const std::string& input_filename,
-                    const std::string& source_name = "") {
+  static Model Read(const std::string& input_filename, const std::string& source_name = "") {
     return read(input_filename, {}, source_name);
   }
 
-  static Model Read(std::istream& input_stream,
-                    const std::string& source_name = "") {
+  static Model Read(std::istream& input_stream, const std::string& source_name = "") {
     return read(input_stream, {}, source_name);
   }
 
@@ -45,10 +43,9 @@ class BBSModel {
    * and immediately draw the source to the image. In such scenarios,
    * it is not uncommon to have millions of sources in the model file.
    */
-  static void Read(
-      const std::string& input,
-      const std::function<void(const ModelSource& source)>& processSource,
-      const std::string& source_name = "") {
+  static void Read(const std::string& input,
+                   const std::function<void(const ModelSource& source)>& processSource,
+                   const std::string& source_name = "") {
     read(input, processSource, source_name);
   }
 
@@ -62,21 +59,17 @@ class BBSModel {
     }
   }
 
-  static Model read(
-      const std::string& input_filename,
-      const std::function<void(const ModelSource& source)>& processSource,
-      const std::string& sourceName = "") {
+  static Model read(const std::string& input_filename,
+                    const std::function<void(const ModelSource& source)>& processSource,
+                    const std::string& sourceName = "") {
     std::ifstream input_file(input_filename);
-    if (!input_file)
-      throw BBSParseException("Could not open model file '" + input_filename +
-                              "'");
+    if (!input_file) throw BBSParseException("Could not open model file '" + input_filename + "'");
     return read(input_file, processSource, sourceName);
   }
 
-  static Model read(
-      std::istream& input_stream,
-      const std::function<void(const ModelSource& source)>& processSource,
-      const std::string& sourceName = "") {
+  static Model read(std::istream& input_stream,
+                    const std::function<void(const ModelSource& source)>& processSource,
+                    const std::string& sourceName = "") {
     std::string line;
     std::getline(input_stream, line);
     if (line.size() >= 3 && line.substr(0, 3) == "# (")
@@ -85,8 +78,7 @@ class BBSModel {
       line = line.substr(8);
     else
       throw BBSParseException("BBS model does not start with format line");
-    if (line.size() >= 8 &&
-        boost::to_lower_copy(line.substr(line.size() - 8)) == "= format")
+    if (line.size() >= 8 && boost::to_lower_copy(line.substr(line.size() - 8)) == "= format")
       line = line.substr(0, line.size() - 8);
     boost::char_separator<char> sep(" ,()");
     boost::tokenizer<boost::char_separator<char>> tok(line, sep);
@@ -94,14 +86,12 @@ class BBSModel {
     int index = 0;
     double default_reference_frequency = 0.0;
     for (const auto& s : tok) {
-      std::string key =
-          boost::algorithm::to_lower_copy(boost::algorithm::trim_copy(s));
+      std::string key = boost::algorithm::to_lower_copy(boost::algorithm::trim_copy(s));
       std::string defaultVal;
       size_t eq = key.find('=');
       if (eq != std::string::npos) {
         if (eq + 1 <= key.size())
-          defaultVal =
-              TrimQuotes(boost::algorithm::trim_copy(key.substr(eq + 1)));
+          defaultVal = TrimQuotes(boost::algorithm::trim_copy(key.substr(eq + 1)));
         key = key.substr(0, eq);
       }
 
@@ -167,9 +157,8 @@ class BBSModel {
                 const double ra = RaDecCoord::ParseRA(val);
                 component.SetPosRA(ra);
               } catch (std::exception& e) {
-                throw std::runtime_error("Source " + source.Name() +
-                                         " has invalid RA: " + val + ",\n" +
-                                         e.what());
+                throw std::runtime_error("Source " + source.Name() + " has invalid RA: " + val +
+                                         ",\n" + e.what());
               }
             }
           } else if (index == h.decInd) {
@@ -180,9 +169,8 @@ class BBSModel {
                 const double dec = RaDecCoord::ParseDec(val);
                 component.SetPosDec(dec);
               } catch (std::exception& e) {
-                throw std::runtime_error("Source " + source.Name() +
-                                         " has invalid Dec: " + val + ",\n" +
-                                         e.what());
+                throw std::runtime_error("Source " + source.Name() + " has invalid Dec: " + val +
+                                         ",\n" + e.what());
               }
             }
           } else if (index == h.typeInd) {
@@ -199,14 +187,11 @@ class BBSModel {
           } else if (index == h.spectrInd) {
             boost::char_separator<char> freqsep("[,] ");
             boost::tokenizer<boost::char_separator<char>> freqtok(val, freqsep);
-            for (const auto& fval : freqtok)
-              frequencyTerms.push_back(atof(fval.c_str()));
+            for (const auto& fval : freqtok) frequencyTerms.push_back(atof(fval.c_str()));
           } else if (index == h.majAxisInd)
-            component.SetMajorAxis(atof(val.c_str()) *
-                                   (M_PI / 180.0 / 60.0 / 60.0));
+            component.SetMajorAxis(atof(val.c_str()) * (M_PI / 180.0 / 60.0 / 60.0));
           else if (index == h.minAxisInd)
-            component.SetMinorAxis(atof(val.c_str()) *
-                                   (M_PI / 180.0 / 60.0 / 60.0));
+            component.SetMinorAxis(atof(val.c_str()) * (M_PI / 180.0 / 60.0 / 60.0));
           else if (index == h.orientationInd)
             component.SetPositionAngle(atof(val.c_str()) * (M_PI / 180.0));
           else if (index == h.referenceFrequency) {
@@ -247,8 +232,7 @@ class BBSModel {
  private:
   class BBSLine {
    public:
-    BBSLine(const std::string& line)
-        : _startIndex(0), _endIndex(0), _line(line) {}
+    BBSLine(const std::string& line) : _startIndex(0), _endIndex(0), _line(line) {}
 
     bool MoveToNext() {
       if (_endIndex >= _line.size()) return false;
@@ -269,11 +253,9 @@ class BBSModel {
 
     std::string Value() const {
       if (_endIndex == _line.size())
-        return boost::algorithm::trim_copy(
-            _line.substr(_startIndex, _endIndex - _startIndex));
+        return boost::algorithm::trim_copy(_line.substr(_startIndex, _endIndex - _startIndex));
       else if (_endIndex > 0)
-        return boost::algorithm::trim_copy(
-            _line.substr(_startIndex, _endIndex - _startIndex - 1));
+        return boost::algorithm::trim_copy(_line.substr(_startIndex, _endIndex - _startIndex - 1));
       else
         return std::string();
     }
@@ -288,9 +270,9 @@ class BBSModel {
   };
 
   struct Headers {
-    int nameInd = -1, typeInd = -1, patchInd = -1, raInd = -1, decInd = -1,
-        iInd = -1, spectrInd = -1, referenceFrequency = -1, majAxisInd = -1,
-        minAxisInd = -1, orientationInd = -1, logSIInd = -1;
+    int nameInd = -1, typeInd = -1, patchInd = -1, raInd = -1, decInd = -1, iInd = -1,
+        spectrInd = -1, referenceFrequency = -1, majAxisInd = -1, minAxisInd = -1,
+        orientationInd = -1, logSIInd = -1;
   };
 };
 

@@ -11,8 +11,7 @@ namespace wsclean {
 
 ParsetReader::ParsetReader(const std::string& filename) {
   std::ifstream stream(filename);
-  if (!stream)
-    throw std::runtime_error("Could not open parset file '" + filename + "'");
+  if (!stream) throw std::runtime_error("Could not open parset file '" + filename + "'");
   read(stream);
 }
 
@@ -36,13 +35,10 @@ void ParsetReader::read(std::istream& stream) {
 ParsetReader::ParsetEntry::ParsetEntry(const std::string& line) {
   size_t eqsym = line.find('=');
   if (eqsym == line.npos)
-    throw std::runtime_error(
-        "Parset error: expecting equals sign ('=') in line:\n" + line);
+    throw std::runtime_error("Parset error: expecting equals sign ('=') in line:\n" + line);
   _key = line.substr(0, eqsym);
   boost::algorithm::trim(_key);
-  if (_key.empty())
-    throw std::runtime_error(
-        "Parset error: no key given before equals sign ('=')");
+  if (_key.empty()) throw std::runtime_error("Parset error: no key given before equals sign ('=')");
   std::string valStr = line.substr(eqsym + 1);
   boost::algorithm::trim(valStr);
   if (valStr.empty() || valStr[0] != '[') {
@@ -52,8 +48,7 @@ ParsetReader::ParsetEntry::ParsetEntry(const std::string& line) {
   } else {
     // It's a list
     boost::char_separator<char> listSep("[,] ");
-    boost::tokenizer<boost::char_separator<char>> listTokenizer(valStr,
-                                                                listSep);
+    boost::tokenizer<boost::char_separator<char>> listTokenizer(valStr, listSep);
     std::unique_ptr<StringListValue> value(new StringListValue());
     for (const auto& item : listTokenizer) value->_value.push_back(item);
     _value = std::move(value);
@@ -68,8 +63,7 @@ const std::string& ParsetReader::ParsetEntry::GetStringValue() const {
     return value->_value;
 }
 
-const std::vector<std::string>& ParsetReader::ParsetEntry::GetStringListValue()
-    const {
+const std::vector<std::string>& ParsetReader::ParsetEntry::GetStringListValue() const {
   StringListValue* value = dynamic_cast<StringListValue*>(_value.get());
   if (value == nullptr)
     throw std::runtime_error("Value is not a string list");
@@ -79,13 +73,11 @@ const std::vector<std::string>& ParsetReader::ParsetEntry::GetStringListValue()
 
 std::string ParsetReader::GetString(const std::string& key) const {
   auto iter = _entries.find(key);
-  if (iter == _entries.end())
-    throw std::runtime_error("Key '" + key + "' not found");
+  if (iter == _entries.end()) throw std::runtime_error("Key '" + key + "' not found");
   return iter->second.GetStringValue();
 }
 
-std::string ParsetReader::GetStringOr(const std::string& key,
-                                      const std::string& orValue) const {
+std::string ParsetReader::GetStringOr(const std::string& key, const std::string& orValue) const {
   auto iter = _entries.find(key);
   if (iter == _entries.end())
     return orValue;
@@ -93,11 +85,9 @@ std::string ParsetReader::GetStringOr(const std::string& key,
     return iter->second.GetStringValue();
 }
 
-std::vector<std::string> ParsetReader::GetStringList(
-    const std::string& key) const {
+std::vector<std::string> ParsetReader::GetStringList(const std::string& key) const {
   auto iter = _entries.find(key);
-  if (iter == _entries.end())
-    throw std::runtime_error("Key '" + key + "' not found");
+  if (iter == _entries.end()) throw std::runtime_error("Key '" + key + "' not found");
   return iter->second.GetStringListValue();
 }
 
@@ -109,8 +99,7 @@ bool ParsetReader::GetBool(const std::string& key) const {
   else if (v == "true")
     return true;
   else
-    throw std::runtime_error("Bad boolean value for key " + key + ": '" + v +
-                             "'");
+    throw std::runtime_error("Bad boolean value for key " + key + ": '" + v + "'");
 }
 
 bool ParsetReader::GetBoolOr(const std::string& key, bool orValue) const {
@@ -125,8 +114,7 @@ bool ParsetReader::GetBoolOr(const std::string& key, bool orValue) const {
     else if (v == "true")
       return true;
     else
-      throw std::runtime_error("Bad boolean value for key " + key + ": '" + v +
-                               "'");
+      throw std::runtime_error("Bad boolean value for key " + key + ": '" + v + "'");
   }
 }
 

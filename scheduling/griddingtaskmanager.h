@@ -29,9 +29,7 @@ class GriddingTaskManager {
 
   const Settings& GetSettings() const { return settings_; }
 
-  void SetWriterLockManager(GriddingTaskManager& manager) {
-    writer_lock_manager_ = &manager;
-  }
+  void SetWriterLockManager(GriddingTaskManager& manager) { writer_lock_manager_ = &manager; }
 
   /**
    * Initialize writer groups. Call this function before scheduling Predict
@@ -47,8 +45,7 @@ class GriddingTaskManager {
    * sequentially, locking is not needed.
    * @return A lock object. Destroying the object releases the lock.
    */
-  virtual std::unique_ptr<WriterLock> GetLock(
-      [[maybe_unused]] size_t writer_group_index) {
+  virtual std::unique_ptr<WriterLock> GetLock([[maybe_unused]] size_t writer_group_index) {
     return nullptr;
   }
 
@@ -60,8 +57,7 @@ class GriddingTaskManager {
    *
    * This implementation runs the task directly and blocks until done.
    */
-  virtual void Run(GriddingTask&& task,
-                   std::function<void(GriddingResult&)> finishCallback);
+  virtual void Run(GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback);
 
   /**
    * Block until all tasks have finished.
@@ -94,11 +90,9 @@ class GriddingTaskManager {
    *        are updated for each facet.
    */
   void RunDirect(
-      GriddingTask& task, const std::vector<size_t>& facet_indices,
-      const Resources& resources, GriddingResult& result,
-      std::mutex& result_mutex,
-      std::function<void(std::unique_ptr<MSGridderManagerScheduler>&)>
-          signal_last_work_has_started,
+      GriddingTask& task, const std::vector<size_t>& facet_indices, const Resources& resources,
+      GriddingResult& result, std::mutex& result_mutex,
+      std::function<void(std::unique_ptr<MSGridderManagerScheduler>&)> signal_last_work_has_started,
       std::unique_ptr<MSGridderManagerScheduler> scheduler = nullptr);
 
  private:
@@ -120,8 +114,7 @@ class GriddingTaskManager {
    * cycles) Rather then repeatedly creating/destroying threading resources.
    */
   std::mutex scheduler_creation_mutex_;
-  std::map<size_t, std::deque<std::unique_ptr<MSGridderManagerScheduler>>>
-      scheduler_cache_;
+  std::map<size_t, std::deque<std::unique_ptr<MSGridderManagerScheduler>>> scheduler_cache_;
 };
 
 }  // namespace wsclean

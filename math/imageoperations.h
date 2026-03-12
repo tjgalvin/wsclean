@@ -35,24 +35,20 @@ void CorrectImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
  * the input images are already assumed to have the same polarization system
  * as the Mueller matrix (i.e., linear for a linearly polarized telescope).
  */
-void CorrectDualImagesForMuellerMatrix(
-    const aocommon::HMC4x4& mueller_correction,
-    std::array<aocommon::Image*, 2>& images);
+void CorrectDualImagesForMuellerMatrix(const aocommon::HMC4x4& mueller_correction,
+                                       std::array<aocommon::Image*, 2>& images);
 
-void DetermineBeamSize(const Settings& settings, double& bMaj, double& bMin,
-                       double& bPA, double& bTheoretical,
-                       const aocommon::Image& image, double initialEstimate);
+void DetermineBeamSize(const Settings& settings, double& bMaj, double& bMin, double& bPA,
+                       double& bTheoretical, const aocommon::Image& image, double initialEstimate);
 
-void MakeMFSImage(const Settings& settings,
-                  const std::vector<OutputChannelInfo>& infoPerChannel,
-                  OutputChannelInfo& mfsInfo, const std::string& suffix,
-                  size_t intervalIndex, aocommon::PolarizationEnum pol,
-                  ImageFilenameType image_type,
+void MakeMFSImage(const Settings& settings, const std::vector<OutputChannelInfo>& infoPerChannel,
+                  OutputChannelInfo& mfsInfo, const std::string& suffix, size_t intervalIndex,
+                  aocommon::PolarizationEnum pol, ImageFilenameType image_type,
                   std::optional<size_t> directionIndex = std::nullopt);
 
 void RenderMFSImage(const Settings& settings, const OutputChannelInfo& mfsInfo,
-                    size_t intervalIndex, aocommon::PolarizationEnum pol,
-                    bool isImaginary, bool isPBCorrected);
+                    size_t intervalIndex, aocommon::PolarizationEnum pol, bool isImaginary,
+                    bool isPBCorrected);
 
 }  // namespace math
 }  // namespace wsclean

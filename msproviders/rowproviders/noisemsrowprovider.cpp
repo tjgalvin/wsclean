@@ -22,22 +22,19 @@ NoiseMSRowProvider::NoiseMap::NoiseMap(std::istream& stream) {
         if (!linestr) stddev = std::numeric_limits<float>::quiet_NaN();
         if (ant1 > ant2) std::swap(ant1, ant2);
         maxAnt = std::max(maxAnt, std::max(ant1, ant2));
-        const bool isInserted =
-            _map.emplace(std::make_pair(ant1, ant2), stddev).second;
+        const bool isInserted = _map.emplace(std::make_pair(ant1, ant2), stddev).second;
         if (!isInserted)
-          throw std::runtime_error(
-              "Baseline " + std::to_string(ant1) + " x " +
-              std::to_string(ant2) +
-              " is specified twice in the noise baseline file");
+          throw std::runtime_error("Baseline " + std::to_string(ant1) + " x " +
+                                   std::to_string(ant2) +
+                                   " is specified twice in the noise baseline file");
       }
     }
   }
-  aocommon::Logger::Info << "Read noise baseline file with " << _map.size()
-                         << " rows and " << maxAnt + 1 << " antennas.\n";
+  aocommon::Logger::Info << "Read noise baseline file with " << _map.size() << " rows and "
+                         << maxAnt + 1 << " antennas.\n";
 }
 
-float NoiseMSRowProvider::NoiseMap::GetNoiseValue(size_t antenna1,
-                                                  size_t antenna2) const {
+float NoiseMSRowProvider::NoiseMap::GetNoiseValue(size_t antenna1, size_t antenna2) const {
   size_t a1 = antenna1;
   size_t a2 = antenna2;
   if (a1 > a2) std::swap(a1, a2);
@@ -50,14 +47,13 @@ float NoiseMSRowProvider::NoiseMap::GetNoiseValue(size_t antenna1,
   return iter->second;
 }
 
-NoiseMSRowProvider::NoiseMSRowProvider(
-    const string& msPath,
-    const schaapcommon::reordering::MSSelection& selection,
-    const std::map<size_t, size_t>& selectedDataDescIds,
-    const std::string& dataColumnName, const std::string& modelColumnName,
-    bool requireModel)
-    : DirectMSRowProvider(msPath, selection, selectedDataDescIds,
-                          dataColumnName, modelColumnName, requireModel),
+NoiseMSRowProvider::NoiseMSRowProvider(const string& msPath,
+                                       const schaapcommon::reordering::MSSelection& selection,
+                                       const std::map<size_t, size_t>& selectedDataDescIds,
+                                       const std::string& dataColumnName,
+                                       const std::string& modelColumnName, bool requireModel)
+    : DirectMSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName, modelColumnName,
+                          requireModel),
       _rng(std::random_device{}()),
       _distribution(0.0, 1.0) {}
 
@@ -67,20 +63,17 @@ void NoiseMSRowProvider::SetNoiseLevel(double noiseStdDevJy) {
 
 void NoiseMSRowProvider::SetNoiseBaselineFile(const std::string& filename) {
   std::ifstream file(filename);
-  if (!file)
-    throw std::runtime_error("Can't open baseline noise file " + filename);
+  if (!file) throw std::runtime_error("Can't open baseline noise file " + filename);
   _noiseMap = NoiseMap(file);
 }
 
-void NoiseMSRowProvider::ReadData(DataArray& data, FlagArray& flags,
-                                  WeightArray& weights, double& u, double& v,
-                                  double& w, uint32_t& dataDescId,
-                                  uint32_t& antenna1, uint32_t& antenna2,
-                                  uint32_t& fieldId, double& time) {
-  DirectMSRowProvider::ReadData(data, flags, weights, u, v, w, dataDescId,
-                                antenna1, antenna2, fieldId, time);
-  const float stddev =
-      _noiseMap.Empty() ? 1.0 : _noiseMap.GetNoiseValue(antenna1, antenna2);
+void NoiseMSRowProvider::ReadData(DataArray& data, FlagArray& flags, WeightArray& weights,
+                                  double& u, double& v, double& w, uint32_t& dataDescId,
+                                  uint32_t& antenna1, uint32_t& antenna2, uint32_t& fieldId,
+                                  double& time) {
+  DirectMSRowProvider::ReadData(data, flags, weights, u, v, w, dataDescId, antenna1, antenna2,
+                                fieldId, time);
+  const float stddev = _noiseMap.Empty() ? 1.0 : _noiseMap.GetNoiseValue(antenna1, antenna2);
 
   for (DataArray::contiter iter = data.cbegin(); iter != data.cend(); ++iter) {
     if (std::isfinite(iter->real()) && std::isfinite(iter->imag())) {

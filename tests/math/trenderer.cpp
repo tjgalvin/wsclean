@@ -54,14 +54,11 @@ BOOST_FIXTURE_TEST_CASE(fit_with_bad_initial_value, RendererFixture) {
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
   aocommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
-  renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj,
-                                      beamMin, beamPA, 100e6, 200e6,
-                                      aocommon::Polarization::StokesI);
+  renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj, beamMin, beamPA,
+                                      100e6, 200e6, aocommon::Polarization::StokesI);
 
-  const schaapcommon::math::Ellipse ellipse =
-      schaapcommon::fitters::Fit2DGaussianCentred(
-          restored.Data(), false, restored.Width(), restored.Height(),
-          estimatedBeamPx, 10.0, false);
+  const schaapcommon::math::Ellipse ellipse = schaapcommon::fitters::Fit2DGaussianCentred(
+      restored.Data(), false, restored.Width(), restored.Height(), estimatedBeamPx, 10.0, false);
 
   BOOST_CHECK_CLOSE_FRACTION(ellipse.major, 4.0, 1e-4);
   BOOST_CHECK_CLOSE_FRACTION(ellipse.minor, 4.0, 1e-4);
@@ -84,13 +81,12 @@ BOOST_FIXTURE_TEST_CASE(fit_circular, RendererFixture) {
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
   aocommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
-  renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj,
-                                      beamMin, beamPA, 100e6, 200e6,
-                                      aocommon::Polarization::StokesI);
+  renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj, beamMin, beamPA,
+                                      100e6, 200e6, aocommon::Polarization::StokesI);
 
   double fitMajor = estimatedBeamPx;
-  schaapcommon::fitters::Fit2DCircularGaussianCentred(
-      restored.Data(), restored.Width(), restored.Height(), fitMajor);
+  schaapcommon::fitters::Fit2DCircularGaussianCentred(restored.Data(), restored.Width(),
+                                                      restored.Height(), fitMajor);
 
   BOOST_CHECK_CLOSE_FRACTION(fitMajor, 4.0, 1e-4);
 }
@@ -112,14 +108,11 @@ BOOST_FIXTURE_TEST_CASE(fit_small_beam, RendererFixture) {
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
   aocommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
-  renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj,
-                                      beamMin, beamPA, 100e6, 200e6,
-                                      aocommon::Polarization::StokesI);
+  renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj, beamMin, beamPA,
+                                      100e6, 200e6, aocommon::Polarization::StokesI);
 
-  const schaapcommon::math::Ellipse ellipse =
-      schaapcommon::fitters::Fit2DGaussianCentred(
-          restored.Data(), false, restored.Width(), restored.Height(),
-          estimatedBeamPx, 10.0, false);
+  const schaapcommon::math::Ellipse ellipse = schaapcommon::fitters::Fit2DGaussianCentred(
+      restored.Data(), false, restored.Width(), restored.Height(), estimatedBeamPx, 10.0, false);
 
   BOOST_CHECK_CLOSE_FRACTION(ellipse.minor, 0.5, 1e-4);
 }

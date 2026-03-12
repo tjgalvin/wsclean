@@ -14,8 +14,7 @@ MsWeightColumn::MsWeightColumn(const casacore::MeasurementSet& ms) {
   }
 }
 
-void MsWeightColumn::ReadData(MsRowProviderBase::WeightArray& weights,
-                              size_t row,
+void MsWeightColumn::ReadData(MsRowProviderBase::WeightArray& weights, size_t row,
                               const casacore::IPosition& shape) const {
   switch (type_) {
     case Type::kSpectrum:

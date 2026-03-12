@@ -44,20 +44,16 @@ class IdgMsGridder final : public MsGridder {
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;
-  size_t PredictMeasurementSet(
-      const MsProviderCollection::MsData& ms_data) final;
+  size_t PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
   void FinishPredict() final;
 
   std::vector<aocommon::Image> ResultImages() final;
 
-  static void SavePBCorrectedImages(aocommon::FitsWriter& writer,
-                                    const ImageFilename& filename,
-                                    const std::string& filenameKind,
-                                    const Settings& settings);
+  static void SavePBCorrectedImages(aocommon::FitsWriter& writer, const ImageFilename& filename,
+                                    const std::string& filenameKind, const Settings& settings);
 
-  static void SaveBeamImage(const ImagingTableEntry& entry,
-                            ImageFilename& filename, const Settings& settings,
-                            double ra, double dec, double pdl, double pdm,
+  static void SaveBeamImage(const ImagingTableEntry& entry, ImageFilename& filename,
+                            const Settings& settings, double ra, double dec, double pdl, double pdm,
                             const AverageBeam& average_beam);
 
   void SetAverageBeam(std::unique_ptr<AverageBeam> average_beam);
@@ -76,20 +72,17 @@ class IdgMsGridder final : public MsGridder {
 #ifdef HAVE_EVERYBEAM
   std::unique_ptr<class everybeam::aterms::ATermBase> getATermMaker(
       const MsProviderCollection::MsData& msData);
-  bool prepareForMeasurementSet(
-      const MsProviderCollection::MsData& ms_data,
-      std::unique_ptr<everybeam::aterms::ATermBase>& aTermMaker,
-      aocommon::UVector<std::complex<float>>& aTermBuffer,
-      idg::api::BufferSetType);
+  bool prepareForMeasurementSet(const MsProviderCollection::MsData& ms_data,
+                                std::unique_ptr<everybeam::aterms::ATermBase>& aTermMaker,
+                                aocommon::UVector<std::complex<float>>& aTermBuffer,
+                                idg::api::BufferSetType);
 #else
-  bool prepareForMeasurementSet(
-      const MsProviderCollection::MsData& ms_data,
-      aocommon::UVector<std::complex<float>>& aTermBuffer,
-      idg::api::BufferSetType);
+  bool prepareForMeasurementSet(const MsProviderCollection::MsData& ms_data,
+                                aocommon::UVector<std::complex<float>>& aTermBuffer,
+                                idg::api::BufferSetType);
 #endif  // HAVE_EVERYBEAM
 
-  void predictRow(IDGPredictionRow& row,
-                  const std::vector<std::string>& antennaNames);
+  void predictRow(IDGPredictionRow& row, const std::vector<std::string>& antennaNames);
   void computePredictionBuffer(const std::vector<std::string>& antennaNames);
 
   std::unique_ptr<idg::api::BufferSet> _bufferset;
@@ -105,12 +98,10 @@ class IdgMsGridder final : public MsGridder {
   const Resources _resources;
 };
 
-void init_optimal_taper_1D(int subgridsize, int gridsize, float kernelsize,
-                           float padding, float* taper_subgrid,
-                           float* taper_grid);
-void init_optimal_gridding_taper_1D(int subgridsize, int gridsize,
-                                    float kernelsize, float* taper_subgrid,
-                                    float* taper_grid);
+void init_optimal_taper_1D(int subgridsize, int gridsize, float kernelsize, float padding,
+                           float* taper_subgrid, float* taper_grid);
+void init_optimal_gridding_taper_1D(int subgridsize, int gridsize, float kernelsize,
+                                    float* taper_subgrid, float* taper_grid);
 
 }  // namespace wsclean
 

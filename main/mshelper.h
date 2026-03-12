@@ -31,10 +31,9 @@ class MsHelper {
    * @param ms_bands List such that element ms_bands[i] holds the bands for
    * settings.filenames[i].
    */
-  explicit MsHelper(
-      const Settings& settings,
-      const schaapcommon::reordering::MSSelection& global_selection,
-      const std::vector<aocommon::MultiBandData>& ms_bands)
+  explicit MsHelper(const Settings& settings,
+                    const schaapcommon::reordering::MSSelection& global_selection,
+                    const std::vector<aocommon::MultiBandData>& ms_bands)
       : settings_{settings},
         global_selection_{global_selection},
         ms_bands_{ms_bands},
@@ -44,25 +43,21 @@ class MsHelper {
     return reordered_ms_handles_;
   }
 
-  std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>
-  GenerateChannelInfo(const ImagingTable& imaging_table, size_t ms_index) const;
+  std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>> GenerateChannelInfo(
+      const ImagingTable& imaging_table, size_t ms_index) const;
 
-  aocommon::VectorMap<schaapcommon::reordering::ChannelRange>
-  GenerateChannelPartInfo(const ImagingTableEntry& entry,
-                          size_t ms_index) const;
+  aocommon::VectorMap<schaapcommon::reordering::ChannelRange> GenerateChannelPartInfo(
+      const ImagingTableEntry& entry, size_t ms_index) const;
 
-  void SetInMemoryData(
-      std::vector<std::unique_ptr<InMemoryMs>>&& in_memory_data) {
+  void SetInMemoryData(std::vector<std::unique_ptr<InMemoryMs>>&& in_memory_data) {
     in_memory_data_before_reordering_ = std::move(in_memory_data);
   }
 
   void ReuseReorderedFiles(const ImagingTable& imaging_table);
 
-  void PrepareInMemoryData(const ImagingTable& imaging_table,
-                           bool is_predict_mode);
+  void PrepareInMemoryData(const ImagingTable& imaging_table, bool is_predict_mode);
 
-  void PerformReordering(const ImagingTable& imaging_table,
-                         bool is_predict_mode);
+  void PerformReordering(const ImagingTable& imaging_table, bool is_predict_mode);
 
   std::vector<MsListItem> InitializeMsList(const ImagingTableEntry& entry);
 

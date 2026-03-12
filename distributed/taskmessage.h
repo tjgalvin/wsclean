@@ -42,9 +42,7 @@ struct TaskMessage {
     stream.UInt32(static_cast<std::uint32_t>(type)).UInt64(body_size);
   }
 
-  void Unserialize(aocommon::SerialIStream& stream) {
-    stream.UInt32(type).UInt64(body_size);
-  }
+  void Unserialize(aocommon::SerialIStream& stream) { stream.UInt32(type).UInt64(body_size); }
 };
 
 }  // namespace wsclean

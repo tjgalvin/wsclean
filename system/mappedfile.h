@@ -49,31 +49,26 @@ class MappedFile {
   /**
    * Same as other overload, but with explicit size.
    */
-  MappedFile(const std::string& filename, size_t reserved_size)
-      : reserved_size_(reserved_size) {
+  MappedFile(const std::string& filename, size_t reserved_size) : reserved_size_(reserved_size) {
     file_descriptor_ = open(filename.c_str(), O_RDWR);
-    if (file_descriptor_ == -1)
-      throw std::runtime_error("Error opening file '" + filename + "'");
+    if (file_descriptor_ == -1) throw std::runtime_error("Error opening file '" + filename + "'");
     if (reserved_size_ != 0) {
 #ifdef MAP_NORESERVE
-      memory_map_ = reinterpret_cast<char*>(
-          mmap(nullptr, reserved_size_, PROT_READ | PROT_WRITE,
-               MAP_SHARED | MAP_NORESERVE, file_descriptor_, 0));
+      memory_map_ = reinterpret_cast<char*>(mmap(nullptr, reserved_size_, PROT_READ | PROT_WRITE,
+                                                 MAP_SHARED | MAP_NORESERVE, file_descriptor_, 0));
 #else
       memory_map_ = reinterpret_cast<char*>(
-          mmap(nullptr, reserved_size_, PROT_READ | PROT_WRITE, MAP_SHARED,
-               file_descriptor_, 0));
+          mmap(nullptr, reserved_size_, PROT_READ | PROT_WRITE, MAP_SHARED, file_descriptor_, 0));
 #endif
       if (memory_map_ == MAP_FAILED) {
         memory_map_ = nullptr;
         close(file_descriptor_);
         file_descriptor_ = -1;
         const std::string msg = aocommon::system::GetErrorString(errno);
-        throw std::runtime_error(
-            std::string("Error creating memory map for file '" + filename +
-                        "': "
-                        "mmap() returned MAP_FAILED with error message: ") +
-            msg);
+        throw std::runtime_error(std::string("Error creating memory map for file '" + filename +
+                                             "': "
+                                             "mmap() returned MAP_FAILED with error message: ") +
+                                 msg);
       }
     }
   }

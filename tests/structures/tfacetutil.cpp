@@ -53,8 +53,7 @@ BOOST_AUTO_TEST_CASE(create_grid_multiple_facets) {
     BOOST_TEST(box.Max().x == (grid_x + 1) * kImageSize / kGridWidth);
     BOOST_TEST(box.Max().y == (grid_y + 1) * kImageSize / kGridHeight);
 
-    BOOST_TEST(facet->DirectionLabel() ==
-               std::to_string(grid_x) + ", " + std::to_string(grid_y));
+    BOOST_TEST(facet->DirectionLabel() == std::to_string(grid_x) + ", " + std::to_string(grid_y));
   }
 
   // Check that the generated grid contains all grid cells.

@@ -32,8 +32,7 @@ namespace wsclean {
  */
 class MsGridder : public MsGridderData {
  public:
-  MsGridder(const Settings& settings,
-            MsProviderCollection& ms_provider_collection);
+  MsGridder(const Settings& settings, MsProviderCollection& ms_provider_collection);
   ~MsGridder() override;
 
   size_t ImageWidth() const { return image_width_; }
@@ -51,9 +50,7 @@ class MsGridder : public MsGridderData {
 
   void SetImageWidth(size_t image_width) { image_width_ = image_width; }
   void SetImageHeight(size_t image_height) { image_height_ = image_height; }
-  void SetActualWGridSize(size_t actual_w_grid_size) {
-    actual_w_grid_size_ = actual_w_grid_size;
-  }
+  void SetActualWGridSize(size_t actual_w_grid_size) { actual_w_grid_size_ = actual_w_grid_size; }
   void SetImagePadding(double image_padding) { image_padding_ = image_padding; }
   void SetIsComplex(bool is_complex) { is_complex_ = is_complex; }
 
@@ -84,8 +81,7 @@ class MsGridder : public MsGridderData {
   virtual size_t GetNInversionPasses() const { return 1; }
   virtual void StartInversionPass(size_t pass_index){};
   /** @return The number of visibility rows processed */
-  virtual size_t GridMeasurementSet(
-      const MsProviderCollection::MsData& ms_data) = 0;
+  virtual size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) = 0;
   virtual void FinishInversionPass(size_t pass_index){};
   virtual void FinishInversion() = 0;
   /** @return Constant memory overhead for the gridder in bytes. i.e. Not
@@ -107,10 +103,10 @@ class MsGridder : public MsGridderData {
    * therefore might be fractional.
    * @return The number of rows that will fit in memory.
    */
-  virtual size_t CalculateMaxRowsInMemory(
-      int64_t available_memory, size_t constant_memory,
-      double additional_per_row_consumption, size_t per_row_uvw_consumption,
-      size_t channel_count, size_t num_polarizations_stored) const {
+  virtual size_t CalculateMaxRowsInMemory(int64_t available_memory, size_t constant_memory,
+                                          double additional_per_row_consumption,
+                                          size_t per_row_uvw_consumption, size_t channel_count,
+                                          size_t num_polarizations_stored) const {
     return 0;
   }
   /** Takes a chunk of visibilities pre-populated by the caller, that does
@@ -143,12 +139,11 @@ class MsGridder : public MsGridderData {
    * For further explanation see @ref VisibilityCallbackBuffer::time_offsets_
    */
   virtual void GridSharedMeasurementSetChunk(
-      bool apply_corrections, size_t n_polarizations, size_t n_rows,
-      const double* uvws, const double* frequencies,
-      const aocommon::BandData& selected_band, size_t data_desc_id,
-      const std::pair<size_t, size_t>* antennas,
-      const std::complex<float>* visibilities, const size_t* time_offsets,
-      size_t n_antennas, const std::vector<std::complex<float>>& parm_response,
+      bool apply_corrections, size_t n_polarizations, size_t n_rows, const double* uvws,
+      const double* frequencies, const aocommon::BandData& selected_band, size_t data_desc_id,
+      const std::pair<size_t, size_t>* antennas, const std::complex<float>* visibilities,
+      const size_t* time_offsets, size_t n_antennas,
+      const std::vector<std::complex<float>>& parm_response,
       const BeamResponseCacheChunk& beam_response) {
     throw std::runtime_error("Gridder does not yet support shared reading");
   }
@@ -171,11 +166,9 @@ class MsGridder : public MsGridderData {
   virtual size_t GetNPredictPasses() const { return 1; }
   virtual void StartPredictPass(size_t pass_index){};
   /** @return The number of visibility rows processed */
-  virtual size_t PredictMeasurementSet(
-      const MsProviderCollection::MsData& ms_data) = 0;
-  virtual void PredictChunk(size_t n_rows, size_t n_channels,
-                            const double* frequencies, const double* uvws,
-                            std::complex<float>* visibilities) const {
+  virtual size_t PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) = 0;
+  virtual void PredictChunk(size_t n_rows, size_t n_channels, const double* frequencies,
+                            const double* uvws, std::complex<float>* visibilities) const {
     throw std::runtime_error(
         "Selected gridder does not yet support shared predict. Try a different "
         "gridder, e.g. wgridder.");
@@ -185,12 +178,8 @@ class MsGridder : public MsGridderData {
 
   virtual std::vector<aocommon::Image> ResultImages() = 0;
 
-  void SetPhaseCentreRA(const double phase_centre_ra) {
-    phase_centre_ra_ = phase_centre_ra;
-  }
-  void SetPhaseCentreDec(const double phase_centre_dec) {
-    phase_centre_dec_ = phase_centre_dec;
-  }
+  void SetPhaseCentreRA(const double phase_centre_ra) { phase_centre_ra_ = phase_centre_ra; }
+  void SetPhaseCentreDec(const double phase_centre_dec) { phase_centre_dec_ = phase_centre_dec; }
   double PhaseCentreRA() const { return phase_centre_ra_; }
   double PhaseCentreDec() const { return phase_centre_dec_; }
 
@@ -223,21 +212,15 @@ class MsGridder : public MsGridderData {
   double NormalizationFactor() const { return ImageWeight(); }
   double BeamSize() const { return theoretical_beam_size_; }
 
-  bool HasMetaDataCache() const {
-    return (!metadata_cache_->msDataVector.empty());
-  }
-  void AllocateMetaDataCache(size_t size) {
-    metadata_cache_->msDataVector.resize(size);
-  }
+  bool HasMetaDataCache() const { return (!metadata_cache_->msDataVector.empty()); }
+  void AllocateMetaDataCache(size_t size) { metadata_cache_->msDataVector.resize(size); }
   MetaDataCache::Entry& GetMetaDataCacheItem(size_t index) {
     return metadata_cache_->msDataVector[index];
   }
   void SetMetaDataCache(std::unique_ptr<MetaDataCache> cache) {
     metadata_cache_ = std::move(cache);
   }
-  std::unique_ptr<MetaDataCache> AcquireMetaDataCache() {
-    return std::move(metadata_cache_);
-  }
+  std::unique_ptr<MetaDataCache> AcquireMetaDataCache() { return std::move(metadata_cache_); }
 
   /**
    * Calculate overall metadata that is common to all types of gridders.
@@ -266,9 +249,7 @@ class MsGridder : public MsGridderData {
   double ActualPixelSizeY() const { return actual_pixel_size_y_; }
 
   size_t GetMsCount() const { return ms_data_vector_.size(); }
-  MsProviderCollection::MsData& GetMsData(size_t ms_index) {
-    return ms_data_vector_[ms_index];
-  }
+  MsProviderCollection::MsData& GetMsData(size_t ms_index) { return ms_data_vector_[ms_index]; }
 
   virtual size_t GetSuggestedWGridSize() const = 0;
 

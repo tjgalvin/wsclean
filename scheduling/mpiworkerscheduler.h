@@ -32,8 +32,7 @@ class MpiWorkerScheduler final : public GriddingTaskManager {
    * Runs the task using the local scheduler.
    * Note: MpiWorkerScheduler ignores the callback function.
    */
-  void Run(GriddingTask&& task,
-           std::function<void(GriddingResult&)> ignored_callback) override;
+  void Run(GriddingTask&& task, std::function<void(GriddingResult&)> ignored_callback) override;
 
   std::unique_ptr<WriterLock> GetLock(size_t writer_group_index) override {
     // Since WSClean uses a static outputchannel-to-node mapping,

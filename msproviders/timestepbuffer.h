@@ -33,8 +33,7 @@ class TimestepBuffer final : public MSProvider {
 
   void ResetWritePosition() final { ms_provider_->ResetWritePosition(); }
 
-  virtual void WriteModel(const std::complex<float>* buffer,
-                          bool addToMS) final {
+  virtual void WriteModel(const std::complex<float>* buffer, bool addToMS) final {
     ms_provider_->WriteModel(buffer, addToMS);
   }
 
@@ -42,15 +41,11 @@ class TimestepBuffer final : public MSProvider {
 
   double StartTime() final { return ms_provider_->StartTime(); }
 
-  aocommon::PolarizationEnum Polarization() final {
-    return ms_provider_->Polarization();
-  }
+  aocommon::PolarizationEnum Polarization() final { return ms_provider_->Polarization(); }
 
   bool IsRegular() const final { return ms_provider_->IsRegular(); }
 
-  bool HasFrequencyBda() const override {
-    return ms_provider_->HasFrequencyBda();
-  }
+  bool HasFrequencyBda() const override { return ms_provider_->HasFrequencyBda(); }
 
   size_t NMaxChannels() final { return ms_provider_->NMaxChannels(); }
 
@@ -62,25 +57,15 @@ class TimestepBuffer final : public MSProvider {
 
   double Interval() final { return ms_provider_->Interval(); }
 
-  ObservationInfo GetObservationInfo() final {
-    return ms_provider_->GetObservationInfo();
-  }
+  ObservationInfo GetObservationInfo() final { return ms_provider_->GetObservationInfo(); }
 
-  std::vector<std::string> GetAntennaNames() final {
-    return ms_provider_->GetAntennaNames();
-  }
+  std::vector<std::string> GetAntennaNames() final { return ms_provider_->GetAntennaNames(); }
 
-  const aocommon::MultiBandData& SelectedBands() final {
-    return ms_provider_->SelectedBands();
-  }
+  const aocommon::MultiBandData& SelectedBands() final { return ms_provider_->SelectedBands(); }
 
-  std::optional<SynchronizedMS> MsIfAvailable() final {
-    return ms_provider_->MsIfAvailable();
-  }
+  std::optional<SynchronizedMS> MsIfAvailable() final { return ms_provider_->MsIfAvailable(); }
 
-  std::string PartDescription() const final {
-    return ms_provider_->PartDescription();
-  }
+  std::string PartDescription() const final { return ms_provider_->PartDescription(); }
 
  private:
   struct RowData {

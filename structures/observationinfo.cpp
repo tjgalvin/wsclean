@@ -31,8 +31,7 @@ void ObservationInfo::Unserialize(aocommon::SerialIStream& stream) {
       .String(fieldName);
 }
 
-ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
-                                    size_t fieldId) {
+ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms, size_t fieldId) {
   ObservationInfo obsInfo;
 
   casacore::MSAntenna aTable = ms.antenna();
@@ -42,11 +41,8 @@ ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
       aTable, aTable.columnName(casacore::MSAntennaEnums::POSITION));
   casacore::MPosition ant1Pos = antPosColumn(0);
 
-  size_t fieldRow =
-      (fieldId == schaapcommon::reordering::MSSelection::kAllFields) ? 0
-                                                                     : fieldId;
-  casacore::MEpoch::ScalarColumn timeColumn(
-      ms, ms.columnName(casacore::MSMainEnums::TIME));
+  size_t fieldRow = (fieldId == schaapcommon::reordering::MSSelection::kAllFields) ? 0 : fieldId;
+  casacore::MEpoch::ScalarColumn timeColumn(ms, ms.columnName(casacore::MSMainEnums::TIME));
   casacore::MSField fTable(ms.field());
   casacore::MDirection::ScalarColumn phaseDirColumn(
       fTable, fTable.columnName(casacore::MSFieldEnums::PHASE_DIR));
@@ -54,15 +50,13 @@ ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
   casacore::MEpoch curtime = timeColumn(0);
   casacore::MeasFrame frame(ant1Pos, curtime);
   casacore::MDirection::Ref j2000Ref(casacore::MDirection::J2000, frame);
-  casacore::MDirection j2000 =
-      casacore::MDirection::Convert(phaseDir, j2000Ref)();
+  casacore::MDirection j2000 = casacore::MDirection::Convert(phaseDir, j2000Ref)();
   casacore::Vector<casacore::Double> j2000Val = j2000.getValue().get();
 
   obsInfo.phaseCentreRA = j2000Val[0];
   obsInfo.phaseCentreDec = j2000Val[1];
 
-  if (fTable.keywordSet().isDefined("WSCLEAN_DL") ||
-      fTable.keywordSet().isDefined("WSCLEAN_DM")) {
+  if (fTable.keywordSet().isDefined("WSCLEAN_DL") || fTable.keywordSet().isDefined("WSCLEAN_DM")) {
     throw std::runtime_error(
         "This measurement was processed with chgcentre to have a shifted phase "
         "centre. \n"

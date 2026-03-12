@@ -17,9 +17,7 @@ class PowerLawSED final : public SpectralEnergyDistribution {
   }
 
   PowerLawSED(double referenceFrequency, double constantFlux)
-      : _referenceFrequency(referenceFrequency),
-        _terms(1),
-        _isLogarithmic(true) {
+      : _referenceFrequency(referenceFrequency), _terms(1), _isLogarithmic(true) {
     double refBrightness = constantFlux;
     if (refBrightness <= 0.0) refBrightness = 1.0;
     _terms[0] = refBrightness;
@@ -34,11 +32,9 @@ class PowerLawSED final : public SpectralEnergyDistribution {
     str.precision(15);
     double term1 = _terms.size() > 1 ? _terms[1] : 0.0;
     double f = _terms[0];
-    double i = f * _factors[0], q = f * _factors[1], u = f * _factors[2],
-           v = f * _factors[3];
+    double i = f * _factors[0], q = f * _factors[1], u = f * _factors[2], v = f * _factors[3];
     str << "    sed {\n      frequency " << _referenceFrequency * 1e-6
-        << " MHz\n      fluxdensity Jy " << i << " " << q << " " << u << " "
-        << v << "\n";
+        << " MHz\n      fluxdensity Jy " << i << " " << q << " " << u << " " << v << "\n";
     if (_isLogarithmic)
       str << "      spectral-index { ";
     else
@@ -61,27 +57,23 @@ class PowerLawSED final : public SpectralEnergyDistribution {
              _factors[pIndex];
   }
 
-  virtual long double IntegratedFlux(
-      long double startFrequency, long double endFrequency,
-      aocommon::PolarizationEnum polarization) const override {
+  virtual long double IntegratedFlux(long double startFrequency, long double endFrequency,
+                                     aocommon::PolarizationEnum polarization) const override {
     size_t pIndex = aocommon::Polarization::StokesToIndex(polarization);
     long double sum = 0.0;
     for (size_t i = 0; i != 101; ++i) {
-      long double frequency =
-          startFrequency + (endFrequency - startFrequency) * double(i) / 100.0;
+      long double frequency = startFrequency + (endFrequency - startFrequency) * double(i) / 100.0;
       sum += FluxAtFrequencyFromIndex(frequency, pIndex);
     }
     return sum / 101.0;
   }
 
-  virtual long double AverageFlux(
-      long double startFrequency, long double endFrequency,
-      aocommon::PolarizationEnum polarization) const override {
+  virtual long double AverageFlux(long double startFrequency, long double endFrequency,
+                                  aocommon::PolarizationEnum polarization) const override {
     return IntegratedFlux(startFrequency, endFrequency, polarization);
   }
 
-  virtual bool operator<(
-      const SpectralEnergyDistribution& other) const override {
+  virtual bool operator<(const SpectralEnergyDistribution& other) const override {
     return other.FluxAtFrequencyFromIndex(_referenceFrequency, 0) <
            FluxAtFrequencyFromIndex(_referenceFrequency, 0);
   }
@@ -91,13 +83,10 @@ class PowerLawSED final : public SpectralEnergyDistribution {
   }
 
   virtual void operator+=(const SpectralEnergyDistribution&) override {
-    throw std::runtime_error(
-        "operator+= not yet implemented for power law sed");
+    throw std::runtime_error("operator+= not yet implemented for power law sed");
   }
 
-  virtual long double ReferenceFrequencyHz() const override {
-    return _referenceFrequency;
-  }
+  virtual long double ReferenceFrequencyHz() const override { return _referenceFrequency; }
 
   /**
    * @param referenceFrequency Frequency in Hz
@@ -106,20 +95,17 @@ class PowerLawSED final : public SpectralEnergyDistribution {
    * @param siTerms The SI terms
    */
   template <typename Vector>
-  void SetData(double referenceFrequency, const double* brightnessVector,
-               const Vector& siTerms) {
+  void SetData(double referenceFrequency, const double* brightnessVector, const Vector& siTerms) {
     _referenceFrequency = referenceFrequency;
     double refBrightness = brightnessVector[0];
     if (refBrightness <= 0.0) refBrightness = 1.0;
     _terms.resize(std::size(siTerms) + 1);
     _terms[0] = refBrightness;
     for (size_t i = 0; i != std::size(siTerms); ++i) _terms[i + 1] = siTerms[i];
-    for (size_t p = 0; p != 4; ++p)
-      _factors[p] = brightnessVector[p] / refBrightness;
+    for (size_t p = 0; p != 4; ++p) _factors[p] = brightnessVector[p] / refBrightness;
   }
 
-  void SetFromStokesIFit(double referenceFrequency,
-                         const aocommon::UVector<double>& terms) {
+  void SetFromStokesIFit(double referenceFrequency, const aocommon::UVector<double>& terms) {
     _referenceFrequency = referenceFrequency;
     double refBrightness = terms[0];
     if (refBrightness <= 0.0) refBrightness = 1.0;
@@ -140,8 +126,7 @@ class PowerLawSED final : public SpectralEnergyDistribution {
    * @param siTerms SI index, SI curvature and higher terms.
    */
   template <typename Vector>
-  void GetData(double& referenceFrequency, double* brightnessVector,
-               Vector& siTerms) const {
+  void GetData(double& referenceFrequency, double* brightnessVector, Vector& siTerms) const {
     referenceFrequency = _referenceFrequency;
     double f = _terms[0];
     for (size_t p = 0; p != 4; ++p) brightnessVector[p] = f * _factors[p];

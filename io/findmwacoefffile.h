@@ -32,12 +32,10 @@ inline static std::string FindCoeffFile(const std::string& search_path) {
     h5_test_path += DEFAULT_H5_FILE;
     h5_path = wsclean::system::FindPythonFilePath(h5_test_path);
   } else {
-    boost::filesystem::path p =
-        boost::filesystem::path(search_path) / DEFAULT_H5_FILE;
+    boost::filesystem::path p = boost::filesystem::path(search_path) / DEFAULT_H5_FILE;
     if (!boost::filesystem::exists(p))
-      throw std::runtime_error(
-          "Manually specified MWA directory did not contain H5 beam file: '" +
-          p.string() + "' not found.");
+      throw std::runtime_error("Manually specified MWA directory did not contain H5 beam file: '" +
+                               p.string() + "' not found.");
     h5_path = p.string();
   }
   return h5_path;

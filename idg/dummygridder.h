@@ -12,8 +12,7 @@ class DummyGridder : public HighLevelGridderInterface {
  public:
   virtual ~DummyGridder() {}
 
-  virtual void set_frequencies(const double* frequency_list,
-                               size_t channel_count) {
+  virtual void set_frequencies(const double* frequency_list, size_t channel_count) {
     channel_count_ = channel_count_;
   }
 
@@ -31,19 +30,16 @@ class DummyGridder : public HighLevelGridderInterface {
 
   virtual void set_grid(std::complex<double>* grid) {}
 
-  virtual void grid_visibility(
-      const std::complex<float>* visibility,  // size CH x PL
-      const double* uvw_in_m, size_t antenna1, size_t antenna2,
-      size_t time_index) {}
+  virtual void grid_visibility(const std::complex<float>* visibility,  // size CH x PL
+                               const double* uvw_in_m, size_t antenna1, size_t antenna2,
+                               size_t time_index) {}
 
   virtual void transform_grid_after_gridding() {}
 
   virtual void transform_grid_before_sampling() {}
 
-  virtual void queue_visibility_sampling(const double* uvw_in_m,
-                                         size_t antenna1, size_t antenna2,
-                                         size_t time_index, size_t row_id,
-                                         bool& is_buffer_full) {
+  virtual void queue_visibility_sampling(const double* uvw_in_m, size_t antenna1, size_t antenna2,
+                                         size_t time_index, size_t row_id, bool& is_buffer_full) {
     row_ids_.push_back(row_id);
   }
 

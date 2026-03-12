@@ -54,12 +54,11 @@ class GriddingTask {
     /// first creates empty objects and then calls Unserialize on those objects.
     FacetData() = default;
 
-    explicit FacetData(
-        size_t _index, double _l_shift, double _m_shift,
-        std::unique_ptr<MetaDataCache> _cache,
-        std::unique_ptr<AverageBeam> _average_beam,
-        const std::shared_ptr<schaapcommon::facets::Facet>& _facet,
-        std::vector<aocommon::Image>&& _model_images);
+    explicit FacetData(size_t _index, double _l_shift, double _m_shift,
+                       std::unique_ptr<MetaDataCache> _cache,
+                       std::unique_ptr<AverageBeam> _average_beam,
+                       const std::shared_ptr<schaapcommon::facets::Facet>& _facet,
+                       std::vector<aocommon::Image>&& _model_images);
 
     void Serialize(aocommon::SerialOStream& stream) const;
     void Unserialize(aocommon::SerialIStream& stream);

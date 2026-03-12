@@ -105,9 +105,8 @@ BOOST_AUTO_TEST_CASE(get_provider_polarization) {
                             aocommon::PolarizationEnum::StokesU};
   settings.facetRegionFilename = "somefile.reg";
   settings.applyFacetBeam = true;
-  BOOST_CHECK(
-      settings.GetProviderPolarization(aocommon::PolarizationEnum::StokesU) ==
-      aocommon::PolarizationEnum::Instrumental);
+  BOOST_CHECK(settings.GetProviderPolarization(aocommon::PolarizationEnum::StokesU) ==
+              aocommon::PolarizationEnum::Instrumental);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

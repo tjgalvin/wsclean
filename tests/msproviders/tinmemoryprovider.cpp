@@ -40,13 +40,11 @@ BOOST_AUTO_TEST_CASE(read_write) {
   data.is_regular = false;
   data.polarization = aocommon::PolarizationEnum::DiagonalInstrumental;
 
-  const std::vector<aocommon::ChannelInfo> channels3{
-      {100e6, 1e6}, {110e6, 1e6}, {120e6, 1e6}};
+  const std::vector<aocommon::ChannelInfo> channels3{{100e6, 1e6}, {110e6, 1e6}, {120e6, 1e6}};
   const aocommon::BandData band3(channels3, channels3[0].Frequency());
   data.selected_bands.SetBand(3, band3);
 
-  const std::vector<aocommon::ChannelInfo> channels4{{105e6, 1e6},
-                                                     {115e6, 1e6}};
+  const std::vector<aocommon::ChannelInfo> channels4{{105e6, 1e6}, {115e6, 1e6}};
   const aocommon::BandData band4(channels4, channels4[0].Frequency());
   data.selected_bands.SetBand(4, band4);
 
@@ -109,8 +107,7 @@ BOOST_AUTO_TEST_CASE(read_write) {
   BOOST_CHECK_EQUAL(provider.NMaxChannels(), 3);
   BOOST_CHECK_EQUAL(provider.NPolarizations(), 2);
   BOOST_CHECK_EQUAL(provider.NRows(), 4);
-  BOOST_CHECK_EQUAL(provider.Polarization(),
-                    aocommon::PolarizationEnum::DiagonalInstrumental);
+  BOOST_CHECK_EQUAL(provider.Polarization(), aocommon::PolarizationEnum::DiagonalInstrumental);
   BOOST_CHECK_EQUAL(provider.SelectedBands().BandCount(), 2);
   BOOST_CHECK_EQUAL(provider.SelectedBands()[3].ChannelCount(), 3);
   BOOST_CHECK_EQUAL(provider.SelectedBands()[4].ChannelCount(), 2);

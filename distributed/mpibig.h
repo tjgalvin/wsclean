@@ -13,8 +13,8 @@ namespace wsclean {
  * use the type MPI_Byte.
  * @returns MPI_SUCCESS when successful.
  */
-int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
-                 MPI_Comm comm, size_t maximum_message_size);
+int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag, MPI_Comm comm,
+                 size_t maximum_message_size);
 
 /** Receives a big message.
  * The first 8 bytes of the buffer will receive the number of
@@ -22,9 +22,8 @@ int MPI_Send_Big(unsigned char* buf, size_t count, int dest, int tag,
  * MPI_Send_Big().
  * @returns MPI_SUCCESS when successful.
  */
-int MPI_Recv_Big(unsigned char* buf, size_t count, int source, int tag,
-                 MPI_Comm comm, MPI_Status* status,
-                 size_t maximum_message_size);
+int MPI_Recv_Big(unsigned char* buf, size_t count, int source, int tag, MPI_Comm comm,
+                 MPI_Status* status, size_t maximum_message_size);
 
 }  // namespace wsclean
 

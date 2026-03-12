@@ -26,9 +26,8 @@ class ImageWeights {
    */
   ImageWeights();
 
-  ImageWeights(const WeightMode& weightMode, size_t imageWidth,
-               size_t imageHeight, double pixelScaleX, double pixelScaleY,
-               bool weightsAsTaper, double superWeight);
+  ImageWeights(const WeightMode& weightMode, size_t imageWidth, size_t imageHeight,
+               double pixelScaleX, double pixelScaleY, bool weightsAsTaper, double superWeight);
 
   ImageWeights(const ImageWeights&) = delete;
   ImageWeights& operator=(const ImageWeights&) = delete;
@@ -54,8 +53,7 @@ class ImageWeights {
   void SetTukeyTaper(double transitionSizeInLambda, double maxUVInLambda);
   void SetTukeyInnerTaper(double transitionSizeInLambda, double minUVInLambda);
   void SetEdgeTaper(double sizeInLambda);
-  void SetEdgeTukeyTaper(double transitionSizeInLambda,
-                         double edgeSizeInLambda);
+  void SetEdgeTukeyTaper(double transitionSizeInLambda, double edgeSizeInLambda);
 
   void SetAllValues(double newValue) { _grid.assign(_grid.size(), newValue); }
   void GetGrid(double* image) const;
@@ -111,9 +109,7 @@ class ImageWeights {
    * Returns Tukey tapering function. This function is
    * 0 when x=0 and 1 when x=n.
    */
-  double tukeyFrom0ToN(double x, double n) {
-    return 0.5 * (1.0 + cos((M_PI / n) * (x - n)));
-  }
+  double tukeyFrom0ToN(double x, double n) { return 0.5 * (1.0 + cos((M_PI / n) * (x - n))); }
 
   template <typename T>
   static T frequencyToWavelength(const T frequency) {

@@ -44,15 +44,13 @@ void Settings::Validate() const {
       throw std::runtime_error("Image size has not been set.");
 
     if (trimmedImageWidth == 0 || trimmedImageHeight == 0)
-      throw std::runtime_error(
-          "Invalid image size given: one of the dimensions was zero.");
+      throw std::runtime_error("Invalid image size given: one of the dimensions was zero.");
 
     if (pixelScaleX == 0.0 && pixelScaleY == 0.0)
       throw std::runtime_error("Pixel scale has not been set.");
 
     if (pixelScaleX == 0.0 || pixelScaleY == 0.0)
-      throw std::runtime_error(
-          "Invalid pixel scale given: one direction was set to zero.");
+      throw std::runtime_error("Invalid pixel scale given: one direction was set to zero.");
   } else if (mode == PredictMode) {
     if (joinedFrequencyDeconvolution)
       throw std::runtime_error(
@@ -64,8 +62,7 @@ void Settings::Validate() const {
           "prediction doesn't clean, parameter invalid");
   }
 
-  if (threadCount == 0)
-    throw std::runtime_error("A thread count of zero (-j 0) is not valid");
+  if (threadCount == 0) throw std::runtime_error("A thread count of zero (-j 0) is not valid");
 
   // antialiasingKernelSize should be odd
   if (antialiasingKernelSize % 2 == 0) {
@@ -82,8 +79,7 @@ void Settings::Validate() const {
           "with -apply-facet-solutions or -apply-facet-beam");
     }
     if (visibilityReadMode == VisibilityReadMode::kDiagonal &&
-        (polarizations.size() != 1 ||
-         *polarizations.begin() != PolarizationEnum::StokesI)) {
+        (polarizations.size() != 1 || *polarizations.begin() != PolarizationEnum::StokesI)) {
       throw std::runtime_error(
           "-diagonal-visibilities can only be used when making Stokes I "
           "images");
@@ -111,8 +107,7 @@ void Settings::Validate() const {
     if (polarizations.size() > 1) {
       // -join-polarizations required in order to write the pb.fits images
       // in PrimaryBeam::CorrectImages
-      if (applyFacetBeam && !joinedPolarizationDeconvolution &&
-          deconvolutionIterationCount != 0) {
+      if (applyFacetBeam && !joinedPolarizationDeconvolution && deconvolutionIterationCount != 0) {
         throw std::runtime_error(
             "Can not apply the facet beam of multiple polarizations "
             "independently. Add -join-polarizations to the command line to "
@@ -121,8 +116,7 @@ void Settings::Validate() const {
     }
 
     if (apply_facet_solutions || applyFacetBeam) {
-      if (polarizations !=
-          std::set{PolarizationEnum::XX, PolarizationEnum::YY}) {
+      if (polarizations != std::set{PolarizationEnum::XX, PolarizationEnum::YY}) {
         for (PolarizationEnum p : polarizations) {
           if (!Polarization::IsStokes(p)) {
             throw std::runtime_error(
@@ -135,8 +129,7 @@ void Settings::Validate() const {
     }
 
     if (apply_facet_solutions) {
-      if (facetSolutionFiles.size() != 1 &&
-          facetSolutionFiles.size() != filenames.size()) {
+      if (facetSolutionFiles.size() != 1 && facetSolutionFiles.size() != filenames.size()) {
         throw std::runtime_error(
             "Incorrect number of facet solution files provided. The number of "
             "facet solution files should be either 1 or match the number of "
@@ -145,15 +138,13 @@ void Settings::Validate() const {
 
       const std::size_t nfacets = FacetReader::CountFacets(facetRegionFilename);
       for (const std::string& facetSolutionFile : facetSolutionFiles) {
-        schaapcommon::h5parm::H5Parm h5parm =
-            schaapcommon::h5parm::H5Parm(facetSolutionFile);
+        schaapcommon::h5parm::H5Parm h5parm = schaapcommon::h5parm::H5Parm(facetSolutionFile);
         const size_t nsources = h5parm.GetNumSources();
         if (nsources != nfacets) {
-          const std::string message =
-              "The number of source directions (" + std::to_string(nsources) +
-              ") in h5 facet solution file " + facetSolutionFile +
-              " does not match the number of facets (" +
-              std::to_string(nfacets) + ") in the facet region file.";
+          const std::string message = "The number of source directions (" +
+                                      std::to_string(nsources) + ") in h5 facet solution file " +
+                                      facetSolutionFile + " does not match the number of facets (" +
+                                      std::to_string(nfacets) + ") in the facet region file.";
           if (solutionDirectionsCheck)
             throw std::runtime_error(message);
           else
@@ -164,8 +155,7 @@ void Settings::Validate() const {
   }
 
   if (facetRegionFilename.empty() && featherSize && *featherSize != 0) {
-    throw std::runtime_error(
-        "Parameter -feather-size was specified without enabling facetting.");
+    throw std::runtime_error("Parameter -feather-size was specified without enabling facetting.");
   }
 
   if (shared_facet_reads && writeImagingWeightSpectrumColumn) {
@@ -182,11 +172,9 @@ void Settings::Validate() const {
 
   if (gridderType == GridderType::IDG) {
     const bool stokesIOnly =
-        polarizations.size() == 1 &&
-        *polarizations.begin() == aocommon::Polarization::StokesI;
-    const bool allStokes =
-        aocommon::Polarization::HasFullStokesPolarization(polarizations) &&
-        polarizations.size() == 4;
+        polarizations.size() == 1 && *polarizations.begin() == aocommon::Polarization::StokesI;
+    const bool allStokes = aocommon::Polarization::HasFullStokesPolarization(polarizations) &&
+                           polarizations.size() == 4;
     if (!allStokes && !stokesIOnly) {
       throw std::runtime_error(
           "When using IDG, it is only possible to either image Stokes I or to "
@@ -203,8 +191,7 @@ void Settings::Validate() const {
           "IDG can not yet make rectangular images -- this will be implemented "
           "at a later time.");
     if (parallelGridding != 1)
-      throw std::runtime_error(
-          "Parallel gridding can not be combined with IDG");
+      throw std::runtime_error("Parallel gridding can not be combined with IDG");
     if (applyPrimaryBeam)
       throw std::runtime_error(
           "IDG currently does not support -apply-primary-beam. Use a-term "
@@ -248,8 +235,7 @@ void Settings::Validate() const {
     }
 
     if (parallelGridding != 1) {
-      throw std::runtime_error(
-          "Parallel gridding can not be combined with IDG");
+      throw std::runtime_error("Parallel gridding can not be combined with IDG");
     }
 
     if (baselineDependentAveragingInWavelengths != 0.0) {
@@ -275,12 +261,10 @@ void Settings::Validate() const {
 
   if (UseMpi()) {
     if (!masterDoesWork && nMpiNodes <= 1) {
-      throw std::runtime_error(
-          "Master was told not to work, but no other workers available.");
+      throw std::runtime_error("Master was told not to work, but no other workers available.");
     }
     if (channelToNode.size() != channelsOut) {
-      throw std::runtime_error(
-          "Channel-to-node map should have exactly channels-out entries.");
+      throw std::runtime_error("Channel-to-node map should have exactly channels-out entries.");
     }
     for (size_t node : channelToNode) {
       if (!masterDoesWork && node == 0) {
@@ -294,8 +278,7 @@ void Settings::Validate() const {
     }
     const std::size_t kMessageLimit{std::numeric_limits<std::int32_t>::max()};
     if (maxMpiMessageSize > kMessageLimit) {
-      throw std::runtime_error("MPI message size larger than " +
-                               std::to_string(kMessageLimit) +
+      throw std::runtime_error("MPI message size larger than " + std::to_string(kMessageLimit) +
                                " is not supported.");
     }
   }
@@ -313,8 +296,7 @@ void Settings::Validate() const {
         "add the beam to your aterm config and remove -grid-with-beam from the "
         "command line");
   if (gridderType != GridderType::IDG && !atermConfigFilename.empty())
-    throw std::runtime_error(
-        "Use of an aterm config file required IDG enabled: add -use-idg");
+    throw std::runtime_error("Use of an aterm config file required IDG enabled: add -use-idg");
 
   if (baselineDependentAveragingInWavelengths != 0.0) {
     if (forceNoReorder)
@@ -329,8 +311,7 @@ void Settings::Validate() const {
 
   if (simulateNoise) {
     if (forceNoReorder)
-      throw std::runtime_error(
-          "Noise simulation can not be performed without reordering.");
+      throw std::runtime_error("Noise simulation can not be performed without reordering.");
   }
 
   if (channelsOut == 0)
@@ -344,8 +325,7 @@ void Settings::Validate() const {
         "channel is being requested. Did you forget -channels-out?");
 
   if (forceReorder && forceNoReorder)
-    throw std::runtime_error(
-        "Can not both force reordering and force not reordering!");
+    throw std::runtime_error("Can not both force reordering and force not reordering!");
 
   if (deconvolutionChannelCount > channelsOut) {
     throw std::runtime_error("The '-deconvolution-channels' option is set to " +
@@ -356,10 +336,8 @@ void Settings::Validate() const {
                              "less than the number of output channels.");
   }
 
-  if (deconvolutionChannelCount != 0 &&
-      deconvolutionChannelCount != channelsOut &&
-      spectralFittingMode ==
-          schaapcommon::fitters::SpectralFittingMode::kNoFitting)
+  if (deconvolutionChannelCount != 0 && deconvolutionChannelCount != channelsOut &&
+      spectralFittingMode == schaapcommon::fitters::SpectralFittingMode::kNoFitting)
     throw std::runtime_error(
         "You have requested to deconvolve with a decreased number of channels "
         "(-deconvolution-channels), but you have not enabled spectral fitting. "
@@ -368,17 +346,15 @@ void Settings::Validate() const {
         "full number of channels. The most useful and common spectral fitting "
         "function is -fit-spectral-pol.");
 
-  if (spectralFittingMode ==
-      schaapcommon::fitters::SpectralFittingMode::kRotationMeasure) {
-    if (polarizations != std::set{aocommon::Polarization::StokesQ,
-                                  aocommon::Polarization::StokesU}) {
+  if (spectralFittingMode == schaapcommon::fitters::SpectralFittingMode::kRotationMeasure) {
+    if (polarizations !=
+        std::set{aocommon::Polarization::StokesQ, aocommon::Polarization::StokesU}) {
       throw std::runtime_error(
           "RM fitting is only possible when imaging Stokes Q and U "
           "polarizations");
     }
     if (!joinedPolarizationDeconvolution)
-      throw std::runtime_error(
-          "Joined polarization deconvolution must be enabled for RM fitting");
+      throw std::runtime_error("Joined polarization deconvolution must be enabled for RM fitting");
   }
 
   if (savePsfPb && !(applyPrimaryBeam || gridWithBeam))
@@ -388,17 +364,15 @@ void Settings::Validate() const {
         "or use IDG to apply the beam.");
 
   if (saveSourceList) {
-    if (polarizations.size() != 1 ||
-        (*polarizations.begin() != aocommon::Polarization::StokesI &&
-         *polarizations.begin() != aocommon::Polarization::XX &&
-         *polarizations.begin() != aocommon::Polarization::YY &&
-         *polarizations.begin() != aocommon::Polarization::LL &&
-         *polarizations.begin() != aocommon::Polarization::RR)) {
+    if (polarizations.size() != 1 || (*polarizations.begin() != aocommon::Polarization::StokesI &&
+                                      *polarizations.begin() != aocommon::Polarization::XX &&
+                                      *polarizations.begin() != aocommon::Polarization::YY &&
+                                      *polarizations.begin() != aocommon::Polarization::LL &&
+                                      *polarizations.begin() != aocommon::Polarization::RR)) {
       throw std::runtime_error(
           "Saving a source list currently only works for Stokes I or pseudo "
           "Stokes I (XX, YY, LL or RR) imaging.");
-    } else if (!IsSpectralFittingEnabled() && channelsOut > 1 &&
-               joinedFrequencyDeconvolution) {
+    } else if (!IsSpectralFittingEnabled() && channelsOut > 1 && joinedFrequencyDeconvolution) {
       throw std::runtime_error(
           "Saving a source list with multiple channels requires specifying a "
           "fitting method");
@@ -409,8 +383,7 @@ void Settings::Validate() const {
     throw std::runtime_error("A source list cannot be saved without cleaning.");
 
   if (!forcedSpectrumFilename.empty() &&
-      spectralFittingMode !=
-          schaapcommon::fitters::SpectralFittingMode::kLogPolynomial)
+      spectralFittingMode != schaapcommon::fitters::SpectralFittingMode::kLogPolynomial)
     throw std::runtime_error(
         "When using forced spectrum mode, it is required to fit logarithmic"
         "polynomials (i.e. spectral index + further terms). This "
@@ -424,8 +397,7 @@ void Settings::Validate() const {
         " requires an HDF5 library that supports multi-threading.");
   }
 
-  if (UseFacetCorrections() && polarizations.size() > 1 &&
-      !joinedPolarizationDeconvolution) {
+  if (UseFacetCorrections() && polarizations.size() > 1 && !joinedPolarizationDeconvolution) {
     throw std::runtime_error(
         "Applying beam or solutions per facet for multiple polarizations "
         "required joining or linking the polarizations.");
@@ -508,8 +480,8 @@ void Settings::Propagate(bool verbose) {
 
   if (trimmedImageWidth % 2 != 0) {
     ++trimmedImageWidth;
-    Logger::Warn << "Image width is not divisable by two: changing width to "
-                 << trimmedImageWidth << '\n';
+    Logger::Warn << "Image width is not divisable by two: changing width to " << trimmedImageWidth
+                 << '\n';
   }
   if (trimmedImageHeight % 2 != 0) {
     ++trimmedImageHeight;
@@ -533,49 +505,39 @@ void Settings::Propagate(bool verbose) {
   }
 
   // In the case of IDG we have to directly ask for all four polarizations.
-  request_polarizations_at_once =
-      gridderType == GridderType::IDG && polarizations.size() > 1;
+  request_polarizations_at_once = gridderType == GridderType::IDG && polarizations.size() > 1;
   // In case XY/YX polarizations are requested, we should not parallelize over
   // those since they need to be combined after imaging, and this currently
   // requires XY before YX.
   const bool has_xy = polarizations.count(aocommon::Polarization::XY) != 0;
   const bool has_yx = polarizations.count(aocommon::Polarization::YX) != 0;
-  parallelize_polarizations = !request_polarizations_at_once &&
-                              polarizations.size() > 1 && (!has_xy || !has_yx);
+  parallelize_polarizations =
+      !request_polarizations_at_once && polarizations.size() > 1 && (!has_xy || !has_yx);
 }
 
 void Settings::RecalculateDerivedDimensions(bool verbose) {
-  paddedImageWidth =
-      static_cast<size_t>(ceil(trimmedImageWidth * imagePadding));
-  paddedImageHeight =
-      static_cast<size_t>(ceil(trimmedImageHeight * imagePadding));
+  paddedImageWidth = static_cast<size_t>(ceil(trimmedImageWidth * imagePadding));
+  paddedImageHeight = static_cast<size_t>(ceil(trimmedImageHeight * imagePadding));
   // Make the width and height divisable by four.
   paddedImageWidth += (4 - (paddedImageWidth % 4)) % 4;
   paddedImageHeight += (4 - (paddedImageHeight % 4)) % 4;
   if (trimmedImageWidth != 0 && trimmedImageHeight != 0) {
     if (verbose)
-      Logger::Debug << "Using image size of " << trimmedImageWidth << " x "
-                    << trimmedImageHeight << ", padded to " << paddedImageWidth
-                    << " x " << paddedImageHeight << ".\n";
+      Logger::Debug << "Using image size of " << trimmedImageWidth << " x " << trimmedImageHeight
+                    << ", padded to " << paddedImageWidth << " x " << paddedImageHeight << ".\n";
 
     if (!makePSFOnly || parallelDeconvolutionMaxSize > 0) {
-      parallelDeconvolutionGridWidth =
-          GetNumCells(trimmedImageWidth, parallelDeconvolutionMaxSize);
+      parallelDeconvolutionGridWidth = GetNumCells(trimmedImageWidth, parallelDeconvolutionMaxSize);
       parallelDeconvolutionGridHeight =
           GetNumCells(trimmedImageHeight, parallelDeconvolutionMaxSize);
       if (ddPsfGridWidth > parallelDeconvolutionGridWidth ||
           ddPsfGridHeight > parallelDeconvolutionGridHeight) {
-        Logger::Warn
-            << "Warning: The DD PSF grid (" << ddPsfGridWidth << "x"
-            << ddPsfGridHeight
-            << ") has more cells than parallel deconvolution grid ("
-            << parallelDeconvolutionGridWidth << "x"
-            << parallelDeconvolutionGridHeight
-            << ") in at least one dimension. Reducing the DD PSF grid to ";
-        ddPsfGridWidth =
-            std::min(ddPsfGridWidth, parallelDeconvolutionGridWidth);
-        ddPsfGridHeight =
-            std::min(ddPsfGridHeight, parallelDeconvolutionGridHeight);
+        Logger::Warn << "Warning: The DD PSF grid (" << ddPsfGridWidth << "x" << ddPsfGridHeight
+                     << ") has more cells than parallel deconvolution grid ("
+                     << parallelDeconvolutionGridWidth << "x" << parallelDeconvolutionGridHeight
+                     << ") in at least one dimension. Reducing the DD PSF grid to ";
+        ddPsfGridWidth = std::min(ddPsfGridWidth, parallelDeconvolutionGridWidth);
+        ddPsfGridHeight = std::min(ddPsfGridHeight, parallelDeconvolutionGridHeight);
         Logger::Warn << ddPsfGridWidth << "x" << ddPsfGridHeight << ".\n";
       }
     }
@@ -593,14 +555,12 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.thread_count = threadCount;
   radler_settings.prefix_name = prefixName;
   radler_settings.linked_polarizations = linkedPolarizations;
-  radler_settings.component_optimization_algorithm =
-      componentOptimizationAlgorithm;
+  radler_settings.component_optimization_algorithm = componentOptimizationAlgorithm;
   radler_settings.parallel.grid_width = parallelDeconvolutionGridWidth;
   radler_settings.parallel.grid_height = parallelDeconvolutionGridHeight;
   radler_settings.parallel.max_threads = parallelDeconvolutionMaxThreads;
   radler_settings.auto_threshold_sigma = autoDeconvolutionThresholdSigma;
-  radler_settings.absolute_threshold =
-      absoluteDeconvolutionThreshold.value_or(0.0);
+  radler_settings.absolute_threshold = absoluteDeconvolutionThreshold.value_or(0.0);
   radler_settings.auto_mask_sigma = autoMaskSigma;
   radler_settings.absolute_auto_mask_threshold = absoluteAutoMaskThreshold;
   radler_settings.major_auto_mask_iteration_count = majorAutoMaskIterations;
@@ -638,13 +598,11 @@ radler::Settings Settings::GetRadlerSettings() const {
   switch (algorithmType) {
     case radler::AlgorithmType::kAdaptiveScalePixel:
     case radler::AlgorithmType::kMultiscale:
-      radler_settings.multiscale.fast_sub_minor_loop =
-          multiscaleFastSubMinorLoop;
+      radler_settings.multiscale.fast_sub_minor_loop = multiscaleFastSubMinorLoop;
       radler_settings.multiscale.sub_minor_loop_gain = multiscaleGain;
       radler_settings.multiscale.scale_bias = multiscaleDeconvolutionScaleBias;
       radler_settings.multiscale.max_scales = multiscaleMaxScales;
-      radler_settings.multiscale.convolution_padding =
-          multiscaleConvolutionPadding;
+      radler_settings.multiscale.convolution_padding = multiscaleConvolutionPadding;
       radler_settings.multiscale.scale_list.assign(multiscaleScaleList.begin(),
                                                    multiscaleScaleList.end());
       radler_settings.multiscale.shape = multiscaleShapeFunction;
@@ -662,21 +620,17 @@ radler::Settings Settings::GetRadlerSettings() const {
       radler_settings.python.filename = pythonDeconvolutionFilename;
       break;
     case radler::AlgorithmType::kGenericClean:
-      radler_settings.generic.use_sub_minor_optimization =
-          useSubMinorOptimization;
+      radler_settings.generic.use_sub_minor_optimization = useSubMinorOptimization;
       break;
   }
 
   return radler_settings;
 }
 
-PolarizationEnum Settings::GetProviderPolarization(
-    PolarizationEnum entry_polarization) const {
-  const bool xx_and_yy =
-      polarizations == std::set{PolarizationEnum::XX, PolarizationEnum::YY};
+PolarizationEnum Settings::GetProviderPolarization(PolarizationEnum entry_polarization) const {
+  const bool xx_and_yy = polarizations == std::set{PolarizationEnum::XX, PolarizationEnum::YY};
   const bool stokes_i =
-      polarizations.size() == 1 &&
-      (*polarizations.begin()) == aocommon::Polarization::StokesI;
+      polarizations.size() == 1 && (*polarizations.begin()) == aocommon::Polarization::StokesI;
   if (gridderType == GridderType::IDG) {
     if (stokes_i) {
       if ((ddPsfGridWidth > 1 || ddPsfGridHeight > 1) && gridWithBeam) {
@@ -696,8 +650,7 @@ PolarizationEnum Settings::GetProviderPolarization(
   } else {
     bool requires_instrumental = false;
     for (PolarizationEnum p : polarizations) {
-      if (aocommon::Polarization::IsStokes(p) &&
-          p != PolarizationEnum::StokesI) {
+      if (aocommon::Polarization::IsStokes(p) && p != PolarizationEnum::StokesI) {
         requires_instrumental = UseFacetCorrections();
         break;
       }
@@ -711,11 +664,10 @@ PolarizationEnum Settings::GetProviderPolarization(
 }
 
 bool Settings::determineReorder() const {
-  const bool prefer_reordering =
-      (channelsOut != 1) || (polarizations.size() >= 4) ||
-      (deconvolutionMGain != 1.0) ||
-      (baselineDependentAveragingInWavelengths != 0.0) || simulateNoise ||
-      !facetRegionFilename.empty();
+  const bool prefer_reordering = (channelsOut != 1) || (polarizations.size() >= 4) ||
+                                 (deconvolutionMGain != 1.0) ||
+                                 (baselineDependentAveragingInWavelengths != 0.0) ||
+                                 simulateNoise || !facetRegionFilename.empty();
   return (prefer_reordering || forceReorder) && !forceNoReorder;
 }
 
@@ -728,15 +680,13 @@ std::string Settings::determineDataColumn(bool verbose) const {
     bool hasCorrected = ms.tableDesc().isColumn("CORRECTED_DATA");
     if (hasCorrected) {
       if (verbose)
-        Logger::Info
-            << "First measurement set has corrected data: tasks will be "
-               "applied on the corrected data column.\n";
+        Logger::Info << "First measurement set has corrected data: tasks will be "
+                        "applied on the corrected data column.\n";
       col = "CORRECTED_DATA";
     } else {
       if (verbose)
-        Logger::Info
-            << "No corrected data in first measurement set: tasks will "
-               "be applied on the data column.\n";
+        Logger::Info << "No corrected data in first measurement set: tasks will "
+                        "be applied on the data column.\n";
       col = "DATA";
     }
   }

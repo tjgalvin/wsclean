@@ -61,17 +61,15 @@ inline std::array<double, 2> PartialHermitianSquareForDiagonalKronecker(
 class AverageCorrection {
  public:
   template <GainMode Mode>
-  void Add(const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2,
-           float visibility_weight) {
-    static_assert(!AllowScalarCorrection(Mode),
-                  "Use MC2x2Diag for scalar corrections");
+  void Add(const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2, float visibility_weight) {
+    static_assert(!AllowScalarCorrection(Mode), "Use MC2x2Diag for scalar corrections");
     // Add: w * [ (g1^H g1)^T (x) (g2^H g2) ].
     // The conjugate part is added later (see AddConjugateCorrectionPart()).
     const aocommon::MC2x2 g1(gain1);
     const aocommon::MC2x2 g2(gain2);
-    matrix_ += aocommon::HMC4x4::KroneckerProduct(
-                   g1.HermitianSquare().Transpose(), g2.HermitianSquare()) *
-               visibility_weight;
+    matrix_ +=
+        aocommon::HMC4x4::KroneckerProduct(g1.HermitianSquare().Transpose(), g2.HermitianSquare()) *
+        visibility_weight;
   }
 
   /**
@@ -89,10 +87,8 @@ class AverageCorrection {
       // In an optimised way that skips computation of parts we don't need.
       // Skip transpose of gain1 Hermitian square, this is a no-op on a diagonal
       // matrix.
-      std::array<double, 2> g1_herm_square_real =
-          PartialHermitianSquareForDiagonalKronecker(gain1);
-      std::array<double, 2> g2_herm_square_real =
-          PartialHermitianSquareForDiagonalKronecker(gain2);
+      std::array<double, 2> g1_herm_square_real = PartialHermitianSquareForDiagonalKronecker(gain1);
+      std::array<double, 2> g2_herm_square_real = PartialHermitianSquareForDiagonalKronecker(gain2);
 
       // Compute the KroneckerProduct of gain1 and gain2:
       //   * Only compute the real values for full matrix elements:
@@ -127,27 +123,19 @@ class AverageCorrection {
     return result;
   }
 
-  void Serialize(aocommon::SerialOStream& stream) const {
-    stream.LDouble(sum_).Object(matrix_);
-  }
+  void Serialize(aocommon::SerialOStream& stream) const { stream.LDouble(sum_).Object(matrix_); }
 
-  void Unserialize(aocommon::SerialIStream& stream) {
-    stream.LDouble(sum_).Object(matrix_);
-  }
+  void Unserialize(aocommon::SerialIStream& stream) { stream.LDouble(sum_).Object(matrix_); }
 
   /**
    * True if the correction is completely zero.
    */
-  constexpr bool IsZero() const {
-    return sum_ == 0.0 && matrix_ == aocommon::HMC4x4::Zero();
-  }
+  constexpr bool IsZero() const { return sum_ == 0.0 && matrix_ == aocommon::HMC4x4::Zero(); }
 
   /**
    * True if the correction is a scalar correction.
    */
-  constexpr bool IsScalar() const {
-    return matrix_ == aocommon::HMC4x4::Zero();
-  }
+  constexpr bool IsScalar() const { return matrix_ == aocommon::HMC4x4::Zero(); }
 
   constexpr long double GetScalarValue() const {
     assert(matrix_ == aocommon::HMC4x4::Zero());
@@ -194,8 +182,8 @@ class AverageCorrection {
     else if constexpr (Mode == GainMode::kYY)
       return gain2.Get(1) * std::conj(gain1.Get(1));
     else  // Mode == GainMode::kTrace
-      return 0.5f * (gain2.Get(0) * std::conj(gain1.Get(0)) +
-                     gain2.Get(1) * std::conj(gain1.Get(1)));
+      return 0.5f *
+             (gain2.Get(0) * std::conj(gain1.Get(0)) + gain2.Get(1) * std::conj(gain1.Get(1)));
   }
 
   long double sum_ = 0.0L;

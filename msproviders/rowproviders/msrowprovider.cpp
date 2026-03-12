@@ -10,23 +10,21 @@ using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
-MSRowProvider::MSRowProvider(
-    const string& msPath, const MSSelection& selection,
-    const std::map<size_t, size_t>& selectedDataDescIds,
-    const std::string& dataColumnName, const std::string& model_column_name,
-    bool requireModel)
-    : MsRowProviderBase(casacore::MeasurementSet(msPath), selection,
-                        dataColumnName, model_column_name),
+MSRowProvider::MSRowProvider(const string& msPath, const MSSelection& selection,
+                             const std::map<size_t, size_t>& selectedDataDescIds,
+                             const std::string& dataColumnName,
+                             const std::string& model_column_name, bool requireModel)
+    : MsRowProviderBase(casacore::MeasurementSet(msPath), selection, dataColumnName,
+                        model_column_name),
       _selectedDataDescIds(selectedDataDescIds),
       _requireModel(requireModel) {
   Initialize();
 }
 
-MSRowProvider::MSRowProvider(
-    const casacore::MeasurementSet& ms, const MSSelection& selection,
-    const std::map<size_t, size_t>& selected_data_description_ids,
-    const std::string& data_column_name, const std::string& model_column_name,
-    bool require_model)
+MSRowProvider::MSRowProvider(const casacore::MeasurementSet& ms, const MSSelection& selection,
+                             const std::map<size_t, size_t>& selected_data_description_ids,
+                             const std::string& data_column_name,
+                             const std::string& model_column_name, bool require_model)
     : MsRowProviderBase(ms, selection, data_column_name, model_column_name),
       _selectedDataDescIds(selected_data_description_ids),
       _requireModel(require_model) {
@@ -40,8 +38,7 @@ void MSRowProvider::Initialize() {
         "processing.");
 
   if (_requireModel)
-    _modelColumn.reset(
-        new casacore::ArrayColumn<casacore::Complex>(Ms(), ModelColumnName()));
+    _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(Ms(), ModelColumnName()));
 
   MsColumns& columns = Columns();
   _msHasWeights = OpenWeightSpectrumColumn(Ms(), _weightSpectrumColumn);
@@ -93,8 +90,7 @@ void MSRowProvider::NextRow() {
       if (_currentTime != columns.time(_currentRow)) {
         ++_currentTimestep;
         const double next_time = columns.time(_currentRow);
-        if (require_time_ordering && next_time < _currentTime)
-          ThrowTimeOrderException();
+        if (require_time_ordering && next_time < _currentTime) ThrowTimeOrderException();
         _currentTime = next_time;
       }
       _currentUVWArray = columns.uvw(_currentRow);
@@ -107,13 +103,11 @@ bool MSRowProvider::isCurrentRowSelected(int fieldId, int a1, int a2) const {
   std::map<size_t, size_t>::const_iterator dataDescIdIter =
       _selectedDataDescIds.find(_currentDataDescId);
   bool isDataDescIdSelected = dataDescIdIter != _selectedDataDescIds.end();
-  return Selection().IsSelected(fieldId, _currentTimestep, a1, a2,
-                                _currentUVWArray.data()) &&
+  return Selection().IsSelected(fieldId, _currentTimestep, a1, a2, _currentUVWArray.data()) &&
          isDataDescIdSelected;
 }
 
-void MSRowProvider::getCurrentWeights(WeightArray& weights,
-                                      const casacore::IPosition& shape) {
+void MSRowProvider::getCurrentWeights(WeightArray& weights, const casacore::IPosition& shape) {
   if (_msHasWeights)
     _weightSpectrumColumn->get(_currentRow, weights, true);
   else {

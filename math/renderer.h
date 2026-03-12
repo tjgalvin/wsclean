@@ -55,13 +55,10 @@ struct ImageCoordinateSettings {
  * @param thread_count Numbers of threads to use.
  */
 void RestoreWithEllipticalBeam(aocommon::Image& image,
-                               const ImageCoordinateSettings& image_settings,
-                               const Model& model, long double beam_major_axis,
-                               long double beam_minor_axis,
-                               long double beam_position_angle,
-                               long double start_frequency,
-                               long double end_frequency,
-                               aocommon::PolarizationEnum polarization);
+                               const ImageCoordinateSettings& image_settings, const Model& model,
+                               long double beam_major_axis, long double beam_minor_axis,
+                               long double beam_position_angle, long double start_frequency,
+                               long double end_frequency, aocommon::PolarizationEnum polarization);
 
 }  // namespace wsclean::renderer
 

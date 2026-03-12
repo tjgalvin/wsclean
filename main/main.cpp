@@ -18,8 +18,7 @@ int main(int argc, char* argv[]) {
     WSClean wsclean;
     constexpr bool kSlave = false;
     constexpr bool kInMemoryData = false;
-    if (CommandLine::Parse(wsclean, argc, const_cast<const char**>(argv),
-                           kSlave, kInMemoryData))
+    if (CommandLine::Parse(wsclean, argc, const_cast<const char**>(argv), kSlave, kInMemoryData))
       CommandLine::Run(wsclean);
     return 0;
   } catch (std::exception& e) {

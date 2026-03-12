@@ -55,19 +55,16 @@ MPIScheduler::MPIScheduler(const Settings& settings)
   });
 }
 
-void MPIScheduler::Run(GriddingTask&& task,
-                       std::function<void(GriddingResult&)> finish_callback) {
+void MPIScheduler::Run(GriddingTask&& task, std::function<void(GriddingResult&)> finish_callback) {
   if (!is_running_) {
     is_finishing_ = false;
-    if (available_room_.size() > 1)
-      receive_thread_ = std::thread([&]() { ReceiveLoop(); });
+    if (available_room_.size() > 1) receive_thread_ = std::thread([&]() { ReceiveLoop(); });
     is_running_ = true;
   }
   const size_t node = GetNode(task, std::move(finish_callback));
   // Use shared_ptr to work around std::function restriction on moveable types.
   // With C++23 this can become std::move_only_function instead.
-  std::shared_ptr<GriddingTask> shared_task =
-      std::make_shared<GriddingTask>(std::move(task));
+  std::shared_ptr<GriddingTask> shared_task = std::make_shared<GriddingTask>(std::move(task));
   {
     std::unique_lock<std::mutex> lock(mutex_);
     while (node_is_sending_[node] == true) {
@@ -133,10 +130,9 @@ void MPIScheduler::Start(size_t n_writer_groups) {
   assert(message_stream.size() == TaskMessage::kSerializedSize);
 
   for (size_t rank = 1; rank < available_room_.size(); ++rank) {
-    assert(available_room_[rank] > 0 &&
-           available_room_[rank] == room_per_node_);
-    MPI_Send(message_stream.data(), TaskMessage::kSerializedSize, MPI_BYTE,
-             rank, kTag, MPI_COMM_WORLD);
+    assert(available_room_[rank] > 0 && available_room_[rank] == room_per_node_);
+    MPI_Send(message_stream.data(), TaskMessage::kSerializedSize, MPI_BYTE, rank, kTag,
+             MPI_COMM_WORLD);
   }
 
   if (GetSettings().masterDoesWork) {
@@ -144,17 +140,14 @@ void MPIScheduler::Start(size_t n_writer_groups) {
   }
 }
 
-void MPIScheduler::SendToNode(size_t node,
-                              std::shared_ptr<GriddingTask> wrapped_task) {
+void MPIScheduler::SendToNode(size_t node, std::shared_ptr<GriddingTask> wrapped_task) {
   GriddingTask& task = *wrapped_task;
 
   if (node == 0) {
-    Logger::Info << "Running gridding task " << task.unique_id
-                 << " at main node.\n";
+    Logger::Info << "Running gridding task " << task.unique_id << " at main node.\n";
 
     local_scheduler_.Run(std::move(task), [this](GriddingResult& result) {
-      Logger::Info << "Main node has finished gridding task "
-                   << result.unique_id << ".\n";
+      Logger::Info << "Main node has finished gridding task " << result.unique_id << ".\n";
       StoreResult(std::move(result), 0);
     });
   } else {
@@ -163,18 +156,17 @@ void MPIScheduler::SendToNode(size_t node,
     payload_stream.UInt64(0);
     task.Serialize(payload_stream);
 
-    const TaskMessage message(TaskMessage::Type::kGriddingRequest,
-                              payload_stream.size());
+    const TaskMessage message(TaskMessage::Type::kGriddingRequest, payload_stream.size());
     aocommon::SerialOStream task_message_stream;
     message.Serialize(task_message_stream);
     assert(task_message_stream.size() == TaskMessage::kSerializedSize);
 
-    Logger::Info << "Sending gridding task " << task.unique_id << " to node "
-                 << node << " (size: " << payload_stream.size() << ").\n";
-    MPI_Send(task_message_stream.data(), task_message_stream.size(), MPI_BYTE,
-             node, 0, MPI_COMM_WORLD);
-    MPI_Send_Big(payload_stream.data(), payload_stream.size(), node, 0,
-                 MPI_COMM_WORLD, GetSettings().maxMpiMessageSize);
+    Logger::Info << "Sending gridding task " << task.unique_id << " to node " << node
+                 << " (size: " << payload_stream.size() << ").\n";
+    MPI_Send(task_message_stream.data(), task_message_stream.size(), MPI_BYTE, node, 0,
+             MPI_COMM_WORLD);
+    MPI_Send_Big(payload_stream.data(), payload_stream.size(), node, 0, MPI_COMM_WORLD,
+                 GetSettings().maxMpiMessageSize);
   }
 }
 
@@ -211,8 +203,8 @@ void MPIScheduler::ReceiveLoop() {
       TaskMessage message;
       MPI_Status status;
       aocommon::UVector<unsigned char> buffer(TaskMessage::kSerializedSize);
-      MPI_Recv(buffer.data(), TaskMessage::kSerializedSize, MPI_BYTE,
-               MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+      MPI_Recv(buffer.data(), TaskMessage::kSerializedSize, MPI_BYTE, MPI_ANY_SOURCE, 0,
+               MPI_COMM_WORLD, &status);
       aocommon::SerialIStream stream(std::move(buffer));
       message.Unserialize(stream);
 
@@ -222,8 +214,7 @@ void MPIScheduler::ReceiveLoop() {
           ProcessGriddingResult(node, message.body_size);
           break;
         default:
-          throw std::runtime_error("Invalid message sent by node " +
-                                   std::to_string(node));
+          throw std::runtime_error("Invalid message sent by node " + std::to_string(node));
       }
 
       lock.lock();

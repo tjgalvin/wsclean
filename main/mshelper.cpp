@@ -17,8 +17,8 @@ using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
-aocommon::VectorMap<ChannelRange> MsHelper::GenerateChannelPartInfo(
-    const ImagingTableEntry& entry, size_t ms_index) const {
+aocommon::VectorMap<ChannelRange> MsHelper::GenerateChannelPartInfo(const ImagingTableEntry& entry,
+                                                                    size_t ms_index) const {
   const aocommon::MultiBandData& band_data = ms_bands_[ms_index];
   aocommon::VectorMap<ChannelRange> result;
   for (const size_t data_desc_id : band_data.DataDescIds()) {
@@ -26,8 +26,7 @@ aocommon::VectorMap<ChannelRange> MsHelper::GenerateChannelPartInfo(
     MSSelection selection(global_selection_);
     if (settings_.IsBandSelected(band_index)) {
       const ChannelRange range =
-          SelectMsChannels(band_data, data_desc_id, entry.lowestFrequency,
-                           entry.highestFrequency);
+          SelectMsChannels(band_data, data_desc_id, entry.lowestFrequency, entry.highestFrequency);
       if (!range.Empty()) result.AlwaysEmplace(data_desc_id, range);
     }
   }
@@ -38,20 +37,16 @@ std::vector<aocommon::VectorMap<ChannelRange>> MsHelper::GenerateChannelInfo(
     const ImagingTable& imaging_table, size_t ms_index) const {
   std::vector<aocommon::VectorMap<ChannelRange>> channels;
   std::map<aocommon::PolarizationEnum, size_t> next_index;
-  for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount();
-       ++sq_index) {
+  for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount(); ++sq_index) {
     // One facet_group contains all the entries for one output channel and
     // one polarization.
     // The band information is determined from the first facet in the group of
     // the first polarization. After this, all facet entries inside the
     // facet_groups are updated.
-    const ImagingTable::Groups facet_groups =
-        imaging_table.FacetGroups([sq_index](const ImagingTableEntry& e) {
-          return e.squaredDeconvolutionIndex == sq_index;
-        });
+    const ImagingTable::Groups facet_groups = imaging_table.FacetGroups(
+        [sq_index](const ImagingTableEntry& e) { return e.squaredDeconvolutionIndex == sq_index; });
     const ImagingTableEntry& entry = *facet_groups.front().front();
-    aocommon::VectorMap<ChannelRange> range =
-        GenerateChannelPartInfo(entry, ms_index);
+    aocommon::VectorMap<ChannelRange> range = GenerateChannelPartInfo(entry, ms_index);
     if (!range.Empty()) {
       const size_t part_index = channels.size();
       channels.emplace_back(std::move(range));
@@ -70,8 +65,7 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
   assert(reordered_ms_handles_.empty());
 
   reordered_ms_handles_.resize(settings_.filenames.size());
-  bool initial_model_required =
-      settings_.subtractModel || settings_.continuedRun;
+  bool initial_model_required = settings_.subtractModel || settings_.continuedRun;
 
   Logger::Info << "Reading pre-generated reordered data...\n";
 
@@ -90,11 +84,10 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
         MakeSelectedBands(original_bands, channels);
 
     auto data = std::make_unique<schaapcommon::reordering::HandleData>(
-        settings_.filenames[ms_index], settings_.dataColumnName,
-        settings_.modelColumnName, settings_.modelStorageManager,
-        settings_.temporaryDirectory, channels, initial_model_required,
-        settings_.modelUpdateRequired, polarization_types, global_selection_,
-        settings_.sortMsInTime, bands_per_part, has_frequency_bda, n_antennas,
+        settings_.filenames[ms_index], settings_.dataColumnName, settings_.modelColumnName,
+        settings_.modelStorageManager, settings_.temporaryDirectory, channels,
+        initial_model_required, settings_.modelUpdateRequired, polarization_types,
+        global_selection_, settings_.sortMsInTime, bands_per_part, has_frequency_bda, n_antennas,
         settings_.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
 
     std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
@@ -106,8 +99,7 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
   }
 }
 
-void MsHelper::PerformReordering(const ImagingTable& imaging_table,
-                                 bool is_predict_mode) {
+void MsHelper::PerformReordering(const ImagingTable& imaging_table, bool is_predict_mode) {
   assert(reordered_ms_handles_.empty());
   assert(in_memory_handles_.empty());
 
@@ -116,8 +108,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
   reordered_ms_handles_.resize(settings_.filenames.size());
   bool use_model = settings_.deconvolutionMGain != 1.0 || is_predict_mode ||
                    settings_.subtractModel || settings_.continuedRun;
-  bool initial_model_required =
-      settings_.subtractModel || settings_.continuedRun;
+  bool initial_model_required = settings_.subtractModel || settings_.continuedRun;
 
   if (settings_.parallelReordering != 1) Logger::Info << "Reordering...\n";
 
@@ -130,18 +121,16 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table,
     ReorderedHandle part_ms =
         ReorderMS(settings_.filenames[ms_index], channels, global_selection_,
                   settings_.dataColumnName, settings_.modelColumnName,
-                  settings_.modelStorageManager, use_model,
-                  initial_model_required, settings_);
+                  settings_.modelStorageManager, use_model, initial_model_required, settings_);
     std::lock_guard<std::mutex> lock(mutex);
     reordered_ms_handles_[ms_index] = std::move(part_ms);
     if (settings_.parallelReordering != 1)
-      Logger::Info << "Finished reordering " << settings_.filenames[ms_index]
-                   << " [" << ms_index << "]\n";
+      Logger::Info << "Finished reordering " << settings_.filenames[ms_index] << " [" << ms_index
+                   << "]\n";
   });
 }
 
-void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
-                                   bool is_predict_mode) {
+void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table, bool is_predict_mode) {
   assert(reordered_ms_handles_.empty());
   assert(in_memory_handles_.empty());
   // This function handles two cases:
@@ -150,18 +139,15 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
   //   from disk and then reordered.
   // - If the API was used and data was supplied, it only needs to be reordered.
   // If the following variable is true, we are in the second case:
-  const bool is_in_memory_data_supplied =
-      !in_memory_data_before_reordering_.empty();
+  const bool is_in_memory_data_supplied = !in_memory_data_before_reordering_.empty();
   assert((!is_in_memory_data_supplied && !settings_.filenames.empty()) ||
          (is_in_memory_data_supplied && settings_.filenames.empty()));
 
-  const size_t ms_count = is_in_memory_data_supplied
-                              ? in_memory_data_before_reordering_.size()
-                              : settings_.filenames.size();
+  const size_t ms_count = is_in_memory_data_supplied ? in_memory_data_before_reordering_.size()
+                                                     : settings_.filenames.size();
   in_memory_handles_.resize(ms_count);
 
-  const size_t parallel_reordering =
-      std::clamp<size_t>(settings_.parallelReordering, 0, ms_count);
+  const size_t parallel_reordering = std::clamp<size_t>(settings_.parallelReordering, 0, ms_count);
   if (parallel_reordering != 1) {
     if (is_in_memory_data_supplied)
       Logger::Info << "In-memory reordering of the data...\n";
@@ -181,9 +167,8 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
       in_memory_ms = std::move(*in_memory_data_before_reordering_[ms_index]);
       ApplyRowSelectionToMs(in_memory_ms, global_selection_);
     } else {
-      in_memory_ms = ReadMsInMemory(settings_.filenames[ms_index],
-                                    settings_.dataColumnName, global_selection_,
-                                    settings_.sortMsInTime);
+      in_memory_ms = ReadMsInMemory(settings_.filenames[ms_index], settings_.dataColumnName,
+                                    global_selection_, settings_.sortMsInTime);
     }
 
     const std::vector<aocommon::VectorMap<ChannelRange>> channels =
@@ -191,9 +176,9 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
     // The model data is always overwritten in the first iteration, so it does
     // not need to be initialized.
     constexpr bool initial_model_required = false;
-    InMemoryHandle handle = ReorderInMemory(
-        std::move(in_memory_ms), channels, settings_.dataColumnName,
-        settings_.modelColumnName, initial_model_required, settings_);
+    InMemoryHandle handle =
+        ReorderInMemory(std::move(in_memory_ms), channels, settings_.dataColumnName,
+                        settings_.modelColumnName, initial_model_required, settings_);
 
     std::lock_guard<std::mutex> lock(mutex);
     in_memory_handles_[ms_index] = std::move(handle);
@@ -201,40 +186,37 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table,
       if (is_in_memory_data_supplied) {
         Logger::Info << "Finished reordering ms " << ms_index << "\n";
       } else {
-        Logger::Info << "Finished reading " << settings_.filenames[ms_index]
-                     << " [" << ms_index << "]\n";
+        Logger::Info << "Finished reading " << settings_.filenames[ms_index] << " [" << ms_index
+                     << "]\n";
       }
     }
   });
 }
 
-std::vector<MsListItem> MsHelper::InitializeMsList(
-    const ImagingTableEntry& entry) {
+std::vector<MsListItem> MsHelper::InitializeMsList(const ImagingTableEntry& entry) {
   const aocommon::PolarizationEnum polarization =
       settings_.GetProviderPolarization(entry.polarization);
 
   std::vector<MsListItem> ms_list;
 
-  const size_t ms_count = settings_.inMemoryData ? in_memory_handles_.size()
-                                                 : settings_.filenames.size();
+  const size_t ms_count =
+      settings_.inMemoryData ? in_memory_handles_.size() : settings_.filenames.size();
   for (size_t ms_index = 0; ms_index != ms_count; ++ms_index) {
     MsListItem item;
-    aocommon::VectorMap<ChannelRange> channels =
-        GenerateChannelPartInfo(entry, ms_index);
+    aocommon::VectorMap<ChannelRange> channels = GenerateChannelPartInfo(entry, ms_index);
     if (!channels.Empty()) {
       if (settings_.inMemoryData) {
-        item.ms_description = MSDataDescription::ForInMemory(
-            in_memory_handles_[ms_index], entry.part_index_per_ms[ms_index],
-            polarization, settings_.UseMpi());
+        item.ms_description = MSDataDescription::ForInMemory(in_memory_handles_[ms_index],
+                                                             entry.part_index_per_ms[ms_index],
+                                                             polarization, settings_.UseMpi());
       } else if (settings_.doReorder) {
-        item.ms_description = MSDataDescription::ForReordered(
-            reordered_ms_handles_[ms_index], entry.part_index_per_ms[ms_index],
-            polarization, settings_.UseMpi());
+        item.ms_description = MSDataDescription::ForReordered(reordered_ms_handles_[ms_index],
+                                                              entry.part_index_per_ms[ms_index],
+                                                              polarization, settings_.UseMpi());
       } else {
         item.ms_description = MSDataDescription::ForContiguous(
-            settings_.filenames[ms_index], settings_.dataColumnName,
-            settings_.modelColumnName, settings_.sortMsInTime,
-            settings_.modelStorageManager, global_selection_, channels,
+            settings_.filenames[ms_index], settings_.dataColumnName, settings_.modelColumnName,
+            settings_.sortMsInTime, settings_.modelStorageManager, global_selection_, channels,
             polarization, settings_.UseMpi());
       }
       item.ms_index = ms_index;

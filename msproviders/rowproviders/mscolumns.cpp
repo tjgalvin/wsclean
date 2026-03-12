@@ -4,8 +4,7 @@
 
 namespace wsclean {
 
-MsColumns::MsColumns(const casacore::MeasurementSet& ms,
-                     const std::string& data_column_name)
+MsColumns::MsColumns(const casacore::MeasurementSet& ms, const std::string& data_column_name)
     : antenna_1(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA1)),
       antenna_2(ms, casacore::MS::columnName(casacore::MSMainEnums::ANTENNA2)),
       field_id(ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID)),
@@ -14,7 +13,6 @@ MsColumns::MsColumns(const casacore::MeasurementSet& ms,
       uvw(ms, casacore::MS::columnName(casacore::MSMainEnums::UVW)),
       data(ms, data_column_name),
       flag(ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG)),
-      data_description_id(
-          ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID)) {}
+      data_description_id(ms, casacore::MS::columnName(casacore::MSMainEnums::DATA_DESC_ID)) {}
 
 }  // namespace wsclean

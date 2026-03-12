@@ -3,37 +3,31 @@
 
 namespace wsclean {
 
-ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
-    : MSReader(reordered_ms) {
+ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms) : MSReader(reordered_ms) {
   const size_t meta_file_index =
       reordered_ms->handle_.data_->metadata_indices_[reordered_ms->part_index_];
   const std::string meta_filename = schaapcommon::reordering::GetMetaFilename(
-      reordered_ms->handle_.data_->ms_path_,
-      reordered_ms->handle_.data_->temporary_directory_, meta_file_index);
+      reordered_ms->handle_.data_->ms_path_, reordered_ms->handle_.data_->temporary_directory_,
+      meta_file_index);
   meta_file_.open(meta_filename, std::ios::in);
-  std::vector<char> ms_path(reordered_ms->meta_header_.filename_length + 1,
-                            char(0));
+  std::vector<char> ms_path(reordered_ms->meta_header_.filename_length + 1, char(0));
   // meta and data header were read in ReorderedMs constructor
-  meta_file_.seekg(schaapcommon::reordering::MetaHeader::BINARY_SIZE,
-                   std::ios::beg);
+  meta_file_.seekg(schaapcommon::reordering::MetaHeader::BINARY_SIZE, std::ios::beg);
   meta_file_.read(ms_path.data(), reordered_ms->meta_header_.filename_length);
   if (!meta_file_.good())
-    throw std::runtime_error("Error opening temporary metadata file: '" +
-                             meta_filename);
+    throw std::runtime_error("Error opening temporary metadata file: '" + meta_filename);
   const std::string part_prefix = schaapcommon::reordering::GetPartPrefix(
       ms_path.data(), reordered_ms->part_index_, reordered_ms->polarization_,
       reordered_ms->handle_.data_->temporary_directory_);
   data_file_.open(part_prefix + ".tmp", std::ios::in);
   if (!data_file_.good())
-    throw std::runtime_error("Error opening temporary data file in '" +
-                             part_prefix + ".tmp'");
-  data_file_.seekg(schaapcommon::reordering::PartHeader::BINARY_SIZE,
-                   std::ios::beg);
+    throw std::runtime_error("Error opening temporary data file in '" + part_prefix + ".tmp'");
+  data_file_.seekg(schaapcommon::reordering::PartHeader::BINARY_SIZE, std::ios::beg);
 
   weight_file_.open(part_prefix + "-w.tmp", std::ios::in);
   if (!weight_file_.good())
-    throw std::runtime_error("Error opening temporary data weight file '" +
-                             part_prefix + "-w.tmp'");
+    throw std::runtime_error("Error opening temporary data weight file '" + part_prefix +
+                             "-w.tmp'");
 
   const size_t n_max_visibilities =
       reordered_ms->NMaxChannels() * reordered_ms->polarization_count_in_file_;
@@ -46,18 +40,14 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms)
   CacheMeta();
 }
 
-inline uint64_t ReorderedMsReader::NVisibilitiesPerRow(
-    size_t data_desc_id) const {
-  ReorderedMsProvider& reordered_ms =
-      static_cast<ReorderedMsProvider&>(*ms_provider_);
-  const size_t n_channels =
-      reordered_ms.SelectedBands()[data_desc_id].ChannelCount();
+inline uint64_t ReorderedMsReader::NVisibilitiesPerRow(size_t data_desc_id) const {
+  ReorderedMsProvider& reordered_ms = static_cast<ReorderedMsProvider&>(*ms_provider_);
+  const size_t n_channels = reordered_ms.SelectedBands()[data_desc_id].ChannelCount();
   return n_channels * reordered_ms.polarization_count_in_file_;
 }
 
 bool ReorderedMsReader::CurrentRowAvailable() {
-  const ReorderedMsProvider& reordered_ms =
-      static_cast<const ReorderedMsProvider&>(*ms_provider_);
+  const ReorderedMsProvider& reordered_ms = static_cast<const ReorderedMsProvider&>(*ms_provider_);
   return current_input_row_ < reordered_ms.meta_header_.selected_row_count;
 }
 
@@ -69,9 +59,7 @@ void ReorderedMsReader::NextInputRow() {
   CacheMeta();
 }
 
-void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metadata) {
-  metadata = metadata_;
-}
+void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metadata) { metadata = metadata_; }
 
 void ReorderedMsReader::CacheMeta() {
   if (Provider().IsRegular()) {
@@ -110,14 +98,13 @@ void ReorderedMsReader::ReadData(std::complex<float>* buffer) {
 }
 
 void ReorderedMsReader::ReadModel(std::complex<float>* buffer) {
-  ReorderedMsProvider& reordered_ms =
-      static_cast<ReorderedMsProvider&>(*ms_provider_);
+  ReorderedMsProvider& reordered_ms = static_cast<ReorderedMsProvider&>(*ms_provider_);
   assert(reordered_ms.part_header_.has_model);
   const int64_t buffer_size =
       NVisibilitiesPerRow(metadata_.data_desc_id) * sizeof(std::complex<float>);
-  std::copy_n(reordered_ms.model_file_.Data() +
-                  current_value_position_ * sizeof(std::complex<float>),
-              buffer_size, reinterpret_cast<char*>(buffer));
+  std::copy_n(
+      reordered_ms.model_file_.Data() + current_value_position_ * sizeof(std::complex<float>),
+      buffer_size, reinterpret_cast<char*>(buffer));
 }
 
 void ReorderedMsReader::ReadWeights(float* buffer) {
@@ -131,32 +118,27 @@ void ReorderedMsReader::ReadWeights(float* buffer) {
 }
 
 void ReorderedMsReader::WriteImagingWeights(const float* buffer) {
-  ReorderedMsProvider& reordered_ms =
-      static_cast<ReorderedMsProvider&>(*ms_provider_);
+  ReorderedMsProvider& reordered_ms = static_cast<ReorderedMsProvider&>(*ms_provider_);
 
   if (imaging_weights_file_ == nullptr) {
     std::string part_prefix = schaapcommon::reordering::GetPartPrefix(
-        reordered_ms.handle_.data_->ms_path_, reordered_ms.part_index_,
-        reordered_ms.polarization_,
+        reordered_ms.handle_.data_->ms_path_, reordered_ms.part_index_, reordered_ms.polarization_,
         reordered_ms.handle_.data_->temporary_directory_);
-    imaging_weights_file_.reset(
-        new std::fstream(part_prefix + "-imgw.tmp",
-                         std::ios::in | std::ios::out | std::ios::binary));
+    imaging_weights_file_.reset(new std::fstream(part_prefix + "-imgw.tmp",
+                                                 std::ios::in | std::ios::out | std::ios::binary));
   }
   const size_t n_vis = NVisibilitiesPerRow(metadata_.data_desc_id);
   imaging_weight_buffer_.resize(n_vis);
   const size_t chunkSize = n_vis * sizeof(float);
   imaging_weights_file_->seekg(chunkSize * current_input_row_, std::ios::beg);
-  imaging_weights_file_->read(
-      reinterpret_cast<char*>(imaging_weight_buffer_.data()),
-      n_vis * sizeof(float));
+  imaging_weights_file_->read(reinterpret_cast<char*>(imaging_weight_buffer_.data()),
+                              n_vis * sizeof(float));
   for (size_t i = 0; i != n_vis; ++i) {
     if (std::isfinite(buffer[i])) imaging_weight_buffer_[i] = buffer[i];
   }
   imaging_weights_file_->seekp(chunkSize * current_input_row_, std::ios::beg);
-  imaging_weights_file_->write(
-      reinterpret_cast<const char*>(imaging_weight_buffer_.data()),
-      n_vis * sizeof(float));
+  imaging_weights_file_->write(reinterpret_cast<const char*>(imaging_weight_buffer_.data()),
+                               n_vis * sizeof(float));
 }
 
 }  // namespace wsclean

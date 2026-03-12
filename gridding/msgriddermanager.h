@@ -33,13 +33,10 @@ class MSGridderManagerScheduler {
   ~MSGridderManagerScheduler();
   MSGridderManagerScheduler(const MSGridderManagerScheduler&) = delete;
   MSGridderManagerScheduler(MSGridderManagerScheduler&&) = delete;
-  MSGridderManagerScheduler& operator=(const MSGridderManagerScheduler&) =
-      delete;
+  MSGridderManagerScheduler& operator=(const MSGridderManagerScheduler&) = delete;
   MSGridderManagerScheduler& operator=(MSGridderManagerScheduler&&) = delete;
 
-  aocommon::TaskQueue<std::function<void()>>& GetWorkerTaskQueue() {
-    return worker_task_queue_;
-  }
+  aocommon::TaskQueue<std::function<void()>>& GetWorkerTaskQueue() { return worker_task_queue_; }
   aocommon::OverlappingTaskProcessor& GetOverlappingTaskProcessor() {
     return overlapping_task_processor_;
   }
@@ -47,10 +44,9 @@ class MSGridderManagerScheduler {
  private:
   // Create desired number of threads and set them up to read/call tasks from a
   // task queue.
-  void InitializeThreadPoolForTaskQueue(
-      std::vector<std::thread>& thread_pool_,
-      aocommon::TaskQueue<std::function<void()>>& task_queue_,
-      size_t n_threads);
+  void InitializeThreadPoolForTaskQueue(std::vector<std::thread>& thread_pool_,
+                                        aocommon::TaskQueue<std::function<void()>>& task_queue_,
+                                        size_t n_threads);
   std::vector<std::thread> worker_thread_pool_;
   std::vector<std::thread> scheduler_thread_pool_;
   aocommon::TaskQueue<std::function<void()>> scheduler_task_queue_;
@@ -88,8 +84,7 @@ class MSGridderManagerScheduler {
  */
 class MSGridderManager {
  public:
-  MSGridderManager(const Settings& settings,
-                   const H5SolutionData& solution_data,
+  MSGridderManager(const Settings& settings, const H5SolutionData& solution_data,
                    MSGridderManagerScheduler* scheduler = nullptr)
       : settings_(settings),
         solution_data_(solution_data),
@@ -103,8 +98,7 @@ class MSGridderManager {
 
   void InitializeMS(GriddingTask& task);
 
-  void InitializeGridders(GriddingTask& task,
-                          const std::vector<size_t>& facet_indices,
+  void InitializeGridders(GriddingTask& task, const std::vector<size_t>& facet_indices,
                           const Resources& resources,
                           std::vector<GriddingResult::FacetData>& facet_results,
                           GriddingTaskManager* writer_lock_manager);
@@ -112,8 +106,7 @@ class MSGridderManager {
   void BatchInvert(std::function<void()> signal_last_gridding_work_has_started);
   void Predict();
   void BatchPredict(std::function<void()> signal_last_predict_work_has_started);
-  void ProcessResults(std::mutex& result_mutex, GriddingResult& result,
-                      bool store_common_info);
+  void ProcessResults(std::mutex& result_mutex, GriddingResult& result, bool store_common_info);
 
  private:
   /** Call `operation()` once per gridder, for all gridders, running as many as
@@ -180,10 +173,9 @@ class MSGridderManager {
    * code that the last gridder has started performing its operation.
    */
   template <typename T>
-  void ExecuteForAllGriddersWithNCores(
-      size_t n_cores_per_gridder, T&& operation,
-      std::function<void()>&& signal_first_operation_started = {},
-      std::function<void()>&& signal_last_operation_started = {});
+  void ExecuteForAllGriddersWithNCores(size_t n_cores_per_gridder, T&& operation,
+                                       std::function<void()>&& signal_first_operation_started = {},
+                                       std::function<void()>&& signal_last_operation_started = {});
 
   /**
    * Pointers to data buffers that are required by @ref ReadChunkForInvert to
@@ -209,17 +201,16 @@ class MSGridderManager {
    *   time_offsets: `0`
    */
   struct InversionChunkData {
-    InversionChunkData(size_t n_rows, size_t n_channels,
-                       size_t n_vis_polarisations, bool apply_corrections)
+    InversionChunkData(size_t n_rows, size_t n_channels, size_t n_vis_polarisations,
+                       bool apply_corrections)
         : antennas(apply_corrections ? n_rows : 0), uvw(n_rows * 3) {
       // If we don't apply corrections then we collapse the visibilities when
       // storing them to save memory. In order to be able to collapse the
       // already copied data in place we have to slightly overallocate the
       // buffer by one uncollapsed row.
       const size_t visibility_size =
-          apply_corrections
-              ? (n_rows * (n_channels * n_vis_polarisations))
-              : ((n_rows * n_channels) + (n_channels * n_vis_polarisations));
+          apply_corrections ? (n_rows * (n_channels * n_vis_polarisations))
+                            : ((n_rows * n_channels) + (n_channels * n_vis_polarisations));
       visibilities = aocommon::UVector<std::complex<float>>(visibility_size);
     }
     InversionChunkData() = default;
@@ -275,8 +266,7 @@ class MSGridderManager {
   struct BatchRowData {
     BatchRowData(size_t n_rows, size_t n_row_size)
         : metadata_(n_rows),
-          visibilities(n_rows,
-                       aocommon::UVector<std::complex<float>>(n_row_size)),
+          visibilities(n_rows, aocommon::UVector<std::complex<float>>(n_row_size)),
           weights(n_rows, aocommon::UVector<float>(n_row_size)),
           model(n_rows, aocommon::UVector<std::complex<float>>(n_row_size)) {}
     BatchRowData() = default;
@@ -308,50 +298,48 @@ class MSGridderManager {
    */
   size_t ReadChunkForInvert(GainMode gain_mode, bool apply_corrections,
                             const std::vector<MsGridder*>& gridders,
-                            MsProviderCollection::MsData& ms_data,
-                            size_t n_chunk_rows, MSReader& ms_reader,
-                            const bool* selected_buffer,
-                            InversionChunkData& chunk_data,
-                            MsGridderData& shared_data);
+                            MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
+                            MSReader& ms_reader, const bool* selected_buffer,
+                            InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode>
   size_t ReadChunkForInvertImplementation(
-      size_t n_parms, bool apply_corrections,
-      const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const bool* selected_buffer,
-      InversionChunkData& chunk_data, MsGridderData& shared_data);
+      size_t n_parms, bool apply_corrections, const std::vector<MsGridder*>& gridders,
+      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows, MSReader& ms_reader,
+      const bool* selected_buffer, InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms>
   size_t ReadChunkForInvertImplementation(
       bool apply_corrections, const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const bool* selected_buffer,
-      InversionChunkData& chunk_data, MsGridderData& shared_data);
+      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows, MSReader& ms_reader,
+      const bool* selected_buffer, InversionChunkData& chunk_data, MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms, bool ApplyCorrections>
-  size_t ReadChunkForInvertImplementation(
-      const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const bool* selected_buffer,
-      InversionChunkData& chunk_data, MsGridderData& shared_data);
+  size_t ReadChunkForInvertImplementation(const std::vector<MsGridder*>& gridders,
+                                          MsProviderCollection::MsData& ms_data,
+                                          size_t n_chunk_rows, MSReader& ms_reader,
+                                          const bool* selected_buffer,
+                                          InversionChunkData& chunk_data,
+                                          MsGridderData& shared_data);
   template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam>
-  size_t ReadChunkForInvertImplementation(
-      const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const bool* selected_buffer,
-      InversionChunkData& chunk_data, MsGridderData& shared_data);
-  template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam,
-            bool ApplyForward>
-  size_t ReadChunkForInvertImplementation(
-      const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const bool* selected_buffer,
-      InversionChunkData& chunk_data, MsGridderData& shared_data);
-  template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam,
-            bool ApplyForward, bool HasH5Parm>
-  size_t ReadChunkForInvertImplementation(
-      const std::vector<MsGridder*>& gridders,
-      MsProviderCollection::MsData& ms_data, size_t n_chunk_rows,
-      MSReader& ms_reader, const bool* selected_buffer,
-      InversionChunkData& chunk_data, MsGridderData& shared_data);
+  size_t ReadChunkForInvertImplementation(const std::vector<MsGridder*>& gridders,
+                                          MsProviderCollection::MsData& ms_data,
+                                          size_t n_chunk_rows, MSReader& ms_reader,
+                                          const bool* selected_buffer,
+                                          InversionChunkData& chunk_data,
+                                          MsGridderData& shared_data);
+  template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam, bool ApplyForward>
+  size_t ReadChunkForInvertImplementation(const std::vector<MsGridder*>& gridders,
+                                          MsProviderCollection::MsData& ms_data,
+                                          size_t n_chunk_rows, MSReader& ms_reader,
+                                          const bool* selected_buffer,
+                                          InversionChunkData& chunk_data,
+                                          MsGridderData& shared_data);
+  template <GainMode Mode, size_t NParms, bool ApplyCorrections, bool ApplyBeam, bool ApplyForward,
+            bool HasH5Parm>
+  size_t ReadChunkForInvertImplementation(const std::vector<MsGridder*>& gridders,
+                                          MsProviderCollection::MsData& ms_data,
+                                          size_t n_chunk_rows, MSReader& ms_reader,
+                                          const bool* selected_buffer,
+                                          InversionChunkData& chunk_data,
+                                          MsGridderData& shared_data);
 
   /**
    * Read and compute data from an @ref MSReader into a single @ref
@@ -362,10 +350,8 @@ class MSGridderManager {
    */
   void ReadChunksForInvert(aocommon::Lane<InversionChunkData>& task_lane,
                            size_t n_max_rows_in_memory, bool apply_corrections,
-                           MsProviderCollection::MsData& ms_data,
-                           MsGridderData& shared_data,
-                           const std::vector<MsGridder*>& gridders,
-                           size_t n_vis_polarizations,
+                           MsProviderCollection::MsData& ms_data, MsGridderData& shared_data,
+                           const std::vector<MsGridder*>& gridders, size_t n_vis_polarizations,
                            const bool* selected_buffer, size_t& n_total_chunks);
 
   /**
@@ -374,11 +360,9 @@ class MSGridderManager {
    * @return The number of rows processed.
    */
   size_t GridChunk(bool apply_corrections, size_t n_vis_polarizations,
-                   const aocommon::MultiBandData& bands,
-                   const InversionChunkData& chunk_data,
+                   const aocommon::MultiBandData& bands, const InversionChunkData& chunk_data,
                    const aocommon::UVector<double>& frequencies,
-                   const MsProviderCollection::MsData& ms_data,
-                   size_t chunk_index,
+                   const MsProviderCollection::MsData& ms_data, size_t chunk_index,
                    std::function<void()> signal_first_gridder_has_started,
                    std::function<void()> signal_last_gridder_has_started);
 
@@ -386,26 +370,22 @@ class MSGridderManager {
    * Perform gridding on a single block of data stored in @ref
    * InversionChunkData, for a single gridder/facet.
    */
-  void GridChunkForFacet(MsGridder& gridder, size_t facet_index,
-                         bool apply_corrections, size_t n_vis_polarizations,
-                         const aocommon::BandData& band, size_t data_desc_id,
-                         const InversionChunkData& chunk_data,
+  void GridChunkForFacet(MsGridder& gridder, size_t facet_index, bool apply_corrections,
+                         size_t n_vis_polarizations, const aocommon::BandData& band,
+                         size_t data_desc_id, const InversionChunkData& chunk_data,
                          const aocommon::UVector<double>& frequencies,
-                         const MsProviderCollection::MsData& ms_data,
-                         size_t chunk_index);
+                         const MsProviderCollection::MsData& ms_data, size_t chunk_index);
 
   /**
    * Perform gridding on chunks of @ref InversionChunkData by calling @ref
    * GridChunk() sequentailly on each chunk, as they become available in the
    * task_lane, until all chunks have been processed.
    */
-  void GridChunks(
-      aocommon::Lane<InversionChunkData>& task_lane, bool apply_corrections,
-      const aocommon::UVector<double>& frequencies,
-      const aocommon::MultiBandData& bands,
-      MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations,
-      const size_t& n_chunks,
-      std::function<void()> signal_last_gridder_of_last_chunk_has_started);
+  void GridChunks(aocommon::Lane<InversionChunkData>& task_lane, bool apply_corrections,
+                  const aocommon::UVector<double>& frequencies,
+                  const aocommon::MultiBandData& bands, MsProviderCollection::MsData& ms_data,
+                  size_t n_vis_polarizations, const size_t& n_chunks,
+                  std::function<void()> signal_last_gridder_of_last_chunk_has_started);
 
   /**
    * Read data from an @ref MSReader into a single @ref PredictionChunkData at a
@@ -413,20 +393,18 @@ class MSGridderManager {
    * processing and then continue reading a new @ref PredictionChunkData until
    * all data has been consumed.
    */
-  void ReadChunksForPredict(
-      aocommon::Lane<PredictionChunkData>& task_lane,
-      size_t n_max_rows_in_memory, MsProviderCollection::MsData& ms_data,
-      MsGridderData& shared_data, const std::vector<MsGridder*>& gridders,
-      const aocommon::BandData band, size_t n_vis_polarizations,
-      const bool* selected_buffer, size_t& n_total_chunks);
+  void ReadChunksForPredict(aocommon::Lane<PredictionChunkData>& task_lane,
+                            size_t n_max_rows_in_memory, MsProviderCollection::MsData& ms_data,
+                            MsGridderData& shared_data, const std::vector<MsGridder*>& gridders,
+                            const aocommon::BandData band, size_t n_vis_polarizations,
+                            const bool* selected_buffer, size_t& n_total_chunks);
 
   /**
    * Perform predict on a single block of data stored in @ref
    * PredictionChunkData, for all gridders/facets
    */
-  size_t PredictChunk(const PredictionChunkData& chunk_data,
-                      size_t n_vis_polarizations, size_t n_antennas,
-                      std::vector<std::complex<float>>& combined_visibilities,
+  size_t PredictChunk(const PredictionChunkData& chunk_data, size_t n_vis_polarizations,
+                      size_t n_antennas, std::vector<std::complex<float>>& combined_visibilities,
                       const aocommon::UVector<double>& frequencies,
                       MsProviderCollection::MsData& ms_data,
                       std::function<void()> signal_first_predict_has_started,
@@ -436,27 +414,25 @@ class MSGridderManager {
    * Perform predict on a single block of data stored in @ref
    * PredictionChunkData, for a single gridder/facet.
    */
-  void PredictChunkForFacet(
-      MsGridder& gridder, size_t facet_index,
-      const PredictionChunkData& chunk_data, size_t n_vis_polarizations,
-      size_t n_antennas,
-      std::vector<std::complex<float>>& combined_visibilities,
-      const aocommon::UVector<double>& frequencies,
-      MsProviderCollection::MsData& ms_data,
-      std::vector<std::mutex>& sum_visibilities_mutexes,
-      size_t mutex_chunk_size);
+  void PredictChunkForFacet(MsGridder& gridder, size_t facet_index,
+                            const PredictionChunkData& chunk_data, size_t n_vis_polarizations,
+                            size_t n_antennas,
+                            std::vector<std::complex<float>>& combined_visibilities,
+                            const aocommon::UVector<double>& frequencies,
+                            MsProviderCollection::MsData& ms_data,
+                            std::vector<std::mutex>& sum_visibilities_mutexes,
+                            size_t mutex_chunk_size);
 
   /**
    * Perform predict on chunks of @ref PredictionChunkData by calling @ref
    * PredictChunk() sequentially on each chunk, as they become available in the
    * task_lane, until all chunks have been processed.
    */
-  void PredictChunks(
-      aocommon::Lane<PredictionChunkData>& task_lane,
-      const aocommon::UVector<double>& frequencies,
-      MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations,
-      bool add_assign_model, const size_t& n_total_chunks,
-      std::function<void()> signal_last_predict_of_last_chunk_has_started);
+  void PredictChunks(aocommon::Lane<PredictionChunkData>& task_lane,
+                     const aocommon::UVector<double>& frequencies,
+                     MsProviderCollection::MsData& ms_data, size_t n_vis_polarizations,
+                     bool add_assign_model, const size_t& n_total_chunks,
+                     std::function<void()> signal_last_predict_of_last_chunk_has_started);
 
   std::unique_ptr<MsGridder> ConstructGridder(const Resources& resources);
   struct GriddingFacetTask {
@@ -472,8 +448,7 @@ class MSGridderManager {
     for (auto& [gridder, facet_task, facet_result] : facet_tasks_) {
       gridders.push_back(gridder.get());
     }
-    ms_provider_collection_.InitializeMSDataVector(gridders, w_limit_,
-                                                   solution_data_.HasData());
+    ms_provider_collection_.InitializeMSDataVector(gridders, w_limit_, solution_data_.HasData());
   }
 
   /** Initializes 'gridder' with values that are equal for all facets. */
@@ -497,13 +472,11 @@ class MSGridderManager {
 };
 
 template <typename T>
-void MSGridderManager::ExecuteForAllGridders(T&& operation,
-                                             bool wait_for_idle) {
+void MSGridderManager::ExecuteForAllGridders(T&& operation, bool wait_for_idle) {
   for (GriddingFacetTask& task : facet_tasks_) {
     MsGridder* gridder = task.facet_gridder.get();
     if constexpr (std::is_invocable<T, MsGridder*, GriddingFacetTask&>::value) {
-      scheduler_->GetWorkerTaskQueue().Emplace(
-          [=, &task]() { operation(gridder, task); });
+      scheduler_->GetWorkerTaskQueue().Emplace([=, &task]() { operation(gridder, task); });
     } else {
       scheduler_->GetWorkerTaskQueue().Emplace([=]() { operation(gridder); });
     }
@@ -539,15 +512,13 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
     // Task must consume N threads.
     // Pause N-1 threads so that they are unavailable to the pool.
     // Only once we have done so are we allowed to run the task.
-    std::shared_ptr<CompletionSignal> signal =
-        std::make_shared<CompletionSignal>();
+    std::shared_ptr<CompletionSignal> signal = std::make_shared<CompletionSignal>();
     signals.push_back(signal);
 
     // Queue "blocker" tasks to consume extra task slots.
     for (size_t i = 0; i < n_cores_per_gridder - 1; ++i) {
       // Consume 1 thread from the pool until completion is signalled.
-      scheduler_->GetWorkerTaskQueue().Emplace(
-          [=]() { signal->WaitForCompletion(); });
+      scheduler_->GetWorkerTaskQueue().Emplace([=]() { signal->WaitForCompletion(); });
     }
     // Queue task to perform the operation.
     const size_t index = task.facet_task->index;
@@ -565,8 +536,7 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
   // gives the scheduler an opportunity to schedule additional work on our queue
   // to make use of the otherwise idle threading resources.
   if (signal_last_operation_started) {
-    std::shared_ptr<CompletionSignal> signal =
-        std::make_shared<CompletionSignal>();
+    std::shared_ptr<CompletionSignal> signal = std::make_shared<CompletionSignal>();
     signals.push_back(signal);
     scheduler_->GetWorkerTaskQueue().Emplace([=]() {
       signal_last_operation_started();

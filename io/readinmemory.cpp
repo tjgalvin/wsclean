@@ -22,11 +22,9 @@ void SetFlagsToZero(std::span<float> values, std::span<const bool> flags) {
 void ReadMsMetaData(casacore::MeasurementSet& ms, InMemoryMs& result,
                     const MSSelection& selection) {
   result.antenna_names = wsclean::GetAntennaNames(ms.antenna());
-  result.bands =
-      aocommon::MultiBandData(ms.spectralWindow(), ms.dataDescription());
+  result.bands = aocommon::MultiBandData(ms.spectralWindow(), ms.dataDescription());
 
-  const ObservationInfo info =
-      ReadObservationInfo(ms, selection.FieldIds().front());
+  const ObservationInfo info = ReadObservationInfo(ms, selection.FieldIds().front());
   result.field_name = info.fieldName;
   result.observer = info.observer;
   result.phase_centre_dec = info.phaseCentreDec;
@@ -40,8 +38,7 @@ void ReadMsMetaData(casacore::MeasurementSet& ms, InMemoryMs& result,
   result.has_time_bda = false;
 
   casacore::ScalarColumn<double> time_column(ms, ms.columnName(ms.TIME));
-  casacore::ScalarColumn<double> interval_column(ms,
-                                                 ms.columnName(ms.INTERVAL));
+  casacore::ScalarColumn<double> interval_column(ms, ms.columnName(ms.INTERVAL));
   if (ms.nrow() == 0) {
     result.start_time = 0.0;
     result.interval = 0.0;
@@ -51,18 +48,16 @@ void ReadMsMetaData(casacore::MeasurementSet& ms, InMemoryMs& result,
   }
 }
 
-std::vector<InMemoryRow> ReadMsRows(
-    casacore::MeasurementSet& ms, const std::string& data_column_name,
-    const schaapcommon::reordering::MSSelection& selection) {
+std::vector<InMemoryRow> ReadMsRows(casacore::MeasurementSet& ms,
+                                    const std::string& data_column_name,
+                                    const schaapcommon::reordering::MSSelection& selection) {
   casacore::ArrayColumn<std::complex<float>> data_column(ms, data_column_name);
   casacore::ArrayColumn<bool> flag_column(ms, ms.columnName(ms.FLAG));
-  casacore::ArrayColumn<float> weight_column(ms,
-                                             ms.columnName(ms.WEIGHT_SPECTRUM));
+  casacore::ArrayColumn<float> weight_column(ms, ms.columnName(ms.WEIGHT_SPECTRUM));
 
   casacore::ScalarColumn<int> antenna1_column(ms, ms.columnName(ms.ANTENNA1));
   casacore::ScalarColumn<int> antenna2_column(ms, ms.columnName(ms.ANTENNA1));
-  casacore::ScalarColumn<int> data_desc_id_column(
-      ms, ms.columnName(ms.DATA_DESC_ID));
+  casacore::ScalarColumn<int> data_desc_id_column(ms, ms.columnName(ms.DATA_DESC_ID));
   casacore::ScalarColumn<int> field_id_column(ms, ms.columnName(ms.FIELD_ID));
   casacore::ScalarColumn<double> time_column(ms, ms.columnName(ms.TIME));
   casacore::ArrayColumn<double> uvw_column(ms, ms.columnName(ms.UVW));
@@ -93,8 +88,7 @@ std::vector<InMemoryRow> ReadMsRows(
       if (require_time_ordering && time > next_time) ThrowTimeOrderException();
       time = next_time;
     }
-    if (selection.IsSelected(field_id, timestep, antenna1, antenna2,
-                             uvw.data())) {
+    if (selection.IsSelected(field_id, timestep, antenna1, antenna2, uvw.data())) {
       data_column.get(row_index, data_array, true);
       weight_column.get(row_index, weight_array, true);
       flag_column.get(row_index, flag_array, true);
@@ -102,8 +96,7 @@ std::vector<InMemoryRow> ReadMsRows(
       InMemoryRow& row = in_memory_rows.emplace_back();
       row.data.assign(data_array.cbegin(), data_array.cend());
       row.weights.assign(weight_array.cbegin(), weight_array.cend());
-      SetFlagsToZero(row.weights,
-                     std::span(flag_array.cbegin(), flag_array.cend()));
+      SetFlagsToZero(row.weights, std::span(flag_array.cbegin(), flag_array.cend()));
 
       row.antenna1 = antenna1;
       row.antenna2 = antenna2;
@@ -119,9 +112,9 @@ std::vector<InMemoryRow> ReadMsRows(
 
 }  // namespace
 
-InMemoryMs ReadMsInMemory(
-    const std::string& measurement_set, const std::string& data_column_name,
-    const schaapcommon::reordering::MSSelection& selection, bool sort_in_time) {
+InMemoryMs ReadMsInMemory(const std::string& measurement_set, const std::string& data_column_name,
+                          const schaapcommon::reordering::MSSelection& selection,
+                          bool sort_in_time) {
   casacore::MeasurementSet ms(measurement_set);
   if (sort_in_time) {
     aocommon::Logger::Debug << "Sorting measurement set...\n";
@@ -137,8 +130,7 @@ InMemoryMs ReadMsInMemory(
   return result;
 }
 
-void ApplyRowSelectionToMs(
-    InMemoryMs& ms, const schaapcommon::reordering::MSSelection& selection) {
+void ApplyRowSelectionToMs(InMemoryMs& ms, const schaapcommon::reordering::MSSelection& selection) {
   if (ms.rows.empty() || selection.IsUnset()) return;
 
   const bool require_time_ordering = selection.HasInterval();
@@ -155,8 +147,7 @@ void ApplyRowSelectionToMs(
       if (require_time_ordering && time > row.time) ThrowTimeOrderException();
       time = row.time;
     }
-    if (selection.IsSelected(row.field_id, timestep, row.antenna1, row.antenna2,
-                             row.uvw.data())) {
+    if (selection.IsSelected(row.field_id, timestep, row.antenna1, row.antenna2, row.uvw.data())) {
       selected_rows.emplace_back(std::move(row));
     }
   }

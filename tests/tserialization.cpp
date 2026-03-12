@@ -33,8 +33,7 @@ BOOST_AUTO_TEST_CASE(empty_gridding_task) {
 }
 
 BOOST_AUTO_TEST_CASE(image_weights) {
-  ImageWeights weightsA(WeightMode::Briggs(0.5), 1024, 2048, 0.01, 0.01, false,
-                        1.0);
+  ImageWeights weightsA(WeightMode::Briggs(0.5), 1024, 2048, 0.01, 0.01, false, 1.0);
   weightsA.SetAllValues(3.14);
 
   SerialOStream ostr;
@@ -52,8 +51,7 @@ BOOST_AUTO_TEST_CASE(image_weights) {
       gridB(weightsB.Width() * weightsB.Height());
   weightsA.GetGrid(gridA.data());
   weightsB.GetGrid(gridB.data());
-  BOOST_CHECK_EQUAL_COLLECTIONS(gridA.begin(), gridA.end(), gridB.begin(),
-                                gridB.end());
+  BOOST_CHECK_EQUAL_COLLECTIONS(gridA.begin(), gridA.end(), gridB.begin(), gridB.end());
 }
 
 BOOST_AUTO_TEST_CASE(msselection) {
@@ -73,8 +71,8 @@ BOOST_AUTO_TEST_CASE(msselection) {
   MSSelection b;
   SerialIStream istr(std::move(ostr));
   b.Unserialize(istr);
-  BOOST_CHECK_EQUAL_COLLECTIONS(a.FieldIds().begin(), a.FieldIds().end(),
-                                b.FieldIds().begin(), b.FieldIds().end());
+  BOOST_CHECK_EQUAL_COLLECTIONS(a.FieldIds().begin(), a.FieldIds().end(), b.FieldIds().begin(),
+                                b.FieldIds().end());
   BOOST_CHECK_EQUAL(a.BandId(), b.BandId());
   BOOST_CHECK_EQUAL(a.ChannelRangeStart(), b.ChannelRangeStart());
   BOOST_CHECK_EQUAL(a.ChannelRangeEnd(), b.ChannelRangeEnd());

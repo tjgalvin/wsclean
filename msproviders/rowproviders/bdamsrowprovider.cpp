@@ -9,19 +9,16 @@ using schaapcommon::reordering::MSSelection;
 namespace wsclean {
 
 static std::optional<casacore::ArrayColumn<casacore::Complex>> GetModel(
-    const casacore::MeasurementSet& ms, const std::string& model_column_name,
-    bool require_model) {
-  if (require_model)
-    return casacore::ArrayColumn<casacore::Complex>(ms, model_column_name);
+    const casacore::MeasurementSet& ms, const std::string& model_column_name, bool require_model) {
+  if (require_model) return casacore::ArrayColumn<casacore::Complex>(ms, model_column_name);
 
   return {};
 }
 
-BdaMsRowProvider::BdaMsRowProvider(
-    const casacore::MeasurementSet& ms, const MSSelection& selection,
-    const std::map<size_t, size_t>& selected_data_description_ids,
-    const std::string& data_column_name, const std::string& model_column_name,
-    bool require_model)
+BdaMsRowProvider::BdaMsRowProvider(const casacore::MeasurementSet& ms, const MSSelection& selection,
+                                   const std::map<size_t, size_t>& selected_data_description_ids,
+                                   const std::string& data_column_name,
+                                   const std::string& model_column_name, bool require_model)
     : MsRowProviderBase(ms, selection, data_column_name, model_column_name),
       selected_data_description_ids_(selected_data_description_ids),
       weight_(Ms()),
@@ -29,10 +26,8 @@ BdaMsRowProvider::BdaMsRowProvider(
       current_row_(BeginRow()),
       last_read_data_(Columns().time(BeginRow())),
       max_bda_interval_(GetBdaMaxTimeInterval(Ms())) {
-  if (Selection().HasInterval() ||
-      Selection().EvenOrOddTimesteps() != MSSelection::kAllTimesteps)
-    throw std::runtime_error(
-        "An interval selection isn't supported for a BDA measurement set.");
+  if (Selection().HasInterval() || Selection().EvenOrOddTimesteps() != MSSelection::kAllTimesteps)
+    throw std::runtime_error("An interval selection isn't supported for a BDA measurement set.");
 
   // Initializes last_read_data_.
   if (current_row_ != EndRow() && !LoadCurrentRow()) {
@@ -45,8 +40,7 @@ BdaMsRowProvider::BdaMsRowProvider(
   }
 
   if (AtEnd())
-    throw std::runtime_error(
-        "The measurement set contains no data for the current selection.");
+    throw std::runtime_error("The measurement set contains no data for the current selection.");
 }
 
 inline double BdaMsRowProvider::TimeSpanInQueue() const {
@@ -68,11 +62,10 @@ void BdaMsRowProvider::MoveToNextSelectedRow() {
   } while (current_row_ != EndRow() && !LoadCurrentRow());
 }
 
-void BdaMsRowProvider::ReadData(DataArray& data, FlagArray& flags,
-                                WeightArray& weights, double& u, double& v,
-                                double& w, uint32_t& data_description_id,
-                                uint32_t& antenna_1, uint32_t& antenna_2,
-                                uint32_t& field_id, double& time) {
+void BdaMsRowProvider::ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u,
+                                double& v, double& w, uint32_t& data_description_id,
+                                uint32_t& antenna_1, uint32_t& antenna_2, uint32_t& field_id,
+                                double& time) {
   assert(!queue_.empty());
   const Data& row_data = queue_.top();
   u = row_data.uvw[0];
@@ -100,8 +93,7 @@ bool BdaMsRowProvider::LoadCurrentRow() {
   last_read_data_.antenna_1 = columns.antenna_1(current_row_);
   last_read_data_.antenna_2 = columns.antenna_2(current_row_);
   last_read_data_.field_id = columns.field_id(current_row_);
-  last_read_data_.data_description_id =
-      columns.data_description_id(current_row_);
+  last_read_data_.data_description_id = columns.data_description_id(current_row_);
   last_read_data_.time = columns.time(current_row_);
   columns.uvw.get(current_row_, uvw_);
   last_read_data_.uvw[0] = uvw_(0);
@@ -117,8 +109,8 @@ bool BdaMsRowProvider::IsRowSelected(const Data& data) const {
     return false;
   }
 
-  return Selection().IsSelected(data.field_id, /*timestep=*/-1, data.antenna_1,
-                                data.antenna_2, data.uvw.data());
+  return Selection().IsSelected(data.field_id, /*timestep=*/-1, data.antenna_1, data.antenna_2,
+                                data.uvw.data());
 }
 
 }  // namespace wsclean

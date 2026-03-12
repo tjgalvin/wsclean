@@ -9,8 +9,7 @@ namespace wsclean {
 
 class InMemoryProvider final : public MSProvider {
  public:
-  InMemoryProvider(InMemoryPart& data)
-      : data_(data), output_iterator_(data_.rows.begin()) {}
+  InMemoryProvider(InMemoryPart& data) : data_(data), output_iterator_(data_.rows.begin()) {}
 
   std::string PartDescription() const final { return data_.description; }
 
@@ -51,17 +50,11 @@ class InMemoryProvider final : public MSProvider {
 
   double Interval() final { return data_.info->interval; }
 
-  ObservationInfo GetObservationInfo() final {
-    return data_.info->observation_info;
-  }
+  ObservationInfo GetObservationInfo() final { return data_.info->observation_info; }
 
-  std::vector<std::string> GetAntennaNames() final {
-    return data_.info->antenna_names;
-  }
+  std::vector<std::string> GetAntennaNames() final { return data_.info->antenna_names; }
 
-  const aocommon::MultiBandData& SelectedBands() final {
-    return data_.selected_bands;
-  }
+  const aocommon::MultiBandData& SelectedBands() final { return data_.selected_bands; }
 
   std::unique_ptr<MSReader> MakeReader() final;
 

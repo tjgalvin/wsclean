@@ -14,13 +14,11 @@ namespace wsclean {
 
 class IdgConfiguration {
  public:
-  static void Read(idg::api::Type& proxyType, int& bufferSize,
-                   idg::api::options_type& options) {
+  static void Read(idg::api::Type& proxyType, int& bufferSize, idg::api::options_type& options) {
     namespace po = boost::program_options;
     po::options_description desc("Options");
-    desc.add_options()("proxy", "idg proxy")(
-        "max_nr_w_layers", po::value<int>(), "")("buffersize", po::value<int>(),
-                                                 "");
+    desc.add_options()("proxy", "idg proxy")("max_nr_w_layers", po::value<int>(), "")(
+        "buffersize", po::value<int>(), "");
 
     po::variables_map vm;
     aocommon::Logger::Debug << "trying to open config file\n";

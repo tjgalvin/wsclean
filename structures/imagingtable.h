@@ -59,8 +59,7 @@ class ImagingTable {
 
   ImagingTable() = default;
 
-  ImagingTable(const ImagingTable& other,
-               std::function<bool(const ImagingTableEntry&)> isSelected);
+  ImagingTable(const ImagingTable& other, std::function<bool(const ImagingTableEntry&)> isSelected);
 
   explicit ImagingTable(const Group& entries);
 
@@ -72,9 +71,7 @@ class ImagingTable {
 
   size_t SquaredGroupCount() const { return _squaredGroups.size(); }
 
-  ImagingTable GetSquaredGroup(size_t index) const {
-    return ImagingTable(_squaredGroups[index]);
-  }
+  ImagingTable GetSquaredGroup(size_t index) const { return ImagingTable(_squaredGroups[index]); }
 
   const Groups& SquaredGroups() const { return _squaredGroups; }
 
@@ -91,28 +88,21 @@ class ImagingTable {
    * function omits direction dependent PSF entries from the result.
    */
   Groups FacetGroups(std::function<bool(const ImagingTableEntry&)> is_selected =
-                         [](const ImagingTableEntry& e) {
-                           return !e.isDdPsf;
-                         }) const {
-    return CreateGroups(
-        [](const ImagingTableEntry& e) { return e.facetGroupIndex; },
-        std::move(is_selected));
+                         [](const ImagingTableEntry& e) { return !e.isDdPsf; }) const {
+    return CreateGroups([](const ImagingTableEntry& e) { return e.facetGroupIndex; },
+                        std::move(is_selected));
   }
 
   size_t FacetCount() const { return _facets.size(); }
 
-  ImagingTable GetFacet(size_t index) const {
-    return ImagingTable(_facets[index]);
-  }
+  ImagingTable GetFacet(size_t index) const { return ImagingTable(_facets[index]); }
 
   const Groups& Facets() const { return _facets; }
 
   size_t EntryCount() const { return _entries.size(); }
 
   ImagingTableEntry& operator[](size_t index) { return *_entries[index]; }
-  const ImagingTableEntry& operator[](size_t index) const {
-    return *_entries[index];
-  }
+  const ImagingTableEntry& operator[](size_t index) const { return *_entries[index]; }
 
   const EntryIterator begin() const { return EntryIterator(_entries.begin()); }
   EntryIterator begin() { return EntryIterator(_entries.begin()); }
@@ -133,13 +123,12 @@ class ImagingTable {
   }
 
   void Update() {
-    _independentGroups = CreateGroups(
-        [](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
-    _facets =
-        CreateGroups([](const ImagingTableEntry& e) { return e.facetIndex; },
-                     [](const ImagingTableEntry& e) { return !e.isDdPsf; });
-    _squaredGroups = CreateGroups(
-        [](const ImagingTableEntry& e) { return e.squaredDeconvolutionIndex; });
+    _independentGroups =
+        CreateGroups([](const ImagingTableEntry& e) { return e.joinedGroupIndex; });
+    _facets = CreateGroups([](const ImagingTableEntry& e) { return e.facetIndex; },
+                           [](const ImagingTableEntry& e) { return !e.isDdPsf; });
+    _squaredGroups =
+        CreateGroups([](const ImagingTableEntry& e) { return e.squaredDeconvolutionIndex; });
   }
 
   void Print() const;
@@ -154,16 +143,17 @@ class ImagingTable {
   void AssignGridDataFromPolarization(aocommon::PolarizationEnum polarization);
 
   std::unique_ptr<radler::WorkTable> CreateDeconvolutionTable(
-      int n_deconvolution_channels, CachedImageSet& psf_images,
-      CachedImageSet& model_images, CachedImageSet& residual_images) const;
+      int n_deconvolution_channels, CachedImageSet& psf_images, CachedImageSet& model_images,
+      CachedImageSet& residual_images) const;
 
  private:
   static void PrintEntry(const ImagingTableEntry& entry);
 
   Groups CreateGroups(
       std::function<size_t(const ImagingTableEntry&)> getIndex,
-      std::function<bool(const ImagingTableEntry&)> isSelected =
-          [](const ImagingTableEntry&) { return true; }) const;
+      std::function<bool(const ImagingTableEntry&)> isSelected = [](const ImagingTableEntry&) {
+        return true;
+      }) const;
 
   Group _entries;
 

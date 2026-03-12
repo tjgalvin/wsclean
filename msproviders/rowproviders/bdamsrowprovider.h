@@ -15,37 +15,30 @@ class BdaMsRowProvider final : public MsRowProviderBase {
   /** The table name for the BDA factors. */
   static inline const std::string kBdaFactorsTable = "BDA_FACTORS";
   static inline const std::string kBdaTimeAxisTable = "BDA_TIME_AXIS";
-  static inline const std::string kBdaMaxTimeIntervalColumn =
-      "MAX_TIME_INTERVAL";
+  static inline const std::string kBdaMaxTimeIntervalColumn = "MAX_TIME_INTERVAL";
   /**
    * @pre MsHasBdaData(ms)
    * @pre !selection.HasInterval()
    */
-  explicit BdaMsRowProvider(
-      const casacore::MeasurementSet& ms,
-      const schaapcommon::reordering::MSSelection& selection,
-      const std::map<size_t, size_t>& selected_data_description_ids,
-      const std::string& data_column_name, const std::string& model_column_name,
-      bool require_model);
+  explicit BdaMsRowProvider(const casacore::MeasurementSet& ms,
+                            const schaapcommon::reordering::MSSelection& selection,
+                            const std::map<size_t, size_t>& selected_data_description_ids,
+                            const std::string& data_column_name,
+                            const std::string& model_column_name, bool require_model);
 
-  bool AtEnd() const override {
-    return current_row_ == EndRow() && queue_.empty();
-  }
+  bool AtEnd() const override { return current_row_ == EndRow() && queue_.empty(); }
 
   void NextRow() override;
 
   void OutputStatistics() const override {}
 
-  void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights,
-                double& u, double& v, double& w, uint32_t& data_description_id,
-                uint32_t& antenna_1, uint32_t& antenna_2, uint32_t& field_id,
-                double& time) override;
+  void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u, double& v,
+                double& w, uint32_t& data_description_id, uint32_t& antenna_1, uint32_t& antenna_2,
+                uint32_t& field_id, double& time) override;
 
   void ReadModel(DataArray& model) override;
 
-  size_t CurrentProgress() const override {
-    return current_row_ - BeginRow() - queue_.size();
-  }
+  size_t CurrentProgress() const override { return current_row_ - BeginRow() - queue_.size(); }
 
  private:
   struct Data {
@@ -58,9 +51,7 @@ class BdaMsRowProvider final : public MsRowProviderBase {
     size_t row_index;
     std::array<double, 3> uvw;
 
-    inline friend bool operator>(const Data& lhs, const Data& rhs) {
-      return lhs.time > rhs.time;
-    }
+    inline friend bool operator>(const Data& lhs, const Data& rhs) { return lhs.time > rhs.time; }
   };
 
   std::map<size_t, size_t> selected_data_description_ids_;

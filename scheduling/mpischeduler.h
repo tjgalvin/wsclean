@@ -29,8 +29,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * Main Run function.
    * Either sends the task to another MPI node or runs it locally.
    */
-  void Run(GriddingTask&& task,
-           std::function<void(GriddingResult&)> finish_callback) final;
+  void Run(GriddingTask&& task, std::function<void(GriddingResult&)> finish_callback) final;
 
   void Finish() final;
 
@@ -62,8 +61,7 @@ class MPIScheduler final : public GriddingTaskManager {
    * the callback function.
    * @return The index of the node executing the task.
    */
-  size_t GetNode(const GriddingTask& task,
-                 std::function<void(GriddingResult&)>&& callback);
+  size_t GetNode(const GriddingTask& task, std::function<void(GriddingResult&)>&& callback);
 
   /**
    * If any results are available, call the callback functions and remove these

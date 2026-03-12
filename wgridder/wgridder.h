@@ -36,17 +36,16 @@ class WGridderBase {
   virtual size_t ConstantMemoryUsage() const = 0;
   virtual size_t PerVisibilityMemoryUsage() const = 0;
   virtual void InitializeInversion() = 0;
-  virtual void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw,
-                                const double *freq,
+  virtual void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw, const double *freq,
                                 const std::complex<float> *vis) = 0;
-  virtual void AddInversionDataWithCorrectionCallback(
-      GainMode mode, size_t n_polarizations, size_t n_rows, const double *uvws,
-      const double *frequencies, VisibilityCallbackData &data) = 0;
+  virtual void AddInversionDataWithCorrectionCallback(GainMode mode, size_t n_polarizations,
+                                                      size_t n_rows, const double *uvws,
+                                                      const double *frequencies,
+                                                      VisibilityCallbackData &data) = 0;
   virtual void FinalizeImage(double multiplication_factor) = 0;
   virtual std::vector<float> RealImage() = 0;
   virtual void InitializePrediction(const float *image_data) = 0;
-  virtual void PredictVisibilities(size_t n_rows, size_t n_channels,
-                                   const double *uvws,
+  virtual void PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
                                    const double *frequencies,
                                    std::complex<float> *visibilities) const = 0;
 };
@@ -70,11 +69,9 @@ class VisibilityCallbackBuffer : public TInfo {
   VisibilityCallbackBuffer(
       size_t n_rows, VisibilityCallbackData &data,
       std::function<std::complex<float>(
-          size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
-          const double *uvws, const aocommon::BandData &selected_band,
-          size_t data_desc_id, const std::complex<float> *,
-          const BeamResponseCacheChunk &, const size_t *,
-          const std::pair<size_t, size_t> *)>
+          size_t, size_t, size_t, MsGridder *, const std::complex<float> *, const double *uvws,
+          const aocommon::BandData &selected_band, size_t data_desc_id, const std::complex<float> *,
+          const BeamResponseCacheChunk &, const size_t *, const std::pair<size_t, size_t> *)>
           visibility_callback)
       : TInfo({n_rows, data.n_channels}),
         n_antennas_(data.n_antennas),
@@ -92,9 +89,8 @@ class VisibilityCallbackBuffer : public TInfo {
 
   template <typename Index>
   const TVisibility raw(Index index) const {
-    return visibility_callback_(index, n_channels_, n_antennas_, gridder_,
-                                visibilities_, uvws_, selected_band_,
-                                data_desc_id_, parm_response_, beam_response_,
+    return visibility_callback_(index, n_channels_, n_antennas_, gridder_, visibilities_, uvws_,
+                                selected_band_, data_desc_id_, parm_response_, beam_response_,
                                 time_offsets_, antennas_);
   }
   template <typename... Params>
@@ -135,11 +131,9 @@ class VisibilityCallbackBuffer : public TInfo {
   const std::complex<float> *parm_response_;
   const BeamResponseCacheChunk &beam_response_;
   std::function<std::complex<float>(
-      size_t, size_t, size_t, MsGridder *, const std::complex<float> *,
-      const double *uvws, const aocommon::BandData &selected_band,
-      size_t data_desc_id, const std::complex<float> *,
-      const BeamResponseCacheChunk &, const size_t *,
-      const std::pair<size_t, size_t> *)>
+      size_t, size_t, size_t, MsGridder *, const std::complex<float> *, const double *uvws,
+      const aocommon::BandData &selected_band, size_t data_desc_id, const std::complex<float> *,
+      const BeamResponseCacheChunk &, const size_t *, const std::pair<size_t, size_t> *)>
       visibility_callback_;
 };
 
@@ -160,15 +154,14 @@ namespace internal {
  * performance and that the decoupled code outperformed the coupled code by
  * about 5%
  */
-template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
-          bool ApplyForward, bool HasH5Parm, bool ApplyRotation>
+template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam, bool ApplyForward,
+          bool HasH5Parm, bool ApplyRotation>
 const std::complex<float> VisibilityCallback(
     size_t index, size_t n_channels, size_t n_antennas, MsGridder *gridder,
     const std::complex<float> *visibilities, const double *uvws,
     const aocommon::BandData &selected_band, size_t data_desc_id,
-    const std::complex<float> *parm_response,
-    const BeamResponseCacheChunk &beam_response, const size_t *time_offsets,
-    const std::pair<size_t, size_t> *antennas) {
+    const std::complex<float> *parm_response, const BeamResponseCacheChunk &beam_response,
+    const size_t *time_offsets, const std::pair<size_t, size_t> *antennas) {
   // Calculate offsets
   const size_t row = index / n_channels;
   size_t channel = index % n_channels;
@@ -176,8 +169,7 @@ const std::complex<float> VisibilityCallback(
   const std::pair<size_t, size_t> &antenna_pair = antennas[row];
   const size_t &time_offset = time_offsets[row];
   std::complex<float> visibilities_temp[NPolarizations];
-  std::copy_n(&visibilities[(row * n_channels * NPolarizations) +
-                            (channel * NPolarizations)],
+  std::copy_n(&visibilities[(row * n_channels * NPolarizations) + (channel * NPolarizations)],
               NPolarizations, visibilities_temp);
 
   // Apply rotation for direction dependent PSF
@@ -185,23 +177,18 @@ const std::complex<float> VisibilityCallback(
     double dl = gridder->LShift();
     double dm = gridder->MShift();
     gridder->RotateSingleVisibilityToPhaseCenter<NPolarizations>(
-        dl, dm, channel, selected_band, uvws + (row * 3),
-        &visibilities_temp[0]);
+        dl, dm, channel, selected_band, uvws + (row * 3), &visibilities_temp[0]);
   }
 
   // Apply correction
   const aocommon::VectorMap<std::vector<aocommon::MC2x2F>> empty_beam_response;
-  const aocommon::VectorMap<std::vector<aocommon::MC2x2F>>
-      &cached_beam_response =
-          ApplyBeam ? beam_response.GetCachedBeamResponseForRow(row)
-                    : empty_beam_response;
-  gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply,
-                                 ApplyBeam, ApplyForward, HasH5Parm>(
-      parm_response, channel, n_channels, data_desc_id, n_antennas,
-      visibilities_temp, nullptr, antenna_pair.first, antenna_pair.second,
-      time_offset, nullptr, cached_beam_response);
-  internal::CollapseData<NPolarizations>(1, visibilities_temp,
-                                         gridder->Polarization());
+  const aocommon::VectorMap<std::vector<aocommon::MC2x2F>> &cached_beam_response =
+      ApplyBeam ? beam_response.GetCachedBeamResponseForRow(row) : empty_beam_response;
+  gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply, ApplyBeam, ApplyForward,
+                                 HasH5Parm>(
+      parm_response, channel, n_channels, data_desc_id, n_antennas, visibilities_temp, nullptr,
+      antenna_pair.first, antenna_pair.second, time_offset, nullptr, cached_beam_response);
+  internal::CollapseData<NPolarizations>(1, visibilities_temp, gridder->Polarization());
   return visibilities_temp[0];
 }
 }  // namespace internal
@@ -245,10 +232,9 @@ class WGridder final : public WGridderBase {
    *   1: print short overview for every inversion/prediction
    *   2: print information for every processed w-plane
    */
-  WGridder(size_t width, size_t height, size_t trimmed_width,
-           size_t trimmed_height, double pixel_size_x, double pixel_size_y,
-           double l_shift, double m_shift, size_t n_threads,
-           double epsilon = 1e-4, size_t verbosity = 0, bool tuning_ = false);
+  WGridder(size_t width, size_t height, size_t trimmed_width, size_t trimmed_height,
+           double pixel_size_x, double pixel_size_y, double l_shift, double m_shift,
+           size_t n_threads, double epsilon = 1e-4, size_t verbosity = 0, bool tuning_ = false);
 
   WGridder(const WGridder &) = delete;
   WGridder &operator=(const WGridder &) = delete;
@@ -281,8 +267,7 @@ class WGridder final : public WGridderBase {
    * vis[row*n_channels + chan]
    */
   void AddInversionData(size_t n_rows, size_t n_channels, const double *uvws,
-                        const double *frequencies,
-                        const std::complex<float> *visibilities) final;
+                        const double *frequencies, const std::complex<float> *visibilities) final;
   /** Equivalent to @ref AddInversionData() but without facet solutions
    * pre-applied and with additional paramaters to allow the creation of a
    * callback that can apply solutions "on the fly" as required
@@ -311,9 +296,9 @@ class WGridder final : public WGridderBase {
    * @param gridder Pointer to a gridder that can be called back into in order
    * to apply solutions
    */
-  void AddInversionDataWithCorrectionCallback(
-      GainMode mode, size_t n_polarizations, size_t n_rows, const double *uvws,
-      const double *frequencies, VisibilityCallbackData &data) final;
+  void AddInversionDataWithCorrectionCallback(GainMode mode, size_t n_polarizations, size_t n_rows,
+                                              const double *uvws, const double *frequencies,
+                                              VisibilityCallbackData &data) final;
 
   /**
    * Finalize inversion once all passes are performed.
@@ -362,28 +347,24 @@ class WGridder final : public WGridderBase {
    * inversion can be accessed, indexing must be in ascending order
    */
   template <typename Tms>
-  void AddInversionMs(size_t n_rows, const double *uvw,
-                      const ducc0::cmav<double, 1> &freq, Tms &ms);
+  void AddInversionMs(size_t n_rows, const double *uvw, const ducc0::cmav<double, 1> &freq,
+                      Tms &ms);
   template <typename Tms>
   void AddInversionMsImplementation(size_t n_rows, const double *uvw,
-                                    const ducc0::cmav<double, 1> &freq,
-                                    Tms &ms) {
+                                    const ducc0::cmav<double, 1> &freq, Tms &ms) {
     ducc0::cmav<double, 2> uvw2(uvw, {n_rows, 3});
     ducc0::vmav<NumT, 2> tdirty({trimmed_width_, trimmed_height_});
     ducc0::cmav<float, 2> twgt(nullptr, {0, 0});
     ducc0::cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
     if (!tuning_)
-      ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_,
-                                  pixel_size_y_, epsilon_, true, n_threads_,
-                                  tdirty, verbosity_, true, false, sigma_min,
-                                  sigma_max, -l_shift_, -m_shift_);
+      ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_,
+                                  epsilon_, true, n_threads_, tdirty, verbosity_, true, false,
+                                  sigma_min, sigma_max, -l_shift_, -m_shift_);
     else
-      ducc0::ms2dirty_tuning<NumT, NumT>(
-          uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_, epsilon_,
-          true, n_threads_, tdirty, verbosity_, true, false, sigma_min,
-          sigma_max, -l_shift_, -m_shift_);
-    for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i)
-      image_[i] += tdirty.raw(i);
+      ducc0::ms2dirty_tuning<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_,
+                                         epsilon_, true, n_threads_, tdirty, verbosity_, true,
+                                         false, sigma_min, sigma_max, -l_shift_, -m_shift_);
+    for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i) image_[i] += tdirty.raw(i);
   }
 
   // Each of the following versions of CreateAndAddInversionMs converts the
@@ -392,44 +373,35 @@ class WGridder final : public WGridderBase {
   // We add multiple template parameters in a chain to avoid an exponential
   // explosion of boilerplate code.
   // Sorted and numbered in the order that they will be called.
-  void CreateAndAddInversionMs(GainMode mode, size_t n_polarizations,
-                               size_t n_parms, bool apply_beam,
-                               bool apply_forward, bool has_h5_parm,
-                               size_t n_rows, const double *uvws,
-                               const ducc0::cmav<double, 1> &frequencies,
+  void CreateAndAddInversionMs(GainMode mode, size_t n_polarizations, size_t n_parms,
+                               bool apply_beam, bool apply_forward, bool has_h5_parm, size_t n_rows,
+                               const double *uvws, const ducc0::cmav<double, 1> &frequencies,
                                VisibilityCallbackData &data);
   template <GainMode Mode>
-  void CreateAndAddInversionMs2(size_t n_polarizations, size_t n_parms,
-                                bool apply_beam, bool apply_forward,
-                                bool has_h5_parm, size_t n_rows,
-                                const double *uvws,
-                                const ducc0::cmav<double, 1> &frequencies,
+  void CreateAndAddInversionMs2(size_t n_polarizations, size_t n_parms, bool apply_beam,
+                                bool apply_forward, bool has_h5_parm, size_t n_rows,
+                                const double *uvws, const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
   template <GainMode Mode, size_t NPolarizations>
-  void CreateAndAddInversionMs3(size_t n_parms, bool apply_beam,
-                                bool apply_forward, bool has_h5_parm,
-                                size_t n_rows, const double *uvws,
+  void CreateAndAddInversionMs3(size_t n_parms, bool apply_beam, bool apply_forward,
+                                bool has_h5_parm, size_t n_rows, const double *uvws,
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
   template <GainMode Mode, size_t NPolarizations, size_t NParms>
-  void CreateAndAddInversionMs4(bool apply_beam, bool apply_forward,
-                                bool has_h5_parm, size_t n_rows,
-                                const double *uvws,
-                                const ducc0::cmav<double, 1> &frequencies,
-                                VisibilityCallbackData &data);
-  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam>
-  void CreateAndAddInversionMs5(bool apply_forward, bool has_h5_parm,
+  void CreateAndAddInversionMs4(bool apply_beam, bool apply_forward, bool has_h5_parm,
                                 size_t n_rows, const double *uvws,
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
-  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
-            bool ApplyForward>
-  void CreateAndAddInversionMs6(bool has_h5_parm, size_t n_rows,
-                                const double *uvws,
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam>
+  void CreateAndAddInversionMs5(bool apply_forward, bool has_h5_parm, size_t n_rows,
+                                const double *uvws, const ducc0::cmav<double, 1> &frequencies,
+                                VisibilityCallbackData &data);
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam, bool ApplyForward>
+  void CreateAndAddInversionMs6(bool has_h5_parm, size_t n_rows, const double *uvws,
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
-  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
-            bool ApplyForward, bool HasH5Parm>
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam, bool ApplyForward,
+            bool HasH5Parm>
   void CreateAndAddInversionMs7(size_t n_rows, const double *uvws,
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
@@ -437,8 +409,8 @@ class WGridder final : public WGridderBase {
   // and templatized based on all the paramaters that previous calls in the
   // template chain have parsed.
   // Call AddInversionMs with the constructed callback object.
-  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam,
-            bool ApplyForward, bool HasH5Parm, bool ApplyRotation>
+  template <GainMode Mode, size_t NPolarizations, size_t NParms, bool ApplyBeam, bool ApplyForward,
+            bool HasH5Parm, bool ApplyRotation>
   void CreateAndAddInversionMs8(size_t n_rows, const double *uvws,
                                 const ducc0::cmav<double, 1> &frequencies,
                                 VisibilityCallbackData &data);
@@ -450,8 +422,7 @@ class WGridder final : public WGridderBase {
 // wgridder_float.cpp
 extern template class WGridder<float>;
 extern template class WGridder<double>;
-extern template void
-WGridder<float>::AddInversionMs<VisibilityCallbackBuffer<std::complex<float>>>(
+extern template void WGridder<float>::AddInversionMs<VisibilityCallbackBuffer<std::complex<float>>>(
     size_t n_rows, const double *uvw, const ducc0::cmav<double, 1> &freq,
     VisibilityCallbackBuffer<std::complex<float>> &ms);
 extern template void

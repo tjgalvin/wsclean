@@ -59,20 +59,16 @@ class ParsetReader {
 
 #ifdef HAVE_EVERYBEAM
   std::string GetString(const std::string& key) const final override;
-  std::string GetStringOr(const std::string& key,
-                          const std::string& orValue) const final override;
-  std::vector<std::string> GetStringList(
-      const std::string& key) const final override;
+  std::string GetStringOr(const std::string& key, const std::string& orValue) const final override;
+  std::vector<std::string> GetStringList(const std::string& key) const final override;
 
   bool GetBool(const std::string& key) const final override;
   bool GetBoolOr(const std::string& key, bool orValue) const final override;
 
-  double GetDoubleOr(const std::string& key,
-                     double orValue) const final override;
+  double GetDoubleOr(const std::string& key, double orValue) const final override;
 #else
   std::string GetString(const std::string& key) const;
-  std::string GetStringOr(const std::string& key,
-                          const std::string& orValue) const;
+  std::string GetStringOr(const std::string& key, const std::string& orValue) const;
   std::vector<std::string> GetStringList(const std::string& key) const;
 
   bool GetBool(const std::string& key) const;

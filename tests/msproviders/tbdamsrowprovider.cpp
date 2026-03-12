@@ -11,16 +11,15 @@ namespace wsclean {
 BOOST_AUTO_TEST_SUITE(bda_ms_row_provider)
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_no_bda_tables) {
-  BOOST_CHECK_THROW((BdaMsRowProvider({"test_data/MWA_MOCK.ms"}, MSSelection{},
-                                      std::map<size_t, size_t>{{0, 0}}, "DATA",
-                                      "MODEL_DATA", false)),
-                    std::runtime_error);
+  BOOST_CHECK_THROW(
+      (BdaMsRowProvider({"test_data/MWA_MOCK.ms"}, MSSelection{}, std::map<size_t, size_t>{{0, 0}},
+                        "DATA", "MODEL_DATA", false)),
+      std::runtime_error);
 }
 
 static void CreateBdaMsRowProviderWithSelection(const MSSelection& selection) {
-  BdaMsRowProvider({"test_data/MWA_BDA_MOCK.ms"}, selection,
-                   std::map<size_t, size_t>{{0, 0}}, "DATA", "MODEL_DATA",
-                   false);
+  BdaMsRowProvider({"test_data/MWA_BDA_MOCK.ms"}, selection, std::map<size_t, size_t>{{0, 0}},
+                   "DATA", "MODEL_DATA", false);
 }
 
 static void CreateBdaMsRowProviderWithSelectionInterval() {
@@ -42,26 +41,23 @@ static void CreateBdaMsRowProviderWithSelectionOddTimesteps() {
 }
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_invalid_selection) {
-  BOOST_CHECK_EXCEPTION(CreateBdaMsRowProviderWithSelectionInterval(),
-                        std::runtime_error, [](const std::runtime_error& e) {
-                          return e.what() ==
-                                 std::string(
-                                     "An interval selection isn't supported "
-                                     "for a BDA measurement set.");
+  BOOST_CHECK_EXCEPTION(CreateBdaMsRowProviderWithSelectionInterval(), std::runtime_error,
+                        [](const std::runtime_error& e) {
+                          return e.what() == std::string(
+                                                 "An interval selection isn't supported "
+                                                 "for a BDA measurement set.");
                         });
-  BOOST_CHECK_EXCEPTION(CreateBdaMsRowProviderWithSelectionEvenTimesteps(),
-                        std::runtime_error, [](const std::runtime_error& e) {
-                          return e.what() ==
-                                 std::string(
-                                     "An interval selection isn't supported "
-                                     "for a BDA measurement set.");
+  BOOST_CHECK_EXCEPTION(CreateBdaMsRowProviderWithSelectionEvenTimesteps(), std::runtime_error,
+                        [](const std::runtime_error& e) {
+                          return e.what() == std::string(
+                                                 "An interval selection isn't supported "
+                                                 "for a BDA measurement set.");
                         });
-  BOOST_CHECK_EXCEPTION(CreateBdaMsRowProviderWithSelectionOddTimesteps(),
-                        std::runtime_error, [](const std::runtime_error& e) {
-                          return e.what() ==
-                                 std::string(
-                                     "An interval selection isn't supported "
-                                     "for a BDA measurement set.");
+  BOOST_CHECK_EXCEPTION(CreateBdaMsRowProviderWithSelectionOddTimesteps(), std::runtime_error,
+                        [](const std::runtime_error& e) {
+                          return e.what() == std::string(
+                                                 "An interval selection isn't supported "
+                                                 "for a BDA measurement set.");
                         });
 }
 
@@ -74,8 +70,7 @@ struct RowData {
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider) {
   BdaMsRowProvider provider({"test_data/MWA_BDA_MOCK.ms"}, MSSelection{},
-                            std::map<size_t, size_t>{{0, 0}}, "DATA",
-                            "MODEL_DATA", false);
+                            std::map<size_t, size_t>{{0, 0}}, "DATA", "MODEL_DATA", false);
 
   BOOST_REQUIRE_EQUAL(provider.BeginRow(), 0);
   BOOST_REQUIRE_EQUAL(provider.EndRow(), 21);
@@ -95,9 +90,8 @@ BOOST_AUTO_TEST_CASE(bda_ms_row_provider) {
     std::array<uint32_t, 2> antenna;
     uint32_t field_id;
     double time;
-    provider.ReadData(data, flag, weight, uvw[0], uvw[1], uvw[2],
-                      data_description_id, antenna[0], antenna[1], field_id,
-                      time);
+    provider.ReadData(data, flag, weight, uvw[0], uvw[1], uvw[2], data_description_id, antenna[0],
+                      antenna[1], field_id, time);
     BOOST_CHECK_LE(previous_time, time);
     previous_time = time;
 
@@ -106,8 +100,7 @@ BOOST_AUTO_TEST_CASE(bda_ms_row_provider) {
     // be returned in any order. Therefore, this checks just if all rows are
     // read and no rows are duplicated.
     for (RowData& data : rows) {
-      if (time == data.time && antenna[0] == data.antenna1 &&
-          antenna[1] == data.antenna2) {
+      if (time == data.time && antenna[0] == data.antenna1 && antenna[1] == data.antenna2) {
         // Each row should be provided only once
         BOOST_CHECK(!data.is_found);
         data.is_found = true;

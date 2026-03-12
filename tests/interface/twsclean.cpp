@@ -17,9 +17,9 @@ constexpr float kFluxDensity = 13.0;
 InMemoryMs MakeInMemorySet() {
   InMemoryMs ms;
   ms.antenna_names = {"Dish1", "Dish2", "Dish3"};
-  const std::vector<aocommon::ChannelInfo> kChannels{
-      aocommon::ChannelInfo(120e6, 5e6), aocommon::ChannelInfo(130e6, 5e6),
-      aocommon::ChannelInfo(140e6, 5e6)};
+  const std::vector<aocommon::ChannelInfo> kChannels{aocommon::ChannelInfo(120e6, 5e6),
+                                                     aocommon::ChannelInfo(130e6, 5e6),
+                                                     aocommon::ChannelInfo(140e6, 5e6)};
   aocommon::BandData band(kChannels, 130e6);
   ms.bands.AddBand(band);
   ms.field_name = "Test field";
@@ -29,8 +29,7 @@ InMemoryMs MakeInMemorySet() {
   ms.observer = "André";
   ms.phase_centre_dec = M_PI * 0.5;
   ms.phase_centre_ra = 0.0;
-  ms.polarizations = {aocommon::PolarizationEnum::XX,
-                      aocommon::PolarizationEnum::YY};
+  ms.polarizations = {aocommon::PolarizationEnum::XX, aocommon::PolarizationEnum::YY};
   ms.start_time = 61041 * 24.0 * 60.0 * 60.0;  // 1 Jan 2026
   ms.telescope_name = "Test telescope";
 
@@ -48,8 +47,7 @@ InMemoryMs MakeInMemorySet() {
     row.data_desc_id = 0;
     row.field_id = 0;
     row.time = ms.start_time;
-    row.uvw = {uvw_distribution(rng), uvw_distribution(rng),
-               uvw_distribution(rng)};
+    row.uvw = {uvw_distribution(rng), uvw_distribution(rng), uvw_distribution(rng)};
     row.weights.assign(kChannels.size(), 1.0f);
   }
   return ms;
@@ -58,17 +56,14 @@ InMemoryMs MakeInMemorySet() {
 void CheckMetaData(const aocommon::FitsReader& reader) {
   BOOST_REQUIRE_EQUAL(reader.ImageWidth(), 1024);
   BOOST_REQUIRE_EQUAL(reader.ImageHeight(), 1024);
-  BOOST_CHECK_CLOSE_FRACTION(reader.PixelSizeX() * 180.0 * 60.0 / M_PI, 1.0,
-                             1e-6);
-  BOOST_CHECK_CLOSE_FRACTION(reader.PixelSizeY() * 180.0 * 60.0 / M_PI, 1.0,
-                             1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(reader.PixelSizeX() * 180.0 * 60.0 / M_PI, 1.0, 1e-6);
+  BOOST_CHECK_CLOSE_FRACTION(reader.PixelSizeY() * 180.0 * 60.0 / M_PI, 1.0, 1e-6);
 }
 
 void CheckCenterPixel(aocommon::FitsReader& reader, float expected_value) {
   aocommon::Image image(reader.ImageWidth(), reader.ImageHeight());
   reader.Read(image.Data());
-  float center_pixel =
-      image.Value(reader.ImageWidth() / 2, reader.ImageHeight() / 2);
+  float center_pixel = image.Value(reader.ImageWidth() / 2, reader.ImageHeight() / 2);
   BOOST_CHECK_CLOSE_FRACTION(center_pixel, expected_value, 1e-4);
 }
 

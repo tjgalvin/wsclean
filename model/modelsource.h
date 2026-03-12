@@ -41,9 +41,7 @@ class ModelSource {
    */
   const std::string& ClusterName() const { return _clusterName; }
 
-  void SetClusterName(const std::string& clusterName) {
-    _clusterName = clusterName;
-  }
+  void SetClusterName(const std::string& clusterName) { _clusterName = clusterName; }
 
   std::string ToString() const;
 
@@ -71,20 +69,17 @@ class ModelSource {
   }
 
   void CombineMeasurements(const ModelSource& source) {
-    for (const_iterator i = source.begin(); i != source.end(); ++i)
-      CombineMeasurements(*i);
+    for (const_iterator i = source.begin(); i != source.end(); ++i) CombineMeasurements(*i);
   }
 
   void CombineMeasurements(const ModelComponent& component) {
     for (iterator i = begin(); i != end(); ++i) {
-      if (component.PosDec() == i->PosDec() &&
-          component.PosRA() == i->PosRA()) {
+      if (component.PosDec() == i->PosDec() && component.PosRA() == i->PosRA()) {
         i->MSED().CombineMeasurements(component.MSED());
         return;
       }
     }
-    throw std::runtime_error(
-        "Combining measurements while not same sources were measured!");
+    throw std::runtime_error("Combining measurements while not same sources were measured!");
   }
 
   iterator begin() { return _components.begin(); }
@@ -98,9 +93,7 @@ class ModelSource {
   const ModelComponent& Peak() const { return *begin(); }
   ModelComponent& Peak() { return *begin(); }
 
-  void AddComponent(const ModelComponent& component) {
-    _components.push_back(component);
-  }
+  void AddComponent(const ModelComponent& component) { _components.push_back(component); }
 
   void ClearComponents() { _components.clear(); }
 
@@ -108,14 +101,12 @@ class ModelSource {
                    aocommon::PolarizationEnum polarization) const {
     double flux = 0.0;
     for (const_iterator i = begin(); i != end(); ++i)
-      flux += i->SED().IntegratedFlux(frequencyStartHz, frequencyEndHz,
-                                      polarization);
+      flux += i->SED().IntegratedFlux(frequencyStartHz, frequencyEndHz, polarization);
 
     return flux;
   }
 
-  double TotalFlux(double frequency,
-                   aocommon::PolarizationEnum polarization) const {
+  double TotalFlux(double frequency, aocommon::PolarizationEnum polarization) const {
     double flux = 0.0;
     for (const_iterator i = begin(); i != end(); ++i)
       flux += i->SED().FluxAtFrequency(frequency, polarization);
@@ -132,9 +123,7 @@ class ModelSource {
 
   size_t ComponentCount() const { return _components.size(); }
 
-  const class ModelComponent& Component(size_t index) const {
-    return _components[index];
-  }
+  const class ModelComponent& Component(size_t index) const { return _components[index]; }
 
   void* UserData() const { return _userdata; }
   void SetUserData(void* userData) { _userdata = userData; }
@@ -163,15 +152,13 @@ class ModelSource {
     }
     double scaleFactor = newFlux / totalFlux;
     for (iterator i = begin(); i != end(); ++i) {
-      double thisFlux =
-          i->SED().FluxAtFrequency(frequency, aocommon::Polarization::StokesI);
+      double thisFlux = i->SED().FluxAtFrequency(frequency, aocommon::Polarization::StokesI);
       i->SetSED(MeasuredSED(thisFlux * scaleFactor, frequency));
     }
   }
 
   void SetConstantTotalFlux(const double* newFluxes, double frequency) {
-    double totalFlux =
-        fabs(TotalFlux(frequency, aocommon::Polarization::StokesI));
+    double totalFlux = fabs(TotalFlux(frequency, aocommon::Polarization::StokesI));
 
     if (totalFlux == 0.0) {
       for (iterator i = begin(); i != end(); ++i) {
@@ -193,8 +180,7 @@ class ModelSource {
         Measurement m;
         m.SetFrequencyHz(frequency);
         double thisFlux =
-            0.5 * (i->SED().FluxAtFrequency(frequency,
-                                            aocommon::Polarization::StokesI));
+            0.5 * (i->SED().FluxAtFrequency(frequency, aocommon::Polarization::StokesI));
         for (size_t p = 0; p != 4; ++p) {
           m.SetFluxDensityFromIndex(p, thisFlux * scaleFactor[p]);
         }
@@ -208,8 +194,7 @@ class ModelSource {
   double MeanRA() const {
     std::vector<double> raValues;
     raValues.reserve(_components.size());
-    for (const_iterator c = begin(); c != end(); ++c)
-      raValues.push_back(c->PosRA());
+    for (const_iterator c = begin(); c != end(); ++c) raValues.push_back(c->PosRA());
     return aocommon::ImageCoordinates::MeanRA(raValues);
   }
 
@@ -291,15 +276,13 @@ class SourceGroup {
   double MeanRA() const {
     std::vector<double> raValues;
     raValues.reserve(_sources.size());
-    for (const_iterator s = begin(); s != end(); ++s)
-      raValues.push_back(s->MeanRA());
+    for (const_iterator s = begin(); s != end(); ++s) raValues.push_back(s->MeanRA());
     return aocommon::ImageCoordinates::MeanRA(raValues);
   }
 
   double MeanDec() const {
     double sum = 0.0;
-    for (const_iterator s = _sources.begin(); s != _sources.end(); ++s)
-      sum += s->MeanDec();
+    for (const_iterator s = _sources.begin(); s != _sources.end(); ++s) sum += s->MeanDec();
     return sum / _sources.size();
   }
 

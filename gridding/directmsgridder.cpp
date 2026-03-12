@@ -14,9 +14,8 @@
 namespace wsclean {
 
 template <typename num_t>
-DirectMSGridder<num_t>::DirectMSGridder(
-    const Settings& settings, const Resources& resources,
-    MsProviderCollection& ms_provider_collection)
+DirectMSGridder<num_t>::DirectMSGridder(const Settings& settings, const Resources& resources,
+                                        MsProviderCollection& ms_provider_collection)
     : MsGridder(settings, ms_provider_collection), _resources(resources) {}
 
 template <typename num_t>
@@ -24,14 +23,13 @@ void DirectMSGridder<num_t>::StartInversion() {
   _sqrtLMTable = GetSqrtLMLookupTable();
   ResetVisibilityCounters();
 
-  progress_bar_ =
-      std::make_unique<ProgressBar>("Performing direct Fourier transform");
+  progress_bar_ = std::make_unique<ProgressBar>("Performing direct Fourier transform");
 
   _inversionLane.resize(_resources.NCpus() * 1024);
 
   for (size_t t = 0; t != _resources.NCpus(); ++t) {
-    _layers.emplace_back(aocommon::ImageBase<num_t>(TrimWidth(), TrimHeight(),
-                                                    static_cast<num_t>(0.0)));
+    _layers.emplace_back(
+        aocommon::ImageBase<num_t>(TrimWidth(), TrimHeight(), static_cast<num_t>(0.0)));
   }
 
   aocommon::ThreadPool& thread_pool = aocommon::ThreadPool::GetInstance();
@@ -46,8 +44,7 @@ void DirectMSGridder<num_t>::StartInversion() {
 }
 
 template <typename num_t>
-size_t DirectMSGridder<num_t>::GridMeasurementSet(
-    const MsProviderCollection::MsData& ms_data) {
+size_t DirectMSGridder<num_t>::GridMeasurementSet(const MsProviderCollection::MsData& ms_data) {
   InvertMeasurementSet(ms_data, ms_data.internal_ms_index);
   return 0;
 }
@@ -89,8 +86,7 @@ void DirectMSGridder<num_t>::FinishInversion() {
 }
 
 template <typename num_t>
-inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample,
-                                               size_t layerIndex) {
+inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample, size_t layerIndex) {
   // Contribution of one visibility:
   //  I(l, m) = V(u, v, w) exp (2 pi i (ul + vm + w (sqrt(1 - l^2 - m^2) - 1)))
   //   Since every visibility has a conjugate visibility for (-u, -v, -w), we
@@ -114,32 +110,27 @@ inline void DirectMSGridder<num_t>::gridSample(const InversionSample& sample,
 
     size_t ySrc = (height - y) + height / 2;
     if (ySrc >= height) ySrc -= height;
-    const num_t m =
-        num_t(((num_t)ySrc - (height / 2)) * PixelSizeY() + MShift());
+    const num_t m = num_t(((num_t)ySrc - (height / 2)) * PixelSizeY() + MShift());
 
     for (size_t x = 0; x != width; ++x) {
       size_t xSrc = x + width / 2;
       if (xSrc >= width) xSrc -= width;
-      const num_t l =
-          num_t(((width / 2) - (num_t)xSrc) * PixelSizeX() + LShift());
+      const num_t l = num_t(((width / 2) - (num_t)xSrc) * PixelSizeX() + LShift());
 
       const size_t index = yIndex + x;
       const num_t angle = minTwoPi * (u * l + v * m + w * _sqrtLMTable[index]);
-      layer[index] +=
-          val.real() * std::cos(angle) - val.imag() * std::sin(angle);
+      layer[index] += val.real() * std::cos(angle) - val.imag() * std::sin(angle);
     }
   }
 }
 
 template <typename num_t>
-void DirectMSGridder<num_t>::InvertMeasurementSet(
-    const MsProviderCollection::MsData& ms_data, size_t ms_index) {
+void DirectMSGridder<num_t>::InvertMeasurementSet(const MsProviderCollection::MsData& ms_data,
+                                                  size_t ms_index) {
   const size_t n_vis_polarizations = ms_data.ms_provider->NPolarizations();
-  const aocommon::MultiBandData& selected_bands(
-      ms_data.ms_provider->SelectedBands());
+  const aocommon::MultiBandData& selected_bands(ms_data.ms_provider->SelectedBands());
 
-  const size_t max_data_size =
-      selected_bands.MaxBandChannels() * n_vis_polarizations;
+  const size_t max_data_size = selected_bands.MaxBandChannels() * n_vis_polarizations;
   const size_t n_parms = NumValuesPerSolution();
   aocommon::UVector<std::complex<float>> model_buffer(max_data_size);
   aocommon::UVector<float> weight_buffer(max_data_size);
@@ -164,15 +155,13 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(
     row_data.uvw[2] = metadata.w_in_m;
 
     if (n_parms == 2) {
-      GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(),
-                                  row_data, weight_buffer.data(),
-                                  model_buffer.data(), selection_buffer.data(),
-                                  metadata);
+      GetCollapsedVisibilities<2>(*ms_reader, ms_data.antenna_names.size(), row_data,
+                                  weight_buffer.data(), model_buffer.data(),
+                                  selection_buffer.data(), metadata);
     } else {
-      GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(),
-                                  row_data, weight_buffer.data(),
-                                  model_buffer.data(), selection_buffer.data(),
-                                  metadata);
+      GetCollapsedVisibilities<4>(*ms_reader, ms_data.antenna_names.size(), row_data,
+                                  weight_buffer.data(), model_buffer.data(),
+                                  selection_buffer.data(), metadata);
     }
     const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
     InversionSample sample;
@@ -191,29 +180,24 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(
 }
 
 template <typename num_t>
-void DirectMSGridder<num_t>::StartPredict(
-    std::vector<aocommon::Image>&& /*image*/) {
-  throw std::runtime_error(
-      "Prediction not yet implemented for direct FT gridding");
+void DirectMSGridder<num_t>::StartPredict(std::vector<aocommon::Image>&& /*image*/) {
+  throw std::runtime_error("Prediction not yet implemented for direct FT gridding");
 }
 
 template <typename num_t>
 size_t DirectMSGridder<num_t>::PredictMeasurementSet(
     const MsProviderCollection::MsData& /*ms_data*/) {
-  throw std::runtime_error(
-      "Prediction not yet implemented for direct FT gridding");
+  throw std::runtime_error("Prediction not yet implemented for direct FT gridding");
   return 0;
 }
 
 template <typename num_t>
 void DirectMSGridder<num_t>::FinishPredict() {
-  throw std::runtime_error(
-      "Prediction not yet implemented for direct FT gridding");
+  throw std::runtime_error("Prediction not yet implemented for direct FT gridding");
 }
 
 template <typename num_t>
-aocommon::ImageBase<num_t> DirectMSGridder<num_t>::GetSqrtLMLookupTable()
-    const {
+aocommon::ImageBase<num_t> DirectMSGridder<num_t>::GetSqrtLMLookupTable() const {
   const size_t width = TrimWidth();
   const size_t height = TrimHeight();
   aocommon::ImageBase<num_t> sqrtLMTable(ImageWidth(), ImageHeight());

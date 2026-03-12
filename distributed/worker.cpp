@@ -20,15 +20,14 @@ constexpr int kTag = 0;
 
 void Worker::Run() {
   TaskMessage message;
-  const size_t maximum_message_size =
-      scheduler_.GetSettings().maxMpiMessageSize;
+  const size_t maximum_message_size = scheduler_.GetSettings().maxMpiMessageSize;
 
   do {
     MPI_Status status;
 
     aocommon::UVector<unsigned char> buffer(TaskMessage::kSerializedSize);
-    MPI_Recv(buffer.data(), TaskMessage::kSerializedSize, MPI_BYTE, kMainNode,
-             kTag, MPI_COMM_WORLD, &status);
+    MPI_Recv(buffer.data(), TaskMessage::kSerializedSize, MPI_BYTE, kMainNode, kTag, MPI_COMM_WORLD,
+             &status);
     aocommon::SerialIStream stream(std::move(buffer));
     message.Unserialize(stream);
 
@@ -43,8 +42,8 @@ void Worker::Run() {
 
       case TaskMessage::Type::kGriddingRequest: {
         buffer.resize(message.body_size);
-        MPI_Recv_Big(buffer.data(), message.body_size, kMainNode, kTag,
-                     MPI_COMM_WORLD, &status, maximum_message_size);
+        MPI_Recv_Big(buffer.data(), message.body_size, kMainNode, kTag, MPI_COMM_WORLD, &status,
+                     maximum_message_size);
         aocommon::SerialIStream stream(std::move(buffer));
         stream.UInt64();  // skip the nr of packages
 
@@ -55,14 +54,12 @@ void Worker::Run() {
       }
 
       default:
-        aocommon::Logger::Warn
-            << "wsclean-mp MPI worker received an unknown message type!\n";
+        aocommon::Logger::Warn << "wsclean-mp MPI worker received an unknown message type!\n";
         break;
     }
 
   } while (message.type != TaskMessage::Type::kFinish);
-  aocommon::Logger::Info << "Worker node " << scheduler_.Rank()
-                         << " received exit message.\n";
+  aocommon::Logger::Info << "Worker node " << scheduler_.Rank() << " received exit message.\n";
 }
 
 }  // namespace wsclean

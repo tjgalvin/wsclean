@@ -18,10 +18,9 @@ constexpr bool kInMemoryData = false;
 
 // Include sizes ending in "k", "m", which should yield kilobytes / megabytes.
 std::vector<const char*> baseArgs() {
-  return {"wsclean", "-quiet", "-size",           "1k",     "512",
-          "-scale",  "1amin",  "-multiscale",     "-niter", "2m",
-          "-mgain",  "0.8",    "-auto-threshold", "1",      "-auto-mask",
-          "4"};
+  return {"wsclean",         "-quiet",      "-size",      "1k", "512",    "-scale",
+          "1amin",           "-multiscale", "-niter",     "2m", "-mgain", "0.8",
+          "-auto-threshold", "1",           "-auto-mask", "4"};
 }
 
 std::vector<const char*> baseArgsBda() {
@@ -53,8 +52,7 @@ BOOST_AUTO_TEST_CASE(pb_grid_size) {
   PrimaryBeam primaryBeam1(settings1);
   BOOST_CHECK_EQUAL(primaryBeam1.GetUndersamplingFactor(), 16u);
   BOOST_CHECK_EQUAL(primaryBeam1.GetBeamUpdateTime(), 1800u);
-  BOOST_CHECK_EQUAL(settings1.maxMpiMessageSize,
-                    std::numeric_limits<std::int32_t>::max());
+  BOOST_CHECK_EQUAL(settings1.maxMpiMessageSize, std::numeric_limits<std::int32_t>::max());
 
   std::vector<const char*> args2 = baseArgs();
   args2.push_back("-apply-primary-beam");
@@ -125,8 +123,7 @@ BOOST_AUTO_TEST_CASE(h5parm_multiple_files) {
   args.push_back(facet_solutions_char);
   args.push_back("amplitude000,phase000");
   args.push_back(kMWA_MS);
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
-                                      kInMemoryData),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData),
                     std::runtime_error);
 
   // Two solution files, two MSets
@@ -151,8 +148,7 @@ BOOST_AUTO_TEST_CASE(h5parm_inconsistent) {
   args.push_back(kFacetSolutionFile);
   args.push_back("amplitude000,phase000");
   args.push_back(kMWA_MS);
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
-                                      kInMemoryData),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData),
                     std::runtime_error);
 }
 
@@ -168,8 +164,7 @@ BOOST_AUTO_TEST_CASE(idg_bda_averaging) {
   args.push_back("10.0");
   args.push_back(kMWA_MS);
 
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
-                                      kInMemoryData),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData),
                     std::runtime_error);
 }
 
@@ -182,8 +177,7 @@ BOOST_AUTO_TEST_CASE(idg_bda_mset) {
   std::vector<const char*> args = baseArgsBda();
   args.push_back(kMWA_BDA_MS);
 
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
-                                      kInMemoryData),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData),
                     std::runtime_error);
 }
 
@@ -193,8 +187,7 @@ BOOST_AUTO_TEST_CASE(incomplete_commandline) {
 
   std::vector<const char*> args{"wsclean", "-name"};
 
-  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave,
-                                      kInMemoryData),
+  BOOST_CHECK_THROW(commandLine.Parse(wsclean, args.size(), args.data(), kSlave, kInMemoryData),
                     std::runtime_error);
 }
 

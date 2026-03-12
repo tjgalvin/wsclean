@@ -37,8 +37,7 @@ class WSMSGridder final : public MsGridder {
   size_t GetNPredictPasses() const final { return _gridder->NPasses(); }
   void StartPredict(std::vector<aocommon::Image>&& images) final;
   void StartPredictPass(size_t pass_index) final;
-  size_t PredictMeasurementSet(
-      const MsProviderCollection::MsData& ms_data) final;
+  size_t PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
   void FinishPredictPass(size_t pass_index) final;
   void FinishPredict() final;
 
@@ -81,9 +80,8 @@ class WSMSGridder final : public MsGridder {
                          aocommon::Lane<PredictionWorkItem>* output_lane,
                          const aocommon::MultiBandData* bands);
 
-  void predictWriteThread(
-      aocommon::Lane<PredictionWorkItem>* sampling_work_lane,
-      const MsProviderCollection::MsData* ms_data, GainMode gain_mode);
+  void predictWriteThread(aocommon::Lane<PredictionWorkItem>* sampling_work_lane,
+                          const MsProviderCollection::MsData* ms_data, GainMode gain_mode);
 
   std::unique_ptr<GridderType> _gridder;
   std::vector<aocommon::Lane<InversionWorkSample>> _inversionCPULanes;

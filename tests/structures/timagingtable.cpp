@@ -15,9 +15,8 @@ namespace wsclean {
 
 namespace {
 
-void TestGroupCounts(const ImagingTable& table, size_t indepentGroupCount,
-                     size_t facetGroupCount, size_t facetCount,
-                     size_t squaredGroupCount) {
+void TestGroupCounts(const ImagingTable& table, size_t indepentGroupCount, size_t facetGroupCount,
+                     size_t facetCount, size_t squaredGroupCount) {
   BOOST_TEST(table.IndependentGroupCount() == indepentGroupCount);
   BOOST_TEST(table.FacetGroups().size() == facetGroupCount);
   BOOST_TEST(table.FacetCount() == facetCount);
@@ -145,8 +144,8 @@ BOOST_AUTO_TEST_CASE(facet_groups) {
 
   // Test FacetGroups with a custom selection function.
   for (size_t index = 0; index < table.EntryCount(); ++index) {
-    const ImagingTable::Groups selected_groups = table.FacetGroups(
-        [index](const ImagingTableEntry& e) { return e.index == index; });
+    const ImagingTable::Groups selected_groups =
+        table.FacetGroups([index](const ImagingTableEntry& e) { return e.index == index; });
     BOOST_TEST_REQUIRE(selected_groups.size() == 1u);
     BOOST_TEST_REQUIRE(selected_groups[0].size() == 1u);
     BOOST_TEST(selected_groups[0][0]->index == index);
@@ -252,10 +251,10 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   CachedImageSet residual_images;
 
   // Check for exception on empty table
-  BOOST_CHECK_THROW(std::unique_ptr<radler::WorkTable> deconvolution_table =
-                        table.CreateDeconvolutionTable(
-                            1, psf_images, model_images, residual_images),
-                    std::runtime_error);
+  BOOST_CHECK_THROW(
+      std::unique_ptr<radler::WorkTable> deconvolution_table =
+          table.CreateDeconvolutionTable(1, psf_images, model_images, residual_images),
+      std::runtime_error);
 
   test::UniquePtr<ImagingTableEntry> entry;
   entry->polarization = aocommon::PolarizationEnum::StokesV;
@@ -269,15 +268,14 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
 
   // Check for invalid table
   // Update was not called after adding entry
-  BOOST_CHECK_THROW(std::unique_ptr<radler::WorkTable> deconvolution_table =
-                        table.CreateDeconvolutionTable(
-                            1, psf_images, model_images, residual_images),
-                    std::runtime_error);
+  BOOST_CHECK_THROW(
+      std::unique_ptr<radler::WorkTable> deconvolution_table =
+          table.CreateDeconvolutionTable(1, psf_images, model_images, residual_images),
+      std::runtime_error);
   table.Update();
 
   std::unique_ptr<radler::WorkTable> deconvolution_table =
-      table.CreateDeconvolutionTable(1, psf_images, model_images,
-                                     residual_images);
+      table.CreateDeconvolutionTable(1, psf_images, model_images, residual_images);
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() == 1u);
   BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups()[0].size() == 2u);
 
@@ -289,52 +287,43 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_single_entry) {
   BOOST_TEST_REQUIRE(deconvolution_table->Size() == entry->imageCount);
 
   size_t index = 0;
-  for (const radler::WorkTableEntry& deconvolution_entry :
-       *deconvolution_table) {
-    BOOST_TEST(&deconvolution_entry ==
-               deconvolution_table->OriginalGroups()[0][index]);
+  for (const radler::WorkTableEntry& deconvolution_entry : *deconvolution_table) {
+    BOOST_TEST(&deconvolution_entry == deconvolution_table->OriginalGroups()[0][index]);
     BOOST_TEST(deconvolution_entry.index == index);
-    BOOST_TEST(deconvolution_entry.band_start_frequency ==
-               entry->bandStartFrequency);
-    BOOST_TEST(deconvolution_entry.band_end_frequency ==
-               entry->bandEndFrequency);
+    BOOST_TEST(deconvolution_entry.band_start_frequency == entry->bandStartFrequency);
+    BOOST_TEST(deconvolution_entry.band_end_frequency == entry->bandEndFrequency);
     BOOST_TEST(deconvolution_entry.polarization == entry->polarization);
-    BOOST_TEST(deconvolution_entry.original_channel_index ==
-               entry->outputChannelIndex);
-    BOOST_TEST(deconvolution_entry.original_interval_index ==
-               entry->outputIntervalIndex);
+    BOOST_TEST(deconvolution_entry.original_channel_index == entry->outputChannelIndex);
+    BOOST_TEST(deconvolution_entry.original_interval_index == entry->outputIntervalIndex);
     BOOST_TEST(deconvolution_entry.image_weight == entry->imageWeight);
 
     if (index == 0) {
       BOOST_TEST_REQUIRE(deconvolution_entry.psf_accessors.size() == 1);
-      auto* psf_accessor = dynamic_cast<CachedImageAccessor*>(
-          deconvolution_entry.psf_accessors.front().get());
+      auto* psf_accessor =
+          dynamic_cast<CachedImageAccessor*>(deconvolution_entry.psf_accessors.front().get());
       BOOST_TEST_REQUIRE(psf_accessor);
       BOOST_TEST(&psf_accessor->GetImageSet() == &psf_images);
       BOOST_TEST(psf_accessor->GetPolarization() == entry->polarization);
-      BOOST_TEST(psf_accessor->GetFrequencyIndex() ==
-                 entry->outputChannelIndex);
+      BOOST_TEST(psf_accessor->GetFrequencyIndex() == entry->outputChannelIndex);
       BOOST_TEST(!psf_accessor->GetIsImaginary());
     } else {
       BOOST_TEST(deconvolution_entry.psf_accessors.empty());
     }
 
-    auto* model_accessor = dynamic_cast<CachedImageAccessor*>(
-        deconvolution_entry.model_accessor.get());
+    auto* model_accessor =
+        dynamic_cast<CachedImageAccessor*>(deconvolution_entry.model_accessor.get());
     BOOST_TEST_REQUIRE(model_accessor);
     BOOST_TEST(&model_accessor->GetImageSet() == &model_images);
     BOOST_TEST(model_accessor->GetPolarization() == entry->polarization);
-    BOOST_TEST(model_accessor->GetFrequencyIndex() ==
-               entry->outputChannelIndex);
+    BOOST_TEST(model_accessor->GetFrequencyIndex() == entry->outputChannelIndex);
     BOOST_TEST(model_accessor->GetIsImaginary() == (index == 1));
 
-    auto* residual_accessor = dynamic_cast<CachedImageAccessor*>(
-        deconvolution_entry.residual_accessor.get());
+    auto* residual_accessor =
+        dynamic_cast<CachedImageAccessor*>(deconvolution_entry.residual_accessor.get());
     BOOST_TEST_REQUIRE(residual_accessor);
     BOOST_TEST(&residual_accessor->GetImageSet() == &residual_images);
     BOOST_TEST(residual_accessor->GetPolarization() == entry->polarization);
-    BOOST_TEST(residual_accessor->GetFrequencyIndex() ==
-               entry->outputChannelIndex);
+    BOOST_TEST(residual_accessor->GetFrequencyIndex() == entry->outputChannelIndex);
     BOOST_TEST(residual_accessor->GetIsImaginary() == (index == 1));
 
     ++index;
@@ -357,29 +346,24 @@ BOOST_AUTO_TEST_CASE(create_deconvolution_table_multiple_groups) {
       table.CreateDeconvolutionTable(entries.size(), images, images, images);
 
   BOOST_TEST_REQUIRE(deconvolution_table->Size() == entries.size());
-  BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() ==
-                     entries.size());
-  BOOST_TEST_REQUIRE(deconvolution_table->DeconvolutionGroups().size() ==
-                     entries.size());
+  BOOST_TEST_REQUIRE(deconvolution_table->OriginalGroups().size() == entries.size());
+  BOOST_TEST_REQUIRE(deconvolution_table->DeconvolutionGroups().size() == entries.size());
 
   auto entry_iterator = deconvolution_table->Begin();
   for (int index = 0; index < int(entries.size()); ++index, ++entry_iterator) {
     BOOST_TEST((entry_iterator != deconvolution_table->End()));
 
     const radler::WorkTableEntry& deconvolution_entry = *entry_iterator;
-    BOOST_TEST(deconvolution_entry.original_channel_index ==
-               entries[index]->outputChannelIndex);
+    BOOST_TEST(deconvolution_entry.original_channel_index == entries[index]->outputChannelIndex);
     // Only use image_weight for checking if the entry is the correct entry.
     // The single entry test above checks if the other fields are copied.
     BOOST_TEST(deconvolution_entry.image_weight == entries[index]->imageWeight);
 
-    const radler::WorkTable::Group& group =
-        deconvolution_table->OriginalGroups()[index];
+    const radler::WorkTable::Group& group = deconvolution_table->OriginalGroups()[index];
     BOOST_TEST_REQUIRE(group.size() == 1);
     BOOST_TEST(group[0] == &deconvolution_entry);
 
-    BOOST_TEST(deconvolution_table->DeconvolutionGroups()[index] ==
-               std::vector<size_t>(1, index));
+    BOOST_TEST(deconvolution_table->DeconvolutionGroups()[index] == std::vector<size_t>(1, index));
   }
   BOOST_TEST((entry_iterator == deconvolution_table->End()));
 }

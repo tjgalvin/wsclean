@@ -5,8 +5,7 @@ template class wsclean::WGridder<double>;
 template <typename NumT>
 template <typename Tms>
 void wsclean::WGridder<NumT>::AddInversionMs(size_t n_rows, const double *uvw,
-                                             const ducc0::cmav<double, 1> &freq,
-                                             Tms &ms) {
+                                             const ducc0::cmav<double, 1> &freq, Tms &ms) {
   AddInversionMsImplementation(n_rows, uvw, freq, ms);
 }
 template void wsclean::WGridder<double>::AddInversionMs<

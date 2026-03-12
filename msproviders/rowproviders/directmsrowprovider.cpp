@@ -2,11 +2,9 @@
 
 namespace wsclean {
 
-void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data,
-                                   MSRowProvider::FlagArray& flags,
-                                   WeightArray& weights, double& u, double& v,
-                                   double& w, uint32_t& dataDescId,
-                                   uint32_t& antenna1, uint32_t& antenna2,
+void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data, MSRowProvider::FlagArray& flags,
+                                   WeightArray& weights, double& u, double& v, double& w,
+                                   uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2,
                                    uint32_t& fieldId, double& time) {
   u = _currentUVWArray(0);
   v = _currentUVWArray(1);

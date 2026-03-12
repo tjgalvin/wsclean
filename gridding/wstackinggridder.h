@@ -119,9 +119,8 @@ class WStackingGridder {
    * more accurate but requires more memory and becomes slower, probably mainly
    * due to cache misses.
    */
-  WStackingGridder(size_t width, size_t height, double pixelSizeX,
-                   double pixelSizeY, size_t fftThreadCount,
-                   size_t kernelSize = 7, size_t overSamplingFactor = 1023);
+  WStackingGridder(size_t width, size_t height, double pixelSizeX, double pixelSizeY,
+                   size_t fftThreadCount, size_t kernelSize = 7, size_t overSamplingFactor = 1023);
 
   /** De-allocate imagebuffers and perform other clean-up. */
   ~WStackingGridder() noexcept;
@@ -186,11 +185,9 @@ class WStackingGridder {
       return 0;
     else {
       if (_isComplex)
-        return size_t(
-            round((wInLambda + _maxW) * (_nWLayers - 1) / (_maxW + _maxW)));
+        return size_t(round((wInLambda + _maxW) * (_nWLayers - 1) / (_maxW + _maxW)));
       else
-        return size_t(round((fabs(wInLambda) - _minW) * (_nWLayers - 1) /
-                            (_maxW - _minW)));
+        return size_t(round((fabs(wInLambda) - _minW) * (_nWLayers - 1) / (_maxW - _minW)));
     }
   }
 
@@ -248,16 +245,12 @@ class WStackingGridder {
    */
   bool IsInLayerRange(double wStart, double wEnd) const {
     size_t rangeStart = layerRangeStart(_curLayerRangeIndex),
-           rangeEnd = layerRangeStart(_curLayerRangeIndex + 1),
-           l1 = WToLayer(wStart);
+           rangeEnd = layerRangeStart(_curLayerRangeIndex + 1), l1 = WToLayer(wStart);
     if (l1 >= rangeStart && l1 < rangeEnd) return true;
     size_t l2 = WToLayer(wEnd);
-    return (
-        (l2 >= rangeStart && l2 < rangeEnd)  // l2 is within the range
-        ||
-        (l1 < rangeStart && l2 >= rangeEnd)  // l1 is before, l2 is after range
-        ||
-        (l2 < rangeStart && l1 >= rangeEnd)  // l2 is before, l1 is after range
+    return ((l2 >= rangeStart && l2 < rangeEnd)     // l2 is within the range
+            || (l1 < rangeStart && l2 >= rangeEnd)  // l1 is before, l2 is after range
+            || (l2 < rangeStart && l1 >= rangeEnd)  // l2 is before, l1 is after range
     );
   }
 
@@ -284,8 +277,8 @@ class WStackingGridder {
    * @param data Array of samples for different channels. The size of this array
    * is given by the band referred to by dataDescId.
    */
-  void AddData(const std::complex<float> *data, size_t data_desc_id,
-               double u_in_m, double v_in_m, double w_in_m);
+  void AddData(const std::complex<float> *data, size_t data_desc_id, double u_in_m, double v_in_m,
+               double w_in_m);
 #endif
 
   /**
@@ -296,8 +289,8 @@ class WStackingGridder {
    * @param vInLambda V value of UVW coordinate, in number of wavelengths.
    * @param wInLambda W value of UVW coordinate, in number of wavelengths.
    */
-  void AddDataSample(std::complex<float> sample, double uInLambda,
-                     double vInLambda, double wInLambda);
+  void AddDataSample(std::complex<float> sample, double uInLambda, double vInLambda,
+                     double wInLambda);
 
   /**
    * Initialize a new inversion gridding pass. @ref PrepareWLayers() should have
@@ -378,8 +371,8 @@ class WStackingGridder {
    * @param data Array of samples for different channels. The size of this array
    * is given by the band.
    */
-  void SampleData(std::complex<float> *data, size_t data_desc_id, double u_in_m,
-                  double v_in_m, double w_in_m);
+  void SampleData(std::complex<float> *data, size_t data_desc_id, double u_in_m, double v_in_m,
+                  double w_in_m);
 #endif
 
   /**
@@ -393,8 +386,8 @@ class WStackingGridder {
    * @param vInLambda V value of UVW coordinate, in number of wavelengths.
    * @param wInLambda W value of UVW coordinate, in number of wavelengths.
    */
-  void SampleDataSample(std::complex<float> &value, double uInLambda,
-                        double vInLambda, double wInLambda);
+  void SampleDataSample(std::complex<float> &value, double uInLambda, double vInLambda,
+                        double wInLambda);
 
   /**
    * Get the image result of inversion. This is an array of size width x height,
@@ -419,9 +412,7 @@ class WStackingGridder {
    * similar to
    * @ref RealImage().
    */
-  aocommon::ImageBase<num_t> ImaginaryImage() {
-    return std::move(_imageDataImaginary[0]);
-  }
+  aocommon::ImageBase<num_t> ImaginaryImage() { return std::move(_imageDataImaginary[0]); }
 
   /**
    * Returns the imaginary image that is always converted to a 32-bit float. It
@@ -523,8 +514,8 @@ class WStackingGridder {
    * @param oversampling Oversampling factor of kernel
    * @param size UV-cell size of the kernel
    */
-  static void GetKernel(GriddingKernelMode gridMode, double *kernel,
-                        size_t oversampling, size_t size);
+  static void GetKernel(GriddingKernelMode gridMode, double *kernel, size_t oversampling,
+                        size_t size);
 
   /**
    * Get width of image as specified during construction. This is the full
@@ -564,21 +555,18 @@ class WStackingGridder {
   }
   void makeFFTWThreadSafe();
   template <bool IsComplexImpl>
-  void projectOnImageAndCorrect(const std::complex<num_t> *source, double w,
-                                size_t threadIndex);
+  void projectOnImageAndCorrect(const std::complex<num_t> *source, double w, size_t threadIndex);
   template <bool IsComplexImpl>
   void copyImageToLayerAndInverseCorrect(std::complex<num_t> *dest, double w);
   void initializeSqrtLMLookupTable();
   void initializeSqrtLMLookupTableForSampling();
   void initializeLayeredUVData(size_t n);
-  void fftToImageThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks,
-                                size_t threadIndex);
+  void fftToImageThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks, size_t threadIndex);
   void fftToUVThreadFunction(std::mutex *mutex, std::stack<size_t> *tasks);
   void finalizeImage(double multiplication_factor,
                      std::vector<aocommon::ImageBase<num_t>> &data_array);
-  void initializePrediction(
-      aocommon::Image image,
-      std::vector<aocommon::ImageBase<num_t>> &data_array);
+  void initializePrediction(aocommon::Image image,
+                            std::vector<aocommon::ImageBase<num_t>> &data_array);
 
   void makeKernels();
   /**
@@ -592,18 +580,14 @@ class WStackingGridder {
    * -  14 ; similar to prolate spheroidal
    */
   static void makeKaiserBesselKernel(std::vector<double> &kernel, double alpha,
-                                     size_t overSamplingFactor,
-                                     bool withSinc = true);
+                                     size_t overSamplingFactor, bool withSinc = true);
 
-  static void makeRectangularKernel(std::vector<double> &kernel,
-                                    size_t overSamplingFactor);
+  static void makeRectangularKernel(std::vector<double> &kernel, size_t overSamplingFactor);
 
-  static void makeGaussianKernel(std::vector<double> &kernel,
-                                 size_t overSamplingFactor,
+  static void makeGaussianKernel(std::vector<double> &kernel, size_t overSamplingFactor,
                                  bool withSinc = true);
 
-  static void makeBlackmanNutallKernel(std::vector<double> &kernel,
-                                       size_t overSamplingFactor,
+  static void makeBlackmanNutallKernel(std::vector<double> &kernel, size_t overSamplingFactor,
                                        bool withSinc = true);
 
   static double bessel0(double x, double precision);

@@ -56,16 +56,12 @@ class Model {
   }
 
   void AddCluster(const ModelCluster& cluster) {
-    bool wasAdded =
-        _clusters.insert(std::make_pair(cluster.Name(), cluster)).second;
-    if (!wasAdded)
-      throw std::runtime_error(
-          "AddCluster(): Adding cluster with duplicate name");
+    bool wasAdded = _clusters.insert(std::make_pair(cluster.Name(), cluster)).second;
+    if (!wasAdded) throw std::runtime_error("AddCluster(): Adding cluster with duplicate name");
   }
 
   ModelCluster& FindOrAddCluster(const std::string& clusterName) {
-    std::map<std::string, ModelCluster>::iterator c =
-        _clusters.find(clusterName);
+    std::map<std::string, ModelCluster>::iterator c = _clusters.find(clusterName);
     if (c == _clusters.end()) {
       ModelCluster newCluster;
       newCluster.SetName(clusterName);
@@ -75,25 +71,22 @@ class Model {
   }
 
   ModelCluster& FindCluster(const std::string& clusterName) {
-    std::map<std::string, ModelCluster>::iterator c =
-        _clusters.find(clusterName);
+    std::map<std::string, ModelCluster>::iterator c = _clusters.find(clusterName);
     if (c == _clusters.end())
-      throw std::runtime_error("FindCluster(): Non-existing cluster '" +
-                               clusterName + "' requested.");
+      throw std::runtime_error("FindCluster(): Non-existing cluster '" + clusterName +
+                               "' requested.");
     return c->second;
   }
 
   const ModelCluster& FindCluster(const std::string& clusterName) const {
-    std::map<std::string, ModelCluster>::const_iterator c =
-        _clusters.find(clusterName);
+    std::map<std::string, ModelCluster>::const_iterator c = _clusters.find(clusterName);
     if (c == _clusters.end())
-      throw std::runtime_error("FindCluster(): Non-existing cluster '" +
-                               clusterName + "' requested.");
+      throw std::runtime_error("FindCluster(): Non-existing cluster '" + clusterName +
+                               "' requested.");
     return c->second;
   }
 
-  void GetSourcesInCluster(const std::string& clusterName,
-                           SourceGroup& destGroup) const {
+  void GetSourcesInCluster(const std::string& clusterName, SourceGroup& destGroup) const {
     for (const_iterator s = begin(); s != end(); ++s) {
       if (s->ClusterName() == clusterName) destGroup.AddSource(*s);
     }
@@ -126,26 +119,22 @@ class Model {
     return flux;
   }
 
-  double TotalFlux(double frequency,
-                   aocommon::PolarizationEnum polarization) const {
+  double TotalFlux(double frequency, aocommon::PolarizationEnum polarization) const {
     double flux = 0.0;
-    for (const_iterator i = begin(); i != end(); ++i)
-      flux += i->TotalFlux(frequency, polarization);
+    for (const_iterator i = begin(); i != end(); ++i) flux += i->TotalFlux(frequency, polarization);
 
     return flux;
   }
 
   void SetUnpolarized() {
     for (iterator sourcePtr = begin(); sourcePtr != end(); ++sourcePtr) {
-      for (ModelSource::iterator compPtr = sourcePtr->begin();
-           compPtr != sourcePtr->end(); ++compPtr) {
+      for (ModelSource::iterator compPtr = sourcePtr->begin(); compPtr != sourcePtr->end();
+           ++compPtr) {
         if (compPtr->HasMeasuredSED()) {
           MeasuredSED& sed = compPtr->MSED();
           for (MeasuredSED::iterator m = sed.begin(); m != sed.end(); ++m) {
-            long double totalFlux =
-                m->second.FluxDensity(aocommon::Polarization::StokesI);
-            m->second.SetZeroExceptSinglePol(aocommon::Polarization::StokesI,
-                                             totalFlux);
+            long double totalFlux = m->second.FluxDensity(aocommon::Polarization::StokesI);
+            m->second.SetZeroExceptSinglePol(aocommon::Polarization::StokesI, totalFlux);
           }
         }
       }
@@ -156,15 +145,13 @@ class Model {
     if (Empty())
       (*this) = model;
     else {
-      for (const_iterator i = model.begin(); i != model.end(); ++i)
-        combineMeasurements(*i);
+      for (const_iterator i = model.begin(); i != model.end(); ++i) combineMeasurements(*i);
     }
   }
 
   size_t ComponentCount() const {
     size_t count = 0;
-    for (const_iterator i = begin(); i != end(); ++i)
-      count += i->ComponentCount();
+    for (const_iterator i = begin(); i != end(); ++i) count += i->ComponentCount();
     return count;
   }
 
@@ -181,9 +168,7 @@ class Model {
   std::map<std::string, ModelCluster> _clusters;
 
   static bool isCommentSymbol(char c) { return c == '#'; }
-  static bool isDelimiter(char c) {
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-  }
+  static bool isDelimiter(char c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
   void add(const ModelSource& source);
   void combineMeasurements(const ModelSource& source);
 };

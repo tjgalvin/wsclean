@@ -32,8 +32,7 @@ aocommon::MultiBandData MakeSelectedPartBands(
 
 std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const aocommon::MultiBandData& input,
-    const std::vector<
-        aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
+    const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
 
 /**
  * The abstract MSProvider class is the base class for classes that read and

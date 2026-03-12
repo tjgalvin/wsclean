@@ -18,8 +18,7 @@ struct ObservationInfo {
 
   /// Comparison operator, for use in tests.
   bool operator==(const ObservationInfo& other) const {
-    return phaseCentreRA == other.phaseCentreRA &&
-           phaseCentreDec == other.phaseCentreDec &&
+    return phaseCentreRA == other.phaseCentreRA && phaseCentreDec == other.phaseCentreDec &&
            telescopeName == other.telescopeName && observer == other.observer &&
            fieldName == other.fieldName;
   }
@@ -29,8 +28,7 @@ struct ObservationInfo {
 };
 
 /// Generates observation info from the measurement set tables.
-struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms,
-                                           size_t fieldId);
+struct ObservationInfo ReadObservationInfo(casacore::MeasurementSet& ms, size_t fieldId);
 
 }  // namespace wsclean
 

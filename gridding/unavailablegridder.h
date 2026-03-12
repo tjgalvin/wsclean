@@ -30,8 +30,7 @@ class UnavailableGridder final : public MsGridder {
   void FinishInversion() final { doThrow(); }
 
   void StartPredict(std::vector<aocommon::Image>&& images) final { doThrow(); }
-  size_t PredictMeasurementSet(
-      const MsProviderCollection::MsData& /*ms_data*/) final {
+  size_t PredictMeasurementSet(const MsProviderCollection::MsData& /*ms_data*/) final {
     doThrow();
     return 0;
   }
@@ -44,13 +43,11 @@ class UnavailableGridder final : public MsGridder {
 
   static void SavePBCorrectedImages(aocommon::FitsWriter& /*writer*/,
                                     class ImageFilename& /*filename*/,
-                                    const std::string& /*filenameKind*/,
-                                    const Settings&) {}
+                                    const std::string& /*filenameKind*/, const Settings&) {}
 
   static void SaveBeamImage(const struct ImagingTableEntry& /*entry*/,
-                            class ImageFilename& /*filename*/, const Settings&,
-                            double, double, double, double,
-                            const AverageBeam&) {}
+                            class ImageFilename& /*filename*/, const Settings&, double, double,
+                            double, double, const AverageBeam&) {}
 
   void SetAverageBeam(std::unique_ptr<AverageBeam>) { doThrow(); }
 

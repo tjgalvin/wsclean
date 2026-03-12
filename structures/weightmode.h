@@ -13,8 +13,7 @@ enum class WeightClass { Natural, Uniform, Briggs };
 
 class WeightMode {
  public:
-  explicit constexpr WeightMode(WeightClass weight_class)
-      : class_(weight_class) {}
+  explicit constexpr WeightMode(WeightClass weight_class) : class_(weight_class) {}
 
   constexpr WeightMode(const WeightMode& source)
       : class_(source.class_),
@@ -46,13 +45,9 @@ class WeightMode {
   constexpr double BriggsRobustness() const { return briggs_robustness_; }
   constexpr double SuperWeight() const { return super_weight_; }
 
-  constexpr void SetSuperWeight(double superWeight) {
-    super_weight_ = superWeight;
-  }
+  constexpr void SetSuperWeight(double superWeight) { super_weight_ = superWeight; }
 
-  constexpr bool RequiresGridding() const {
-    return true;
-  }  // { IsUniform() || IsBriggs(); }
+  constexpr bool RequiresGridding() const { return true; }  // { IsUniform() || IsBriggs(); }
 
   std::string ToString() const {
     switch (class_) {

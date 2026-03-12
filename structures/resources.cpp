@@ -24,8 +24,7 @@ Resources Resources::GetCombined(size_t num_combined) const {
 
 Resources Resources::GetPart(size_t part_size) const {
   assert(part_size != 0);
-  const size_t n_cpus =
-      std::max<size_t>(1, (n_cpus_ + part_size - 1) / part_size);
+  const size_t n_cpus = std::max<size_t>(1, (n_cpus_ + part_size - 1) / part_size);
   const int64_t memory = memory_ / part_size;
   return Resources(n_cpus, memory);
 }
@@ -50,23 +49,18 @@ int64_t GetAvailableMemory(double memory_fraction, double abs_memory_limit) {
   } else {
     if (print_output) {
       double limit_in_gb = memory_size_in_gb * memory_fraction;
-      if (abs_memory_limit != 0.0)
-        limit_in_gb = std::min(limit_in_gb, abs_memory_limit);
+      if (abs_memory_limit != 0.0) limit_in_gb = std::min(limit_in_gb, abs_memory_limit);
       Logger::Info << "Detected " << RoundOneDecimal(memory_size_in_gb)
-                   << " GB of system memory, usage limited to "
-                   << RoundOneDecimal(limit_in_gb)
-                   << " GB (frac=" << RoundOneDecimal(memory_fraction * 100.0)
-                   << "%, ";
+                   << " GB of system memory, usage limited to " << RoundOneDecimal(limit_in_gb)
+                   << " GB (frac=" << RoundOneDecimal(memory_fraction * 100.0) << "%, ";
       if (abs_memory_limit == 0.0)
         Logger::Info << "no abs limit)\n";
       else
-        Logger::Info << "abs limit=" << RoundOneDecimal(abs_memory_limit)
-                     << "GB)\n";
+        Logger::Info << "abs limit=" << RoundOneDecimal(abs_memory_limit) << "GB)\n";
     }
 
     memory = int64_t((double)page_count * (double)page_size * memory_fraction);
-    if (abs_memory_limit != 0.0)
-      memory = std::min<int64_t>(double(gb) * abs_memory_limit, memory);
+    if (abs_memory_limit != 0.0) memory = std::min<int64_t>(double(gb) * abs_memory_limit, memory);
   }
   return memory;
 }

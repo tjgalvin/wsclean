@@ -18,12 +18,10 @@ ImagingTable::ImagingTable(const ImagingTable::Group& entries)
   Update();
 }
 
-ImagingTable::ImagingTable(
-    const ImagingTable& other,
-    std::function<bool(const ImagingTableEntry&)> isSelected)
+ImagingTable::ImagingTable(const ImagingTable& other,
+                           std::function<bool(const ImagingTableEntry&)> isSelected)
     : _entries(), _independentGroups(), _facets(), _squaredGroups() {
-  std::copy_if(other._entries.begin(), other._entries.end(),
-               std::back_inserter(_entries),
+  std::copy_if(other._entries.begin(), other._entries.end(), std::back_inserter(_entries),
                [&](const EntryPtr& entry) { return isSelected(*entry); });
   Update();
 }
@@ -71,9 +69,8 @@ void ImagingTable::PrintEntry(const ImagingTableEntry& entry) {
   str << std::setw(2) << entry.facetGroupIndex << " ";
   str << std::setw(2) << entry.facetIndex << " ";
   str << std::setw(2) << entry.outputIntervalIndex << "  ";
-  str << round(entry.bandStartFrequency * 1e-6) << "-"
-      << round(entry.bandEndFrequency * 1e-6) << " (" << entry.inputChannelCount
-      << ")";
+  str << round(entry.bandStartFrequency * 1e-6) << "-" << round(entry.bandEndFrequency * 1e-6)
+      << " (" << entry.inputChannelCount << ")";
 
   Logger::Info << "J-" << str.str() << '\n';
 }
@@ -97,13 +94,11 @@ ImagingTable::Groups ImagingTable::CreateGroups(
   return groups;
 }
 
-void ImagingTable::AssignGridDataFromPolarization(
-    aocommon::PolarizationEnum polarization) {
+void ImagingTable::AssignGridDataFromPolarization(aocommon::PolarizationEnum polarization) {
   for (Group& group : _squaredGroups) {
     const EntryPtr& sourceEntry = *std::find_if(
-        group.begin(), group.end(), [polarization](const EntryPtr& e) {
-          return e->polarization == polarization;
-        });
+        group.begin(), group.end(),
+        [polarization](const EntryPtr& e) { return e->polarization == polarization; });
     for (EntryPtr& entryPtr : group) {
       if (entryPtr != sourceEntry) {
         entryPtr->AssignGridData(*sourceEntry);
@@ -113,11 +108,10 @@ void ImagingTable::AssignGridDataFromPolarization(
 }
 
 std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
-    int n_deconvolution_channels, CachedImageSet& psf_images,
-    CachedImageSet& model_images, CachedImageSet& residual_images) const {
+    int n_deconvolution_channels, CachedImageSet& psf_images, CachedImageSet& model_images,
+    CachedImageSet& residual_images) const {
   if (_entries.empty()) {
-    throw std::runtime_error(
-        "Can not create a DeconvolutionTable from an empty ImagingTable.");
+    throw std::runtime_error("Can not create a DeconvolutionTable from an empty ImagingTable.");
   }
 
   if (_facets.empty()) {
@@ -133,8 +127,7 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
   // Assume that the first entry has the lowest index and that the last entry
   // has the highest output channel index.
   const int channel_index_offset = _entries.front()->outputChannelIndex;
-  const int n_original_channels =
-      _entries.back()->outputChannelIndex + 1 - channel_index_offset;
+  const int n_original_channels = _entries.back()->outputChannelIndex + 1 - channel_index_offset;
 
   // Gather dd-psf info from ImagingTable
   // The ImagingTable is a fairly free format
@@ -166,9 +159,8 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
     psf_facets.push_back(entry_ptr->facet);
   }
 
-  auto table = std::make_unique<radler::WorkTable>(
-      std::move(psf_offsets), n_original_channels, n_deconvolution_channels,
-      channel_index_offset);
+  auto table = std::make_unique<radler::WorkTable>(std::move(psf_offsets), n_original_channels,
+                                                   n_deconvolution_channels, channel_index_offset);
   int max_squared_index = -1;
 
   for (const EntryPtr& entry_ptr : _facets.front()) {
@@ -185,18 +177,14 @@ std::unique_ptr<radler::WorkTable> ImagingTable::CreateDeconvolutionTable(
         psf_images_ptr = &psf_images;
       }
 
-      std::unique_ptr<radler::WorkTableEntry> real_entry =
-          entry_ptr->CreateDeconvolutionEntry(
-              channel_index_offset, psf_images_ptr, model_images,
-              residual_images, psf_facets, false);
+      std::unique_ptr<radler::WorkTableEntry> real_entry = entry_ptr->CreateDeconvolutionEntry(
+          channel_index_offset, psf_images_ptr, model_images, residual_images, psf_facets, false);
       table->AddEntry(std::move(real_entry));
     }
 
     if (entry_ptr->imageCount == 2) {
-      std::unique_ptr<radler::WorkTableEntry> imaginary_entry =
-          entry_ptr->CreateDeconvolutionEntry(channel_index_offset, nullptr,
-                                              model_images, residual_images,
-                                              psf_facets, true);
+      std::unique_ptr<radler::WorkTableEntry> imaginary_entry = entry_ptr->CreateDeconvolutionEntry(
+          channel_index_offset, nullptr, model_images, residual_images, psf_facets, true);
       table->AddEntry(std::move(imaginary_entry));
     }
   }

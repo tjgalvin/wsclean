@@ -32,16 +32,13 @@ class FacetIdgMsGridder final : public MsGridder {
   // pass since we forgo of the average beam.
   size_t GetNInversionPasses() const final { return 1; };
   void StartInversion() final;
-  void StartInversionPass(size_t pass_index) final {
-    ResetVisibilityCounters();
-  }
+  void StartInversionPass(size_t pass_index) final { ResetVisibilityCounters(); }
   size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
   void FinishInversionPass(size_t pass_index) final {}
   void FinishInversion() final;
 
   void StartPredict(std::vector<aocommon::Image>&& images) final;
-  size_t PredictMeasurementSet(
-      const MsProviderCollection::MsData& ms_data) final;
+  size_t PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) final;
   void FinishPredict() final {}
 
   std::vector<aocommon::Image> ResultImages() final;
@@ -52,8 +49,7 @@ class FacetIdgMsGridder final : public MsGridder {
   bool PrepareForMeasurementSet(const MsProviderCollection::MsData& ms_data,
                                 idg::api::BufferSetType);
 
-  void PredictRow(IDGPredictionRow& row,
-                  const std::vector<std::string>& antennaNames);
+  void PredictRow(IDGPredictionRow& row, const std::vector<std::string>& antennaNames);
   void ComputePredictionBuffer(const std::vector<std::string>& antennaNames);
 
   std::unique_ptr<idg::api::BufferSet> buffer_set_;
@@ -66,12 +62,10 @@ class FacetIdgMsGridder final : public MsGridder {
   const Resources resources_;
 };
 
-void init_optimal_taper_1D(int subgridsize, int gridsize, float kernelsize,
-                           float padding, float* taper_subgrid,
-                           float* taper_grid);
-void init_optimal_gridding_taper_1D(int subgridsize, int gridsize,
-                                    float kernelsize, float* taper_subgrid,
-                                    float* taper_grid);
+void init_optimal_taper_1D(int subgridsize, int gridsize, float kernelsize, float padding,
+                           float* taper_subgrid, float* taper_grid);
+void init_optimal_gridding_taper_1D(int subgridsize, int gridsize, float kernelsize,
+                                    float* taper_subgrid, float* taper_grid);
 
 }  // namespace wsclean
 

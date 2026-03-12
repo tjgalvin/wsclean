@@ -14,67 +14,57 @@ using aocommon::Logger;
 namespace wsclean {
 
 void ComponentListWriter::SaveSourceList(const radler::Radler& deconvolution,
-                                         long double phase_centre_ra,
-                                         long double phase_centre_dec,
-                                         long double l_shift,
-                                         long double m_shift) const {
+                                         long double phase_centre_ra, long double phase_centre_dec,
+                                         long double l_shift, long double m_shift) const {
   const std::string filename = settings_.prefixName + "-sources.txt";
   radler::ComponentList list = deconvolution.GetComponentList();
-  list.WriteSources(deconvolution, filename, settings_.pixelScaleX,
-                    settings_.pixelScaleY, phase_centre_ra, phase_centre_dec,
-                    l_shift, m_shift);
+  list.WriteSources(deconvolution, filename, settings_.pixelScaleX, settings_.pixelScaleY,
+                    phase_centre_ra, phase_centre_dec, l_shift, m_shift);
 }
 
-void ComponentListWriter::SavePbCorrectedSourceList(
-    const radler::Radler& deconvolution, long double phase_centre_ra,
-    long double phase_centre_dec, long double l_shift,
-    long double m_shift) const {
+void ComponentListWriter::SavePbCorrectedSourceList(const radler::Radler& deconvolution,
+                                                    long double phase_centre_ra,
+                                                    long double phase_centre_dec,
+                                                    long double l_shift,
+                                                    long double m_shift) const {
   const std::string filename = settings_.prefixName + "-sources-pb.txt";
   radler::ComponentList list = deconvolution.GetComponentList();
 
   if (settings_.deconvolutionChannelCount == 0 ||
-      settings_.deconvolutionChannelCount ==
-          deconvolution_table_->OriginalGroups().size()) {
+      settings_.deconvolutionChannelCount == deconvolution_table_->OriginalGroups().size()) {
     // No beam averaging is required
-    for (const radler::WorkTable::Group& channel_group :
-         deconvolution_table_->OriginalGroups()) {
+    for (const radler::WorkTable::Group& channel_group : deconvolution_table_->OriginalGroups()) {
       CorrectChannelForPrimaryBeam(list, *channel_group.front());
     }
   } else {
     for (size_t ch = 0; ch != settings_.deconvolutionChannelCount; ++ch) {
-      Logger::Debug << "Correcting source list of channel " << ch
-                    << " for averaged beam\n";
+      Logger::Debug << "Correcting source list of channel " << ch << " for averaged beam\n";
       PrimaryBeamImageSet beam_images = LoadAveragePrimaryBeam(ch);
       beam_images.CorrectComponentList(list, ch);
     }
   }
 
-  list.WriteSources(deconvolution, filename, settings_.pixelScaleX,
-                    settings_.pixelScaleY, phase_centre_ra, phase_centre_dec,
-                    l_shift, m_shift);
+  list.WriteSources(deconvolution, filename, settings_.pixelScaleX, settings_.pixelScaleY,
+                    phase_centre_ra, phase_centre_dec, l_shift, m_shift);
 }
 
-void ComponentListWriter::CorrectChannelForPrimaryBeam(
-    radler::ComponentList& list, const radler::WorkTableEntry& entry) const {
-  Logger::Debug << "Correcting source list of channel "
-                << entry.original_channel_index << " for beam\n";
-  ImageFilename filename(entry.original_channel_index,
-                         entry.original_interval_index);
+void ComponentListWriter::CorrectChannelForPrimaryBeam(radler::ComponentList& list,
+                                                       const radler::WorkTableEntry& entry) const {
+  Logger::Debug << "Correcting source list of channel " << entry.original_channel_index
+                << " for beam\n";
+  ImageFilename filename(entry.original_channel_index, entry.original_interval_index);
   filename.SetPolarization(entry.polarization);
   PrimaryBeam beam(settings_);
   PrimaryBeamImageSet beam_images = beam.LoadStokesI(filename);
   beam_images.CorrectComponentList(list, entry.original_channel_index);
 }
 
-PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
-    size_t image_index) const {
-  Logger::Debug << "Averaging beam for deconvolution channel " << image_index
-                << "\n";
+PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(size_t image_index) const {
+  Logger::Debug << "Averaging beam for deconvolution channel " << image_index << "\n";
 
   PrimaryBeamImageSet beam_images;
 
-  aocommon::Image scratch(settings_.trimmedImageWidth,
-                          settings_.trimmedImageHeight);
+  aocommon::Image scratch(settings_.trimmedImageWidth, settings_.trimmedImageHeight);
   size_t deconvolution_channels = settings_.deconvolutionChannelCount;
 
   /// TODO : use real weights of images
@@ -82,16 +72,12 @@ PrimaryBeamImageSet ComponentListWriter::LoadAveragePrimaryBeam(
   PrimaryBeam beam(settings_);
   const std::vector<radler::WorkTable::Group>& channel_groups =
       deconvolution_table_->OriginalGroups();
-  for (size_t channel_index = 0; channel_index != channel_groups.size();
-       ++channel_index) {
-    size_t current_image_index =
-        (channel_index * deconvolution_channels) / channel_groups.size();
+  for (size_t channel_index = 0; channel_index != channel_groups.size(); ++channel_index) {
+    size_t current_image_index = (channel_index * deconvolution_channels) / channel_groups.size();
     if (current_image_index == image_index) {
       const radler::WorkTableEntry& e = *channel_groups[channel_index].front();
-      Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6
-                    << " MHz\n";
-      ImageFilename filename(e.original_channel_index,
-                             e.original_interval_index);
+      Logger::Debug << "Adding beam at " << e.CentralFrequency() * 1e-6 << " MHz\n";
+      ImageFilename filename(e.original_channel_index, e.original_interval_index);
 
       if (count == 0) {
         beam_images = beam.LoadStokesI(filename);

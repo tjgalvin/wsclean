@@ -9,8 +9,7 @@ namespace wsclean {
 
 GriddingResult::GriddingResult(GriddingResult&& source) noexcept = default;
 GriddingResult::~GriddingResult() = default;
-GriddingResult& GriddingResult::operator=(GriddingResult&& rhs) noexcept =
-    default;
+GriddingResult& GriddingResult::operator=(GriddingResult&& rhs) noexcept = default;
 
 void GriddingResult::Serialize(aocommon::SerialOStream& stream) const {
   stream.UInt32(unique_id)
@@ -30,8 +29,7 @@ void GriddingResult::Unserialize(aocommon::SerialIStream& stream) {
       .ObjectVector(facets);
 }
 
-void GriddingResult::FacetData::Serialize(
-    aocommon::SerialOStream& stream) const {
+void GriddingResult::FacetData::Serialize(aocommon::SerialOStream& stream) const {
   stream.ObjectVector(images)
       .Double(imageWeight)
       .Double(normalizationFactor)
