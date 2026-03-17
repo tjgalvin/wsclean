@@ -10,6 +10,7 @@ import pytest
 from astropy.io import fits
 from utils import (
     assert_taql,
+    basic_mwa_image_check,
     compute_rms,
     validate_call,
     validate_failing_call,
@@ -279,12 +280,61 @@ class TestLongSystem:
         # Check whether source files is generated
         assert os.path.isfile(component_file)
 
+    def test_stokes_without_joining_polarizations(self):
+        s = f"{tcf.WSCLEAN} -name {name('stokes-data-without-joining')} -niter 1000 \
+            -interval 5 15 -channel-range 0 24 -pol IQUV -mgain 0.85 -parallel-gridding 4 \
+            {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        validate_call(s.split())
+
+        # If resetting of columns is going incorrectly, some of the polarizations may be zero.
+        # This is checked by imaging the model column and checking the images.
+        s = f"{tcf.WSCLEAN} -name {name('stokes-model-without-joining')} -gridder wstacking \
+            -interval 5 15 -channel-range 0 24 -pol XX,XY,YX,YY -parallel-gridding 4 \
+            -data-column MODEL_DATA -no-dirty \
+            {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        validate_call(s.split())
+
+        basic_mwa_image_check(
+            name("stokes-model-without-joining-XX-image.fits")
+        )
+        basic_mwa_image_check(
+            name("stokes-model-without-joining-XY-image.fits")
+        )
+        # Reminder: full linear pol imaging creates an "imaginary" XY image, not a YX image.
+        basic_mwa_image_check(
+            name("stokes-model-without-joining-XYi-image.fits")
+        )
+        basic_mwa_image_check(
+            name("stokes-model-without-joining-YY-image.fits")
+        )
+
     def test_linear_joined_polarizations(self):
         # Linear joined polarizations with 4 joined channels
         s = f"{tcf.WSCLEAN} -name {name('linearpol')} -niter 1000000 -auto-threshold 3.0 \
              -pol XX,YY,XY,YX -join-polarizations -join-channels -mgain 0.85 \
                  -channels-out 4 -parallel-gridding 16 -gridder wstacking {tcf.DIMS_LARGE} {tcf.MWA_MS}"
         validate_call(s.split())
+
+        s = f"{tcf.WSCLEAN} -name {name('linearpol-model-column')} -gridder wstacking \
+            -interval 5 15 -pol XX,XY,YX,YY -channels-out 4 -parallel-gridding 16 \
+            -data-column MODEL_DATA -no-dirty -join-channels \
+            {tcf.DIMS_LARGE} {tcf.MWA_MS}"
+        validate_call(s.split())
+
+        for channel in range(0, 3):
+            basic_mwa_image_check(
+                name(f"linearpol-model-column-000{channel}-XX-image.fits")
+            )
+            basic_mwa_image_check(
+                name(f"linearpol-model-column-000{channel}-XY-image.fits")
+            )
+            # Reminder: full linear pol imaging creates an "imaginary" XY image, not a YX image.
+            basic_mwa_image_check(
+                name(f"linearpol-model-column-000{channel}-XYi-image.fits")
+            )
+            basic_mwa_image_check(
+                name(f"linearpol-model-column-000{channel}-YY-image.fits")
+            )
 
     def test_two_timesteps(self):
         # Image two timesteps

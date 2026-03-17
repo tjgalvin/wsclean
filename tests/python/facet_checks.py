@@ -10,7 +10,7 @@ from astropy.io import fits
 from astropy.wcs import WCS
 from utils import (
     assert_taql,
-    basic_image_check,
+    basic_facet_image_check,
     check_and_remove_files,
     compare_rms_fits,
     compute_rms,
@@ -162,7 +162,7 @@ class TestFacets:
         )
         validate_call(s.split())
 
-        basic_image_check("facet-psf-only-psf.fits")
+        basic_facet_image_check("facet-psf-only-psf.fits")
 
     def test_intervals(self):
         """
@@ -178,10 +178,10 @@ class TestFacets:
         )
         validate_call(s.split())
 
-        basic_image_check("facet-with-intervals-t0000-I-image.fits")
-        basic_image_check("facet-with-intervals-t0003-I-image.fits")
-        basic_image_check("facet-with-intervals-t0000-V-image.fits")
-        basic_image_check("facet-with-intervals-t0003-V-image.fits")
+        basic_facet_image_check("facet-with-intervals-t0000-I-image.fits")
+        basic_facet_image_check("facet-with-intervals-t0003-I-image.fits")
+        basic_facet_image_check("facet-with-intervals-t0000-V-image.fits")
+        basic_facet_image_check("facet-with-intervals-t0003-V-image.fits")
 
     # Test assumes that IDG and EveryBeam are installed
     @pytest.mark.parametrize(
@@ -346,8 +346,8 @@ class TestFacets:
             tmp_mwa_mock_facet, "wgridder", True, use_mpi, True
         )
 
-        basic_image_check(f"{image_prefix}-psf.fits")
-        basic_image_check(f"{image_prefix}-dirty.fits")
+        basic_facet_image_check(f"{image_prefix}-psf.fits")
+        basic_facet_image_check(f"{image_prefix}-dirty.fits")
 
     def test_multi_channel(self):
         # Test for issue 122. Only test if no crash occurs.
@@ -806,7 +806,7 @@ class TestFacets:
         )
         import os.path
 
-        basic_image_check("dd-psfs-with-faceting-MFS-image.fits")
+        basic_facet_image_check("dd-psfs-with-faceting-MFS-image.fits")
         for i in range(9):
             assert os.path.isfile(
                 f"dd-psfs-with-faceting-d000{i}-0000-psf.fits"
@@ -962,11 +962,11 @@ class TestFacets:
             f"-name facet-continuing-b -v {tcf.MWA_MOCK_FULL}"
         )
         validate_call(s.split())
-        basic_image_check("facet-continuing-b-0000-dirty.fits")
-        basic_image_check("facet-continuing-b-0000-image.fits")
-        basic_image_check("facet-continuing-b-0000-psf.fits")
-        basic_image_check("facet-continuing-b-0000-residual.fits")
-        basic_image_check("facet-continuing-b-0001-dirty.fits")
-        basic_image_check("facet-continuing-b-0001-image.fits")
-        basic_image_check("facet-continuing-b-0001-psf.fits")
-        basic_image_check("facet-continuing-b-0001-residual.fits")
+        basic_facet_image_check("facet-continuing-b-0000-dirty.fits")
+        basic_facet_image_check("facet-continuing-b-0000-image.fits")
+        basic_facet_image_check("facet-continuing-b-0000-psf.fits")
+        basic_facet_image_check("facet-continuing-b-0000-residual.fits")
+        basic_facet_image_check("facet-continuing-b-0001-dirty.fits")
+        basic_facet_image_check("facet-continuing-b-0001-image.fits")
+        basic_facet_image_check("facet-continuing-b-0001-psf.fits")
+        basic_facet_image_check("facet-continuing-b-0001-residual.fits")

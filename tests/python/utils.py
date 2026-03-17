@@ -20,7 +20,7 @@ def assert_taql(command, expected_rows=0):
     assert result == f"select result of {expected_rows} rows", result
 
 
-def basic_image_check(fits_file):
+def check_image_values(fits_file, maximum_zero_fraction):
     """
     Checks that the fits file has no NaN or Inf values and that the number
     of zeroes is below a limit.
@@ -28,15 +28,42 @@ def basic_image_check(fits_file):
     image = fits.open(fits_file)
     assert len(image) == 1
     data = image[0].data
-    assert data.shape == (1, 1, 256, 256)
+    # Does the image have a limited nr of zeros?
+    zeros = data.size - np.count_nonzero(data)
+    assert (zeros / data.size) <= maximum_zero_fraction
     for x in np.nditer(data):
         assert np.isfinite(x)
 
+
+def basic_mwa_image_check(fits_file):
+    """
+    Checks that the fits file has no NaN or Inf values and that the number
+    of zeroes is below a limit.
+    """
+    image = fits.open(fits_file)
+    assert len(image) == 1
+    data = image[0].data
+    assert data.shape[0] == 1
+    assert data.shape[1] == 1
+    assert data.shape[2] >= 256
+    assert data.shape[3] >= 256
+
+    check_image_values(fits_file, 0.05)
+
+
+def basic_facet_image_check(fits_file):
+    """
+    Same as basic_mwa_image_check(), but more specific for facet image settings.
+    """
+    image = fits.open(fits_file)
+    assert len(image) == 1
+    data = image[0].data
+    assert data.shape == (1, 1, 256, 256)
+
+    # Does the image have a limited nr of zeros?
     # Test runs showed that 3.1 % of the values are zero. This regression test
     # has a higher limit, since results may vary due to floating point rounding.
-    zeros = data.size - np.count_nonzero(data)
-    ZERO_LIMIT = 0.035
-    assert (zeros / data.size) <= ZERO_LIMIT
+    check_image_values(fits_file, 0.035)
 
 
 def check_and_remove_files(fpaths, remove=False):

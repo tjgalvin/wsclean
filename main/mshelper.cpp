@@ -16,6 +16,26 @@ using schaapcommon::reordering::ChannelRange;
 using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
+namespace {
+
+/**
+ * Sets the part index for all the entries in the image table that are supposed to have
+ * the same part index. Different facets and different polarizations (either independent or joined)
+ * all have the same part index, and are all set.
+ */
+void SetPartIndex(const ImagingTable& imaging_table, size_t output_channel, size_t sq_index,
+                  size_t ms_index, size_t part_index) {
+  for (size_t i = 0; i != imaging_table.IndependentGroupCount(); ++i) {
+    const ImagingTable independent_group = imaging_table.GetIndependentGroup(i);
+    const ImagingTable squared_group = independent_group.GetSquaredGroup(sq_index);
+    for (ImagingTableEntry& entry : squared_group) {
+      if (entry.outputChannelIndex == output_channel) {
+        entry.part_index_per_ms[ms_index] = part_index;
+      }
+    }
+  }
+}
+}  // namespace
 
 aocommon::VectorMap<ChannelRange> MsHelper::GenerateChannelPartInfo(const ImagingTableEntry& entry,
                                                                     size_t ms_index) const {
@@ -35,24 +55,34 @@ aocommon::VectorMap<ChannelRange> MsHelper::GenerateChannelPartInfo(const Imagin
 
 std::vector<aocommon::VectorMap<ChannelRange>> MsHelper::GenerateChannelInfo(
     const ImagingTable& imaging_table, size_t ms_index) const {
+  assert(imaging_table.IndependentGroupCount() > 0);
   std::vector<aocommon::VectorMap<ChannelRange>> channels;
   std::map<aocommon::PolarizationEnum, size_t> next_index;
-  for (size_t sq_index = 0; sq_index != imaging_table.SquaredGroupCount(); ++sq_index) {
-    // One facet_group contains all the entries for one output channel and
-    // one polarization.
-    // The band information is determined from the first facet in the group of
-    // the first polarization. After this, all facet entries inside the
-    // facet_groups are updated.
-    const ImagingTable::Groups facet_groups = imaging_table.FacetGroups(
-        [sq_index](const ImagingTableEntry& e) { return e.squaredDeconvolutionIndex == sq_index; });
-    const ImagingTableEntry& entry = *facet_groups.front().front();
-    aocommon::VectorMap<ChannelRange> range = GenerateChannelPartInfo(entry, ms_index);
-    if (!range.Empty()) {
-      const size_t part_index = channels.size();
-      channels.emplace_back(std::move(range));
-      for (const ImagingTable::Group& facet_group : facet_groups) {
-        for (const std::shared_ptr<ImagingTableEntry>& entry : facet_group) {
-          entry->part_index_per_ms[ms_index] = part_index;
+  // Independent groups may be independent because they are a non-joined polarization or a
+  // non-joined output channel index. Polarizations have the same channel info, but output channels
+  // do not. The first polarization is used as template.
+  const aocommon::PolarizationEnum first_polarization = imaging_table.Front().polarization;
+  for (size_t independent_index = 0; independent_index != imaging_table.IndependentGroupCount();
+       ++independent_index) {
+    const ImagingTable independent_group = imaging_table.GetIndependentGroup(independent_index);
+    for (size_t sq_index = 0; sq_index != independent_group.SquaredGroupCount(); ++sq_index) {
+      const ImagingTable squared_group = independent_group.GetSquaredGroup(sq_index);
+      // One facet_group contains all the entries for one output channel and
+      // one polarization. Like for polarizations, the band information is determined from the first
+      // facet in the group of the first polarization. After this, all facet entries and
+      // polarizations inside the facet_groups for the same output channel are updated using
+      // SetPartIndex().
+      const ImagingTable::Groups facet_groups =
+          squared_group.FacetGroups([first_polarization](const ImagingTableEntry& entry) {
+            return entry.polarization == first_polarization;
+          });
+      if (!facet_groups.empty()) {
+        const ImagingTableEntry& entry = *facet_groups.front().front();
+        aocommon::VectorMap<ChannelRange> range = GenerateChannelPartInfo(entry, ms_index);
+        if (!range.Empty()) {
+          const size_t part_index = channels.size();
+          channels.emplace_back(std::move(range));
+          SetPartIndex(imaging_table, entry.outputChannelIndex, sq_index, ms_index, part_index);
         }
       }
     }
