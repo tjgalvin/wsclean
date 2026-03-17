@@ -29,7 +29,8 @@ void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
 }  // namespace
 
 void VisibilityModifier::InitializeTimeFrequencySmearing(const ObservationInfo& observation_info,
-                                                         double interval) {
+                                                         double interval, double l_shift,
+                                                         double m_shift) {
   /**
    * Length of a sidereal day in seconds.
    */
@@ -46,6 +47,10 @@ void VisibilityModifier::InitializeTimeFrequencySmearing(const ObservationInfo& 
   scaled_ncp_uvw_[0] = 0.0;
   scaled_ncp_uvw_[1] = angular_speed * std::cos(observation_info.phaseCentreDec);
   scaled_ncp_uvw_[2] = angular_speed * std::sin(observation_info.phaseCentreDec);
+
+  dlmn_[0] = l_shift;
+  dlmn_[1] = m_shift;
+  dlmn_[2] = std::sqrt(1.0 - l_shift * l_shift - m_shift * m_shift) - 1.0;
 }
 
 void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double facet_beam_update_time,

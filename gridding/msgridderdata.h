@@ -111,6 +111,7 @@ class MsGridderData {
       visibility_modifier_.SetH5Parm(solution_data.GetH5Parms(), solution_data.GetFirstSolutions(),
                                      solution_data.GetSecondSolutions(),
                                      solution_data.GetGainTypes());
+      // TODO smearing
     }
   }
   bool WillApplyCorrections() const {
@@ -166,9 +167,8 @@ class MsGridderData {
       LoadAndApplyCorrections<Mode, NParms, ApplyBeam, true>(n_antennas, visibility_row, bands,
                                                              weight_buffer, metadata, time_offset);
       if (settings_.applyTimeFrequencySmearing) {
-        visibility_modifier_.ApplyTimeFrequencySmearing(visibility_row, uvw,
-                                                        bands[metadata.data_desc_id],
-                                                        n_vis_polarizations_, LShift(), MShift());
+        visibility_modifier_.ApplyTimeFrequencySmearing(
+            visibility_row, uvw, bands[metadata.data_desc_id], n_vis_polarizations_);
       }
 
     } else {
@@ -1174,7 +1174,7 @@ void MsGridderData::CorrectInstrumentalVisibilities(size_t n_antennas,
   }
   if (settings_.applyTimeFrequencySmearing) {
     visibility_modifier_.ApplyTimeFrequencySmearing(buffer, uvw, bands[data_desc_id],
-                                                    n_vis_polarizations_, LShift(), MShift());
+                                                    n_vis_polarizations_);
   }
 }
 

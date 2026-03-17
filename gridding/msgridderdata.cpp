@@ -17,8 +17,22 @@ void MsGridderData::StartMeasurementSet(size_t ms_count,
   visibility_modifier_.InitializeBda(ms_data.ms_provider->HasFrequencyBda());
   InitializePointResponse(ms_data);
   if (settings_.applyTimeFrequencySmearing) {
+    // For smearing calculations, the facet target direction is used, such that the target
+    // correction is accurately corrected and sources away from the facet target direction
+    // receive a slightly inaccurate correction. The target direction is typically the
+    // direction toward the strongest source. It is not the same as the facet's centre
+    // position (given by the facet's l/m shift), which is the centre of the bounding box
+    // of the facet.
+    const double facet_ra = visibility_modifier_.FacetDirectionRA();
+    const double facet_dec = visibility_modifier_.FacetDirectionDec();
+    const double phase_centre_ra = ms_data.ms_provider->GetObservationInfo().phaseCentreRA;
+    const double phase_centre_dec = ms_data.ms_provider->GetObservationInfo().phaseCentreDec;
+    double l;
+    double m;
+    aocommon::ImageCoordinates::RaDecToLM(facet_ra, facet_dec, phase_centre_ra, phase_centre_dec, l,
+                                          m);
     visibility_modifier_.InitializeTimeFrequencySmearing(ms_data.ms_provider->GetObservationInfo(),
-                                                         ms_data.ms_provider->Interval());
+                                                         ms_data.ms_provider->Interval(), l, m);
   }
   if (visibility_modifier_.HasH5Parm()) {
     visibility_modifier_.InitializeCacheParmResponse(

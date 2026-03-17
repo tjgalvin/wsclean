@@ -186,7 +186,7 @@ class MsGridder : public MsGridderData {
   /**
    * Deallocate any data that is no longer necessary, but all methods
    * will still return results from the imaging, with the exception of
-   * ImageReal/ImageResult().
+   * ResultImages().
    */
   virtual void FreeImagingData() {}
 
