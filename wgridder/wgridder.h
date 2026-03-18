@@ -188,7 +188,9 @@ const std::complex<float> VisibilityCallback(
                                  HasH5Parm>(
       parm_response, channel, n_channels, data_desc_id, n_antennas, visibilities_temp, nullptr,
       antenna_pair.first, antenna_pair.second, time_offset, nullptr, cached_beam_response);
-  internal::CollapseData<NPolarizations>(1, visibilities_temp, gridder->Polarization());
+  if constexpr (NPolarizations > 1) {
+    internal::CollapseData<NPolarizations>(1, visibilities_temp, gridder->Polarization());
+  }
   return visibilities_temp[0];
 }
 }  // namespace internal
