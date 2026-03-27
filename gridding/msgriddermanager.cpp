@@ -32,6 +32,37 @@ using aocommon::Logger;
 namespace wsclean {
 
 namespace {
+
+// Prevent false sharing between threads by isolating mutexes and atomics on their own cache lines.
+//
+// When multiple threads frequently update adjacent variables in an array, they compete for
+// ownership of the same cache line (false sharing), causing severe performance degradation.
+// Using `std::hardware_destructive_interference_size` ensures each variable is
+// spaced according to the CPU's cache line size (typically 64 bytes).
+//
+// We use wrapper structs because `std::mutex` and `std::atomic` have
+// internal alignment requirements that can conflict with direct `alignas` application.
+// The wrapper allows the compiler to satisfy both the cache line alignment and the type's own
+// alignment requirements through padding.
+//
+// Important: These types must be allocated using std::make_unique_for_overwrite<T[]>(size)
+// rather than std::vector<T>. std::vector does not guarantee that over-aligned types
+// (alignas > alignof(std::max_align_t)) will respect the requested alignment. The C++
+// standard only requires vector to honor alignments up to the platform's maximum scalar
+// alignment, which is typically 16 bytes. Using make_unique_for_overwrite ensures the
+// allocator respects our cache line alignment (64+ bytes) and avoids default-initialization
+// overhead for large arrays.
+//
+// These wrappers were introduced to resolve bottlenecks in Predict/Invert operations,
+// resulting in a measured 2.46x speedup for Predict on four nodes running with a 189 GB
+// simulation.
+struct alignas(std::hardware_destructive_interference_size) CacheAlignedAtomic {
+  std::atomic<size_t> value{0};
+};
+struct alignas(std::hardware_destructive_interference_size) CacheAlignedMutex {
+  std::mutex value;
+};
+
 /**
  * When populating @ref InversionChunkData it can be optimal to not do so a
  * single row at a time, but instead to gather rows into batches, and then
@@ -212,24 +243,117 @@ void PrepareCorrectionMetadataForRow(const std::vector<MsGridder*>& gridders,
 template <bool ApplyBeam>
 void ComputeBeamResponseForRowInOrder(const std::vector<MsGridder*>& gridders,
                                       const aocommon::MultiBandData& bands, BatchRowData& rows,
-                                      std::vector<std::atomic<size_t>>& index_process_order) {
+                                      CacheAlignedAtomic* index_process_order) {
 #ifdef HAVE_EVERYBEAM
   if constexpr (ApplyBeam) {
     for (size_t gridder_index = 0; gridder_index < gridders.size(); ++gridder_index) {
-      size_t current = index_process_order[gridder_index].load();
+      auto& atomic_value = index_process_order[gridder_index].value;
+      size_t current = atomic_value.load();
       while (current != rows.index) {
-        index_process_order[gridder_index].wait(current);
-        current = index_process_order[gridder_index].load();
+        atomic_value.wait(current);
+        current = atomic_value.load();
       }
       for (const auto& [meta_time, field_id, offset] : rows.beam_cache_offsets) {
         gridders[gridder_index]->GetVisibilityModifier().ComputeBeamResponseForCache(
             offset, meta_time, field_id, bands);
       }
-      index_process_order[gridder_index]++;
-      index_process_order[gridder_index].notify_all();
+      atomic_value++;
+      atomic_value.notify_all();
     }
   }
 #endif
+}
+
+/*
+ * The input for this function is the predicted facet visibilities for a single
+ * facet.
+ * 1. Expand the visibilities.
+ * 2. Apply corrections to the visibilities.
+ * 3. Cumulatively add the expanded and corrected visibilities with those of
+ * other facets.
+ */
+void ExpandAndCombineFacetVisibilities(
+    size_t n_antennas, size_t n_channels, size_t n_rows, size_t n_vis_polarizations,
+    const aocommon::MultiBandData& bands, const size_t* data_desc_ids, const size_t* antennas1,
+    const size_t* antennas2, const size_t* field_ids, const double* times, const double* uvw,
+    const std::complex<float>* facet_visibilities, MsGridder& gridder,
+    std::complex<float>* combined_visibilities, CacheAlignedMutex* sum_visibilities_mutexes,
+    size_t mutex_chunk_size) {
+  aocommon::UVector<std::complex<float>> visibilities_scratch(n_channels * n_vis_polarizations);
+  const size_t n_chunks = n_rows / mutex_chunk_size + 1;
+  for (size_t chunk = 0; chunk < n_chunks; ++chunk) {
+    std::lock_guard<std::mutex> sum_lock(sum_visibilities_mutexes[chunk].value);
+    const size_t start = chunk * mutex_chunk_size;
+    const size_t end = std::min(start + mutex_chunk_size, n_rows);
+    for (size_t row = start; row < end; ++row) {
+      switch (n_vis_polarizations) {
+        case 1:
+          std::copy_n(facet_visibilities, n_channels, visibilities_scratch.data());
+          break;
+        case 2:
+          internal::ExpandData<2>(n_channels, facet_visibilities, visibilities_scratch.data(),
+                                  gridder.Polarization());
+          break;
+        case 4:
+          internal::ExpandData<4>(n_channels, facet_visibilities, visibilities_scratch.data(),
+                                  gridder.Polarization());
+          break;
+      }
+      gridder.CorrectInstrumentalVisibilities(n_antennas, bands, *data_desc_ids,
+                                              visibilities_scratch.data(), uvw, *field_ids,
+                                              *antennas1, *antennas2, *times);
+
+      // In case the value was not sampled in this pass, it has been set to
+      // infinite and should not overwrite the current value in the set.
+      // NB! This is only true for multi pass gridders (wstacking gridder) other
+      // gridders could consider skipping this check if it becomes important for
+      // performance.
+      for (size_t channel = 0; channel < n_channels * n_vis_polarizations; ++channel) {
+        if (std::isfinite(visibilities_scratch[channel].real())) {
+          combined_visibilities[channel] += visibilities_scratch[channel];
+        }
+      }
+      facet_visibilities += n_channels;
+      combined_visibilities += n_channels * n_vis_polarizations;
+      data_desc_ids++;
+      field_ids++;
+      antennas1++;
+      antennas2++;
+      times++;
+    }
+  }
+}
+
+/**
+ * Perform predict on a single block of data stored in @ref
+ * PredictionChunkData, for a single gridder/facet.
+ */
+void PredictChunkForFacet(MsGridder& gridder, size_t facet_index,
+                          const PredictionChunkData& chunk_data, size_t n_vis_polarizations,
+                          size_t n_antennas,
+                          std::vector<std::complex<float>>& combined_visibilities,
+                          const aocommon::UVector<double>& frequencies,
+                          MsProviderCollection::MsData& ms_data,
+                          CacheAlignedMutex* sum_visibilities_mutexes, size_t mutex_chunk_size) {
+  Logger::Info << "Predicting facet " + std::to_string(facet_index) + "\n";
+
+  // TODO
+  if (!ms_data.ms_provider->IsRegular())
+    throw std::runtime_error("Can't use bulk inversion with BDA yet");
+  const size_t n_channels = frequencies.size();
+
+  aocommon::UVector<std::complex<float>> facet_visibilities(chunk_data.n_rows * n_channels);
+  gridder.PredictChunk(chunk_data.n_rows, n_channels, frequencies.data(), chunk_data.uvws.data(),
+                       facet_visibilities.data());
+
+  ExpandAndCombineFacetVisibilities(
+      n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
+      ms_data.ms_provider->SelectedBands(), chunk_data.data_desc_ids.data(),
+      chunk_data.antennas1.data(), chunk_data.antennas2.data(), chunk_data.field_ids.data(),
+      chunk_data.times.data(), chunk_data.uvws.data(), facet_visibilities.data(), gridder,
+      combined_visibilities.data(), sum_visibilities_mutexes, mutex_chunk_size);
+
+  Logger::Info << "Done predicting facet " + std::to_string(facet_index) + "\n";
 }
 }  // namespace
 
@@ -524,14 +648,16 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
 
   // Per gridder mutex to prevent data race on currection sums inside
   // ApplyCorrections()
-  std::vector<std::mutex> gridder_mutexes(gridders.size());
+  std::unique_ptr<CacheAlignedMutex[]> gridder_mutexes =
+      std::make_unique_for_overwrite<CacheAlignedMutex[]>(gridders.size());
+  std::unique_ptr<CacheAlignedAtomic[]> index_process_order =
+      std::make_unique_for_overwrite<CacheAlignedAtomic[]>(gridders.size());
   // NB! This delibritely leads to overallocation of threads
   // As this still outperforms the alternative of not overlapping the IO.
   // Future changes should implement task stealing which would
   // fix this overallocation.
   std::vector<std::thread> thread_pool_process;
   thread_pool_process.reserve(available_cores_);
-  std::vector<std::atomic<size_t>> index_process_order(gridders.size());
   for (size_t i = 0; i < available_cores_; ++i) {
     thread_pool_process.emplace_back([&] {
       aocommon::UVector<float> image_weights_temp(band.ChannelCount());
@@ -547,7 +673,8 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
         // For this part of processing ordering still matters.
         // index_process_order is used per facet to enforce ordering while
         // allowing some parallelism.
-        ComputeBeamResponseForRowInOrder<ApplyBeam>(gridders, bands, rows, index_process_order);
+        ComputeBeamResponseForRowInOrder<ApplyBeam>(gridders, bands, rows,
+                                                    index_process_order.get());
 
         // For the remaining processing batches can be processed out of order.
         // Map/copy from row view to chunk view.
@@ -571,8 +698,7 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
           if constexpr (ApplyCorrections) {
             size_t& time_offset = *chunk_view_out.time_offsets_;
             for (size_t gridder_index = 0; gridder_index < gridders.size(); ++gridder_index) {
-              std::lock_guard<std::mutex> lock(gridder_mutexes[gridder_index]);
-
+              std::lock_guard<std::mutex> lock(gridder_mutexes[gridder_index].value);
               const BeamResponseMap empty_beam_response;
               const BeamResponseMap& beam_response = [&]() -> const BeamResponseMap& {
 #ifdef HAVE_EVERYBEAM
@@ -920,68 +1046,6 @@ void MSGridderManager::Predict() {
   }
 }
 
-namespace internal {
-/*
- * The input for this function is the predicted facet visibilities for a single
- * facet.
- * 1. Expand the visibilities.
- * 2. Apply corrections to the visibilities.
- * 3. Cumulatively add the expanded and corrected visibilities with those of
- * other facets.
- */
-void ExpandAndCombineFacetVisibilities(
-    size_t n_antennas, size_t n_channels, size_t n_rows, size_t n_vis_polarizations,
-    const aocommon::MultiBandData& bands, const size_t* data_desc_ids, const size_t* antennas1,
-    const size_t* antennas2, const size_t* field_ids, const double* times, const double* uvw,
-    const std::complex<float>* facet_visibilities, MsGridder& gridder,
-    std::complex<float>* combined_visibilities, std::vector<std::mutex>& sum_visibilities_mutexes,
-    size_t mutex_chunk_size) {
-  aocommon::UVector<std::complex<float>> visibilities_scratch(n_channels * n_vis_polarizations);
-  const size_t n_chunks = n_rows / mutex_chunk_size + 1;
-  for (size_t chunk = 0; chunk < n_chunks; ++chunk) {
-    std::lock_guard<std::mutex> sum_lock(sum_visibilities_mutexes[chunk]);
-    const size_t start = chunk * mutex_chunk_size;
-    const size_t end = std::min(start + mutex_chunk_size, n_rows);
-    for (size_t i = start; i < end; ++i) {
-      switch (n_vis_polarizations) {
-        case 1:
-          std::copy_n(facet_visibilities, n_channels, visibilities_scratch.data());
-          break;
-        case 2:
-          internal::ExpandData<2>(n_channels, facet_visibilities, visibilities_scratch.data(),
-                                  gridder.Polarization());
-          break;
-        case 4:
-          internal::ExpandData<4>(n_channels, facet_visibilities, visibilities_scratch.data(),
-                                  gridder.Polarization());
-          break;
-      }
-      gridder.CorrectInstrumentalVisibilities(n_antennas, bands, *data_desc_ids,
-                                              visibilities_scratch.data(), uvw, *field_ids,
-                                              *antennas1, *antennas2, *times);
-
-      // In case the value was not sampled in this pass, it has been set to
-      // infinite and should not overwrite the current value in the set.
-      // NB! This is only true for multi pass gridders (wstacking gridder) other
-      // gridders could consider skipping this check if it becomes important for
-      // performance.
-      for (size_t i = 0; i < n_channels * n_vis_polarizations; ++i) {
-        if (std::isfinite(visibilities_scratch[i].real())) {
-          combined_visibilities[i] += visibilities_scratch[i];
-        }
-      }
-      facet_visibilities += n_channels;
-      combined_visibilities += n_channels * n_vis_polarizations;
-      data_desc_ids++;
-      field_ids++;
-      antennas1++;
-      antennas2++;
-      times++;
-    }
-  }
-}
-}  // namespace internal
-
 size_t MSGridderManager::PredictChunk(const PredictionChunkData& chunk_data,
                                       size_t n_vis_polarizations, size_t n_antennas,
                                       std::vector<std::complex<float>>& combined_visibilities,
@@ -999,14 +1063,16 @@ size_t MSGridderManager::PredictChunk(const PredictionChunkData& chunk_data,
   // Chunk into ranges and use a mutex per range instead of a single mutex to
   // strike a balance between gridder lock contention and time spent waiting.
   constexpr size_t kMutexChunkSize = 2048;
-  std::vector<std::mutex> sum_visibilities_mutexes((chunk_data.n_rows / kMutexChunkSize) + 1);
+  std::unique_ptr<CacheAlignedMutex[]> sum_visibilities_mutexes =
+      std::make_unique_for_overwrite<CacheAlignedMutex[]>((chunk_data.n_rows / kMutexChunkSize) +
+                                                          1);
 
   ExecuteForAllGriddersWithNCores(
       available_cores_per_gridder_,
       [&](MsGridder* gridder, size_t facet_index) {
         PredictChunkForFacet(*gridder, facet_index, chunk_data, n_vis_polarizations, n_antennas,
-                             combined_visibilities, frequencies, ms_data, sum_visibilities_mutexes,
-                             kMutexChunkSize);
+                             combined_visibilities, frequencies, ms_data,
+                             sum_visibilities_mutexes.get(), kMutexChunkSize);
       },
       std::move(signal_first_predict_has_started), std::move(signal_last_predict_has_started));
 
@@ -1014,37 +1080,6 @@ size_t MSGridderManager::PredictChunk(const PredictionChunkData& chunk_data,
                       std::to_string(facet_tasks_.size()) + " facets.\n";
 
   return chunk_data.n_rows * facet_tasks_.size();
-}
-
-void MSGridderManager::PredictChunkForFacet(MsGridder& gridder, size_t facet_index,
-                                            const PredictionChunkData& chunk_data,
-                                            size_t n_vis_polarizations, size_t n_antennas,
-                                            std::vector<std::complex<float>>& combined_visibilities,
-                                            const aocommon::UVector<double>& frequencies,
-                                            MsProviderCollection::MsData& ms_data,
-                                            std::vector<std::mutex>& sum_visibilities_mutexes,
-                                            size_t mutex_chunk_size) {
-  using internal::ExpandAndCombineFacetVisibilities;
-
-  Logger::Info << "Predicting facet " + std::to_string(facet_index) + "\n";
-
-  // TODO
-  if (!ms_data.ms_provider->IsRegular())
-    throw std::runtime_error("Can't use bulk inversion with BDA yet");
-  const size_t n_channels = frequencies.size();
-
-  aocommon::UVector<std::complex<float>> facet_visibilities(chunk_data.n_rows * n_channels);
-  gridder.PredictChunk(chunk_data.n_rows, n_channels, frequencies.data(), chunk_data.uvws.data(),
-                       facet_visibilities.data());
-
-  ExpandAndCombineFacetVisibilities(
-      n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
-      ms_data.ms_provider->SelectedBands(), chunk_data.data_desc_ids.data(),
-      chunk_data.antennas1.data(), chunk_data.antennas2.data(), chunk_data.field_ids.data(),
-      chunk_data.times.data(), chunk_data.uvws.data(), facet_visibilities.data(), gridder,
-      combined_visibilities.data(), sum_visibilities_mutexes, mutex_chunk_size);
-
-  Logger::Info << "Done predicting facet " + std::to_string(facet_index) + "\n";
 }
 
 void MSGridderManager::PredictChunks(

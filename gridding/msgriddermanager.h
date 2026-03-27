@@ -379,19 +379,6 @@ class MSGridderManager {
                       std::function<void()> signal_last_predict_has_started);
 
   /**
-   * Perform predict on a single block of data stored in @ref
-   * PredictionChunkData, for a single gridder/facet.
-   */
-  void PredictChunkForFacet(MsGridder& gridder, size_t facet_index,
-                            const PredictionChunkData& chunk_data, size_t n_vis_polarizations,
-                            size_t n_antennas,
-                            std::vector<std::complex<float>>& combined_visibilities,
-                            const aocommon::UVector<double>& frequencies,
-                            MsProviderCollection::MsData& ms_data,
-                            std::vector<std::mutex>& sum_visibilities_mutexes,
-                            size_t mutex_chunk_size);
-
-  /**
    * Perform predict on chunks of @ref PredictionChunkData by calling @ref
    * PredictChunk() sequentially on each chunk, as they become available in the
    * task_lane, until all chunks have been processed.
