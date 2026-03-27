@@ -23,6 +23,77 @@ namespace wsclean {
 class GriddingTaskManager;
 
 /**
+ * Pointers to data buffers that are required by @ref
+ * MSGridderManager::ReadChunkForInvert to store the chunk of shared data that
+ * is computed.
+ *
+ * Behaviour/size is different depending on whether corrections are to be
+ * applied or not. When not applying corrections there is no need to store the
+ * antenna pairs or time_offsets_, and as visibilities are collapsed in place
+ * less storage is required for visibilities.
+ *
+ * If applying corrections:
+ *   antennas: `max_n_rows`
+ *   uvw: `max_n_rows * 3`
+ *   visibilities: `max_n_rows * n_channels * n_vis_polarizations`
+ *   time_offsets: `max_n_rows`
+ *
+ * If not applying corrections:
+ *   antennas: `0`
+ *   uvw: `max_n_rows * 3`
+ *   visibilities: `(max_n_rows * n_channels) + (n_channels *
+ * n_vis_polarizations)`. The slight overallocation is used to allow
+ * collapsing to be done in place without a copy.
+ *   time_offsets: `0`
+ */
+struct InversionChunkData {
+  InversionChunkData(size_t n_rows, size_t n_channels, size_t n_vis_polarisations,
+                     bool apply_corrections, size_t chunk_index)
+      : antennas(apply_corrections ? n_rows : 0), uvw(n_rows * 3), index(chunk_index) {
+    // If we don't apply corrections then we collapse the visibilities when
+    // storing them to save memory. In order to be able to collapse the
+    // already copied data in place we have to slightly overallocate the
+    // buffer by one uncollapsed row.
+    const size_t visibility_size =
+        apply_corrections ? (n_rows * (n_channels * n_vis_polarisations))
+                          : ((n_rows * n_channels) + (n_channels * n_vis_polarisations));
+    visibilities = aocommon::UVector<std::complex<float>>(visibility_size);
+  }
+  InversionChunkData() = default;
+  aocommon::UVector<std::pair<size_t, size_t>> antennas;
+  aocommon::UVector<double> uvw;
+  aocommon::UVector<std::complex<float>> visibilities;
+  // per row time offset computed during @ref LoadAndApplyCorrections()<kSum>
+  // and applied during @ref LoadAndApplyCorrections()<kApply>
+  std::vector<size_t> time_offsets;
+
+  size_t gridded_visibility_count;
+  double visibility_weight_sum;
+  double max_gridded_weight;
+  double total_weight;
+  size_t n_rows;
+  size_t index;
+};
+
+struct PredictionChunkData {
+  PredictionChunkData(size_t n_rows)
+      : antennas1(n_rows),
+        antennas2(n_rows),
+        field_ids(n_rows),
+        data_desc_ids(n_rows),
+        times(n_rows),
+        uvws(n_rows * 3) {}
+  PredictionChunkData() = default;
+  aocommon::UVector<size_t> antennas1;
+  aocommon::UVector<size_t> antennas2;
+  aocommon::UVector<size_t> field_ids;
+  aocommon::UVector<size_t> data_desc_ids;
+  aocommon::UVector<double> times;
+  aocommon::UVector<double> uvws;
+  size_t n_rows = 0;
+};
+
+/**
  * Manages lifetime of thread pools and other scheduling related resources that
  * are used by MSGridderManager. This allows for these resources to be reused or
  * shared between MSGridderManager instances when appropriate.
@@ -176,109 +247,6 @@ class MSGridderManager {
   void ExecuteForAllGriddersWithNCores(size_t n_cores_per_gridder, T&& operation,
                                        std::function<void()>&& signal_first_operation_started = {},
                                        std::function<void()>&& signal_last_operation_started = {});
-
-  /**
-   * Pointers to data buffers that are required by @ref ReadChunkForInvert to
-   * store the chunk of shared data that is computed.
-   *
-   * Behaviour/size is different depending on whether corrections are to be
-   * applied or not. When not applying corrections there is no need to store the
-   * antenna pairs or time_offsets_, and as visibilities are collapsed in place
-   * less storage is required for visibilities.
-   *
-   * If applying corrections:
-   *   antennas: `max_n_rows`
-   *   uvw: `max_n_rows * 3`
-   *   visibilities: `max_n_rows * n_channels * n_vis_polarizations`
-   *   time_offsets: `max_n_rows`
-   *
-   * If not applying corrections:
-   *   antennas: `0`
-   *   uvw: `max_n_rows * 3`
-   *   visibilities: `(max_n_rows * n_channels) + (n_channels *
-   * n_vis_polarizations)`. The slight overallocation is used to allow
-   * collapsing to be done in place without a copy.
-   *   time_offsets: `0`
-   */
-  struct InversionChunkData {
-    InversionChunkData(size_t n_rows, size_t n_channels, size_t n_vis_polarisations,
-                       bool apply_corrections)
-        : antennas(apply_corrections ? n_rows : 0), uvw(n_rows * 3) {
-      // If we don't apply corrections then we collapse the visibilities when
-      // storing them to save memory. In order to be able to collapse the
-      // already copied data in place we have to slightly overallocate the
-      // buffer by one uncollapsed row.
-      const size_t visibility_size =
-          apply_corrections ? (n_rows * (n_channels * n_vis_polarisations))
-                            : ((n_rows * n_channels) + (n_channels * n_vis_polarisations));
-      visibilities = aocommon::UVector<std::complex<float>>(visibility_size);
-    }
-    InversionChunkData() = default;
-    aocommon::UVector<std::pair<size_t, size_t>> antennas;
-    aocommon::UVector<double> uvw;
-    aocommon::UVector<std::complex<float>> visibilities;
-    // per row time offset computed during @ref LoadAndApplyCorrections()<kSum>
-    // and applied during @ref LoadAndApplyCorrections()<kApply>
-    std::vector<size_t> time_offsets;
-
-    size_t gridded_visibility_count;
-    double visibility_weight_sum;
-    double max_gridded_weight;
-    double total_weight;
-    size_t n_rows;
-  };
-
-  struct PredictionChunkData {
-    PredictionChunkData(size_t n_rows)
-        : antennas1(n_rows),
-          antennas2(n_rows),
-          field_ids(n_rows),
-          data_desc_ids(n_rows),
-          times(n_rows),
-          uvws(n_rows * 3) {}
-    PredictionChunkData() = default;
-    aocommon::UVector<size_t> antennas1;
-    aocommon::UVector<size_t> antennas2;
-    aocommon::UVector<size_t> field_ids;
-    aocommon::UVector<size_t> data_desc_ids;
-    aocommon::UVector<double> times;
-    aocommon::UVector<double> uvws;
-    size_t n_rows = 0;
-  };
-
-  /**
-   * When populating @ref InversionChunkData it can be optimal to not do so a
-   * single row at a time, but instead to gather rows into batches, and then
-   * apply necessary processing @ref ApplyWeights() @ref CalculateWeights()
-   * to those batches in parallel.
-   * @ref BatchRowData facilitates this with each instance representing one
-   * batch in such a scenario.
-   * The necessarry information is stored such that each @ref BatchRow data
-   * can be processed independently and out of order in comparison to other
-   * batches.
-   * @ref BatchRowData allocates temporary memory for data that will be
-   * discarded and not be saved as part of @ref InversionChunkData, data that
-   * can't be directly written into @ref InversionChunkData until after
-   * processing.
-   * @ref BatchRowData uses offsets into the memory of @ref InversionChunkData
-   * for data that can be written directly.
-   */
-  struct BatchRowData {
-    BatchRowData(size_t n_rows, size_t n_row_size)
-        : metadata_(n_rows),
-          visibilities(n_rows, aocommon::UVector<std::complex<float>>(n_row_size)),
-          weights(n_rows, aocommon::UVector<float>(n_row_size)),
-          model(n_rows, aocommon::UVector<std::complex<float>>(n_row_size)) {}
-    BatchRowData() = default;
-    std::vector<MSProvider::MetaData> metadata_;
-    std::vector<aocommon::UVector<std::complex<float>>> visibilities;
-    std::vector<aocommon::UVector<float>> weights;
-    std::vector<aocommon::UVector<std::complex<float>>> model;
-    size_t n_rows_read = 0;
-    size_t time_offsets_offset = 0;
-    size_t uvws_offset = 0;
-    size_t visibilities_offset = 0;
-  };
 
   /** Read and compute data from an @ref MSReader into a single @ref
    * InversionChunkData chunk which can be passed to @ref BatchInvert() for

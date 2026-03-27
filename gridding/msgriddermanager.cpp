@@ -31,6 +31,208 @@ using aocommon::Logger;
 
 namespace wsclean {
 
+namespace {
+/**
+ * When populating @ref InversionChunkData it can be optimal to not do so a
+ * single row at a time, but instead to gather rows into batches, and then
+ * apply necessary processing @ref ApplyWeights() @ref CalculateWeights()
+ * to those batches in parallel.
+ * @ref BatchRowData facilitates this with each instance representing one
+ * batch in such a scenario.
+ * The necessarry information is stored such that each @ref BatchRow data
+ * can be processed independently and out of order in comparison to other
+ * batches.
+ * @ref BatchRowData allocates temporary memory for data that will be
+ * discarded and not be saved as part of @ref InversionChunkData, data that
+ * can't be directly written into @ref InversionChunkData until after
+ * processing.
+ * @ref BatchRowData uses offsets into the memory of @ref InversionChunkData
+ * for data that can be written directly.
+ */
+struct BatchRowData {
+  BatchRowData(size_t n_rows, size_t n_row_size)
+      : metadata(n_rows),
+        visibilities(n_rows * n_row_size),
+        weights(n_rows * n_row_size),
+        model(n_rows * n_row_size) {}
+
+  BatchRowData() = default;
+  BatchRowData(const BatchRowData&) = delete;
+  BatchRowData& operator=(const BatchRowData&) = delete;
+  BatchRowData(BatchRowData&& other) noexcept = default;
+  BatchRowData& operator=(BatchRowData&&) = default;
+
+  aocommon::UVector<MSProvider::MetaData> metadata;
+  uint32_t data_desc_id;
+  aocommon::UVector<std::complex<float>> visibilities;
+  aocommon::UVector<float> weights;
+  aocommon::UVector<std::complex<float>> model;
+
+  size_t n_rows = 0;
+  size_t time_offsets_out_offset = 0;
+  size_t uvws_out_offset = 0;
+  size_t visibilities_out_offset = 0;
+  size_t index = 0;
+  std::vector<std::tuple<double, size_t, size_t>> beam_cache_offsets;
+};
+
+/**
+ * Simple view class to assist with iterating over the data in a @ref BatchRowData
+ */
+struct BatchRowView {
+ public:
+  BatchRowView(BatchRowData* data, size_t model_stride, size_t weights_stride,
+               size_t visibilies_stride, size_t uvws_stride, size_t n_rows_to_read)
+      : data_(data),
+        metadata_(data->metadata.data()),
+        model_(data->model.data()),
+        visibilities_(data->visibilities.data()),
+        weights_(data->weights.data()),
+        model_stride_(model_stride),
+        visibilities_stride_(visibilies_stride),
+        weights_stride_(weights_stride),
+        n_rows_to_read_(n_rows_to_read) {
+    data_->n_rows = 0;
+    current_chunk_row_ = data_->uvws_out_offset / uvws_stride;
+  }
+  bool End() {
+    if (data_->n_rows >= n_rows_to_read_) return true;
+    return false;
+  }
+  void NextRow() {
+    ++data_->n_rows;
+    ++current_chunk_row_;
+    ++metadata_;
+    model_ += model_stride_;
+    weights_ += weights_stride_;
+    visibilities_ += visibilities_stride_;
+  }
+  bool ReadRow(MSReader& ms_reader, MsGridderData& gridder_data) {
+    if (!ms_reader.CurrentRowAvailable() || End()) {
+      return false;
+    }
+
+    ms_reader.ReadMeta(*metadata_);
+    gridder_data.ReadVisibilities(ms_reader, visibilities_, weights_, model_);
+    // TODO: Can't use bulk inversion with BDA yet
+    data_->data_desc_id = metadata_->data_desc_id;
+    return true;
+  }
+
+  BatchRowData* data_;
+  MSProvider::MetaData* metadata_;
+  std::complex<float>* model_;
+  std::complex<float>* visibilities_;
+  float* weights_;
+
+  size_t current_chunk_row_;
+
+ private:
+  const size_t model_stride_;
+  const size_t visibilities_stride_;
+  const size_t weights_stride_;
+  const size_t n_rows_to_read_;
+};
+
+/**
+ * Simple view class to assist with iterating over the data in a @ref InversionChunkData
+ */
+template <bool ApplyCorrections>
+struct InversionChunkView {
+ public:
+  InversionChunkView(InversionChunkData* data, const BatchRowData& rows, size_t uvws_stride,
+                     size_t visibilies_stride)
+      : data_(data),
+        time_offsets_(data->time_offsets.data() + rows.time_offsets_out_offset),
+        uvws_(data->uvw.data() + rows.uvws_out_offset),
+        visibilities_(data->visibilities.data() + rows.visibilities_out_offset),
+        uvws_stride_(uvws_stride),
+        visibilities_stride_(visibilies_stride) {}
+  void NextRow() {
+    if constexpr (ApplyCorrections) {
+      ++time_offsets_;
+    }
+    uvws_ += uvws_stride_;
+    visibilities_ += visibilities_stride_;
+  }
+
+  InversionChunkData* data_;
+  size_t* time_offsets_;
+  double* uvws_;
+  std::complex<float>* visibilities_;
+
+ private:
+  const size_t uvws_stride_;
+  const size_t visibilities_stride_;
+};
+
+/**
+ * Perform sequential operations required on each row:
+ * 1. Prepare metadata for parallel correction computations.
+ * 2. Pre-allocate space for beam response updates.
+ * 3. Cache data for @ref ComputeBeamResponseForRowInOrder to compute response updates.
+ * 4. Cache h5parm and beam response solution offsets.
+ */
+template <bool ApplyBeam, bool HasH5Parm>
+void PrepareCorrectionMetadataForRow(const std::vector<MsGridder*>& gridders,
+                                     const aocommon::MultiBandData& bands,
+                                     std::vector<size_t>& time_offsets,
+                                     VisibilityModifier& shared_modifier,
+                                     MSProvider::MetaData& metadata, BatchRowData& rows) {
+  size_t time_offset = time_offsets.back();
+  // Cache the h5parm solutions
+  for (MsGridder* gridder : gridders) {
+    gridder->LoadCorrections<false, HasH5Parm>(bands, metadata.time, metadata.field_id,
+                                               time_offset);
+  }
+  time_offsets.push_back(time_offset);
+#ifdef HAVE_EVERYBEAM
+  // Cache the offsets at which we will need to compute the beam response.
+  // Don't yet actually compute the beam response.
+  if constexpr (ApplyBeam) {
+    bool has_time_update = shared_modifier.ShouldUpdateCachedBeamResponseForTime(metadata.time);
+    int offset = 0;
+    for (MsGridder* gridder : gridders) {
+      offset =
+          gridder->GetVisibilityModifier().ReserveCacheChunkSpaceForBeamResponse(has_time_update);
+    }
+    if (offset != -1) {
+      rows.beam_cache_offsets.emplace_back(double(metadata.time), size_t(metadata.field_id),
+                                           size_t(offset));
+    }
+  }
+#endif
+}
+
+/**
+ * Compute the beam responses previously pre-allocated in @ref PrepareCorrectionMetadataForRow.
+ * This can be called in parallel and allow parallelism across facets however a strict ordering is
+ * maintained on a per facet basis.
+ */
+template <bool ApplyBeam>
+void ComputeBeamResponseForRowInOrder(const std::vector<MsGridder*>& gridders,
+                                      const aocommon::MultiBandData& bands, BatchRowData& rows,
+                                      std::vector<std::atomic<size_t>>& index_process_order) {
+#ifdef HAVE_EVERYBEAM
+  if constexpr (ApplyBeam) {
+    for (size_t gridder_index = 0; gridder_index < gridders.size(); ++gridder_index) {
+      size_t current = index_process_order[gridder_index].load();
+      while (current != rows.index) {
+        index_process_order[gridder_index].wait(current);
+        current = index_process_order[gridder_index].load();
+      }
+      for (const auto& [meta_time, field_id, offset] : rows.beam_cache_offsets) {
+        gridders[gridder_index]->GetVisibilityModifier().ComputeBeamResponseForCache(
+            offset, meta_time, field_id, bands);
+      }
+      index_process_order[gridder_index]++;
+      index_process_order[gridder_index].notify_all();
+    }
+  }
+#endif
+}
+}  // namespace
+
 MSGridderManagerScheduler::MSGridderManagerScheduler(size_t n_workers)
     : overlapping_task_processor_(scheduler_task_queue_) {
   InitializeThreadPoolForTaskQueue(worker_thread_pool_, worker_task_queue_, n_workers);
@@ -251,16 +453,16 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
   assert(bands.BandCount() == 1);
   const aocommon::BandData& band = *bands.begin();
 
+  const size_t row_size = band.ChannelCount() * ms_data.ms_provider->NPolarizations();
+  const size_t model_stride = shared_data.DoSubtractModel() ? row_size : 0;
   const size_t uvws_stride = 3;
+  const size_t weights_stride = row_size;
+  const size_t visibilities_in_stride = row_size;
+  size_t visibilities_out_stride = band.ChannelCount();
   // When not applying corrections we collapse the polarizations.
-  size_t visibilities_stride = band.ChannelCount();
   if constexpr (ApplyCorrections) {
-    visibilities_stride *= ms_data.ms_provider->NPolarizations();
+    visibilities_out_stride *= ms_data.ms_provider->NPolarizations();
   }
-
-  // Initialize the row buffer with the desired batch size.
-  size_t n_buffer_rows = 1000;
-  const size_t n_row_size = band.ChannelCount() * ms_data.ms_provider->NPolarizations();
 
   // Allow reading to get a bit ahead of processing but not by too much.
   aocommon::Lane<BatchRowData> task_lane(available_cores_ * 2);
@@ -271,51 +473,50 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
     gridder->GetVisibilityModifier().StartProcessingChunk();
   }
 
+  // Pre-process rows serially and partition into chunks for parallel execution.
+  // The serial portion is kept minimal to avoid bottlenecks, with chunk sizes
+  // balanced to offset thread overhead against worker throughput.
+  // Current sizing is an educated heuristic; it may require further tuning or
+  // dynamic calculation based on row length and other variable inputs.
+  constexpr size_t kProcessingChunkTargetSizeRows = 4096;
+  // This thread performs the following:
+  //     1. Continues reading new data into the pipeline.
+  //     2. Executes strictly ordered pre-processing (kept to an absolute minimum).
+  //     3. Offloads prepared data to the task lane for parallelized completion.
   std::thread read_rows_thread([&] {
     std::pair<size_t, size_t>* antennas = chunk_data.antennas.data();
     size_t uvws_offset = 0;
     size_t visibilities_offset = 0;
     size_t time_offsets_offset = 0;
+    size_t read_index = 0;
 
-    while (ms_reader.CurrentRowAvailable() && n_chunk_rows_read < n_chunk_rows) {
-      BatchRowData rows(n_buffer_rows, n_row_size);
-      rows.uvws_offset = uvws_offset;
-      rows.visibilities_offset = visibilities_offset;
-      rows.time_offsets_offset = time_offsets_offset;
-      while (ms_reader.CurrentRowAvailable() && rows.n_rows_read < n_buffer_rows &&
-             n_chunk_rows_read < n_chunk_rows) {
-        auto& metadata = rows.metadata_[rows.n_rows_read];
-        ms_reader.ReadMeta(metadata);
-
-        // Read and store all visibilities and weights, we need them all in
-        // memory when calling 'InlineApplyWeightsAndCorrections' so that we
-        // can calculate the final visibilities to return correctly
-        shared_data.ReadVisibilities(ms_reader, rows.visibilities[rows.n_rows_read].data(),
-                                     rows.weights[rows.n_rows_read].data(),
-                                     rows.model[rows.n_rows_read].data());
-
-        constexpr bool kCacheEntireBeam = true;
+    while (n_chunk_rows_read < n_chunk_rows && ms_reader.CurrentRowAvailable()) {
+      BatchRowData rows(kProcessingChunkTargetSizeRows, row_size);
+      rows.uvws_out_offset = uvws_offset;
+      rows.visibilities_out_offset = visibilities_offset;
+      rows.time_offsets_out_offset = time_offsets_offset;
+      rows.index = read_index++;
+      BatchRowView row_view(&rows, model_stride, weights_stride, visibilities_in_stride,
+                            uvws_stride, kProcessingChunkTargetSizeRows);
+      while (n_chunk_rows_read < n_chunk_rows && row_view.ReadRow(ms_reader, shared_data)) {
+        MSProvider::MetaData& metadata = *row_view.metadata_;
         if constexpr (ApplyCorrections) {
+          // Cache the baseline.
           *antennas = std::make_pair(metadata.antenna1, metadata.antenna2);
+          // Cache h5parm response and time offset.
+          // Cache beam response offsets and pre-allocate space for beam response computation.
+          PrepareCorrectionMetadataForRow<ApplyBeam, HasH5Parm>(
+              gridders, bands, chunk_data.time_offsets, shared_data.GetVisibilityModifier(),
+              metadata, rows);
           ++antennas;
-          size_t time_offset = chunk_data.time_offsets.back();
-          for (const auto& gridder : gridders) {
-            gridder->LoadCorrections<ApplyBeam, HasH5Parm>(bands, metadata.time, metadata.field_id,
-                                                           time_offset, kCacheEntireBeam);
-          };
-          chunk_data.time_offsets.emplace_back(time_offset);
           ++time_offsets_offset;
         }
-
-        ++rows.n_rows_read;
-        ++n_chunk_rows_read;
-        if (n_chunk_rows_read % 100000 == 0) {
-          Logger::Debug << "n_chunk_rows_read: " + std::to_string(n_chunk_rows_read) + "\n";
-        }
         ms_reader.NextInputRow();
+        row_view.NextRow();
+        ++n_chunk_rows_read;
+        uvws_offset += uvws_stride;
+        visibilities_offset += visibilities_out_stride;
       }
-      uvws_offset += uvws_stride * rows.n_rows_read;
-      visibilities_offset += visibilities_stride * rows.n_rows_read;
       task_lane.write(std::move(rows));
     }
     task_lane.write_end();
@@ -330,70 +531,88 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
   // fix this overallocation.
   std::vector<std::thread> thread_pool_process;
   thread_pool_process.reserve(available_cores_);
+  std::vector<std::atomic<size_t>> index_process_order(gridders.size());
   for (size_t i = 0; i < available_cores_; ++i) {
     thread_pool_process.emplace_back([&] {
-      BatchRowData rows;
-      aocommon::UVector<float> image_weights(band.ChannelCount());
+      aocommon::UVector<float> image_weights_temp(band.ChannelCount());
+
       // Per thread local counters to prevent contention and race conditions.
       // Propagate to global counters once per thread at end of processing loop.
       size_t local_gridded_visibility_count = 0;
       double local_total_weight = 0.0;
       double local_max_gridded_weight = 0.0;
       double local_visibility_weight_sum = 0.0;
+      BatchRowData rows;
       while (task_lane.read(rows)) {
-        double* uvws = chunk_data.uvw.data() + rows.uvws_offset;
-        std::complex<float>* visibilities =
-            chunk_data.visibilities.data() + rows.visibilities_offset;
-        size_t* time_offsets = chunk_data.time_offsets.data() + rows.time_offsets_offset;
-        for (size_t n_buffer_index = 0; n_buffer_index < rows.n_rows_read; ++n_buffer_index) {
-          MSProvider::MetaData& metadata = rows.metadata_[n_buffer_index];
-          std::complex<float>* row_visibilities = rows.visibilities[n_buffer_index].data();
-          float* row_weights = rows.weights[n_buffer_index].data();
-          std::complex<float>* row_model = rows.model[n_buffer_index].data();
-          uvws[0] = metadata.u_in_m;
-          uvws[1] = metadata.v_in_m;
-          uvws[2] = metadata.w_in_m;
+        // For this part of processing ordering still matters.
+        // index_process_order is used per facet to enforce ordering while
+        // allowing some parallelism.
+        ComputeBeamResponseForRowInOrder<ApplyBeam>(gridders, bands, rows, index_process_order);
 
-          shared_data.ModifyVisibilities<true>(row_visibilities, uvws, band, row_model);
-          shared_data.CalculateWeights(row_weights, image_weights.data(), uvws, band,
-                                       selected_buffer);
+        // For the remaining processing batches can be processed out of order.
+        // Map/copy from row view to chunk view.
+        InversionChunkView<ApplyCorrections> chunk_view_out(&chunk_data, rows, uvws_stride,
+                                                            visibilities_out_stride);
+        BatchRowView row_view_in(&rows, model_stride, weights_stride, visibilities_in_stride,
+                                 uvws_stride, rows.n_rows);
+        while (!row_view_in.End()) {
+          chunk_view_out.uvws_[0] = row_view_in.metadata_->u_in_m;
+          chunk_view_out.uvws_[1] = row_view_in.metadata_->v_in_m;
+          chunk_view_out.uvws_[2] = row_view_in.metadata_->w_in_m;
+
+          shared_data.ModifyVisibilities<true>(row_view_in.visibilities_, chunk_view_out.uvws_,
+                                               band, row_view_in.model_);
+          shared_data.CalculateWeights(row_view_in.weights_, image_weights_temp.data(),
+                                       chunk_view_out.uvws_, band, selected_buffer);
 
           // Sum the corrections and apply the weights.
           // We store the appropriate time_offset to be used later along with
           // other required info when we apply the corrections
           if constexpr (ApplyCorrections) {
-            size_t& time_offset = *time_offsets;
+            size_t& time_offset = *chunk_view_out.time_offsets_;
             for (size_t gridder_index = 0; gridder_index < gridders.size(); ++gridder_index) {
               std::lock_guard<std::mutex> lock(gridder_mutexes[gridder_index]);
+
+              const BeamResponseMap empty_beam_response;
+              const BeamResponseMap& beam_response = [&]() -> const BeamResponseMap& {
+#ifdef HAVE_EVERYBEAM
+                if constexpr (ApplyBeam) {
+                  return gridders[gridder_index]->GetVisibilityModifier().GetCachedBeamResponseMap(
+                      chunk_data.index, row_view_in.current_chunk_row_);
+                }
+#endif
+                return empty_beam_response;
+              }();
               gridders[gridder_index]
                   ->ApplyCorrections<Mode, NParms, ModifierBehaviour::kSum, ApplyBeam, ApplyForward,
-                                     HasH5Parm>(ms_data.antenna_names.size(), row_visibilities,
-                                                band, metadata.data_desc_id, row_weights,
-                                                metadata.antenna1, metadata.antenna2, time_offset,
-                                                image_weights.data());
-            };
-            ++time_offsets;
+                                     HasH5Parm>(
+                      ms_data.antenna_names.size(), row_view_in.visibilities_, band,
+                      rows.data_desc_id, row_view_in.weights_, row_view_in.metadata_->antenna1,
+                      row_view_in.metadata_->antenna2, time_offset, image_weights_temp.data(),
+                      beam_response);
+            }
           }
 
-          shared_data.ApplyWeights<Mode>(row_visibilities, band.ChannelCount(), row_weights,
-                                         image_weights.data(), local_gridded_visibility_count,
-                                         local_total_weight, local_max_gridded_weight,
-                                         local_visibility_weight_sum);
+          shared_data.ApplyWeights<Mode>(row_view_in.visibilities_, band.ChannelCount(),
+                                         row_view_in.weights_, image_weights_temp.data(),
+                                         local_gridded_visibility_count, local_total_weight,
+                                         local_max_gridded_weight, local_visibility_weight_sum);
 
           // When not applying corrections we collapse the polarizations.
           // When applying correction we need to keep them.
           if constexpr (!ApplyCorrections) {
             if (ms_data.ms_provider->NPolarizations() == 2) {
-              internal::CollapseData<2>(band.ChannelCount(), row_visibilities,
+              internal::CollapseData<2>(band.ChannelCount(), row_view_in.visibilities_,
                                         shared_data.Polarization());
             } else if (ms_data.ms_provider->NPolarizations() == 4) {
-              internal::CollapseData<4>(band.ChannelCount(), row_visibilities,
+              internal::CollapseData<4>(band.ChannelCount(), row_view_in.visibilities_,
                                         shared_data.Polarization());
             }
           }
-          std::copy_n(row_visibilities, visibilities_stride, visibilities);
-          visibilities += visibilities_stride;
-          uvws += uvws_stride;
+          std::copy_n(row_view_in.visibilities_, visibilities_out_stride,
+                      chunk_view_out.visibilities_);
+          chunk_view_out.NextRow();
+          row_view_in.NextRow();
         }
       }
       shared_data.AddVisibilityCounts(local_gridded_visibility_count, local_total_weight,
@@ -477,7 +696,7 @@ void MSGridderManager::GridChunkForFacet(MsGridder& gridder, size_t facet_index,
           ms_data.original_ms_index)[data_desc_id];
 
   std::shared_ptr<BeamResponseCacheChunk> beam_response =
-      gridder.GetVisibilityModifier().TakeCachedBeamResponse(chunk_index);
+      gridder.GetVisibilityModifier().TakeCachedBeamResponseChunk(chunk_index);
 
   gridder.gridded_visibility_count_ = chunk_data.gridded_visibility_count;
   gridder.visibility_weight_sum_ = chunk_data.visibility_weight_sum;
@@ -536,7 +755,7 @@ void MSGridderManager::ReadChunksForInvert(aocommon::Lane<InversionChunkData>& t
     Logger::Info << "Loading " << target_chunk_size << " rows into memory chunk " << chunk_index
                  << ".\n";
     InversionChunkData chunk_data(target_chunk_size, band.ChannelCount(), n_vis_polarizations,
-                                  apply_corrections);
+                                  apply_corrections, chunk_index);
     if (apply_corrections) {
       chunk_data.time_offsets.reserve(target_chunk_size + 1);
       chunk_data.time_offsets.push_back(0);

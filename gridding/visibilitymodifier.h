@@ -161,6 +161,7 @@ struct BeamResponseCacheChunk {
   const BeamResponseMap& GetCachedBeamResponseForRow(size_t row) const {
     assert(row < offsets.size());
     assert(offsets[row] < responses.size());
+    assert(responses[offsets[row]].Size() > 0);
     return responses[offsets[row]];
   }
 };
@@ -237,7 +238,7 @@ class VisibilityModifier {
    * method, by calling @ref InitializeCacheParmResponse()
    *
    * @param time_offset This value is incrementally updated by each call into
-   * cacheParmResponse and epresents an offset into @ref _cachedParmResponse
+   * cacheParmResponse and represents an offset into @ref _cachedParmResponse
    * that is needed by functions that will apply the parm response e.g. @ref
    * ApplyParmResponse(). Also used internally as an offset into @ref
    * _cachedMSTimes to avoid searching data already covered by previous calls.
@@ -348,17 +349,27 @@ class VisibilityModifier {
    * Return the beam response cache for a given procesing chunk. Internal
    * references are released and ownership given to the caller.
    */
-  std::shared_ptr<BeamResponseCacheChunk> TakeCachedBeamResponse(size_t chunk) {
+  std::shared_ptr<BeamResponseCacheChunk> TakeCachedBeamResponseChunk(size_t chunk) {
 #ifdef HAVE_EVERYBEAM
     assert(beam_cache_chunks_[chunk]);
     assert(beam_cache_chunks_[chunk].get() != current_beam_cache_chunk_);
-    std::shared_ptr<BeamResponseCacheChunk> beam_response = beam_cache_chunks_[chunk];
+    std::shared_ptr<BeamResponseCacheChunk> beam_response = std::move(beam_cache_chunks_[chunk]);
     beam_cache_chunks_[chunk] = nullptr;
     return beam_response;
 #else
     return nullptr;
 #endif
   }
+
+  /**
+   * Return the cached beam response map for a given procesing chunk row.
+   */
+#ifdef HAVE_EVERYBEAM
+  const BeamResponseMap& GetCachedBeamResponseMap(size_t chunk, size_t row) {
+    assert(beam_cache_chunks_[chunk]);
+    return beam_cache_chunks_[chunk]->GetCachedBeamResponseForRow(row);
+  }
+#endif
 
   /**
    * Start processing a new chunk.
@@ -377,10 +388,16 @@ class VisibilityModifier {
     // Internally when called from FinishChunkedProcessing() always add a chunk
     // (check_for_empty=false)
     // This behaviour is necessary to prevent a data race with
-    // TakeCachedBeamResponse() on debug builds.
+    // TakeCachedBeamResponseChunk() on debug builds.
     if (!check_for_empty || beam_cache_chunks_.empty()) {
       current_beam_cache_chunk_ =
           beam_cache_chunks_.emplace_back(std::make_shared<BeamResponseCacheChunk>()).get();
+      // Note: This allocation strategy is an educated heuristic.
+      // Precise calculation of response counts per chunk is complex and likely
+      // yields diminishing returns. We use an estimate designed to minimize
+      // excessive overallocation while reducing the frequency of vector
+      // reallocations across most scenarios.
+      current_beam_cache_chunk_->responses.reserve(100000);
     }
 #endif
   }
@@ -429,24 +446,15 @@ class VisibilityModifier {
    * Compute and cache the beam response for the provided time; if it is not
    * already cached.
    */
-  void CacheBeamResponse(double time, size_t field_id, const aocommon::MultiBandData& bands,
-                         bool cache_entire_beam) {
-    if (cache_entire_beam) {
-      CacheBeamResponseWithCacheChunk(time, field_id, bands);
-    } else {
-      UpdateCachedBeamResponseForRow(time, field_id, bands, _cachedBeamResponse);
-    }
+  void CacheBeamResponse(double time, size_t field_id, const aocommon::MultiBandData& bands) {
+    UpdateCachedBeamResponseForRow(time, field_id, bands, _cachedBeamResponse);
   }
-  /**
-   * Compute the beam response for the provided time; if it is not already
-   * cached.
-   * Update the cache chunk with the new response or index to existing response.
-   */
-  void CacheBeamResponseWithCacheChunk(double time, size_t field_id,
-                                       const aocommon::MultiBandData& bands) {
-    // Add a new response to the cache if its a new time interval.
-    if (UpdateCachedBeamResponseForRow(time, field_id, bands, _cachedBeamResponse)) {
-      current_beam_cache_chunk_->responses.push_back(_cachedBeamResponse);
+  int ReserveCacheChunkSpaceForBeamResponse(bool has_time_update) {
+    int ret = -1;
+    // Add a new empty response to the cache if its a new time interval.
+    if (has_time_update) {
+      ret = current_beam_cache_chunk_->responses.size();
+      current_beam_cache_chunk_->responses.push_back({});
     }
     // If we have not entered a new time interval, but are processing the first
     // row of a new chunk, there is no previous reponse to reference.
@@ -463,7 +471,25 @@ class VisibilityModifier {
     // Either the freshly generated response if this is a new time interval,
     // otherwise the previously cached response.
     current_beam_cache_chunk_->offsets.push_back(current_beam_cache_chunk_->responses.size() - 1);
+    return ret;
   }
+
+  void ComputeBeamResponseForCache(size_t offset, double time, size_t field_id,
+                                   const aocommon::MultiBandData& bands) {
+    if (UpdateCachedBeamResponseForRow(time, field_id, bands, _cachedBeamResponse)) {
+      assert(_cachedBeamResponse.Size() > 0);
+      current_beam_cache_chunk_->responses[offset] = _cachedBeamResponse;
+      assert(current_beam_cache_chunk_->responses[offset].Size() > 0);
+    } else {
+      assert(0);
+    }
+  }
+
+  bool ShouldUpdateCachedBeamResponseForTime(double time) {
+    _pointResponse->UpdateTime(time);
+    return _pointResponse->HasTimeUpdate();
+  }
+
   /**
    * Compute the beam response for the current time if the time is in a new time
    * interval. Return true if new beam response computed; otherwise false.
@@ -604,12 +630,12 @@ class VisibilityModifier {
 
   /** Hold the caches for all processed chunks in memory until they are no
    * longer required.
-   * Calling @ref TakeCachedBeamResponse() will set the corresponding entry to
+   * Calling @ref TakeCachedBeamResponseChunk() will set the corresponding entry to
    * null and pass ownership to the caller via shared pointer.
    * Shared pointer is used in place of unique pointer because
    * `previous_beam_cache_chunk_` also references this data; while this
    * reference will usually be short lived it is not impossible that it outlives
-   * the pointer returned by @ref TakeCachedBeamResponse(). */
+   * the pointer returned by @ref TakeCachedBeamResponseChunk(). */
   std::vector<std::shared_ptr<BeamResponseCacheChunk>> beam_cache_chunks_;
   BeamResponseCacheChunk* current_beam_cache_chunk_ = nullptr;
   /* The previous cache is kept in memory until we have processed the first row

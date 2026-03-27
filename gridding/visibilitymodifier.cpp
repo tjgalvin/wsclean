@@ -221,8 +221,7 @@ void VisibilityModifier::GetBeamResponse(const aocommon::BandData& band, size_t 
 bool VisibilityModifier::UpdateCachedBeamResponseForRow(double time, size_t field_id,
                                                         const aocommon::MultiBandData& bands,
                                                         BeamResponseMap& cached_beam_response) {
-  _pointResponse->UpdateTime(time);
-  if (_pointResponse->HasTimeUpdate()) {
+  if (ShouldUpdateCachedBeamResponseForTime(time)) {
     if (uses_bda_) {
       // In BDA mode, interpolate the channels from the data_desc_id with the
       // highest nr of channels.
