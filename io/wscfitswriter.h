@@ -75,8 +75,7 @@ class WSCFitsWriter {
   void WriteFullNameImage(const std::string& fullname,
                           const schaapcommon::facets::FacetImage& facetimage);
 
-  template <typename NumT>
-  void WriteUV(const std::string& suffix, const NumT* image);
+  void WriteUV(const std::string& suffix, const aocommon::Image& image);
 
   /**
    * Restore an elliptical beam using a FFT deconvolution directly from images.

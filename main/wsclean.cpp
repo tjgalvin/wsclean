@@ -1590,20 +1590,19 @@ void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry, bo
 void WSClean::saveUVImage(const Image& image, const ImagingTableEntry& entry,
                           const OutputChannelInfo& channel_info, bool isImaginary,
                           const std::string& prefix) const {
-  Image realUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight),
-      imagUV(_settings.trimmedImageWidth, _settings.trimmedImageHeight);
-  schaapcommon::math::Resampler fft(_settings.trimmedImageWidth, _settings.trimmedImageHeight,
-                                    _settings.trimmedImageWidth, _settings.trimmedImageHeight, 1);
+  const size_t width = image.Width();
+  const size_t height = image.Height();
+  Image realUV(width, height);
+  Image imagUV(width, height);
+  schaapcommon::math::Resampler fft(width, height, width, height, 1);
   fft.SingleFT(image.Data(), realUV.Data(), imagUV.Data());
   // Factors of 2 involved: because of SingleFT()
   // (also one from the fact that normF excludes a factor of two?)
-  realUV *= channel_info.normalizationFactor /
-            sqrt(0.5 * _settings.trimmedImageWidth * _settings.trimmedImageHeight);
-  imagUV *= channel_info.normalizationFactor /
-            sqrt(0.5 * _settings.trimmedImageWidth * _settings.trimmedImageHeight);
+  realUV *= channel_info.normalizationFactor / sqrt(0.5 * width * height);
+  imagUV *= channel_info.normalizationFactor / sqrt(0.5 * width * height);
   WSCFitsWriter writer(createWSCFitsWriter(entry, isImaginary, false));
-  writer.WriteUV(prefix + "-real.fits", realUV.Data());
-  writer.WriteUV(prefix + "-imag.fits", imagUV.Data());
+  writer.WriteUV(prefix + "-real.fits", realUV);
+  writer.WriteUV(prefix + "-imag.fits", imagUV);
 }
 
 void WSClean::ApplyFacetCorrectionForSingleChannel(const ImagingTable& squared_group,

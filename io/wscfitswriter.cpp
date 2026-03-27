@@ -192,18 +192,19 @@ void WSCFitsWriter::WriteFullNameImage(const std::string& fullname,
   writer.Write(fullname, facetimage.Data(0));
 }
 
-template <typename NumT>
-void WSCFitsWriter::WriteUV(const std::string& suffix, const NumT* image) {
+void WSCFitsWriter::WriteUV(const std::string& suffix, const aocommon::Image& image) {
   std::string name = _filenamePrefix + '-' + suffix;
-  aocommon::FitsWriter::Unit unit = _writer.GetUnit();
+  const aocommon::FitsWriter::Unit prior_unit = _writer.GetUnit();
+  const size_t prior_width = _writer.Width();
+  const size_t prior_height = _writer.Height();
+  _writer.SetImageDimensions(image.Width(), image.Height());
   _writer.SetIsUV(true);
   _writer.SetUnit(aocommon::FitsWriter::Jansky);
-  _writer.Write(name, image);
+  _writer.Write(name, image.Data());
   _writer.SetIsUV(false);
-  _writer.SetUnit(unit);
+  _writer.SetImageDimensions(prior_width, prior_height);
+  _writer.SetUnit(prior_unit);
 }
-template void WSCFitsWriter::WriteUV(const std::string& suffix, const double* image);
-template void WSCFitsWriter::WriteUV(const std::string& suffix, const float* image);
 
 void WSCFitsWriter::Restore(const Settings& settings) {
   aocommon::FitsReader imgReader(settings.restoreInput), modReader(settings.restoreModel);
