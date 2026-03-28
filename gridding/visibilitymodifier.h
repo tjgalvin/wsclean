@@ -315,7 +315,7 @@ class VisibilityModifier {
                                  size_t antenna2, size_t time_offset);
 
   void ApplyTimeFrequencySmearing(std::complex<float>* data, const double* uvw,
-                                  const aocommon::BandData& band, size_t n_pol_per_vis);
+                                  const aocommon::BandData& band, size_t n_pol_per_vis) const;
 
   void SetMSTimes(size_t ms_index, std::shared_ptr<std::vector<double>> times) {
     _cachedMSTimes[ms_index] = std::move(times);
@@ -810,7 +810,7 @@ inline double Sinc(double x) { return std::abs(x) < 1e-6 ? 1.0 : std::sin(x) / x
 inline void VisibilityModifier::ApplyTimeFrequencySmearing(std::complex<float>* data,
                                                            const double* uvw,
                                                            const aocommon::BandData& band,
-                                                           size_t n_pol_per_vis) {
+                                                           size_t n_pol_per_vis) const {
   using internal::Sinc;
   if (dlmn_[0] != 0.0 || dlmn_[1] != 0.0) {
     const double smearing_factor_frequency =

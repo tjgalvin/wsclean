@@ -857,6 +857,14 @@ class MsGridderData {
         l_shift = LShift();
         m_shift = MShift();
       }
+      if (settings_.applyTimeFrequencySmearing) {
+        // Corrections such as solutions and beam are performed later, but
+        // smearing is normally not corrected for in the imaging direction
+        // (only during prediction). However, when using DD PSFs, the PSFs
+        // should reflect the smearing, so do this here.
+        visibility_modifier_.ApplyTimeFrequencySmearing(visibilities, uvws, band,
+                                                        n_vis_polarizations_);
+      }
       // When using a shared visibility buffer for shared reads we need to delay
       // direction dependent visibility rotation to inside the same callback
       // where we handle corrections.
