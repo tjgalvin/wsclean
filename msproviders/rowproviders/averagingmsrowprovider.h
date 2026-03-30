@@ -3,10 +3,19 @@
 
 #include "msrowprovider.h"
 
+#include <stdexcept>
+
 #include <aocommon/uvector.h>
 
 namespace wsclean {
 
+/**
+ * This row provider averages the data in time with BDA: so input is regular data,
+ * output is BDA data.
+ *
+ * Note that this differs from the BdaMsRowProvider, that takes BDA data as input
+ * and outputs that.
+ */
 class AveragingMSRowProvider : public MSRowProvider {
  public:
   AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath,
@@ -26,6 +35,11 @@ class AveragingMSRowProvider : public MSRowProvider {
   virtual void ReadModel(DataArray& model) final override;
 
   virtual void OutputStatistics() const final override;
+
+  virtual WriteInfo GetWriteInfo() final override {
+    throw std::runtime_error(
+        "Can't extrapolate baseline-dependent averaged data back to MS resolution");
+  }
 
  private:
   class AveragingBuffer {

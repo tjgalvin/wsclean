@@ -113,4 +113,12 @@ bool BdaMsRowProvider::IsRowSelected(const Data& data) const {
                                 data.uvw.data());
 }
 
+BdaMsRowProvider::WriteInfo BdaMsRowProvider::GetWriteInfo() {
+  assert(!queue_.empty());
+  const Data& row_data = queue_.top();
+  return WriteInfo{.row_index = row_data.row_index,
+                   .current_progress = CurrentProgress(),
+                   .data_desc_id = row_data.data_description_id};
+}
+
 }  // namespace wsclean

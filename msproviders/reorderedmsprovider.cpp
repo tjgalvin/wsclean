@@ -359,23 +359,21 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
       }
     }
 
-    casacore::MeasurementSet ms(handle.ms_path_, casacore::Table::Update);
-    if (handle.sort_in_time_) {
-      aocommon::Logger::Debug << "Sorting measurement set...\n";
-      ms = ms.sort(casacore::MS::columnName(casacore::MSMainEnums::TIME));
+    std::map<size_t, size_t> selected_data_desc_ids;
+    {  // close MS as soon as possible
+      casacore::MeasurementSet ms(handle.ms_path_, casacore::Table::Update);
+      selected_data_desc_ids = GetSpwMap(aocommon::MultiBandData(ms));
     }
+    std::unique_ptr<MsRowProviderBase> row_provider = MakeMsRowProvider(
+        handle.ms_path_, handle.selection_, selected_data_desc_ids, handle.data_column_name_,
+        handle.model_column_name_, false, handle.sort_in_time_);
+    row_provider->Ms().reopenRW();
     const aocommon::VectorMap<std::set<aocommon::PolarizationEnum>>
-        ms_polarizations_per_data_desc_id(GetMSPolarizationsPerDataDescId(ms));
-    InitializeModelColumn(ms, handle.data_column_name_, handle.model_column_name_,
+        ms_polarizations_per_data_desc_id = GetMSPolarizationsPerDataDescId(row_provider->Ms());
+    InitializeModelColumn(row_provider->Ms(), handle.data_column_name_, handle.model_column_name_,
                           handle.model_storage_manager_);
-    ScalarColumn<int> antenna1_column(ms, ms.columnName(MSMainEnums::ANTENNA1));
-    ScalarColumn<int> antenna2_column(ms, ms.columnName(MSMainEnums::ANTENNA2));
-    ScalarColumn<int> field_id_column(ms, ms.columnName(MSMainEnums::FIELD_ID));
-    ScalarColumn<double> time_column(ms, ms.columnName(MSMainEnums::TIME));
-    ScalarColumn<int> data_desc_id_column(ms, ms.columnName(MSMainEnums::DATA_DESC_ID));
-    ArrayColumn<casacore::Complex> data_column(ms, handle.data_column_name_);
-    ArrayColumn<casacore::Complex> model_column(ms, handle.model_column_name_);
-    ArrayColumn<double> uvw_column(ms, ms.columnName(MSMainEnums::UVW));
+    ArrayColumn<casacore::Complex> model_column(row_provider->Ms(), handle.model_column_name_);
+    ArrayColumn<casacore::Complex> data_column(row_provider->Ms(), handle.data_column_name_);
 
     casacore::IPosition shape(data_column.shape(0));
     const size_t maxchannels_ = GetMaxChannels(handle.channels_);
@@ -387,70 +385,59 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
 
     ProgressBar progress(std::string("Writing changed model back to ") + handle.ms_path_);
 
-    size_t start_row;
-    size_t end_row;
-    GetRowRange(ms, handle.selection_, start_row, end_row);
-    size_t timestep = handle.selection_.HasInterval() ? handle.selection_.IntervalStart() : 0;
-    const bool require_time_ordering = handle.selection_.HasInterval();
-    double time = time_column(start_row);
     size_t selected_row_count_for_debug = 0;
-    for (size_t row = start_row; row != end_row; ++row) {
-      progress.SetProgress(row - start_row, end_row - start_row);
-      const int antenna1 = antenna1_column(row);
-      const int antenna2 = antenna2_column(row);
-      const int field_id = field_id_column(row);
-      const size_t data_desc_id = data_desc_id_column(row);
-      uvw_column.get(row, uvw, false);
-
-      if (time != time_column(row)) {
-        ++timestep;
-        const double next_time = time_column(row);
-        if (require_time_ordering && time > next_time) ThrowTimeOrderException();
-        time = next_time;
-      }
-      if (handle.selection_.IsSelected(field_id, timestep, antenna1, antenna2, uvw.data())) {
-        if (handle.model_storage_manager_ == StorageManagerType::Sisco) {
-          shape = data_column.shape(row);
-          model_data_array.resize(shape);
-        } else {
-          model_column.get(row, model_data_array, true);
-        }
-        size_t file_index = 0;
-        for (size_t part = 0; part != channel_parts; ++part) {
-          const ChannelRange& range = handle.channels_[part][data_desc_id];
-          if (!range.Empty()) {
-            const size_t part_start_ch = range.start;
-            const size_t part_end_ch = range.end;
-            const std::set<aocommon::PolarizationEnum>& ms_polarizations =
-                ms_polarizations_per_data_desc_id[data_desc_id];
-            for (aocommon::PolarizationEnum p : pols) {
-              model_files[file_index]->read(reinterpret_cast<char*>(model_data_buffer.data()),
-                                            (part_end_ch - part_start_ch) * polarizations_per_file *
-                                                sizeof(std::complex<float>));
-              if (!model_files[file_index]->good())
-                throw std::runtime_error("Error reading from temporary model data file");
-              schaapcommon::reordering::StoreData<false>(model_data_array.data(), part_start_ch,
-                                                         part_end_ch, ms_polarizations,
-                                                         model_data_buffer.data(), p);
-
-              ++file_index;
-            }
-          } else {
-            file_index += pols.size();
-          }
-        }
-        model_column.put(row, model_data_array);
-        selected_row_count_for_debug++;
-      } else if (handle.model_storage_manager_ == StorageManagerType::Sisco) {
-        // When Sisco is used, the shape of every cell should be set, even
-        // unselected ones.
-        shape = data_column.shape(row);
+    size_t sisco_row_position = 0;
+    const size_t total_progress = row_provider->TotalProgress();
+    while (!row_provider->AtEnd()) {
+      const MSRowProvider::WriteInfo write_info = row_provider->GetWriteInfo();
+      progress.SetProgress(write_info.current_progress, total_progress);
+      if (handle.model_storage_manager_ == StorageManagerType::Sisco) {
+        shape = data_column.shape(write_info.row_index);
         model_data_array.resize(shape);
-        model_data_array = 0.0f;
-        model_column.put(row, model_data_array);
+        assert(sisco_row_position <= write_info.row_index);
+        while (sisco_row_position < write_info.row_index) {
+          // When Sisco is used, the shape of every cell should be set, even
+          // unselected ones.
+          shape = data_column.shape(write_info.row_index);
+          model_data_array.resize(shape);
+          model_data_array = 0.0f;
+          model_column.put(write_info.row_index, model_data_array);
+          ++sisco_row_position;
+        }
+      } else {
+        model_column.get(write_info.row_index, model_data_array, true);
       }
+      size_t file_index = 0;
+      for (size_t part = 0; part != channel_parts; ++part) {
+        const ChannelRange& range = handle.channels_[part][write_info.data_desc_id];
+        if (!range.Empty()) {
+          const size_t part_start_ch = range.start;
+          const size_t part_end_ch = range.end;
+          const std::set<aocommon::PolarizationEnum>& ms_polarizations =
+              ms_polarizations_per_data_desc_id[write_info.data_desc_id];
+          for (aocommon::PolarizationEnum p : pols) {
+            model_files[file_index]->read(reinterpret_cast<char*>(model_data_buffer.data()),
+                                          (part_end_ch - part_start_ch) * polarizations_per_file *
+                                              sizeof(std::complex<float>));
+            if (!model_files[file_index]->good())
+              throw std::runtime_error("Error reading from temporary model data file");
+            schaapcommon::reordering::StoreData<false>(model_data_array.data(), part_start_ch,
+                                                       part_end_ch, ms_polarizations,
+                                                       model_data_buffer.data(), p);
+
+            ++file_index;
+          }
+        } else {
+          file_index += pols.size();
+        }
+      }
+      model_column.put(write_info.row_index, model_data_array);
+      ++selected_row_count_for_debug;
+      ++sisco_row_position;
+
+      row_provider->NextRow();
     }
-    progress.SetProgress(end_row - start_row, end_row - start_row);
+    progress.SetProgress(total_progress, total_progress);
 
     Logger::Debug << "Row count for writing reordered data back to the measurement set: "
                   << selected_row_count_for_debug << '\n';

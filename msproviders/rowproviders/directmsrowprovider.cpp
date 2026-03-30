@@ -25,4 +25,10 @@ void DirectMSRowProvider::ReadModel(MSRowProvider::DataArray& model) {
   _modelColumn->get(_currentRow, model, true);
 }
 
+DirectMSRowProvider::WriteInfo DirectMSRowProvider::GetWriteInfo() {
+  return WriteInfo{.row_index = _currentRow,
+                   .current_progress = CurrentProgress(),
+                   .data_desc_id = static_cast<uint32_t>(_currentDataDescId)};
+}
+
 }  // namespace wsclean

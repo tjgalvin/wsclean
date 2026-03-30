@@ -32,10 +32,7 @@ MSRowProvider::MSRowProvider(const casacore::MeasurementSet& ms, const MSSelecti
 }
 
 void MSRowProvider::Initialize() {
-  if (MsHasBdaData(Ms()))
-    aocommon::ThrowRuntimeError(
-        "Measurement set contains BDA data, but isn't opened for BDA "
-        "processing.");
+  assert(!HasTimeBda(Ms()));
 
   if (_requireModel)
     _modelColumn.reset(new casacore::ArrayColumn<casacore::Complex>(Ms(), ModelColumnName()));

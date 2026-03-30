@@ -41,11 +41,6 @@ BOOST_AUTO_TEST_CASE(create_ms_row_proverider_bda_ms) {
   BOOST_CHECK_NO_THROW((void)dynamic_cast<BdaMsRowProvider&>(*provider));
 }
 
-BOOST_AUTO_TEST_CASE(ms_has_bda_data) {
-  BOOST_CHECK(!MsHasBdaData(casacore::MeasurementSet{"test_data/MWA_MOCK.ms"}));
-  BOOST_CHECK(MsHasBdaData(casacore::MeasurementSet{"test_data/MWA_BDA_MOCK.ms"}));
-}
-
 BOOST_AUTO_TEST_SUITE_END()
 
 }  // namespace wsclean

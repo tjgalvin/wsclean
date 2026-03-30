@@ -22,11 +22,13 @@ class DirectMSRowProvider : public MSRowProvider {
       : MSRowProvider(ms, selection, selected_data_description_ids, data_column_name,
                       model_column_name, require_model) {}
 
-  virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u,
-                        double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1,
-                        uint32_t& antenna2, uint32_t& fieldId, double& time) override;
+  void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u, double& v,
+                double& w, uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2,
+                uint32_t& fieldId, double& time) override;
 
-  virtual void ReadModel(DataArray& model) final override;
+  void ReadModel(DataArray& model) final override;
+
+  WriteInfo GetWriteInfo() final override;
 };
 
 }  // namespace wsclean

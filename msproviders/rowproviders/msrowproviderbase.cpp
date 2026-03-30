@@ -39,7 +39,7 @@ std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
     const std::string& data_column_name, const std::string& model_column_name, bool require_model,
     bool sort_in_time) {
   if (!casacore::Table::isReadable(ms_name)) {
-    aocommon::ThrowRuntimeError("The measurement set ", ms_name, " can't be opened for reading.");
+    throw std::runtime_error("The measurement set " + ms_name + " can't be opened for reading.");
   }
 
   casacore::MeasurementSet ms(ms_name);
@@ -47,17 +47,12 @@ std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
     aocommon::Logger::Debug << "Sorting measurement set...\n";
     ms = ms.sort(casacore::MS::columnName(casacore::MSMainEnums::TIME));
   }
-  if (MsHasBdaData(ms))
+  if (HasTimeBda(ms))
     return std::make_unique<BdaMsRowProvider>(ms, selection, selected_data_description_ids,
                                               data_column_name, model_column_name, require_model);
 
   return std::make_unique<DirectMSRowProvider>(ms, selection, selected_data_description_ids,
                                                data_column_name, model_column_name, require_model);
-}
-
-bool MsHasBdaData(const casacore::MeasurementSet& ms) {
-  return ms.keywordSet().isDefined(BdaMsRowProvider::kBdaFactorsTable) &&
-         ms.keywordSet().asTable(BdaMsRowProvider::kBdaFactorsTable).nrow() != 0;
 }
 
 double GetBdaMaxTimeInterval(const casacore::MeasurementSet& ms) {

@@ -9,7 +9,14 @@
 
 namespace wsclean {
 
-/** A MSRowProvider providing the selected rows in a BDA measurement set. */
+/**
+ * A MsRowProvider providing the selected rows in a measurement set with time BDA. It
+ * sorts the rows in time on the fly.
+ *
+ * Frequency BDA is also supported, but frequency BDA is also supported by the direct ms row
+ * provider, and frequency BDA without time BDA does therefore not necessarily require the use of
+ * this row provider.
+ */
 class BdaMsRowProvider final : public MsRowProviderBase {
  public:
   /** The table name for the BDA factors. */
@@ -39,6 +46,8 @@ class BdaMsRowProvider final : public MsRowProviderBase {
   void ReadModel(DataArray& model) override;
 
   size_t CurrentProgress() const override { return current_row_ - BeginRow() - queue_.size(); }
+
+  WriteInfo GetWriteInfo() final override;
 
  private:
   struct Data {
