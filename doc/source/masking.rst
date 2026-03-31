@@ -47,7 +47,7 @@ In cases where the RMS varies strongly over the field of view, for example becau
 Combining auto-masking with a regular mask
 ------------------------------------------
 
-Auto-masking works in combination with normal masking, so that WSClean can be forced to to find components only in a certain area, and after reaching the auto-masking threshold it would continue with the automask. Since the automask will only contain components within the fitsmask, no components are found outside the fitsmask. Auto-masking and regular masking can be combined by specifying both ``-fits-mask <file>`` and ``auto-mask <threshold>`` on the command line.
+Auto-masking works in combination with normal masking, so that WSClean can be forced to find components only in a certain area, and after reaching the auto-masking threshold it would continue with the automask. Since the automask will only contain components within the fitsmask, no components are found outside the fitsmask. Auto-masking and regular masking can be combined by specifying both ``-fits-mask <file>`` and ``auto-mask <threshold>`` on the command line.
 
 Specifying an absolute auto-masking threshold
 ---------------------------------------------

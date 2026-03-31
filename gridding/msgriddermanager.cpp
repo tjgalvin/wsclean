@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <mutex>
+#include <new>
 #include <vector>
 
 #include <aocommon/logger.h>
@@ -56,10 +57,16 @@ namespace {
 // These wrappers were introduced to resolve bottlenecks in Predict/Invert operations,
 // resulting in a measured 2.46x speedup for Predict on four nodes running with a 189 GB
 // simulation.
-struct alignas(std::hardware_destructive_interference_size) CacheAlignedAtomic {
+#if defined(__cpp_lib_hardware_interference_size) && __cpp_lib_hardware_interference_size >= 201603
+inline constexpr size_t kInterferenceSize = std::hardware_destructive_interference_size;
+#else
+#warning std::hardware_destructive_interference_size not supported; guessing cache size.
+inline constexpr size_t kInterferenceSize = 64;
+#endif
+struct alignas(kInterferenceSize) CacheAlignedAtomic {
   std::atomic<size_t> value{0};
 };
-struct alignas(std::hardware_destructive_interference_size) CacheAlignedMutex {
+struct alignas(kInterferenceSize) CacheAlignedMutex {
   std::mutex value;
 };
 
