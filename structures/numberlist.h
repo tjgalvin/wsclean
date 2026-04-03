@@ -1,12 +1,19 @@
 #ifndef NUMBERLIST_H
 #define NUMBERLIST_H
 
+#include <concepts>
 #include <cstdlib>
+#include <ranges>
 #include <string>
 
 #include <aocommon/uvector.h>
 
 namespace wsclean {
+
+template <typename T>
+concept NumericRangeLike = std::ranges::input_range<T>&& requires(std::ranges::range_value_t<T> v) {
+  { std::to_string(v) } -> std::convertible_to<std::string>;
+};
 
 class NumberList {
  public:
@@ -40,6 +47,22 @@ class NumberList {
     double num = atof(temp.c_str());
     list.push_back(num);
     return list;
+  }
+
+  template <NumericRangeLike T>
+  static std::string ToString(const T& data) {
+    if (std::empty(data)) return "";
+    std::string result;
+    if constexpr (std::ranges::sized_range<T>) {
+      result.reserve(std::ranges::size(data) * 5);
+    }
+    bool first = true;
+    for (const auto& element : data) {
+      if (!first) result += ", ";
+      result += std::to_string(element);
+      first = false;
+    }
+    return result;
   }
 };
 

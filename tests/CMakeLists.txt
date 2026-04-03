@@ -5,6 +5,7 @@ add_executable(
   tfitsdateobstime.cpp
   tserialization.cpp
   gridding/taveragecorrection.cpp
+  gridding/tgriddingutils.cpp
   gridding/tvisibilitymodifier.cpp
   idg/taveragebeam.cpp
   interface/twsclean.cpp

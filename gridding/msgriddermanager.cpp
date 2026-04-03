@@ -15,6 +15,7 @@
 #include <schaapcommon/h5parm/soltab.h>
 
 #include "directmsgridder.h"
+#include "griddingutils.h"
 #include "h5solutiondata.h"
 #include "msgridder.h"
 #include "msprovidercollection.h"
@@ -24,6 +25,7 @@
 #include "../idg/idgmsgridder.h"
 #include "../idg/facetidgmsgridder.h"
 #include "../main/settings.h"
+#include "../structures/numberlist.h"
 #include "../structures/resources.h"
 #include "../wgridder/wgriddingmsgridder.h"
 #include "../wtowers/wtowersmsgridder.h"
@@ -858,35 +860,23 @@ void MSGridderManager::ReadChunksForInvert(aocommon::Lane<InversionChunkData>& t
   assert(bands.BandCount() == 1);
   const aocommon::BandData& band = *bands.begin();
 
-  // We read chunks based on the maximum amount of rows we think we can fit
-  // in memory at a time.
+  // Processing more data per call minimizes total FFTs; aim for maximum memory utilization.
   Logger::Info << "Max " << n_max_rows_in_memory << " rows fit in memory.\n";
-  const size_t n_total_rows_in_ms = ms_data.ms_provider->NRows();
-  n_max_rows_in_memory = std::min(n_max_rows_in_memory, n_total_rows_in_ms);
-  // We want two chunks of memory, one reading while one processes.
-  // However estimate that we can read 50% of the next chunk before
-  // the first is done gridding, so divide by 1.5 instead of 2.
-  // NB! This should be revised in future if/when loading is faster
-  // than gridding which would be ideal but is not the case currently.
-  const size_t n_rows_per_chunk = n_max_rows_in_memory / 1.5;
-  n_total_chunks = n_total_rows_in_ms / n_rows_per_chunk;
-  size_t target_chunk_size = n_rows_per_chunk;
-  // Compute the partial chunk remainder that might be left over.
-  size_t n_rows_in_smaller_chunk = n_max_rows_in_memory % n_rows_per_chunk;
-  if (n_rows_in_smaller_chunk > 0) {
-    n_total_chunks += 1;
-    target_chunk_size = n_rows_in_smaller_chunk;
-  } else {
-    n_rows_in_smaller_chunk = n_rows_per_chunk;
-  }
-  size_t chunk_index = 0;
-  Logger::Info << "Reading " + std::to_string(n_total_chunks) + " chunks with " +
-                      std::to_string(n_rows_in_smaller_chunk) + " rows in the first chunk and " +
-                      std::to_string(n_rows_per_chunk) + " rows per remaining chunk.\n";
+  // Enable pipelining by overlapping I/O and processing across multiple chunks.
+  // The first chunk is smaller to reduce initial latency; currently using an
+  // educated heuristic of 1.5, to be refined based on future benchmarks.
+  const std::vector<size_t> chunks_to_process =
+      CalculateChunkSizes(ms_data.ms_provider->NRows(), n_max_rows_in_memory, 1.5);
+  Logger::Info << "Reading " + std::to_string(chunks_to_process.size()) +
+                      " chunk(s) with sizes: {" + NumberList::ToString(chunks_to_process) + "}\n";
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
+
+  size_t chunk_index = 0;
   while (ms_reader->CurrentRowAvailable()) {
-    Logger::Info << "Loading " << target_chunk_size << " rows into memory chunk " << chunk_index
-                 << ".\n";
+    const size_t target_chunk_size = chunks_to_process[chunk_index];
+    Logger::Info << "Loading " + std::to_string(target_chunk_size) + " rows into memory chunk " +
+                        std::to_string(chunk_index + 1) + ".\n";
+
     InversionChunkData chunk_data(target_chunk_size, band.ChannelCount(), n_vis_polarizations,
                                   apply_corrections, chunk_index);
     if (apply_corrections) {
@@ -903,11 +893,10 @@ void MSGridderManager::ReadChunksForInvert(aocommon::Lane<InversionChunkData>& t
     chunk_data.max_gridded_weight = shared_data.max_gridded_weight_;
     chunk_data.total_weight = shared_data.total_weight_;
     chunk_data.n_rows = n_rows;
-    Logger::Debug << "Done loading chunk " << chunk_index << ".\n";
+    Logger::Debug << "Done loading chunk " + std::to_string(chunk_index + 1) + ".\n";
 
     task_lane.write(std::move(chunk_data));
     ++chunk_index;
-    target_chunk_size = n_rows_per_chunk;
   }
   // Visibility modifier needs to know when we are done processing chunks, so it
   // can free caches.
@@ -1143,38 +1132,26 @@ void MSGridderManager::ReadChunksForPredict(
     MsProviderCollection::MsData& ms_data, MsGridderData& shared_data,
     const std::vector<MsGridder*>& gridders, const aocommon::BandData band,
     size_t n_vis_polarizations, const bool* selected_buffer, size_t& n_total_chunks) {
-  // We read chunks based on the maximum amount of rows we think we can fit
-  // in memory at a time.
+  // Processing more data per call minimizes total FFTs; aim for maximum memory utilization.
   Logger::Info << "Max " << n_max_rows_in_memory << " rows fit in memory.\n";
-  const size_t n_total_rows_in_ms = ms_data.ms_provider->NRows();
-  n_max_rows_in_memory = std::min(n_max_rows_in_memory, n_total_rows_in_ms);
-  // We want two chunks of memory, one reading while one processes.
-  // However estimate that we can read 50% of the next chunk before
-  // the first is done gridding, so divide by 1.5 instead of 2.
-  // NB! This should be revised in future if/when loading is faster
-  // than gridding which would be ideal but is not the case currently.
-  const size_t n_rows_per_chunk = n_max_rows_in_memory / 1.5;
-  n_total_chunks = (n_total_rows_in_ms / n_rows_per_chunk);
-  size_t target_chunk_size = n_rows_per_chunk;
-  // Compute the partial chunk remainder that might be left over.
-  size_t n_rows_in_smaller_chunk = n_max_rows_in_memory % n_rows_per_chunk;
-  if (n_rows_in_smaller_chunk > 0) {
-    n_total_chunks += 1;
-    target_chunk_size = n_rows_in_smaller_chunk;
-  } else {
-    n_rows_in_smaller_chunk = n_rows_per_chunk;
-  }
-  size_t chunk_index = 0;
-  Logger::Info << "Reading " + std::to_string(n_total_chunks) + " chunks with " +
-                      std::to_string(n_rows_in_smaller_chunk) + " rows in first chunk and " +
-                      std::to_string(n_rows_per_chunk) + " rows per remaining chunk.\n";
+  // Enable pipelining by overlapping I/O and processing across multiple chunks.
+  // The first chunk is smaller to reduce initial latency; currently using an
+  // educated heuristic of 1.5, to be refined based on future benchmarks.
+  const std::vector<size_t> chunks_to_process =
+      CalculateChunkSizes(ms_data.ms_provider->NRows(), n_max_rows_in_memory, 1.5);
+  n_total_chunks = chunks_to_process.size();
+  Logger::Info << "Reading " + std::to_string(chunks_to_process.size()) +
+                      " chunk(s) with sizes: {" + NumberList::ToString(chunks_to_process) + "}\n";
+
   // Set provider up for writing
   ms_data.ms_provider->ReopenRW();
   ms_data.ms_provider->ResetWritePosition();
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
+  size_t chunk_index = 0;
   while (ms_reader->CurrentRowAvailable()) {
-    Logger::Info << "Loading " << target_chunk_size << " rows into memory chunk " << chunk_index
-                 << ".\n";
+    const size_t target_chunk_size = chunks_to_process[chunk_index];
+    Logger::Info << "Loading " + std::to_string(target_chunk_size) + " rows into memory chunk " +
+                        std::to_string(chunk_index + 1) + ".\n";
     PredictionChunkData chunk_data(target_chunk_size);
     while (ms_reader->CurrentRowAvailable() && chunk_data.n_rows < target_chunk_size) {
       MSProvider::MetaData metadata;
@@ -1190,11 +1167,10 @@ void MSGridderManager::ReadChunksForPredict(
       chunk_data.n_rows++;
       ms_reader->NextInputRow();
     }
-    Logger::Debug << "Done loading chunk " << chunk_index << ".\n";
+    Logger::Debug << "Done loading chunk " + std::to_string(chunk_index + 1) + ".\n";
 
     task_lane.write(std::move(chunk_data));
     ++chunk_index;
-    target_chunk_size = n_rows_per_chunk;
   }
   Logger::Info << "All predict rows loaded.\n";
   task_lane.write_end();

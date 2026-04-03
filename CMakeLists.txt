@@ -349,6 +349,7 @@ add_library(
   main/wsclean.cpp
   gridding/averagecorrection.cpp
   gridding/directmsgridder.cpp
+  gridding/griddingutils.cpp
   gridding/h5solutiondata.cpp
   gridding/msgridder.cpp
   gridding/msgridderdata.cpp
