@@ -79,7 +79,7 @@ struct alignas(kInterferenceSize) CacheAlignedMutex {
  * to those batches in parallel.
  * @ref BatchRowData facilitates this with each instance representing one
  * batch in such a scenario.
- * The necessarry information is stored such that each @ref BatchRow data
+ * The necessary information is stored such that each @ref BatchRow data
  * can be processed independently and out of order in comparison to other
  * batches.
  * @ref BatchRowData allocates temporary memory for data that will be
@@ -655,13 +655,13 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
     task_lane.write_end();
   });
 
-  // Per gridder mutex to prevent data race on currection sums inside
+  // Per gridder mutex to prevent data race on correction sums inside
   // ApplyCorrections()
   std::unique_ptr<CacheAlignedMutex[]> gridder_mutexes =
       std::make_unique_for_overwrite<CacheAlignedMutex[]>(gridders.size());
   std::unique_ptr<CacheAlignedAtomic[]> index_process_order =
       std::make_unique_for_overwrite<CacheAlignedAtomic[]>(gridders.size());
-  // NB! This delibritely leads to overallocation of threads
+  // NB! This deliberately leads to overallocation of threads
   // As this still outperforms the alternative of not overlapping the IO.
   // Future changes should implement task stealing which would
   // fix this overallocation.
@@ -867,8 +867,9 @@ void MSGridderManager::ReadChunksForInvert(aocommon::Lane<InversionChunkData>& t
   // educated heuristic of 1.5, to be refined based on future benchmarks.
   const std::vector<size_t> chunks_to_process =
       CalculateChunkSizes(ms_data.ms_provider->NRows(), n_max_rows_in_memory, 1.5);
-  Logger::Info << "Reading " + std::to_string(chunks_to_process.size()) +
-                      " chunk(s) with sizes: {" + NumberList::ToString(chunks_to_process) + "}\n";
+  n_total_chunks = chunks_to_process.size();
+  Logger::Info << "Reading " + std::to_string(n_total_chunks) + " chunk(s) with sizes: {" +
+                      NumberList::ToString(chunks_to_process) + "}\n";
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
 
   size_t chunk_index = 0;
