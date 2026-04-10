@@ -358,6 +358,14 @@ class WGridder final : public WGridderBase {
     ducc0::vmav<NumT, 2> tdirty({trimmed_width_, trimmed_height_});
     ducc0::cmav<float, 2> twgt(nullptr, {0, 0});
     ducc0::cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
+    /* Preparation for ducc0 upgrade, will be used in a later MR
+        constexpr bool kDoWgridding = true;
+        constexpr bool kFlipU = false;
+        constexpr bool kFlipV = true;
+        constexpr bool kFlipW = false;
+        constexpr bool kDivideByN = false;
+        constexpr bool kAllowNShift = true;
+    */
     if (!tuning_)
       ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_,
                                   epsilon_, true, n_threads_, tdirty, verbosity_, true, false,

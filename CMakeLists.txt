@@ -126,7 +126,7 @@ find_package(
 add_definitions(${HDF5_DEFINITIONS})
 
 set(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
-find_package(Casacore 3.6 REQUIRED COMPONENTS casa ms tables measures fits)
+find_package(Casacore 3.6 REQUIRED COMPONENTS casa ms tables measures)
 
 find_package(CFITSIO REQUIRED)
 # Chgcentre uses a lapack function. EveryBeam provides lapack, but because

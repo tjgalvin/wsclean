@@ -42,7 +42,10 @@ workflow:
     - git clone --depth 1 --branch v3.6.0 https://github.com/casacore/casacore.git
     - cd /external/casacore
     - mkdir build && cd build
-    - cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF -DDATA_DIR=/usr/share/casacore/data
+    # We ask only for casacore's 'ms' module. This module depends on all the other
+    # necessary modules (mainly casa,tables,measures). This saves building several
+    # modules that are not used.
+    - cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF -DMODULE=ms -DDATA_DIR=/usr/share/casacore/data
     - make -j`nproc`
     - make install -j`nproc`
     - cd $CI_PROJECT_DIR
@@ -88,7 +91,7 @@ build-with-everybeam-gcc12:
     # Use a very recent EveryBeam version (as of Dec 2025), since older versions require the (now empty) Boost date_time library.
     - mkdir -p /opt/everybeam/build
     - cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
-    - cd /opt/everybeam/EveryBeam && git checkout a324cf1d154ff5b968f9844cf05841850bb27c01
+    - cd /opt/everybeam/EveryBeam && git checkout ef6f1ece70f00d0a0b43e70de26d7f3e657e4215
     - cd /opt/everybeam/build && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/
     - make -j`nproc` install
     - cd $CI_PROJECT_DIR && mkdir build && cd build

@@ -310,6 +310,14 @@ void WGridder<NumT>::PredictVisibilities(size_t n_rows, size_t n_channels, const
   cmav<NumT, 2> tdirty(image_.data(), {trimmed_width_, trimmed_height_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
+  /* Preparation for ducc0 upgrade, will be used in a later MR
+      constexpr bool kDoWgridding = true;
+      constexpr bool kFlipU = false;
+      constexpr bool kFlipV = true;
+      constexpr bool kFlipW = false;
+      constexpr bool kDivideByN = false;
+      constexpr bool kAllowNShift = true;
+  */
   if (!tuning_)
     dirty2ms<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt, tmask, pixel_size_x_,
                          pixel_size_y_, epsilon_, true, n_threads_, ms, verbosity_, true, false,
