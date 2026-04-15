@@ -140,7 +140,7 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(const MsProviderCollection::Ms
   aocommon::UVector<std::complex<float>> row_visibilities(max_data_size);
   row_data.data = row_visibilities.data();
 
-  size_t rowIndex = 0;
+  // size_t rowIndex = 0;
   std::unique_ptr<MSReader> ms_reader = ms_data.ms_provider->MakeReader();
   while (ms_reader->CurrentRowAvailable()) {
     // This is temporarily disabled during BDA changes. Once MsProvider provides
@@ -175,7 +175,7 @@ void DirectMSGridder<num_t>::InvertMeasurementSet(const MsProviderCollection::Ms
     }
 
     ms_reader->NextInputRow();
-    ++rowIndex;
+    //++rowIndex;
   }
 }
 
