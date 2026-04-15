@@ -171,8 +171,6 @@ size_t ContiguousMS::NPolarizations() {
 void ContiguousMS::prepareModelColumn() {
   InitializeModelColumn(*_ms, _dataColumnName, _modelColumnName, _modelStorageManager);
   _modelColumn = casacore::ArrayColumn<casacore::Complex>(*_ms, _modelColumnName);
-  const casacore::IPosition shape(_modelColumn.shape(0));
-  _modelArray = casacore::Array<std::complex<float>>(shape);
   _isModelColumnPrepared = true;
 }
 
@@ -193,7 +191,12 @@ void ContiguousMS::WriteModel(const std::complex<float>* buffer, bool addToMS) {
   const size_t start_channel = channel_ranges_[data_desc_id].start;
   const size_t end_channel = channel_ranges_[data_desc_id].end;
 
-  _modelColumn.get(_currentOutputRow, _modelArray);
+  if (_modelColumn.isDefined(_currentOutputRow)) {
+    _modelColumn.get(_currentOutputRow, _modelArray, true);
+  } else {
+    _modelArray.resize(_dataColumn.shape(_currentOutputRow));
+    _modelArray = 0.0f;
+  }
   if (addToMS) {
     schaapcommon::reordering::StoreData<true>(_modelArray.data(), start_channel, end_channel,
                                               input_polarizations_[data_desc_id], buffer,

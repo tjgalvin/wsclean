@@ -386,27 +386,25 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
     ProgressBar progress(std::string("Writing changed model back to ") + handle.ms_path_);
 
     size_t selected_row_count_for_debug = 0;
-    size_t sisco_row_position = 0;
+    size_t row_write_position = 0;
     const size_t total_progress = row_provider->TotalProgress();
     while (!row_provider->AtEnd()) {
       const MSRowProvider::WriteInfo write_info = row_provider->GetWriteInfo();
       progress.SetProgress(write_info.current_progress, total_progress);
-      if (handle.model_storage_manager_ == StorageManagerType::Sisco) {
-        shape = data_column.shape(write_info.row_index);
+
+      assert(row_write_position <= write_info.row_index);
+      // This loop is to fill unselected rows in the measurement set
+      // (e.g. auto-correlations).
+      while (row_write_position < write_info.row_index) {
+        shape = data_column.shape(row_write_position);
         model_data_array.resize(shape);
-        assert(sisco_row_position <= write_info.row_index);
-        while (sisco_row_position < write_info.row_index) {
-          // When Sisco is used, the shape of every cell should be set, even
-          // unselected ones.
-          shape = data_column.shape(write_info.row_index);
-          model_data_array.resize(shape);
-          model_data_array = 0.0f;
-          model_column.put(write_info.row_index, model_data_array);
-          ++sisco_row_position;
-        }
-      } else {
-        model_column.get(write_info.row_index, model_data_array, true);
+        model_data_array = 0.0f;
+        model_column.put(row_write_position, model_data_array);
+        ++row_write_position;
       }
+      shape = data_column.shape(write_info.row_index);
+      model_data_array.resize(shape);
+
       size_t file_index = 0;
       for (size_t part = 0; part != channel_parts; ++part) {
         const ChannelRange& range = handle.channels_[part][write_info.data_desc_id];
@@ -433,11 +431,20 @@ void ReorderedMsProvider::StoreReorderedInMS(const HandleData& handle) {
       }
       model_column.put(write_info.row_index, model_data_array);
       ++selected_row_count_for_debug;
-      ++sisco_row_position;
+      ++row_write_position;
 
       row_provider->NextRow();
     }
     progress.SetProgress(total_progress, total_progress);
+
+    // Fill any final unselected rows in the measurement set
+    while (row_write_position < data_column.nrow()) {
+      shape = data_column.shape(row_write_position);
+      model_data_array.resize(shape);
+      model_data_array = 0.0f;
+      model_column.put(row_write_position, model_data_array);
+      ++row_write_position;
+    }
 
     Logger::Debug << "Row count for writing reordered data back to the measurement set: "
                   << selected_row_count_for_debug << '\n';

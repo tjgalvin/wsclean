@@ -79,7 +79,7 @@ void InitializeModelColumn(casacore::MeasurementSet& ms, const std::string& data
     const bool is_defined = model_column.isDefined(0);
     bool is_same_shape = false;
     if (is_defined) {
-      if (type == StorageManagerType::Sisco) {
+      if (IsSisco(type)) {
         is_same_shape = true;
       } else {
         casacore::IPosition model_shape = model_column.shape(0);
@@ -106,9 +106,13 @@ void InitializeModelColumn(casacore::MeasurementSet& ms, const std::string& data
         use_direct_column = true;
         break;
       case StorageManagerType::Sisco:
+      case StorageManagerType::SiscoStokesI:
+      case StorageManagerType::SiscoDiagonal:
         st_man_name = "SiscoStMan";
         dataman_specification.define("predict_level", 2);
         dataman_specification.define("deflate_level", 9);
+        dataman_specification.define("stokes_i", type == StorageManagerType::SiscoStokesI);
+        dataman_specification.define("diagonal", type == StorageManagerType::SiscoDiagonal);
         break;
     }
     casacore::DataManagerCtor constructor = casacore::DataManager::getCtor(st_man_name);
@@ -126,9 +130,6 @@ void InitializeModelColumn(casacore::MeasurementSet& ms, const std::string& data
     casacore::TableDesc table_desc;
     table_desc.addColumn(model_column_desc, model_column_name);
     ms.addColumn(table_desc, *st_man, true);
-
-    casacore::ArrayColumn<casacore::Complex> model_column(ms, model_column_name);
-    if (type != StorageManagerType::Sisco) FillModelColumn(data_column, model_column);
 
     Logger::Info << "DONE\n";
   }

@@ -12,7 +12,6 @@
 
 using aocommon::Logger;
 using schaapcommon::reordering::MSSelection;
-using schaapcommon::reordering::StorageManagerType;
 
 namespace wsclean {
 
