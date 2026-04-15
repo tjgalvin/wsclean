@@ -2,9 +2,20 @@
 
 #include <schaapcommon/math/convolution.h>
 
+#include <mutex>
+
 using aocommon::Image;
 
 namespace wsclean::tophat_convolution {
+
+namespace {
+
+void EnsureFftwfPlannerThreadSafe() {
+  static std::once_flag once;
+  std::call_once(once, []() { schaapcommon::math::MakeFftwfPlannerThreadSafe(); });
+}
+
+}  // namespace
 
 Image MakeTopHatImage(size_t width, size_t height, double tophat_radius) {
   const ssize_t radius_squared = static_cast<size_t>(tophat_radius * tophat_radius);
@@ -28,6 +39,7 @@ Image MakeTopHatImage(size_t width, size_t height, double tophat_radius) {
 }
 
 void Convolve(Image& input, double radius) {
+  EnsureFftwfPlannerThreadSafe();
   size_t kernel_size = static_cast<size_t>(std::floor(radius)) * 2 + 1;
   if (kernel_size % 2 == 0) ++kernel_size;
   const Image kernel = MakeTopHatImage(kernel_size, kernel_size, radius);

@@ -1,6 +1,7 @@
 #ifndef WSCLEAN_H
 #define WSCLEAN_H
 
+#include <cstdint>
 #include <optional>
 #include <set>
 
@@ -30,6 +31,7 @@
 
 #include "../msproviders/reorderedmsprovider.h"
 
+#include "stitchingmemory.h"
 #include "mshelper.h"
 #include "stopwatch.h"
 #include "settings.h"
@@ -42,8 +44,6 @@ namespace wsclean {
 
 class ImageWeightCache;
 class PrimaryBeam;
-
-enum class StitchImageType { kPSF, kDirty, kFacetPbModel, kOther };
 
 class WSClean {
  public:
@@ -175,25 +175,10 @@ class WSClean {
 
   void processFullPSF(aocommon::Image& image, const ImagingTableEntry& entry);
 
-  void ApplyFacetCorrectionForSingleChannel(const ImagingTable& squared_group,
-                                            CachedImageSet& image_cache);
-
   /**
    * @brief Stitch facets for all FacetGroups
    */
   void stitchFacets(const ImagingTable& table, CachedImageSet& image_cache, StitchImageType type);
-
-  /**
-   * Stitch facet for a single (Facet)Group
-   * @param weight_image weight image pointer that should be either empty
-   * or should be an image with the right size. This can be used to reuse
-   * the same weight image over multiple calls and prevent re-allocation.
-   */
-  void stitchSingleGroup(const ImagingTable::Group& facetGroup, size_t imageIndex,
-                         CachedImageSet& imageCache, StitchImageType type,
-                         aocommon::Image& fullImage, std::unique_ptr<aocommon::Image>& weight_image,
-                         schaapcommon::facets::FacetImage& facetImage, size_t maxFacetGroupIndex,
-                         bool apply_scalar);
   /**
    * Partition model image into facets and save them into fits files
    */
@@ -254,6 +239,7 @@ class WSClean {
 
   std::vector<OutputChannelInfo> _infoPerChannel;
   OutputChannelInfo _infoForMFS;
+  mutable std::mutex _infoForMFSMutex;
 
   std::unique_ptr<MsHelper> _msHelper;
   std::unique_ptr<GriddingTaskFactory> _griddingTaskFactory;

@@ -276,15 +276,21 @@ ExternalProject_Add(
     -DCOMPILE_AS_EXTERNAL_PROJECT=On
     -DPORTABLE=${PORTABLE}
     -DTARGET_CPU=${TARGET_CPU}
+    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
     -DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}
     -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
+    -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=${CMAKE_PROJECT_TOP_LEVEL_INCLUDES}
     # The casacore root is set to the location where casacore was found.
     # Note that CASACORE_ROOT_DIR isn't set/updated by the find script, so we
     # shouldn't set Radler's CASACORE_ROOT_DIR to WSClean's one.
     -DCASACORE_ROOT_DIR=${CASACORE_INCLUDE_DIR}/..
     -DAOCOMMON_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/include/
     -DSCHAAPCOMMON_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/schaapcommon/
+    -DHDF5_DIR=${HDF5_DIR}
+    -DHDF5_ROOT=${HDF5_ROOT}
     -DBUILD_TESTING=OFF
+    -DGIT_SUBMODULE=OFF
     -DCMAKE_PREFIX_PATH=${ALT_CMAKE_PREFIX_PATH}:$ENV{CMAKE_PREFIX_PATH}
     -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX}
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -343,8 +349,10 @@ add_library(
   main/commandline.cpp
   main/imageweightinitializer.cpp
   main/mshelper.cpp
+  main/facetstitching.cpp
   main/progressbar.cpp
   main/settings.cpp
+  main/stitchingmemory.cpp
   main/stopwatch.cpp
   main/wsclean.cpp
   gridding/averagecorrection.cpp

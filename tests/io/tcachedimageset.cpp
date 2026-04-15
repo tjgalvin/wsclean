@@ -1,5 +1,6 @@
 #include "../../io/cachedimageaccessor.h"
 #include "../../io/cachedimageset.h"
+#include "../../main/stitchingmemory.h"
 #include <radler/image_set.h>
 
 #include <aocommon/fits/fitswriter.h>
@@ -13,9 +14,12 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <thread>
 
 using aocommon::FitsWriter;
 using aocommon::Image;
@@ -232,7 +236,8 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
   }
 
   // Retrieve the cached tmp filenames
-  std::vector<std::string> storedNames(cSet.GetStoredNames().begin(), cSet.GetStoredNames().end());
+  const std::set<std::string> stored_name_set = cSet.GetStoredNames();
+  std::vector<std::string> storedNames(stored_name_set.begin(), stored_name_set.end());
 
   schaapcommon::facets::FacetImage imageStorage(image_width, image_height, 1);
   for (size_t pol_idx = 0; pol_idx < polarizations.size(); ++pol_idx) {
@@ -266,11 +271,179 @@ BOOST_AUTO_TEST_CASE(store_and_load_facet) {
       }
     }
     cSet.Store(imageMain.Data(), polarizations[pol_idx], 1, false);
-    BOOST_CHECK(cSet.GetStoredNames().find(
-                    prefix + "-" +
-                    aocommon::Polarization::TypeToShortString(polarizations[pol_idx]) +
-                    "-tmp.fits") != cSet.GetStoredNames().end());
+    const std::set<std::string> stored_names = cSet.GetStoredNames();
+    BOOST_CHECK(
+        stored_names.find(prefix + "-" +
+                          aocommon::Polarization::TypeToShortString(polarizations[pol_idx]) +
+                          "-tmp.fits") != stored_names.end());
   }
+}
+
+BOOST_AUTO_TEST_CASE(parallel_store_with_local_writer) {
+  aocommon::FitsWriter writer;
+  writer.SetImageDimensions(2, 2);
+
+  CachedImageSet cSet;
+  cSet.Initialize(writer, 1, 4, 0, "parallel-store-test");
+
+  std::vector<std::thread> threads;
+  for (size_t channel = 0; channel != 4; ++channel) {
+    threads.emplace_back([&, channel]() {
+      WSCFitsWriter local_writer(writer);
+      Image image(2, 2, static_cast<float>(channel + 1));
+      cSet.Store(image, local_writer, aocommon::Polarization::StokesI, channel, false);
+    });
+  }
+
+  for (std::thread& thread : threads) thread.join();
+
+  BOOST_TEST(cSet.GetStoredNames().size() == 4u);
+  for (size_t channel = 0; channel != 4; ++channel) {
+    Image image(2, 2);
+    cSet.Load(image.Data(), aocommon::Polarization::StokesI, channel, false);
+    BOOST_TEST(image[0] == static_cast<float>(channel + 1));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(parallel_load_facet_reads_consistent_data) {
+  const std::string kPrefix = "parallel-load-facet-test";
+  constexpr size_t kImageWidth = 8;
+  constexpr size_t kImageHeight = 8;
+  constexpr double kDlDm = 0.0125;
+
+  aocommon::FitsWriter writer;
+  writer.SetImageDimensions(kImageWidth, kImageHeight, kDlDm, kDlDm);
+
+  std::vector<schaapcommon::facets::Coord> coords{
+      {0.05, -0.05}, {0.0, -0.05}, {0.0, 0.0}, {0.05, 0.0}};
+  Facet::InitializationData facet_data(writer.PixelSizeX(), writer.PixelSizeY(), writer.Width(),
+                                       writer.Height());
+  facet_data.phase_centre.ra = writer.RA();
+  facet_data.phase_centre.dec = writer.Dec();
+  facet_data.l_shift = writer.LShift();
+  facet_data.m_shift = writer.MShift();
+  facet_data.padding = 1.5;
+
+  auto facet = std::make_shared<Facet>(facet_data, std::move(coords));
+  Image stored(facet->GetTrimmedBoundingBox().Width(), facet->GetTrimmedBoundingBox().Height(),
+               7.0f);
+
+  CachedImageSet cSet;
+  cSet.Initialize(writer, 1, 1, 1, kPrefix);
+  cSet.StoreFacet(stored, aocommon::Polarization::StokesI, 0, 0, facet, false);
+
+  std::atomic<bool> mismatch{false};
+  std::vector<std::thread> threads;
+  for (size_t i = 0; i != 4; ++i) {
+    threads.emplace_back([&]() {
+      Image loaded(stored.Width(), stored.Height(), 0.0f);
+      for (size_t iter = 0; iter != 16; ++iter) {
+        cSet.LoadFacet(loaded.Data(), aocommon::Polarization::StokesI, 0, 0, facet, false);
+        if (!std::equal(loaded.begin(), loaded.end(), stored.begin(), stored.end())) {
+          mismatch = true;
+        }
+      }
+    });
+  }
+
+  for (std::thread& thread : threads) thread.join();
+  BOOST_TEST(mismatch.load() == false);
+}
+
+BOOST_AUTO_TEST_CASE(local_writer_single_image_mode) {
+  aocommon::FitsWriter writer;
+  writer.SetImageDimensions(2, 2);
+
+  CachedImageSet cSet;
+  cSet.Initialize(writer, 1, 1, 0, "single-image-mode-test");
+
+  WSCFitsWriter local_writer(writer);
+  Image stored(2, 2, 3.5f);
+  cSet.Store(stored, local_writer, aocommon::Polarization::StokesI, 0, false);
+
+  Image loaded(2, 2);
+  cSet.Load(loaded.Data(), aocommon::Polarization::StokesI, 0, false);
+  BOOST_TEST(loaded[0] == 3.5f);
+  BOOST_TEST(cSet.Empty() == false);
+}
+
+BOOST_AUTO_TEST_CASE(stitch_memory_estimation) {
+  const detail::StitchMemoryModel baseline{256,   128,   2,    StitchImageType::kOther,
+                                           false, false, false};
+  const size_t image_slot_bytes = 256u * 128u * sizeof(float);
+  const size_t baseline_bytes = detail::EstimateStitchJobBytes(baseline);
+
+  BOOST_TEST(baseline_bytes == (2u * image_slot_bytes * 5u + 3u) / 4u);
+
+  detail::StitchMemoryModel feathering = baseline;
+  feathering.has_feathering = true;
+  BOOST_TEST(detail::EstimateStitchJobBytes(feathering) > baseline_bytes);
+
+  detail::StitchMemoryModel matrix = baseline;
+  matrix.apply_matrix = true;
+  BOOST_TEST(detail::EstimateStitchJobBytes(matrix) > detail::EstimateStitchJobBytes(feathering));
+
+  detail::StitchMemoryModel psf = baseline;
+  psf.type = StitchImageType::kPSF;
+  psf.save_uv = true;
+  BOOST_TEST(detail::EstimateStitchJobBytes(psf) > baseline_bytes);
+
+  detail::StitchMemoryModel facet_pb_model = baseline;
+  facet_pb_model.type = StitchImageType::kFacetPbModel;
+  facet_pb_model.has_feathering = false;
+  BOOST_TEST(detail::EstimateStitchJobBytes(facet_pb_model) <=
+             detail::EstimateStitchJobBytes(feathering));
+
+  const size_t job_slots =
+      detail::CalculateRequiredStitchMemorySlots(baseline_bytes, image_slot_bytes);
+  BOOST_TEST(job_slots >= 2u);
+}
+
+BOOST_AUTO_TEST_CASE(stitch_memory_gate_blocks_until_release) {
+  detail::MemoryGate gate(2);
+  detail::MemoryReservation reservation = gate.Acquire(2);
+
+  std::atomic<bool> acquired{false};
+  std::thread waiter([&]() {
+    detail::MemoryReservation delayed_reservation = gate.Acquire(1);
+    acquired.store(true);
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  BOOST_TEST(acquired.load() == false);
+
+  reservation.Release();
+  waiter.join();
+  BOOST_TEST(acquired.load());
+  BOOST_TEST(gate.AvailableSlots() == gate.TotalSlots());
+}
+
+BOOST_AUTO_TEST_CASE(stitch_memory_gate_allows_small_jobs_to_pass_large_waiter) {
+  detail::MemoryGate gate(3);
+  detail::MemoryReservation reservation = gate.Acquire(1);
+
+  std::atomic<bool> large_acquired{false};
+  std::atomic<bool> small_acquired{false};
+
+  std::thread large_waiter([&]() {
+    detail::MemoryReservation delayed_reservation = gate.Acquire(3);
+    large_acquired.store(true);
+  });
+  std::thread small_waiter([&]() {
+    detail::MemoryReservation delayed_reservation = gate.Acquire(1);
+    small_acquired.store(true);
+  });
+
+  for (size_t i = 0; i != 20 && !small_acquired.load(); ++i) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+  BOOST_TEST(small_acquired.load());
+  BOOST_TEST(large_acquired.load() == false);
+
+  reservation.Release();
+  small_waiter.join();
+  large_waiter.join();
+  BOOST_TEST(large_acquired.load());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

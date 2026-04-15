@@ -2,6 +2,7 @@
 
 #include <wscversion.h>
 
+#include "fitsiomutex.h"
 #include "imagefilename.h"
 
 #include <aocommon/fits/fitsreader.h>
@@ -144,6 +145,7 @@ void WSCFitsWriter::WriteImage(const std::string& suffix, const aocommon::Image&
 }
 
 void WSCFitsWriter::WriteFullNameImage(const std::string& fullname, const aocommon::Image& image) {
+  std::lock_guard<std::mutex> fits_lock(io::FitsIOMutex());
   if (image.Width() != _writer.Width() || image.Height() != _writer.Height()) {
     aocommon::FitsWriter writer(_writer);
     writer.SetImageDimensions(image.Width(), image.Height(), _writer.RA(), _writer.Dec(),
@@ -159,6 +161,7 @@ void WSCFitsWriter::WriteFullNameImage(const std::string& fullname, const aocomm
 
 void WSCFitsWriter::WriteFullNameImage(const std::string& fullname, const aocommon::Image& image,
                                        const schaapcommon::facets::Facet& facet) {
+  std::lock_guard<std::mutex> fits_lock(io::FitsIOMutex());
   aocommon::FitsWriter writer(_writer);
   writer.SetImageDimensions(image.Width(), image.Height(), _writer.RA(), _writer.Dec(),
                             _writer.PixelSizeX(), _writer.PixelSizeY());
@@ -172,6 +175,7 @@ void WSCFitsWriter::WriteFullNameImage(const std::string& fullname, const aocomm
 
 void WSCFitsWriter::WriteFullNameImage(const std::string& fullname,
                                        const schaapcommon::facets::FacetImage& facetimage) {
+  std::lock_guard<std::mutex> fits_lock(io::FitsIOMutex());
   aocommon::FitsWriter writer(_writer);
   writer.SetImageDimensions(facetimage.Width(), facetimage.Height(), _writer.RA(), _writer.Dec(),
                             _writer.PixelSizeX(), _writer.PixelSizeY());
@@ -200,7 +204,10 @@ void WSCFitsWriter::WriteUV(const std::string& suffix, const aocommon::Image& im
   _writer.SetImageDimensions(image.Width(), image.Height());
   _writer.SetIsUV(true);
   _writer.SetUnit(aocommon::FitsWriter::Jansky);
-  _writer.Write(name, image.Data());
+  {
+    std::lock_guard<std::mutex> fits_lock(io::FitsIOMutex());
+    _writer.Write(name, image.Data());
+  }
   _writer.SetIsUV(false);
   _writer.SetImageDimensions(prior_width, prior_height);
   _writer.SetUnit(prior_unit);

@@ -68,8 +68,9 @@ std::unique_ptr<AverageBeam> AverageBeam::Load(const CachedImageSet& scalar_cach
     result = std::make_unique<AverageBeam>();
 
     // Scalar beam
-    result->scalar_width_ = scalar_cache.Writer().Width();
-    result->scalar_height_ = scalar_cache.Writer().Height();
+    const std::pair<size_t, size_t> scalar_dimensions = scalar_cache.GetImageDimensions();
+    result->scalar_width_ = scalar_dimensions.first;
+    result->scalar_height_ = scalar_dimensions.second;
     const size_t n_scalar_pixels = result->scalar_width_ * result->scalar_height_;
     result->scalar_beam_ = std::make_shared<std::vector<float>>(n_scalar_pixels);
     scalar_cache.Load(result->scalar_beam_->data(), aocommon::PolarizationEnum::StokesI,
@@ -82,8 +83,9 @@ std::unique_ptr<AverageBeam> AverageBeam::Load(const CachedImageSet& scalar_cach
     // having to reshuffle the data, and they are only for temporary storage,
     // not for interpretation.
     assert(!matrix_cache.Empty());
-    result->matrix_width_ = matrix_cache.Writer().Width() / (kNPolarizations * kNPolarizations * 2);
-    result->matrix_height_ = matrix_cache.Writer().Height();
+    const std::pair<size_t, size_t> matrix_dimensions = matrix_cache.GetImageDimensions();
+    result->matrix_width_ = matrix_dimensions.first / (kNPolarizations * kNPolarizations * 2);
+    result->matrix_height_ = matrix_dimensions.second;
     const size_t n_matrix_pixels =
         result->matrix_width_ * result->matrix_height_ * kNPolarizations * kNPolarizations;
     result->matrix_inverse_beam_ =
@@ -98,13 +100,13 @@ void AverageBeam::Store(CachedImageSet& scalar_cache, CachedImageSet& matrix_cac
                         size_t frequency_index) const {
   if (!Empty()) {
     // Scalar beam
-    scalar_cache.Writer().SetImageDimensions(scalar_width_, scalar_height_);
+    scalar_cache.SetImageDimensions(scalar_width_, scalar_height_);
     scalar_cache.Store(scalar_beam_->data(), aocommon::PolarizationEnum::StokesI, frequency_index,
                        false);
 
     // Matrix beam
-    matrix_cache.Writer().SetImageDimensions(matrix_width_ * kNPolarizations * kNPolarizations * 2,
-                                             matrix_height_);
+    matrix_cache.SetImageDimensions(matrix_width_ * kNPolarizations * kNPolarizations * 2,
+                                    matrix_height_);
     matrix_cache.Store(reinterpret_cast<float*>(matrix_inverse_beam_->data()),
                        aocommon::PolarizationEnum::StokesI, frequency_index, false);
   }

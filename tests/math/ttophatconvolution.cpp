@@ -1,6 +1,12 @@
 #include <boost/test/unit_test.hpp>
 
+#include <aocommon/recursivefor.h>
+#include <aocommon/staticfor.h>
 #include <aocommon/threadpool.h>
+
+#include <algorithm>
+#include <atomic>
+#include <cmath>
 
 #include "../../math/tophatconvolution.h"
 
@@ -108,6 +114,33 @@ BOOST_AUTO_TEST_CASE(convolve_multi_pixel) {
       BOOST_CHECK_LT(std::fabs(image[y * kWidth + x] - reference), 1e-6);
     }
   }
+}
+
+BOOST_AUTO_TEST_CASE(convolve_from_nested_parallel_loop) {
+  constexpr size_t kWidth = 35;
+  constexpr size_t kHeight = 35;
+  constexpr double kRadius = 3.01;
+  constexpr size_t kOuterTasks = 4;
+
+  aocommon::ThreadPool::GetInstance().SetNThreads(4);
+
+  std::atomic<bool> all_finite{true};
+  BOOST_CHECK_NO_THROW({
+    aocommon::RecursiveFor recursive_for;
+    aocommon::StaticFor<size_t> loop;
+    loop.ConstrainedRun(0, kOuterTasks, 2, [&](size_t start, size_t end) {
+      for (size_t iter = start; iter != end; ++iter) {
+        Image image(kWidth, kHeight, 0.0);
+        image[(kHeight / 2) * kWidth + (kWidth / 2)] = static_cast<float>(iter + 1);
+        tophat_convolution::Convolve(image, kRadius);
+        if (!std::all_of(image.begin(), image.end(),
+                         [](float value) { return std::isfinite(value); })) {
+          all_finite = false;
+        }
+      }
+    });
+  });
+  BOOST_CHECK(all_finite.load());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

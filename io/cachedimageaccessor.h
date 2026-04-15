@@ -54,11 +54,13 @@ class CachedImageAccessor : public aocommon::ImageAccessor {
         facet_(std::move(facet)) {}
 
   std::size_t Width() const override {
-    return facet_ ? facet_->GetTrimmedBoundingBox().Width() : image_set_.Writer().Width();
+    if (facet_) return facet_->GetTrimmedBoundingBox().Width();
+    return image_set_.GetImageDimensions().first;
   }
 
   std::size_t Height() const override {
-    return facet_ ? facet_->GetTrimmedBoundingBox().Height() : image_set_.Writer().Height();
+    if (facet_) return facet_->GetTrimmedBoundingBox().Height();
+    return image_set_.GetImageDimensions().second;
   }
 
   void Load(float* data) const override {
