@@ -8,7 +8,7 @@
 # Disable globbing. This is needed when defining patterns that have wildcards.
 set -e -f
 
-CLANG_FORMAT_BINARY=clang-format-14
+CLANG_FORMAT_BINARY=clang-format-21
 
 #The directory that contains the source files.
 SOURCE_DIR=$(dirname "$0")/..

@@ -62,7 +62,7 @@ class GriddingTaskManager {
   /**
    * Block until all tasks have finished.
    */
-  virtual void Finish(){};
+  virtual void Finish() {};
 
   /**
    * Make the gridding task manager according to the settings.

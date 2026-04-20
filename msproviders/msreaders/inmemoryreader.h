@@ -16,7 +16,7 @@ class InMemoryReader final : public MSReader {
       : MSReader(ms_provider),
         rows_(rows),
         data_iterator_(rows.begin()),
-        meta_data_iterator_(meta_data_iterator){};
+        meta_data_iterator_(meta_data_iterator) {};
 
   size_t RowId() const final { return data_iterator_ - rows_.begin(); }
 

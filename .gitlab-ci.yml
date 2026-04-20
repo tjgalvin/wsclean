@@ -1,4 +1,4 @@
-image: ubuntu:24.04
+image: ubuntu:26.04
 
 stages:
  - format
@@ -17,6 +17,7 @@ workflow:
   before_script:
     - apt-get update -qq
     - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq
+      casacore-dev
       cmake
       g++
       git
@@ -34,22 +35,6 @@ workflow:
       python3-sphinx
       python3-pip
       wget
-      # Install casacore and requirements
-    - apt-get install -y -qq
-      bison flex gfortran libncurses-dev wcslib-dev libboost-dev
-      libboost-python-dev libboost-test-dev libreadline-dev
-    - mkdir /external && cd /external
-    - git clone --depth 1 --branch v3.6.0 https://github.com/casacore/casacore.git
-    - cd /external/casacore
-    - mkdir build && cd build
-    # We ask only for casacore's 'ms' module. This module depends on all the other
-    # necessary modules (mainly casa,tables,measures). This saves building several
-    # modules that are not used.
-    - cmake .. -DBUILD_PYTHON=OFF -DBUILD_TESTING=OFF -DMODULE=ms -DDATA_DIR=/usr/share/casacore/data
-    - make -j`nproc`
-    - make install -j`nproc`
-    - cd $CI_PROJECT_DIR
-    - rm -rf /external/casacore
 
 format:
   stage: format
@@ -57,7 +42,7 @@ format:
   script:
     # Update external/aocommon, which contains format.sh.
     - git submodule update --init external/aocommon
-    - apt-get install -y -qq black clang-format-14 cmake-format isort
+    - apt-get install -y -qq black clang-format-21 cmake-format isort
     # Check formatting of header (*.h), source (*.cpp), python and CMake files.
     - ./scripts/run-format.sh
   rules:
@@ -87,19 +72,18 @@ build-with-everybeam-gcc12:
   stage: build
   extends: .dependencies
   script:
-    - apt-get install -y -qq g++-12 python3-astropy gcovr
-    # Use a very recent EveryBeam version (as of Dec 2025), since older versions require the (now empty) Boost date_time library.
+    - apt-get install -y -qq gcovr python3-astropy python3-pytest
     - mkdir -p /opt/everybeam/build
     - cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
     - cd /opt/everybeam/EveryBeam && git checkout ef6f1ece70f00d0a0b43e70de26d7f3e657e4215
     - cd /opt/everybeam/build && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/
     - make -j`nproc` install
     - cd $CI_PROJECT_DIR && mkdir build && cd build
-    - cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_PREFIX_PATH='/opt/everybeam' -DCMAKE_C_COMPILER=/usr/bin/gcc-12 -DCMAKE_CXX_COMPILER=/usr/bin/g++-12 -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
+    - cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_PREFIX_PATH='/opt/everybeam' -DCMAKE_CXX_FLAGS="-coverage -fprofile-update=atomic" -DCMAKE_EXE_LINKER_FLAGS="-coverage" ../
     - make -j`nproc` install
     # For a push pipeline, run unittests only, otherwise run both unit and integration tests
     - if [[ $CI_PIPELINE_SOURCE == "push" ]] ; then make unitchecks; else make check; fi
-    - gcovr --gcov-executable gcov-12 --merge-mode-functions=separate -r .. -e '.*/external/.*' -e '.*/build/.*' -e '.*/tests/.*' --txt --xml coverage.xml --json coverage.json .
+    - gcovr --merge-mode-functions=separate -r .. -e '.*/external/.*' -e '.*/build/.*' -e '.*/tests/.*' --txt --xml coverage.xml --json coverage.json .
   artifacts:
     paths:
       - build/coverage.json

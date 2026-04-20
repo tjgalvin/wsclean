@@ -17,9 +17,9 @@ namespace wsclean {
  */
 class MSReader {
  public:
-  MSReader(MSProvider* ms_provider) : ms_provider_(ms_provider){};
+  MSReader(MSProvider* ms_provider) : ms_provider_(ms_provider) {};
 
-  virtual ~MSReader(){};
+  virtual ~MSReader() {};
 
   /**
    * This provides a unique, consecutive number that corresponds to

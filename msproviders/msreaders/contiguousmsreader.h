@@ -11,7 +11,7 @@ class ContiguousMSReader final : public MSReader {
  public:
   explicit ContiguousMSReader(ContiguousMS* contiguousMS);
 
-  virtual ~ContiguousMSReader(){};
+  virtual ~ContiguousMSReader() {};
 
   size_t RowId() const override { return _currentRowId; }
 

@@ -15,7 +15,7 @@ class ReorderedMsProvider;
 class ReorderedMsReader final : public MSReader {
  public:
   ReorderedMsReader(ReorderedMsProvider* reordered_ms);
-  virtual ~ReorderedMsReader(){};
+  virtual ~ReorderedMsReader() {};
 
   size_t RowId() const override { return current_input_row_; }
 

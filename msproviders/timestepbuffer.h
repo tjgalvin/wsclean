@@ -25,7 +25,7 @@ class TimestepBuffer final : public MSProvider {
     ms_provider_->ResetWritePosition();
   }
 
-  virtual ~TimestepBuffer(){};
+  virtual ~TimestepBuffer() {};
 
   std::unique_ptr<MSReader> MakeReader() final;
 

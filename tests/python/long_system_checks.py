@@ -207,8 +207,10 @@ class TestLongSystem:
 
         # The options -channel-range and -interval are added to make the imaging quick. One of the intervals options
         # is also necessary in order to require time-ordered measurement sets (without it, the first two cmds won't fail).
-        base_parameters = f"-channel-range 0 24 -name {name('intervals-with-sort-ms')} \
+        base_parameters = (
+            f"-channel-range 0 24 -name {name('intervals-with-sort-ms')} \
             -intervals-out 3 -interval 0 6 {tcf.DIMS_RECTANGULAR} reversed.ms"
+        )
         s = f"{tcf.WSCLEAN} -reorder {base_parameters}"
         validate_failing_call(s.split())
         s = f"{tcf.WSCLEAN} -no-reorder {base_parameters}"

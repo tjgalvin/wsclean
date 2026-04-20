@@ -1317,7 +1317,7 @@ void WSClean::predictGroup(const ImagingTable& groupTable) {
         Predict(facetGroup);
       }
     }  // facet groups of different polarizations
-  }    // independent groups (channels)
+  }  // independent groups (channels)
 
   _griddingTaskManager->Finish();
   _predictingWatch.Pause();

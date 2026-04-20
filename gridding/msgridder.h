@@ -79,10 +79,10 @@ class MsGridder : public MsGridderData {
    */
   virtual void StartInversion() = 0;
   virtual size_t GetNInversionPasses() const { return 1; }
-  virtual void StartInversionPass(size_t pass_index){};
+  virtual void StartInversionPass(size_t pass_index) {};
   /** @return The number of visibility rows processed */
   virtual size_t GridMeasurementSet(const MsProviderCollection::MsData& ms_data) = 0;
-  virtual void FinishInversionPass(size_t pass_index){};
+  virtual void FinishInversionPass(size_t pass_index) {};
   virtual void FinishInversion() = 0;
   /** @return Constant memory overhead for the gridder in bytes. i.e. Not
    * including per row memory usage. */
@@ -164,7 +164,7 @@ class MsGridder : public MsGridderData {
    */
   virtual void StartPredict(std::vector<aocommon::Image>&& images) = 0;
   virtual size_t GetNPredictPasses() const { return 1; }
-  virtual void StartPredictPass(size_t pass_index){};
+  virtual void StartPredictPass(size_t pass_index) {};
   /** @return The number of visibility rows processed */
   virtual size_t PredictMeasurementSet(const MsProviderCollection::MsData& ms_data) = 0;
   virtual void PredictChunk(size_t n_rows, size_t n_channels, const double* frequencies,
@@ -173,7 +173,7 @@ class MsGridder : public MsGridderData {
         "Selected gridder does not yet support shared predict. Try a different "
         "gridder, e.g. wgridder.");
   }
-  virtual void FinishPredictPass(size_t pass_index){};
+  virtual void FinishPredictPass(size_t pass_index) {};
   virtual void FinishPredict() = 0;
 
   virtual std::vector<aocommon::Image> ResultImages() = 0;
@@ -230,7 +230,7 @@ class MsGridder : public MsGridderData {
    * Calculate additional gridder specific metadata that was not calculated in
    * @ref CalculateOverallMetaData().
    */
-  virtual void CalculateGridderMetaData(){};
+  virtual void CalculateGridderMetaData() {};
 
   void SetMaxW(double max_w) { max_w_ = max_w; }
   void SetMaxBaseline(double max_baseline) { max_baseline_ = max_baseline; }
