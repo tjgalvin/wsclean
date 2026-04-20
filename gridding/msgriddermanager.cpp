@@ -600,10 +600,16 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
   // Allow reading to get a bit ahead of processing but not by too much.
   aocommon::Lane<BatchRowData> task_lane(available_cores_ * 2);
 
+  // Calculate maximum timesteps for beam cache allocation.
+  // A PreallocatedVector is used to prevent race conditions, and it is over allocated (@sa
+  // StartProcessingChunk()) as min(n_chunk_rows, unique_times), because timesteps may be unevenly
+  // distributed across chunks, and computing the exact count requires iterating the full rows.
+  const size_t n_max_beam_time_steps = std::min(n_chunk_rows, ms_data.unique_times->size());
+
   // Visibility modifier needs to know when we are starting a new chunk in order
   // to track the beam correctly.
   for (MsGridder* gridder : gridders) {
-    gridder->GetVisibilityModifier().StartProcessingChunk();
+    gridder->GetVisibilityModifier().StartProcessingChunk(n_chunk_rows, n_max_beam_time_steps);
   }
 
   // Pre-process rows serially and partition into chunks for parallel execution.
@@ -956,7 +962,12 @@ void MSGridderManager::BatchInvert(std::function<void()> signal_last_gridding_wo
   const size_t n_inversion_passes = gridders[0]->GetNInversionPasses();
   for (size_t pass_index = 0; pass_index < n_inversion_passes; ++pass_index) {
     ExecuteForAllGridders([=](MsGridder* gridder) { gridder->StartInversionPass(pass_index); });
+    size_t ms_index = 0;
     for (MsProviderCollection::MsData& ms_data : providers.ms_data_vector_) {
+      const bool is_last_ms_data = (ms_index == providers.ms_data_vector_.size() - 1);
+      Logger::Debug << "Starting gridding of MS " + std::to_string(ms_index + 1) + "/" +
+                           std::to_string(providers.ms_data_vector_.size()) + "\n";
+
       MsGridderData shared_data(settings_);
       shared_data.CopyTaskData((*gridders[0]), solution_data_, ms_data);
 
@@ -1014,9 +1025,14 @@ void MSGridderManager::BatchInvert(std::function<void()> signal_last_gridding_wo
                             shared_data, gridders, n_vis_polarizations, selected_buffer.data(),
                             n_total_chunks);
       });
+      // Only signal completion on the last MS to avoid premature workflow continuation
       GridChunks(task_lane, apply_corrections, frequencies, bands, ms_data, n_vis_polarizations,
-                 n_total_chunks, signal_last_gridding_work_has_started);
+                 n_total_chunks, is_last_ms_data ? signal_last_gridding_work_has_started : nullptr);
       read_chunks_thread.join();
+
+      Logger::Debug << "Finished gridding of MS " + std::to_string(ms_index + 1) + "/" +
+                           std::to_string(providers.ms_data_vector_.size()) + "\n";
+      ++ms_index;
     }
     ExecuteForAllGridders([=](MsGridder* gridder) { gridder->FinishInversionPass(pass_index); });
   }
@@ -1199,7 +1215,11 @@ void MSGridderManager::BatchPredict(std::function<void()> signal_last_predict_wo
   const size_t n_predict_passes = gridders[0]->GetNPredictPasses();
   for (size_t pass_index = 0; pass_index < n_predict_passes; ++pass_index) {
     ExecuteForAllGridders([=](MsGridder* gridder) { gridder->StartPredictPass(pass_index); });
+    size_t ms_index = 0;
     for (MsProviderCollection::MsData& ms_data : providers.ms_data_vector_) {
+      const bool is_last_ms_data = (ms_index == providers.ms_data_vector_.size() - 1);
+      Logger::Debug << "Starting prediction of MS " + std::to_string(ms_index + 1) + "/" +
+                           std::to_string(providers.ms_data_vector_.size()) + "\n";
       MsGridderData shared_data(settings_);
       shared_data.CopyTaskData((*gridders[0]), solution_data_, ms_data);
       ExecuteForAllGridders(
@@ -1260,10 +1280,14 @@ void MSGridderManager::BatchPredict(std::function<void()> signal_last_predict_wo
         ReadChunksForPredict(task_lane, n_max_rows_in_memory, ms_data, shared_data, gridders, band,
                              n_vis_polarizations, selected_buffer.data(), n_total_chunks);
       });
+      // Only signal completion on the last MS to avoid premature workflow continuation
       PredictChunks(task_lane, frequencies, ms_data, n_vis_polarizations,
                     gridders[0]->ShouldAddAssignModel(), n_total_chunks,
-                    signal_last_predict_work_has_started);
+                    is_last_ms_data ? signal_last_predict_work_has_started : nullptr);
       read_chunks_thread.join();
+      Logger::Debug << "Finished prediction of MS " + std::to_string(ms_index + 1) + "/" +
+                           std::to_string(providers.ms_data_vector_.size()) + "\n";
+      ++ms_index;
     }
     ExecuteForAllGridders([=](MsGridder* gridder) { gridder->FinishPredictPass(pass_index); });
   }

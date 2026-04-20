@@ -19,6 +19,7 @@
 
 #include "averagecorrection.h"
 #include "gainmode.h"
+#include "../structures/preallocatedvector.h"
 
 namespace wsclean {
 
@@ -149,18 +150,21 @@ auto CreateMatrix2x2(MatrixArrayType data, size_t offset) {
  * row to timestep mapping so that the responses are indexable by row number.
  */
 struct BeamResponseCacheChunk {
-  std::vector<uint32_t> offsets;
+  /**
+   * For every row in the chunk store an offset to the corresponding entry in @ref responses
+   */
+  PreallocatedVector<uint32_t> offsets;
   /**
    * The outer vector contains an element for every timestep in the chunk. The
    * elements themselves have a structure like the beam response VectorMaps in
    * VisibilityModifier, see e.g. @ref
    * VisibilityModifier::GetCachedBeamResponse().
    */
-  std::vector<BeamResponseMap> responses;
+  PreallocatedVector<BeamResponseMap> responses;
 
   const BeamResponseMap& GetCachedBeamResponseForRow(size_t row) const {
-    assert(row < offsets.size());
-    assert(offsets[row] < responses.size());
+    assert(row < offsets.Size());
+    assert(offsets[row] < responses.Size());
     assert(responses[offsets[row]].Size() > 0);
     return responses[offsets[row]];
   }
@@ -206,6 +210,21 @@ class VisibilityModifier {
 #ifdef HAVE_EVERYBEAM
     _beamModeString = std::move(mode);
     _beamNormalisationMode = std::move(normalisation);
+#endif
+  }
+
+  /**
+   * @brief Resets the beam response cache to a clean state.
+   *
+   * Clears all cached beam responses and resets chunk pointers. This must be called
+   * before starting parallel processing of a new measurement set to prevent stale beam data from
+   * the previous MS being incorrectly accessed, which can lead to a crash or data corruption.
+   */
+  void ResetBeamCache() {
+#ifdef HAVE_EVERYBEAM
+    beam_cache_chunks_.clear();
+    current_beam_cache_chunk_ = nullptr;
+    previous_beam_cache_chunk_ = nullptr;
 #endif
   }
 
@@ -378,8 +397,11 @@ class VisibilityModifier {
    *
    * @param check_for_empty Should always be set to true when called externally.
    * It exists for internal usage only.
+   * @param n_rows_in_chunk MUST be >= actual rows processed.
+   * @param n_max_timesteps_in_chunk MUST be >= unique timesteps encountered.
    */
-  void StartProcessingChunk(bool check_for_empty = true) {
+  void StartProcessingChunk(size_t n_rows_in_chunk, size_t n_max_timesteps_in_chunk,
+                            bool check_for_empty = true) {
 #ifdef HAVE_EVERYBEAM
     // Temporary access is required to the previous cache to compute the first
     // response in the new cache.
@@ -392,12 +414,13 @@ class VisibilityModifier {
     if (!check_for_empty || beam_cache_chunks_.empty()) {
       current_beam_cache_chunk_ =
           beam_cache_chunks_.emplace_back(std::make_shared<BeamResponseCacheChunk>()).get();
-      // Note: This allocation strategy is an educated heuristic.
-      // Precise calculation of response counts per chunk is complex and likely
-      // yields diminishing returns. We use an estimate designed to minimize
-      // excessive overallocation while reducing the frequency of vector
-      // reallocations across most scenarios.
-      current_beam_cache_chunk_->responses.reserve(100000);
+    }
+    // A PreallocatedVector is used to prevent reallocation during parallel processing.
+    if (n_max_timesteps_in_chunk > 0) {
+      current_beam_cache_chunk_->responses.Reserve(n_max_timesteps_in_chunk);
+    }
+    if (n_rows_in_chunk > 0) {
+      current_beam_cache_chunk_->offsets.Reserve(n_rows_in_chunk);
     }
 #endif
   }
@@ -413,7 +436,7 @@ class VisibilityModifier {
     // Temporary access is required to the previous cache to compute the first
     // response in the new cache.
     previous_beam_cache_chunk_ = beam_cache_chunks_.back();
-    StartProcessingChunk(false);
+    StartProcessingChunk(0, 0, false);
 #endif
   }
 
@@ -453,24 +476,26 @@ class VisibilityModifier {
     int ret = -1;
     // Add a new empty response to the cache if its a new time interval.
     if (has_time_update) {
-      ret = current_beam_cache_chunk_->responses.size();
-      current_beam_cache_chunk_->responses.push_back({});
+      ret = current_beam_cache_chunk_->responses.Size();
+      current_beam_cache_chunk_->responses.PushBack({});
     }
     // If we have not entered a new time interval, but are processing the first
     // row of a new chunk, there is no previous reponse to reference.
     // In this specific case it becomes necessarry to retrieve/copy the last
     // response of the previous chunks cache.
     if (previous_beam_cache_chunk_) {
-      if (current_beam_cache_chunk_->responses.empty()) {
-        current_beam_cache_chunk_->responses.push_back(
-            previous_beam_cache_chunk_->responses.back());
+      if (current_beam_cache_chunk_->responses.Empty()) {
+        assert(previous_beam_cache_chunk_->responses.Size() > 0);
+        BeamResponseMap& previous_chunk_last_response =
+            previous_beam_cache_chunk_->responses[previous_beam_cache_chunk_->responses.Size() - 1];
+        current_beam_cache_chunk_->responses.PushBack(previous_chunk_last_response);
       }
       previous_beam_cache_chunk_ = nullptr;
     }
     // Current row indexes the most recent response.
     // Either the freshly generated response if this is a new time interval,
     // otherwise the previously cached response.
-    current_beam_cache_chunk_->offsets.push_back(current_beam_cache_chunk_->responses.size() - 1);
+    current_beam_cache_chunk_->offsets.PushBack(current_beam_cache_chunk_->responses.Size() - 1);
     return ret;
   }
 

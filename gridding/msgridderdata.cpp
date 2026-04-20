@@ -15,6 +15,8 @@ void MsGridderData::StartMeasurementSet(size_t ms_count,
                                         const MsProviderCollection::MsData& ms_data,
                                         bool is_predict) {
   visibility_modifier_.InitializeBda(ms_data.ms_provider->HasFrequencyBda());
+  // Clear beam cache from previous measurement set to prevent stale beam data.
+  visibility_modifier_.ResetBeamCache();
   InitializePointResponse(ms_data);
   if (settings_.applyTimeFrequencySmearing) {
     // For smearing calculations, the facet target direction is used, such that the target
