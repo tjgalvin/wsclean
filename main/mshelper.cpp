@@ -9,6 +9,8 @@
 
 #include "../io/readinmemory.h"
 #include "../msproviders/operations.h"
+#include "../msproviders/reordering/reorderms.h"
+#include "../msproviders/reordering/writetoms.h"
 
 using aocommon::Logger;
 
@@ -118,7 +120,7 @@ void MsHelper::ReuseReorderedFiles(const ImagingTable& imaging_table) {
         settings_.modelStorageManager, settings_.temporaryDirectory, channels,
         initial_model_required, settings_.modelUpdateRequired, polarization_types,
         global_selection_, settings_.sortMsInTime, bands_per_part, has_frequency_bda, n_antennas,
-        settings_.saveReorder, ReorderedMsProvider::StoreReorderedInMS);
+        settings_.saveReorder, WriteReorderedToMS);
 
     std::vector<aocommon::OptionalNumber<size_t>> data_desc_ids;
     std::tie(data->metadata_indices_, data_desc_ids) =

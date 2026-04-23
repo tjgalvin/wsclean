@@ -3,31 +3,31 @@
 
 #include "msprovider.h"
 
-#include "../structures/msselection.h"
-#include "../system/mappedfile.h"
+#include <complex>
+#include <functional>
+#include <fstream>
+#include <optional>
+#include <string>
 
-#include "reorderedhandle.h"
-#include "msreaders/reorderedmsreader.h"
-
-#include <schaapcommon/reordering/handledata.h>
-#include <schaapcommon/reordering/filewriter.h>
-#include <schaapcommon/reordering/reordering.h>
-
+#include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 #include <aocommon/uvector.h>
 
-#include <casacore/ms/MeasurementSets/MeasurementSet.h>
-#include <casacore/tables/Tables/ArrayColumn.h>
-#include <casacore/tables/Tables/ScalarColumn.h>
+#include <schaapcommon/reordering/reordering.h>
 
-#include <functional>
-#include <fstream>
-#include <string>
+#include "synchronizedms.h"
+
+#include "../structures/observationinfo.h"
+
+#include "../system/mappedfile.h"
+
+#include "reordering/reorderedhandle.h"
+
+#include "msreaders/reorderedmsreader.h"
 
 namespace wsclean {
 
 class ReorderedMsReader;
-class Settings;
 
 class ReorderedMsProvider final : public MSProvider {
   friend class ReorderedMsReader;
@@ -77,8 +77,6 @@ class ReorderedMsProvider final : public MSProvider {
 
   std::vector<std::string> GetAntennaNames() final;
 
-  static void StoreReorderedInMS(const schaapcommon::reordering::HandleData& handle);
-
   std::optional<SynchronizedMS> MsIfAvailable() final { return MS(); }
 
  private:
@@ -98,14 +96,6 @@ class ReorderedMsProvider final : public MSProvider {
   schaapcommon::reordering::MetaHeader meta_header_;
   schaapcommon::reordering::PartHeader part_header_;
 };
-
-ReorderedHandle ReorderMS(
-    const std::string& ms_path,
-    const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels,
-    const schaapcommon::reordering::MSSelection& selection, const std::string& data_column_name,
-    const std::string& model_column_name,
-    schaapcommon::reordering::StorageManagerType model_storage_manager, bool include_model,
-    bool initial_model_required, const Settings& settings);
 
 }  // namespace wsclean
 

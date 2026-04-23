@@ -7,12 +7,14 @@
 #include <random>
 #include <string>
 
+#include <aocommon/vectorset.h>
+
 namespace wsclean {
 
 class NoiseMSRowProvider : public DirectMSRowProvider {
  public:
   NoiseMSRowProvider(const string& msPath, const schaapcommon::reordering::MSSelection& selection,
-                     const std::map<size_t, size_t>& selectedDataDescIds,
+                     const aocommon::VectorSet<size_t>& selectedDataDescIds,
                      const std::string& dataColumnName, const std::string& modelColumnName,
                      bool requireModel);
 

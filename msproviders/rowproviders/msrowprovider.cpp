@@ -3,6 +3,7 @@
 #include "../operations.h"
 
 #include <aocommon/throwruntimeerror.h>
+#include <aocommon/vectorset.h>
 
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
@@ -11,7 +12,7 @@ using schaapcommon::reordering::MSSelection;
 namespace wsclean {
 
 MSRowProvider::MSRowProvider(const string& msPath, const MSSelection& selection,
-                             const std::map<size_t, size_t>& selectedDataDescIds,
+                             const aocommon::VectorSet<size_t>& selectedDataDescIds,
                              const std::string& dataColumnName,
                              const std::string& model_column_name, bool requireModel)
     : MsRowProviderBase(casacore::MeasurementSet(msPath), selection, dataColumnName,
@@ -22,7 +23,7 @@ MSRowProvider::MSRowProvider(const string& msPath, const MSSelection& selection,
 }
 
 MSRowProvider::MSRowProvider(const casacore::MeasurementSet& ms, const MSSelection& selection,
-                             const std::map<size_t, size_t>& selected_data_description_ids,
+                             const aocommon::VectorSet<size_t>& selected_data_description_ids,
                              const std::string& data_column_name,
                              const std::string& model_column_name, bool require_model)
     : MsRowProviderBase(ms, selection, data_column_name, model_column_name),
@@ -97,9 +98,7 @@ void MSRowProvider::NextRow() {
 }
 
 bool MSRowProvider::isCurrentRowSelected(int fieldId, int a1, int a2) const {
-  std::map<size_t, size_t>::const_iterator dataDescIdIter =
-      _selectedDataDescIds.find(_currentDataDescId);
-  bool isDataDescIdSelected = dataDescIdIter != _selectedDataDescIds.end();
+  const bool isDataDescIdSelected = _selectedDataDescIds.Contains(_currentDataDescId);
   return Selection().IsSelected(fieldId, _currentTimestep, a1, a2, _currentUVWArray.data()) &&
          isDataDescIdSelected;
 }

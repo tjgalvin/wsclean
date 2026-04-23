@@ -49,7 +49,7 @@ float NoiseMSRowProvider::NoiseMap::GetNoiseValue(size_t antenna1, size_t antenn
 
 NoiseMSRowProvider::NoiseMSRowProvider(const string& msPath,
                                        const schaapcommon::reordering::MSSelection& selection,
-                                       const std::map<size_t, size_t>& selectedDataDescIds,
+                                       const aocommon::VectorSet<size_t>& selectedDataDescIds,
                                        const std::string& dataColumnName,
                                        const std::string& modelColumnName, bool requireModel)
     : DirectMSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName, modelColumnName,

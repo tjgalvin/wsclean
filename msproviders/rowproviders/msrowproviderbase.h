@@ -3,15 +3,16 @@
 
 #include "mscolumns.h"
 
-#include <casacore/casa/Arrays/Array.h>
-#include <casacore/ms/MeasurementSets/MeasurementSet.h>
-
 #include <complex>
 #include <memory>
-#include <map>
 #include <string>
 
+#include <aocommon/vectorset.h>
+
 #include <schaapcommon/reordering/msselection.h>
+
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 namespace wsclean {
 
@@ -101,7 +102,7 @@ class MsRowProviderBase {
  */
 std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
     const std::string& ms_name, const schaapcommon::reordering::MSSelection& selection,
-    const std::map<size_t, size_t>& selected_data_description_ids,
+    const aocommon::VectorSet<size_t>& selected_data_description_ids,
     const std::string& data_column_name, const std::string& model_column_name, bool require_model,
     bool sort_in_time);
 

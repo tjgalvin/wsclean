@@ -2,10 +2,13 @@
 #define MSPROVIDERS_BDAMSROWPROVIDER_H
 
 #include "msrowproviderbase.h"
-#include "msweightcolumn.h"
 
 #include <optional>
 #include <queue>
+
+#include <aocommon/vectorset.h>
+
+#include "msweightcolumn.h"
 
 namespace wsclean {
 
@@ -29,7 +32,7 @@ class BdaMsRowProvider final : public MsRowProviderBase {
    */
   explicit BdaMsRowProvider(const casacore::MeasurementSet& ms,
                             const schaapcommon::reordering::MSSelection& selection,
-                            const std::map<size_t, size_t>& selected_data_description_ids,
+                            const aocommon::VectorSet<size_t>& selected_data_description_ids,
                             const std::string& data_column_name,
                             const std::string& model_column_name, bool require_model);
 
@@ -63,7 +66,7 @@ class BdaMsRowProvider final : public MsRowProviderBase {
     inline friend bool operator>(const Data& lhs, const Data& rhs) { return lhs.time > rhs.time; }
   };
 
-  std::map<size_t, size_t> selected_data_description_ids_;
+  aocommon::VectorSet<size_t> selected_data_description_ids_;
   MsWeightColumn weight_;
   std::optional<casacore::ArrayColumn<casacore::Complex>> model_;
   size_t current_row_;

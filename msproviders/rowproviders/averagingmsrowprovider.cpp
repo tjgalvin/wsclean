@@ -21,7 +21,7 @@ void copyAndResize(const ArrayT& source, ArrayT& destination) {
 AveragingMSRowProvider::AveragingMSRowProvider(
     double nWavelengthsAveraging, const std::string& msPath,
     const schaapcommon::reordering::MSSelection& selection,
-    const std::map<size_t, size_t>& selectedDataDescIds, size_t fieldId,
+    const aocommon::VectorSet<size_t>& selectedDataDescIds, size_t fieldId,
     const std::string& dataColumnName, const std::string& modelColumnName, bool requireModel)
     : MSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName, modelColumnName,
                     requireModel),
@@ -40,7 +40,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
   }
 
   // dataDescId x ant x ant
-  _nElements = selectedDataDescIds.size() * _nAntennae * _nAntennae;
+  _nElements = selectedDataDescIds.Size() * _nAntennae * _nAntennae;
   _averagingFactors.assign(_nElements, 0.0);
   _buffers.resize(_nElements);
   aocommon::MultiBandData bands(Ms().spectralWindow(), Ms().dataDescription());
@@ -58,9 +58,8 @@ AveragingMSRowProvider::AveragingMSRowProvider(
       double dy = std::get<1>(pos1) - std::get<1>(pos2);
       double dz = std::get<2>(pos1) - std::get<2>(pos2);
       double dist = std::sqrt(dx * dx + dy * dy + dz * dz);
-      for (std::map<size_t, size_t>::const_iterator spwIter = selectedDataDescIds.begin();
-           spwIter != selectedDataDescIds.end(); ++spwIter) {
-        aocommon::BandData band = bands[spwIter->first];
+      for (size_t data_desc_id : selectedDataDescIds) {
+        const aocommon::BandData& band = bands[data_desc_id];
         double lambda = band.SmallestWavelength();
         double nWavelengthsPerIntegration = 2.0 * M_PI * dist / lambda * dt;
         _averagingFactors[element] =
@@ -76,10 +75,12 @@ AveragingMSRowProvider::AveragingMSRowProvider(
   Logger::Info << "Averaging factor for longest baseline: " << minAvgFactor
                << " x . For the shortest: " << maxAvgFactor << " x \n";
 
-  _spwIndexToDataDescId.resize(selectedDataDescIds.size());
-  for (std::map<size_t, size_t>::const_iterator spwIter = selectedDataDescIds.begin();
-       spwIter != selectedDataDescIds.end(); ++spwIter) {
-    _spwIndexToDataDescId[spwIter->second] = spwIter->first;
+  _spwIndexToDataDescId.Resize(selectedDataDescIds.Size());
+  size_t spw_index = 0;
+  for (aocommon::VectorSet<size_t>::const_iterator bands_iter = selectedDataDescIds.begin();
+       bands_iter != selectedDataDescIds.end(); ++bands_iter) {
+    _spwIndexToDataDescId.AlwaysEmplace(spw_index, *bands_iter);
+    _dataDescIdToSpwIndex.AlwaysEmplace(*bands_iter, spw_index);
   }
 
   _averageFactorSum = 0.0;
@@ -103,9 +104,9 @@ bool AveragingMSRowProvider::processCurrentTimestep() {
   _averagedAntenna1Index = a1;
   _averagedAntenna2Index = a2;
 
-  const size_t spwCount = selectedDataDescIds().size();
+  const size_t spwCount = selectedDataDescIds().Size();
   const size_t elementIndex =
-      spwCount * (a2 + a1 * _nAntennae) + selectedDataDescIds().find(_averagedDataDescId)->second;
+      spwCount * (a2 + a1 * _nAntennae) + _dataDescIdToSpwIndex[_averagedDataDescId];
   const size_t avgFactor = _averagingFactors[elementIndex];
   _averageFactorSum += avgFactor;
   ++_rowCount;
@@ -175,7 +176,7 @@ void AveragingMSRowProvider::NextRow() {
                     _currentUVWArray.data(), _currentTime);
 
       size_t elementIndex = _flushPosition - 1;
-      size_t spwCount = selectedDataDescIds().size();
+      size_t spwCount = selectedDataDescIds().Size();
       size_t spwIndex = elementIndex % spwCount;
       size_t subIndex = elementIndex / spwCount;
       _averagedAntenna1Index = subIndex / _nAntennae;

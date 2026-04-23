@@ -26,14 +26,6 @@ class MSSelection;
 namespace wsclean {
 class MSReader;
 
-aocommon::MultiBandData MakeSelectedPartBands(
-    const aocommon::MultiBandData& input,
-    const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& ranges);
-
-std::vector<aocommon::MultiBandData> MakeSelectedBands(
-    const aocommon::MultiBandData& input,
-    const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
-
 /**
  * The abstract MSProvider class is the base class for classes that read and
  * write the visibilities. Write functionality is directly provided by classes

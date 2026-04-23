@@ -102,8 +102,8 @@ InMemoryHandle ReorderInMemory(InMemoryMs&& data,
           const size_t part_start_ch = ranges[row.data_desc_id].start;
           const size_t part_end_ch = ranges[row.data_desc_id].end;
           const size_t n_channels = part_end_ch - part_start_ch;
-          part_row.data_model_weights =
-              InMemoryPartRow::DataModelWeightsArray(n_provider_correlations * n_channels, false);
+          part_row.data_model_weights = InMemoryPartRow::DataModelWeightsArray(
+              n_provider_correlations * n_channels, aocommon::kSkipInitialization);
           if (set_model_to_zero) {
             std::fill(part_row.Model().begin(), part_row.Model().end(), 0.0f);
           }

@@ -16,7 +16,7 @@ static std::optional<casacore::ArrayColumn<casacore::Complex>> GetModel(
 }
 
 BdaMsRowProvider::BdaMsRowProvider(const casacore::MeasurementSet& ms, const MSSelection& selection,
-                                   const std::map<size_t, size_t>& selected_data_description_ids,
+                                   const aocommon::VectorSet<size_t>& selected_data_description_ids,
                                    const std::string& data_column_name,
                                    const std::string& model_column_name, bool require_model)
     : MsRowProviderBase(ms, selection, data_column_name, model_column_name),
@@ -105,7 +105,7 @@ bool BdaMsRowProvider::LoadCurrentRow() {
 }
 
 bool BdaMsRowProvider::IsRowSelected(const Data& data) const {
-  if (!selected_data_description_ids_.contains(data.data_description_id)) {
+  if (!selected_data_description_ids_.Contains(data.data_description_id)) {
     return false;
   }
 

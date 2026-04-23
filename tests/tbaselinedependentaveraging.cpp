@@ -24,8 +24,7 @@ BOOST_AUTO_TEST_CASE(noAveraging, *boost::unit_test::precondition(dataIsAvailabl
   aocommon::Logger::SetVerbosity(aocommon::LogVerbosityLevel::kQuiet);
   const size_t nAnt = 70;
   MSSelection selection;
-  std::map<size_t, size_t> dataDescIds;
-  dataDescIds.insert(std::make_pair(0, 0));
+  const aocommon::VectorSet<size_t> dataDescIds{0};
   AveragingMSRowProvider avgProvider(1e-8, kFilename, selection, dataDescIds, 0, "DATA",
                                      "MODEL_DATA", false);
   DirectMSRowProvider directProvider(kFilename, selection, dataDescIds, "DATA", "MODEL_DATA",
@@ -91,8 +90,7 @@ BOOST_AUTO_TEST_CASE(nonZeroTime, *boost::unit_test::precondition(dataIsAvailabl
   double time = 10.0;
   const double startTime = 4929192878.0;
   MSSelection selection;
-  std::map<size_t, size_t> dataDescIds;
-  dataDescIds.insert(std::make_pair(0, 0));
+  const aocommon::VectorSet<size_t> dataDescIds{0};
   AveragingMSRowProvider avgProvider(1, kFilename, selection, dataDescIds, 0, "DATA", "MODEL_DATA",
                                      false);
   size_t nRow = 0;

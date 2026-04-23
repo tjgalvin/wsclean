@@ -390,6 +390,8 @@ add_library(
   msproviders/msreaders/contiguousmsreader.cpp
   msproviders/msreaders/reorderedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
+  msproviders/reordering/reorderms.cpp
+  msproviders/reordering/writetoms.cpp
   msproviders/rowproviders/averagingmsrowprovider.cpp
   msproviders/rowproviders/bdamsrowprovider.cpp
   msproviders/rowproviders/directmsrowprovider.cpp

@@ -8,7 +8,7 @@ namespace wsclean {
 class DirectMSRowProvider : public MSRowProvider {
  public:
   DirectMSRowProvider(const string& msPath, const schaapcommon::reordering::MSSelection& selection,
-                      const std::map<size_t, size_t>& selectedDataDescIds,
+                      const aocommon::VectorSet<size_t>& selectedDataDescIds,
                       const std::string& dataColumnName, const std::string& modelColumnName,
                       bool requireModel)
       : MSRowProvider(msPath, selection, selectedDataDescIds, dataColumnName, modelColumnName,
@@ -16,7 +16,7 @@ class DirectMSRowProvider : public MSRowProvider {
 
   explicit DirectMSRowProvider(const casacore::MeasurementSet& ms,
                                const schaapcommon::reordering::MSSelection& selection,
-                               const std::map<size_t, size_t>& selected_data_description_ids,
+                               const aocommon::VectorSet<size_t>& selected_data_description_ids,
                                const std::string& data_column_name,
                                const std::string& model_column_name, bool require_model)
       : MSRowProvider(ms, selection, selected_data_description_ids, data_column_name,

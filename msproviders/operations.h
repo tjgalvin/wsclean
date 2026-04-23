@@ -1,7 +1,9 @@
 #ifndef WSCLEAN_MSPROVIDERS_OPERATIONS_H_
 #define WSCLEAN_MSPROVIDERS_OPERATIONS_H_
 
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
 
 #include <aocommon/polarization.h>
@@ -11,6 +13,10 @@
 
 #include <schaapcommon/reordering/msselection.h>
 #include <schaapcommon/reordering/storagemanagertype.h>
+
+namespace schaapcommon::reordering {
+class ChannelRange;
+}
 
 namespace wsclean {
 
@@ -59,6 +65,17 @@ bool HasFrequencyBda(const casacore::MeasurementSet& ms);
 double GetMsInterval(const casacore::MeasurementSet& ms);
 
 std::vector<std::string> GetAntennaNames(const casacore::MSAntenna& antenna);
+
+std::map<size_t, std::set<aocommon::PolarizationEnum>> GetMsPolarizationsPerDataDescId(
+    casacore::MeasurementSet& ms);
+
+aocommon::MultiBandData MakeSelectedPartBands(
+    const aocommon::MultiBandData& input,
+    const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& ranges);
+
+std::vector<aocommon::MultiBandData> MakeSelectedBands(
+    const aocommon::MultiBandData& input,
+    const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
 
 }  // namespace wsclean
 

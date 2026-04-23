@@ -9,8 +9,6 @@
 
 #include <schaapcommon/reordering/handledata.h>
 
-#include "../msproviders/reorderedmsprovider.h"
-
 #include "../structures/imagingtable.h"
 #include "../structures/inmemoryreordering.h"
 #include "../structures/mslistitem.h"

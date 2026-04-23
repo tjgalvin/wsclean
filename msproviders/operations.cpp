@@ -2,6 +2,8 @@
 
 #include <aocommon/logger.h>
 
+#include <schaapcommon/reordering/channelrange.h>
+
 #include <casacore/tables/DataMan/DataManager.h>
 #include <casacore/tables/Tables/ArrColDesc.h>
 #include <casacore/tables/Tables/TableRecord.h>
@@ -226,6 +228,39 @@ std::vector<std::string> GetAntennaNames(const casacore::MSAntenna& antenna) {
     antenna_names.push_back(antennaNameColumn(i));
   }
   return antenna_names;
+}
+
+std::map<size_t, std::set<aocommon::PolarizationEnum>> GetMsPolarizationsPerDataDescId(
+    casacore::MeasurementSet& ms) {
+  const casacore::MSDataDescription data_description_table = ms.dataDescription();
+  std::map<size_t, std::set<aocommon::PolarizationEnum>> ms_polarizations_per_data_desc_id;
+  for (size_t data_desc_id = 0; data_desc_id != data_description_table.nrow(); ++data_desc_id) {
+    ms_polarizations_per_data_desc_id.emplace(data_desc_id, GetMSPolarizations(data_desc_id, ms));
+  }
+  return ms_polarizations_per_data_desc_id;
+}
+
+aocommon::MultiBandData MakeSelectedPartBands(
+    const aocommon::MultiBandData& input,
+    const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& ranges) {
+  aocommon::MultiBandData result;
+  for (const schaapcommon::reordering::ChannelRange& range : ranges) {
+    if (!range.Empty()) {
+      const aocommon::BandData& band = input[range.data_desc_id];
+      result.SetBand(range.data_desc_id, aocommon::BandData(band, range.start, range.end));
+    }
+  }
+  return result;
+}
+
+std::vector<aocommon::MultiBandData> MakeSelectedBands(
+    const aocommon::MultiBandData& input,
+    const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels) {
+  std::vector<aocommon::MultiBandData> result;
+  for (const aocommon::VectorMap<schaapcommon::reordering::ChannelRange>& ranges : channels) {
+    result.emplace_back(MakeSelectedPartBands(input, ranges));
+  }
+  return result;
 }
 
 }  // namespace wsclean

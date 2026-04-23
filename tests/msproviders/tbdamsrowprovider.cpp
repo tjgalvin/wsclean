@@ -11,15 +11,14 @@ namespace wsclean {
 BOOST_AUTO_TEST_SUITE(bda_ms_row_provider)
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_no_bda_tables) {
-  BOOST_CHECK_THROW(
-      (BdaMsRowProvider({"test_data/MWA_MOCK.ms"}, MSSelection{}, std::map<size_t, size_t>{{0, 0}},
-                        "DATA", "MODEL_DATA", false)),
-      std::runtime_error);
+  BOOST_CHECK_THROW((BdaMsRowProvider({"test_data/MWA_MOCK.ms"}, MSSelection{},
+                                      aocommon::VectorSet<size_t>{0}, "DATA", "MODEL_DATA", false)),
+                    std::runtime_error);
 }
 
 static void CreateBdaMsRowProviderWithSelection(const MSSelection& selection) {
-  BdaMsRowProvider({"test_data/MWA_BDA_MOCK.ms"}, selection, std::map<size_t, size_t>{{0, 0}},
-                   "DATA", "MODEL_DATA", false);
+  BdaMsRowProvider({"test_data/MWA_BDA_MOCK.ms"}, selection, aocommon::VectorSet<size_t>{0}, "DATA",
+                   "MODEL_DATA", false);
 }
 
 static void CreateBdaMsRowProviderWithSelectionInterval() {
@@ -70,7 +69,7 @@ struct RowData {
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider) {
   BdaMsRowProvider provider({"test_data/MWA_BDA_MOCK.ms"}, MSSelection{},
-                            std::map<size_t, size_t>{{0, 0}}, "DATA", "MODEL_DATA", false);
+                            aocommon::VectorSet<size_t>{0}, "DATA", "MODEL_DATA", false);
 
   BOOST_REQUIRE_EQUAL(provider.BeginRow(), 0);
   BOOST_REQUIRE_EQUAL(provider.EndRow(), 21);

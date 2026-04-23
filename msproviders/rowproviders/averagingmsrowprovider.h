@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include <aocommon/uvector.h>
+#include <aocommon/vectorset.h>
 
 namespace wsclean {
 
@@ -20,7 +21,7 @@ class AveragingMSRowProvider : public MSRowProvider {
  public:
   AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath,
                          const schaapcommon::reordering::MSSelection& selection,
-                         const std::map<size_t, size_t>& selectedDataDescIds, size_t fieldId,
+                         const aocommon::VectorSet<size_t>& selectedDataDescIds, size_t fieldId,
                          const std::string& dataColumnName, const std::string& modelColumnName,
                          bool requireModel);
 
@@ -94,7 +95,8 @@ class AveragingMSRowProvider : public MSRowProvider {
 
   aocommon::UVector<size_t> _averagingFactors;
   std::vector<AveragingBuffer> _buffers;
-  aocommon::UVector<size_t> _spwIndexToDataDescId;
+  aocommon::VectorMap<size_t> _spwIndexToDataDescId;
+  aocommon::VectorMap<size_t> _dataDescIdToSpwIndex;
 
   size_t _nAntennae;
 

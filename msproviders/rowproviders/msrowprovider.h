@@ -3,14 +3,16 @@
 
 #include "msrowproviderbase.h"
 
-#include <casacore/casa/Arrays/Array.h>
-#include <casacore/tables/Tables/ScalarColumn.h>
-#include <casacore/tables/Tables/ArrayColumn.h>
-
 #include <cstring>
 #include <map>
 #include <memory>
 #include <vector>
+
+#include <aocommon/vectorset.h>
+
+#include <casacore/casa/Arrays/Array.h>
+#include <casacore/tables/Tables/ScalarColumn.h>
+#include <casacore/tables/Tables/ArrayColumn.h>
 
 namespace wsclean {
 
@@ -20,13 +22,13 @@ namespace wsclean {
 class MSRowProvider : public MsRowProviderBase {
  public:
   MSRowProvider(const string& msPath, const schaapcommon::reordering::MSSelection& selection,
-                const std::map<size_t, size_t>& selectedDataDescIds,
+                const aocommon::VectorSet<size_t>& selectedDataDescIds,
                 const std::string& dataColumnName, const std::string& model_column_name,
                 bool requireModel);
 
   explicit MSRowProvider(const casacore::MeasurementSet& ms,
                          const schaapcommon::reordering::MSSelection& selection,
-                         const std::map<size_t, size_t>& selected_data_description_ids,
+                         const aocommon::VectorSet<size_t>& selected_data_description_ids,
                          const std::string& data_column_name, const std::string& model_column_name,
                          bool require_model);
 
@@ -47,7 +49,7 @@ class MSRowProvider : public MsRowProviderBase {
   std::unique_ptr<casacore::ArrayColumn<casacore::Complex>> _modelColumn;
 
   void getCurrentWeights(WeightArray& weights, const casacore::IPosition& shape);
-  const std::map<size_t, size_t>& selectedDataDescIds() const { return _selectedDataDescIds; }
+  const aocommon::VectorSet<size_t>& selectedDataDescIds() const { return _selectedDataDescIds; }
   bool requireModel() const { return _requireModel; }
 
   bool isCurrentRowSelected(int fieldId, int a1, int a2) const;
@@ -59,7 +61,7 @@ class MSRowProvider : public MsRowProviderBase {
   size_t _currentDataDescId;
 
  private:
-  std::map<size_t, size_t> _selectedDataDescIds;
+  aocommon::VectorSet<size_t> _selectedDataDescIds;
   bool _msHasWeights;
   bool _requireModel;
   casacore::Array<float> _scratchWeightScalarArray;
