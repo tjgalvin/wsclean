@@ -86,11 +86,11 @@ void ThreadedScheduler::Run(GriddingTask&& task,
       // SignalCompletion() is called
       task_data->task.lock_excess_scheduler_tasks_ = std::make_shared<CompletionSignal>();
 
-      // There must be N-1 blocker tasks before we can run, giving us N threads
-      // in total as requested Set up locks so that we only start operating once
-      // we have the resources The scheduler will allocate us resources when the
-      // dummy tasks are placed in the queue
-      for (size_t wait_task_index = 0; wait_task_index < task_data->task.num_parallel_gridders_ - 1;
+      // Dispatch N-1 blocker tasks to reserve all N threads for this compound task.
+      // Using the full thread list size prevents a race condition in `TryStealTask`.
+      // This means only one compound task will run on a node a time, which for now we are limited
+      // to anyway due to other constraints.
+      for (size_t wait_task_index = 0; wait_task_index < thread_list_.size() - 1;
            ++wait_task_index) {
         // Exact id doesn't really matter we just need to ensure that id is
         // unique
@@ -200,7 +200,7 @@ void ThreadedScheduler::ProcessTask(size_t task_id, const std::vector<size_t>& f
           task_data.task, facet_indexes, task_resources, task_data.result, task_data.result_mutex,
           [&](std::unique_ptr<MSGridderManagerScheduler>& parent_scheduler) {
             TryStealTask(signal_task_completion, signal_stolen_task_completion, parent_scheduler,
-                         task_size);
+                         thread_list_.size());
           },
           std::move(scheduler));
       if (signal_task_completion) {
