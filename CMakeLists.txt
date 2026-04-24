@@ -161,14 +161,11 @@ find_package(Boost 1.73 REQUIRED COMPONENTS filesystem program_options)
 find_package(Threads REQUIRED)
 find_library(DL_LIB dl REQUIRED)
 
-# Once we bump minimum CMake version to >= 3.2, we can use `find_package(GSL REQUIRED)`.
-find_library(GSL_LIB NAMES gsl)
-find_path(GSL_INCLUDE_DIR NAMES gsl/gsl_version.h)
-find_library(GSL_CBLAS_LIB NAMES gslcblas)
-if(NOT GSL_LIB
-   OR NOT GSL_INCLUDE_DIR
-   OR NOT GSL_CBLAS_LIB)
-  message(FATAL_ERROR "GSL not found, but required to build WSClean!")
+find_package(GSL REQUIRED)
+if(NOT GSL_LIBRARY
+   OR NOT GSL_INCLUDE_DIRS
+   OR NOT GSL_CBLAS_LIBRARY)
+  message(FATAL_ERROR "GSL not found, but required to build WSClean")
 endif()
 
 find_package(MPI)
@@ -246,7 +243,7 @@ include_directories(SYSTEM ${CASACORE_INCLUDE_DIRS})
 include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 include_directories(SYSTEM ${CFITSIO_INCLUDE_DIR})
 include_directories(SYSTEM ${FFTW3_INCLUDE_DIR})
-include_directories(SYSTEM ${GSL_INCLUDE_DIR})
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 include_directories(SYSTEM ${HDF5_INCLUDE_DIRS})
 include_directories(SYSTEM ${Python3_INCLUDE_DIRS})
 
@@ -448,8 +445,8 @@ set(EXTERNAL_LIBRARIES
     Boost::filesystem
     Boost::program_options
     ${CFITSIO_LIBRARY}
-    ${GSL_LIB}
-    ${GSL_CBLAS_LIB}
+    GSL::gsl
+    GSL::gslcblas
     Threads::Threads
     ${IDGAPI_LIBRARIES}
     ${HDF5_LIBRARIES}
@@ -521,8 +518,9 @@ if(MPI_FOUND)
 endif(MPI_FOUND)
 
 add_executable(chgcentre chgcentre/main.cpp main/progressbar.cpp)
-target_link_libraries(chgcentre ${CASACORE_LIBRARIES} ${GSL_LIB}
-                      ${GSL_CBLAS_LIB} ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
+target_link_libraries(
+  chgcentre PRIVATE ${CASACORE_LIBRARIES} GSL::gsl GSL::gslcblas
+                    ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})
 
 add_executable(
   wspredictionexample EXCLUDE_FROM_ALL gridding/examples/wspredictionexample.cpp
