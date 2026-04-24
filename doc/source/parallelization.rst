@@ -88,19 +88,22 @@ multiple parallel gridders per node. The total number of threads per node
 (``-j`` option) should equal to the number of cores per node,
 which is the default setting.
 
-Processing related facets on one node (Work in progress!)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Multi-node processing with facets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When faceting is enabled, WSClean normally schedules gridding tasks for
-different facets at different compute nodes.
-It then uses a global writer lock for synchronizing updating the visibilities.
+When the MPI method described above is applied to facetted imaging, the
+distribution over nodes is done both over facets and over output channels. This
+is often not efficient for facetted imaging.
+To improve this, it is recommended to use the "shared reads and writes" option.
+This is described in the
+:doc:`facet-based imaging section <facet_based_imaging>`. There's also an
+option ``-compound-tasks`` that makes sure to send the facets from the same
+channel to the same node. Generally, using shared reads and writes is
+the faster approach, though there may be circumstances where the use of
+compound tasks is faster.
 
-For improving scalability, WSClean will soon support scheduling compound
-tasks which contain sub-tasks for all facets for a single output channel.
-WSClean then executes all sub-tasks at the same compute node, which also
-removes the need for using a global writer lock. WSClean can use a local
-writer lock on each node instead. The ``-parallel-gridding`` argument
-then specifies how many facets / sub-tasks each node should process in parallel.
+Pinning work to nodes
+^^^^^^^^^^^^^^^^^^^^^
 
 The ``-channel-to-node`` argument specifies the mapping of output channels to
 node. For example, ``-channel-to-node 0,0,1,2`` schedules the tasks for
@@ -110,6 +113,6 @@ The length of the list must equal the number of output channels
 If ``-no-work-on-master`` is specified, the list may not contain ``0``.
 
 By default, WSClean uses a round-robin distribution of output channels to nodes,
-because later channels are more expensive to grid.
+because later channels with a higher frequency are often more expensive to grid.
 For example, with 10 output channels, 4 nodes, and an active main node, the
 mapping is 0,1,2,3,0,1,2,3,0,1.

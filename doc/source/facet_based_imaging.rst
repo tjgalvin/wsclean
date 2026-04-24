@@ -7,7 +7,7 @@ A facet is a (polygonal-shaped) subsection of the full image.
 Facet-based imaging supports the correction of each facet with a direction-dependent gain from a h5parm solution file. Additionally, the facet can be corrected for the primary beam of the instrument, which is calculated using EveryBeam. In some cases, facet-based imaging can also speed up imaging or reduce the memory footprint.
 
 Enabling faceting mode
------------------------
+----------------------
 
 To enable facet-based imaging in WSClean, a file containing the facet definitions should be provided via the :code:`-facet-regions` option on the command line:
 
@@ -19,7 +19,7 @@ in which :code:`[MY_REGIONS_FILE]` is a file containing the facet definitions in
 For a detailed explanation on the expected file format, see the explanation on :doc:`ds9_facet_file`. WSClean supports both convex and concave polygons in the region file.
 
 Enabling shared reads
------------------------
+---------------------
 
 When working with facets it is possible for data reads and some computation to be done once only per group of facets instead of once for each individual facets gridder.
 The individual gridders can then share a single large chunk of visibility memory instead of each having their own, allowing for more visibilities to be chunked at a time when parallel gridding.
