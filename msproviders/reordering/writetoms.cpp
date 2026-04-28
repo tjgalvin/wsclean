@@ -10,6 +10,8 @@
 #include <schaapcommon/reordering/handledata.h>
 #include <schaapcommon/reordering/reordering.h>
 
+#include "bdarowwriter.h"
+#include "regularrowwriter.h"
 #include "../rowproviders/msrowprovider.h"
 #include "../operations.h"
 #include "../../main/progressbar.h"
@@ -62,35 +64,30 @@ void WriteReorderedToMS(const schaapcommon::reordering::HandleData& handle) {
                                                           handle.model_column_name_);
     casacore::ArrayColumn<casacore::Complex> data_column(row_provider->Ms(),
                                                          handle.data_column_name_);
-
-    casacore::IPosition shape(data_column.shape(0));
     const size_t maxchannels_ = GetMaxChannels(handle.channels_);
+
+    const bool has_time_bda = HasTimeBda(row_provider->Ms());
+    std::unique_ptr<RowWriter> row_writer;
+    if (has_time_bda) {
+      row_writer = std::make_unique<BdaRowWriter>(row_provider->Ms(), data_column, model_column);
+    } else {
+      row_writer = std::make_unique<RegularRowWriter>(data_column, model_column);
+    }
 
     const size_t polarizations_per_file = aocommon::Polarization::GetVisibilityCount(*pols.begin());
     std::vector<std::complex<float>> model_data_buffer(maxchannels_ * polarizations_per_file);
-    casacore::Array<std::complex<float>> model_data_array(shape);
+    casacore::Array<std::complex<float>> model_data_array;
     casacore::Array<double> uvw(casacore::IPosition{3});
 
     ProgressBar progress(std::string("Writing changed model back to ") + handle.ms_path_);
 
     size_t selected_row_count_for_debug = 0;
-    size_t row_write_position = 0;
     const size_t total_progress = row_provider->TotalProgress();
     while (!row_provider->AtEnd()) {
       const MSRowProvider::WriteInfo write_info = row_provider->GetWriteInfo();
       progress.SetProgress(write_info.current_progress, total_progress);
 
-      assert(row_write_position <= write_info.row_index);
-      // This loop is to fill unselected rows in the measurement set
-      // (e.g. auto-correlations).
-      while (row_write_position < write_info.row_index) {
-        shape = data_column.shape(row_write_position);
-        model_data_array.resize(shape);
-        model_data_array = 0.0f;
-        model_column.put(row_write_position, model_data_array);
-        ++row_write_position;
-      }
-      shape = data_column.shape(write_info.row_index);
+      const casacore::IPosition shape = data_column.shape(write_info.row_index);
       model_data_array.resize(shape);
 
       size_t file_index = 0;
@@ -118,22 +115,12 @@ void WriteReorderedToMS(const schaapcommon::reordering::HandleData& handle) {
           file_index += pols.size();
         }
       }
-      model_column.put(write_info.row_index, model_data_array);
-      ++selected_row_count_for_debug;
-      ++row_write_position;
+      row_writer->Write(write_info.row_index, model_data_array);
 
+      ++selected_row_count_for_debug;
       row_provider->NextRow();
     }
     progress.SetProgress(total_progress, total_progress);
-
-    // Fill any final unselected rows in the measurement set
-    while (row_write_position < data_column.nrow()) {
-      shape = data_column.shape(row_write_position);
-      model_data_array.resize(shape);
-      model_data_array = 0.0f;
-      model_column.put(row_write_position, model_data_array);
-      ++row_write_position;
-    }
 
     aocommon::Logger::Debug << "Row count for writing reordered data back to the measurement set: "
                             << selected_row_count_for_debug << '\n';

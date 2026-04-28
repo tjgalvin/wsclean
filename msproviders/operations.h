@@ -77,6 +77,13 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
     const aocommon::MultiBandData& input,
     const std::vector<aocommon::VectorMap<schaapcommon::reordering::ChannelRange>>& channels);
 
+/**
+ * Get the value of the BDA max time interval column from the BDA time data
+ * table. This function requires that there's only one field and spectral BDA
+ * set in the set, and will throw a runtime errors otherwise.
+ */
+double GetBdaMaxTimeInterval(const casacore::MeasurementSet& ms);
+
 }  // namespace wsclean
 
 #endif

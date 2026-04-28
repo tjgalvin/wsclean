@@ -106,13 +106,6 @@ std::unique_ptr<MsRowProviderBase> MakeMsRowProvider(
     const std::string& data_column_name, const std::string& model_column_name, bool require_model,
     bool sort_in_time);
 
-/**
- * Get the value of the Bda max time interval column from the bda time data
- * table. This function requires that there's only one field and spectral bda
- * set in the set, and will throw a runtime errors otherwise.
- */
-double GetBdaMaxTimeInterval(const casacore::MeasurementSet& ms);
-
 }  // namespace wsclean
 
 #endif

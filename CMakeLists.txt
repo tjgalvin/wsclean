@@ -387,6 +387,8 @@ add_library(
   msproviders/msreaders/contiguousmsreader.cpp
   msproviders/msreaders/reorderedmsreader.cpp
   msproviders/msreaders/timestepbufferreader.cpp
+  msproviders/reordering/bdarowwriter.cpp
+  msproviders/reordering/regularrowwriter.cpp
   msproviders/reordering/reorderms.cpp
   msproviders/reordering/writetoms.cpp
   msproviders/rowproviders/averagingmsrowprovider.cpp

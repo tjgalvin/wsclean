@@ -14,7 +14,10 @@ using schaapcommon::reordering::StorageManagerType;
 
 namespace wsclean {
 namespace {
+/** The table name for the BDA factors. */
+constexpr const char* kBdaFactorsTable = "BDA_FACTORS";
 constexpr const char* kBdaTimeAxisTable = "BDA_TIME_AXIS";
+constexpr const char* kBdaMaxTimeIntervalColumn = "MAX_TIME_INTERVAL";
 
 void FillModelColumn(const casacore::ArrayColumn<casacore::Complex>& dataColumn,
                      casacore::ArrayColumn<casacore::Complex>& modelColumn) {
@@ -261,6 +264,22 @@ std::vector<aocommon::MultiBandData> MakeSelectedBands(
     result.emplace_back(MakeSelectedPartBands(input, ranges));
   }
   return result;
+}
+
+double GetBdaMaxTimeInterval(const casacore::MeasurementSet& ms) {
+  if (!ms.keywordSet().isDefined(kBdaFactorsTable)) {
+    throw std::runtime_error(std::string("To process BDA data with WSClean, the ") +
+                             kBdaFactorsTable +
+                             " table needs to be present in the measurement set");
+  }
+  casacore::Table table(ms.keywordSet().asTable(kBdaTimeAxisTable));
+  if (table.nrow() != 1) {
+    throw std::runtime_error(
+        "Measurement set with BDA data and multiple fields or spectral "
+        "windows is not supported");
+  }
+  casacore::ScalarColumn<double> max_time_interval_column(table, kBdaMaxTimeIntervalColumn);
+  return max_time_interval_column(0);
 }
 
 }  // namespace wsclean

@@ -4,6 +4,8 @@
 
 #include <cassert>
 
+#include "../operations.h"
+
 using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {

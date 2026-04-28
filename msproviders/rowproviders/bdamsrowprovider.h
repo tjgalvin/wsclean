@@ -22,10 +22,6 @@ namespace wsclean {
  */
 class BdaMsRowProvider final : public MsRowProviderBase {
  public:
-  /** The table name for the BDA factors. */
-  static inline const std::string kBdaFactorsTable = "BDA_FACTORS";
-  static inline const std::string kBdaTimeAxisTable = "BDA_TIME_AXIS";
-  static inline const std::string kBdaMaxTimeIntervalColumn = "MAX_TIME_INTERVAL";
   /**
    * @pre MsHasBdaData(ms)
    * @pre !selection.HasInterval()
