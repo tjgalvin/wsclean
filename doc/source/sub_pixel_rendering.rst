@@ -5,6 +5,8 @@ WSClean can be used to render sky models with sub-pixel accuracy, enabled by the
 
 The main use-case is enabling image-based visibility prediction from a sky model; see the :doc:`chapter on prediction <prediction>`.
 
+Mathematical details can be found in :ref:`sky-model-rendering-details`
+
 Sub-pixel rendering
 -------------------
 
