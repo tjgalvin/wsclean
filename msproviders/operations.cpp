@@ -101,7 +101,7 @@ void InitializeModelColumn(casacore::MeasurementSet& ms, const std::string& data
     Logger::Info << "Adding model data column " << model_column_name << "... ";
     Logger::Info.Flush();
     std::string st_man_name = "StandardStMan";
-    bool use_direct_column = false;
+    bool use_direct_column = data_column.columnDesc().isFixedShape();
     casacore::Record dataman_specification;
     switch (type) {
       case StorageManagerType::Default:
