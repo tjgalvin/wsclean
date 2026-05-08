@@ -7,7 +7,8 @@
 
 namespace wsclean {
 
-void Image(const std::string& command_line_parameters, std::vector<InMemoryMs>&& ms_list) {
+void Image(const std::string& command_line_parameters, std::vector<InMemoryMs>&& ms_list,
+           std::string_view prefix_name) {
   const std::vector<std::string> parameters =
       boost::program_options::split_unix(command_line_parameters);
   std::vector<const char*> argv;
@@ -19,7 +20,7 @@ void Image(const std::string& command_line_parameters, std::vector<InMemoryMs>&&
   WSClean wsclean;
   constexpr bool kSlave = false;
   constexpr bool kInMemoryData = true;
-  CommandLine::Parse(wsclean, argv.size(), argv.data(), kSlave, kInMemoryData);
+  CommandLine::Parse(wsclean, argv.size(), argv.data(), kSlave, kInMemoryData, prefix_name);
 
   std::vector<std::unique_ptr<InMemoryMs>> in_memory_ms_list;
   in_memory_ms_list.reserve(ms_list.size());

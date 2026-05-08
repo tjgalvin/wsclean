@@ -671,7 +671,8 @@ double ParseDouble(const char* param, double lowerLimit, const char* name, bool 
 }  // namespace
 
 bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char* argv[],
-                                         bool is_slave, bool use_in_memory_data) {
+                                         bool is_slave, bool use_in_memory_data,
+                                         std::string_view prefix_name) {
   if (argc < 2) {
     if (!is_slave) {
       PrintHeader();
@@ -1497,6 +1498,11 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char*
   }
 
   settings.inMemoryData = use_in_memory_data;
+
+  // Allow overwriting the image name prefix when using the in-memory interface.
+  if (!prefix_name.empty()) {
+    settings.prefixName = prefix_name;
+  }
 
   if (argi == argc && !use_in_memory_data && settings.mode != Settings::RestoreMode &&
       settings.mode != Settings::RestoreListMode && settings.mode != Settings::DrawModelMode)

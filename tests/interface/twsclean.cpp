@@ -103,6 +103,22 @@ BOOST_AUTO_TEST_CASE(image) {
   std::filesystem::remove(prefix_name + "-residual.fits");
 }
 
+BOOST_AUTO_TEST_CASE(overwrite_image_prefix_name) {
+  std::vector<InMemoryMs> data = {MakeInMemorySet()};
+  const std::string cmd_line =
+      "-name unused-prefix -size 128 128 -quiet -scale 1amin "
+      "-niter 10 -mgain 0.8 -auto-threshold 5";
+
+  const std::string custom_prefix = "custom-prefix-test";
+  Image(cmd_line, std::move(data), custom_prefix);
+
+  // Verify that the FITS files are created with the expected prefix and thus deletable.
+  BOOST_TEST(std::filesystem::remove(custom_prefix + "-image.fits"));
+  BOOST_TEST(std::filesystem::remove(custom_prefix + "-model.fits"));
+  BOOST_TEST(std::filesystem::remove(custom_prefix + "-psf.fits"));
+  BOOST_TEST(std::filesystem::remove(custom_prefix + "-residual.fits"));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 }  // namespace wsclean

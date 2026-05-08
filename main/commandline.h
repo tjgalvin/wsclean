@@ -18,8 +18,9 @@ class CommandLine {
    * be run, @c false e.g. when this is a dry run.
    */
   static bool Parse(WSClean& wsclean, int argc, const char* argv[], bool is_slave,
-                    bool use_in_memory_data) {
-    bool fullRun = ParseWithoutValidation(wsclean, argc, argv, is_slave, use_in_memory_data);
+                    bool use_in_memory_data, std::string_view prefix_name = {}) {
+    bool fullRun =
+        ParseWithoutValidation(wsclean, argc, argv, is_slave, use_in_memory_data, prefix_name);
     if (fullRun) Validate(wsclean);
     return fullRun;
   }
@@ -32,7 +33,7 @@ class CommandLine {
    * Otherwise similar to @ref Parse().
    */
   static bool ParseWithoutValidation(WSClean& wsclean, int argc, const char* argv[], bool is_slave,
-                                     bool use_in_memory_data);
+                                     bool use_in_memory_data, std::string_view prefix_name = {});
   /**
    * Finish a call to ParseWithoutValidation().
    */
