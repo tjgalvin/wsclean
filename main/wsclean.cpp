@@ -873,6 +873,7 @@ void WSClean::RunPredict() {
         // AST-429
       }
 
+      if (!_settings.selectedFacets.empty()) applyFacetSelection(facets);
       updateFacetsInImagingTable(facets, false);
     }
 
@@ -1875,6 +1876,35 @@ void WSClean::addFacetsToImagingTable(ImagingTableEntry& templateEntry, const si
     _imagingTable.AddEntry(std::move(entry));
   }
   ++templateEntry.facetGroupIndex;
+}
+
+void WSClean::applyFacetSelection(
+    const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets) {
+  assert(!_settings.selectedFacets.empty());
+
+  std::map<std::string, size_t> facet_name_and_index;
+  for (size_t i = 0; i != facets.size(); ++i) {
+    const std::string facet_name = boost::to_lower_copy(facets[i]->DirectionLabel());
+    facet_name_and_index.emplace(facet_name, i);
+  }
+
+  std::set<size_t> selected_facet_indices;
+  for (const std::string& selected_facet : _settings.selectedFacets) {
+    const std::string facet_label = boost::to_lower_copy(selected_facet);
+    const std::map<std::string, size_t>::const_iterator iter =
+        facet_name_and_index.find(facet_label);
+    if (iter == facet_name_and_index.end())
+      throw std::runtime_error("Could not find one of the selected facets: '" + selected_facet +
+                               "' is not in the facet region file");
+    selected_facet_indices.insert(iter->second);
+    aocommon::Logger::Debug << "Selected facet '" << selected_facet << "' (" << iter->second
+                            << ")\n";
+  }
+
+  auto is_selected = [&selected_facet_indices](const ImagingTableEntry& entry) -> bool {
+    return selected_facet_indices.contains(entry.facetIndex);
+  };
+  _imagingTable = ImagingTable(_imagingTable, is_selected);
 }
 
 void WSClean::updateFacetsInImagingTable(

@@ -1023,6 +1023,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char*
     } else if (param == "facet-regions") {
       IncArgi(argi, argc);
       settings.facetRegionFilename = argv[argi];
+    } else if (param == "select-facets") {
+      IncArgi(argi, argc);
+      settings.selectedFacets = ParseStringList(argv[argi]);
     } else if (param == "feather-size") {
       IncArgi(argi, argc);
       settings.featherSize = ParseSizeT(argv[argi], "feather-size");

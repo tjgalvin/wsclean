@@ -15,6 +15,7 @@ from utils import (
     compare_rms_fits,
     compute_rms,
     validate_call,
+    validate_failing_call,
 )
 
 # Append current directory to system path in order to import testconfig
@@ -238,6 +239,60 @@ class TestFacets:
             predict_full_image(tcf.MWA_MOCK_FULL, gridder)
             taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tmp_mwa_mock_facet} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
             assert_taql(taql_command)
+
+    def test_predict_selected_facet(self):
+        nrows = 73584
+        # Remove the MODEL_DATA because only Stokes I values are predicted, and the other Stokes
+        # parameters may be non-zero if the column is not reset.
+        try:
+            assert_taql(
+                "alter table MWA-1052736496-averaged.ms drop column MODEL_DATA",
+                nrows,
+            )
+        except:
+            # Column MODEL_DATA might not exist
+            pass
+
+        # The file 'point-source-model.fits' has some sources in facet B. We add a single source in
+        # facet A. The source in facet A is in the centre of the image, making it easy to validate
+        # the predicted values. Facets C and D are empty.
+        central_flux = 7
+        with fits.open("point-source-model.fits") as fits_file:
+            fits_file[0].data[0][0][128][128] = central_flux
+            fits_file.writeto(
+                "point-source-with-centre-model.fits", overwrite=True
+            )
+
+        s = (
+            f"{tcf.WSCLEAN} -predict "
+            f"-facet-regions {tcf.FACETFILE_4FACETS} "
+            f"-select-facets A,C "
+            f"-name point-source-with-centre "
+            f"{tcf.MWA_MS}"
+        )
+
+        validate_call(s.split())
+
+        # Not all baselines fit in the UV plane. Only the baselines that fit inside the uv plane will be predicted.
+        rows_outside_uvplane = 2016
+        taql_command = f"select from {tcf.MWA_MS} where any(abs(MODEL_DATA[,0] - {central_flux}) > 1e-3 or abs(MODEL_DATA[,3] - {central_flux}) > 1e-3)"
+        assert_taql(taql_command, rows_outside_uvplane)
+        # The rest should be zero:
+        taql_command = f"select from {tcf.MWA_MS} where all(MODEL_DATA=0)"
+        assert_taql(taql_command, rows_outside_uvplane)
+
+    def test_predict_invalid_selected_facet(self):
+        # The region file has facets A-D. Ask to select facet named E to see if
+        # it fails correctly.
+        s = (
+            f"{tcf.WSCLEAN} -predict -v "
+            f"-facet-regions {tcf.FACETFILE_4FACETS} "
+            f"-select-facets E "
+            f"-name point-source "
+            f"-interval 0 1 "
+            f"{tcf.MWA_MS}"
+        )
+        validate_failing_call(s.split())
 
     @pytest.mark.parametrize("gridder", ["wgridder", "facet-idg"])
     @pytest.mark.parametrize("reorder", ["without_reorder", "with_reorder"])

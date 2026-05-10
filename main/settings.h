@@ -103,6 +103,7 @@ class Settings {
   bool request_polarizations_at_once = false;
   bool parallelize_polarizations = false;
   std::string facetRegionFilename;
+  std::vector<std::string> selectedFacets;
   std::optional<size_t> featherSize;
   std::set<size_t> spectralWindows;
   WeightMode weightMode{WeightClass::Uniform};

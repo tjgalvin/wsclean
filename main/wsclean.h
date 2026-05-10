@@ -138,6 +138,7 @@ class WSClean {
   void addFacetsToImagingTable(ImagingTableEntry& templateEntry, const size_t facet_count);
   void updateFacetsInImagingTable(
       const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets, bool updateDdPsfs);
+  void applyFacetSelection(const std::vector<std::shared_ptr<schaapcommon::facets::Facet>>& facets);
   std::unique_ptr<ImageWeightCache> createWeightCache();
 
   /**
