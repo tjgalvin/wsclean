@@ -502,6 +502,7 @@ target_sources(
             external/aocommon/include/aocommon/polarization.h
             external/aocommon/include/aocommon/uvector.h
             external/aocommon/include/aocommon/vectormap.h
+            external/aocommon/include/aocommon/vectorset.h
             external/aocommon/include/aocommon/io/serialistream.h
             external/aocommon/include/aocommon/io/serialostream.h)
 
