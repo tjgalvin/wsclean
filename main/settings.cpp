@@ -416,6 +416,17 @@ void Settings::Validate() const {
         " computed when the dirty image is made.");
   }
 
+  if (!selectedFacets.empty()) {
+    if (mode != PredictMode) {
+      throw std::runtime_error("Option -select-facets can only be used for prediction");
+    }
+    if (facetRegionFilename.empty()) {
+      throw std::runtime_error(
+          "Option -select-facets can only be used used when facets are used, but no facet region "
+          "file was specified");
+    }
+  }
+
   checkPolarizations();
 }
 

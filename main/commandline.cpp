@@ -257,6 +257,9 @@ Options can be:
    the tangential plane.
 -facet-regions <facets.reg>
    Split the image into facets using the facet regions defined in  the facets.reg file. Default: off.
+-select-facets <facet-list>
+   When doing a facet-based predict, this allows prediction of one or a few facets from the region
+   file instead of all. Facets are specified by name in a comma-separated list. Default: predict all facets.
 -feather-size <npixels>
    Set the size of the feathered facet boundaries. Setting this to zero will disable feathering.
    Default: 10% of the average facet dimensions, i.e., 1% of sqrt(width * height).
