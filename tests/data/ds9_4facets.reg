@@ -2,7 +2,8 @@
 global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1
 fk5
 
-polygon(127.506981856, -32.216555130, 123.519315722, -41.962959877, 124.811867977, -43.190306093, 139.409184568, -41.727806421, 137.638381404, -31.272458745) # text=A
+polygon(127.506981856, -32.216555130, 123.519315722, -41.962959877, 124.811867977, -43.190306093, 139.409184568, -41.727806421, 137.638381404, -31.272458745)
+point(130.0,-35.0) # text=A
 
 # This facet contains the three point sources in point-source-model.fits.
 # The other three facets do not contain any point sources there.
