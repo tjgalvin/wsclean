@@ -58,8 +58,9 @@ InMemoryHandle ReorderInMemory(InMemoryMs&& data,
       Polarization::GetVisibilityCount(*output_polarizations.begin());
   const std::set<PolarizationEnum> input_polarizations(data.polarizations.begin(),
                                                        data.polarizations.end());
-  const size_t max_n_flags = n_provider_correlations * data.bands.MaxBandChannels();
-  const std::unique_ptr<bool[]> flag_buffer(std::make_unique<bool[]>(max_n_flags));
+  const size_t max_n_flags = input_polarizations.size() * data.bands.MaxBandChannels();
+  std::unique_ptr<bool[]> flag_buffer(std::make_unique<bool[]>(max_n_flags));
+  std::fill_n(flag_buffer.get(), max_n_flags, false);
 
   std::shared_ptr<std::vector<MSProvider::MetaData>> row_meta_data =
       std::make_shared<std::vector<MSProvider::MetaData>>();

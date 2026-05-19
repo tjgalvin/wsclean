@@ -36,6 +36,7 @@ InMemoryMs MakeInMemorySet() {
   std::mt19937 rng;
   std::uniform_int_distribution<size_t> antenna_distribution(0, 2);
   std::uniform_real_distribution<double> uvw_distribution(-1000.0, 1000.0);
+  const size_t kNPolarizations = ms.polarizations.size();
 
   for (size_t row_index = 0; row_index != 1000; ++row_index) {
     InMemoryRow& row = ms.rows.emplace_back();
@@ -43,12 +44,12 @@ InMemoryMs MakeInMemorySet() {
     do {
       row.antenna2 = antenna_distribution(rng);
     } while (row.antenna1 == row.antenna2);
-    row.data.assign(kChannels.size(), kFluxDensity);
+    row.data.assign(kChannels.size() * kNPolarizations, kFluxDensity);
     row.data_desc_id = 0;
     row.field_id = 0;
     row.time = ms.start_time;
     row.uvw = {uvw_distribution(rng), uvw_distribution(rng), uvw_distribution(rng)};
-    row.weights.assign(kChannels.size(), 1.0f);
+    row.weights.assign(kChannels.size() * kNPolarizations, 1.0f);
   }
   return ms;
 }
