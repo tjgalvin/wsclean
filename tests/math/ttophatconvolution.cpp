@@ -1,8 +1,8 @@
 #include <boost/test/unit_test.hpp>
 
-#include <aocommon/recursivefor.h>
-#include <aocommon/staticfor.h>
-#include <aocommon/threadpool.h>
+#include <schaapcommon/threading/recursivefor.h>
+#include <schaapcommon/threading/staticfor.h>
+#include <schaapcommon/threading/threadpool.h>
 
 #include <algorithm>
 #include <atomic>
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(convolve_single_pixel) {
   constexpr double kRadius = 3.01;
   Image image(kWidth, kHeight, 0.0);
   image[kWidth * ((kHeight - 1) / 2) + (kWidth - 1) / 2] = 3.0;
-  aocommon::ThreadPool::GetInstance().SetNThreads(2);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(2);
   tophat_convolution::Convolve(image, kRadius);
   for (size_t i = 0; i != kWidth * kHeight; ++i) {
     // BOOST_CHECK_CLOSE_FRACTION doesn't work when comparing zeros to tiny
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(convolve_multi_pixel) {
   image[(mid_y + 1) * kWidth + mid_x + 1] = 1.0;
   image[(mid_y + 2) * kWidth + mid_x + 1] = -2.0;
 
-  aocommon::ThreadPool::GetInstance().SetNThreads(2);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(2);
   tophat_convolution::Convolve(image, kRadius);
   for (ssize_t y = 0; y != kHeight; ++y) {
     for (ssize_t x = 0; x != kWidth; ++x) {
@@ -122,12 +122,12 @@ BOOST_AUTO_TEST_CASE(convolve_from_nested_parallel_loop) {
   constexpr double kRadius = 3.01;
   constexpr size_t kOuterTasks = 4;
 
-  aocommon::ThreadPool::GetInstance().SetNThreads(4);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(4);
 
   std::atomic<bool> all_finite{true};
   BOOST_CHECK_NO_THROW({
-    aocommon::RecursiveFor recursive_for;
-    aocommon::StaticFor<size_t> loop;
+    schaapcommon::RecursiveFor recursive_for;
+    schaapcommon::StaticFor<size_t> loop;
     loop.ConstrainedRun(0, kOuterTasks, 2, [&](size_t start, size_t end) {
       for (size_t iter = start; iter != end; ++iter) {
         Image image(kWidth, kHeight, 0.0);

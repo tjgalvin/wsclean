@@ -6,10 +6,10 @@
 #include "../../model/powerlawsed.h"
 
 #include <aocommon/image.h>
-#include <aocommon/threadpool.h>
 
 #include <schaapcommon/fitters/gaussianfitter.h>
 #include <schaapcommon/math/restoreimage.h>
+#include <schaapcommon/threading/threadpool.h>
 
 namespace wsclean {
 
@@ -53,7 +53,7 @@ BOOST_FIXTURE_TEST_CASE(fit_with_bad_initial_value, RendererFixture) {
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
-  aocommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
   renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj, beamMin, beamPA,
                                       100e6, 200e6, aocommon::Polarization::StokesI);
 
@@ -80,7 +80,7 @@ BOOST_FIXTURE_TEST_CASE(fit_circular, RendererFixture) {
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
-  aocommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
   renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj, beamMin, beamPA,
                                       100e6, 200e6, aocommon::Polarization::StokesI);
 
@@ -107,7 +107,7 @@ BOOST_FIXTURE_TEST_CASE(fit_small_beam, RendererFixture) {
   const long double beamPA = 0.0;
   const long double estimatedBeamPx = 1.0;  // this is on purpose way off
 
-  aocommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(kThreadCount);
   renderer::RestoreWithEllipticalBeam(restored, imageSettings, model, beamMaj, beamMin, beamPA,
                                       100e6, 200e6, aocommon::Polarization::StokesI);
 

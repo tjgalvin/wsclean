@@ -6,10 +6,10 @@
 #include <aocommon/lane.h>
 #include <aocommon/logger.h>
 #include <aocommon/uvector.h>
-#include <aocommon/threadpool.h>
 
 #include <schaapcommon/math/drawgaussian.h>
 #include <schaapcommon/fitters/polynomialfitter.h>
+#include <schaapcommon/threading/threadpool.h>
 
 #include "../model/bbsmodel.h"
 #include "../model/modelsource.h"
@@ -208,7 +208,7 @@ std::vector<aocommon::Image> RenderSubPixelModel(
     double frequency, double bandwidth, size_t window_size, size_t n_terms, double mem_fraction,
     double mem_limit) {
   aocommon::Logger::Info << "Rendering sources...\n";
-  aocommon::ThreadPool& pool = aocommon::ThreadPool::GetInstance();
+  schaapcommon::ThreadPool& pool = schaapcommon::ThreadPool::GetInstance();
   // Each thread will get their own list of images, to prevent having to
   // synchronize. These lists consist of the Stokes I image and images for each
   // of the higher order spectral terms, as requested.

@@ -83,7 +83,14 @@ include(external/aocommon/CMake/SetTargetCPU.cmake)
 include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 
 # Schaapcommon
-set(SCHAAPCOMMON_MODULES ducc0 facets fitters h5parm math reordering)
+set(SCHAAPCOMMON_MODULES
+    ducc0
+    facets
+    fitters
+    h5parm
+    math
+    reordering
+    threading)
 add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
 include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
@@ -435,7 +442,7 @@ add_dependencies(wsclean-object radler-module)
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 target_link_libraries(
-  wsclean-object PRIVATE schaapcommon
+  wsclean-object PRIVATE schaapcommon schaapthreading
                          $<$<BOOL:${ENABLE_WTOWERS}>:${SKA_SDP_FUNC_LIBRARY}>)
 
 set(EXTERNAL_LIBRARIES

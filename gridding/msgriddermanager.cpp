@@ -7,12 +7,13 @@
 
 #include <aocommon/logger.h>
 #include <aocommon/taskqueue.h>
-#include <aocommon/threadpool.h>
 #include <aocommon/uvector.h>
+
 #include <schaapcommon/facets/facet.h>
 #include <schaapcommon/h5parm/h5parm.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
 #include <schaapcommon/h5parm/soltab.h>
+#include <schaapcommon/threading/threadpool.h>
 
 #include "directmsgridder.h"
 #include "griddingutils.h"

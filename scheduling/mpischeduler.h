@@ -3,16 +3,17 @@
 
 #ifdef HAVE_MPI
 
-#include "griddingtaskmanager.h"
-#include "threadedscheduler.h"
-
-#include <aocommon/queue.h>
-#include <aocommon/threadpool.h>
-#include <aocommon/uvector.h>
-
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+
+#include <aocommon/queue.h>
+#include <aocommon/uvector.h>
+
+#include <schaapcommon/threading/threadpool.h>
+
+#include "griddingtaskmanager.h"
+#include "threadedscheduler.h"
 
 namespace wsclean {
 
@@ -135,7 +136,7 @@ class MPIScheduler final : public GriddingTaskManager {
   /**
    * Internal task queue to enable sending multiple MPI tasks in parallel.
    */
-  aocommon::ThreadPool send_thread_pool_;
+  schaapcommon::ThreadPool send_thread_pool_;
   aocommon::TaskQueue<std::function<void()>> send_task_queue_;
 };
 

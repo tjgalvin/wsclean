@@ -9,7 +9,7 @@
 #include <thread>
 #include <vector>
 
-#include <aocommon/threadpool.h>
+#include <schaapcommon/threading/threadpool.h>
 
 namespace wsclean {
 
@@ -32,7 +32,7 @@ void DirectMSGridder<num_t>::StartInversion() {
         aocommon::ImageBase<num_t>(TrimWidth(), TrimHeight(), static_cast<num_t>(0.0)));
   }
 
-  aocommon::ThreadPool& thread_pool = aocommon::ThreadPool::GetInstance();
+  schaapcommon::ThreadPool& thread_pool = schaapcommon::ThreadPool::GetInstance();
   thread_pool.SetNThreads(_resources.NCpus() + 1);
   thread_pool.StartParallelExecution([&](size_t thread_index) {
     const size_t layer = thread_index - 1;
@@ -52,7 +52,7 @@ size_t DirectMSGridder<num_t>::GridMeasurementSet(const MsProviderCollection::Ms
 template <typename num_t>
 void DirectMSGridder<num_t>::FinishInversion() {
   _inversionLane.write_end();
-  aocommon::ThreadPool::GetInstance().FinishParallelExecution();
+  schaapcommon::ThreadPool::GetInstance().FinishParallelExecution();
 
   aocommon::ImageBase<num_t> scratch = std::move(_layers.back());
   _layers.pop_back();

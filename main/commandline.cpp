@@ -8,12 +8,12 @@
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/logger.h>
 #include <aocommon/radeccoord.h>
-#include <aocommon/threadpool.h>
 #include <aocommon/units/angle.h>
 #include <aocommon/units/fluxdensity.h>
 
 #include <schaapcommon/fitters/spectralfitter.h>
 #include <schaapcommon/h5parm/jonesparameters.h>
+#include <schaapcommon/threading/threadpool.h>
 
 #include <boost/algorithm/string.hpp>
 
@@ -1569,7 +1569,7 @@ void CommandLine::Run(class WSClean& wsclean) {
   // Implicitly initialise cfitsio to prevent a race condition that can
   // otherwise occur inside `fits_open_file` and other functions.
   fits_init_cfitsio();
-  aocommon::ThreadPool::GetInstance().SetNThreads(settings.threadCount);
+  schaapcommon::ThreadPool::GetInstance().SetNThreads(settings.threadCount);
   switch (settings.mode) {
     case Settings::RestoreMode:
       WSCFitsWriter::Restore(settings);

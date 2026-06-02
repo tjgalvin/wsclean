@@ -1,23 +1,23 @@
 #include "imageweights.h"
 
-#include <aocommon/io/serialostream.h>
-#include <aocommon/io/serialistream.h>
-#include <aocommon/multibanddata.h>
-
-#include "../msproviders/msprovider.h"
-#include "../msproviders/msreaders/msreader.h"
-
-#include <aocommon/fits/fitswriter.h>
-#include <aocommon/banddata.h>
-#include <aocommon/logger.h>
-#include <aocommon/staticfor.h>
-#include <aocommon/system.h>
-#include <aocommon/units/angle.h>
-
 #include <cmath>
 #include <iostream>
 #include <cassert>
 #include <cstring>
+
+#include <aocommon/banddata.h>
+#include <aocommon/logger.h>
+#include <aocommon/system.h>
+#include <aocommon/fits/fitswriter.h>
+#include <aocommon/io/serialostream.h>
+#include <aocommon/io/serialistream.h>
+#include <aocommon/multibanddata.h>
+#include <aocommon/units/angle.h>
+
+#include <schaapcommon/threading/staticfor.h>
+
+#include "../msproviders/msprovider.h"
+#include "../msproviders/msreaders/msreader.h"
 
 namespace wsclean {
 
@@ -145,7 +145,7 @@ void ImageWeights::FinishGridding() {
 void ImageWeights::SetMinUVRange(double minUVInLambda) {
   const double minSq = minUVInLambda * minUVInLambda;
   int halfWidth = _imageWidth / 2;
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -163,7 +163,7 @@ void ImageWeights::SetMinUVRange(double minUVInLambda) {
 void ImageWeights::SetMaxUVRange(double maxUVInLambda) {
   const double maxSq = maxUVInLambda * maxUVInLambda;
   int halfWidth = _imageWidth / 2;
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -182,7 +182,7 @@ void ImageWeights::SetTukeyTaper(double transitionSizeInLambda, double maxUVInLa
   const double maxUVSq = maxUVInLambda * maxUVInLambda;
   const double transitionDistSq =
       (maxUVInLambda - transitionSizeInLambda) * (maxUVInLambda - transitionSizeInLambda);
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -205,7 +205,7 @@ void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda, double minU
   const double minUVSq = minUVInLambda * minUVInLambda;
   const double totalSizeSq =
       (minUVInLambda + transitionSizeInLambda) * (minUVInLambda + transitionSizeInLambda);
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -227,7 +227,7 @@ void ImageWeights::SetTukeyInnerTaper(double transitionSizeInLambda, double minU
 void ImageWeights::SetEdgeTaper(double sizeInLambda) {
   double maxU, maxV;
   xyToUV(_imageWidth, _imageHeight / 2, maxU, maxV);
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -245,7 +245,7 @@ void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda, double edgeS
   double maxU, maxV;
   xyToUV(_imageWidth, _imageHeight / 2, maxU, maxV);
   double totalSize = transitionSizeInLambda + edgeSizeInLambda;
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     auto iter = _grid.begin() + yStart * _imageWidth;
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -271,7 +271,7 @@ void ImageWeights::SetEdgeTukeyTaper(double transitionSizeInLambda, double edgeS
 }
 
 void ImageWeights::GetGrid(double* image) const {
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     const double* srcPtr = _grid.data() + (yStart * _imageWidth);
     for (size_t y = yStart; y != yEnd; ++y) {
@@ -298,7 +298,7 @@ void ImageWeights::Save(const string& filename) const {
 
 void ImageWeights::RankFilter(double rankLimit, size_t windowSize) {
   std::vector<double> newGrid(_grid);
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     for (size_t y = yStart; y != yEnd; ++y) {
       for (size_t x = 0; x != _imageWidth; ++x) {
@@ -321,7 +321,7 @@ void ImageWeights::SetGaussianTaper(double beamSize) {
   double minusTwoSigmaSq = halfPowerUV * sigmaToHP;
   aocommon::Logger::Debug << "UV taper: " << minusTwoSigmaSq << '\n';
   minusTwoSigmaSq *= -2.0 * minusTwoSigmaSq;
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.Run(0, _imageHeight / 2, [&](size_t yStart, size_t yEnd) {
     for (size_t y = yStart; y != yEnd; ++y) {
       for (size_t x = 0; x != _imageWidth; ++x) {

@@ -4,8 +4,9 @@
 #include <semaphore>
 
 #include <aocommon/counting_semaphore.h>
-#include <aocommon/dynamicfor.h>
 #include <aocommon/logger.h>
+
+#include <schaapcommon/threading/dynamicfor.h>
 
 #include "../io/readinmemory.h"
 #include "../msproviders/operations.h"
@@ -145,7 +146,7 @@ void MsHelper::PerformReordering(const ImagingTable& imaging_table, bool is_pred
   if (settings_.parallelReordering != 1) Logger::Info << "Reordering...\n";
 
   std::counting_semaphore semaphore(settings_.parallelReordering);
-  aocommon::DynamicFor<size_t> loop;
+  schaapcommon::DynamicFor<size_t> loop;
   loop.Run(0, settings_.filenames.size(), [&](size_t ms_index) {
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
     std::vector<aocommon::VectorMap<ChannelRange>> channels =
@@ -189,7 +190,7 @@ void MsHelper::PrepareInMemoryData(const ImagingTable& imaging_table, bool is_pr
 
   std::mutex mutex;
   std::counting_semaphore semaphore(parallel_reordering);
-  aocommon::DynamicFor<size_t> loop;
+  schaapcommon::DynamicFor<size_t> loop;
   loop.Run(0, ms_count, [&](size_t ms_index) {
     aocommon::ScopedCountingSemaphoreLock semaphore_lock(semaphore);
 

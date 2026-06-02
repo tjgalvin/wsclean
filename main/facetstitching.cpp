@@ -5,10 +5,10 @@
 #include "../structures/resources.h"
 
 #include <aocommon/logger.h>
-#include <aocommon/recursivefor.h>
-#include <aocommon/staticfor.h>
 
 #include <schaapcommon/facets/facetimage.h>
+#include <schaapcommon/threading/recursivefor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 #include <algorithm>
 #include <array>
@@ -313,11 +313,11 @@ void StitchFacets(const ImagingTable& table, CachedImageSet& image_cache, Stitch
   }
 
   detail::MemoryGate memory_gate(execution_plan.total_memory_slots);
-  std::optional<aocommon::RecursiveFor> recursive_for;
-  if (execution_plan.cpu_parallelism > 1 && aocommon::RecursiveFor::GetInstance() == nullptr) {
+  std::optional<schaapcommon::RecursiveFor> recursive_for;
+  if (execution_plan.cpu_parallelism > 1 && schaapcommon::RecursiveFor::GetInstance() == nullptr) {
     recursive_for.emplace();
   }
-  aocommon::StaticFor<size_t> loop;
+  schaapcommon::StaticFor<size_t> loop;
   loop.ConstrainedRun(
       0, execution_plan.jobs.size(), execution_plan.cpu_parallelism, [&](size_t start, size_t end) {
         for (size_t job_index = start; job_index != end; ++job_index) {
