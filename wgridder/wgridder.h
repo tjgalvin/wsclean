@@ -222,7 +222,6 @@ class WGridder final : public WGridderBase {
   double epsilon_;
   std::vector<NumT> image_;
   size_t verbosity_;
-  bool tuning_;
 
  public:
   /** Construct a new gridder with given settings.
@@ -236,7 +235,7 @@ class WGridder final : public WGridderBase {
    */
   WGridder(size_t width, size_t height, size_t trimmed_width, size_t trimmed_height,
            double pixel_size_x, double pixel_size_y, double l_shift, double m_shift,
-           size_t n_threads, double epsilon = 1e-4, size_t verbosity = 0, bool tuning_ = false);
+           size_t n_threads, double epsilon = 1e-4, size_t verbosity = 0);
 
   WGridder(const WGridder &) = delete;
   WGridder &operator=(const WGridder &) = delete;
@@ -366,14 +365,9 @@ class WGridder final : public WGridderBase {
         constexpr bool kDivideByN = false;
         constexpr bool kAllowNShift = true;
     */
-    if (!tuning_)
-      ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_,
-                                  epsilon_, true, n_threads_, tdirty, verbosity_, true, false,
-                                  sigma_min, sigma_max, -l_shift_, -m_shift_);
-    else
-      ducc0::ms2dirty_tuning<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_,
-                                         epsilon_, true, n_threads_, tdirty, verbosity_, true,
-                                         false, sigma_min, sigma_max, -l_shift_, -m_shift_);
+    ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_, epsilon_,
+                                true, n_threads_, tdirty, verbosity_, true, false, sigma_min,
+                                sigma_max, -l_shift_, -m_shift_);
     for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i) image_[i] += tdirty.raw(i);
   }
 

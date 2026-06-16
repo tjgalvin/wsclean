@@ -27,12 +27,10 @@ constexpr size_t kUvwSize = sizeof(double) * 3;
 }  // namespace
 
 WGriddingMSGridder::WGriddingMSGridder(const Settings& settings, const Resources& resources,
-                                       MsProviderCollection& ms_provider_collection,
-                                       bool use_tuned_wgridder)
+                                       MsProviderCollection& ms_provider_collection)
     : MsGridder(settings, ms_provider_collection),
       resources_(resources),
-      accuracy_(GetSettings().gridder_accuracy),
-      use_tuned_wgridder_(use_tuned_wgridder) {
+      accuracy_(GetSettings().gridder_accuracy) {
   // It may happen that several schaapcommon::fft::Resamplers are created
   // concurrently, so we must make sure that the FFTW planner can deal with
   // this.
@@ -45,13 +43,11 @@ std::unique_ptr<WGridderBase> WGriddingMSGridder::MakeGridder(size_t width, size
   if (accuracy_ <= 1.01e-5) {
     return std::make_unique<WGridder<double>>(ActualInversionWidth(), ActualInversionHeight(),
                                               width, height, ActualPixelSizeX(), ActualPixelSizeY(),
-                                              LShift(), MShift(), resources_.NCpus(), accuracy_, 0,
-                                              use_tuned_wgridder_);
+                                              LShift(), MShift(), resources_.NCpus(), accuracy_, 0);
   } else {
     return std::make_unique<WGridder<float>>(ActualInversionWidth(), ActualInversionHeight(), width,
                                              height, ActualPixelSizeX(), ActualPixelSizeY(),
-                                             LShift(), MShift(), resources_.NCpus(), accuracy_, 0,
-                                             use_tuned_wgridder_);
+                                             LShift(), MShift(), resources_.NCpus(), accuracy_, 0);
   }
 }
 

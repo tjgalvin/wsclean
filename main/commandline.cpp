@@ -249,7 +249,7 @@ Options can be:
    Subtract the model from the data column in the first iteration. This can be used to reimage
    an already cleaned image, e.g. at a different resolution.
 -gridder <type>
-   Set gridder type: direct-ft, idg, wgridder, tuned-wgridder, or wstacking. Default: wgridder.
+   Set gridder type: direct-ft, idg, wgridder, or wstacking. Default: wgridder.
 -channels-out <count>
    Splits the bandwidth and makes count nr. of images. Default: 1.
 -shift <ra> <dec>
@@ -1438,8 +1438,6 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char*
         settings.gridderType = GridderType::WGridder;
       } else if (gridder_str == "wtowers") {
         settings.gridderType = GridderType::WTowers;
-      } else if (gridder_str == "tuned-wgridder") {
-        settings.gridderType = GridderType::TunedWGridder;
       } else if (gridder_str == "wstacking") {
         settings.gridderType = GridderType::WStacking;
       } else if (gridder_str == "direct-ft") {

@@ -15,7 +15,7 @@ class WGridderBase;
 class WGriddingMSGridder final : public MsGridder {
  public:
   WGriddingMSGridder(const Settings& settings, const Resources& resources,
-                     MsProviderCollection& ms_provider_collection, bool use_tuned_wgridder);
+                     MsProviderCollection& ms_provider_collection);
   ~WGriddingMSGridder() final;
 
   void StartInversion() final;
@@ -90,7 +90,6 @@ class WGriddingMSGridder final : public MsGridder {
   aocommon::Image image_;
   const Resources resources_;
   double accuracy_;
-  bool use_tuned_wgridder_;
   std::unique_ptr<WGridderBase> gridder_;
 };
 

@@ -23,7 +23,7 @@
 namespace wsclean {
 
 enum class DirectFTPrecision { Float, Double, LongDouble };
-enum class GridderType { WStacking, WGridder, TunedWGridder, WTowers, DirectFT, IDG, FacetIDG };
+enum class GridderType { WStacking, WGridder, WTowers, DirectFT, IDG, FacetIDG };
 enum class VisibilityReadMode { kScalar, kDiagonal, kFull };
 
 /**

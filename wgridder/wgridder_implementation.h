@@ -12,8 +12,6 @@
 
 #include "../gridding/msgridder.h"
 
-using namespace ducc0;
-
 /*
  * This file contains the implementation of various template methods from @ref
  * WGridder. They are implemented here instead of directly in wgridder.h or
@@ -32,7 +30,7 @@ namespace wsclean {
 template <typename NumT>
 WGridder<NumT>::WGridder(size_t width, size_t height, size_t trimmed_width, size_t trimmed_height,
                          double pixel_size_x, double pixel_size_y, double l_shift, double m_shift,
-                         size_t n_threads, double epsilon, size_t verbosity, bool tuning)
+                         size_t n_threads, double epsilon, size_t verbosity)
     : width_(width),
       height_(height),
       trimmed_width_(trimmed_width),
@@ -43,8 +41,7 @@ WGridder<NumT>::WGridder(size_t width, size_t height, size_t trimmed_width, size
       l_shift_(l_shift),
       m_shift_(m_shift),
       epsilon_(epsilon),
-      verbosity_(verbosity),
-      tuning_(tuning) {
+      verbosity_(verbosity) {
   MR_assert(verbosity <= 2, "verbosity must be 0, 1, or 2");
 }
 
@@ -75,6 +72,7 @@ template <typename NumT>
 void WGridder<NumT>::AddInversionData(size_t n_rows, size_t n_channels, const double *uvws,
                                       const double *frequencies,
                                       const std::complex<float> *visibilities) {
+  using ducc0::cmav;
   const bool decreasing_freq = (n_channels > 1) && (frequencies[1] < frequencies[0]);
   auto wrapped_frequencies(decreasing_freq
                                ? cmav<double, 1>(frequencies + n_channels - 1, {n_channels}, {-1})
@@ -94,7 +92,7 @@ void WGridder<NumT>::AddInversionDataWithCorrectionCallback(GainMode mode, size_
                                                             VisibilityCallbackData &data) {
   assert((data.selected_band.ChannelCount() <= 1) || (frequencies[1] >= frequencies[0]));
 
-  const cmav<double, 1> frequencies2(frequencies, {data.selected_band.ChannelCount()});
+  const ducc0::cmav<double, 1> frequencies2(frequencies, {data.selected_band.ChannelCount()});
 
   MsGridder *gridder = data.gridder;
   const size_t n_parms = gridder->NumValuesPerSolution();
@@ -298,6 +296,8 @@ template <typename NumT>
 void WGridder<NumT>::PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
                                          const double *frequencies,
                                          std::complex<float> *visibilities) const {
+  using ducc0::cmav;
+  using ducc0::vmav;
   cmav<double, 2> wrapped_uvws(uvws, {n_rows, 3});
   bool decreasing_freq = (n_channels > 1) && (frequencies[1] < frequencies[0]);
   auto wrapped_frequencies(decreasing_freq
@@ -318,15 +318,9 @@ void WGridder<NumT>::PredictVisibilities(size_t n_rows, size_t n_channels, const
       constexpr bool kDivideByN = false;
       constexpr bool kAllowNShift = true;
   */
-  if (!tuning_)
-    dirty2ms<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt, tmask, pixel_size_x_,
-                         pixel_size_y_, epsilon_, true, n_threads_, ms, verbosity_, true, false,
-                         sigma_min, sigma_max, -l_shift_, -m_shift_);
-  else
-    dirty2ms_tuning<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt, tmask,
-                                pixel_size_x_, pixel_size_y_, epsilon_, true, n_threads_, ms,
-                                verbosity_, true, false, sigma_min, sigma_max, -l_shift_,
-                                -m_shift_);
+  ducc0::dirty2ms<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt, tmask, pixel_size_x_,
+                              pixel_size_y_, epsilon_, true, n_threads_, ms, verbosity_, true,
+                              false, sigma_min, sigma_max, -l_shift_, -m_shift_);
 }
 
 }  // namespace wsclean

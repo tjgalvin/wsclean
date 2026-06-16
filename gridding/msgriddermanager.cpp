@@ -1339,11 +1339,7 @@ std::unique_ptr<MsGridder> MSGridderManager::ConstructGridder(const Resources& r
     case GridderType::FacetIDG:
       return std::make_unique<FacetIdgMsGridder>(settings_, resources, ms_provider_collection_);
     case GridderType::WGridder:
-      return std::make_unique<WGriddingMSGridder>(settings_, resources, ms_provider_collection_,
-                                                  false);
-    case GridderType::TunedWGridder:
-      return std::make_unique<WGriddingMSGridder>(settings_, resources, ms_provider_collection_,
-                                                  true);
+      return std::make_unique<WGriddingMSGridder>(settings_, resources, ms_provider_collection_);
     case GridderType::WTowers:
 #ifdef BUILD_WTOWERS
       return std::make_unique<WTowersMsGridder>(settings_, resources, ms_provider_collection_);
