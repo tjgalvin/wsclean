@@ -96,13 +96,6 @@ void RenderSourceTasks(aocommon::Lane<ModelSource>& source_lane, std::vector<Ima
   while (source_lane.read(source)) {
     for (const ModelComponent& component : source) {
       std::vector<float> spectral_terms = GetSpectralTerms(component, settings);
-      if (n_terms < spectral_terms.size()) {
-        aocommon::Logger::Warn << "Consider increasing the number of spectral "
-                                  "terms set with -draw-spectral-terms (" +
-                                      std::to_string(spectral_terms.size()) +
-                                      " terms available, but only " + std::to_string(n_terms) +
-                                      " requested)";
-      }
       for (size_t image_index = 0; image_index < n_terms; ++image_index) {
         const float term = spectral_terms[image_index];
         Image& image = images[image_index];
