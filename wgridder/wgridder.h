@@ -63,7 +63,7 @@ class WGridderBase {
  * Some internal caching is applied at the row level to help a bit with
  * efficiency.
  */
-template <typename TVisibility, typename TInfo = ducc0::detail_mav::mav_info<2>>
+template <typename TVisibility, typename TInfo = ducc0::detail_mav::mav_info<1>>
 class VisibilityCallbackBuffer : public TInfo {
  public:
   VisibilityCallbackBuffer(
@@ -73,7 +73,7 @@ class VisibilityCallbackBuffer : public TInfo {
           const aocommon::BandData &selected_band, size_t data_desc_id, const std::complex<float> *,
           const BeamResponseCacheChunk &, const size_t *, const std::pair<size_t, size_t> *)>
           visibility_callback)
-      : TInfo({n_rows, data.n_channels}),
+      : TInfo({n_rows * data.n_channels}),
         n_antennas_(data.n_antennas),
         n_channels_(data.n_channels),
         selected_band_(data.selected_band),
@@ -355,19 +355,20 @@ class WGridder final : public WGridderBase {
                                     const ducc0::cmav<double, 1> &freq, Tms &ms) {
     ducc0::cmav<double, 2> uvw2(uvw, {n_rows, 3});
     ducc0::vmav<NumT, 2> tdirty({trimmed_width_, trimmed_height_});
-    ducc0::cmav<float, 2> twgt(nullptr, {0, 0});
-    ducc0::cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
-    /* Preparation for ducc0 upgrade, will be used in a later MR
-        constexpr bool kDoWgridding = true;
-        constexpr bool kFlipU = false;
-        constexpr bool kFlipV = true;
-        constexpr bool kFlipW = false;
-        constexpr bool kDivideByN = false;
-        constexpr bool kAllowNShift = true;
-    */
-    ducc0::ms2dirty<NumT, NumT>(uvw2, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_, epsilon_,
-                                true, n_threads_, tdirty, verbosity_, true, false, sigma_min,
-                                sigma_max, -l_shift_, -m_shift_);
+    ducc0::cmav<float, 1> twgt(nullptr, {0});
+    ducc0::cmav<std::uint8_t, 1> tmask(nullptr, {0});
+    constexpr bool kDoWgridding = true;
+    constexpr bool kFlipU = false;
+    constexpr bool kFlipV = true;
+    constexpr bool kFlipW = false;
+    constexpr bool kDivideByN = false;
+    constexpr bool kAllowNShift = true;
+    auto freqlist_id = ducc0::cmav<size_t, 1>::build_uniform({n_rows}, 0);
+    auto freqlist_nfreqs = ducc0::cmav<size_t, 1>::build_uniform({1}, freq.shape(0));
+    ducc0::ms2dirty_bda<NumT, NumT>(
+        uvw2, freqlist_id, freqlist_nfreqs, freq, ms, twgt, tmask, pixel_size_x_, pixel_size_y_,
+        epsilon_, kDoWgridding, n_threads_, tdirty, verbosity_, kFlipU, kFlipV, kFlipW, kDivideByN,
+        sigma_min, sigma_max, -l_shift_, -m_shift_, kAllowNShift);
     for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i) image_[i] += tdirty.raw(i);
   }
 

@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <vector>
 
-#include "ducc0/wgridder/wgridder.h"
+#include "ducc0/wgridder/wgridder_impl.h"
 #include "ducc0/fft/fftnd_impl.h"
 
 #include "../gridding/msgridder.h"
@@ -74,14 +74,11 @@ void WGridder<NumT>::AddInversionData(size_t n_rows, size_t n_channels, const do
                                       const std::complex<float> *visibilities) {
   using ducc0::cmav;
   const bool decreasing_freq = (n_channels > 1) && (frequencies[1] < frequencies[0]);
-  auto wrapped_frequencies(decreasing_freq
-                               ? cmav<double, 1>(frequencies + n_channels - 1, {n_channels}, {-1})
-                               : cmav<double, 1>(frequencies, {n_channels}));
-  auto ms(decreasing_freq
-              ? cmav<std::complex<float>, 2>(visibilities + n_channels - 1, {n_rows, n_channels},
-                                             {ptrdiff_t(n_channels), -1})
-              : cmav<std::complex<float>, 2>(visibilities, {n_rows, n_channels}));
-
+  if (decreasing_freq) {
+    throw std::runtime_error("new_ducc cannot handle decreasing frequencies");
+  }
+  auto wrapped_frequencies(cmav<double, 1>(frequencies, {n_channels}));
+  auto ms(cmav<std::complex<float>, 1>(visibilities, {n_rows * n_channels}));
   AddInversionMs(n_rows, uvws, wrapped_frequencies, ms);
 }
 
@@ -90,9 +87,15 @@ void WGridder<NumT>::AddInversionDataWithCorrectionCallback(GainMode mode, size_
                                                             size_t n_rows, const double *uvws,
                                                             const double *frequencies,
                                                             VisibilityCallbackData &data) {
+  using ducc0::cmav;
   assert((data.selected_band.ChannelCount() <= 1) || (frequencies[1] >= frequencies[0]));
 
-  const ducc0::cmav<double, 1> frequencies2(frequencies, {data.selected_band.ChannelCount()});
+  const size_t n_channels = data.selected_band.ChannelCount();
+  const bool decreasing_freq = (n_channels > 1) && (frequencies[1] < frequencies[0]);
+  if (decreasing_freq) {
+    throw std::runtime_error("new_ducc cannot handle decreasing frequencies");
+  }
+  const auto wrapped_frequencies(cmav<double, 1>(frequencies, {n_channels}));
 
   MsGridder *gridder = data.gridder;
   const size_t n_parms = gridder->NumValuesPerSolution();
@@ -105,7 +108,7 @@ void WGridder<NumT>::AddInversionDataWithCorrectionCallback(GainMode mode, size_
   const bool apply_forward = gridder->GetPsfMode() == PsfMode::kDirectionDependent;
   const bool has_h5_parm = gridder->GetVisibilityModifier().HasH5Parm();
   CreateAndAddInversionMs(mode, n_polarizations, n_parms, apply_beam, apply_forward, has_h5_parm,
-                          n_rows, uvws, frequencies2, data);
+                          n_rows, uvws, wrapped_frequencies, data);
 }
 
 template <typename NumT>
@@ -310,17 +313,16 @@ void WGridder<NumT>::PredictVisibilities(size_t n_rows, size_t n_channels, const
   cmav<NumT, 2> tdirty(image_.data(), {trimmed_width_, trimmed_height_});
   cmav<float, 2> twgt(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
-  /* Preparation for ducc0 upgrade, will be used in a later MR
-      constexpr bool kDoWgridding = true;
-      constexpr bool kFlipU = false;
-      constexpr bool kFlipV = true;
-      constexpr bool kFlipW = false;
-      constexpr bool kDivideByN = false;
-      constexpr bool kAllowNShift = true;
-  */
+  constexpr bool kDoWgridding = true;
+  constexpr bool kFlipU = false;
+  constexpr bool kFlipV = true;
+  constexpr bool kFlipW = false;
+  constexpr bool kDivideByN = false;
+  constexpr bool kAllowNShift = true;
   ducc0::dirty2ms<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt, tmask, pixel_size_x_,
-                              pixel_size_y_, epsilon_, true, n_threads_, ms, verbosity_, true,
-                              false, sigma_min, sigma_max, -l_shift_, -m_shift_);
+                              pixel_size_y_, epsilon_, kDoWgridding, n_threads_, ms, verbosity_,
+                              kFlipU, kFlipV, kFlipW, kDivideByN, sigma_min, sigma_max, -l_shift_,
+                              -m_shift_, kAllowNShift);
 }
 
 }  // namespace wsclean
