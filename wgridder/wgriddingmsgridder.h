@@ -83,7 +83,7 @@ class WGriddingMSGridder final : public MsGridder {
                          std::complex<float>* visibilities);
 
   size_t GridRegularMeasurementSet(const MsProviderCollection::MsData& ms_data);
-  size_t GridBdaMeasurementSet(const MsProviderCollection::MsData& ms_data);
+  size_t GridIrregularMeasurementSet(const MsProviderCollection::MsData& ms_data);
   size_t PredictRegularMeasurementSet(const MsProviderCollection::MsData& ms_data);
   size_t PredictBdaMeasurementSet(const MsProviderCollection::MsData& ms_data);
 

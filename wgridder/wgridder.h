@@ -1,55 +1,9 @@
 #ifndef WSCLEAN_WGRIDDER_H_
 #define WSCLEAN_WGRIDDER_H_
 
-#include <complex>
-#include <cstddef>
-#include <vector>
-
-#include <aocommon/banddata.h>
-#include "ducc0/wgridder/wgridder.h"
-
-#include "../gridding/gainmode.h"
-
-#include "../gridding/msgridder.h"
+#include "wgridderbase.h"
 
 namespace wsclean {
-
-class MsGridder;
-
-struct VisibilityCallbackData {
-  size_t n_channels;
-  const aocommon::BandData &selected_band;
-  size_t data_desc_id;
-  const std::pair<size_t, size_t> *antennas;
-  const std::complex<float> *visibilities;
-  const double *uvws;
-  const size_t *time_offsets;
-  MsGridder *gridder;
-  size_t n_antennas;
-  const std::complex<float> *parm_response;
-  const BeamResponseCacheChunk &beam_response;
-};
-
-class WGridderBase {
- public:
-  virtual ~WGridderBase() = default;
-  virtual size_t ConstantMemoryUsage() const = 0;
-  virtual size_t PerVisibilityMemoryUsage() const = 0;
-  virtual void InitializeInversion() = 0;
-  virtual void AddInversionData(size_t n_rows, size_t n_chan, const double *uvw, const double *freq,
-                                const std::complex<float> *vis) = 0;
-  virtual void AddInversionDataWithCorrectionCallback(GainMode mode, size_t n_polarizations,
-                                                      size_t n_rows, const double *uvws,
-                                                      const double *frequencies,
-                                                      VisibilityCallbackData &data) = 0;
-  virtual void FinalizeImage(double multiplication_factor) = 0;
-  virtual std::vector<float> RealImage() = 0;
-  virtual void InitializePrediction(const float *image_data) = 0;
-  virtual void PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
-                                   const double *frequencies,
-                                   std::complex<float> *visibilities) const = 0;
-};
-
 /**
  * VisibilityCallbackBuffer implements a virtual buffer replacement to the
  * `cmav` that would ordinarily be used to pass visibility data into DUCC.
@@ -140,7 +94,7 @@ class VisibilityCallbackBuffer : public TInfo {
 namespace internal {
 /**
  * VisibilityCallback implements the logic required by @ref
- * VisibilityCallbackBuffer::raw This is delibritely isolated into a standalone
+ * VisibilityCallbackBuffer::raw This is deliberately isolated into a standalone
  * function that can be passed into @ref VisibilityCallbackBuffer as a
  * std::function in order to break coupling with DUCC.
  * @ref VisibilityCallbackBuffer is passed into DUCC as a template paramater and
@@ -243,17 +197,17 @@ class WGridder final : public WGridderBase {
   /**
    * @return The constant base memory usage of the object in bytes
    */
-  size_t ConstantMemoryUsage() const final;
+  size_t ConstantMemoryUsage() const override;
   /**
    * @return Additional memory required per gridded visibility in bytes.
    */
-  size_t PerVisibilityMemoryUsage() const final;
+  size_t PerVisibilityMemoryUsage() const override;
 
   /**
    * Initialize a new inversion gridding pass. This just
    * intializes the accumulated dirty image with zero.
    */
-  void InitializeInversion() final;
+  void InitializeInversion() override;
 
   /** Add more data to the current inversion operation.
    * The visibilities will be gridded, and the dirty image
@@ -268,7 +222,14 @@ class WGridder final : public WGridderBase {
    * vis[row*n_channels + chan]
    */
   void AddInversionData(size_t n_rows, size_t n_channels, const double *uvws,
-                        const double *frequencies, const std::complex<float> *visibilities) final;
+                        const double *frequencies,
+                        const std::complex<float> *visibilities) override;
+
+  void AddIrregularInversionData(std::span<const size_t> band_ids,
+                                 std::span<const size_t> n_channels_per_band,
+                                 std::span<const double> frequencies, std::span<const double> uvw,
+                                 std::span<const std::complex<float>> visibilities) override;
+
   /** Equivalent to @ref AddInversionData() but without facet solutions
    * pre-applied and with additional paramaters to allow the creation of a
    * callback that can apply solutions "on the fly" as required
@@ -299,14 +260,14 @@ class WGridder final : public WGridderBase {
    */
   void AddInversionDataWithCorrectionCallback(GainMode mode, size_t n_polarizations, size_t n_rows,
                                               const double *uvws, const double *frequencies,
-                                              VisibilityCallbackData &data) final;
+                                              VisibilityCallbackData &data) override;
 
   /**
    * Finalize inversion once all passes are performed.
    * @param multiplication_factor Apply this factor to all pixels. This can be
    * used to normalize the image for the weighting scheme.
    */
-  void FinalizeImage(double multiplication_factor) final;
+  void FinalizeImage(double multiplication_factor) override;
 
   /**
    * Get the untrimmed image result of inversion. This is an array of size width
@@ -314,14 +275,14 @@ class WGridder final : public WGridderBase {
    * this image, e.g. set the horizon to zero before saving to fits. This call
    * is only valid once @ref FinalizeImage() has been called.
    */
-  std::vector<float> RealImage() final;
+  std::vector<float> RealImage() override;
 
   /**
    * Initialize gridder for prediction and specify image to predict for.
    * @param image The (untrimmed) model image that is to be predicted for. This
    * is an array of width * height size, index by (x + width*y).
    */
-  void InitializePrediction(const float *image_data) final;
+  void InitializePrediction(const float *image_data) override;
 
   /** Predicts visibilities from the current dirty image.
    * FIXME: how do we indicate flagged visibilities that do not
@@ -335,7 +296,7 @@ class WGridder final : public WGridderBase {
    */
   void PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
                            const double *frequencies,
-                           std::complex<float> *visibilities) const final;
+                           std::complex<float> *visibilities) const override;
 
  private:
   /** Internal helper to handle the processing of
@@ -437,8 +398,6 @@ WGridder<double>::AddInversionMs<VisibilityCallbackBuffer<std::complex<float>>>(
 
 }  // namespace wsclean
 
-#endif  // WSCLEAN_WGRIDDER_H_
-
 /*
 Usage scenario:
 
@@ -453,3 +412,5 @@ for (auto &chunk: chunks)
   gridder.AddInversionData(...)
 auto res = gridder.RealImage();
 */
+
+#endif  // WSCLEAN_WGRIDDER_H_

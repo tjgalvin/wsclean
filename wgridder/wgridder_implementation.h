@@ -83,6 +83,38 @@ void WGridder<NumT>::AddInversionData(size_t n_rows, size_t n_channels, const do
 }
 
 template <typename NumT>
+void WGridder<NumT>::AddIrregularInversionData(std::span<const size_t> band_ids,
+                                               std::span<const size_t> n_channels_per_band,
+                                               std::span<const double> frequencies,
+                                               std::span<const double> uvws,
+                                               std::span<const std::complex<float>> data) {
+  const size_t n_rows = band_ids.size();
+  const size_t n_bands = n_channels_per_band.size();
+  const size_t n_vis = data.size();
+  assert(uvws.size() == n_rows * 3);
+  const ducc0::cmav<double, 2> uvws_cmav(uvws.data(), {n_rows, 3});
+  const ducc0::cmav<size_t, 1> freqlist_id(band_ids.data(), {n_rows});
+  const ducc0::cmav<size_t, 1> freqlist_nfreqs(n_channels_per_band.data(), {n_bands});
+  const ducc0::cmav<double, 1> freqlist_freqs(frequencies.data(), {frequencies.size()});
+  const ducc0::cmav<std::complex<float>, 1> ms(data.data(), {n_vis});
+
+  ducc0::vmav<NumT, 2> tdirty({trimmed_width_, trimmed_height_});
+  ducc0::cmav<float, 1> tweight(nullptr, {0});
+  ducc0::cmav<std::uint8_t, 1> tmask(nullptr, {0});
+  constexpr bool kDoWgridding = true;
+  constexpr bool kFlipU = false;
+  constexpr bool kFlipV = true;
+  constexpr bool kFlipW = false;
+  constexpr bool kDivideByN = false;
+  constexpr bool kAllowNShift = true;
+  ducc0::ms2dirty_bda<NumT, NumT>(
+      uvws_cmav, freqlist_id, freqlist_nfreqs, freqlist_freqs, ms, tweight, tmask, pixel_size_x_,
+      pixel_size_y_, epsilon_, kDoWgridding, n_threads_, tdirty, verbosity_, kFlipU, kFlipV, kFlipW,
+      kDivideByN, sigma_min, sigma_max, -l_shift_, -m_shift_, kAllowNShift);
+  for (size_t i = 0; i < trimmed_width_ * trimmed_height_; ++i) image_[i] += tdirty.raw(i);
+}
+
+template <typename NumT>
 void WGridder<NumT>::AddInversionDataWithCorrectionCallback(GainMode mode, size_t n_polarizations,
                                                             size_t n_rows, const double *uvws,
                                                             const double *frequencies,
@@ -311,7 +343,7 @@ void WGridder<NumT>::PredictVisibilities(size_t n_rows, size_t n_channels, const
                                              {ptrdiff_t(n_channels), -1})
               : vmav<std::complex<float>, 2>(visibilities, {n_rows, n_channels}));
   cmav<NumT, 2> tdirty(image_.data(), {trimmed_width_, trimmed_height_});
-  cmav<float, 2> twgt(nullptr, {0, 0});
+  cmav<float, 2> tweight(nullptr, {0, 0});
   cmav<std::uint8_t, 2> tmask(nullptr, {0, 0});
   constexpr bool kDoWgridding = true;
   constexpr bool kFlipU = false;
@@ -319,10 +351,10 @@ void WGridder<NumT>::PredictVisibilities(size_t n_rows, size_t n_channels, const
   constexpr bool kFlipW = false;
   constexpr bool kDivideByN = false;
   constexpr bool kAllowNShift = true;
-  ducc0::dirty2ms<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, twgt, tmask, pixel_size_x_,
-                              pixel_size_y_, epsilon_, kDoWgridding, n_threads_, ms, verbosity_,
-                              kFlipU, kFlipV, kFlipW, kDivideByN, sigma_min, sigma_max, -l_shift_,
-                              -m_shift_, kAllowNShift);
+  ducc0::dirty2ms<NumT, NumT>(wrapped_uvws, wrapped_frequencies, tdirty, tweight, tmask,
+                              pixel_size_x_, pixel_size_y_, epsilon_, kDoWgridding, n_threads_, ms,
+                              verbosity_, kFlipU, kFlipV, kFlipW, kDivideByN, sigma_min, sigma_max,
+                              -l_shift_, -m_shift_, kAllowNShift);
 }
 
 }  // namespace wsclean
