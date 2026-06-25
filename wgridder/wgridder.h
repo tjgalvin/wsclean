@@ -298,6 +298,12 @@ class WGridder final : public WGridderBase {
                            const double *frequencies,
                            std::complex<float> *visibilities) const override;
 
+  void PredictIrregularVisibilities(std::span<const size_t> band_ids,
+                                    std::span<const size_t> n_channels_per_band,
+                                    std::span<const double> frequencies,
+                                    std::span<const double> uvws,
+                                    std::span<std::complex<float>> data) const override;
+
  private:
   /** Internal helper to handle the processing of
    * AddInversionData/AddInversionDataWithCorrectionCallback

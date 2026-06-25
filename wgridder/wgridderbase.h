@@ -53,6 +53,11 @@ class WGridderBase {
   virtual void PredictVisibilities(size_t n_rows, size_t n_channels, const double *uvws,
                                    const double *frequencies,
                                    std::complex<float> *visibilities) const = 0;
+  virtual void PredictIrregularVisibilities(std::span<const size_t> band_ids,
+                                            std::span<const size_t> n_channels_per_band,
+                                            std::span<const double> frequencies,
+                                            std::span<const double> uvws,
+                                            std::span<std::complex<float>> visibilities) const = 0;
 };
 
 }  // namespace wsclean

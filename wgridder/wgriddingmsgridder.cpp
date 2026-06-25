@@ -24,6 +24,28 @@ using aocommon::Logger;
 namespace wsclean {
 namespace {
 constexpr size_t kUvwSize = sizeof(double) * 3;
+
+/// Makes the frequency structure as required by the wgridder
+std::vector<double> GetFrequencies(const aocommon::MultiBandData& bands) {
+  std::vector<double> frequencies;
+  for (const aocommon::BandData& band : bands) {
+    for (double channel_frequency : band) {
+      frequencies.emplace_back(channel_frequency);
+    }
+  }
+  return frequencies;
+}
+
+/// Makes the channel-count-per-band structure as required by the wgridder
+aocommon::VectorMap<size_t> GetNChannelsPerBand(const aocommon::MultiBandData& bands) {
+  aocommon::VectorMap<size_t> n_channels_per_band;
+  for (size_t data_desc_id : bands.DataDescIds()) {
+    const aocommon::BandData& band = bands[data_desc_id];
+    n_channels_per_band.AlwaysEmplace(data_desc_id, band.ChannelCount());
+  }
+  return n_channels_per_band;
+}
+
 }  // namespace
 
 WGriddingMSGridder::WGriddingMSGridder(const Settings& settings, const Resources& resources,
@@ -226,16 +248,8 @@ size_t WGriddingMSGridder::GridIrregularMeasurementSet(
   const size_t max_vis_per_chunk = CalculateMaxVisibilitiesInMemory(
       resources_.Memory(), CalculateConstantMemory(), 0, kUvwSize, 1);
 
-  // Create the n_channels_per_band and frequencies structure used by wgridder
-  aocommon::VectorMap<size_t> n_channels_per_band;
-  std::vector<double> frequencies;
-  for (size_t data_desc_id : selected_bands.DataDescIds()) {
-    const aocommon::BandData& band = selected_bands[data_desc_id];
-    n_channels_per_band.AlwaysEmplace(data_desc_id, band.ChannelCount());
-    for (double channel_frequency : band) {
-      frequencies.emplace_back(channel_frequency);
-    }
-  }
+  const aocommon::VectorMap<size_t> n_channels_per_band = GetNChannelsPerBand(selected_bands);
+  const std::vector<double> frequencies = GetFrequencies(selected_bands);
 
   aocommon::UVector<std::complex<float>> visibility_buffer;
   visibility_buffer.reserve(max_vis_per_chunk);
@@ -376,8 +390,11 @@ size_t WGriddingMSGridder::PredictBdaMeasurementSet(const MsProviderCollection::
   const size_t max_vis_per_chunk = CalculateMaxVisibilitiesInMemory(
       resources_.Memory(), CalculateConstantMemory(), 0, kUvwSize, 1);
 
+  const aocommon::VectorMap<size_t> n_channels_per_band = GetNChannelsPerBand(selected_bands);
+  const std::vector<double> frequencies = GetFrequencies(selected_bands);
+
   aocommon::UVector<double> uvw_buffer;
-  uvw_buffer.reserve(3 * max_vis_per_chunk);
+  std::vector<size_t> data_desc_ids;
 
   // Iterate over chunks until all data has been gridded
   ms_data.ms_provider->ResetWritePosition();
@@ -390,20 +407,19 @@ size_t WGriddingMSGridder::PredictBdaMeasurementSet(const MsProviderCollection::
     Logger::Info << "Loading metadata...\n";
     metadata_buffer.clear();
     uvw_buffer.clear();
+    data_desc_ids.clear();
     size_t visibility_count = 0;
     while (ms_reader->CurrentRowAvailable()) {
       MSProvider::MetaData metadata;
       ReadPredictMetaData(metadata);
+      data_desc_ids.push_back(metadata.data_desc_id);
       const aocommon::BandData& band = selected_bands[metadata.data_desc_id];
       if (visibility_count + band.ChannelCount() >= max_vis_per_chunk) break;
 
       visibility_count += band.ChannelCount();
-      for (size_t channel = 0; channel != band.ChannelCount(); ++channel) {
-        const double frequency = band.ChannelFrequency(channel);
-        uvw_buffer.emplace_back(metadata.u_in_m * frequency);
-        uvw_buffer.emplace_back(metadata.v_in_m * frequency);
-        uvw_buffer.emplace_back(metadata.w_in_m * frequency);
-      }
+      uvw_buffer.emplace_back(metadata.u_in_m);
+      uvw_buffer.emplace_back(metadata.v_in_m);
+      uvw_buffer.emplace_back(metadata.w_in_m);
       metadata_buffer.emplace_back(std::move(metadata));
       n_chunk_rows_read++;
 
@@ -412,12 +428,8 @@ size_t WGriddingMSGridder::PredictBdaMeasurementSet(const MsProviderCollection::
 
     Logger::Info << "Predicting " << n_chunk_rows_read << " (irregular) rows...\n";
     aocommon::UVector<std::complex<float>> visibility_buffer(visibility_count);
-    // The Uvws have been scaled by the frequency already, hence use 1 here.
-    constexpr double kDummyFrequency = 1.0;
-    // Data has been flattened, so for the gridder there's only one channel:
-    constexpr size_t kNGridderChannels = 1;
-    gridder_->PredictVisibilities(visibility_count, kNGridderChannels, uvw_buffer.data(),
-                                  &kDummyFrequency, visibility_buffer.data());
+    gridder_->PredictIrregularVisibilities(data_desc_ids, n_channels_per_band, frequencies,
+                                           uvw_buffer, visibility_buffer);
 
     Logger::Info << "Writing...\n";
     std::complex<float>* visibility_ptr = visibility_buffer.data();
