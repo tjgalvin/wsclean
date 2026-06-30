@@ -4,11 +4,17 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <aocommon/logger.h>
+
 using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
-BOOST_AUTO_TEST_SUITE(bda_ms_row_provider)
+struct DisableLogging {
+  DisableLogging() { aocommon::Logger::SetVerbosity(aocommon::LogVerbosityLevel::kQuiet); }
+};
+
+BOOST_FIXTURE_TEST_SUITE(bda_ms_row_provider, DisableLogging)
 
 BOOST_AUTO_TEST_CASE(bda_ms_row_provider_constructor_no_bda_tables) {
   BOOST_CHECK_THROW((BdaMsRowProvider({"test_data/MWA_MOCK.ms"}, MSSelection{},
