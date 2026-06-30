@@ -1018,12 +1018,6 @@ class TestLongSystem:
             i_source_pos, 1.0, "time-bda-facet-beam-applied-image-pb.fits"
         )
 
-    # TODO enable this run. This is currently (2025-11-25) not yet possible on CI
-    # because it requires fixes in EveryBeam that are on master but not yet available on the CI runner. Should
-    # be enabled in a few months.
-    @pytest.mark.skip(
-        reason="Requires update of EveryBeam on CI runner (das6)"
-    )
     @pytest.mark.parametrize("use_bda", ("without bda", "bda"))
     def test_frequency_bda_facet_dual_corrections(
         self, mwa_model_file_fixture, mwa_region_file_fixture, use_bda

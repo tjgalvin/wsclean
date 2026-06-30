@@ -16,6 +16,7 @@ import config_vars as tcf
 
 def assert_taql(command, expected_rows=0):
     assert shutil.which("taql") is not None, "taql executable not found!"
+    print("Running: ", " ".join(["taql", "-noph", command]))
     result = check_output(["taql", "-noph", command]).decode().strip()
     assert result == f"select result of {expected_rows} rows", result
 
