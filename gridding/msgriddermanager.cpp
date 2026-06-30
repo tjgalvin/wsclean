@@ -726,8 +726,8 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
                 return empty_beam_response;
               }();
               gridders[gridder_index]
-                  ->ApplyCorrections<Mode, NParms, ModifierBehaviour::kSum, ApplyBeam, ApplyForward,
-                                     HasH5Parm>(
+                  ->ApplyCorrectionsWithMap<Mode, NParms, ModifierBehaviour::kSum, ApplyBeam,
+                                            ApplyForward, HasH5Parm>(
                       ms_data.antenna_names.size(), row_view_in.visibilities_, band,
                       rows.data_desc_id, row_view_in.weights_, row_view_in.metadata_->antenna1,
                       row_view_in.metadata_->antenna2, time_offset, image_weights_temp.data(),

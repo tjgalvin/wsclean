@@ -138,8 +138,8 @@ const std::complex<float> VisibilityCallback(
   const aocommon::VectorMap<std::vector<aocommon::MC2x2F>> empty_beam_response;
   const aocommon::VectorMap<std::vector<aocommon::MC2x2F>> &cached_beam_response =
       ApplyBeam ? beam_response.GetCachedBeamResponseForRow(row) : empty_beam_response;
-  gridder->ApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply, ApplyBeam, ApplyForward,
-                                 HasH5Parm>(
+  gridder->FindAndApplySingleCorrection<Mode, NParms, ModifierBehaviour::kApply, ApplyBeam,
+                                        ApplyForward, HasH5Parm>(
       parm_response, channel, n_channels, data_desc_id, n_antennas, visibilities_temp, nullptr,
       antenna_pair.first, antenna_pair.second, time_offset, nullptr, cached_beam_response);
   if constexpr (NPolarizations > 1) {

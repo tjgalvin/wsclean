@@ -3,6 +3,9 @@
 
 #include "gridmode.h"
 
+#include <array>
+#include <complex>
+
 #include <aocommon/banddata.h>
 #include <aocommon/image.h>
 #include <aocommon/polarization.h>
@@ -148,51 +151,55 @@ class MsGridderData {
     if (IsFacet() && GetPsfMode() != PsfMode::kSingle) {
       const bool apply_beam = settings_.applyFacetBeam || settings_.gridWithBeam;
       if (apply_beam) {
-        LoadAndApplyCorrections<Mode, NParms, true>(n_antennas, uvw, visibility_row, bands,
-                                                    weight_buffer, metadata, time_offset);
+        LoadAndApplyCorrectionsDispatch1<Mode, NParms, true>(n_antennas, uvw, visibility_row, bands,
+                                                             weight_buffer, metadata, time_offset);
       } else {
-        LoadAndApplyCorrections<Mode, NParms, false>(n_antennas, uvw, visibility_row, bands,
-                                                     weight_buffer, metadata, time_offset);
+        LoadAndApplyCorrectionsDispatch1<Mode, NParms, false>(
+            n_antennas, uvw, visibility_row, bands, weight_buffer, metadata, time_offset);
       }
     }
     visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
   }
   template <GainMode Mode, size_t NParms, bool ApplyBeam>
-  void LoadAndApplyCorrections(size_t n_antennas, const double* uvw,
-                               std::complex<float>* visibility_row,
-                               const aocommon::MultiBandData& bands, const float* weight_buffer,
-                               const MSProvider::MetaData& metadata, size_t& time_offset) {
+  void LoadAndApplyCorrectionsDispatch1(size_t n_antennas, const double* uvw,
+                                        std::complex<float>* visibility_row,
+                                        const aocommon::MultiBandData& bands,
+                                        const float* weight_buffer,
+                                        const MSProvider::MetaData& metadata, size_t& time_offset) {
     const bool apply_forward = GetPsfMode() == PsfMode::kDirectionDependent;
     if (apply_forward) {
-      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, true>(n_antennas, visibility_row, bands,
-                                                             weight_buffer, metadata, time_offset);
+      LoadAndApplyCorrectionsDispatch2<Mode, NParms, ApplyBeam, true>(
+          n_antennas, visibility_row, bands, weight_buffer, metadata, time_offset);
       if (settings_.applyTimeFrequencySmearing) {
         visibility_modifier_.ApplyTimeFrequencySmearing(
             visibility_row, uvw, bands[metadata.data_desc_id], n_vis_polarizations_);
       }
 
     } else {
-      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, false>(n_antennas, visibility_row, bands,
-                                                              weight_buffer, metadata, time_offset);
+      LoadAndApplyCorrectionsDispatch2<Mode, NParms, ApplyBeam, false>(
+          n_antennas, visibility_row, bands, weight_buffer, metadata, time_offset);
     }
   }
   template <GainMode Mode, size_t NParms, bool ApplyBeam, bool ApplyForward>
-  void LoadAndApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
-                               const aocommon::MultiBandData& bands, const float* weight_buffer,
-                               const MSProvider::MetaData& metadata, size_t& time_offset) {
+  void LoadAndApplyCorrectionsDispatch2(size_t n_antennas, std::complex<float>* visibility_row,
+                                        const aocommon::MultiBandData& bands,
+                                        const float* weight_buffer,
+                                        const MSProvider::MetaData& metadata, size_t& time_offset) {
     const bool has_h5_parm = visibility_modifier_.HasH5Parm();
     if (has_h5_parm) {
-      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, ApplyForward, true>(
+      LoadAndApplyCorrectionsImplementation<Mode, NParms, ApplyBeam, ApplyForward, true>(
           n_antennas, visibility_row, bands, weight_buffer, metadata, time_offset);
     } else {
-      LoadAndApplyCorrections<Mode, NParms, ApplyBeam, ApplyForward, false>(
+      LoadAndApplyCorrectionsImplementation<Mode, NParms, ApplyBeam, ApplyForward, false>(
           n_antennas, visibility_row, bands, weight_buffer, metadata, time_offset);
     }
   }
   template <GainMode Mode, size_t NParms, bool ApplyBeam, bool ApplyForward, bool HasH5Parm>
-  void LoadAndApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
-                               const aocommon::MultiBandData& bands, const float* weight_buffer,
-                               const MSProvider::MetaData& metadata, size_t& time_offset) {
+  void LoadAndApplyCorrectionsImplementation(size_t n_antennas, std::complex<float>* visibility_row,
+                                             const aocommon::MultiBandData& bands,
+                                             const float* weight_buffer,
+                                             const MSProvider::MetaData& metadata,
+                                             size_t& time_offset) {
     LoadCorrections<ApplyBeam, HasH5Parm>(bands, metadata.time, metadata.field_id, time_offset);
     ApplyCorrections<Mode, NParms, ModifierBehaviour::kApplyAndSum, ApplyBeam, ApplyForward,
                      HasH5Parm>(n_antennas, visibility_row, bands[metadata.data_desc_id],
@@ -232,17 +239,18 @@ class MsGridderData {
                         size_t& time_offset, const float* image_weights) {
     const BeamResponseMap& cached_beam_response = visibility_modifier_.GetCachedBeamResponse();
 
-    ApplyCorrections<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
+    ApplyCorrectionsWithMap<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
         n_antennas, visibility_row, band, data_desc_id, weight_buffer, antenna1, antenna2,
         time_offset, image_weights, cached_beam_response);
   }
+
   template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour, bool ApplyBeam,
             bool ApplyForward, bool HasH5Parm>
-  void ApplyCorrections(size_t n_antennas, std::complex<float>* visibility_row,
-                        const aocommon::BandData& band, size_t data_desc_id,
-                        const float* weight_buffer, size_t antenna1, size_t antenna2,
-                        size_t& time_offset, const float* image_weights,
-                        const BeamResponseMap& beam_response) {
+  void ApplyCorrectionsWithMap(size_t n_antennas, std::complex<float>* visibility_row,
+                               const aocommon::BandData& band, size_t data_desc_id,
+                               const float* weight_buffer, size_t antenna1, size_t antenna2,
+                               size_t& time_offset, const float* image_weights,
+                               const BeamResponseMap& beam_response) {
     const std::complex<float>* parm_response;
     if constexpr (HasH5Parm) {
       parm_response =
@@ -250,12 +258,27 @@ class MsGridderData {
     } else {
       parm_response = nullptr;
     }
+    std::array<const aocommon::MC2x2F*, 2> beam_responses;
+    if constexpr (ApplyBeam) {
+#ifdef HAVE_EVERYBEAM
+      beam_responses = visibility_modifier_.GetBeamResponseForRow(data_desc_id, antenna1, antenna2);
+#endif
+    }
     const size_t n_channels = band.ChannelCount();
     const size_t n_visibilities = GetNVisibilities(Mode);
-    for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
-      ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
-          parm_response, n_channel, n_channels, data_desc_id, n_antennas, visibility_row,
-          weight_buffer, antenna1, antenna2, time_offset, image_weights, beam_response);
+    for (size_t channel_index = 0; channel_index < n_channels; ++channel_index) {
+      const aocommon::MC2x2F* beam1;
+      const aocommon::MC2x2F* beam2;
+      if constexpr (ApplyBeam) {
+        beam1 = &beam_responses[0][channel_index];
+        beam2 = &beam_responses[1][channel_index];
+      }
+
+      visibility_modifier_
+          .ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
+              parm_response, channel_index, n_channels, n_antennas, visibility_row, weight_buffer,
+              antenna1, antenna2, time_offset, image_weights, *beam1, *beam2);
+
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         visibility_row += n_visibilities;
       }
@@ -264,12 +287,13 @@ class MsGridderData {
       }
     }
   }
+
   /**
    * Applies the selected visibility modifier (selected by Mode)
    * solution to a single visibility channel and/or computes the
    * weight corresponding to the combined effect.
    *
-   * It is the responsibility of the called to ensure that @ref
+   * It is the responsibility of the caller to ensure that @ref
    * LoadCorrections() has been called prior to calling @ref ApplyCorrections()
    *
    * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
@@ -277,34 +301,22 @@ class MsGridderData {
    */
   template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour, bool ApplyBeam,
             bool ApplyForward, bool HasH5Parm>
-  inline void ApplySingleCorrection(const std::complex<float>* parm_response, size_t n_channel,
-                                    size_t n_channels, size_t data_desc_id, size_t n_antennas,
-                                    std::complex<float>* visibility_row, const float* weight_buffer,
-                                    size_t antenna1, size_t antenna2, const size_t& time_offset,
-                                    const float* image_weights,
-                                    const BeamResponseMap& cached_beam_response) {
+  inline void FindAndApplySingleCorrection(
+      const std::complex<float>* parm_response, size_t channel_index, size_t n_channels,
+      size_t data_desc_id, size_t n_antennas, std::complex<float>* visibility_row,
+      const float* weight_buffer, size_t antenna1, size_t antenna2, const size_t& time_offset,
+      const float* image_weights, const BeamResponseMap& cached_beam_response) {
+    std::array<aocommon::MC2x2F, 2> beams;
     if constexpr (ApplyBeam) {
 #ifdef HAVE_EVERYBEAM
-      if constexpr (HasH5Parm) {
-        // Apply (in conjugate) both the beam and the h5parm solutions
-        visibility_modifier_.ApplyConjugatedDual<Behaviour, Mode, NParms>(
-            parm_response, visibility_row, weight_buffer, image_weights, n_channel, n_channels,
-            data_desc_id, antenna1, antenna2, ApplyForward, time_offset, cached_beam_response);
-      } else {
-        // Apply only the conjugate beam
-        visibility_modifier_.ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(
-            visibility_row, weight_buffer, image_weights, n_channel, n_channels, data_desc_id,
-            antenna1, antenna2, cached_beam_response);
-      }
-#else
-      assert(!ApplyBeam);
+      beams = visibility_modifier_.GetBeamResponseForVisibility(cached_beam_response, data_desc_id,
+                                                                antenna1, antenna2, channel_index);
 #endif
-    } else if constexpr (HasH5Parm) {
-      // Apply the h5parm solutions
-      visibility_modifier_.ApplyConjugatedParmResponse<Behaviour, Mode, NParms, ApplyForward>(
-          parm_response, visibility_row, weight_buffer, image_weights, n_channel, n_channels,
-          n_antennas, antenna1, antenna2, time_offset);
     }
+    visibility_modifier_
+        .ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
+            parm_response, channel_index, n_channels, n_antennas, visibility_row, weight_buffer,
+            antenna1, antenna2, time_offset, image_weights, beams[0], beams[1]);
   }
 
   /**
@@ -1168,8 +1180,8 @@ void MsGridderData::CorrectInstrumentalVisibilities(size_t n_antennas,
 #ifdef HAVE_EVERYBEAM
   if (settings_.applyFacetBeam) {
     visibility_modifier_.CacheBeamResponse(time, field_id, bands);
-    visibility_modifier_.ApplyBeamResponse<Mode>(buffer, bands[data_desc_id].ChannelCount(),
-                                                 data_desc_id, antenna1, antenna2);
+    visibility_modifier_.ApplyBeamResponse<Mode>(buffer, bands[data_desc_id], data_desc_id,
+                                                 antenna1, antenna2);
   }
 #endif
 

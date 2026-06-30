@@ -84,11 +84,21 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
   _pointResponse = _telescope->GetPointResponse(0.0);
   _pointResponse->SetUpdateInterval(facet_beam_update_time);
   n_stations_ = _telescope->GetNrStations();
-  for (size_t data_desc_id : bands.DataDescIds()) {
-    std::vector<aocommon::MC2x2F>& band_response = _cachedBeamResponse.AlwaysEmplace(data_desc_id);
-    band_response.resize(bands[data_desc_id].ChannelCount() * n_stations_);
+  if (uses_frequency_bda_) {
+    std::vector<aocommon::MC2x2F>& band_response = _cachedBeamResponse.AlwaysEmplace(0);
+    band_response.resize(bands.MaxBandChannels() * n_stations_);
+  } else {
+    for (size_t data_desc_id : bands.DataDescIds()) {
+      std::vector<aocommon::MC2x2F>& band_response =
+          _cachedBeamResponse.AlwaysEmplace(data_desc_id);
+      band_response.resize(bands[data_desc_id].ChannelCount() * n_stations_);
+    }
   }
 #endif
+
+  if (channel_interpolation_table_.Empty()) {
+    channel_interpolation_table_ = MakeChannelInterpolationTable(bands);
+  }
 }
 
 void VisibilityModifier::InitializeMockResponse(
@@ -108,6 +118,12 @@ void VisibilityModifier::InitializeMockResponse(
       _cachedParmResponse.emplace(0, SolutionsResponseMap()).first->second;
   band_parm_response.AlwaysEmplace(data_desc_id) = parm_response;
   time_offsets_ = {std::pair(0, 0)};
+
+  std::vector<std::vector<uint32_t>> interpolation_table(data_desc_id + 1);
+  std::vector<uint32_t>& interpolation_row = interpolation_table[data_desc_id];
+  interpolation_row.resize(n_channels);
+  std::iota(interpolation_row.begin(), interpolation_row.end(), 0);
+  channel_interpolation_table_ = aocommon::JaggedArray<uint32_t>(interpolation_table);
 }
 
 void VisibilityModifier::InitializeCacheParmResponse(const std::vector<std::string>& antennaNames,
@@ -129,7 +145,7 @@ void VisibilityModifier::InitializeCacheParmResponse(const std::vector<std::stri
         _secondSolutions->empty() ? nullptr : (*_secondSolutions)[solution_index];
     const size_t dir_index = first_solution->GetDirIndex(dir_name);
 
-    if (uses_bda_) {
+    if (uses_frequency_bda_) {
       // In BDA mode, the channels are interpolated from the data_desc_id with
       // the most channels, to avoid rereading the file many times.
       const size_t max_channel_id = selected_bands.DataDescIdWithMaxChannels();
@@ -168,6 +184,10 @@ void VisibilityModifier::InitializeCacheParmResponse(const std::vector<std::stri
       }
     }
   }
+
+  if (channel_interpolation_table_.Empty()) {
+    channel_interpolation_table_ = MakeChannelInterpolationTable(selected_bands);
+  }
 }
 
 size_t VisibilityModifier::GetCacheParmResponseSize() const {
@@ -204,37 +224,24 @@ void VisibilityModifier::CacheParmResponse(double time, const aocommon::MultiBan
 void VisibilityModifier::GetBeamResponse(const aocommon::BandData& band, size_t field_id,
                                          std::vector<aocommon::MC2x2F>& result) const {
   std::vector<double> frequencies(band.ChannelCount());
-  std::vector<aocommon::MC2x2F> response(n_stations_ * band.ChannelCount());
   for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
     frequencies[ch] = band.ChannelFrequency(ch);
   }
-  _pointResponse->ResponseAllStations(_beamMode, response.data(), _facetDirectionRA,
+  _pointResponse->ResponseAllStations(_beamMode, result.data(), _facetDirectionRA,
                                       _facetDirectionDec, frequencies, field_id);
-  // Transpose the structure
-  for (size_t station = 0; station != n_stations_; ++station) {
-    for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
-      result[ch * n_stations_ + station] = response[station * band.ChannelCount() + ch];
-    }
-  }
 }
 
 bool VisibilityModifier::UpdateCachedBeamResponseForRow(double time, size_t field_id,
                                                         const aocommon::MultiBandData& bands,
                                                         BeamResponseMap& cached_beam_response) {
   if (ShouldUpdateCachedBeamResponseForTime(time)) {
-    if (uses_bda_) {
+    if (uses_frequency_bda_) {
       // In BDA mode, interpolate the channels from the data_desc_id with the
       // highest nr of channels.
       const size_t max_channels_id = bands.DataDescIdWithMaxChannels();
-      const aocommon::BandData& band = bands[max_channels_id];
-      std::vector<aocommon::MC2x2F>& full_cached_response = cached_beam_response[max_channels_id];
-      GetBeamResponse(band, field_id, full_cached_response);
-      for (size_t data_desc_id : bands.DataDescIds()) {
-        std::vector<aocommon::MC2x2F>& destination = cached_beam_response[data_desc_id];
-        const aocommon::BandData& destination_band = bands[data_desc_id];
-        InterpolateChannels(full_cached_response, band, destination, destination_band, 1,
-                            n_stations_);
-      }
+      interpolation_band_ = &bands[max_channels_id];
+      std::vector<aocommon::MC2x2F>& full_cached_response = cached_beam_response[0];
+      GetBeamResponse(*interpolation_band_, field_id, full_cached_response);
     } else {
       for (size_t data_desc_id : bands.DataDescIds()) {
         const aocommon::BandData& band = bands[data_desc_id];
@@ -248,44 +255,40 @@ bool VisibilityModifier::UpdateCachedBeamResponseForRow(double time, size_t fiel
 }
 
 template <GainMode Mode>
-void VisibilityModifier::ApplyBeamResponse(std::complex<float>* data, size_t n_channels,
-                                           size_t data_desc_id, size_t antenna1, size_t antenna2) {
+void VisibilityModifier::ApplyBeamResponse(std::complex<float>* data,
+                                           const aocommon::BandData& band, size_t data_desc_id,
+                                           size_t antenna1, size_t antenna2) {
+  const size_t n_channels = band.ChannelCount();
+  const std::array<const aocommon::MC2x2F*, 2> responses =
+      GetBeamResponseForRow(data_desc_id, antenna1, antenna2);
   for (size_t ch = 0; ch < n_channels; ++ch) {
-    const size_t offset = ch * n_stations_;
-    const size_t offset1 = offset + antenna1;
-    const size_t offset2 = offset + antenna2;
-
-    const MC2x2F& gain1(_cachedBeamResponse[data_desc_id][offset1]);
-    const MC2x2F& gain2(_cachedBeamResponse[data_desc_id][offset2]);
-    internal::ApplyGain<Mode>(data, gain1, gain2);
+    internal::ApplyGain<Mode>(data, responses[0][ch], responses[1][ch]);
     data += GetNVisibilities(Mode);
   }
 }
 
 template void VisibilityModifier::ApplyBeamResponse<GainMode::kXX>(std::complex<float>* data,
-                                                                   size_t n_channels,
+                                                                   const aocommon::BandData& band,
                                                                    size_t data_desc_id,
                                                                    size_t antenna1,
                                                                    size_t antenna2);
 
 template void VisibilityModifier::ApplyBeamResponse<GainMode::kYY>(std::complex<float>* data,
-                                                                   size_t n_channels,
+                                                                   const aocommon::BandData& band,
                                                                    size_t data_desc_id,
                                                                    size_t antenna1,
                                                                    size_t antenna2);
 
-template void VisibilityModifier::ApplyBeamResponse<GainMode::kTrace>(std::complex<float>* data,
-                                                                      size_t n_channels,
-                                                                      size_t data_desc_id,
-                                                                      size_t antenna1,
-                                                                      size_t antenna2);
+template void VisibilityModifier::ApplyBeamResponse<GainMode::kTrace>(
+    std::complex<float>* data, const aocommon::BandData& band, size_t data_desc_id, size_t antenna1,
+    size_t antenna2);
 
 template void VisibilityModifier::ApplyBeamResponse<GainMode::k2VisDiagonal>(
-    std::complex<float>* data, size_t n_channels, size_t data_desc_id, size_t antenna1,
+    std::complex<float>* data, const aocommon::BandData& band, size_t data_desc_id, size_t antenna1,
     size_t antenna2);
 
 template void VisibilityModifier::ApplyBeamResponse<GainMode::kFull>(std::complex<float>* data,
-                                                                     size_t n_channels,
+                                                                     const aocommon::BandData& band,
                                                                      size_t data_desc_id,
                                                                      size_t antenna1,
                                                                      size_t antenna2);

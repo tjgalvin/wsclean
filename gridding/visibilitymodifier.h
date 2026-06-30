@@ -13,12 +13,15 @@
 
 #include <aocommon/constants.h>
 #include <aocommon/matrix2x2.h>
+#include <aocommon/multiarray.h>
 #include <aocommon/multibanddata.h>
 #include <aocommon/polarization.h>
 #include <aocommon/vectormap.h>
 
 #include "averagecorrection.h"
 #include "gainmode.h"
+#include "solutionchannelinterpolation.h"
+
 #include "../structures/preallocatedvector.h"
 
 namespace wsclean {
@@ -179,7 +182,7 @@ class VisibilityModifier {
  public:
   VisibilityModifier() = default;
 
-  void InitializeBda(bool uses_bda) { uses_bda_ = uses_bda; }
+  void InitializeBda(bool uses_bda) { uses_frequency_bda_ = uses_bda; }
 
   void InitializePointResponse(SynchronizedMS&& ms, double facet_beam_update_time,
                                const std::string& element_response,
@@ -383,12 +386,15 @@ class VisibilityModifier {
   /**
    * Return the cached beam response map for a given procesing chunk row.
    */
-#ifdef HAVE_EVERYBEAM
   const BeamResponseMap& GetCachedBeamResponseMap(size_t chunk, size_t row) {
+#ifdef HAVE_EVERYBEAM
     assert(beam_cache_chunks_[chunk]);
     return beam_cache_chunks_[chunk]->GetCachedBeamResponseForRow(row);
-  }
+#else
+    const static BeamResponseMap map;
+    return map;
 #endif
+  }
 
   /**
    * Start processing a new chunk.
@@ -524,19 +530,76 @@ class VisibilityModifier {
                                       BeamResponseMap& cached_beam_response);
 
   template <GainMode Mode>
-  void ApplyBeamResponse(std::complex<float>* data, size_t n_channels, size_t data_desc_id,
-                         size_t antenna1, size_t antenna2);
+  void ApplyBeamResponse(std::complex<float>* data, const aocommon::BandData& band,
+                         size_t data_desc_id, size_t antenna1, size_t antenna2);
+
+  /**
+   * Return an array for antenna 1 and one for antenna 2 that contain the beam responses for all
+   * channels. In the case of BDA, the response will be interpolated. The returned pointers are
+   * valid until a next row needs to be interpolated.
+   *
+   * Before calling this function, the beam response cache should have been updated with a call to
+   * e.g. @ref CacheBeamResponse().
+   */
+  std::array<const aocommon::MC2x2F*, 2> GetBeamResponseForRow(size_t data_desc_id, size_t antenna1,
+                                                               size_t antenna2) {
+    const std::span<uint32_t> interpolation_row = channel_interpolation_table_[data_desc_id];
+    const size_t n_channels = interpolation_row.size();
+    const BeamResponseMap& cached_beam_response = GetCachedBeamResponse();
+    std::array<const aocommon::MC2x2F*, 2> responses;
+    if (uses_frequency_bda_) {
+      interpolated_beam_scratch_.Resize(n_channels);
+      // In the case of BDA, cached_beam_response[0] contains the high res beam responses
+      const auto begin = cached_beam_response[0].begin();
+      std::span<const aocommon::MC2x2F> from1(begin + antenna1 * n_channels,
+                                              begin + (antenna1 + 1) * n_channels);
+      InterpolateRowChannels(interpolation_row, from1, interpolated_beam_scratch_.Span<0>());
+      responses[0] = interpolated_beam_scratch_.Get<0>();
+
+      std::span<const aocommon::MC2x2F> from2(begin + antenna2 * n_channels,
+                                              begin + (antenna2 + 1) * n_channels);
+      InterpolateRowChannels(interpolation_row, from2, interpolated_beam_scratch_.Span<1>());
+      responses[1] = interpolated_beam_scratch_.Get<1>();
+    } else {
+      responses[0] = &cached_beam_response[data_desc_id][antenna1 * n_channels];
+      responses[1] = &cached_beam_response[data_desc_id][antenna2 * n_channels];
+    }
+    return responses;
+  }
+
+  std::array<aocommon::MC2x2F, 2> GetBeamResponseForVisibility(
+      const BeamResponseMap& cached_beam_response, size_t data_desc_id, size_t antenna1,
+      size_t antenna2, size_t channel_index) {
+    const std::span<uint32_t> interpolation_row = channel_interpolation_table_[data_desc_id];
+    const size_t n_channels = interpolation_row.size();
+    std::array<aocommon::MC2x2F, 2> responses;
+    if (uses_frequency_bda_) {
+      // In the case of BDA, cached_beam_response[0] contains the high res beam responses
+      const std::vector<aocommon::MC2x2F>& cache = cached_beam_response[0];
+      const uint32_t from_index = interpolation_row[channel_index];
+      responses[0] = cache[antenna1 * n_channels + from_index];
+      responses[1] = cache[antenna2 * n_channels + from_index];
+    } else {
+      responses[0] = cached_beam_response[data_desc_id][antenna1 * n_channels];
+      responses[1] = cached_beam_response[data_desc_id][antenna2 * n_channels];
+    }
+    return responses;
+  }
 
   template <ModifierBehaviour Behaviour, GainMode Mode, bool ApplyForward>
   void ApplyConjugatedBeamResponseForRow(std::complex<float>* data, const float* weights,
-                                         const float* image_weights, size_t n_channels,
-                                         size_t data_desc_id, size_t antenna1, size_t antenna2) {
+                                         const float* image_weights, size_t data_desc_id,
+                                         const aocommon::BandData& band, size_t antenna1,
+                                         size_t antenna2) {
+    const size_t n_channels = band.ChannelCount();
     const size_t n_visibilities = GetNVisibilities(Mode);
-    const BeamResponseMap& cached_beam_response = GetCachedBeamResponse();
-    for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
-      ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(
-          data, weights, image_weights, n_channel, n_channels, data_desc_id, antenna1, antenna2,
-          cached_beam_response);
+    const std::array<const aocommon::MC2x2F*, 2> responses =
+        GetBeamResponseForRow(data_desc_id, antenna1, antenna2);
+    for (size_t channel_index = 0; channel_index != n_channels; ++channel_index) {
+      const aocommon::MC2x2F& beam1 = responses[0][channel_index];
+      const aocommon::MC2x2F& beam2 = responses[1][channel_index];
+      ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(data, weights, image_weights,
+                                                                 channel_index, beam1, beam2);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         data += n_visibilities;
       }
@@ -545,11 +608,11 @@ class VisibilityModifier {
       }
     }
   }
+
   template <ModifierBehaviour Behaviour, GainMode Mode, bool ApplyForward>
   void ApplyConjugatedBeamResponse(std::complex<float>* data, const float* weights,
-                                   const float* image_weights, size_t n_channel, size_t n_channels,
-                                   size_t data_desc_id, size_t antenna1, size_t antenna2,
-                                   const BeamResponseMap& cached_beam_response);
+                                   const float* image_weights, size_t channel_index,
+                                   const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2);
 
   /**
    * Correct the data for both the conjugated beam and the
@@ -557,26 +620,29 @@ class VisibilityModifier {
    */
   template <ModifierBehaviour Behaviour, GainMode Mode, size_t NParms>
   void ApplyConjugatedDualForRow(std::complex<float>* data, const float* weights,
-                                 const float* image_weights, size_t n_channels, size_t data_desc_id,
-                                 size_t antenna1, size_t antenna2, size_t ms_index,
-                                 bool apply_forward) {
+                                 const float* image_weights, const aocommon::BandData& band,
+                                 size_t data_desc_id, size_t antenna1, size_t antenna2,
+                                 size_t ms_index, bool apply_forward) {
     ApplyConjugatedDualForRowWithTime<Behaviour, Mode, NParms>(
-        data, weights, image_weights, n_channels, data_desc_id, antenna1, antenna2, ms_index,
+        data, weights, image_weights, band, data_desc_id, antenna1, antenna2, ms_index,
         apply_forward, GetTimeOffset(ms_index));
   }
 
   template <ModifierBehaviour Behaviour, GainMode Mode, size_t NParms>
   void ApplyConjugatedDualForRowWithTime(std::complex<float>* data, const float* weights,
-                                         const float* image_weights, size_t n_channels,
+                                         const float* image_weights, const aocommon::BandData& band,
                                          size_t data_desc_id, size_t antenna1, size_t antenna2,
                                          size_t ms_index, bool apply_forward, size_t time_offset) {
+    const size_t n_channels = band.ChannelCount();
     const std::complex<float>* parm_response = _cachedParmResponse[ms_index][data_desc_id].data();
     const size_t n_visibilities = GetNVisibilities(Mode);
-    const BeamResponseMap& cached_beam_response = GetCachedBeamResponse();
-    for (size_t n_channel = 0; n_channel < n_channels; ++n_channel) {
+    const std::array<const aocommon::MC2x2F*, 2> beam_responses =
+        GetBeamResponseForRow(data_desc_id, antenna1, antenna2);
+    for (size_t channel_index = 0; channel_index < n_channels; ++channel_index) {
       ApplyConjugatedDual<Behaviour, Mode, NParms>(
-          parm_response, data, weights, image_weights, n_channel, n_channels, data_desc_id,
-          antenna1, antenna2, apply_forward, time_offset, cached_beam_response);
+          parm_response, data, weights, image_weights, channel_index, n_channels, antenna1,
+          antenna2, apply_forward, time_offset, beam_responses[0][channel_index],
+          beam_responses[1][channel_index]);
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         data += n_visibilities;
       }
@@ -587,11 +653,48 @@ class VisibilityModifier {
   }
   template <ModifierBehaviour Behaviour, GainMode Mode, size_t NParms>
   void ApplyConjugatedDual(const std::complex<float>* parm_response, std::complex<float>* data,
-                           const float* weights, const float* image_weights, size_t n_channel,
-                           size_t n_channels, size_t data_desc_id, size_t antenna1, size_t antenna2,
-                           bool apply_forward, size_t time_offset,
-                           const BeamResponseMap& cached_beam_response);
+                           const float* weights, const float* image_weights, size_t channel_index,
+                           size_t n_channels, size_t antenna1, size_t antenna2, bool apply_forward,
+                           size_t time_offset, const aocommon::MC2x2F& beam1,
+                           const aocommon::MC2x2F& beam2);
+#endif  // HAVE_EVERYBEAM
+
+  /**
+   * Applies the selected visibility modifier (selected by Mode)
+   * solution to a single visibility channel and/or computes the
+   * weight corresponding to the combined effect.
+   *
+   * @tparam Behaviour See @ref ModifierBehaviour and @ref @ref
+   * ApplyConjugatedParmResponse for more information
+   */
+  template <GainMode Mode, size_t NParms, ModifierBehaviour Behaviour, bool ApplyBeam,
+            bool ApplyForward, bool HasH5Parm>
+  inline void ApplySingleCorrection(const std::complex<float>* parm_response, size_t channel_index,
+                                    size_t n_channels, size_t n_antennas,
+                                    std::complex<float>* visibility_row, const float* weight_buffer,
+                                    size_t antenna1, size_t antenna2, const size_t& time_offset,
+                                    const float* image_weights, const aocommon::MC2x2F& beam1,
+                                    const aocommon::MC2x2F& beam2) {
+    if constexpr (ApplyBeam) {
+#ifdef HAVE_EVERYBEAM
+      if constexpr (HasH5Parm) {
+        // Apply (in conjugate) both the beam and the h5parm solutions
+        ApplyConjugatedDual<Behaviour, Mode, NParms>(
+            parm_response, visibility_row, weight_buffer, image_weights, channel_index, n_channels,
+            antenna1, antenna2, ApplyForward, time_offset, beam1, beam2);
+      } else {
+        // Apply only the conjugate beam
+        ApplyConjugatedBeamResponse<Behaviour, Mode, ApplyForward>(
+            visibility_row, weight_buffer, image_weights, channel_index, beam1, beam2);
+      }
 #endif
+    } else if constexpr (HasH5Parm) {
+      // Apply the h5parm solutions
+      ApplyConjugatedParmResponse<Behaviour, Mode, NParms, ApplyForward>(
+          parm_response, visibility_row, weight_buffer, image_weights, channel_index, n_channels,
+          n_antennas, antenna1, antenna2, time_offset);
+    }
+  }
 
   void SetFacetDirection(double ra, double dec) {
     _facetDirectionRA = ra;
@@ -639,6 +742,10 @@ class VisibilityModifier {
   }
 
  private:
+  const aocommon::BandData* interpolation_band_ = nullptr;
+  aocommon::MultiArray<aocommon::MC2x2F, aocommon::MC2x2F> interpolated_beam_scratch_;
+  aocommon::JaggedArray<uint32_t> channel_interpolation_table_;
+
 #ifdef HAVE_EVERYBEAM
   void GetBeamResponse(const aocommon::BandData& band, size_t field_id,
                        std::vector<aocommon::MC2x2F>& result) const;
@@ -723,22 +830,16 @@ class VisibilityModifier {
   double scaled_ncp_uvw_[3];
   // The dl, dm position, and corresponding dn value, for calculating smearing corrections.
   double dlmn_[3];
-  bool uses_bda_ = false;
+  bool uses_frequency_bda_ = false;
 };
 
 #ifdef HAVE_EVERYBEAM
 template <ModifierBehaviour Behaviour, GainMode Mode, bool ApplyForward>
 inline void VisibilityModifier::ApplyConjugatedBeamResponse(
-    std::complex<float>* data, const float* weights, const float* image_weights, size_t n_channel,
-    size_t n_channels, size_t data_desc_id, size_t antenna1, size_t antenna2,
-    const aocommon::VectorMap<std::vector<aocommon::MC2x2F>>& cached_beam_response) {
+    std::complex<float>* data, const float* weights, const float* image_weights,
+    size_t channel_index, const aocommon::MC2x2F& gain1, const aocommon::MC2x2F& gain2) {
   using internal::MakeDiagonalIfScalar;
-  const size_t offset = n_channel * n_stations_;
-  const size_t offset1 = offset + antenna1;
-  const size_t offset2 = offset + antenna2;
 
-  const aocommon::MC2x2F& gain1(cached_beam_response[data_desc_id][offset1]);
-  const aocommon::MC2x2F& gain2(cached_beam_response[data_desc_id][offset2]);
   if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
     if constexpr (ApplyForward) {
       internal::ApplyGain<Mode>(data, gain1, gain2);
@@ -748,30 +849,22 @@ inline void VisibilityModifier::ApplyConjugatedBeamResponse(
   if constexpr (internal::ShouldSumCorrection(Behaviour)) {
     // This assumes that the weights of the polarizations are the same
     correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain1), MakeDiagonalIfScalar<Mode>(gain2),
-                              image_weights[n_channel] * weights[0]);
+                              image_weights[channel_index] * weights[0]);
   }
 }
 
 template <ModifierBehaviour Behaviour, GainMode Mode, size_t NParms>
 inline void VisibilityModifier::ApplyConjugatedDual(
     const std::complex<float>* parm_response, std::complex<float>* data, const float* weights,
-    const float* image_weights, size_t n_channel, size_t n_channels, size_t data_desc_id,
-    size_t antenna1, size_t antenna2, bool apply_forward, size_t time_offset,
-    const aocommon::VectorMap<std::vector<aocommon::MC2x2F>>& cached_beam_response) {
+    const float* image_weights, size_t channel_index, size_t n_channels, size_t antenna1,
+    size_t antenna2, bool apply_forward, size_t time_offset, const aocommon::MC2x2F& beam1,
+    const aocommon::MC2x2F& beam2) {
   using internal::CreateMatrix2x2OrDiag;
   using internal::MakeDiagonalIfScalar;
 
-  // Get facet beam
-  const size_t beam_offset = n_channel * n_stations_;
-  const size_t beam_offset1 = beam_offset + antenna1;
-  const size_t beam_offset2 = beam_offset + antenna2;
-
-  const aocommon::MC2x2F& gain_b_1(cached_beam_response[data_desc_id][beam_offset1]);
-  const aocommon::MC2x2F& gain_b_2(cached_beam_response[data_desc_id][beam_offset2]);
-
   // Get h5 solution
   // Column major indexing
-  const size_t h5_offset = (time_offset * n_channels + n_channel) * n_stations_ * NParms;
+  const size_t h5_offset = (time_offset * n_channels + channel_index) * n_stations_ * NParms;
   const size_t h5_offset1 = h5_offset + antenna1 * NParms;
   const size_t h5_offset2 = h5_offset + antenna2 * NParms;
   const auto gain_h5_1 = CreateMatrix2x2OrDiag<NParms>(parm_response, h5_offset1);
@@ -779,8 +872,8 @@ inline void VisibilityModifier::ApplyConjugatedDual(
 
   // Combine H5parm and beam. The beam is applied first on the data,
   // and therefore needs to be the last in the multiplication.
-  const aocommon::MC2x2F gain_combined_1 = gain_h5_1 * gain_b_1;
-  const aocommon::MC2x2F gain_combined_2 = gain_h5_2 * gain_b_2;
+  const aocommon::MC2x2F gain_combined_1 = gain_h5_1 * beam1;
+  const aocommon::MC2x2F gain_combined_2 = gain_h5_2 * beam2;
 
   if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
     if (apply_forward) {
@@ -789,12 +882,12 @@ inline void VisibilityModifier::ApplyConjugatedDual(
     internal::ApplyConjugatedGain<Mode>(data, gain_combined_1, gain_combined_2);
   }
   if constexpr (internal::ShouldSumCorrection(Behaviour)) {
-    beam_correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain_b_1),
-                                   MakeDiagonalIfScalar<Mode>(gain_b_2),
-                                   weights[0] * image_weights[n_channel]);
+    beam_correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(beam1),
+                                   MakeDiagonalIfScalar<Mode>(beam2),
+                                   weights[0] * image_weights[channel_index]);
     correction_sum_.Add<Mode>(MakeDiagonalIfScalar<Mode>(gain_combined_1),
                               MakeDiagonalIfScalar<Mode>(gain_combined_2),
-                              weights[0] * image_weights[n_channel]);
+                              weights[0] * image_weights[channel_index]);
   }
 }
 #endif  // HAVE_EVERYBEAM
