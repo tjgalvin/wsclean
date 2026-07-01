@@ -153,8 +153,8 @@ BOOST_FIXTURE_TEST_CASE(apply_beam, ModifierFixture<2>) {
 
 BOOST_AUTO_TEST_CASE(get_beam_response_for_row) {
   const std::vector<aocommon::MC2x2F> beam_response = {
-      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0),  // antenna 1
-      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0)   // antenna 2
+      aocommon::MC2x2F(5.0, 0.0, 0.0, 6.0),  // antenna 1
+      aocommon::MC2x2F(7.0, 0.0, 0.0, 8.0)   // antenna 2
   };
   const std::vector<std::complex<float>> gain_response = {
       1.0, 0.0, 0.0, 1.0,  // antenna 1
@@ -165,11 +165,33 @@ BOOST_AUTO_TEST_CASE(get_beam_response_for_row) {
                                   gain_response);
   auto [gains1, gains2] = modifier.GetBeamResponseForRow(kDataDescId, kAntenna1, kAntenna2);
   for (size_t ch = 0; ch != kNChannels; ++ch) {
-    BOOST_CHECK_CLOSE_FRACTION(gains1[ch].Get(0).real(), 1.0, 1e-5);
-    BOOST_CHECK_CLOSE_FRACTION(gains1[ch].Get(3).real(), 1.0, 1e-5);
-    BOOST_CHECK_CLOSE_FRACTION(gains2[ch].Get(0).real(), 1.0, 1e-5);
-    BOOST_CHECK_CLOSE_FRACTION(gains2[ch].Get(3).real(), 1.0, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(gains1[ch].Get(0).real(), 5.0, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(gains1[ch].Get(3).real(), 6.0, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(gains2[ch].Get(0).real(), 7.0, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(gains2[ch].Get(3).real(), 8.0, 1e-5);
   }
+}
+
+BOOST_AUTO_TEST_CASE(get_beam_response_for_visibility) {
+  const std::vector<aocommon::MC2x2F> beam_response = {
+      aocommon::MC2x2F(5.0, 0.0, 0.0, 6.0),  // antenna 1
+      aocommon::MC2x2F(7.0, 0.0, 0.0, 8.0)   // antenna 2
+  };
+  const std::vector<std::complex<float>> gain_response = {
+      1.0, 0.0, 0.0, 1.0,  // antenna 1
+      1.0, 0.0, 0.0, 1.0   // antenna 2
+  };
+  VisibilityModifier modifier;
+  modifier.InitializeMockResponse(kNChannels, kNStations, kDataDescId, beam_response,
+                                  gain_response);
+  const BeamResponseMap& map = modifier.GetCachedBeamResponse();
+  constexpr size_t kChannelIndex = 0;
+  const auto [gains1, gains2] =
+      modifier.GetBeamResponseForVisibility(map, kDataDescId, kAntenna1, kAntenna2, kChannelIndex);
+  BOOST_CHECK_CLOSE_FRACTION(gains1.Get(0).real(), 5.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains1.Get(3).real(), 6.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2.Get(0).real(), 7.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2.Get(3).real(), 8.0, 1e-5);
 }
 
 BOOST_AUTO_TEST_CASE(apply_unit_beam) {
