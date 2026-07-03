@@ -28,6 +28,23 @@ void setNonFiniteToZero(std::vector<std::complex<float>>& values) {
 }
 }  // namespace
 
+void internal::TransposeAntennaChannelDimensions(const std::complex<float>* source,
+                                                 std::complex<float>* destination, size_t n_times,
+                                                 size_t n_channels, size_t n_antennas,
+                                                 size_t n_parms) {
+  // Transpose from (n_times * n_chan * n_ant * n_parms) to (n_times * n_ant * n_chan * n_parms)
+  const std::complex<float>* source_ptr = source;
+  for (size_t time = 0; time != n_times; ++time) {
+    for (size_t channel = 0; channel != n_channels; ++channel) {
+      for (size_t antenna = 0; antenna != n_antennas; ++antenna) {
+        const size_t dest_offset = ((time * n_antennas + antenna) * n_channels + channel) * n_parms;
+        std::copy_n(source_ptr, n_parms, destination + dest_offset);
+        source_ptr += n_parms;
+      }
+    }
+  }
+}
+
 void VisibilityModifier::InitializeTimeFrequencySmearing(const ObservationInfo& observation_info,
                                                          double interval, double l_shift,
                                                          double m_shift) {
@@ -60,8 +77,8 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
                                                  const std::string& mwa_path) {
 #ifdef HAVE_EVERYBEAM
   // Hard-coded for now
-  const bool frequency_interpolation = true;
-  const bool use_channel_frequency = true;
+  constexpr bool frequency_interpolation = true;
+  constexpr bool use_channel_frequency = true;
 
   // Get path to coefficient file for MWA telescope
   everybeam::TelescopeType telescope_type = everybeam::GetTelescopeType(*ms);
@@ -87,6 +104,7 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
   if (uses_frequency_bda_) {
     std::vector<aocommon::MC2x2F>& band_response = _cachedBeamResponse.AlwaysEmplace(0);
     band_response.resize(bands.MaxBandChannels() * n_stations_);
+    interpolated_beam_scratch_.Resize(bands.MaxBandChannels());
   } else {
     for (size_t data_desc_id : bands.DataDescIds()) {
       std::vector<aocommon::MC2x2F>& band_response =
@@ -98,6 +116,7 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
 
   if (channel_interpolation_table_.Empty()) {
     channel_interpolation_table_ = MakeChannelInterpolationTable(bands);
+    n_full_resolution_channels_ = bands.MaxBandChannels();
   }
 }
 
@@ -126,67 +145,67 @@ void VisibilityModifier::InitializeMockResponse(
   channel_interpolation_table_ = aocommon::JaggedArray<uint32_t>(interpolation_table);
 }
 
-void VisibilityModifier::InitializeCacheParmResponse(const std::vector<std::string>& antennaNames,
+void VisibilityModifier::InitializeCacheParmResponseForDataDescId(
+    std::vector<std::complex<float>>& band_response, const std::vector<std::string>& antenna_names,
+    const aocommon::BandData& band, size_t ms_index, size_t data_desc_id) {
+  using schaapcommon::h5parm::JonesParameters;
+  const size_t n_parms = NValuesPerSolution(ms_index);
+  const size_t n_times = _cachedMSTimes[ms_index]->size();
+  const size_t n_antenna = antenna_names.size();
+  const size_t solution_index = _h5parms->size() == 1 ? 0 : ms_index;
+  const std::vector<double> freqs(band.begin(), band.end());
+  const size_t response_size = n_times * freqs.size() * n_antenna * n_parms;
+  const std::string dir_name =
+      (*_h5parms)[solution_index].GetNearestSource(_facetDirectionRA, _facetDirectionDec);
+  schaapcommon::h5parm::SolTab* first_solution = (*_firstSolutions)[solution_index];
+  schaapcommon::h5parm::SolTab* second_solution =
+      _secondSolutions->empty() ? nullptr : (*_secondSolutions)[solution_index];
+  const size_t dir_index = first_solution->GetDirIndex(dir_name);
+  JonesParameters jones_parameters(
+      freqs, *_cachedMSTimes[ms_index], antenna_names, (*_gainTypes)[solution_index],
+      JonesParameters::InterpolationType::NEAREST, dir_index, first_solution, second_solution,
+      false, 0u, JonesParameters::MissingAntennaBehavior::kUnit);
+  const casacore::Cube<std::complex<float>>& parms = jones_parameters.GetParms();
+  assert(static_cast<size_t>(parms.shape()[0]) == n_parms);
+  assert(static_cast<size_t>(parms.shape()[1]) == n_antenna);
+  assert(static_cast<size_t>(parms.shape()[2]) == n_times * freqs.size());
+  band_response.resize(response_size);
+  internal::TransposeAntennaChannelDimensions(parms.data(), band_response.data(), n_times,
+                                              freqs.size(), n_antenna, n_parms);
+  setNonFiniteToZero(band_response);
+}
+
+void VisibilityModifier::InitializeCacheParmResponse(const std::vector<std::string>& antenna_names,
                                                      const aocommon::MultiBandData& selected_bands,
                                                      size_t ms_index) {
-  using schaapcommon::h5parm::JonesParameters;
-
-  const size_t solution_index = (*_h5parms).size() == 1 ? 0 : ms_index;
-
   // Only extract DD solutions if the corresponding cache entry is empty.
   SolutionsResponseMap& parm_response = _cachedParmResponse[ms_index];
   if (parm_response.Empty()) {
-    const size_t nparms = NValuesPerSolution(ms_index);
-    const size_t n_times = _cachedMSTimes[ms_index]->size();
-    const std::string dir_name =
-        (*_h5parms)[solution_index].GetNearestSource(_facetDirectionRA, _facetDirectionDec);
-    schaapcommon::h5parm::SolTab* const first_solution = (*_firstSolutions)[solution_index];
-    schaapcommon::h5parm::SolTab* const second_solution =
-        _secondSolutions->empty() ? nullptr : (*_secondSolutions)[solution_index];
-    const size_t dir_index = first_solution->GetDirIndex(dir_name);
-
     if (uses_frequency_bda_) {
       // In BDA mode, the channels are interpolated from the data_desc_id with
-      // the most channels, to avoid rereading the file many times.
+      // the most channels.
       const size_t max_channel_id = selected_bands.DataDescIdWithMaxChannels();
-      const aocommon::BandData& band = selected_bands[max_channel_id];
-      const std::vector<double> freqs(band.begin(), band.end());
-      const size_t response_size = n_times * freqs.size() * antennaNames.size() * nparms;
-      JonesParameters jones_parameters(
-          freqs, *_cachedMSTimes[ms_index], antennaNames, (*_gainTypes)[solution_index],
-          JonesParameters::InterpolationType::NEAREST, dir_index, first_solution, second_solution,
-          false, 0u, JonesParameters::MissingAntennaBehavior::kUnit);
-      // parms (Casacore::Cube) is column major
-      const casacore::Cube<std::complex<float>>& parms = jones_parameters.GetParms();
+      const aocommon::BandData& band(selected_bands[max_channel_id]);
+      const size_t n_channels = band.ChannelCount();
+      std::vector<std::complex<float>>& band_response = parm_response.AlwaysEmplace(0);
+      InitializeCacheParmResponseForDataDescId(band_response, antenna_names, band, ms_index,
+                                               max_channel_id);
 
-      std::vector<std::complex<float>> full_channel_response(&parms(0, 0, 0),
-                                                             &parms(0, 0, 0) + response_size);
-      for (size_t data_desc_id : selected_bands.DataDescIds()) {
-        std::vector<std::complex<float>>& band_response = parm_response.AlwaysEmplace(data_desc_id);
-        InterpolateChannels(full_channel_response, band, band_response,
-                            selected_bands[data_desc_id], n_times, antennaNames.size() * nparms);
-        setNonFiniteToZero(band_response);
-      }
+      const size_t n_parms = NValuesPerSolution(ms_index);
+      interpolated_solutions_scratch_.Resize(n_channels * n_parms);
     } else {
       for (size_t data_desc_id : selected_bands.DataDescIds()) {
         const aocommon::BandData& band = selected_bands[data_desc_id];
-        const std::vector<double> freqs(band.begin(), band.end());
-        const size_t response_size = n_times * freqs.size() * antennaNames.size() * nparms;
-        JonesParameters jones_parameters(
-            freqs, *_cachedMSTimes[ms_index], antennaNames, (*_gainTypes)[solution_index],
-            JonesParameters::InterpolationType::NEAREST, dir_index, first_solution, second_solution,
-            false, 0u, JonesParameters::MissingAntennaBehavior::kUnit);
-
-        const casacore::Cube<std::complex<float>>& parms = jones_parameters.GetParms();
         std::vector<std::complex<float>>& band_response = parm_response.AlwaysEmplace(data_desc_id);
-        band_response.assign(&parms(0, 0, 0), &parms(0, 0, 0) + response_size);
-        setNonFiniteToZero(band_response);
+        InitializeCacheParmResponseForDataDescId(band_response, antenna_names, band, ms_index,
+                                                 data_desc_id);
       }
     }
-  }
 
-  if (channel_interpolation_table_.Empty()) {
-    channel_interpolation_table_ = MakeChannelInterpolationTable(selected_bands);
+    if (channel_interpolation_table_.Empty()) {
+      channel_interpolation_table_ = MakeChannelInterpolationTable(selected_bands);
+      n_full_resolution_channels_ = selected_bands.MaxBandChannels();
+    }
   }
 }
 
@@ -239,9 +258,9 @@ bool VisibilityModifier::UpdateCachedBeamResponseForRow(double time, size_t fiel
       // In BDA mode, interpolate the channels from the data_desc_id with the
       // highest nr of channels.
       const size_t max_channels_id = bands.DataDescIdWithMaxChannels();
-      interpolation_band_ = &bands[max_channels_id];
+      const aocommon::BandData& interpolation_band = bands[max_channels_id];
       std::vector<aocommon::MC2x2F>& full_cached_response = cached_beam_response[0];
-      GetBeamResponse(*interpolation_band_, field_id, full_cached_response);
+      GetBeamResponse(interpolation_band, field_id, full_cached_response);
     } else {
       for (size_t data_desc_id : bands.DataDescIds()) {
         const aocommon::BandData& band = bands[data_desc_id];
@@ -295,55 +314,51 @@ template void VisibilityModifier::ApplyBeamResponse<GainMode::kFull>(std::comple
 #endif
 
 template <GainMode Mode>
-void VisibilityModifier::ApplyParmResponseWithTime(std::complex<float>* data, size_t ms_index,
-                                                   size_t n_channels, size_t data_desc_id,
-                                                   size_t n_antennas, size_t antenna1,
-                                                   size_t antenna2, size_t time_offset) {
-  const size_t nparms = NValuesPerSolution(ms_index);
-  const std::vector<std::complex<float>>& parm_response =
-      _cachedParmResponse[ms_index][data_desc_id];
-  if (nparms == 2) {
+void VisibilityModifier::ApplyParmResponseForRowWithTime(std::complex<float>* data, size_t ms_index,
+                                                         size_t n_channels, size_t data_desc_id,
+                                                         size_t n_antenna, size_t antenna1,
+                                                         size_t antenna2, size_t time_offset) {
+  const size_t n_parms = NValuesPerSolution(ms_index);
+  auto [parm1, parm2] =
+      GetParmResponseForRow(ms_index, data_desc_id, n_antenna, antenna1, antenna2, time_offset);
+  if (n_parms == 2) {
     for (size_t ch = 0; ch < n_channels; ++ch) {
-      // Column major indexing
-      const size_t offset = (time_offset * n_channels + ch) * n_antennas * nparms;
-      const size_t offset1 = offset + antenna1 * nparms;
-      const size_t offset2 = offset + antenna2 * nparms;
-      const MC2x2F gain1(parm_response[offset1], 0, 0, parm_response[offset1 + 1]);
-      const MC2x2F gain2(parm_response[offset2], 0, 0, parm_response[offset2 + 1]);
+      const MC2x2F gain1(parm1[0], 0, 0, parm1[1]);
+      const MC2x2F gain2(parm2[0], 0, 0, parm2[1]);
       internal::ApplyGain<Mode>(data, gain1, gain2);
       data += GetNVisibilities(Mode);
+      parm1 += 2;
+      parm2 += 2;
     }
   } else {
     for (size_t ch = 0; ch < n_channels; ++ch) {
-      // Column major indexing
-      const size_t offset = (time_offset * n_channels + ch) * n_antennas * nparms;
-      const size_t offset1 = offset + antenna1 * nparms;
-      const size_t offset2 = offset + antenna2 * nparms;
-      const MC2x2F gain1(&parm_response[offset1]);
-      const MC2x2F gain2(&parm_response[offset2]);
+      const MC2x2F gain1(parm1);
+      const MC2x2F gain2(parm2);
       internal::ApplyGain<Mode>(data, gain1, gain2);
       data += GetNVisibilities(Mode);
+      parm1 += 4;
+      parm2 += 4;
     }
   }
 }
 
-template void VisibilityModifier::ApplyParmResponseWithTime<GainMode::kXX>(
+template void VisibilityModifier::ApplyParmResponseForRowWithTime<GainMode::kXX>(
     std::complex<float>* data, size_t ms_index, size_t n_channels, size_t data_desc_id,
     size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
-template void VisibilityModifier::ApplyParmResponseWithTime<GainMode::kYY>(
+template void VisibilityModifier::ApplyParmResponseForRowWithTime<GainMode::kYY>(
     std::complex<float>* data, size_t ms_index, size_t n_channels, size_t data_desc_id,
     size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
-template void VisibilityModifier::ApplyParmResponseWithTime<GainMode::kTrace>(
+template void VisibilityModifier::ApplyParmResponseForRowWithTime<GainMode::kTrace>(
     std::complex<float>* data, size_t ms_index, size_t n_channels, size_t data_desc_id,
     size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
-template void VisibilityModifier::ApplyParmResponseWithTime<GainMode::k2VisDiagonal>(
+template void VisibilityModifier::ApplyParmResponseForRowWithTime<GainMode::k2VisDiagonal>(
     std::complex<float>* data, size_t ms_index, size_t n_channels, size_t data_desc_id,
     size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 
-template void VisibilityModifier::ApplyParmResponseWithTime<GainMode::kFull>(
+template void VisibilityModifier::ApplyParmResponseForRowWithTime<GainMode::kFull>(
     std::complex<float>* data, size_t ms_index, size_t n_channels, size_t data_desc_id,
     size_t n_antennas, size_t antenna1, size_t antenna2, size_t time_offset);
 

@@ -251,12 +251,10 @@ class MsGridderData {
                                const float* weight_buffer, size_t antenna1, size_t antenna2,
                                size_t& time_offset, const float* image_weights,
                                const BeamResponseMap& beam_response) {
-    const std::complex<float>* parm_response;
+    std::array<const std::complex<float>*, 2> parm_responses;
     if constexpr (HasH5Parm) {
-      parm_response =
-          visibility_modifier_.GetCachedParmResponse(original_ms_index_)[data_desc_id].data();
-    } else {
-      parm_response = nullptr;
+      parm_responses = visibility_modifier_.GetParmResponseForRow(
+          original_ms_index_, data_desc_id, n_antennas, antenna1, antenna2, time_offset);
     }
     std::array<const aocommon::MC2x2F*, 2> beam_responses;
     if constexpr (ApplyBeam) {
@@ -273,11 +271,17 @@ class MsGridderData {
         beam1 = &beam_responses[0][channel_index];
         beam2 = &beam_responses[1][channel_index];
       }
+      const std::complex<float>* parm1;
+      const std::complex<float>* parm2;
+      if constexpr (HasH5Parm) {
+        parm1 = &parm_responses[0][channel_index * NParms];
+        parm2 = &parm_responses[1][channel_index * NParms];
+      }
 
       visibility_modifier_
           .ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
-              parm_response, channel_index, n_channels, n_antennas, visibility_row, weight_buffer,
-              antenna1, antenna2, time_offset, image_weights, *beam1, *beam2);
+              visibility_row, weight_buffer, image_weights, channel_index, parm1, parm2, *beam1,
+              *beam2);
 
       if constexpr (internal::ShouldApplyCorrection(Behaviour)) {
         visibility_row += n_visibilities;
@@ -313,10 +317,15 @@ class MsGridderData {
                                                                 antenna1, antenna2, channel_index);
 #endif
     }
+    std::array<const std::complex<float>*, 2> parms;
+    if constexpr (HasH5Parm) {
+      parms = visibility_modifier_.GetParmResponseForVisibility<NParms>(
+          parm_response, data_desc_id, n_antennas, antenna1, antenna2, channel_index, time_offset);
+    }
     visibility_modifier_
         .ApplySingleCorrection<Mode, NParms, Behaviour, ApplyBeam, ApplyForward, HasH5Parm>(
-            parm_response, channel_index, n_channels, n_antennas, visibility_row, weight_buffer,
-            antenna1, antenna2, time_offset, image_weights, beams[0], beams[1]);
+            visibility_row, weight_buffer, image_weights, channel_index, parms[0], parms[1],
+            beams[0], beams[1]);
   }
 
   /**
@@ -1189,7 +1198,7 @@ void MsGridderData::CorrectInstrumentalVisibilities(size_t n_antennas,
     assert(!settings_.facetRegionFilename.empty());
     size_t time_offset = visibility_modifier_.GetTimeOffset(original_ms_index_);
     visibility_modifier_.CacheParmResponse(time, bands, original_ms_index_, time_offset);
-    visibility_modifier_.ApplyParmResponseWithTime<Mode>(
+    visibility_modifier_.ApplyParmResponseForRowWithTime<Mode>(
         buffer, original_ms_index_, bands[data_desc_id].ChannelCount(), data_desc_id, n_antennas,
         antenna1, antenna2, time_offset);
     visibility_modifier_.SetTimeOffset(original_ms_index_, time_offset);
