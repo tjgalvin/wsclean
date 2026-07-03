@@ -19,7 +19,7 @@ inline std::vector<uint32_t> MakeChannelInterpolationTableRow(const aocommon::Ba
   assert(n_from_channels > 0 || n_to_channels == 0);
 
   size_t from_channel = 0;
-  std::vector<uint32_t> table_row(n_from_channels);
+  std::vector<uint32_t> table_row(n_to_channels);
   for (size_t to_channel = 0; to_channel != n_to_channels; ++to_channel) {
     // Continue increasing from_channel when the next channel is closer to the
     // destination channel.
@@ -35,7 +35,7 @@ inline std::vector<uint32_t> MakeChannelInterpolationTableRow(const aocommon::Ba
       }
       at_end = from_channel + 1 >= n_from_channels;
     }
-    table_row[from_channel] = to_channel;
+    table_row[to_channel] = from_channel;
   }
   return table_row;
 }
@@ -103,9 +103,7 @@ inline void InterpolateRowChannels(std::span<uint32_t> channel_interpolation_tab
                                    std::span<const ValueType> from, std::span<ValueType> to,
                                    size_t n_values_per_channel) {
   const size_t n_to_channels = channel_interpolation_table_row.size();
-  // The 'from' band should not be empty, unless the to_band is also empty (in
-  // which case the function does nothing).
-  assert(from.size() > 0 || n_to_channels == 0);
+  assert(from.size() >= n_to_channels * n_values_per_channel);
   assert(to.size() >= n_to_channels * n_values_per_channel);
 
   const ValueType* from_ptr = from.data();
@@ -124,9 +122,7 @@ template <typename ValueType>
 inline void InterpolateRowChannels(std::span<uint32_t> channel_interpolation_table_row,
                                    std::span<const ValueType> from, std::span<ValueType> to) {
   const size_t n_to_channels = channel_interpolation_table_row.size();
-  // The 'from' band should not be empty, unless the to_band is also empty (in
-  // which case the function does nothing).
-  assert(from.size() > 0 || n_to_channels == 0);
+  assert(from.size() >= n_to_channels);
   assert(to.size() >= n_to_channels);
 
   for (size_t to_channel = 0; to_channel != n_to_channels; ++to_channel) {
