@@ -39,6 +39,7 @@ set(RADLER_CXX_FLAGS
     " "
     CACHE STRING "Extra C++ flags used for compiling Radler")
 
+set(AOCOMMON_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/aocommon/include/")
 set(ExternalSubmoduleDirectories aocommon radler schaapcommon)
 
 find_package(pybind11 CONFIG REQUIRED)
@@ -80,7 +81,7 @@ endif()
 include(external/aocommon/CMake/SetTargetCPU.cmake)
 
 # Include aocommon.
-include_directories("${CMAKE_SOURCE_DIR}/external/aocommon/include/")
+include_directories("${AOCOMMON_INCLUDE_DIR}")
 
 # Schaapcommon
 set(SCHAAPCOMMON_MODULES

@@ -6,7 +6,8 @@ add_executable(
   tserialization.cpp
   gridding/taveragecorrection.cpp
   gridding/tgriddingutils.cpp
-  gridding/tvisibilitymodifier.cpp
+  gridding/tvisibilitymodifier_regular.cpp
+  gridding/tvisibilitymodifier_bda.cpp
   idg/taveragebeam.cpp
   interface/twsclean.cpp
   io/tcachedimageset.cpp

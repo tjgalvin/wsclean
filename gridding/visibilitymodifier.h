@@ -206,7 +206,7 @@ class VisibilityModifier {
    * @param beam_response vector of n_channels * n_stations * 4 gain elements.
    * @param parm_response vector of n_channels * n_stations * 2
    */
-  void InitializeMockResponse(size_t n_channels, size_t n_stations, size_t data_desc_id,
+  void InitializeMockResponse(size_t n_stations, const aocommon::MultiBandData& bands,
                               const std::vector<aocommon::MC2x2F>& beam_response,
                               const std::vector<std::complex<float>>& parm_response);
 

@@ -29,7 +29,11 @@ constexpr float kWeights[kNPolarizations * kNChannels] = {1.0, 1.0};
 constexpr float kImageWeights[kNChannels] = {1.0};
 const std::vector<aocommon::ChannelInfo> kChannels(kNChannels, aocommon::ChannelInfo(150e6, 1e6));
 const aocommon::BandData kBand(kChannels, 150e6);
-
+const aocommon::MultiBandData kBands = []() -> aocommon::MultiBandData {
+  aocommon::MultiBandData bands;
+  bands.SetBand(kDataDescId, kBand);
+  return bands;
+}();
 }  // namespace
 
 template <size_t NTerms>
@@ -54,8 +58,7 @@ struct ModifierFixture {
     gain_types.push_back(NTerms == 2 ? schaapcommon::h5parm::GainType::kDiagonalComplex
                                      : schaapcommon::h5parm::GainType::kFullJones);
     modifier.SetH5Parm(dummy_h5parms, dummy_solutions, dummy_solutions, gain_types);
-    modifier.InitializeMockResponse(kNChannels, kNStations, kDataDescId, beam_response,
-                                    parm_response);
+    modifier.InitializeMockResponse(kNStations, kBands, beam_response, parm_response);
   }
 
   void CheckClose(std::complex<float> a, std::complex<float> b) {
@@ -172,8 +175,7 @@ BOOST_AUTO_TEST_CASE(get_beam_response_for_row) {
       1.0, 0.0, 0.0, 1.0   // antenna 2
   };
   VisibilityModifier modifier;
-  modifier.InitializeMockResponse(kNChannels, kNStations, kDataDescId, beam_response,
-                                  gain_response);
+  modifier.InitializeMockResponse(kNStations, kBands, beam_response, gain_response);
   auto [gains1, gains2] = modifier.GetBeamResponseForRow(kDataDescId, kAntenna1, kAntenna2);
   for (size_t ch = 0; ch != kNChannels; ++ch) {
     BOOST_CHECK_CLOSE_FRACTION(gains1[ch].Get(0).real(), 5.0, 1e-5);
@@ -193,8 +195,7 @@ BOOST_AUTO_TEST_CASE(get_beam_response_for_visibility) {
       1.0, 0.0, 0.0, 1.0   // antenna 2
   };
   VisibilityModifier modifier;
-  modifier.InitializeMockResponse(kNChannels, kNStations, kDataDescId, beam_response,
-                                  gain_response);
+  modifier.InitializeMockResponse(kNStations, kBands, beam_response, gain_response);
   const BeamResponseMap& map = modifier.GetCachedBeamResponse();
   constexpr size_t kChannelIndex = 0;
   const auto [gains1, gains2] =
@@ -203,6 +204,57 @@ BOOST_AUTO_TEST_CASE(get_beam_response_for_visibility) {
   BOOST_CHECK_CLOSE_FRACTION(gains1.Get(3).real(), 6.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(gains2.Get(0).real(), 7.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(gains2.Get(3).real(), 8.0, 1e-5);
+}
+
+BOOST_AUTO_TEST_CASE(get_solution_response_for_row) {
+  const std::vector<aocommon::MC2x2F> beam_response = {
+      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0),  // antenna 1
+      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0)   // antenna 2
+  };
+  const std::vector<std::complex<float>> gain_response = {
+      2.0, 0.0, 0.0, 3.0,  // antenna 1
+      4.0, 0.0, 0.0, 5.0   // antenna 2
+  };
+  VisibilityModifier modifier;
+  std::vector<schaapcommon::h5parm::GainType> gain_types{
+      schaapcommon::h5parm::GainType::kFullJones};
+  modifier.SetH5Parm({}, {}, {}, gain_types);
+  modifier.InitializeMockResponse(kNStations, kBands, beam_response, gain_response);
+  constexpr size_t kNParms = 4;
+  auto [gains1, gains2] = modifier.GetParmResponseForRow(kMsIndex, kDataDescId, kNStations,
+                                                         kAntenna1, kAntenna2, kTimeOffset);
+  for (size_t ch = 0; ch != kNChannels; ++ch) {
+    BOOST_CHECK_CLOSE_FRACTION(gains1[ch * kNParms + 0].real(), 2.0, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(gains1[ch * kNParms + 3].real(), 3.0, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(gains2[ch * kNParms + 0].real(), 4.0, 1e-5);
+    BOOST_CHECK_CLOSE_FRACTION(gains2[ch * kNParms + 3].real(), 5.0, 1e-5);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(get_solution_response_for_visibility) {
+  const std::vector<aocommon::MC2x2F> beam_response = {
+      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0),  // antenna 1
+      aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0)   // antenna 2
+  };
+  const std::vector<std::complex<float>> gain_response = {
+      2.0, 0.0, 0.0, 3.0,  // antenna 1
+      4.0, 0.0, 0.0, 5.0   // antenna 2
+  };
+  VisibilityModifier modifier;
+  std::vector<schaapcommon::h5parm::GainType> gain_types{
+      schaapcommon::h5parm::GainType::kFullJones};
+  modifier.SetH5Parm({}, {}, {}, gain_types);
+  modifier.InitializeMockResponse(kNStations, kBands, beam_response, gain_response);
+  const SolutionsResponseMap& map = modifier.GetCachedParmResponse(kMsIndex);
+  constexpr size_t kChannelIndex = 0;
+  constexpr size_t kNParms = 4;
+  const auto [gains1, gains2] = modifier.GetParmResponseForVisibility<kNParms>(
+      map[kDataDescId].data(), kDataDescId, kNStations, kAntenna1, kAntenna2, kChannelIndex,
+      kTimeOffset);
+  BOOST_CHECK_CLOSE_FRACTION(gains1[0].real(), 2.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains1[3].real(), 3.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2[0].real(), 4.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2[3].real(), 5.0, 1e-5);
 }
 
 BOOST_AUTO_TEST_CASE(apply_unit_beam) {
@@ -217,8 +269,7 @@ BOOST_AUTO_TEST_CASE(apply_unit_beam) {
       1.0, 0.0, 0.0, 1.0   // antenna 2
   };
   VisibilityModifier modifier;
-  modifier.InitializeMockResponse(kNChannels, kNStations, kDataDescId, beam_response,
-                                  gain_response);
+  modifier.InitializeMockResponse(kNStations, kBands, beam_response, gain_response);
   std::complex<float> data[] = {kXx, kYy};
   modifier.ApplyConjugatedBeamResponseForRow<ModifierBehaviour::kApplyAndSum,
                                              GainMode::k2VisDiagonal, false>(

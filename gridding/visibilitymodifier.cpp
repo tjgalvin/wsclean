@@ -121,28 +121,35 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
 }
 
 void VisibilityModifier::InitializeMockResponse(
-    size_t n_channels, size_t n_stations, size_t data_desc_id,
+    size_t n_stations, const aocommon::MultiBandData& bands,
     const std::vector<aocommon::MC2x2F>& beam_response,
     const std::vector<std::complex<float>>& parm_response) {
   n_stations_ = n_stations;
+  size_t n_channels = bands.MaxBandChannels();
   assert(beam_response.size() == n_channels * n_stations);
   assert(parm_response.size() == n_channels * n_stations * 2 ||
          parm_response.size() == n_channels * n_stations * 4);
+  const size_t n_parms = parm_response.size() / (n_channels * n_stations);
+  constexpr size_t kMSIndex = 0;
+  SolutionsResponseMap& ms_parm_response =
+      _cachedParmResponse.emplace(kMSIndex, SolutionsResponseMap()).first->second;
+
+  std::vector<std::vector<uint32_t>> interpolation_table(bands.HighestBandId() + 1);
+  uses_frequency_bda_ = bands.BandCount() > 1;
+  const size_t data_desc_id = uses_frequency_bda_ ? 0 : bands.DataDescIdWithMaxChannels();
 #ifdef HAVE_EVERYBEAM
   std::vector<aocommon::MC2x2F>& band_beam_response =
       _cachedBeamResponse.AlwaysEmplace(data_desc_id);
   band_beam_response.assign(beam_response.begin(), beam_response.end());
 #endif
-  SolutionsResponseMap& band_parm_response =
-      _cachedParmResponse.emplace(0, SolutionsResponseMap()).first->second;
-  band_parm_response.AlwaysEmplace(data_desc_id) = parm_response;
+  ms_parm_response.AlwaysEmplace(data_desc_id) = parm_response;
+
+  channel_interpolation_table_ = MakeChannelInterpolationTable(bands);
   time_offsets_ = {std::pair(0, 0)};
 
-  std::vector<std::vector<uint32_t>> interpolation_table(data_desc_id + 1);
-  std::vector<uint32_t>& interpolation_row = interpolation_table[data_desc_id];
-  interpolation_row.resize(n_channels);
-  std::iota(interpolation_row.begin(), interpolation_row.end(), 0);
-  channel_interpolation_table_ = aocommon::JaggedArray<uint32_t>(interpolation_table);
+  n_full_resolution_channels_ = n_channels;
+  interpolated_beam_scratch_.Resize(n_full_resolution_channels_);
+  interpolated_solutions_scratch_.Resize(n_full_resolution_channels_ * n_parms);
 }
 
 void VisibilityModifier::InitializeCacheParmResponseForDataDescId(
