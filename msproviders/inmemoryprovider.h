@@ -48,8 +48,6 @@ class InMemoryProvider final : public MSProvider {
 
   size_t NRows() final { return data_.rows.size(); }
 
-  double Interval() final { return data_.info->interval; }
-
   ObservationInfo GetObservationInfo() final { return data_.info->observation_info; }
 
   std::vector<std::string> GetAntennaNames() final { return data_.info->antenna_names; }

@@ -49,6 +49,8 @@ class ReorderedMsReader final : public MSReader {
   bool has_data_ = false;
   bool has_weights_ = false;
 
+  double interval_ = 0.0;
+
   std::ifstream meta_file_;
   std::ifstream weight_file_;
   std::ifstream data_file_;

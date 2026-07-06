@@ -82,6 +82,7 @@ struct PredictionChunkData {
         field_ids(n_rows),
         data_desc_ids(n_rows),
         times(n_rows),
+        intervals(n_rows),
         uvws(n_rows * 3) {}
   PredictionChunkData() = default;
   aocommon::UVector<size_t> antennas1;
@@ -89,6 +90,7 @@ struct PredictionChunkData {
   aocommon::UVector<size_t> field_ids;
   aocommon::UVector<size_t> data_desc_ids;
   aocommon::UVector<double> times;
+  aocommon::UVector<double> intervals;
   aocommon::UVector<double> uvws;
   size_t n_rows = 0;
 };

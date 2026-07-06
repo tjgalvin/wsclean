@@ -25,7 +25,6 @@ std::shared_ptr<InMemoryInfo> GetInMemoryInfo(InMemoryMs& data) {
   std::shared_ptr<InMemoryInfo> meta_data = std::make_shared<InMemoryInfo>();
   meta_data->antenna_names = std::move(data.antenna_names);
   meta_data->has_frequency_bda = data.has_frequency_bda;
-  meta_data->interval = data.interval;
   meta_data->observation_info.fieldName = data.field_name;
   meta_data->observation_info.observer = data.observer;
   meta_data->observation_info.phaseCentreDec = data.phase_centre_dec;
@@ -89,6 +88,7 @@ InMemoryHandle ReorderInMemory(InMemoryMs&& data,
     meta_data.data_desc_id = row.data_desc_id;
     meta_data.field_id = row.field_id;
     meta_data.time = row.time;
+    meta_data.interval = row.interval;
     meta_data.u_in_m = row.uvw[0];
     meta_data.v_in_m = row.uvw[1];
     meta_data.w_in_m = row.uvw[2];

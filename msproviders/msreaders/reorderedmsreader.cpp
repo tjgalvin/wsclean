@@ -1,4 +1,6 @@
 #include "reorderedmsreader.h"
+
+#include "../operations.h"
 #include "../reorderedmsprovider.h"
 
 namespace wsclean {
@@ -38,6 +40,8 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms) : MSRead
     metadata_.data_desc_id = *reordered_ms->meta_header_.data_desc_id;
   }
   CacheMeta();
+
+  interval_ = GetMsInterval(*reordered_ms->MS());
 }
 
 inline uint64_t ReorderedMsReader::NVisibilitiesPerRow(size_t data_desc_id) const {
@@ -85,6 +89,7 @@ void ReorderedMsReader::CacheMeta() {
     metadata_.antenna1 = record.antenna1;
     metadata_.antenna2 = record.antenna2;
   }
+  metadata_.interval = interval_;
 }
 
 void ReorderedMsReader::ReadData(std::complex<float>* buffer) {

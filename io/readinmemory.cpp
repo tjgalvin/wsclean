@@ -38,13 +38,10 @@ void ReadMsMetaData(casacore::MeasurementSet& ms, InMemoryMs& result,
   result.has_time_bda = false;
 
   casacore::ScalarColumn<double> time_column(ms, ms.columnName(ms.TIME));
-  casacore::ScalarColumn<double> interval_column(ms, ms.columnName(ms.INTERVAL));
   if (ms.nrow() == 0) {
     result.start_time = 0.0;
-    result.interval = 0.0;
   } else {
     result.start_time = time_column(0);
-    result.interval = interval_column(0);
   }
 }
 
@@ -60,6 +57,7 @@ std::vector<InMemoryRow> ReadMsRows(casacore::MeasurementSet& ms,
   casacore::ScalarColumn<int> data_desc_id_column(ms, ms.columnName(ms.DATA_DESC_ID));
   casacore::ScalarColumn<int> field_id_column(ms, ms.columnName(ms.FIELD_ID));
   casacore::ScalarColumn<double> time_column(ms, ms.columnName(ms.TIME));
+  casacore::ScalarColumn<double> interval_column(ms, ms.columnName(ms.INTERVAL));
   casacore::ArrayColumn<double> uvw_column(ms, ms.columnName(ms.UVW));
 
   casacore::Array<std::complex<float>> data_array;
@@ -80,6 +78,7 @@ std::vector<InMemoryRow> ReadMsRows(casacore::MeasurementSet& ms,
     const int antenna1 = antenna1_column(row_index);
     const int antenna2 = antenna2_column(row_index);
     const int field_id = field_id_column(row_index);
+    const double interval = interval_column(row_index);
     uvw_column.get(row_index, uvw, false);
 
     const double next_time = time_column(row_index);
@@ -103,6 +102,7 @@ std::vector<InMemoryRow> ReadMsRows(casacore::MeasurementSet& ms,
       row.data_desc_id = data_desc_id_column(row_index);
       row.field_id = field_id;
       row.time = time;
+      row.interval = interval;
       std::copy_n(uvw.cbegin(), 3, row.uvw.begin());
     }
   }

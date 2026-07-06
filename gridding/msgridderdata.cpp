@@ -34,7 +34,7 @@ void MsGridderData::StartMeasurementSet(size_t ms_count,
     aocommon::ImageCoordinates::RaDecToLM(facet_ra, facet_dec, phase_centre_ra, phase_centre_dec, l,
                                           m);
     visibility_modifier_.InitializeTimeFrequencySmearing(ms_data.ms_provider->GetObservationInfo(),
-                                                         ms_data.ms_provider->Interval(), l, m);
+                                                         l, m);
   }
   if (visibility_modifier_.HasH5Parm()) {
     visibility_modifier_.InitializeCacheParmResponse(

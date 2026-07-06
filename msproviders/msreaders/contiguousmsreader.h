@@ -34,6 +34,7 @@ class ContiguousMSReader final : public MSReader {
   size_t _currentInputTimestep;
   double _currentInputTime;
   size_t _currentRowId;
+  double interval_;
 
   bool _isDataRead, _isModelRead, _isWeightRead;
   std::unique_ptr<casacore::ArrayColumn<float>> _imagingWeightsColumn;

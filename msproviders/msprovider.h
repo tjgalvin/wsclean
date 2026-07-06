@@ -54,6 +54,7 @@ class MSProvider {
     double v_in_m;
     double w_in_m;
     double time;
+    double interval;
     uint32_t data_desc_id;
     uint32_t field_id;
     uint32_t antenna1;
@@ -162,13 +163,6 @@ class MSProvider {
   virtual size_t NPolarizations() = 0;
 
   virtual size_t NRows() = 0;
-
-  /**
-   * Integration time of one timestep, in seconds. If time BDA is used, then it
-   * should return the shortest interval (i.e. interval for the longest
-   * baseline).
-   */
-  virtual double Interval() = 0;
 
   virtual ObservationInfo GetObservationInfo() = 0;
 

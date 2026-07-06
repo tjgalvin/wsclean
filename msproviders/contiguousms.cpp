@@ -216,8 +216,6 @@ bool ContiguousMS::IsRegular() const {
   return n_data_desc_ids <= 1;
 }
 
-double ContiguousMS::Interval() { return GetMsInterval(*_ms); }
-
 ObservationInfo ContiguousMS::GetObservationInfo() {
   return ReadObservationInfo(*_ms, selection_.FieldIds().front());
 }

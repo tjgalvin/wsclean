@@ -197,8 +197,8 @@ class VisibilityModifier {
                                const aocommon::MultiBandData& bands, const std::string& data_column,
                                const std::string& mwa_path);
 
-  void InitializeTimeFrequencySmearing(const ObservationInfo& observation_info, double interval,
-                                       double l_shift, double m_shift);
+  void InitializeTimeFrequencySmearing(const ObservationInfo& observation_info, double l_shift,
+                                       double m_shift);
 
   /**
    * A function that initializes this visibility modifier for testing. After
@@ -347,7 +347,7 @@ class VisibilityModifier {
                                        size_t n_channels, size_t data_desc_id, size_t n_antennas,
                                        size_t antenna1, size_t antenna2, size_t time_offset);
 
-  void ApplyTimeFrequencySmearing(std::complex<float>* data, const double* uvw,
+  void ApplyTimeFrequencySmearing(std::complex<float>* data, const double* uvw, double interval,
                                   const aocommon::BandData& band, size_t n_pol_per_vis) const;
 
   void SetMSTimes(size_t ms_index, std::shared_ptr<std::vector<double>> times) {
@@ -900,7 +900,8 @@ class VisibilityModifier {
   AverageCorrection correction_sum_;
   AverageCorrection beam_correction_sum_;
   // See InitializeTimeFrequencySmearing() for info
-  double scaled_ncp_uvw_[3];
+  double cos_phase_centre_dec_;
+  double sin_phase_centre_dec_;
   // The dl, dm position, and corresponding dn value, for calculating smearing corrections.
   double dlmn_[3];
   bool uses_frequency_bda_ = false;
@@ -988,9 +989,26 @@ inline double Sinc(double x) { return std::abs(x) < 1e-6 ? 1.0 : std::sin(x) / x
 }  // namespace internal
 
 inline void VisibilityModifier::ApplyTimeFrequencySmearing(std::complex<float>* data,
-                                                           const double* uvw,
+                                                           const double* uvw, double interval,
                                                            const aocommon::BandData& band,
                                                            size_t n_pol_per_vis) const {
+  /**
+   * Length of a sidereal day in seconds.
+   */
+  constexpr double kSiderealDay = 86164.0905;
+  constexpr double kSpeedFactor = 2.0 * M_PI / kSiderealDay;
+
+  const double angular_speed = interval * kSpeedFactor;
+
+  // scaled_ncp_uvw is initialized with the NCP for epoch J2000.
+  // The expression is simpler than for the the current epoch (of the
+  // observation). The first element is zero and that is currently assumed where
+  // scaled_ncp_uvw_ is used. If the initialization here is modified to the more
+  // accurate current epoch with a non-zero first element, please update the
+  // usage as well
+  const double scaled_ncp_uvw[3]{0.0, angular_speed * cos_phase_centre_dec_,
+                                 angular_speed * sin_phase_centre_dec_};
+
   using internal::Sinc;
   if (dlmn_[0] != 0.0 || dlmn_[1] != 0.0) {
     const double smearing_factor_frequency =
@@ -1003,9 +1021,9 @@ inline void VisibilityModifier::ApplyTimeFrequencySmearing(std::complex<float>* 
     // these terms need to be uncommented, because then they are non-zero.
     const double delta_time =
         M_PI *
-        (dlmn_[0] * (uvw[1] * scaled_ncp_uvw_[2] - uvw[2] * scaled_ncp_uvw_[1]) +
-         dlmn_[1] * (/* uvw[2] * scaled_ncp_uvw_[0] */ -uvw[0] * scaled_ncp_uvw_[2]) +
-         dlmn_[2] * (uvw[0] * scaled_ncp_uvw_[1] /* - uvw[1] * scaled_ncp_uvw_[0] */)) /
+        (dlmn_[0] * (uvw[1] * scaled_ncp_uvw[2] - uvw[2] * scaled_ncp_uvw[1]) +
+         dlmn_[1] * (/* uvw[2] * scaled_ncp_uvw[0] */ -uvw[0] * scaled_ncp_uvw[2]) +
+         dlmn_[2] * (uvw[0] * scaled_ncp_uvw[1] /* - uvw[1] * scaled_ncp_uvw[0] */)) /
         aocommon::kSpeedOfLight;
 
     const size_t n_channels = band.ChannelCount();

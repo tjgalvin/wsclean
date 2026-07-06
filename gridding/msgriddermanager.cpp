@@ -286,7 +286,7 @@ void ExpandAndCombineFacetVisibilities(
     size_t n_antennas, size_t n_channels, size_t n_rows, size_t n_vis_polarizations,
     const aocommon::MultiBandData& bands, const size_t* data_desc_ids, const size_t* antennas1,
     const size_t* antennas2, const size_t* field_ids, const double* times, const double* uvw,
-    const std::complex<float>* facet_visibilities, MsGridder& gridder,
+    const double* intervals, const std::complex<float>* facet_visibilities, MsGridder& gridder,
     std::complex<float>* combined_visibilities, CacheAlignedMutex* sum_visibilities_mutexes,
     size_t mutex_chunk_size) {
   aocommon::UVector<std::complex<float>> visibilities_scratch(n_channels * n_vis_polarizations);
@@ -310,8 +310,8 @@ void ExpandAndCombineFacetVisibilities(
           break;
       }
       gridder.CorrectInstrumentalVisibilities(n_antennas, bands, *data_desc_ids,
-                                              visibilities_scratch.data(), uvw, *field_ids,
-                                              *antennas1, *antennas2, *times);
+                                              visibilities_scratch.data(), uvw, *intervals,
+                                              *field_ids, *antennas1, *antennas2, *times);
 
       // In case the value was not sampled in this pass, it has been set to
       // infinite and should not overwrite the current value in the set.
@@ -330,6 +330,7 @@ void ExpandAndCombineFacetVisibilities(
       antennas1++;
       antennas2++;
       times++;
+      intervals++;
     }
   }
 }
@@ -360,8 +361,9 @@ void PredictChunkForFacet(MsGridder& gridder, size_t facet_index,
       n_antennas, n_channels, chunk_data.n_rows, n_vis_polarizations,
       ms_data.ms_provider->SelectedBands(), chunk_data.data_desc_ids.data(),
       chunk_data.antennas1.data(), chunk_data.antennas2.data(), chunk_data.field_ids.data(),
-      chunk_data.times.data(), chunk_data.uvws.data(), facet_visibilities.data(), gridder,
-      combined_visibilities.data(), sum_visibilities_mutexes, mutex_chunk_size);
+      chunk_data.times.data(), chunk_data.intervals.data(), chunk_data.uvws.data(),
+      facet_visibilities.data(), gridder, combined_visibilities.data(), sum_visibilities_mutexes,
+      mutex_chunk_size);
 
   Logger::Info << "Done predicting facet " + std::to_string(facet_index) + "\n";
 }
@@ -704,7 +706,8 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
           chunk_view_out.uvws_[2] = row_view_in.metadata_->w_in_m;
 
           shared_data.ModifyVisibilities<true>(row_view_in.visibilities_, chunk_view_out.uvws_,
-                                               band, row_view_in.model_);
+                                               row_view_in.metadata_->interval, band,
+                                               row_view_in.model_);
           shared_data.CalculateWeights(row_view_in.weights_, image_weights_temp.data(),
                                        chunk_view_out.uvws_, band, selected_buffer);
 

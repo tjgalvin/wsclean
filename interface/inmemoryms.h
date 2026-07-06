@@ -34,6 +34,11 @@ struct InMemoryRow {
   std::vector<float> weights;
   std::array<double, 3> uvw{0.0, 0.0, 0.0};
   double time = 0.0;
+  /**
+   * Number of seconds that this visibility integrates over. It is
+   * used for determining time-smearing (only when explicitly enabled).
+   */
+  double interval = 0.0;
   uint32_t data_desc_id = 0;
   uint32_t field_id = 0;
   uint32_t antenna1 = 0;
@@ -103,12 +108,6 @@ struct InMemoryMs {
    * Copied to output FITS files, time in MJD seconds.
    */
   double start_time = 0.0;
-  /**
-   * Number of seconds between adjacent timesteps. Only relevant when
-   * no time-direction baseline-dependent averaging is used. It is
-   * used for determining time-smearing (only when explicitly enabled).
-   */
-  double interval = 0.0;
 };
 
 }  // namespace wsclean

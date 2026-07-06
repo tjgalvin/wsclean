@@ -142,8 +142,6 @@ void ReorderedMsProvider::ResetModelColumn() {
   model_file_ = MappedFile(model_file_path_);
 }
 
-double ReorderedMsProvider::Interval() { return GetMsInterval(*MS()); }
-
 ObservationInfo ReorderedMsProvider::GetObservationInfo() {
   return ReadObservationInfo(*MS(), handle_.data_->selection_.FieldIds().front());
 }

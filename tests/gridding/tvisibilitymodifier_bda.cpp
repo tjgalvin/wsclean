@@ -3,6 +3,7 @@
 #include <boost/mpl/list.hpp>
 
 #include "../../gridding/visibilitymodifier.h"
+#include "../../structures/observationinfo.h"
 
 namespace wsclean {
 
@@ -130,6 +131,48 @@ BOOST_AUTO_TEST_CASE(get_solution_response_for_bda_row) {
   // Second antenna, channel 1 is interpolated from channel 3
   BOOST_CHECK_CLOSE_FRACTION(gains_c2[4].real(), 8.0, 1e-5);
   BOOST_CHECK_CLOSE_FRACTION(gains_c2[7].real(), 9.0, 1e-5);
+}
+
+BOOST_AUTO_TEST_CASE(apply_smearing) {
+  ObservationInfo observation_info;
+  observation_info.phaseCentreDec = 0.5 * M_PI;
+  observation_info.phaseCentreRA = 0.0;
+
+  std::vector<aocommon::ChannelInfo> channels{kChannels[0], kChannels[1], kChannels[2],
+                                              kChannels[3]};
+  const aocommon::BandData band(channels, kChannels[0].Frequency());
+
+  constexpr size_t kNPol = 2;
+  std::vector<std::complex<float>> data(kNPol * band.ChannelCount(), 1.0);
+  const double uvw[3] = {4000.0, 1000.0, 0.0};
+
+  VisibilityModifier modifier;
+  // This will correct for the phase centre, so there is no smearing
+  modifier.InitializeTimeFrequencySmearing(observation_info, 0.0, 0.0);
+
+  constexpr double kInterval1 = 400.0;
+  modifier.ApplyTimeFrequencySmearing(data.data(), uvw, kInterval1, band, 2);
+
+  for (std::complex<float> v : data) {
+    BOOST_CHECK_CLOSE_FRACTION(v.real(), 1.0f, 1e-5);
+  }
+
+  // Move a few 1/100s of radians away to observe some smearing
+  modifier.InitializeTimeFrequencySmearing(observation_info, 0.02, 0.01);
+  modifier.ApplyTimeFrequencySmearing(data.data(), uvw, kInterval1, band, 2);
+  constexpr float kExpected1[4] = {0.742889881, 0.741412997, 0.739928067, 0.73843509};
+  for (size_t i = 0; i != data.size(); ++i) {
+    BOOST_CHECK_CLOSE_FRACTION(data[i].real(), kExpected1[i / kNPol], 1e-5);
+  }
+
+  // Same test, but using a smaller interval to make sure smearing decreases
+  data.assign(data.size(), 1.0f);
+  constexpr double kInterval2 = 50.0;
+  modifier.ApplyTimeFrequencySmearing(data.data(), uvw, kInterval2, band, 2);
+  constexpr float kExpected2[4] = {0.856328249, 0.856303155, 0.856277883, 0.856252432};
+  for (size_t i = 0; i != data.size(); ++i) {
+    BOOST_CHECK_CLOSE_FRACTION(data[i].real(), kExpected2[i / kNPol], 1e-5);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

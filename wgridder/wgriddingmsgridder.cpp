@@ -374,8 +374,8 @@ size_t WGriddingMSGridder::PredictRegularMeasurementSet(
       WriteCollapsedVisibilities(
           *ms_data.ms_provider, ms_data.antenna_names.size(), metadata_buffer[row].data_desc_id,
           &visibility_buffer[row * selected_band.ChannelCount()], &uvw_buffer[row * 3],
-          metadata_buffer[row].field_id, metadata_buffer[row].antenna1,
-          metadata_buffer[row].antenna2, metadata_buffer[row].time);
+          metadata_buffer[row].interval, metadata_buffer[row].field_id,
+          metadata_buffer[row].antenna1, metadata_buffer[row].antenna2, metadata_buffer[row].time);
     }
     n_total_rows_written += n_chunk_rows_read;
   }  // end of chunk
@@ -437,10 +437,10 @@ size_t WGriddingMSGridder::PredictBdaMeasurementSet(const MsProviderCollection::
       // The uvw_buffer has scaled uvws, so reload them from the metadata
       const double uvw[3] = {metadata_buffer[row].u_in_m, metadata_buffer[row].v_in_m,
                              metadata_buffer[row].w_in_m};
-      WriteCollapsedVisibilities(*ms_data.ms_provider, ms_data.antenna_names.size(),
-                                 metadata_buffer[row].data_desc_id, visibility_ptr, uvw,
-                                 metadata_buffer[row].field_id, metadata_buffer[row].antenna1,
-                                 metadata_buffer[row].antenna2, metadata_buffer[row].time);
+      WriteCollapsedVisibilities(
+          *ms_data.ms_provider, ms_data.antenna_names.size(), metadata_buffer[row].data_desc_id,
+          visibility_ptr, uvw, metadata_buffer[row].interval, metadata_buffer[row].field_id,
+          metadata_buffer[row].antenna1, metadata_buffer[row].antenna2, metadata_buffer[row].time);
       const aocommon::BandData& band = selected_bands[metadata_buffer[row].data_desc_id];
       visibility_ptr += band.ChannelCount();
     }

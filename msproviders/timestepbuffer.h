@@ -55,8 +55,6 @@ class TimestepBuffer final : public MSProvider {
 
   size_t NRows() final { return ms_provider_->NRows(); }
 
-  double Interval() final { return ms_provider_->Interval(); }
-
   ObservationInfo GetObservationInfo() final { return ms_provider_->GetObservationInfo(); }
 
   std::vector<std::string> GetAntennaNames() final { return ms_provider_->GetAntennaNames(); }

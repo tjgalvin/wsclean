@@ -34,7 +34,6 @@ BOOST_AUTO_TEST_CASE(read_write) {
   data.info = std::make_shared<InMemoryInfo>();
   data.info->antenna_names = kAntennas;
   data.info->has_frequency_bda = true;
-  data.info->interval = kInterval;
   data.info->observation_info = GetObservationInfo();
   data.info->start_time = kStartTime;
   data.is_regular = false;
@@ -59,6 +58,7 @@ BOOST_AUTO_TEST_CASE(read_write) {
   meta0.u_in_m = -300.0;
   meta0.v_in_m = 400.0;
   meta0.w_in_m = -500.0;
+  meta0.interval = kInterval;
   data.meta_data->emplace_back(meta0);
 
   MSProvider::MetaData meta2 = meta0;
@@ -102,7 +102,6 @@ BOOST_AUTO_TEST_CASE(read_write) {
   InMemoryProvider provider(data);
   BOOST_CHECK(provider.GetAntennaNames() == kAntennas);
   BOOST_CHECK(provider.GetObservationInfo() == GetObservationInfo());
-  BOOST_CHECK_EQUAL(provider.Interval(), kInterval);
   BOOST_CHECK_EQUAL(provider.NAntennas(), kAntennas.size());
   BOOST_CHECK_EQUAL(provider.NMaxChannels(), 3);
   BOOST_CHECK_EQUAL(provider.NPolarizations(), 2);
@@ -148,6 +147,7 @@ BOOST_AUTO_TEST_CASE(read_write) {
   reader->ReadMeta(metadata);
   BOOST_CHECK_EQUAL(metadata.antenna1, 0);
   BOOST_CHECK_EQUAL(metadata.antenna2, 1);
+  BOOST_CHECK_EQUAL(metadata.interval, kInterval);
   reader->NextInputRow();
 
   BOOST_REQUIRE(reader->CurrentRowAvailable());

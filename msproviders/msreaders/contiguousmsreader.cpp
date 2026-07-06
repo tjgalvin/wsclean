@@ -20,6 +20,7 @@ ContiguousMSReader::ContiguousMSReader(ContiguousMS* contiguousms)
       _isModelRead(false),
       _isWeightRead(false),
       _imagingWeightsColumn() {
+  interval_ = GetMsInterval(*contiguousms->_ms);
   if (contiguousms->selection_.HasInterval())
     _currentInputTimestep = contiguousms->selection_.IntervalStart() - 1;
   NextInputRow();
@@ -102,6 +103,7 @@ void ContiguousMSReader::ReadMeta(MSProvider::MetaData& metadata) {
   metadata.v_in_m = uvwArray(1);
   metadata.w_in_m = uvwArray(2);
   metadata.time = contiguousms._timeColumn(_currentInputRow);
+  metadata.interval = interval_;
   metadata.data_desc_id = contiguousms._dataDescIdColumn(_currentInputRow);
   metadata.field_id = contiguousms._fieldIdColumn(_currentInputRow);
   metadata.antenna1 = contiguousms._antenna1Column(_currentInputRow);

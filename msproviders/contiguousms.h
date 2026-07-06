@@ -68,8 +68,6 @@ class ContiguousMS final : public MSProvider {
 
   const aocommon::MultiBandData& SelectedBands() final { return selected_bands_; }
 
-  double Interval() final;
-
   ObservationInfo GetObservationInfo() final;
 
   std::vector<std::string> GetAntennaNames() final;

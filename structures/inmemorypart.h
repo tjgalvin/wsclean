@@ -36,7 +36,6 @@ struct InMemoryPartRow {
 
 struct InMemoryInfo {
   double start_time;
-  double interval;
   std::vector<std::string> antenna_names;
   bool has_frequency_bda;
   ObservationInfo observation_info;

@@ -46,24 +46,9 @@ void internal::TransposeAntennaChannelDimensions(const std::complex<float>* sour
 }
 
 void VisibilityModifier::InitializeTimeFrequencySmearing(const ObservationInfo& observation_info,
-                                                         double interval, double l_shift,
-                                                         double m_shift) {
-  /**
-   * Length of a sidereal day in seconds.
-   */
-  constexpr double kSiderealDay = 86164.0905;
-
-  const double angular_speed = 2 * M_PI * interval / kSiderealDay;
-
-  // scaled_ncp_uvw_ is initialized with the NCP for epoch J2000.
-  // The expression is simpler than for the the current epoch (of the
-  // observation). The first element is zero and that is currently assumed where
-  // scaled_ncp_uvw_ is used. If the initialization here is modified to the more
-  // accurate current epoch with a non-zero first element, please update the
-  // usage as well
-  scaled_ncp_uvw_[0] = 0.0;
-  scaled_ncp_uvw_[1] = angular_speed * std::cos(observation_info.phaseCentreDec);
-  scaled_ncp_uvw_[2] = angular_speed * std::sin(observation_info.phaseCentreDec);
+                                                         double l_shift, double m_shift) {
+  cos_phase_centre_dec_ = std::cos(observation_info.phaseCentreDec);
+  sin_phase_centre_dec_ = std::sin(observation_info.phaseCentreDec);
 
   dlmn_[0] = l_shift;
   dlmn_[1] = m_shift;

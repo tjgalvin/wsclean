@@ -463,8 +463,8 @@ void IdgMsGridder::computePredictionBuffer(const std::vector<std::string>& anten
     }
     const double* uvw = nullptr;
     WriteInstrumentalVisibilities(*_outputProvider, antenna_names.size(), metadata.data_desc_id,
-                                  row.second, uvw, metadata.field_id, metadata.antenna1,
-                                  metadata.antenna2, metadata.time);
+                                  row.second, uvw, metadata.interval, metadata.field_id,
+                                  metadata.antenna1, metadata.antenna2, metadata.time);
   }
   _bufferset->get_degridder(kGridderIndex)->finished_reading();
 }

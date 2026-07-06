@@ -25,7 +25,6 @@ InMemoryMs MakeInMemorySet() {
   ms.field_name = "Test field";
   ms.has_frequency_bda = false;
   ms.has_time_bda = false;
-  ms.interval = 42.0;
   ms.observer = "André";
   ms.phase_centre_dec = M_PI * 0.5;
   ms.phase_centre_ra = 0.0;
@@ -50,6 +49,7 @@ InMemoryMs MakeInMemorySet() {
     row.time = ms.start_time;
     row.uvw = {uvw_distribution(rng), uvw_distribution(rng), uvw_distribution(rng)};
     row.weights.assign(kChannels.size() * kNPolarizations, 1.0f);
+    row.interval = 42.0;
   }
   return ms;
 }

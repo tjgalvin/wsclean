@@ -280,8 +280,8 @@ void FacetIdgMsGridder::ComputePredictionBuffer(const std::vector<std::string>& 
     }
     const double* uvw = nullptr;
     WriteCollapsedVisibilities(*output_provider_, antenna_names.size(), metadata.data_desc_id,
-                               row.second, uvw, metadata.field_id, metadata.antenna1,
-                               metadata.antenna2, metadata.time);
+                               row.second, uvw, metadata.interval, metadata.field_id,
+                               metadata.antenna1, metadata.antenna2, metadata.time);
   }
   buffer_set_->get_degridder(kGridderIndex)->finished_reading();
 }

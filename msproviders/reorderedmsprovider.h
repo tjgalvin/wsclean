@@ -71,8 +71,6 @@ class ReorderedMsProvider final : public MSProvider {
     return handle_.data_->bands_per_part_[part_index_];
   }
 
-  double Interval() final;
-
   ObservationInfo GetObservationInfo() final;
 
   std::vector<std::string> GetAntennaNames() final;
