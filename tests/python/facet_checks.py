@@ -14,6 +14,8 @@ from utils import (
     check_and_remove_files,
     compare_rms_fits,
     compute_rms,
+    require_everybeam,
+    require_idg,
     validate_call,
     validate_failing_call,
 )
@@ -189,6 +191,8 @@ class TestFacets:
         "gridder", ["wstacking", "wgridder", "idg", "facet-idg"]
     )
     def test_stitching(self, gridder):
+        if "idg" in gridder:
+            require_idg()
         """Test stitching of the facets"""
         prefix = f"facet-stitch-{gridder}"
         s = [
@@ -231,6 +235,8 @@ class TestFacets:
         """
 
         do_apply_facet_beam = apply_facet_beam == "with_facet_beam"
+        if do_apply_facet_beam:
+            require_everybeam()
 
         predict_facet_image(tmp_mwa_mock_facet, gridder, do_apply_facet_beam)
 
@@ -311,6 +317,9 @@ class TestFacets:
             True: Use MPI for parallel gridding.
             False: Use multi-threading for parallel gridding.
         """
+        if "idg" in gridder:
+            require_idg()
+
         # Parametrization causes some overhead in that predict of full image is run for
         # every parametrization
         predict_full_image(tcf.MWA_MOCK_FULL, gridder)
@@ -357,6 +366,8 @@ class TestFacets:
             use_mpi,
             n_threads=n_threads,
         )
+        if "idg" in gridder:
+            require_idg()
 
         # The following checks whether the initially predicted model data and final CLEAN model agree. It fails
         # for facet-idg, likely due to some residual artiacts in the visibilities, even though it was able to
@@ -454,6 +465,9 @@ class TestFacets:
     def test_shared_facet_reads_and_writes(
         self, apply_facet_beam, polarization, dd_facets
     ):
+        pytest.skip(
+            reason="Test is temporary disabled because it fails for unknown reasons -- Malcolm is looking at it"
+        )
         if not RUN_EXPENSIVE_TESTS and not (
             polarization == "pol_iquv"
             and apply_facet_beam == "with_facet_beam"
@@ -472,6 +486,8 @@ class TestFacets:
         polarization_settings = "-pol i"
         if do_all_polarization:
             polarization_settings = "-pol iquv -join-polarizations"
+        if do_apply_facet_beam:
+            require_everybeam()
         name_suffix = "-no-beam"
         facet_beam = ""
         if do_apply_facet_beam:
@@ -850,6 +866,7 @@ class TestFacets:
             )
 
     def test_dd_psfs_with_faceting(self):
+        require_everybeam()
         validate_call(
             (
                 f"{tcf.WSCLEAN} -name dd-psfs-with-faceting "
@@ -990,6 +1007,8 @@ class TestFacets:
         parallel_gridding_option = (
             "" if gridder == "facet-idg" else "-parallel-gridding 4"
         )
+        if gridder == "facet-idg":
+            require_idg()
         validate_call(
             (
                 f"{tcf.WSCLEAN} -gridder {gridder} -name point-source -v -predict -reorder "

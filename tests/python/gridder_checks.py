@@ -2,7 +2,7 @@ import shutil
 import sys
 
 import pytest
-from utils import check_output, compare_rms_fits, validate_call
+from utils import check_output, compare_rms_fits, require_idg, validate_call
 
 # Append current directory to system path in order to import testconfig
 sys.path.append(".")
@@ -36,8 +36,7 @@ class TestGridders:
         )
 
     def test_basic_facet_idg(self):
-        if "IDG" not in check_output([tcf.WSCLEAN, "--version"]).decode():
-            pytest.skip("WSClean was not compiled with IDG.")
+        require_idg()
         wgridder = (
             f"{tcf.WSCLEAN} -name wgridder_basic -gridder wgridder "
             "-no-update-model-required "

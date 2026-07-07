@@ -3,7 +3,13 @@ import sys
 import numpy as np
 import pytest
 from astropy.io import fits
-from utils import check_and_remove_files, check_output, validate_call
+from utils import (
+    check_and_remove_files,
+    check_output,
+    require_everybeam,
+    require_idg,
+    validate_call,
+)
 
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")
@@ -113,14 +119,8 @@ def create_aterm_config():
 @pytest.mark.usefixtures("prepare_mock_ms")
 class TestAterms:
     def test_aterms(self):
-        if "IDG" not in check_output([tcf.WSCLEAN, "--version"]).decode():
-            pytest.skip("WSClean was not compiled with IDG.")
-
-        if (
-            "EveryBeam"
-            not in check_output([tcf.WSCLEAN, "--version"]).decode()
-        ):
-            pytest.skip("WSClean was not compiled with EveryBeam.")
+        require_idg()
+        require_everybeam()
 
         create_dummy_fits_screen()
         create_aterm_config()

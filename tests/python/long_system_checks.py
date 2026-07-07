@@ -12,6 +12,8 @@ from utils import (
     assert_taql,
     basic_mwa_image_check,
     compute_rms,
+    require_everybeam,
+    require_idg,
     validate_call,
     validate_failing_call,
 )
@@ -386,7 +388,9 @@ class TestLongSystem:
         validate_call(s.split())
 
     def test_grid_with_beam(self):
-        """Requires that WSClean is compiled with IDG and EveryBeam"""
+        require_idg()
+        require_everybeam()
+
         name = "idg-beam"
 
         # Remove existing component files if present
@@ -532,6 +536,8 @@ class TestLongSystem:
 
     @pytest.mark.parametrize("use_beam", (False, True))
     def test_idg_predict(self, use_beam):
+        if use_beam:
+            require_everybeam()
         # Check whether primary beam corrected image is used in -predict
         # First make sure model images exist
         run_name = name("idg-predict")
@@ -747,6 +753,7 @@ class TestLongSystem:
         assert rms_dirty > rms_image
 
     def test_gmrt_beam(self):
+        require_everybeam()
         s = f"{tcf.WSCLEAN} -pol rr -name {name('gmrt-beam')} -apply-primary-beam -mgain 0.8 -size 512 512 -scale 10asec -gridder wstacking {tcf.GMRT_MS}"
         validate_call(s.split())
         rms_beam = compute_rms(f"{name('gmrt-beam')}-beam-0.fits")
@@ -757,6 +764,7 @@ class TestLongSystem:
         assert rms_corrected > 0.42 and rms_corrected < 0.49
 
     def test_mf_full_polarization_beam_correction(self):
+        require_everybeam()
         prefix = name("mf-full-pol-beam")
         s = f"{tcf.WSCLEAN} -name {prefix} {tcf.DIMS_LARGE} -interval 10 12 -mwa-path . -channels-out 2 -apply-primary-beam -pol iquv -link-polarizations i -mgain 0.8 -niter 1000 -auto-threshold 6 -size 512 512 -scale 2amin {tcf.MWA_MS}"
         validate_call(s.split())
@@ -785,6 +793,7 @@ class TestLongSystem:
     def test_iquv_facet_beam_corrections(
         self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
+        require_everybeam()
         # Dp3 is used to predict 5 sources with different IQUV values into the measurement set
         dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[predict] predict.sourcedb=testmodel.txt predict.usebeammodel=True"
         validate_call(dp3_run.split())
@@ -914,6 +923,7 @@ class TestLongSystem:
     def test_iquv_facet_dual_corrections(
         self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
+        require_everybeam()
         # Perform simple solve to get a hdf5 parm file
         solution_file = "dual_correction_solutions.h5"
         make_h5parm(solution_file, "diagonal", 1)
@@ -978,6 +988,7 @@ class TestLongSystem:
         Predict a skymodel with corruptions in DP3, writing the output with BDA.
         Check that wsclean corrects for the corruptions correctly.
         """
+        require_everybeam()
         solution_file = "time_bda_dual_correction_solutions.h5"
         make_h5parm(solution_file, "diagonal", 8)
         set_test_gains_in_solution_file(solution_file)
@@ -1031,6 +1042,7 @@ class TestLongSystem:
         Start by predicting a skymodel with corruptions in DP3, writing the output with BDA.
         Check that wsclean corrects for the corruptions correctly.
         """
+        require_everybeam()
         solution_file = "frequency_bda_dual_correction_solutions.h5"
         make_h5parm(solution_file, "diagonal", 8, tcf.MWA_MS, 4)
         set_test_gains_in_solution_file(solution_file)
@@ -1074,6 +1086,7 @@ class TestLongSystem:
     def test_full_jones_facet_corrections(
         self, lofar_model_file_fixture, lofar_region_file_fixture
     ):
+        require_everybeam()
         solution_file = "full_jones_correction_solutions.h5"
         make_h5parm(solution_file, "fulljones", 1)
 

@@ -7,6 +7,6 @@ unset SLURM_JOBID
 # be useful for debugging:
 # exec mpirun -np 2 xterm -e gdb -ex run --args "${@:3}"
 
-exec mpirun "$@"
-
-
+# Das6 currently requires --allow-run-as-root. If this is fixed in the future,
+# better to remove it again.
+exec mpirun --allow-run-as-root "$@"

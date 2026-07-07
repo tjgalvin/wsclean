@@ -4,7 +4,12 @@ import sys
 from subprocess import check_output
 
 import pytest
-from utils import check_and_remove_files, compute_rms, validate_call
+from utils import (
+    check_and_remove_files,
+    compute_rms,
+    require_idg,
+    validate_call,
+)
 
 # Append current directory to system path in order to import testconfig variables
 sys.path.append(".")
@@ -28,6 +33,8 @@ class TestVelaDeconvolution:
         parallel_gridding_option = (
             "" if "idg" in gridder else "-parallel-gridding 2"
         )
+        if "idg" in gridder:
+            require_idg()
 
         nchannels = 8
         npixels = 1024

@@ -5,6 +5,7 @@ import warnings
 from subprocess import check_call, check_output
 
 import numpy as np
+import pytest
 from astropy.io import fits
 
 # Append current directory to system path in order to import testconfig variables
@@ -141,3 +142,13 @@ def validate_failing_call(cmdline):
             + " and execute: "
             + " ".join(cmdline)
         )
+
+
+def require_idg():
+    if "IDG" not in check_output([tcf.WSCLEAN, "--version"]).decode():
+        pytest.skip("WSClean was not compiled with IDG.")
+
+
+def require_everybeam():
+    if "EveryBeam" not in check_output([tcf.WSCLEAN, "--version"]).decode():
+        pytest.skip("WSClean was not compiled with EveryBeam.")
