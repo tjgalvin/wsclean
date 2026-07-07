@@ -74,6 +74,7 @@ ReorderedMsProvider::ReorderedMsProvider(const ReorderedHandle& handle, size_t p
   }
   meta_file.close();
   data_file.close();
+  interval_ = GetMsInterval(*MS());
 
   if (!meta_header_.data_desc_id.HasValue()) reader_.emplace(this);
 }

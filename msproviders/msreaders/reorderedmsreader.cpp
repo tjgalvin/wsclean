@@ -1,6 +1,4 @@
 #include "reorderedmsreader.h"
-
-#include "../operations.h"
 #include "../reorderedmsprovider.h"
 
 namespace wsclean {
@@ -41,7 +39,7 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms) : MSRead
   }
   CacheMeta();
 
-  interval_ = GetMsInterval(*reordered_ms->MS());
+  interval_ = reordered_ms->interval_;
 }
 
 inline uint64_t ReorderedMsReader::NVisibilitiesPerRow(size_t data_desc_id) const {

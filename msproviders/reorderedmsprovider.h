@@ -89,6 +89,7 @@ class ReorderedMsProvider final : public MSProvider {
   std::unique_ptr<std::ofstream> model_data_file_;
   const aocommon::PolarizationEnum polarization_;
   size_t polarization_count_in_file_;
+  double interval_ = 0.0;
   std::optional<ReorderedMsReader> reader_;
 
   schaapcommon::reordering::MetaHeader meta_header_;
