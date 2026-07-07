@@ -477,6 +477,8 @@ class TestLongSystem:
 
     def test_idg_with_reuse_psf(self):
         # Test for issue #81: -reuse-psf gives segmentation fault in IDG
+        require_idg()
+        require_everybeam()
         # First make sure input files exist:
         s = f"{tcf.WSCLEAN} -name {name('idg-reuse-psf-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
@@ -500,6 +502,8 @@ class TestLongSystem:
     )
     def test_idg_with_reuse_dirty(self):
         # Test for issue #80: -reuse-dirty option fails (#80)
+        require_idg()
+        require_everybeam()
         # First make sure input files exist:
         s = f"{tcf.WSCLEAN} -name {name('idg-reuse-dirty-A')} {tcf.DIMS_LARGE} -use-idg -idg-mode cpu -grid-with-beam -interval 10 14 -mgain 0.8 -niter 1 -mwa-path . {tcf.MWA_MS}"
         validate_call(s.split())
@@ -536,6 +540,7 @@ class TestLongSystem:
 
     @pytest.mark.parametrize("use_beam", (False, True))
     def test_idg_predict(self, use_beam):
+        require_idg()
         if use_beam:
             require_everybeam()
         # Check whether primary beam corrected image is used in -predict
