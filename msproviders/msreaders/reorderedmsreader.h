@@ -49,7 +49,7 @@ class ReorderedMsReader final : public MSReader {
   bool has_data_ = false;
   bool has_weights_ = false;
 
-  double interval_ = 0.0;
+  bool uses_simple_binary_format_ = true;
 
   std::ifstream meta_file_;
   std::ifstream weight_file_;

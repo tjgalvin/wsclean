@@ -37,9 +37,13 @@ ReorderedMsReader::ReorderedMsReader(ReorderedMsProvider* reordered_ms) : MSRead
   if (reordered_ms->meta_header_.data_desc_id) {
     metadata_.data_desc_id = *reordered_ms->meta_header_.data_desc_id;
   }
-  CacheMeta();
+  if (reordered_ms->meta_header_.constant_interval) {
+    metadata_.interval = reordered_ms->interval_;
+  }
+  uses_simple_binary_format_ =
+      reordered_ms->meta_header_.data_desc_id && reordered_ms->meta_header_.constant_interval;
 
-  interval_ = reordered_ms->interval_;
+  CacheMeta();
 }
 
 inline uint64_t ReorderedMsReader::NVisibilitiesPerRow(size_t data_desc_id) const {
@@ -64,7 +68,7 @@ void ReorderedMsReader::NextInputRow() {
 void ReorderedMsReader::ReadMeta(MSProvider::MetaData& metadata) { metadata = metadata_; }
 
 void ReorderedMsReader::CacheMeta() {
-  if (Provider().IsRegular()) {
+  if (uses_simple_binary_format_) {
     schaapcommon::reordering::MetaRecord record;
     record.Read(meta_file_);
     metadata_.u_in_m = record.u;
@@ -75,6 +79,7 @@ void ReorderedMsReader::CacheMeta() {
     metadata_.field_id = record.field_id;
     metadata_.antenna1 = record.antenna1;
     metadata_.antenna2 = record.antenna2;
+    // interval is already set in the constructor
   } else {
     schaapcommon::reordering::BdaMetaRecord record;
     record.Read(meta_file_);
@@ -86,8 +91,8 @@ void ReorderedMsReader::CacheMeta() {
     metadata_.field_id = record.field_id;
     metadata_.antenna1 = record.antenna1;
     metadata_.antenna2 = record.antenna2;
+    metadata_.interval = record.interval;
   }
-  metadata_.interval = interval_;
 }
 
 void ReorderedMsReader::ReadData(std::complex<float>* buffer) {
