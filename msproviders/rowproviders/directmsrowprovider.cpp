@@ -5,7 +5,7 @@ namespace wsclean {
 void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data, MSRowProvider::FlagArray& flags,
                                    WeightArray& weights, double& u, double& v, double& w,
                                    uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2,
-                                   uint32_t& fieldId, double& time) {
+                                   uint32_t& fieldId, double& time, float& interval) {
   u = _currentUVWArray(0);
   v = _currentUVWArray(1);
   w = _currentUVWArray(2);
@@ -17,6 +17,7 @@ void DirectMSRowProvider::ReadData(MSRowProvider::DataArray& data, MSRowProvider
   antenna2 = columns.antenna_2(_currentRow);
   fieldId = columns.field_id(_currentRow);
   time = columns.time(_currentRow);
+  interval = columns.interval(_currentRow);
 
   getCurrentWeights(weights, data.shape());
 }

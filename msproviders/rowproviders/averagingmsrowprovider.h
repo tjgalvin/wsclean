@@ -31,7 +31,8 @@ class AveragingMSRowProvider : public MSRowProvider {
 
   virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u,
                         double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1,
-                        uint32_t& antenna2, uint32_t& fieldId, double& time) final override;
+                        uint32_t& antenna2, uint32_t& fieldId, double& time,
+                        float& interval) final override;
 
   virtual void ReadModel(DataArray& model) final override;
 
@@ -103,7 +104,10 @@ class AveragingMSRowProvider : public MSRowProvider {
   DataArray _currentData, _currentModel;
   FlagArray _currentFlags;
   WeightArray _currentWeights;
-  size_t _averagedDataDescId, _averagedAntenna1Index, _averagedAntenna2Index;
+  size_t _averagedDataDescId;
+  size_t _averagedAntenna1Index;
+  size_t _averagedAntenna2Index;
+  size_t averaged_interval_ = 0;
   size_t _nElements;
 
   // Once the Measurement Set has completely been read, the buffer might be
@@ -116,6 +120,7 @@ class AveragingMSRowProvider : public MSRowProvider {
   size_t _averageFactorSum;
   size_t _rowCount;
   size_t _fieldId;
+  float constant_interval_ = 0.0;
 };
 
 }  // namespace wsclean

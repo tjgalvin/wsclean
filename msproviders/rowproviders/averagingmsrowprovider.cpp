@@ -94,6 +94,7 @@ AveragingMSRowProvider::AveragingMSRowProvider(
     bool timestepAvailable = processCurrentTimestep();
     if (!timestepAvailable) NextRow();
   }
+  if (Columns().interval.nrow() > 0) constant_interval_ = Columns().interval(0);
 }
 
 bool AveragingMSRowProvider::processCurrentTimestep() {
@@ -109,6 +110,7 @@ bool AveragingMSRowProvider::processCurrentTimestep() {
       spwCount * (a2 + a1 * _nAntennae) + _dataDescIdToSpwIndex[_averagedDataDescId];
   const size_t avgFactor = _averagingFactors[elementIndex];
   _averageFactorSum += avgFactor;
+  averaged_interval_ = constant_interval_ * avgFactor;
   ++_rowCount;
 
   columns.data.get(_currentRow, _currentData, true);
@@ -182,6 +184,7 @@ void AveragingMSRowProvider::NextRow() {
       _averagedAntenna1Index = subIndex / _nAntennae;
       _averagedAntenna2Index = subIndex % _nAntennae;
       _averagedDataDescId = _spwIndexToDataDescId[spwIndex];
+      averaged_interval_ = constant_interval_ * buffer->AveragedDataCount();
     }
   }
 }
@@ -190,7 +193,8 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
                                       MSRowProvider::FlagArray& flags,
                                       MSRowProvider::WeightArray& weights, double& u, double& v,
                                       double& w, uint32_t& dataDescId, uint32_t& antenna1,
-                                      uint32_t& antenna2, uint32_t& fieldId, double& time) {
+                                      uint32_t& antenna2, uint32_t& fieldId, double& time,
+                                      float& interval) {
   copyAndResize(_currentData, data);
   copyAndResize(_currentFlags, flags);
   copyAndResize(_currentWeights, weights);
@@ -202,6 +206,7 @@ void AveragingMSRowProvider::ReadData(MSRowProvider::DataArray& data,
   antenna2 = _averagedAntenna2Index;
   time = _currentTime;
   fieldId = _fieldId;  // TODO multi-fields are not supported
+  interval = averaged_interval_;
 }
 
 void AveragingMSRowProvider::ReadModel(MSRowProvider::DataArray& model) {

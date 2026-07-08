@@ -11,7 +11,7 @@
 
 namespace wsclean {
 
-class NoiseMSRowProvider : public DirectMSRowProvider {
+class NoiseMSRowProvider final : public DirectMSRowProvider {
  public:
   NoiseMSRowProvider(const string& msPath, const schaapcommon::reordering::MSSelection& selection,
                      const aocommon::VectorSet<size_t>& selectedDataDescIds,
@@ -24,7 +24,8 @@ class NoiseMSRowProvider : public DirectMSRowProvider {
 
   virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u,
                         double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1,
-                        uint32_t& antenna2, uint32_t& fieldId, double& time) final override;
+                        uint32_t& antenna2, uint32_t& fieldId, double& time,
+                        float& interval) override;
 
   class NoiseMap {
    public:

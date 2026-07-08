@@ -60,7 +60,7 @@ class BdaMsRowProvider final : public MsRowProviderBase {
 
   void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u, double& v,
                 double& w, uint32_t& data_description_id, uint32_t& antenna_1, uint32_t& antenna_2,
-                uint32_t& field_id, double& time) override;
+                uint32_t& field_id, double& time, float& interval) override;
 
   void ReadModel(DataArray& model) override;
 
@@ -98,6 +98,7 @@ class BdaMsRowProvider final : public MsRowProviderBase {
   struct RowData {
     size_t row_index;
     double time;
+    float interval;
     int antenna_1;
     int antenna_2;
     int field_id;

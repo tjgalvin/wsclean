@@ -23,6 +23,7 @@ struct MsColumns {
   casacore::ScalarColumn<int> field_id;
   casacore::ScalarColumn<double> time;
   casacore::MEpoch::ScalarColumn epoch_as_time;
+  casacore::ScalarColumn<double> interval;
   casacore::ArrayColumn<double> uvw;
   casacore::ArrayColumn<casacore::Complex> data;
   casacore::ArrayColumn<bool> flag;

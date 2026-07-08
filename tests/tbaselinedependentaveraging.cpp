@@ -36,12 +36,14 @@ BOOST_AUTO_TEST_CASE(noAveraging, *boost::unit_test::precondition(dataIsAvailabl
   MSRowProvider::WeightArray weightsAvg(shape), weightsDirect(shape);
   while (!avgProvider.AtEnd() && !directProvider.AtEnd() && nRow < nAnt * (nAnt - 1) / 2 * 10) {
     double uA, vA, wA, timeA, uD, vD, wD, timeD;
+    float intervalA;
+    float intervalD;
     uint32_t a1A = 1337, a2A = 1338, a1D = 1339, a2D = 1340, field;
     uint32_t descA = 1341, descD = 1342;
     avgProvider.ReadData(dataArrayAvg, flagArrayAvg, weightsAvg, uA, vA, wA, descA, a1A, a2A, field,
-                         timeA);
+                         timeA, intervalA);
     directProvider.ReadData(dataArrayDirect, flagArrayDirect, weightsDirect, uD, vD, wD, descD, a1D,
-                            a2D, field, timeD);
+                            a2D, field, timeD, intervalD);
 
     for (size_t p = 0; p != 4; ++p) {
       std::complex<float> valA = dataArrayAvg.data()[p];
@@ -63,6 +65,7 @@ BOOST_AUTO_TEST_CASE(noAveraging, *boost::unit_test::precondition(dataIsAvailabl
     BOOST_REQUIRE_CLOSE_FRACTION(vA, vD, 1e-8);
     BOOST_REQUIRE_CLOSE_FRACTION(wA, wD, 1e-8);
     BOOST_REQUIRE_CLOSE_FRACTION(timeA, timeD, 1e-8);
+    BOOST_REQUIRE_CLOSE_FRACTION(intervalA, intervalD, 1e-6);
 
     BOOST_REQUIRE_EQUAL(descA, descD);
 
@@ -102,9 +105,12 @@ BOOST_AUTO_TEST_CASE(nonZeroTime, *boost::unit_test::precondition(dataIsAvailabl
     double u, v, w;
     uint32_t ant1 = 1337, ant2 = 1338, field;
     uint32_t desc = 1341;
-    avgProvider.ReadData(dataArray, flagArray, weights, u, v, w, desc, ant1, ant2, field, time);
+    float interval = -1.0f;
+    avgProvider.ReadData(dataArray, flagArray, weights, u, v, w, desc, ant1, ant2, field, time,
+                         interval);
 
     BOOST_REQUIRE_GE(time, startTime);
+    BOOST_REQUIRE_GT(interval, 0.0f);
 
     avgProvider.NextRow();
     ++nRow;

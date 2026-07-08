@@ -111,7 +111,7 @@ BdaMsRowProvider::RowData& BdaMsRowProvider::CurrentRow() {
 void BdaMsRowProvider::ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u,
                                 double& v, double& w, uint32_t& data_description_id,
                                 uint32_t& antenna_1, uint32_t& antenna_2, uint32_t& field_id,
-                                double& time) {
+                                double& time, float& interval) {
   RowData& row_data = CurrentRow();
   u = row_data.uvw[0];
   v = row_data.uvw[1];
@@ -121,6 +121,7 @@ void BdaMsRowProvider::ReadData(DataArray& data, FlagArray& flags, WeightArray& 
   antenna_2 = row_data.antenna_2;
   field_id = row_data.field_id;
   time = row_data.time;
+  interval = row_data.interval;
   casacore::swap(data, row_data.casa.data);
   casacore::swap(flags, row_data.casa.flags);
   casacore::swap(weights, row_data.casa.weights);
@@ -143,6 +144,7 @@ void BdaMsRowProvider::LoadRow(RowData& data, size_t row_index) {
   data.uvw[2] = uvw_(2);
   data.row_index = row_index;
   data.time = columns.time(row_index);
+  data.interval = columns.interval(row_index);
   columns.data.get(row_index, data.casa.data, true);
   columns.flag.get(row_index, data.casa.flags, true);
   weight_.ReadData(data.casa.weights, row_index, data.casa.data.shape());

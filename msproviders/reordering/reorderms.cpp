@@ -53,10 +53,21 @@ ReorderedHandle ReorderMS(
 
   aocommon::VectorSet<size_t> selected_data_desc_ids;
   bool has_frequency_bda;
+  bool has_time_bda;
+  aocommon::OptionalNumber<float> constant_interval_value;
   {  // close ms asap
     casacore::MeasurementSet ms(ms_path);
     selected_data_desc_ids = aocommon::MultiBandData(ms).GetDataDescIdSet();
     has_frequency_bda = wsclean::HasFrequencyBda(ms);
+    has_time_bda = wsclean::HasTimeBda(ms);
+    casacore::ScalarColumn<double> interval_column(
+        ms, casacore::MS::columnName(casacore::MS::INTERVAL));
+    if (!has_time_bda) {
+      // We assume here that if no BDA is used, all rows will have the same interval. I'm not sure
+      // this holds for all telescopes (it does for LOFAR). The value is only used to calculate time
+      // smearing, and so this assumption is probably fine.
+      constant_interval_value = interval_column.nrow() > 0 ? interval_column(0) : 0.0;
+    }
   }
 
   std::unique_ptr<MsRowProviderBase> row_provider;
@@ -108,7 +119,8 @@ ReorderedHandle ReorderMS(
   Logger::Debug << "Using " << data_desc_ids.size() << " temporary metadata files.\n";
 
   schaapcommon::reordering::FileWriter reordered_file_writer(
-      *handle_data, ms_polarizations_per_data_desc_id, data_desc_ids, row_provider->StartTime());
+      *handle_data, ms_polarizations_per_data_desc_id, data_desc_ids, constant_interval_value,
+      row_provider->StartTime());
 
   if (settings.parallelReordering == 1) {
     Logger::Info << "Reordering " << ms_path << " into " << channel_parts << " x "
@@ -131,12 +143,14 @@ ReorderedHandle ReorderMS(
 
     double time, u, v, w;
     uint32_t data_desc_id, antenna1, antenna2, field_id;
+    float interval;
     row_provider->ReadData(data_array, flag_array, weight_spectrum_array, u, v, w, data_desc_id,
-                           antenna1, antenna2, field_id, time);
+                           antenna1, antenna2, field_id, time, interval);
 
     if (initial_model_required) row_provider->ReadModel(model_array);
 
-    reordered_file_writer.WriteMetaRow(u, v, w, time, data_desc_id, antenna1, antenna2, field_id);
+    reordered_file_writer.WriteMetaRow(u, v, w, time, data_desc_id, antenna1, antenna2, field_id,
+                                       interval);
     reordered_file_writer.WriteDataRow(data_array.data(), model_array.data(),
                                        weight_spectrum_array.data(), flag_array.data(),
                                        data_desc_id);

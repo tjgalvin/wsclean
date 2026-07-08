@@ -24,7 +24,7 @@ class DirectMSRowProvider : public MSRowProvider {
 
   void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u, double& v,
                 double& w, uint32_t& dataDescId, uint32_t& antenna1, uint32_t& antenna2,
-                uint32_t& fieldId, double& time) override;
+                uint32_t& fieldId, double& time, float& interval) override;
 
   void ReadModel(DataArray& model) final override;
 

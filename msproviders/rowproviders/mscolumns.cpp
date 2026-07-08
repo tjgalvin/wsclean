@@ -10,6 +10,7 @@ MsColumns::MsColumns(const casacore::MeasurementSet& ms, const std::string& data
       field_id(ms, casacore::MS::columnName(casacore::MSMainEnums::FIELD_ID)),
       time(ms, casacore::MS::columnName(casacore::MSMainEnums::TIME)),
       epoch_as_time(ms, casacore::MS::columnName(casacore::MSMainEnums::TIME)),
+      interval(ms, casacore::MS::columnName(casacore::MSMainEnums::INTERVAL)),
       uvw(ms, casacore::MS::columnName(casacore::MSMainEnums::UVW)),
       data(ms, data_column_name),
       flag(ms, casacore::MS::columnName(casacore::MSMainEnums::FLAG)),

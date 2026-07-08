@@ -46,7 +46,7 @@ class MsRowProviderBase {
    */
   virtual void ReadData(DataArray& data, FlagArray& flags, WeightArray& weights, double& u,
                         double& v, double& w, uint32_t& dataDescId, uint32_t& antenna1,
-                        uint32_t& antenna2, uint32_t& fieldId, double& time) = 0;
+                        uint32_t& antenna2, uint32_t& fieldId, double& time, float& interval) = 0;
 
   /**
    * Returns a structure with the info necessary when writing the model data.

@@ -95,22 +95,33 @@ BOOST_AUTO_TEST_CASE(bda_ms_row_provider) {
     std::array<uint32_t, 2> antenna;
     uint32_t field_id;
     double time;
+    float interval;
     provider.ReadData(data, flag, weight, uvw[0], uvw[1], uvw[2], data_description_id, antenna[0],
-                      antenna[1], field_id, time);
+                      antenna[1], field_id, time, interval);
     BOOST_CHECK_LE(previous_time, time);
     previous_time = time;
+
+    BOOST_CHECK_GT(time, 4875418082.0);
+    BOOST_CHECK_LT(time, 4875418093.0);
 
     // We don't know exactly in which order the rows come out: they should be
     // time sorted, but there are multiple rows with the same time, and they may
     // be returned in any order. Therefore, this checks just if all rows are
     // read and no rows are duplicated.
-    for (RowData& data : rows) {
-      if (time == data.time && antenna[0] == data.antenna1 && antenna[1] == data.antenna2) {
+    bool found = false;
+    const uint64_t int_time = std::floor(time);
+    for (size_t j = 0; j != rows.size(); ++j) {
+      RowData& data = rows[j];
+      if (int_time == data.time && antenna[0] == data.antenna1 && antenna[1] == data.antenna2) {
         // Each row should be provided only once
         BOOST_CHECK(!data.is_found);
         data.is_found = true;
+        found = true;
+        BOOST_CHECK_CLOSE_FRACTION(interval, MwaBdaMockMs::kIntervals[j], 1e-6);
+        break;
       }
     }
+    BOOST_CHECK(found);
 
     // TODO Add tests for the model.
 

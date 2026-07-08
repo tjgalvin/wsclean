@@ -70,9 +70,9 @@ void NoiseMSRowProvider::SetNoiseBaselineFile(const std::string& filename) {
 void NoiseMSRowProvider::ReadData(DataArray& data, FlagArray& flags, WeightArray& weights,
                                   double& u, double& v, double& w, uint32_t& dataDescId,
                                   uint32_t& antenna1, uint32_t& antenna2, uint32_t& fieldId,
-                                  double& time) {
+                                  double& time, float& interval) {
   DirectMSRowProvider::ReadData(data, flags, weights, u, v, w, dataDescId, antenna1, antenna2,
-                                fieldId, time);
+                                fieldId, time, interval);
   const float stddev = _noiseMap.Empty() ? 1.0 : _noiseMap.GetNoiseValue(antenna1, antenna2);
 
   for (DataArray::contiter iter = data.cbegin(); iter != data.cend(); ++iter) {
