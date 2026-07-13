@@ -107,7 +107,7 @@ class AveragingMSRowProvider : public MSRowProvider {
   size_t _averagedDataDescId;
   size_t _averagedAntenna1Index;
   size_t _averagedAntenna2Index;
-  size_t averaged_interval_ = 0;
+  float averaged_interval_ = 0.0;
   size_t _nElements;
 
   // Once the Measurement Set has completely been read, the buffer might be

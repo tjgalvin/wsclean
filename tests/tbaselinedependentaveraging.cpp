@@ -20,7 +20,7 @@ boost::unit_test::assertion_result dataIsAvailable(boost::unit_test::test_unit_i
 
 BOOST_AUTO_TEST_SUITE(baseline_dependent_averaging)
 
-BOOST_AUTO_TEST_CASE(noAveraging, *boost::unit_test::precondition(dataIsAvailable)) {
+BOOST_AUTO_TEST_CASE(no_averaging, *boost::unit_test::precondition(dataIsAvailable)) {
   aocommon::Logger::SetVerbosity(aocommon::LogVerbosityLevel::kQuiet);
   const size_t nAnt = 70;
   MSSelection selection;
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(noAveraging, *boost::unit_test::precondition(dataIsAvailabl
 // https://gitlab.com/aroffringa/wsclean/-/issues/32 The BD averager would
 // sometimes output zero as output time, causing the primary beam to think the
 // observation spanned from MJD 0 to MJD now, and making millions of beams.
-BOOST_AUTO_TEST_CASE(nonZeroTime, *boost::unit_test::precondition(dataIsAvailable)) {
+BOOST_AUTO_TEST_CASE(non_zero_time, *boost::unit_test::precondition(dataIsAvailable)) {
   aocommon::Logger::SetVerbosity(aocommon::LogVerbosityLevel::kQuiet);
 
   double time = 10.0;

@@ -89,12 +89,12 @@ AveragingMSRowProvider::AveragingMSRowProvider(
 
   _averagedDataDescId = _currentDataDescId;
   _flushPosition = 0;
+  if (Columns().interval.nrow() > 0) constant_interval_ = Columns().interval(0);
 
   if (!MSRowProvider::AtEnd()) {
     bool timestepAvailable = processCurrentTimestep();
     if (!timestepAvailable) NextRow();
   }
-  if (Columns().interval.nrow() > 0) constant_interval_ = Columns().interval(0);
 }
 
 bool AveragingMSRowProvider::processCurrentTimestep() {
