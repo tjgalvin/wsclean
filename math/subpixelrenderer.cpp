@@ -200,6 +200,13 @@ std::vector<aocommon::Image> RenderSubPixelModel(
     const std::string& model_filename, const aocommon::CoordinateSystem& coordinate_system,
     double frequency, double bandwidth, size_t window_size, size_t n_terms, double mem_fraction,
     double mem_limit) {
+  if (n_terms == 0)
+    throw std::runtime_error("The requested nr of terms was 0: must at least draw one term");
+  if (coordinate_system.width == 0 || coordinate_system.height == 0)
+    throw std::runtime_error(
+        "Missing dimensions: specify the image size using -size <width> <height>");
+  if (coordinate_system.dl == 0.0 || coordinate_system.dm == 0.0)
+    throw std::runtime_error("Missing pixel scale: specify the pixel scale using -scale <value>");
   aocommon::Logger::Info << "Rendering sources...\n";
   schaapcommon::ThreadPool& pool = schaapcommon::ThreadPool::GetInstance();
   // Each thread will get their own list of images, to prevent having to
@@ -208,9 +215,10 @@ std::vector<aocommon::Image> RenderSubPixelModel(
   std::vector<std::vector<Image>> images;
 
   // Limit the number of threads based on the available memory.
-  const size_t thread_limit = std::max<size_t>(
-      1, GetAvailableMemory(0.5 * mem_fraction, mem_limit) /
-             (n_terms * coordinate_system.width * coordinate_system.height * sizeof(float)));
+  const size_t cube_size =
+      n_terms * coordinate_system.width * coordinate_system.height * sizeof(float);
+  const size_t thread_limit =
+      std::max<size_t>(1, GetAvailableMemory(0.5 * mem_fraction, mem_limit) / cube_size);
   const size_t n_threads = std::min(pool.NThreads(), thread_limit);
   if (n_threads < pool.NThreads()) {
     aocommon::Logger::Warn << "Rendering sky model with fewer threads (" << n_threads
