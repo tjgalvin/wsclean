@@ -9,7 +9,9 @@
 
 namespace wsclean {
 
+class OutputChannelInfo;
 class Settings;
+class ImagingTable;
 
 /**
  * @brief Class for extracting the component list from the deconvolution
@@ -34,6 +36,16 @@ class ComponentListWriter {
                                  long double phase_centre_dec, long double l_shift,
                                  long double m_shift) const;
 
+  /**
+   * Saves the 'fpb' source component list, in which sources are corrected for the piece-wise facet
+   * beam. The correction_factors can be constructed using @ref GetFacetPbCorrectionMap().
+   */
+  void SaveFacetPbCorrectedSourceList(const radler::Radler& deconvolution,
+                                      const std::vector<std::vector<double>>& correction_factors,
+                                      const ImagingTable& imaging_table,
+                                      long double phase_centre_ra, long double phase_centre_dec,
+                                      long double l_shift, long double m_shift) const;
+
  private:
   void CorrectChannelForPrimaryBeam(radler::ComponentList& list,
                                     const radler::WorkTableEntry& entry) const;
@@ -43,6 +55,12 @@ class ComponentListWriter {
   const Settings& settings_;
   std::unique_ptr<radler::WorkTable> deconvolution_table_;
 };
+
+/**
+ * Returns a vector such that vector[channel][facet] returns the Stokes I correction factor.
+ */
+std::vector<std::vector<double>> GetFacetPbCorrectionMap(
+    std::span<OutputChannelInfo> channel_infos);
 
 }  // namespace wsclean
 

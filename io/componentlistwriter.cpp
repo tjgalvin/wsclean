@@ -3,9 +3,12 @@
 #include "../main/settings.h"
 
 #include "../structures/primarybeam.h"
+#include "../structures/imagingtable.h"
 
 #include <aocommon/image.h>
 #include <aocommon/logger.h>
+
+#include <schaapcommon/facets/facet.h>
 
 #include <radler/component_list.h>
 
@@ -46,6 +49,74 @@ void ComponentListWriter::SavePbCorrectedSourceList(const radler::Radler& deconv
 
   list.WriteSources(deconvolution, filename, settings_.pixelScaleX, settings_.pixelScaleY,
                     phase_centre_ra, phase_centre_dec, l_shift, m_shift);
+}
+
+std::vector<std::vector<double>> GetFacetPbCorrectionMap(
+    std::span<OutputChannelInfo> channel_infos) {
+  std::vector<std::vector<double>> result;
+  for (const OutputChannelInfo& channel_info : channel_infos) {
+    std::vector<double>& channel_values = result.emplace_back();
+    channel_values.reserve(channel_info.averageFacetCorrection.size());
+    for (const AverageCorrection& correction : channel_info.averageFacetCorrection) {
+      const double stokes_i = correction.GetStokesIValue();
+      channel_values.emplace_back(stokes_i != 0.0 ? 1.0 / stokes_i : 0.0);
+    }
+  }
+  return result;
+}
+
+void ComponentListWriter::SaveFacetPbCorrectedSourceList(
+    const radler::Radler& deconvolution, const std::vector<std::vector<double>>& correction_factors,
+    const ImagingTable& imaging_table, long double phase_centre_ra, long double phase_centre_dec,
+    long double l_shift, long double m_shift) const {
+  const std::string filename = settings_.prefixName + "-sources-fpb.txt";
+  radler::ComponentList component_list = deconvolution.GetComponentList();
+
+  assert(correction_factors.size() == component_list.NFrequencies());
+
+  // Make a list of the facets
+  const size_t n_facets = imaging_table.FacetCount();
+  std::vector<const schaapcommon::facets::Facet*> facets;
+  facets.reserve(n_facets);
+  for (size_t facet_index = 0; facet_index != n_facets; ++facet_index) {
+    const ImagingTable table = imaging_table.GetFacet(facet_index);
+    facets.emplace_back(table.Front().facet.get());
+  }
+
+  // Correct all sources for their facet correction
+  const size_t n_channels = correction_factors.size();
+  for (size_t scale_index = 0; scale_index != component_list.NScales(); ++scale_index) {
+    const aocommon::UVector<radler::ComponentList::Position>& positions =
+        component_list.GetPositions(scale_index);
+    size_t previous_facet = 0;
+    for (size_t position_index = 0; position_index != positions.size(); ++position_index) {
+      const schaapcommon::facets::PixelPosition pos(positions[position_index].x,
+                                                    positions[position_index].y);
+      const size_t facet_index = schaapcommon::facets::FindFacet(facets, pos, previous_facet);
+      if (facet_index < facets.size()) {
+        previous_facet = facet_index;
+
+        for (size_t channel_index = 0; channel_index != n_channels; ++channel_index) {
+          const double correction_factor =
+              std::sqrt(correction_factors[channel_index][facet_index]);
+          component_list.MultiplyScaleComponent(scale_index, position_index, channel_index,
+                                                correction_factor);
+        }
+      } else {
+        for (size_t channel_index = 0; channel_index != n_channels; ++channel_index) {
+          // A source could be outside a facet if it is e.g. in the feathering boundary. In this
+          // case, it is best to remove the source as we have no way of correcting it to a
+          // physical flux density.
+          const double correction_factor = 0.0;
+          component_list.MultiplyScaleComponent(scale_index, position_index, channel_index,
+                                                correction_factor);
+        }
+      }
+    }
+  }
+
+  component_list.WriteSources(deconvolution, filename, settings_.pixelScaleX, settings_.pixelScaleY,
+                              phase_centre_ra, phase_centre_dec, l_shift, m_shift);
 }
 
 void ComponentListWriter::CorrectChannelForPrimaryBeam(radler::ComponentList& list,

@@ -1138,3 +1138,82 @@ class TestLongSystem:
         check_image_pixel(
             v_source_pos, 1.0, "full-jones-facet-corrections-V-image-pb.fits"
         )
+
+    def test_facet_beam_source_list(self):
+        require_everybeam()
+        # This test first predicts 5 sources into 2 facet. Each facet contains a source at the
+        # facet centre, and one or two away from the centre. After that, the set is imaged and
+        # corrected with the facet beam. This should output facet-beam corrected files with
+        # suffix "-fpb". This test then draws the txt fpb source model files using wsclean's
+        # sub-pixel rending, and compares the fpb fits file from wsclean with the rendered
+        # image.
+        #
+        # Dp3 is used to predict five 1 Jy sources into the measurement set.
+        # The sources are divided like this:
+        # <-A  / ->B
+        #     /
+        #   T/
+        #   /
+        # L/C R
+        # /
+        #   B
+        model_str = """Format = Name, Patch, Type, Ra, Dec, I, SpectralIndex, LogarithmicSI, ReferenceFrequency='150.e6', MajorAxis, MinorAxis, Orientation
+    ,A,POINT, 08:03:36.0, 48.13.03.000,
+    ,B,POINT, 08:23:36.0, 48.13.03.000,
+    centre, A, POINT, 08:13:36.0, 48.13.03.000, 1, [0.0], false, , , ,
+    left, B, POINT, 08:23:36.0, 48.13.03.000, 1, [0.0], false, , , ,
+    right, A, POINT, 08:03:36.0, 48.13.03.000, 1, [0.0], false, , , ,
+    top, B, POINT, 08:13:36.0, 49.45.00.000, 1, [0.0], false, , , ,
+    bottom, A, POINT, 08:13:36.0, 47.15.00.000, 1, [0.0], false, , , ,
+    """
+        with open("source-list-test-model.txt", "w") as f:
+            f.write(model_str)
+
+        # Facet vertices, used to assemble the region file below:
+        # left bottom = 170.51499,-18.67893
+        # right bottom = 90.54899,-22.65230
+        # top left = 245.26832,39.29522
+        # top right = 1.53191,39.29548
+        # top-centre centre = 123.4416667,48.9844444
+        # centre left-centre = 124.8125000,48.2230556
+        facets_3c196 = """# Region file format: DS9 version 4.1
+global color=green dashlist=8 3 width=1 font="helvetica 10 normal roman" select=1
+fk5
+
+polygon(170.51499,-18.67893,245.26832,39.29522,1.53191,39.29548,123.4416667,48.9844444,124.8125000,48.2230556)
+point(125.9, 48.2175) # text=left
+polygon(170.51499,-18.67893,124.8125000,48.2230556,123.4416667,48.9844444,1.53191,39.29548,90.54899,-22.65230)
+point(120.9, 48.2175) # text=right
+"""
+        with open("3c196-with-2-facets.reg", "w") as f:
+            f.write(facets_3c196)
+
+        dp3_run = f"DP3 msin={tcf.LOFAR_3C196_MS} msout=3c196-simulation.ms msout.overwrite=True steps=[predict] predict.sourcedb=source-list-test-model.txt predict.usebeammodel=True"
+        validate_call(dp3_run.split())
+
+        # Run deconvolution with facets and beam
+        cmd = f"""{tcf.WSCLEAN} -name facet-source-list
+-parallel-gridding 4 -facet-regions 3c196-with-2-facets.reg -apply-facet-beam
+-size 2500 2500 -scale 10asec -taper-gaussian 1amin -niter 1000 -mgain 0.8
+-nmiter 1 -maxuvw-m 20000 -save-source-list -no-update-model-required 3c196-simulation.ms"""
+        validate_call(cmd.split())
+
+        assert os.path.exists("facet-source-list-sources.txt")
+        assert os.path.exists("facet-source-list-sources-pb.txt")
+        assert os.path.exists("facet-source-list-sources-fpb.txt")
+
+        check_image_pixel(i_source_pos, 1.0, "facet-source-list-image-pb.fits")
+
+        # Draw the model to a fits file and check if the rendered model is similar to the model-fpb.fits file
+        cmd = f"{tcf.WSCLEAN} -scale 10asec -size 2500 2500 -v -draw-model facet-source-list-sources-fpb.txt -name draw-facet-source-list 3c196-simulation.ms/"
+        validate_call(cmd.split())
+        with fits.open(
+            "draw-facet-source-list-term-0.fits"
+        ) as image1, fits.open("facet-source-list-model-fpb.fits") as image2:
+            values1 = image1[0].data[:]
+            values2 = image2[0].data[:]
+            # sum instead of all() is used because it gives slightly more info if failed
+            # 1e-4 gives 11 errors. While this is pretty accurate, it shouldn't be necessary. I think
+            # this might be due to the subpixel renderer having a subtle one sub-pixel off error,
+            # as the model shows weak sinc patterns around the sources.
+            assert (abs(values1 - values2) >= 1e-3).sum() == 0

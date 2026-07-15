@@ -1546,6 +1546,13 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       componentListWriter.SavePbCorrectedSourceList(*_deconvolution, _observationInfo.phaseCentreRA,
                                                     _observationInfo.phaseCentreDec, _l_shift,
                                                     _m_shift);
+      if (_settings.UseFacetCorrections()) {
+        const std::vector<std::vector<double>> corrections =
+            GetFacetPbCorrectionMap(_infoPerChannel);
+        componentListWriter.SaveFacetPbCorrectedSourceList(
+            *_deconvolution, corrections, _imagingTable, _observationInfo.phaseCentreRA,
+            _observationInfo.phaseCentreDec, _l_shift, _m_shift);
+      }
     }
   }
 
