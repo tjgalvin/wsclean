@@ -605,11 +605,11 @@ radler::Settings Settings::GetRadlerSettings() const {
   radler_settings.spectral_fitting.terms = spectralFittingTerms;
   radler_settings.spectral_fitting.forced_filename = forcedSpectrumFilename;
   radler_settings.algorithm_type = algorithmType;
+  radler_settings.use_sub_minor_optimization = useSubMinorOptimization;
 
   switch (algorithmType) {
     case radler::AlgorithmType::kAdaptiveScalePixel:
     case radler::AlgorithmType::kMultiscale:
-      radler_settings.multiscale.fast_sub_minor_loop = multiscaleFastSubMinorLoop;
       radler_settings.multiscale.sub_minor_loop_gain = multiscaleGain;
       radler_settings.multiscale.scale_bias = multiscaleDeconvolutionScaleBias;
       radler_settings.multiscale.max_scales = multiscaleMaxScales;
@@ -631,7 +631,6 @@ radler::Settings Settings::GetRadlerSettings() const {
       radler_settings.python.filename = pythonDeconvolutionFilename;
       break;
     case radler::AlgorithmType::kGenericClean:
-      radler_settings.generic.use_sub_minor_optimization = useSubMinorOptimization;
       break;
   }
 

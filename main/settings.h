@@ -201,7 +201,6 @@ class Settings {
   bool useSubMinorOptimization = true, squaredJoins = false;
   double spectralCorrectionFrequency = 0.0;
   std::vector<float> spectralCorrection;
-  bool multiscaleFastSubMinorLoop = true;
   double multiscaleGain = 0.2, multiscaleDeconvolutionScaleBias = 0.6;
   size_t multiscaleMaxScales = 0;
   double multiscaleConvolutionPadding = 1.1;

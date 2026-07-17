@@ -1,0 +1,16 @@
+WSClean version 3.8
+===================
+
+Not yet released
+
+Summary:
+
+...
+
+Full change list
+----------------
+* ...
+
+Bug fixes and refactoring
+-------------------------
+* ...

@@ -478,7 +478,7 @@ but subtract components from individual channels.
    reduced flux density. 1st term is total flux, 2nd is si, 3rd curvature, etc.
    Example: -spectral-correction 150e6 83.084,-0.699,-0.110
 -no-fast-subminor
-   Do not use the subminor loop optimization during (non-multiscale) cleaning. Default: use the optimization.
+   Do not use the subminor loop optimization during cleaning. Default: use the optimization.
 -multiscale
    Clean on different scales. Default: off.
    This parameter invokes the optimized multiscale algorithm published by Offringa & Smirnov (2017).
@@ -502,9 +502,6 @@ but subtract components from individual channels.
    Size of zero-padding for convolutions during the multi-scale cleaning. Default: 1.1
 -asp
    Use the adaptive scale pixel algorithm.
--no-multiscale-fast-subminor
-   Disable the 'fast subminor loop' optimization, that will only search a part of the
-   image during the multi-scale subminor loop. The optimization is on by default.
 -python-deconvolution <filename>
    Run a custom deconvolution algorithm written in Python. See manual
    for the interface.
@@ -1118,7 +1115,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char*
       settings.multiscaleConvolutionPadding =
           ParseDouble(argv[argi], 1.0, "multiscale-convolution-padding");
     } else if (param == "no-multiscale-fast-subminor") {
-      settings.multiscaleFastSubMinorLoop = false;
+      // Deprecated July 2026
+      Deprecated(is_slave, param, "no-fast-subminor");
+      settings.useSubMinorOptimization = false;
     } else if (param == "asp") {
       settings.algorithmType = radler::AlgorithmType::kAdaptiveScalePixel;
     } else if (param == "weighting-rank-filter") {
