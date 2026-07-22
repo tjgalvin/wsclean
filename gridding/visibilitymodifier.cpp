@@ -254,10 +254,19 @@ bool VisibilityModifier::UpdateCachedBeamResponseForRow(double time, size_t fiel
       std::vector<aocommon::MC2x2F>& full_cached_response = cached_beam_response[0];
       GetBeamResponse(interpolation_band, field_id, full_cached_response);
     } else {
+      std::vector<aocommon::MC2x2F> raw_response(n_stations_ * bands.MaxBandChannels());
       for (size_t data_desc_id : bands.DataDescIds()) {
         const aocommon::BandData& band = bands[data_desc_id];
+        GetBeamResponse(band, field_id, raw_response);
+
+        // Transpose to channel-major cache structure expected by ApplyBeamResponse
         std::vector<aocommon::MC2x2F>& response = cached_beam_response[data_desc_id];
-        GetBeamResponse(band, field_id, response);
+        response.resize(n_stations_ * band.ChannelCount());
+        for (size_t station = 0; station != n_stations_; ++station) {
+          for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
+            response[ch * n_stations_ + station] = raw_response[station * band.ChannelCount() + ch];
+          }
+        }
       }
     }
     return true;

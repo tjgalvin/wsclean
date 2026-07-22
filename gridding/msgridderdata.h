@@ -260,7 +260,8 @@ class MsGridderData {
     std::array<const aocommon::MC2x2F*, 2> beam_responses;
     if constexpr (ApplyBeam) {
 #ifdef HAVE_EVERYBEAM
-      beam_responses = visibility_modifier_.GetBeamResponseForRow(data_desc_id, antenna1, antenna2);
+      beam_responses = visibility_modifier_.GetBeamResponseForRow(data_desc_id, antenna1, antenna2,
+                                                                  beam_response);
 #endif
     }
     const size_t n_channels = band.ChannelCount();

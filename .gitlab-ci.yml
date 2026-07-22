@@ -141,6 +141,24 @@ test-nightly-das6:
       when: manual
       allow_failure: true
 
+test-facet-shared-reads-slow-das6:
+  extends: .test-das6-common
+  script:
+    - cd $CI_PROJECT_DIR/build
+    # Clean, targeted build hook that manages its own parameters via CMake
+    - make longfacetchecks
+  rules:
+    # Ensure it stays skipped on routine automated scheduled nightly events
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    # Keep it configured as an optional manual evaluation checkpoint on pushes/MRs
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+    - if: $CI_PIPELINE_SOURCE == "push"
+      when: manual
+      allow_failure: true
+
 test-system-das6:
   extends: .test-das6-common
   variables:

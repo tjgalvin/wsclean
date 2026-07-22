@@ -1108,6 +1108,8 @@ void MSGridderManager::PredictChunks(
     throw std::runtime_error("Can't use bulk inversion with BDA yet");
   const aocommon::BandData& band = *ms_data.ms_provider->SelectedBands().begin();
 
+  std::atomic<size_t> next_write_chunk_index{0};
+
   // Process up to two chunks at a time in parallel.
   // If data for a second predict chunk becomes available while the first is
   // still processing then the second predict can make use of cores that would
@@ -1131,6 +1133,12 @@ void MSGridderManager::PredictChunks(
         Logger::Debug << "Done predicting chunk " + std::to_string(chunk_index + 1) + "/" +
                              std::to_string(n_chunks) + ".\n";
 
+        // Enforce strict ordering on writes.
+        size_t current_val = next_write_chunk_index.load(std::memory_order_acquire);
+        while (current_val != chunk_index) {
+          next_write_chunk_index.wait(current_val, std::memory_order_relaxed);
+          current_val = next_write_chunk_index.load(std::memory_order_relaxed);
+        }
         // Do a single write for the combined/expanded chunk of visibilities
         // of all facets.
         Logger::Debug << "Writing predicted chunk " + std::to_string(chunk_index + 1) + "/" +
@@ -1142,6 +1150,8 @@ void MSGridderManager::PredictChunks(
           ms_data.ms_provider->NextOutputRow();
           visibilities += stride;
         }
+        next_write_chunk_index.store(chunk_index + 1, std::memory_order_release);
+        next_write_chunk_index.notify_all();
         Logger::Debug << "Done writing predicted chunk " + std::to_string(chunk_index + 1) + "/" +
                              std::to_string(n_chunks) + ".\n";
       },

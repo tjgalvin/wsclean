@@ -127,11 +127,14 @@ bool ThreadedScheduler::TryStealTask(
     std::shared_ptr<CompletionSignal>& parent_task_completion_signal,
     std::shared_ptr<CompletionSignal>& signal_stolen_task_completion,
     std::unique_ptr<MSGridderManagerScheduler>& scheduler, size_t n_work_size) {
-  assert(n_work_size > 1);
+  std::lock_guard<std::mutex> lock(mutex_);
 
+  assert(n_work_size > 1);
   Logger::Debug << "[TaskSteal] Attempting to steal.\n";
 
-  std::lock_guard<std::mutex> lock(mutex_);
+  // Parent has finished in the meantime, return.
+  if (!parent_task_completion_signal) return false;
+
   std::vector<std::pair<size_t, std::vector<size_t>>> facet_tasks;
   // We aren't just taking the worker task but also all the "Wait" tasks
   // associated with it as well. Grab them all in one go.
@@ -160,7 +163,7 @@ bool ThreadedScheduler::TryStealTask(
       task_data.task.lock_excess_scheduler_tasks_ = parent_task_completion_signal;
       parent_task_completion_signal.reset();
       signal_stolen_task_completion = task_data.task.lock_excess_scheduler_tasks_;
-      std::thread([&, facet_indexes, task_id]() {
+      std::thread([&, facet_indexes, task_id, scheduler = std::move(scheduler)]() mutable {
         ProcessTask(task_id, facet_indexes, task_data, task_data.task.lock_excess_scheduler_tasks_,
                     std::move(scheduler));
       }).detach();
@@ -203,9 +206,6 @@ void ThreadedScheduler::ProcessTask(size_t task_id, const std::vector<size_t>& f
                          thread_list_.size());
           },
           std::move(scheduler));
-      if (signal_task_completion) {
-        signal_task_completion->SignalCompletion();
-      }
     }
   } catch (std::exception&) {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -216,6 +216,20 @@ void ThreadedScheduler::ProcessTask(size_t task_id, const std::vector<size_t>& f
     std::lock_guard<std::mutex> lock(mutex_);
     task_data_map_.erase(task_id);
     return;
+  }
+
+  // Prevent further stealing from this point.
+  // Otherwise we can have a race on ready_list_
+  std::shared_ptr<CompletionSignal> local_signal_task_completion;
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (signal_stolen_task_completion) {
+      assert(!signal_task_completion);
+    }
+    if (signal_task_completion) {
+      local_signal_task_completion = signal_task_completion;
+      signal_task_completion.reset();
+    }
   }
 
   // Extract the new value from task_data.finished_facet_count directly.
@@ -243,11 +257,20 @@ void ThreadedScheduler::ProcessTask(size_t task_id, const std::vector<size_t>& f
     }
   }
 
-  // Wait until stolen task is done, otherwise we end up with an extra
-  // available thread in the pool.
+  // Avoid completing until stolen task is also done
+  // 1. To keep thread accounting accurate
+  // 2. To avoid a race condition on ready_list_
   if (signal_stolen_task_completion) {
     Logger::Debug << "[ProcessTask] Wait for stolen task.\n";
     signal_stolen_task_completion->WaitForCompletion();
+    Logger::Debug << "[ProcessTask] Done waiting for stolen task.\n";
+  } else {
+    std::lock_guard<std::mutex> lock(mutex_);
+    // Prevent race on ready_list_ by only signalling after processing the ready_list_
+    // This race would occur inside Finish() if we have a stolen task.
+    if (local_signal_task_completion) {
+      local_signal_task_completion->SignalCompletion();
+    }
   }
 }
 
@@ -256,10 +279,14 @@ void ThreadedScheduler::ProcessQueue() {
   while (task_queue_.Pop(facet_task_pair)) {
     const size_t task_id = facet_task_pair.first;
     const std::vector<size_t>& facet_indexes = facet_task_pair.second;
-    TaskData& task_data = task_data_map_[task_id];
+    TaskData* task_data;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      task_data = &task_data_map_[task_id];
+    }
     std::shared_ptr<CompletionSignal>& signal_task_completion =
-        task_data.task.lock_excess_scheduler_tasks_;
-    ProcessTask(task_id, facet_indexes, task_data, signal_task_completion);
+        task_data->task.lock_excess_scheduler_tasks_;
+    ProcessTask(task_id, facet_indexes, *task_data, signal_task_completion);
   }
 }
 
@@ -304,8 +331,12 @@ void ThreadedScheduler::ProcessReadyList() {
 
   // Call callbacks for any finished tasks
   for (std::size_t task_id : local_ready_list) {
-    TaskData& task_data = task_data_map_[task_id];
-    task_data.callback(task_data.result);
+    TaskData* task_data;
+    {
+      std::lock_guard<std::mutex> lock{mutex_};
+      task_data = &task_data_map_.find(task_id)->second;
+    }
+    task_data->callback(task_data->result);
   }
 
   // Remove the finished tasks from task_data_map_.

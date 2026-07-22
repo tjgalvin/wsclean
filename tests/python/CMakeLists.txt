@@ -20,9 +20,19 @@ add_custom_target(
 add_custom_target(
   facetchecks
   COMMAND
-    python3 -B -m pytest --exitfirst -v --durations=0
+    ${CMAKE_COMMAND} -E env RUN_EXPENSIVE_TESTS=false python3 -B -m pytest
+    --exitfirst -v --durations=0
     --junitxml=${CMAKE_BINARY_DIR}/check_facets.xml
     ${CMAKE_CURRENT_SOURCE_DIR}/facet_checks.py)
+
+add_custom_target(
+  longfacetchecks
+  COMMAND
+    ${CMAKE_COMMAND} -E env RUN_EXPENSIVE_TESTS=true python3 -B -m pytest
+    --exitfirst -v --durations=0
+    --junitxml=${CMAKE_BINARY_DIR}/check_facets_long.xml
+    ${CMAKE_CURRENT_SOURCE_DIR}/facet_checks.py::TestFacets::test_shared_facet_reads_and_writes
+)
 
 add_custom_target(
   gridderchecks

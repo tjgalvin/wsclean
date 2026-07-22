@@ -12,6 +12,8 @@ from utils import (
     assert_taql,
     basic_facet_image_check,
     check_and_remove_files,
+    compare_cleaned_images_equivalence,
+    compare_psf_coordinate_and_amplitude_accuracy,
     compare_rms_fits,
     compute_rms,
     require_everybeam,
@@ -465,87 +467,146 @@ class TestFacets:
     def test_shared_facet_reads_and_writes(
         self, apply_facet_beam, polarization, dd_facets
     ):
-        pytest.skip(
-            reason="Test is temporary disabled because it fails for unknown reasons -- Malcolm is looking at it"
-        )
-        if not RUN_EXPENSIVE_TESTS and not (
-            polarization == "pol_iquv"
-            and apply_facet_beam == "with_facet_beam"
-            and dd_facets == "with_dd_facets"
-        ):
-            pytest.skip(reason="Skipping expensive test")
-
         names = [
             "facets-no-shared",
             "facets-shared-reads",
             "facets-shared-writes",
             "facets-shared-reads-and-writes",
         ]
-        do_apply_facet_beam = apply_facet_beam == "with_facet_beam"
+        if not RUN_EXPENSIVE_TESTS:
+            if not (
+                polarization == "pol_i"
+                and apply_facet_beam == "with_facet_beam"
+                and dd_facets == "with_dd_facets"
+            ):
+                pytest.skip(reason="Skipping expensive test")
+            names = [
+                "facets-no-shared",
+                "facets-shared-reads-and-writes",
+            ]
+
+        suffixes = []
+        optional_args = []
+
         do_all_polarization = polarization == "pol_iquv"
-        polarization_settings = "-pol i"
         if do_all_polarization:
-            polarization_settings = "-pol iquv -join-polarizations"
+            optional_args.append("-pol iquv -join-polarizations")
+            suffixes.append("pol-iquv")
+        else:
+            optional_args.append("-pol i")
+            suffixes.append("pol-i")
+        do_apply_facet_beam = apply_facet_beam == "with_facet_beam"
         if do_apply_facet_beam:
-            require_everybeam()
-        name_suffix = "-no-beam"
-        facet_beam = ""
-        if do_apply_facet_beam:
-            facet_beam = "-mwa-path . -apply-facet-beam"
-            name_suffix = "-beam"
-        dd_psf_settings = ""
+            optional_args.append("-mwa-path . -apply-facet-beam")
+            suffixes.append("beam")
+        else:
+            suffixes.append("no-beam")
+
         use_dd_facets = dd_facets == "with_dd_facets"
         if use_dd_facets:
-            dd_psf_settings = "-dd-psf-grid 2 2"
-            name_suffix = f"{name_suffix}-dd-psf"
+            optional_args.append(
+                "-dd-psf-grid 2 2 -parallel-deconvolution 125"
+            )
+            suffixes.append("dd-psf")
+            loop_settings = "-nmiter 2 -niter 50 -abs-threshold 0.001"
+        else:
+            loop_settings = "-nmiter 3 -niter 500 -abs-threshold 0.0001"
+
+        name_suffix = f"-{'-'.join(suffixes)}"
+        optional_args_string = " ".join(optional_args)
 
         for name in names:
             shared_args = ""
-            if name == names[1]:
+            if name == "facets-shared-reads":
                 shared_args = "-shared-facet-reads"
-            if name == names[2]:
+            elif name == "facets-shared-writes":
                 shared_args = "-shared-facet-writes"
-            if name == names[3]:
+            elif name == "facets-shared-reads-and-writes":
                 shared_args = "-shared-facet-reads -shared-facet-writes"
 
             s = (
                 f"{tcf.WSCLEAN} -name {name}{name_suffix} "
                 f"{shared_args} "
-                f"{facet_beam} "
-                f"{polarization_settings} "
-                f"{dd_psf_settings} "
+                f"{optional_args_string} "
+                "-verbose "
                 "-parallel-gridding 3 "
                 "-channels-out 3 -join-channels "
                 "-no-update-model-required "
                 f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
-                "-nmiter 3 -niter 20000 -auto-threshold 5 -mgain 0.8 "
+                f"{loop_settings} -mgain 0.8 "
                 f"{tcf.MWA_MOCK_MS}"
             )
             validate_call(s.split())
 
-            if name != names[0]:
-                if not do_all_polarization:
-                    threshold = 5.0e-6
-                    if use_dd_facets:
-                        threshold = 6.0e-3
-                    if do_apply_facet_beam:
-                        threshold = 9.0e-3
-                    compare_rms_fits(
-                        f"{names[0]}{name_suffix}-MFS-image.fits",
-                        f"{name}{name_suffix}-MFS-image.fits",
-                        threshold,
+            # Skip comparing the baseline against itself
+            if name == names[0]:
+                continue
+
+            # Validate the PSF(s)
+            psf_suffixes = []
+            if not use_dd_facets:
+                psf_suffixes.append("-MFS-psf.fits")
+            else:
+                for idx in range(4):
+                    psf_suffixes.append(f"-d000{idx}-MFS-psf.fits")
+
+            for psf_suffix in psf_suffixes:
+                compare_cleaned_images_equivalence(
+                    f"{names[0]}{name_suffix}{psf_suffix}",
+                    f"{name}{name_suffix}{psf_suffix}",
+                    rms_target_pct=0.0001,
+                    lenient_drms_factor=0.0001,
+                )
+                compare_psf_coordinate_and_amplitude_accuracy(
+                    f"{names[0]}{name_suffix}{psf_suffix}",
+                    f"{name}{name_suffix}{psf_suffix}",
+                    position_threshold_arcsec=0.001,
+                    amplitude_threshold=0.00001,
+                )
+
+            # Map active polarization output file patterns
+            if do_all_polarization:
+                target_pols = ["-I", "-Q", "-U", "-V"]
+            else:
+                target_pols = [""]
+
+            # Validate output images
+            for pol_infix in target_pols:
+                img_target_rms = 0.005
+                img_noise_threshold = 0.005
+                pb_target_rms = 0.005
+                pb_noise_threshold = 0.005
+
+                # Use stricter tolerances if the primary beam model is omitted
+                if not do_apply_facet_beam:
+                    img_target_rms = 0.0005
+                    img_noise_threshold = 0.0005
+                    pb_target_rms = 0.0005
+                    pb_noise_threshold = 0.0005
+
+                image_types = [
+                    (f"-MFS{pol_infix}-dirty.fits", 0.001, 0.005),
+                    (f"-MFS{pol_infix}-residual.fits", 0.01, 0.02),
+                    (
+                        f"-MFS{pol_infix}-image.fits",
+                        img_target_rms,
+                        img_noise_threshold,
+                    ),
+                    (
+                        f"-MFS{pol_infix}-image-pb.fits",
+                        pb_target_rms,
+                        pb_noise_threshold,
+                    ),
+                ]
+
+                for suffix_pattern, target_rms, noise_thresh in image_types:
+                    compare_cleaned_images_equivalence(
+                        f"{names[0]}{name_suffix}{suffix_pattern}",
+                        f"{name}{name_suffix}{suffix_pattern}",
+                        rms_target_pct=target_rms,
+                        lenient_drms_factor=noise_thresh,
                     )
-                else:
-                    threshold = 9.0e-3
-                    if do_apply_facet_beam:
-                        threshold = 6.0e-2
-                    for pol in ["I", "Q", "U", "V"]:
-                        compare_rms_fits(
-                            f"{names[0]}{name_suffix}-MFS-{pol}-image.fits",
-                            f"{name}{name_suffix}-MFS-{pol}-image.fits",
-                            threshold,
-                        )
 
     def test_parallel_gridding(self):
         """

@@ -233,6 +233,7 @@ class VisibilityModifier {
    */
   void ResetBeamCache() {
 #ifdef HAVE_EVERYBEAM
+    std::lock_guard<std::mutex> lock(beam_cache_chunks_mutex_);
     beam_cache_chunks_.clear();
     current_beam_cache_chunk_ = nullptr;
     previous_beam_cache_chunk_ = nullptr;
@@ -244,6 +245,7 @@ class VisibilityModifier {
     _cachedMSTimes.clear();
     time_offsets_.clear();
 #ifdef HAVE_EVERYBEAM
+    std::lock_guard<std::mutex> lock(beam_cache_chunks_mutex_);
     beam_cache_chunks_.clear();
     current_beam_cache_chunk_ = nullptr;
     previous_beam_cache_chunk_ = nullptr;
@@ -384,6 +386,7 @@ class VisibilityModifier {
    */
   std::shared_ptr<BeamResponseCacheChunk> TakeCachedBeamResponseChunk(size_t chunk) {
 #ifdef HAVE_EVERYBEAM
+    std::lock_guard<std::mutex> lock(beam_cache_chunks_mutex_);
     assert(beam_cache_chunks_[chunk]);
     assert(beam_cache_chunks_[chunk].get() != current_beam_cache_chunk_);
     std::shared_ptr<BeamResponseCacheChunk> beam_response = std::move(beam_cache_chunks_[chunk]);
@@ -399,6 +402,7 @@ class VisibilityModifier {
    */
   const BeamResponseMap& GetCachedBeamResponseMap(size_t chunk, size_t row) {
 #ifdef HAVE_EVERYBEAM
+    std::lock_guard<std::mutex> lock(beam_cache_chunks_mutex_);
     assert(beam_cache_chunks_[chunk]);
     return beam_cache_chunks_[chunk]->GetCachedBeamResponseForRow(row);
 #else
@@ -429,6 +433,7 @@ class VisibilityModifier {
     // This behaviour is necessary to prevent a data race with
     // TakeCachedBeamResponseChunk() on debug builds.
     if (!check_for_empty || beam_cache_chunks_.empty()) {
+      std::lock_guard<std::mutex> lock(beam_cache_chunks_mutex_);
       current_beam_cache_chunk_ =
           beam_cache_chunks_.emplace_back(std::make_shared<BeamResponseCacheChunk>()).get();
     }
@@ -452,7 +457,10 @@ class VisibilityModifier {
     assert(!beam_cache_chunks_.empty());
     // Temporary access is required to the previous cache to compute the first
     // response in the new cache.
-    previous_beam_cache_chunk_ = beam_cache_chunks_.back();
+    {
+      std::lock_guard<std::mutex> lock(beam_cache_chunks_mutex_);
+      previous_beam_cache_chunk_ = beam_cache_chunks_.back();
+    }
     StartProcessingChunk(0, 0, false);
 #endif
   }
@@ -554,9 +562,20 @@ class VisibilityModifier {
    */
   std::array<const aocommon::MC2x2F*, 2> GetBeamResponseForRow(size_t data_desc_id, size_t antenna1,
                                                                size_t antenna2) {
+    return GetBeamResponseForRow(data_desc_id, antenna1, antenna2, GetCachedBeamResponse());
+  }
+
+  /**
+   * Overload of @ref GetBeamResponseForRow(size_t, size_t, size_t) that queries an
+   * explicitly passed beam response cache map instead of using the global internal cache.
+   *
+   * @param cached_beam_response The pre-computed cache map to read from.
+   */
+  std::array<const aocommon::MC2x2F*, 2> GetBeamResponseForRow(
+      size_t data_desc_id, size_t antenna1, size_t antenna2,
+      const BeamResponseMap& cached_beam_response) {
     const std::span<uint32_t> interpolation_row = channel_interpolation_table_[data_desc_id];
     const size_t n_full_channels = n_full_resolution_channels_;
-    const BeamResponseMap& cached_beam_response = GetCachedBeamResponse();
     std::array<const aocommon::MC2x2F*, 2> responses;
     if (uses_frequency_bda_) {
       // In the case of BDA, cached_beam_response[0] contains the full res beam responses
@@ -842,6 +861,7 @@ class VisibilityModifier {
    * reference will usually be short lived it is not impossible that it outlives
    * the pointer returned by @ref TakeCachedBeamResponseChunk(). */
   std::vector<std::shared_ptr<BeamResponseCacheChunk>> beam_cache_chunks_;
+  std::mutex beam_cache_chunks_mutex_;
   BeamResponseCacheChunk* current_beam_cache_chunk_ = nullptr;
   /* The previous cache is kept in memory until we have processed the first row
    * of the current cache. This is because the last response of the previous

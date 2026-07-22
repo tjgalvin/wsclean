@@ -94,7 +94,9 @@ void GriddingTaskManager::RunDirect(
       manager.BatchInvert([&]() {
         // NB! The signal can take ownership of the scheduler.
         std::lock_guard<std::mutex> lock(scheduler_creation_mutex_);
-        signal_last_work_has_started(selected_scheduler);
+        if (signal_last_work_has_started) {
+          signal_last_work_has_started(selected_scheduler);
+        }
       });
     } else {
       manager.Invert();
@@ -104,7 +106,9 @@ void GriddingTaskManager::RunDirect(
       manager.BatchPredict([&]() {
         // NB! The signal can take ownership of the scheduler.
         std::lock_guard<std::mutex> lock(scheduler_creation_mutex_);
-        signal_last_work_has_started(selected_scheduler);
+        if (signal_last_work_has_started) {
+          signal_last_work_has_started(selected_scheduler);
+        }
       });
     } else {
       manager.Predict();
