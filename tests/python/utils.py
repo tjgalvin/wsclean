@@ -98,62 +98,147 @@ def compute_rms(fits_file):
     return np.sqrt(np.mean(data**2))
 
 
-def compare_psf_coordinate_and_amplitude_accuracy(
+def get_wcs_and_2d_image(hdul):
+    """Safely extracts a 2D celestial slice and its corresponding 2D WCS from an HDUList,
+
+    automatically finding the first extension containing pixel data.
+    """
+    hdu = None
+    for extension in hdul:
+        if extension.data is not None:
+            hdu = extension
+            break
+
+    if hdu is None:
+        raise ValueError(
+            "❌ No valid image data found in any FITS HDU extension."
+        )
+
+    header = hdu.header.copy()
+    data = hdu.data
+
+    full_wcs = WCS(header)
+    celestial_wcs = full_wcs.celestial
+
+    celestial_axes = [
+        i
+        for i, axis in enumerate(full_wcs.axis_type_names)
+        if axis in ["RA", "DEC"]
+    ]
+
+    slices = tuple(
+        slice(None) if i in celestial_axes else 0
+        for i in reversed(range(data.ndim))
+    )
+    return celestial_wcs, np.nan_to_num(data[slices])
+
+
+def compare_psf_spatial_and_astrometric_integrity(
     fits_baseline,
     fits_compare,
     position_threshold_arcsec=0.001,
     amplitude_threshold=0.00001,
+    structural_threshold=0.95,  # Adjusted to a realistic, strict threshold for isolated structure
+    correlation_window_size=128,
 ):
-    """
-    Validates the physical celestial coordinate alignment and peak amplitude consistency
-    of the synthesized Point Spread Function (PSF).
+    """Compares the complete 2D physical and structural alignment of the Point
 
-    Extracts the World Coordinate System (WCS) information from FITS headers to track
-    visibility phase errors via true great-circle angular separation at the PSF peak.
+    Spread Function (PSF) using a localized structural mask.
+
+    Isolates real sidelobe features from background noise to prevent false passes
+    when comparing distinctly structured PSFs.
     """
     with fits.open(fits_baseline) as h1, fits.open(fits_compare) as h2:
-        wcs1 = WCS(
-            h1[0].header if h1[0].data is not None else h1[1].header, naxis=2
-        )
-        wcs2 = WCS(
-            h2[0].header if h2[0].data is not None else h2[1].header, naxis=2
-        )
-        img1_raw = h1[0].data if h1[0].data is not None else h1[1].data
-        img2_raw = h2[0].data if h2[0].data is not None else h2[1].data
-        img1 = np.nan_to_num(img1_raw).squeeze()
-        img2 = np.nan_to_num(img2_raw).squeeze()
+        wcs1, img1 = get_wcs_and_2d_image(h1)
+        wcs2, img2 = get_wcs_and_2d_image(h2)
 
+    # 1. CORE SEARCH: Locate maximum pixel positions
     y1, x1 = np.unravel_index(np.argmax(img1), img1.shape)
     y2, x2 = np.unravel_index(np.argmax(img2), img2.shape)
 
-    coord1 = SkyCoord.from_pixel(x1, y1, wcs1.celestial)
-    coord2 = SkyCoord.from_pixel(x2, y2, wcs2.celestial)
+    coord1 = SkyCoord.from_pixel(x1, y1, wcs1)
+    coord2 = SkyCoord.from_pixel(x2, y2, wcs2)
 
     angular_separation_arcsec = coord1.separation(coord2).arcsecond
     amplitude_diff = np.abs(img1[y1, x1] - img2[y2, x2])
 
-    print(f"\nPSF Verification: {fits_baseline} vs {fits_compare}")
-    print(
-        f"- Baseline Peak:   RA={coord1.ra.deg:.6f}°, Dec={coord1.dec.deg:.6f}°"
-    )
-    print(
-        f"- Comparison Peak: RA={coord2.ra.deg:.6f}°, Dec={coord2.dec.deg:.6f}°"
-    )
-    print(
-        f"- Angular Shift:  {angular_separation_arcsec:.6e} arcsec (Target: < {position_threshold_arcsec})"
-    )
-    print(
-        f"- Amplitude Diff: {amplitude_diff:.6e} (Target: < {amplitude_threshold})"
-    )
+    # 2. STRUCTURAL ISOLATION: Crop the active core region
+    half_w = correlation_window_size // 2
+    y1_min, y1_max = max(0, y1 - half_w), min(img1.shape[0], y1 + half_w)
+    x1_min, x1_max = max(0, x1 - half_w), min(img1.shape[1], x1 + half_w)
+    y2_min, y2_max = max(0, y2 - half_w), min(img2.shape[0], y2 + half_w)
+    x2_min, x2_max = max(0, x2 - half_w), min(img2.shape[1], x2 + half_w)
 
+    sub_img1 = img1[y1_min:y1_max, x1_min:x1_max]
+    sub_img2 = img2[y2_min:y2_max, x2_min:x2_max]
+
+    if sub_img1.shape == sub_img2.shape:
+        # Calculate a dynamic threshold to isolate the core & structural sidelobes.
+        # Uses standard deviation of the patch perimeter as a rough background noise floor proxy.
+        edge_pixels = np.concatenate(
+            [sub_img1[0, :], sub_img1[-1, :], sub_img1[:, 0], sub_img1[:, -1]]
+        )
+        bg_std = np.std(edge_pixels) if np.std(edge_pixels) > 0 else 1e-6
+
+        # Create a binary mask where baseline features stand significantly out of the noise (3-sigma)
+        structural_mask = sub_img1 > (3 * bg_std)
+
+        # Ensure we actually captured features (fallback to the core pixel if the patch is empty)
+        if np.sum(structural_mask) < 5:
+            structural_mask = sub_img1 > (0.01 * np.max(sub_img1))
+
+        # Extract only the structural vectors
+        feat1 = sub_img1[structural_mask]
+        feat2 = sub_img2[structural_mask]
+
+        # Compute Pearson R correlation strictly on the masked structural pixels
+        diff1 = feat1 - np.mean(feat1)
+        diff2 = feat2 - np.mean(feat2)
+        std1 = np.sqrt(np.sum(diff1**2))
+        std2 = np.sqrt(np.sum(diff2**2))
+
+        if std1 > 0 and std2 > 0:
+            structural_correlation = np.sum(diff1 * diff2) / (std1 * std2)
+        else:
+            structural_correlation = 0.0
+    else:
+        structural_correlation = 0.0
+
+    # 3. DIAGNOSTIC PRINT OUTS
+    print(
+        f"\n=== Masked PSF Integrity Audit: {fits_baseline} vs {fits_compare} ==="
+    )
+    print(
+        f"- Baseline Peak:     RA={coord1.ra.deg:.6f}°, Dec={coord1.dec.deg:.6f}°"
+    )
+    print(
+        f"- Comparison Peak:   RA={coord2.ra.deg:.6f}°, Dec={coord2.dec.deg:.6f}°"
+    )
+    print(
+        f"- Astrometric Shift: {angular_separation_arcsec:.6e} arcsec (Target: < {position_threshold_arcsec})"
+    )
+    print(
+        f"- Intensity Diff:    {amplitude_diff:.6e} (Target: < {amplitude_threshold})"
+    )
+    print(
+        f"- Masked Profile Match: {structural_correlation:.6f} (Target: >= {structural_threshold})"
+    )
+    print(f"- Active Mask Size:  {np.sum(structural_mask)} pixels")
+
+    # 4. ASSERTION ENFORCEMENT
     assert (
         angular_separation_arcsec < position_threshold_arcsec
     ), f"❌ PSF coordinate shift: {angular_separation_arcsec:.6e} arcsec exceeds threshold {position_threshold_arcsec}"
+
     assert (
         amplitude_diff < amplitude_threshold
     ), f"❌ PSF amplitude mismatch: {amplitude_diff:.6e} exceeds threshold {amplitude_threshold}"
 
-    print("✅ PSF Verification Passed.")
+    assert (
+        structural_correlation >= structural_threshold
+    ), f"❌ PSF structural divergence: Masked correlation {structural_correlation:.5f} falls below threshold {structural_threshold}"
+
+    print("✅ Complete PSF Structural and Astrometric Integrity Passed.")
 
 
 def compare_cleaned_images_equivalence(

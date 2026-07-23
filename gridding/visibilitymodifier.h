@@ -609,8 +609,8 @@ class VisibilityModifier {
       responses[0] = cache[antenna1 * n_channels + from_index];
       responses[1] = cache[antenna2 * n_channels + from_index];
     } else {
-      responses[0] = cached_beam_response[data_desc_id][antenna1 * n_channels];
-      responses[1] = cached_beam_response[data_desc_id][antenna2 * n_channels];
+      responses[0] = cached_beam_response[data_desc_id][antenna1 * n_channels + channel_index];
+      responses[1] = cached_beam_response[data_desc_id][antenna2 * n_channels + channel_index];
     }
     return responses;
   }

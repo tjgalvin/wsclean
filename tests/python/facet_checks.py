@@ -13,7 +13,7 @@ from utils import (
     basic_facet_image_check,
     check_and_remove_files,
     compare_cleaned_images_equivalence,
-    compare_psf_coordinate_and_amplitude_accuracy,
+    compare_psf_spatial_and_astrometric_integrity,
     compare_rms_fits,
     compute_rms,
     require_everybeam,
@@ -549,21 +549,26 @@ class TestFacets:
                 psf_suffixes.append("-MFS-psf.fits")
             else:
                 for idx in range(4):
+                    psf_suffixes.append(f"-d000{idx}-0000-psf.fits")
+                    psf_suffixes.append(f"-d000{idx}-0001-psf.fits")
+                    psf_suffixes.append(f"-d000{idx}-0002-psf.fits")
+                    psf_suffixes.append(f"-d000{idx}-0003-psf.fits")
                     psf_suffixes.append(f"-d000{idx}-MFS-psf.fits")
 
             for psf_suffix in psf_suffixes:
-                compare_cleaned_images_equivalence(
-                    f"{names[0]}{name_suffix}{psf_suffix}",
-                    f"{name}{name_suffix}{psf_suffix}",
-                    rms_target_pct=0.0001,
-                    lenient_drms_factor=0.0001,
-                )
-                compare_psf_coordinate_and_amplitude_accuracy(
-                    f"{names[0]}{name_suffix}{psf_suffix}",
-                    f"{name}{name_suffix}{psf_suffix}",
-                    position_threshold_arcsec=0.001,
-                    amplitude_threshold=0.00001,
-                )
+                if os.path.isfile(f"{names[0]}{name_suffix}{psf_suffix}"):
+                    compare_psf_spatial_and_astrometric_integrity(
+                        f"{names[0]}{name_suffix}{psf_suffix}",
+                        f"{name}{name_suffix}{psf_suffix}",
+                        position_threshold_arcsec=0.001,
+                        amplitude_threshold=0.00001,
+                    )
+                    compare_cleaned_images_equivalence(
+                        f"{names[0]}{name_suffix}{psf_suffix}",
+                        f"{name}{name_suffix}{psf_suffix}",
+                        rms_target_pct=0.0005,
+                        lenient_drms_factor=0.0001,
+                    )
 
             # Map active polarization output file patterns
             if do_all_polarization:

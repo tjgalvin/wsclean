@@ -206,6 +206,76 @@ BOOST_AUTO_TEST_CASE(get_beam_response_for_visibility) {
   BOOST_CHECK_CLOSE_FRACTION(gains2.Get(3).real(), 8.0, 1e-5);
 }
 
+BOOST_AUTO_TEST_CASE(get_beam_response_for_row_multi_channel) {
+  const std::vector<aocommon::MC2x2F> beam_response = {
+      aocommon::MC2x2F(5.0, 0.0, 0.0, 6.0),    // Antenna 1, Channel 0
+      aocommon::MC2x2F(55.0, 0.0, 0.0, 66.0),  // Antenna 1, Channel 1
+      aocommon::MC2x2F(7.0, 0.0, 0.0, 8.0),    // Antenna 2, Channel 0
+      aocommon::MC2x2F(77.0, 0.0, 0.0, 88.0)   // Antenna 2, Channel 1
+  };
+  const std::vector<std::complex<float>> gain_response = {1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
+                                                          1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0};
+
+  const aocommon::MultiBandData local_bands = []() -> aocommon::MultiBandData {
+    aocommon::MultiBandData bands;
+    const std::vector<aocommon::ChannelInfo> channels = {
+        aocommon::ChannelInfo(150e6, 1e6),  // Channel 0
+        aocommon::ChannelInfo(151e6, 1e6)   // Channel 1
+    };
+    bands.SetBand(kDataDescId, aocommon::BandData(channels, 150e6));
+    return bands;
+  }();
+
+  VisibilityModifier modifier;
+  modifier.InitializeMockResponse(kNStations, local_bands, beam_response, gain_response);
+
+  // Verify GetBeamResponseForRow pointer stepping
+  auto [gains1, gains2] = modifier.GetBeamResponseForRow(kDataDescId, kAntenna1, kAntenna2);
+
+  // Check Channel 0
+  BOOST_CHECK_CLOSE_FRACTION(gains1[0].Get(0).real(), 5.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2[0].Get(0).real(), 7.0, 1e-5);
+
+  // Check Channel 1
+  BOOST_CHECK_CLOSE_FRACTION(gains1[1].Get(0).real(), 55.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2[1].Get(0).real(), 77.0, 1e-5);
+}
+
+BOOST_AUTO_TEST_CASE(get_beam_response_for_visibility_multi_channel) {
+  const std::vector<aocommon::MC2x2F> beam_response = {
+      aocommon::MC2x2F(5.0, 0.0, 0.0, 6.0),    // Antenna 1, Channel 0
+      aocommon::MC2x2F(55.0, 0.0, 0.0, 66.0),  // Antenna 1, Channel 1
+      aocommon::MC2x2F(7.0, 0.0, 0.0, 8.0),    // Antenna 2, Channel 0
+      aocommon::MC2x2F(77.0, 0.0, 0.0, 88.0)   // Antenna 2, Channel 1
+  };
+  const std::vector<std::complex<float>> gain_response = {1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
+                                                          1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0};
+
+  const aocommon::MultiBandData local_bands = []() -> aocommon::MultiBandData {
+    aocommon::MultiBandData bands;
+    const std::vector<aocommon::ChannelInfo> channels = {
+        aocommon::ChannelInfo(150e6, 1e6),  // Channel 0
+        aocommon::ChannelInfo(151e6, 1e6)   // Channel 1
+    };
+    bands.SetBand(kDataDescId, aocommon::BandData(channels, 150e6));
+    return bands;
+  }();
+
+  VisibilityModifier modifier;
+  modifier.InitializeMockResponse(kNStations, local_bands, beam_response, gain_response);
+  const BeamResponseMap& map = modifier.GetCachedBeamResponse();
+
+  // Query Channel Index 1 specifically.
+  constexpr size_t kTargetChannelIdx = 1;
+  const auto [gains1, gains2] = modifier.GetBeamResponseForVisibility(map, kDataDescId, kAntenna1,
+                                                                      kAntenna2, kTargetChannelIdx);
+
+  BOOST_CHECK_CLOSE_FRACTION(gains1.Get(0).real(), 55.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains1.Get(3).real(), 66.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2.Get(0).real(), 77.0, 1e-5);
+  BOOST_CHECK_CLOSE_FRACTION(gains2.Get(3).real(), 88.0, 1e-5);
+}
+
 BOOST_AUTO_TEST_CASE(get_solution_response_for_row) {
   const std::vector<aocommon::MC2x2F> beam_response = {
       aocommon::MC2x2F(1.0, 0.0, 0.0, 1.0),  // antenna 1
