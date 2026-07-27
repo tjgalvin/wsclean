@@ -221,13 +221,13 @@ void StitchSingleGroup(const ImagingTable::Group& facetGroup, size_t imageIndex,
   if (type == StitchImageType::kDirty) {
     if (settings.isDirtySaved) {
       WSCFitsWriter writer(create_writer(*facetGroup.front(), isImaginary, false));
-      Logger::Info << "Writing dirty image...\n";
+      Logger::Debug << "Writing dirty image...\n";
       writer.WriteImage("dirty.fits", fullImage);
     }
   }
   if (type == StitchImageType::kFacetPbModel) {
     WSCFitsWriter writer(create_writer(*facetGroup.front(), isImaginary, false));
-    Logger::Info << "Writing facet-corrected primary-beam model image...\n";
+    Logger::Debug << "Writing facet-corrected primary-beam model image...\n";
     writer.WriteImage("model-fpb.fits", fullImage);
   }
 

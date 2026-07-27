@@ -1450,7 +1450,12 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       }
 
       const bool skip_iteration = is_finished && _settings.skipFinalIteration;
-      if (!skip_iteration) partitionModelIntoFacets(facetGroups, false);
+      // The model facets may still be necessary for writing facet-pb corrected
+      // images; so even if skip_iteration == true, do the partitioning if facet
+      // corrections are used.
+      if (!skip_iteration || _settings.UseFacetCorrections()) {
+        partitionModelIntoFacets(facetGroups, false);
+      }
       if (_settings.deconvolutionMGain != 1.0 && !skip_iteration) {
         ResetModelColumnsIfUsingFacets(facetGroups);
         _griddingTaskManager->Start(getMaxNrMSProviders() *
