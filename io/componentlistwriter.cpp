@@ -15,6 +15,34 @@
 using aocommon::Logger;
 
 namespace wsclean {
+namespace {
+
+std::vector<std::vector<double>> AverageCorrectionFactors(
+    const std::vector<std::vector<double>>& correction_factors, size_t output_channels) {
+  const size_t input_channels = correction_factors.size();
+  assert(input_channels >= output_channels);
+  std::vector<std::vector<double>> result(output_channels);
+  std::vector<size_t> counts(output_channels, 0);
+
+  // TODO use weights
+  for (size_t input_index = 0; input_index != input_channels; ++input_index) {
+    const size_t output_index = (input_index * output_channels) / input_channels;
+    const size_t n_facets = correction_factors[input_index].size();
+    result[output_index].resize(n_facets);
+    counts[output_index]++;
+    for (size_t facet_index = 0; facet_index != n_facets; ++facet_index) {
+      result[output_index][facet_index] += correction_factors[input_index][facet_index];
+    }
+  }
+  for (size_t output_index = 0; output_index != output_channels; ++output_index) {
+    for (double& facet_factor : result[output_index]) {
+      facet_factor /= counts[output_index];
+    }
+  }
+  return result;
+}
+
+}  // namespace
 
 void ComponentListWriter::SaveSourceList(const radler::Radler& deconvolution,
                                          long double phase_centre_ra, long double phase_centre_dec,
@@ -72,7 +100,15 @@ void ComponentListWriter::SaveFacetPbCorrectedSourceList(
   const std::string filename = settings_.prefixName + "-sources-fpb.txt";
   radler::ComponentList component_list = deconvolution.GetComponentList();
 
-  assert(correction_factors.size() == component_list.NFrequencies());
+  assert(component_list.NFrequencies() > 0);
+  assert(correction_factors.size() >= component_list.NFrequencies());
+
+  std::vector<std::vector<double>> averaged_factors;
+  if (correction_factors.size() > component_list.NFrequencies()) {
+    averaged_factors = AverageCorrectionFactors(correction_factors, component_list.NFrequencies());
+  } else {
+    averaged_factors = correction_factors;
+  }
 
   // Make a list of the facets
   const size_t n_facets = imaging_table.FacetCount();
@@ -84,7 +120,7 @@ void ComponentListWriter::SaveFacetPbCorrectedSourceList(
   }
 
   // Correct all sources for their facet correction
-  const size_t n_channels = correction_factors.size();
+  const size_t n_channels = averaged_factors.size();
   for (size_t scale_index = 0; scale_index != component_list.NScales(); ++scale_index) {
     const aocommon::UVector<radler::ComponentList::Position>& positions =
         component_list.GetPositions(scale_index);
@@ -97,8 +133,7 @@ void ComponentListWriter::SaveFacetPbCorrectedSourceList(
         previous_facet = facet_index;
 
         for (size_t channel_index = 0; channel_index != n_channels; ++channel_index) {
-          const double correction_factor =
-              std::sqrt(correction_factors[channel_index][facet_index]);
+          const double correction_factor = std::sqrt(averaged_factors[channel_index][facet_index]);
           component_list.MultiplyScaleComponent(scale_index, position_index, channel_index,
                                                 correction_factor);
         }
