@@ -68,10 +68,11 @@ void ApplyGain(std::complex<float>* visibilities, const aocommon::MC2x2F& gain1,
     // g1_yy g2_yy*). Hence v' = 0.5 * double_dot(G1, G2*)
     *visibilities *= 0.5f * gain1.DoubleDot(gain2.Conjugate());
   } else if constexpr (Mode == GainMode::k2VisDiagonal) {
+    const std::complex<float> temp = visibilities[0];
     visibilities[0] = gain1.Get(0) * visibilities[0] * std::conj(gain2.Get(0)) +
                       gain1.Get(1) * visibilities[1] * std::conj(gain2.Get(1));
     visibilities[1] = gain1.Get(3) * visibilities[1] * std::conj(gain2.Get(3)) +
-                      gain1.Get(2) * visibilities[0] * std::conj(gain2.Get(2));
+                      gain1.Get(2) * temp * std::conj(gain2.Get(2));
   } else if constexpr (Mode == GainMode::kFull) {
     // All polarizations
     const aocommon::MC2x2F visibilities_mc2x2(visibilities);
@@ -98,10 +99,11 @@ void ApplyConjugatedGain(std::complex<float>* visibilities, const aocommon::MC2x
     // See calculation in ApplyGain() for explanation of double dot.
     *visibilities *= 0.5f * gain2.DoubleDot(gain1.Conjugate());
   } else if constexpr (Mode == GainMode::k2VisDiagonal) {
+    const std::complex<float> temp = visibilities[0];
     visibilities[0] = std::conj(gain1.Get(0)) * visibilities[0] * gain2.Get(0) +
                       std::conj(gain1.Get(2)) * visibilities[1] * gain2.Get(2);
     visibilities[1] = std::conj(gain1.Get(3)) * visibilities[1] * gain2.Get(3) +
-                      std::conj(gain1.Get(1)) * visibilities[0] * gain2.Get(1);
+                      std::conj(gain1.Get(1)) * temp * gain2.Get(1);
   } else if constexpr (Mode == GainMode::kFull) {
     // All polarizations
     const aocommon::MC2x2F visibilities_mc2x2(visibilities);
