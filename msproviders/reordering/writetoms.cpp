@@ -5,6 +5,7 @@
 
 #include <aocommon/logger.h>
 #include <aocommon/polarization.h>
+#include <aocommon/progressbar.h>
 #include <aocommon/vectorset.h>
 
 #include <schaapcommon/reordering/handledata.h>
@@ -14,7 +15,6 @@
 #include "regularrowwriter.h"
 #include "../rowproviders/msrowprovider.h"
 #include "../operations.h"
-#include "../../main/progressbar.h"
 
 namespace wsclean {
 
@@ -79,7 +79,7 @@ void WriteReorderedToMS(const schaapcommon::reordering::HandleData& handle) {
     casacore::Array<std::complex<float>> model_data_array;
     casacore::Array<double> uvw(casacore::IPosition{3});
 
-    ProgressBar progress(std::string("Writing changed model back to ") + handle.ms_path_);
+    aocommon::ProgressBar progress(std::string("Writing changed model back to ") + handle.ms_path_);
 
     size_t selected_row_count_for_debug = 0;
     const size_t total_progress = row_provider->TotalProgress();
@@ -120,7 +120,7 @@ void WriteReorderedToMS(const schaapcommon::reordering::HandleData& handle) {
       ++selected_row_count_for_debug;
       row_provider->NextRow();
     }
-    progress.SetProgress(total_progress, total_progress);
+    progress.Finish();
 
     aocommon::Logger::Debug << "Row count for writing reordered data back to the measurement set: "
                             << selected_row_count_for_debug << '\n';

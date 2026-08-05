@@ -479,7 +479,7 @@ void MSGridderManager::ExecuteForAllGriddersWithNCores(
     }
     // Queue task to perform the operation.
     const size_t index = task.facet_task->index;
-    scheduler_->GetWorkerTaskQueue().Emplace([=]() {
+    scheduler_->GetWorkerTaskQueue().Emplace([operation, gridder, index, signal]() {
       // We are consuming N threads from the pool while this occurs.
       operation(gridder, index);
       gridder->processing_semaphore_.release();

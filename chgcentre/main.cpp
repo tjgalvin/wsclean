@@ -1,5 +1,3 @@
-#include "../main/progressbar.h"
-
 #include <casacore/ms/MeasurementSets/MeasurementSet.h>
 
 #include <casacore/measures/TableMeasures/ArrayMeasColumn.h>
@@ -22,6 +20,7 @@
 #include <aocommon/banddata.h>
 #include <aocommon/imagecoordinates.h>
 #include <aocommon/multibanddata.h>
+#include <aocommon/progressbar.h>
 #include <aocommon/radeccoord.h>
 
 #include <iostream>
@@ -51,7 +50,7 @@ using casacore::ScalarColumn;
 
 using aocommon::RaDecCoord;
 
-using wsclean::ProgressBar;
+using aocommon::ProgressBar;
 
 std::vector<MPosition> antennas;
 
@@ -309,7 +308,8 @@ void processField(casacore::MeasurementSet& set, const std::string& dataColumn, 
           std::cout << "Old " << oldUVW << " (" << length(oldUVW) << ")\n";
           std::cout << "New " << newUVW << " (" << length(newUVW) << ")\n\n";
         } else {
-          if (progressBar == nullptr) progressBar.reset(new ProgressBar("Changing phase centre"));
+          if (progressBar == nullptr)
+            progressBar = std::make_unique<ProgressBar>("Changing phase centre");
           progressBar->SetProgress(row, set.nrow());
         }
 
@@ -345,7 +345,7 @@ void processField(casacore::MeasurementSet& set, const std::string& dataColumn, 
         uvwOutCol.put(row, newUVW.getVector());
       }
     }
-    progressBar.reset();
+    if (progressBar) progressBar->Finish();
 
     phaseDirVector[0] = newDirection;
     phaseDirCol.put(fieldIndex, phaseDirVector);

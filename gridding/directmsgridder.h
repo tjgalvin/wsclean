@@ -3,15 +3,13 @@
 
 #include <aocommon/image.h>
 #include <aocommon/lane.h>
+#include <aocommon/progressbar.h>
 
 #include "msgridder.h"
 
-#include "../main/progressbar.h"
 #include "../structures/resources.h"
 
 namespace wsclean {
-
-class ProgressBar;
 
 template <typename num_t>
 class DirectMSGridder final : public MsGridder {
@@ -44,7 +42,7 @@ class DirectMSGridder final : public MsGridder {
   void InvertMeasurementSet(const MsProviderCollection::MsData& ms_data, size_t ms_index);
   void gridSample(const InversionSample& sample, size_t layer);
   aocommon::ImageBase<num_t> GetSqrtLMLookupTable() const;
-  std::unique_ptr<ProgressBar> progress_bar_;
+  std::unique_ptr<aocommon::ProgressBar> progress_bar_;
 };
 
 }  // namespace wsclean

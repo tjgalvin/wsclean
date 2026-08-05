@@ -2,6 +2,7 @@
 
 #include <aocommon/logger.h>
 #include <aocommon/polarization.h>
+#include <aocommon/progressbar.h>
 #include <aocommon/vectorset.h>
 
 #include <schaapcommon/reordering/channelrange.h>
@@ -11,7 +12,6 @@
 
 #include "writetoms.h"
 
-#include "../../main/progressbar.h"
 #include "../../main/settings.h"
 #include "../rowproviders/averagingmsrowprovider.h"
 #include "../rowproviders/noisemsrowprovider.h"
@@ -132,8 +132,9 @@ ReorderedHandle ReorderMS(
   casacore::Array<float> weight_spectrum_array;
   casacore::Array<bool> flag_array;
 
-  std::unique_ptr<ProgressBar> reordering_progress;
-  if (settings.parallelReordering == 1) reordering_progress.reset(new ProgressBar("Reordering"));
+  std::unique_ptr<aocommon::ProgressBar> reordering_progress;
+  if (settings.parallelReordering == 1)
+    reordering_progress = std::make_unique<aocommon::ProgressBar>("Reordering");
 
   size_t selected_rows_total = 0;
   while (!row_provider->AtEnd()) {
@@ -158,28 +159,28 @@ ReorderedHandle ReorderMS(
     row_provider->NextRow();
     ++selected_rows_total;
   }
-  reordering_progress.reset();
+  if (reordering_progress) reordering_progress->Finish();
   Logger::Debug << "Total selected rows: " << selected_rows_total << '\n';
   row_provider->OutputStatistics();
 
   reordered_file_writer.UpdateMetaHeaders();
   reordered_file_writer.UpdatePartHeaders(include_model);
 
-  std::unique_ptr<ProgressBar> model_column_progress;
+  std::unique_ptr<aocommon::ProgressBar> model_column_progress;
   if (include_model && !initial_model_required) {
-    if (settings.parallelReordering) {
-      model_column_progress = std::make_unique<ProgressBar>("Initializing model visibilities");
+    if (settings.parallelReordering == 1) {
+      model_column_progress =
+          std::make_unique<aocommon::ProgressBar>("Initializing model visibilities");
     }
-    auto update_progress = [progress_bar = std::move(model_column_progress)](size_t progress,
-                                                                             size_t total) {
-      if (progress_bar) {
-        progress_bar->SetProgress(progress, total);
+    auto update_progress = [&model_column_progress](size_t progress, size_t total) {
+      if (model_column_progress) {
+        model_column_progress->SetProgress(progress, total);
       }
     };
     constexpr bool zero_initialize_model = true;
     reordered_file_writer.PopulateModel(zero_initialize_model, std::cref(update_progress));
   }
-  model_column_progress.reset();
+  if (model_column_progress) model_column_progress->Finish();
 
   return ReorderedHandle(std::move(handle_data));
 }

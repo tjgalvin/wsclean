@@ -358,7 +358,6 @@ add_library(
   main/imageweightinitializer.cpp
   main/mshelper.cpp
   main/facetstitching.cpp
-  main/progressbar.cpp
   main/settings.cpp
   main/stitchingmemory.cpp
   main/stopwatch.cpp
@@ -531,7 +530,7 @@ if(MPI_FOUND)
   target_link_libraries(wsclean-mp wsclean-lib)
 endif(MPI_FOUND)
 
-add_executable(chgcentre chgcentre/main.cpp main/progressbar.cpp)
+add_executable(chgcentre chgcentre/main.cpp)
 target_link_libraries(
   chgcentre PRIVATE ${CASACORE_LIBRARIES} GSL::gsl GSL::gslcblas
                     ${MPI_LIBRARIES} ${LAPACK_LIBRARIES})

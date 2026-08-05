@@ -2,12 +2,13 @@
 
 #include "msgriddermanager.h"
 
-#include "../main/progressbar.h"
 #include "../msproviders/msprovider.h"
 #include "../msproviders/msreaders/msreader.h"
 
 #include <thread>
 #include <vector>
+
+#include <aocommon/progressbar.h>
 
 #include <schaapcommon/threading/threadpool.h>
 
@@ -23,7 +24,7 @@ void DirectMSGridder<num_t>::StartInversion() {
   _sqrtLMTable = GetSqrtLMLookupTable();
   ResetVisibilityCounters();
 
-  progress_bar_ = std::make_unique<ProgressBar>("Performing direct Fourier transform");
+  progress_bar_ = std::make_unique<aocommon::ProgressBar>("Performing direct Fourier transform");
 
   _inversionLane.resize(_resources.NCpus() * 1024);
 

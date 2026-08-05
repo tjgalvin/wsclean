@@ -32,7 +32,6 @@
 #include "../msproviders/msdatadescription.h"
 
 #include "facetstitching.h"
-#include "progressbar.h"
 
 #include <aocommon/fits/fitswriter.h>
 #include <aocommon/image.h>
