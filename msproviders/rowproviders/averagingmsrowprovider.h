@@ -19,7 +19,7 @@ namespace wsclean {
  */
 class AveragingMSRowProvider : public MSRowProvider {
  public:
-  AveragingMSRowProvider(double nWavelengthsAveraging, const string& msPath,
+  AveragingMSRowProvider(double nWavelengthsAveraging, const std::string& msPath,
                          const schaapcommon::reordering::MSSelection& selection,
                          const aocommon::VectorSet<size_t>& selectedDataDescIds, size_t fieldId,
                          const std::string& dataColumnName, const std::string& modelColumnName,

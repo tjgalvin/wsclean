@@ -13,7 +13,8 @@ namespace wsclean {
 
 class NoiseMSRowProvider final : public DirectMSRowProvider {
  public:
-  NoiseMSRowProvider(const string& msPath, const schaapcommon::reordering::MSSelection& selection,
+  NoiseMSRowProvider(const std::string& msPath,
+                     const schaapcommon::reordering::MSSelection& selection,
                      const aocommon::VectorSet<size_t>& selectedDataDescIds,
                      const std::string& dataColumnName, const std::string& modelColumnName,
                      bool requireModel);

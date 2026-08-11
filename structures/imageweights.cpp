@@ -288,7 +288,7 @@ void ImageWeights::GetGrid(double* image) const {
   });
 }
 
-void ImageWeights::Save(const string& filename) const {
+void ImageWeights::Save(const std::string& filename) const {
   aocommon::UVector<double> image(_imageWidth * _imageHeight);
   GetGrid(&image[0]);
   aocommon::FitsWriter writer;

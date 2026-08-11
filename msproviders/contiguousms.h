@@ -18,6 +18,7 @@
 #include <casacore/tables/Tables/ScalarColumn.h>
 
 #include <memory>
+#include <string>
 
 namespace wsclean {
 
@@ -27,7 +28,7 @@ class ContiguousMS final : public MSProvider {
   friend class ContiguousMSReader;
 
  public:
-  ContiguousMS(const string& msPath, const std::string& dataColumnName,
+  ContiguousMS(const std::string& msPath, const std::string& dataColumnName,
                const std::string& modelColumnName,
                schaapcommon::reordering::StorageManagerType modelStorageManager,
                const schaapcommon::reordering::MSSelection& selection,

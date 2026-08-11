@@ -11,7 +11,7 @@ using schaapcommon::reordering::MSSelection;
 
 namespace wsclean {
 
-MSRowProvider::MSRowProvider(const string& msPath, const MSSelection& selection,
+MSRowProvider::MSRowProvider(const std::string& msPath, const MSSelection& selection,
                              const aocommon::VectorSet<size_t>& selectedDataDescIds,
                              const std::string& dataColumnName,
                              const std::string& model_column_name, bool requireModel)

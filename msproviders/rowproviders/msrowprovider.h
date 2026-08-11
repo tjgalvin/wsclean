@@ -6,6 +6,7 @@
 #include <cstring>
 #include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <aocommon/vectorset.h>
@@ -21,7 +22,7 @@ namespace wsclean {
  */
 class MSRowProvider : public MsRowProviderBase {
  public:
-  MSRowProvider(const string& msPath, const schaapcommon::reordering::MSSelection& selection,
+  MSRowProvider(const std::string& msPath, const schaapcommon::reordering::MSSelection& selection,
                 const aocommon::VectorSet<size_t>& selectedDataDescIds,
                 const std::string& dataColumnName, const std::string& model_column_name,
                 bool requireModel);

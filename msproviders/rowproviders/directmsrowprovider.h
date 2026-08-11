@@ -7,7 +7,8 @@ namespace wsclean {
 
 class DirectMSRowProvider : public MSRowProvider {
  public:
-  DirectMSRowProvider(const string& msPath, const schaapcommon::reordering::MSSelection& selection,
+  DirectMSRowProvider(const std::string& msPath,
+                      const schaapcommon::reordering::MSSelection& selection,
                       const aocommon::VectorSet<size_t>& selectedDataDescIds,
                       const std::string& dataColumnName, const std::string& modelColumnName,
                       bool requireModel)

@@ -37,7 +37,7 @@ void OutputOpeningMessage(const std::string& ms_path,
 }
 }  // namespace
 
-ContiguousMS::ContiguousMS(const string& msPath, const std::string& dataColumnName,
+ContiguousMS::ContiguousMS(const std::string& msPath, const std::string& dataColumnName,
                            const std::string& modelColumnName,
                            StorageManagerType modelStorageManager, const MSSelection& selection,
                            const aocommon::VectorMap<ChannelRange>& channel_ranges,
