@@ -290,7 +290,8 @@ ExternalProject_Add(
     # Note that CASACORE_ROOT_DIR isn't set/updated by the find script, so we
     # shouldn't set Radler's CASACORE_ROOT_DIR to WSClean's one.
     -DCASACORE_ROOT_DIR=${CASACORE_INCLUDE_DIR}/..
-    -DAOCOMMON_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/include/
+    -DAOCOMMON_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/include
+    -DAOCOMMON_CMAKE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/CMake
     -DSCHAAPCOMMON_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/schaapcommon/
     -DGSL_INCLUDE_DIR=${GSL_INCLUDE_DIR}/
     -DGSL_LIBRARY=${GSL_LIBRARY}/
