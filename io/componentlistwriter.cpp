@@ -17,26 +17,37 @@ using aocommon::Logger;
 namespace wsclean {
 namespace {
 
+/**
+ * Calculate the facets correction factors at the resolution of deconvolution.
+ * In Radler, the high-res channels are averaged if the deconvolution channels
+ * option is set. The weights of the images are used during averaging (see
+ * ImageSet::LoadAndAverage() in Radler), and the correction factors are therefore
+ * averaged with the same weighting.
+ */
 std::vector<std::vector<double>> AverageCorrectionFactors(
-    const std::vector<std::vector<double>>& correction_factors, size_t output_channels) {
+    const std::vector<std::vector<double>>& correction_factors,
+    std::span<const double> weights_per_channel, size_t output_channels) {
   const size_t input_channels = correction_factors.size();
   assert(input_channels >= output_channels);
+  assert(input_channels == weights_per_channel.size());
   std::vector<std::vector<double>> result(output_channels);
-  std::vector<size_t> counts(output_channels, 0);
+  std::vector<double> weight_sums(output_channels, 0.0);
 
-  // TODO use weights
   for (size_t input_index = 0; input_index != input_channels; ++input_index) {
     const size_t output_index = (input_index * output_channels) / input_channels;
     const size_t n_facets = correction_factors[input_index].size();
     result[output_index].resize(n_facets);
-    counts[output_index]++;
+    weight_sums[output_index] += weights_per_channel[input_index];
     for (size_t facet_index = 0; facet_index != n_facets; ++facet_index) {
-      result[output_index][facet_index] += correction_factors[input_index][facet_index];
+      result[output_index][facet_index] +=
+          correction_factors[input_index][facet_index] * weights_per_channel[input_index];
     }
   }
   for (size_t output_index = 0; output_index != output_channels; ++output_index) {
+    const double normalization_factor =
+        weight_sums[output_index] == 0.0 ? 0.0 : 1.0 / weight_sums[output_index];
     for (double& facet_factor : result[output_index]) {
-      facet_factor /= counts[output_index];
+      facet_factor *= normalization_factor;
     }
   }
   return result;
@@ -95,8 +106,9 @@ std::vector<std::vector<double>> GetFacetPbCorrectionMap(
 
 void ComponentListWriter::SaveFacetPbCorrectedSourceList(
     const radler::Radler& deconvolution, const std::vector<std::vector<double>>& correction_factors,
-    const ImagingTable& imaging_table, long double phase_centre_ra, long double phase_centre_dec,
-    long double l_shift, long double m_shift) const {
+    std::span<const double> weights_per_channel, const ImagingTable& imaging_table,
+    long double phase_centre_ra, long double phase_centre_dec, long double l_shift,
+    long double m_shift) const {
   const std::string filename = settings_.prefixName + "-sources-fpb.txt";
   radler::ComponentList component_list = deconvolution.GetComponentList();
 
@@ -105,7 +117,8 @@ void ComponentListWriter::SaveFacetPbCorrectedSourceList(
 
   std::vector<std::vector<double>> averaged_factors;
   if (correction_factors.size() > component_list.NFrequencies()) {
-    averaged_factors = AverageCorrectionFactors(correction_factors, component_list.NFrequencies());
+    averaged_factors = AverageCorrectionFactors(correction_factors, weights_per_channel,
+                                                component_list.NFrequencies());
   } else {
     averaged_factors = correction_factors;
   }

@@ -42,6 +42,7 @@ class ComponentListWriter {
    */
   void SaveFacetPbCorrectedSourceList(const radler::Radler& deconvolution,
                                       const std::vector<std::vector<double>>& correction_factors,
+                                      std::span<const double> weights_per_channel,
                                       const ImagingTable& imaging_table,
                                       long double phase_centre_ra, long double phase_centre_dec,
                                       long double l_shift, long double m_shift) const;
