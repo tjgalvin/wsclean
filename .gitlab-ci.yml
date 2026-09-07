@@ -17,6 +17,7 @@ workflow:
   before_script:
     - apt-get update -qq
     - export DEBIAN_FRONTEND=noninteractive && apt-get install -y -qq
+      bzip2
       casacore-dev
       cmake
       g++
@@ -34,15 +35,15 @@ workflow:
       python3-dev python3-numpy
       python3-sphinx
       python3-pip
+      tar
       wget
 
 format:
   stage: format
   extends: .dependencies
   script:
-    # Update external/aocommon, which contains format.sh.
-    - git submodule update --init external/aocommon
     - apt-get install -y -qq black clang-format-21 cmake-format isort
+    - mkdir build && cd build && cmake .. && cd ..
     # Check formatting of header (*.h), source (*.cpp), python and CMake files.
     - ./scripts/run-format.sh
   rules:

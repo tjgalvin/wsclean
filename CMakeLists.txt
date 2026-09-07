@@ -3,7 +3,12 @@ cmake_minimum_required(VERSION 3.23)
 project(wsclean LANGUAGES CXX)
 
 include(ExternalProject)
+include(FetchContent)
 include(CMakeVersionInfo.txt)
+
+set(AOCOMMON_COMMIT e1b7980e02211ade95eef176a3ac7f9ba3dcc55c)
+set(SCHAAPCOMMON_COMMIT b47f19dace28ad420c0a7c8ab1014b55b75205e9)
+set(RADLER_COMMIT 940e9617a4b3210228a849513752f0732df8104a)
 
 add_compile_options(
   -O3
@@ -35,55 +40,18 @@ option(BUILD_PACKAGES "Build Debian packages" OFF)
 option(ENABLE_WTOWERS
        "Enable compiling w-towers gridder (requires ska-sdp-func library)" OFF)
 
-set(RADLER_CXX_FLAGS
-    " "
-    CACHE STRING "Extra C++ flags used for compiling Radler")
-
-set(AOCOMMON_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/external/aocommon/include/")
-set(ExternalSubmoduleDirectories aocommon radler schaapcommon)
-
-find_package(pybind11 CONFIG REQUIRED)
-
-foreach(ExternalSubmodule ${ExternalSubmoduleDirectories})
-  if(NOT EXISTS ${CMAKE_SOURCE_DIR}/external/${ExternalSubmodule})
-    message(
-      FATAL_ERROR
-        "The external submodule '${ExternalSubmodule}' is missing in the external/ subdirectory. "
-        "This is likely the result of downloading a git tarball without submodules. "
-        "This is not supported: git tarballs do not provide the required versioning "
-        "information for the submodules. Please perform a git clone of this repository."
-    )
-  endif()
-endforeach()
-
-# Find and include git submodules
-find_package(Git QUIET)
-if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-  # Update submodules as needed
-  option(GIT_SUBMODULE "Check submodules during build" ON)
-  if(GIT_SUBMODULE)
-    message(STATUS "Submodule update")
-    execute_process(
-      COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive --checkout
-              --depth 1
-      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-      RESULT_VARIABLE GIT_SUBMOD_RESULT)
-    if(NOT GIT_SUBMOD_RESULT EQUAL "0")
-      message(
-        FATAL_ERROR
-          "git submodule update --init failed with ${GIT_SUBMOD_RESULT}, please checkout submodules"
-      )
-    endif()
-  endif()
-endif()
-
+# aocommon
+FetchContent_Declare(
+  aocommon
+  GIT_REPOSITORY https://gitlab.com/aroffringa/aocommon.git
+  GIT_TAG ${AOCOMMON_COMMIT})
+FetchContent_MakeAvailable(aocommon)
+set(AOCOMMON_INCLUDE_DIR "${aocommon_SOURCE_DIR}/include")
+set(AOCOMMON_CMAKE_DIR "${aocommon_SOURCE_DIR}/CMake")
 # User may optionally set `TARGET_CPU` if `PORTABLE=OFF`
-include(external/aocommon/CMake/SetTargetCPU.cmake)
-
-# Include aocommon.
+include(${AOCOMMON_CMAKE_DIR}/SetTargetCPU.cmake)
 include_directories("${AOCOMMON_INCLUDE_DIR}")
 
-# Schaapcommon
 set(SCHAAPCOMMON_MODULES
     ducc0
     facets
@@ -92,12 +60,30 @@ set(SCHAAPCOMMON_MODULES
     math
     reordering
     threading)
-add_subdirectory("${CMAKE_SOURCE_DIR}/external/schaapcommon")
-include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/include")
-include_directories("${CMAKE_SOURCE_DIR}/external/schaapcommon/external")
+FetchContent_Declare(
+  schaapcommon
+  GIT_REPOSITORY https://git.astron.nl/RD/schaapcommon.git
+  GIT_TAG ${SCHAAPCOMMON_COMMIT})
+FetchContent_MakeAvailable(schaapcommon)
+set(SCHAAPCOMMON_SOURCE_DIR "${schaapcommon_SOURCE_DIR}")
+include_directories("${SCHAAPCOMMON_SOURCE_DIR}/include")
+
+FetchContent_Declare(
+  radler
+  GIT_REPOSITORY https://git.astron.nl/RD/radler.git
+  GIT_TAG ${RADLER_COMMIT})
+FetchContent_MakeAvailable(radler)
+set(RADLER_SOURCE_DIR "${radler_SOURCE_DIR}")
+# Make a link so that Radler files are found with "#include <radler/radler.h>"
+file(CREATE_LINK "${RADLER_SOURCE_DIR}/cpp"
+     "${CMAKE_CURRENT_BINARY_DIR}/radler" SYMBOLIC)
+include_directories(${RADLER_SOURCE_DIR})
 
 # Casacore has a separate CMake file in this directory
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake)
+find_package(Casacore 3.6 REQUIRED COMPONENTS casa ms tables measures)
+
+find_package(pybind11 CONFIG REQUIRED)
 
 # W-towers requires ska-sdp-func
 if(ENABLE_WTOWERS)
@@ -132,9 +118,6 @@ find_package(
   COMPONENTS CXX
   REQUIRED)
 add_definitions(${HDF5_DEFINITIONS})
-
-set(CASACORE_MAKE_REQUIRED_EXTERNALS_OPTIONAL TRUE)
-find_package(Casacore 3.6 REQUIRED COMPONENTS casa ms tables measures)
 
 find_package(CFITSIO REQUIRED)
 # Chgcentre uses a lapack function. EveryBeam provides lapack, but because
@@ -259,53 +242,6 @@ include(CheckCXXSourceCompiles)
 
 # GSL is required for WSClean, so always available
 add_definitions(-DHAVE_GSL)
-
-# Radler
-set(RADLER_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/external/radler)
-set(RADLER_LIB
-    ${RADLER_INSTALL_PREFIX}/lib/libradler${CMAKE_STATIC_LIBRARY_SUFFIX})
-
-# By default, CMake incorrectly forwards a prefix path with multiple items.
-# Using an alternate LIST_SEPARATOR works around this behavior. See
-# https://stackoverflow.com/questions/45414507/pass-a-list-of-prefix-paths-to-externalproject-add-in-cmake-args
-# Use ':', since the CMAKE_PREFIX_PATH environment variable already uses it.
-string(REPLACE ";" ":" ALT_CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
-ExternalProject_Add(
-  radler-module
-  SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/radler
-  BINARY_DIR ${CMAKE_BINARY_DIR}/external/radler/build
-  BUILD_ALWAYS TRUE
-  BUILD_BYPRODUCTS ${RADLER_LIB}
-  LIST_SEPARATOR :
-  CMAKE_ARGS
-    -DCOMPILE_AS_EXTERNAL_PROJECT=On
-    -DPORTABLE=${PORTABLE}
-    -DTARGET_CPU=${TARGET_CPU}
-    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-    -DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}
-    -DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}
-    -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=${CMAKE_PROJECT_TOP_LEVEL_INCLUDES}
-    # The casacore root is set to the location where casacore was found.
-    # Note that CASACORE_ROOT_DIR isn't set/updated by the find script, so we
-    # shouldn't set Radler's CASACORE_ROOT_DIR to WSClean's one.
-    -DCASACORE_ROOT_DIR=${CASACORE_INCLUDE_DIR}/..
-    -DAOCOMMON_INCLUDE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/include
-    -DAOCOMMON_CMAKE_DIR=${CMAKE_SOURCE_DIR}/external/aocommon/CMake
-    -DSCHAAPCOMMON_SOURCE_DIR=${CMAKE_SOURCE_DIR}/external/schaapcommon/
-    -DGSL_INCLUDE_DIR=${GSL_INCLUDE_DIR}/
-    -DGSL_LIBRARY=${GSL_LIBRARY}/
-    -DGSL_CBLAS_LIBRARY=${GSL_CBLAS_LIBRARY}/
-    -DHDF5_DIR=${HDF5_DIR}
-    -DHDF5_ROOT=${HDF5_ROOT}
-    -DBUILD_TESTING=OFF
-    -DGIT_SUBMODULE=OFF
-    -DCMAKE_PREFIX_PATH=${ALT_CMAKE_PREFIX_PATH}:$ENV{CMAKE_PREFIX_PATH}
-    -DCMAKE_INSTALL_PREFIX=${RADLER_INSTALL_PREFIX}
-    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    -DCMAKE_CXX_FLAGS=${RADLER_CXX_FLAGS})
-
-include_directories(${RADLER_INSTALL_PREFIX}/include)
 
 # The following section will set the "rpath" correctly, so that
 # LD_LIBRARY_PATH doesn't have to be set.
@@ -439,10 +375,6 @@ set_source_files_properties(
   wgridder/wgridder_float.cpp wgridder/wgridder_double.cpp
   gridding/msgriddermanager.cpp PROPERTIES COMPILE_FLAGS "-ffast-math")
 
-# Add radler-module dependency to wsclean-object to ensure all
-# wsclean targets can link against ${RADLER_LIB}
-add_dependencies(wsclean-object radler-module)
-
 set_property(TARGET wsclean-object PROPERTY POSITION_INDEPENDENT_CODE 1)
 
 target_link_libraries(
@@ -469,12 +401,12 @@ set(EXTERNAL_LIBRARIES
     pybind11::embed)
 
 # Perform the BLAS check from aocommon
-include("${CMAKE_CURRENT_LIST_DIR}/external/aocommon/CMake/CheckBLAS.cmake")
+include("${AOCOMMON_CMAKE_DIR}/CheckBLAS.cmake")
 check_blas(LIBRARIES ${EXTERNAL_LIBRARIES})
 # Radler lib cannot be checked on BLAS consistenty as it doesn't exist
 # at cmake time. It needs to be first in the link order because Radler
 # itself also depends on some of the libraries in the EXTERNAL_LIBRARIES list.
-list(PREPEND EXTERNAL_LIBRARIES ${RADLER_LIB})
+list(PREPEND EXTERNAL_LIBRARIES radler)
 
 add_library(wsclean-lib STATIC)
 target_link_libraries(wsclean-lib PRIVATE ${EXTERNAL_LIBRARIES} wsclean-object)
@@ -504,18 +436,18 @@ target_sources(
             TYPE
             HEADERS
             BASE_DIRS
-            "${CMAKE_CURRENT_SOURCE_DIR}/external/aocommon/include"
+            "${AOCOMMON_INCLUDE_DIR}"
             FILES
-            external/aocommon/include/aocommon/banddata.h
-            external/aocommon/include/aocommon/constants.h
-            external/aocommon/include/aocommon/multibanddata.h
-            external/aocommon/include/aocommon/optionalnumber.h
-            external/aocommon/include/aocommon/polarization.h
-            external/aocommon/include/aocommon/uvector.h
-            external/aocommon/include/aocommon/vectormap.h
-            external/aocommon/include/aocommon/vectorset.h
-            external/aocommon/include/aocommon/io/serialistream.h
-            external/aocommon/include/aocommon/io/serialostream.h)
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/banddata.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/constants.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/multibanddata.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/optionalnumber.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/polarization.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/uvector.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/vectormap.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/vectorset.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/io/serialistream.h
+            ${AOCOMMON_INCLUDE_DIR}/aocommon/io/serialostream.h)
 
 # Make schaapcommon a PUBLIC dependency, since some WSClean headers use
 # schaapcommon headers. An application/test linking to wsclean-lib or

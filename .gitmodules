@@ -1,9 +1,0 @@
-[submodule "external/aocommon"]
-	path = external/aocommon
-	url = https://gitlab.com/aroffringa/aocommon.git
-[submodule "external/schaapcommon"]
-	path = external/schaapcommon
-	url = https://git.astron.nl/RD/schaapcommon.git
-[submodule "external/radler"]
-	path = external/radler
-	url = https://git.astron.nl/RD/radler.git
