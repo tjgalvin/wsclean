@@ -83,8 +83,10 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
   _telescope = everybeam::Load(*ms, options);
   // Initialize with 0.0 time to make sure first call to UpdateTime()
   // will fill the beam response cache.
-  _pointResponse = _telescope->GetPointResponse(0.0);
-  _pointResponse->SetUpdateInterval(facet_beam_update_time);
+  constexpr double initial_time = 0.0;
+  time_cache_ =
+      std::make_unique<everybeam::TimeCache>(everybeam::CreateTimeCache(initial_time, *_telescope));
+  time_cache_->SetUpdateInterval(facet_beam_update_time);
   n_stations_ = _telescope->GetNrStations();
   if (uses_frequency_bda_) {
     std::vector<aocommon::MC2x2F>& band_response = _cachedBeamResponse.AlwaysEmplace(0);
@@ -238,8 +240,10 @@ void VisibilityModifier::GetBeamResponse(const aocommon::BandData& band, size_t 
   for (size_t ch = 0; ch < band.ChannelCount(); ++ch) {
     frequencies[ch] = band.ChannelFrequency(ch);
   }
-  _pointResponse->ResponseAllStations(_beamMode, result.data(), _facetDirectionRA,
-                                      _facetDirectionDec, frequencies, field_id);
+
+  everybeam::pointresponse::PointResponse& point_response = time_cache_->GetPointResponse();
+  point_response.ResponseAllStations(_beamMode, result.data(), _facetDirectionRA,
+                                     _facetDirectionDec, frequencies, field_id);
 }
 
 bool VisibilityModifier::UpdateCachedBeamResponseForRow(double time, size_t field_id,

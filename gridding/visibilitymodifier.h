@@ -7,6 +7,7 @@
 #include <EveryBeam/beammode.h>
 #include <EveryBeam/beamnormalisationmode.h>
 #include <EveryBeam/pointresponse/pointresponse.h>
+#include <EveryBeam/timecache.h>
 #endif
 
 #include <schaapcommon/h5parm/jonesparameters.h>
@@ -214,7 +215,7 @@ class VisibilityModifier {
 
   void SetNoPointResponse() {
 #ifdef HAVE_EVERYBEAM
-    _pointResponse = nullptr;
+    time_cache_ = nullptr;
     _cachedBeamResponse.Clear();
 #endif
   }
@@ -537,10 +538,7 @@ class VisibilityModifier {
     }
   }
 
-  bool ShouldUpdateCachedBeamResponseForTime(double time) {
-    _pointResponse->UpdateTime(time);
-    return _pointResponse->HasTimeUpdate();
-  }
+  bool ShouldUpdateCachedBeamResponseForTime(double time) { return time_cache_->UpdateTime(time); }
 
   /**
    * Compute the beam response for the current time if the time is in a new time
@@ -844,9 +842,9 @@ class VisibilityModifier {
   void GetBeamResponse(const aocommon::BandData& band, size_t field_id,
                        std::vector<aocommon::MC2x2F>& result) const;
 
-  // _telescope attribute needed to keep the telecope in _pointResponse alive
+  // _telescope attribute needed to keep the telecope in the point response of the time_cache_ alive
   std::unique_ptr<everybeam::telescope::Telescope> _telescope;
-  std::unique_ptr<everybeam::pointresponse::PointResponse> _pointResponse;
+  std::unique_ptr<everybeam::TimeCache> time_cache_;
   /**
    * The beam response for the currently processed timestep. The VectorMap
    * is indexed by data_desc_id. The vector is of size n_channels x

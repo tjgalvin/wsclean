@@ -14,6 +14,7 @@ from utils import (
     compute_rms,
     require_everybeam,
     require_idg,
+    require_mpi,
     validate_call,
     validate_failing_call,
 )
@@ -467,11 +468,15 @@ class TestLongSystem:
         validate_call(s.split())
 
     def test_mpi_join_channels(self):
+        require_mpi()
+
         # Test wsclean-mp command
         s = f"{tcf.MPIRUN} {tcf.WSCLEAN_MP} -name {name('mpi-join')} {tcf.DIMS_RECTANGULAR} -channels-out 2 -join-channels -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {tcf.MWA_MS}"
         validate_call(s.split())
 
     def test_mpi_split_channels(self):
+        require_mpi()
+
         s = f"{tcf.MPIRUN} {tcf.WSCLEAN_MP} -name {name('mpi-split')} {tcf.DIMS_RECTANGULAR} -channels-out 2 -niter 1000000 -mgain 0.8 -auto-threshold 5 -multiscale -no-update-model-required {tcf.MWA_MS}"
         validate_call(s.split())
 

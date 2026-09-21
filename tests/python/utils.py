@@ -359,3 +359,8 @@ def require_idg():
 def require_everybeam():
     if "EveryBeam" not in check_output([tcf.WSCLEAN, "--version"]).decode():
         pytest.skip("WSClean was not compiled with EveryBeam.")
+
+
+def require_mpi():
+    if not os.path.exists(tcf.WSCLEAN_MP):
+        pytest.skip("WSClean was not compiled with MPI support.")

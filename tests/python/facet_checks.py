@@ -18,6 +18,7 @@ from utils import (
     compute_rms,
     require_everybeam,
     require_idg,
+    require_mpi,
     validate_call,
     validate_failing_call,
 )
@@ -82,6 +83,9 @@ def deconvolve_facets(
     image_prefix: str
         Prefix of all the images created by WSClean
     """
+    if mpi:
+        require_mpi()
+
     mpi_cmd = f"{tcf.MPIRUN} -tag-output -np {n_threads} {tcf.WSCLEAN_MP}"
     thread_cmd = f"{tcf.WSCLEAN} -parallel-gridding {n_threads}"
     reorder_ms = "-reorder" if reorder else "-no-reorder"
@@ -358,6 +362,9 @@ class TestFacets:
         do_reorder = reorder == "with_reorder"
         use_mpi = mpi == "with_mpi"
 
+        if use_mpi:
+            require_mpi()
+
         # IDG is not compatible with the parallel-gridding option,
         # hence, we disable it for test variants involving IDG.
         n_threads = 1 if "idg" in gridder else 4
@@ -410,6 +417,9 @@ class TestFacets:
         """
 
         use_mpi = mpi == "with_mpi"
+        if use_mpi:
+            require_mpi()
+
         image_prefix = deconvolve_facets(
             tmp_mwa_mock_facet, "wgridder", True, use_mpi, True
         )
@@ -668,6 +678,8 @@ class TestFacets:
         Compare serial, threaded, mpi and hybrid runs.
         Do all parallel runs with and without enabling compound tasks.
         """
+        require_mpi()
+
         names = ["threaded", "mpi", "hybrid"]
         wsclean_commands = [
             f"{tcf.WSCLEAN} -j 3 -parallel-gridding 3",
@@ -701,6 +713,8 @@ class TestFacets:
         Compares a basic serial run without compound tasks to
         runs with compound tasks.
         """
+        require_mpi()
+
         names = [
             "facets-h5-nocompound-sequential",
             "facets-h5-compound-sequential",

@@ -332,7 +332,7 @@ class MsGridderData {
 
   /**
    * Initializes MS related data members, i.e. the @c _telescope and the
-   * @c _pointResponse data in case a beam is applied on the facets and
+   * @c time_cache_ (i.e. point response) data in case a beam is applied on the facets and
    * EveryBeam is available and the @c _predictReader data member in case
    * @c isPredict is true.
    */
