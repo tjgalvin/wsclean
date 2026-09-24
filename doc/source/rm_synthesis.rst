@@ -1,7 +1,7 @@
 Rotation measure (RM) synthesis
 ===============================
 
-WSClean provides several options that facilitate rotation measure synthesis. The options ``-squared-channel-joining`` and ``-fit-rm`` are specifically intended for RM synthesis when combined with ``-join-channels`` and ``-join-polarizations``. This is explained below.
+WSClean provides several options that facilitate rotation measure synthesis. The options ``-rm-deconvolution``, ``-squared-channel-joining`` and ``-fit-rm`` are specifically intended for RM synthesis when combined with ``-join-channels`` and ``-join-polarizations``. These are explained below.
 
 Before reading this chapter, it is useful to understand the following concepts:
 
@@ -14,17 +14,34 @@ Basic RM synthesis imaging
 
 RM synthesis requires imaging the Stokes Q and U parameters across many frequency channels. After that, this QU-frequency cube can be Fourier transformed with an external tool to produce an RM cube.
 
-Generating these QU images with WSClean can be done similarly to imaging stokes I, but several additional options are particularly useful for RM synthesis. The general procedure for creating image cubes is explained in :doc:`Making image cubes <making_image_cubes>`, including the use of ``-channels-out`` option to partition the bandwidth. The ``-pol`` option can be added to do this for Q and U:
+Apart from the normal Stokes I imaging settings, several additional options are particularly useful to create QU image cubes intended for RM synthesis. The general procedure for creating image cubes is explained in :doc:`Making image cubes <making_image_cubes>`, including the use of ``-channels-out`` option to partition the bandwidth. The ``-pol`` option can be added to do this for Q and U:
 
 .. code-block:: bash
 
     wsclean -pol QU -channels-out 100 \
       -scale 1amin -size 1024 1024 observation.ms
     
-This produces an *uncleaned* image cube for the Q and U polarizations. Standard deconvolution parameters can be added to clean each polarization and frequency channel independently. However, the results will be limited by the noise in a single channel. This can be improved by using ``-join-polarizations`` to perform peak finding in QU or IQUV space. It is however beneficial to use the full bandwidth for cleaning. This is described below.
+This produces an *uncleaned* image cube for the Q and U polarizations. Standard deconvolution parameters can be added to clean each polarization and frequency channel independently. However, the results will be limited by the noise in a single channel. This can be improved by using ``-join-polarizations`` to perform peak finding in QU or IQUV space. A better approach is to use the full bandwidth for cleaning. This is described below.
 
 .. note::
-    RM synthesis often involves deconvolving a large number of channels. During deconvolution, all channels need to be loaded into memory, and it is therefore quite easy to run out of memory. It may help to start with small images and keep an eye on memory usage. Deconvolving big images with a large number of channels might only be possible on systems with large amounts of memory.
+    RM synthesis often involves deconvolving a large number of channels. During deconvolution, all channels need to be loaded into memory, and it is therefore quite easy to run out of memory. It may help to start with small images, while keeping an eye on memory usage. Deconvolving big images with a large number of channels may require systems with large amounts of memory.
+
+Deconvolving in Faraday-depth space
+-----------------------------------
+
+WSClean can deconvolve in Faraday-depth space (RM space) by adding ``-rm-deconvolution`` to the command line. This selects a different deconvolution algorithm that first transforms the images to RM space. If multiscale is disabled, a Clark-like approach is used, similar to FSCLEAN described by `Bell and Enßlin (2012) <https://arxiv.org/abs/1112.4175>`_. If ``-multiscale`` is additionally specified, the MSRM algorithm is selected, which performs multiscale deconvolution in Faraday-depth space. This is described by Offringa, Mahatma, de Jong, and Edler (in preparation).
+
+Compared to the other methods described below, RM-space deconvolution often produces the cleanest RM cubes, deconvolving many of the faint sources that are only visible in RM space. However, depending on the approach, these methods can be slow and are sensitive to calibration errors and RFI. They also do not directly optimize the residuals in the aggregated total-intensity image, :math:`<P^2>`.
+
+A few more notes on the combination of options for RM-space deconvolution:
+
+- Options ``pol qu -join-polarizations`` should be used to image :math:`Q` and :math:`U` and combine these in deconvolution.
+- ``-join-channels -channels-out <N>`` to perform multi-frequency deconvolution with the selected number of channels.
+- Because this uses a specialized algorithm, spectral fitting options are not available.
+- Option ``-squared-channel-joining`` should not be specified.
+- Threshold options are applied in RM space. Because peak finding is performed in squared (:math:`Q^2 + U^2`) space, the threshold is offset by the mean of the image, to accomodate for the non-zero mean in squared space.
+
+Faraday-depth deconvolution has been available in WSClean since :doc:`version 3.8 <changelogs/v3.8>`.
 
 Using the full bandwidth for cleaning QU cubes
 ----------------------------------------------

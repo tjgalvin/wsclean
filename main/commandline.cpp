@@ -500,6 +500,8 @@ but subtract components from individual channels.
    A value of 0.1 might be more stable.
 -multiscale-convolution-padding <padding>
    Size of zero-padding for convolutions during the multi-scale cleaning. Default: 1.1
+-rm-deconvolution
+   Uses the RM deconvolution algorithm that performs peak finding in RM space.
 -asp
    Use the adaptive scale pixel algorithm.
 -python-deconvolution <filename>
@@ -546,7 +548,7 @@ but subtract components from individual channels.
    Fits each spectrum to a wavelength-squared sinusodial signal, thereby performing RM synthesis
    during cleaning. This option only works when imaging the Stokes Q and U polarizations.
 -force-spectrum <fitsfile>
-   Uses the fits file to force spectral indices (or other/more terms)   during the deconvolution.
+   Uses the FITS file to force spectral indices (or other/more terms) during the deconvolution.
 -deconvolution-channels <nchannels>
    Decrease the number of channels as specified by -channels-out to the given number for
    deconvolution. Only possible in combination with one of the -fit-spectral options.
@@ -1087,7 +1089,10 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char*
     } else if (param == "no-fast-subminor") {
       settings.useSubMinorOptimization = false;
     } else if (param == "multiscale") {
-      settings.algorithmType = radler::AlgorithmType::kMultiscale;
+      if (settings.algorithmType == radler::AlgorithmType::kRmDeconvolution)
+        settings.algorithmType = radler::AlgorithmType::kMsRmDeconvolution;
+      else
+        settings.algorithmType = radler::AlgorithmType::kMultiscale;
     } else if (param == "multiscale-gain") {
       IncArgi(argi, argc);
       settings.multiscaleGain = ParseDouble(argv[argi], 0.0, "multiscale-gain", false);
@@ -1118,6 +1123,12 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char*
       // Deprecated July 2026
       Deprecated(is_slave, param, "no-fast-subminor");
       settings.useSubMinorOptimization = false;
+    } else if (param == "rm-deconvolution") {
+      if (settings.algorithmType == radler::AlgorithmType::kMultiscale)
+        settings.algorithmType = radler::AlgorithmType::kMsRmDeconvolution;
+      else
+        settings.algorithmType = radler::AlgorithmType::kRmDeconvolution;
+      settings.spectralFittingMode = schaapcommon::fitters::SpectralFittingMode::kRotationMeasure;
     } else if (param == "asp") {
       settings.algorithmType = radler::AlgorithmType::kAdaptiveScalePixel;
     } else if (param == "weighting-rank-filter") {

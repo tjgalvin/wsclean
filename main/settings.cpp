@@ -618,9 +618,6 @@ radler::Settings Settings::GetRadlerSettings() const {
                                                    multiscaleScaleList.end());
       radler_settings.multiscale.shape = multiscaleShapeFunction;
       break;
-    case radler::AlgorithmType::kIuwt:
-      // IUWT has no algorithm-specific settings
-      break;
     case radler::AlgorithmType::kMoreSane:
       radler_settings.more_sane.location = moreSaneLocation;
       radler_settings.more_sane.arguments = moreSaneArgs;
@@ -630,7 +627,11 @@ radler::Settings Settings::GetRadlerSettings() const {
     case radler::AlgorithmType::kPython:
       radler_settings.python.filename = pythonDeconvolutionFilename;
       break;
+    case radler::AlgorithmType::kIuwt:
     case radler::AlgorithmType::kGenericClean:
+    case radler::AlgorithmType::kRmDeconvolution:
+    case radler::AlgorithmType::kMsRmDeconvolution:
+      // These have no algorithm-specific settings
       break;
   }
 

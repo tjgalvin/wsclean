@@ -1,7 +1,7 @@
-Polarimetric deconvolution
-==========================
+Joining polarizations
+=====================
 
-WSClean can perform deconvolution by combining polarizations. Similar to :doc:`joining channels <wideband_deconvolution>`, this implies that peaks (and component shape) are searched in the integrated values over the selected polarizations, but the components strengths are determined from each polarization once its location is selected.
+WSClean has several approaches to perform polarimetric deconvolution. One approach that is often useful is to combine polarizations. Similar to :doc:`joining channels <wideband_deconvolution>`, this implies that peaks (and component shape) are searched in the aggregated values over the selected polarizations, i.e. in total intensity, but the components strengths are determined from each polarization once its location and shape is selected.
 
 This method improves the quality of polarized images. It can also be used to perform self-cal to keep the polarized flux accurate, although it requires some flux to be present in the polarized images (instrumental leakage). In general, Stokes I quality is not improved by using this method. The method increases computational and memory cost.
 
@@ -18,7 +18,7 @@ Here are two examples for using joined polarization cleaning:
 
 Joined-polarization cleaning works in combination with :doc:`multi-scale cleaning <multiscale_cleaning>`, :doc:`multi-frequency deconvolution <wideband_deconvolution>` and :doc:`masked cleaning <masking>`.
 
-If you are looking to do rotation measure synthesis with WSClean, have a look at the :doc:`RM-synthesis manual page <rm_synthesis>` that describes some particulars for this.
+If you are looking to do rotation measure synthesis with WSClean or intend to create a cube of polarization images, have a look at the :doc:`RM-synthesis manual page <rm_synthesis>` that describes some particulars for this.
 
 Linking polarizations
 ---------------------

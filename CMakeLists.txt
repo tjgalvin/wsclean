@@ -6,9 +6,9 @@ include(ExternalProject)
 include(FetchContent)
 include(CMakeVersionInfo.txt)
 
-set(AOCOMMON_COMMIT e1b7980e02211ade95eef176a3ac7f9ba3dcc55c)
-set(SCHAAPCOMMON_COMMIT b47f19dace28ad420c0a7c8ab1014b55b75205e9)
-set(RADLER_COMMIT 940e9617a4b3210228a849513752f0732df8104a)
+set(AOCOMMON_COMMIT 97bbc3e3b6dcd9b392271ec45d0c528a62e530ab)
+set(SCHAAPCOMMON_COMMIT 4b2eda4c42e55c0bd5717f04f6bdf35676ad19b5)
+set(RADLER_COMMIT bf29139b02cbd2be8e2fe29fdb614d5f3c6ef575)
 
 add_compile_options(
   -O3
