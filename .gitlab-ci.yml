@@ -76,7 +76,7 @@ build-with-everybeam-gcc12:
     - apt-get install -y -qq gcovr python3-astropy python3-pytest
     - mkdir -p /opt/everybeam/build
     - cd /opt/everybeam && git clone https://git.astron.nl/RD/EveryBeam.git
-    - cd /opt/everybeam/EveryBeam && git checkout ef6f1ece70f00d0a0b43e70de26d7f3e657e4215
+    - cd /opt/everybeam/EveryBeam && git checkout 96b0fc3e4dc57813b43d7d9e42ed32cda21882ac
     - cd /opt/everybeam/build && cmake -DCMAKE_INSTALL_PREFIX=.. ../EveryBeam/
     - make -j`nproc` install
     - cd $CI_PROJECT_DIR && mkdir build && cd build
