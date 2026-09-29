@@ -6,7 +6,6 @@
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/beammode.h>
 #include <EveryBeam/beamnormalisationmode.h>
-#include <EveryBeam/pointresponse/pointresponse.h>
 #include <EveryBeam/timecache.h>
 #endif
 
@@ -843,7 +842,7 @@ class VisibilityModifier {
                        std::vector<aocommon::MC2x2F>& result) const;
 
   // _telescope attribute needed to keep the telecope in the point response of the time_cache_ alive
-  std::unique_ptr<everybeam::telescope::Telescope> _telescope;
+  std::unique_ptr<everybeam::Telescope> _telescope;
   std::unique_ptr<everybeam::TimeCache> time_cache_;
   /**
    * The beam response for the currently processed timestep. The VectorMap

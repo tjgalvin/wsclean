@@ -5,8 +5,8 @@
 
 #ifdef HAVE_EVERYBEAM
 #include <EveryBeam/load.h>
+#include <EveryBeam/everybeam.h>
 #include <EveryBeam/aterms/atermconfig.h>
-#include <EveryBeam/pointresponse/phasedarraypoint.h>
 #endif
 
 // Only needed for EB/H5Parm related options
@@ -80,7 +80,7 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
       element_response, _beamModeString);
   _beamMode = options.beam_mode;
 
-  _telescope = everybeam::Load(*ms, options);
+  _telescope = everybeam::LoadTelescope(*ms, options);
   // Initialize with 0.0 time to make sure first call to UpdateTime()
   // will fill the beam response cache.
   constexpr double initial_time = 0.0;
@@ -88,6 +88,7 @@ void VisibilityModifier::InitializePointResponse(SynchronizedMS&& ms, double fac
       std::make_unique<everybeam::TimeCache>(everybeam::CreateTimeCache(initial_time, *_telescope));
   time_cache_->SetUpdateInterval(facet_beam_update_time);
   n_stations_ = _telescope->GetNrStations();
+
   if (uses_frequency_bda_) {
     std::vector<aocommon::MC2x2F>& band_response = _cachedBeamResponse.AlwaysEmplace(0);
     band_response.resize(bands.MaxBandChannels() * n_stations_);
@@ -241,9 +242,13 @@ void VisibilityModifier::GetBeamResponse(const aocommon::BandData& band, size_t 
     frequencies[ch] = band.ChannelFrequency(ch);
   }
 
-  everybeam::pointresponse::PointResponse& point_response = time_cache_->GetPointResponse();
-  point_response.ResponseAllStations(_beamMode, result.data(), _facetDirectionRA,
-                                     _facetDirectionDec, frequencies, field_id);
+  std::vector<size_t> station_indices(n_stations_);
+  std::iota(station_indices.begin(), station_indices.end(), 0);
+
+  const std::pair<double, double> ra_dec_pointing{_facetDirectionRA, _facetDirectionDec};
+  everybeam::StationResponse(_beamMode, result.data(), *_telescope, std::span(time_cache_.get(), 1),
+                             std::span(&ra_dec_pointing, 1), frequencies, field_id,
+                             station_indices);
 }
 
 bool VisibilityModifier::UpdateCachedBeamResponseForRow(double time, size_t field_id,

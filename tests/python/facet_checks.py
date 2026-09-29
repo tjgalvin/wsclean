@@ -630,6 +630,8 @@ class TestFacets:
         with h5 corrections. Number of used threads/processes is
         deliberately chosen smaller than the number of facets.
         """
+        require_mpi()
+
         names = [
             "facets-h5-serial",
             "facets-h5-threaded",
