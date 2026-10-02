@@ -22,10 +22,11 @@ class MpiWorkerScheduler final : public GriddingTaskManager {
 
   int Rank() const { return rank_; }
 
-  void Start(size_t n_writer_groups) override {
-    GriddingTaskManager::Start(n_writer_groups);
-    local_scheduler_.Start(n_writer_groups);
+  void Start(size_t num_writer_groups, size_t num_parallel_tasks) override {
+    local_scheduler_.Start(num_writer_groups, num_parallel_tasks);
   }
+
+  void Finish() override {}
 
   /**
    * Run function for use in Worker.

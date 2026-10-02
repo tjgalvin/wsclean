@@ -146,17 +146,17 @@ class WSClean {
    * settings, this might load existing images from disk or initialize
    * them to zero.
    */
-  void initializeModelImages(const ImagingTableEntry& entry,
-                             aocommon::PolarizationEnum polarization, size_t nFacetGroups);
-  void readExistingModelImages(const ImagingTableEntry& entry,
-                               aocommon::PolarizationEnum polarization, size_t nFacetGroups);
+  void initializeModelImages(size_t facet_group_size, const ImagingTableEntry& entry,
+                             aocommon::PolarizationEnum polarization, size_t maxFacetGroupIndex);
+  void readExistingModelImages(size_t facet_group_size, const ImagingTableEntry& entry,
+                               aocommon::PolarizationEnum polarization, size_t maxFacetGroupIndex);
   /**
    * Override the image settings given a FitsReader object.
    * The boolean return value indicates whether the gridder needs
    * to be reset.
    */
   bool overrideImageSettings(const aocommon::FitsReader& reader);
-  void loadExistingImage(ImagingTableEntry& entry, bool isPSF);
+  void loadExistingImage(size_t facet_group_size, ImagingTableEntry& entry, bool isPSF);
 
   void ImagePsf(ImagingTable::Group&& facet_group);
   void ImagePsfCallback(ImagingTable::Group facet_group, GriddingResult& result);
@@ -221,7 +221,7 @@ class WSClean {
   /**
    * @brief Compute the total amount of MSProviders that will be generated.
    * This number is needed to initialize the writer locks in the prediction
-   * tasks, which are set via a call to _griddingTaskManager->Start(). The
+   * tasks, which are set via a call to task_manager_->Start(). The
    * number of @p MSProviders is the acummulated number of bands per MS.
    *
    * @return size_t Number of MSProviders
@@ -244,7 +244,7 @@ class WSClean {
 
   std::unique_ptr<MsHelper> _msHelper;
   std::unique_ptr<GriddingTaskFactory> _griddingTaskFactory;
-  std::unique_ptr<GriddingTaskManager> _griddingTaskManager;
+  std::unique_ptr<GriddingTaskManager> task_manager_;
   std::unique_ptr<ImageWeightCache> _imageWeightCache;
   Stopwatch _inversionWatch, _predictingWatch, _deconvolutionWatch;
   bool _isFirstInversionTask;  // Becomes false after the first inversion task.

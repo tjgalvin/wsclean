@@ -28,7 +28,7 @@ constexpr int kSlotsPerNode = 1;
 }  // namespace
 
 MPIScheduler::MPIScheduler(const Settings& settings)
-    : GriddingTaskManager(settings), local_scheduler_(settings) {
+    : GriddingTaskManager(settings), local_scheduler_(settings.parallelGridding, settings) {
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -121,10 +121,8 @@ void MPIScheduler::Finish() {
   }
 }
 
-void MPIScheduler::Start(size_t n_writer_groups) {
-  GriddingTaskManager::Start(n_writer_groups);
-
-  const TaskMessage message(TaskMessage::Type::kStart, n_writer_groups);
+void MPIScheduler::Start(size_t num_writer_groups, size_t num_parallel_tasks) {
+  const TaskMessage message(TaskMessage::Type::kStart, num_writer_groups, num_parallel_tasks);
   aocommon::SerialOStream message_stream;
   message.Serialize(message_stream);
   assert(message_stream.size() == TaskMessage::kSerializedSize);
@@ -136,7 +134,7 @@ void MPIScheduler::Start(size_t n_writer_groups) {
   }
 
   if (GetSettings().masterDoesWork) {
-    local_scheduler_.Start(n_writer_groups);
+    local_scheduler_.Start(num_writer_groups, num_parallel_tasks);
   }
 }
 

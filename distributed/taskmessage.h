@@ -29,12 +29,24 @@ struct TaskMessage {
     kGriddingResult,
   } type;
   union {
-    size_t n_writer_groups;  // For kStart type.
-    size_t body_size;        // For kGridding* types.
+    // For kStart type.
+    struct {
+      uint32_t n_writer_groups;
+      uint32_t n_parallel_tasks;
+    };
+    // For kGridding* types.
+    uint64_t body_size;
   };
+  static_assert(sizeof(body_size) == (sizeof(uint32_t) * 2));
 
   TaskMessage() : type(Type::kInvalid), body_size(0) {}
   TaskMessage(Type type_, size_t payload) : type(type_), body_size(payload) {}
+  // Constructor for kStart
+  TaskMessage(Type type_, uint32_t n_writer_groups_, uint32_t n_parallel_tasks_) : type(type_) {
+    assert(type_ == Type::kStart);
+    n_writer_groups = n_writer_groups_;
+    n_parallel_tasks = n_parallel_tasks_;
+  }
 
   constexpr static size_t kSerializedSize = 12;
 

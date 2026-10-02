@@ -16,13 +16,13 @@ namespace wsclean {
 
 class ThreadedScheduler final : public GriddingTaskManager {
  public:
-  ThreadedScheduler(const class Settings& settings);
+  ThreadedScheduler(size_t num_parallel_tasks, const class Settings& settings);
   ~ThreadedScheduler();
 
   void Run(GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) override;
   void Finish() override;
 
-  void Start(size_t nWriterGroups) override;
+  void Start(size_t num_writer_groups, size_t num_parallel_tasks) override;
 
   std::unique_ptr<WriterLock> GetLock(size_t writer_group_index) override;
 
@@ -76,6 +76,8 @@ class ThreadedScheduler final : public GriddingTaskManager {
   /// The second value contains the indices of the facet(s) for the sub-task(s).
   using TaskQueueType = aocommon::TaskQueue<std::pair<size_t, std::vector<size_t>>>;
 
+  void FinishTaskQueue();
+
   /// Protects task_data_map_, latest_exception_ and ready_list_.
   std::mutex mutex_;
   std::vector<std::thread> thread_list_;
@@ -84,7 +86,7 @@ class ThreadedScheduler final : public GriddingTaskManager {
   std::map<std::size_t, TaskData> task_data_map_;
   /// FIFO queue for the tasks.
   /// Each sub-task, which processes a single facet, has an entry.
-  TaskQueueType task_queue_;
+  std::shared_ptr<TaskQueueType> task_queue_;
   /// Stores the unique_id for tasks that are complete, so the main thread
   /// can execute the callback.
   std::vector<size_t> ready_list_;
@@ -93,7 +95,8 @@ class ThreadedScheduler final : public GriddingTaskManager {
   std::exception_ptr latest_exception_;
   std::vector<std::mutex> writer_group_locks_;
 
-  const Resources resources_per_task_;
+  Resources resources_per_task_;
+  size_t num_parallel_tasks_ = 0;
 };
 
 }  // namespace wsclean

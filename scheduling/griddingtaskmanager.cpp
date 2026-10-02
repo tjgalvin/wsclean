@@ -28,30 +28,13 @@ std::unique_ptr<GriddingTaskManager> GriddingTaskManager::Make(const Settings& s
 #else
     throw std::runtime_error("MPI not available");
 #endif
-  } else if (settings.parallelGridding > 1) {
-    return std::make_unique<ThreadedScheduler>(settings);
-  } else {
-    return std::make_unique<GriddingTaskManager>(settings);
   }
+  return std::make_unique<ThreadedScheduler>(0, settings);
 }
 
 Resources GriddingTaskManager::GetResources() const {
   return Resources(settings_.threadCount,
                    GetAvailableMemory(settings_.memFraction, settings_.absMemLimit));
-}
-
-void GriddingTaskManager::Run(GriddingTask&& task,
-                              std::function<void(GriddingResult&)> finishCallback) {
-  std::vector<size_t> facet_indices(task.facets.size());
-  std::iota(facet_indices.begin(), facet_indices.end(), 0);
-
-  GriddingResult result;
-  result.facets.resize(task.facets.size());
-  std::mutex result_mutex;
-
-  RunDirect(task, facet_indices, GetResources(), result, result_mutex, {});
-
-  finishCallback(result);
 }
 
 void GriddingTaskManager::RunDirect(

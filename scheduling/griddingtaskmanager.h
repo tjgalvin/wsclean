@@ -37,7 +37,7 @@ class GriddingTaskManager {
    *
    * @param nWriterGroups The number of writer groups.
    */
-  virtual void Start([[maybe_unused]] size_t nWriterGroups) {}
+  virtual void Start(size_t num_parallel_tasks, [[maybe_unused]] size_t num_writer_groups) = 0;
 
   /**
    * Obtains a lock for the given @p writer_group_index.
@@ -57,12 +57,12 @@ class GriddingTaskManager {
    *
    * This implementation runs the task directly and blocks until done.
    */
-  virtual void Run(GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback);
+  virtual void Run(GriddingTask&& task, std::function<void(GriddingResult&)> finishCallback) = 0;
 
   /**
    * Block until all tasks have finished.
    */
-  virtual void Finish() {};
+  virtual void Finish() = 0;
 
   /**
    * Make the gridding task manager according to the settings.

@@ -12,22 +12,9 @@ using aocommon::Logger;
 
 namespace wsclean {
 
-ThreadedScheduler::ThreadedScheduler(const Settings& settings)
-    : GriddingTaskManager{settings},
-      // When using the ThreadedScheduler as the main scheduler, limit the
-      // number of tasks in the queue to one per thread. When stacking too many
-      // tasks, memory usage could become an issue.
-      // When using the ThreadedScheduler as a local scheduler with the
-      // MPIScheduler, the MPIScheduler manages the task distribution.
-      // The ThreadedScheduler should always queue new tasks in that case.
-      task_queue_(settings.UseMpi() ? TaskQueueType() : TaskQueueType(settings.parallelGridding)),
-      resources_per_task_(GetResources().GetPart(settings.parallelGridding)) {
-  Logger::Debug << "[ThreadedScheduler] Using " + std::to_string(settings.parallelGridding) +
-                       " workers with " + std::to_string(resources_per_task_.NCpus()) +
-                       " threads per worker.\n";
-  for (size_t i = 0; i < settings.parallelGridding; ++i) {
-    thread_list_.emplace_back(&ThreadedScheduler::ProcessQueue, this);
-  }
+ThreadedScheduler::ThreadedScheduler(size_t num_parallel_tasks, const Settings& settings)
+    : GriddingTaskManager{settings} {
+  Start(0, num_parallel_tasks);
 }
 
 ThreadedScheduler::~ThreadedScheduler() {
@@ -41,7 +28,11 @@ ThreadedScheduler::~ThreadedScheduler() {
     Logger::Error << "Exception caught during destruction of ThreadedScheduler:\n"s + e.what() +
                          '\n';
   }
-  task_queue_.Finish();  // Make all threads exit.
+  FinishTaskQueue();
+}
+
+void ThreadedScheduler::FinishTaskQueue() {
+  task_queue_->Finish();  // Make all threads exit.
   for (std::thread& thread : thread_list_) thread.join();
 }
 
@@ -69,55 +60,21 @@ void ThreadedScheduler::Run(GriddingTask&& task,
   if (!batch_invert && !batch_predict) {
     // Add sub-tasks for each facet to the task queue.
     for (std::size_t facet_index = 0; facet_index < facet_count; ++facet_index) {
-      task_queue_.Emplace(task_id, std::vector<size_t>{facet_index});
+      task_queue_->Emplace(task_id, std::vector<size_t>{facet_index});
     }
   } else {
+    assert(facet_count > 1);
     // Set the amount of parallel gridders for this task
     task_data->task.num_parallel_gridders_ =
         std::min(GetSettings().parallelGridding, std::max(facet_count, size_t{1}));
 
     // Each facet group is only one task, the task will handle splitting
-    // resources between facets internally If we are not using compound tasks
-    // then we end up here for each individual facet and thereby create one task
-    // per facet
-    if (facet_count > 1) {
-      // Wait tasks call WaitForCompletion() on
-      // lock_excess_scheduler_tasks_ which will pause/freeze/block them until
-      // SignalCompletion() is called
-      task_data->task.lock_excess_scheduler_tasks_ = std::make_shared<CompletionSignal>();
-
-      // Dispatch N-1 blocker tasks to reserve all N threads for this compound task.
-      // Using the full thread list size prevents a race condition in `TryStealTask`.
-      // This means only one compound task will run on a node a time, which for now we are limited
-      // to anyway due to other constraints.
-      for (size_t wait_task_index = 0; wait_task_index < thread_list_.size() - 1;
-           ++wait_task_index) {
-        // Exact id doesn't really matter we just need to ensure that id is
-        // unique
-        const size_t wait_task_id = std::numeric_limits<size_t>::max() -
-                                    (task_data->task.unique_id * 1000) - wait_task_index;
-        TaskData* wait_task_data;
-        {
-          std::lock_guard<std::mutex> lock(mutex_);
-          assert(task_data_map_.count(wait_task_id) == 0);
-          wait_task_data = &task_data_map_[wait_task_id];
-        }
-
-        GriddingTask wait_task;
-        wait_task.operation = GriddingTask::Wait;
-        wait_task.lock_excess_scheduler_tasks_ = task_data->task.lock_excess_scheduler_tasks_;
-        wait_task_data->task = std::move(wait_task);
-        task_queue_.Emplace(wait_task_id, std::vector<size_t>{0});
-      }
-
-      std::vector<size_t> facet_indexes(facet_count);
-      std::iota(facet_indexes.begin(), facet_indexes.end(), 0);
-      assert(!facet_indexes.empty());
-      task_queue_.Emplace(task_id, facet_indexes);
-    } else {
-      assert(0);
-      task_queue_.Emplace(task_id, std::vector<size_t>{0});
-    }
+    // resources between facets internally.
+    task_data->task.lock_excess_scheduler_tasks_ = std::make_shared<CompletionSignal>();
+    std::vector<size_t> facet_indexes(facet_count);
+    std::iota(facet_indexes.begin(), facet_indexes.end(), 0);
+    assert(!facet_indexes.empty());
+    task_queue_->Emplace(task_id, facet_indexes);
   }
 
   ProcessReadyList();
@@ -135,43 +92,22 @@ bool ThreadedScheduler::TryStealTask(
   // Parent has finished in the meantime, return.
   if (!parent_task_completion_signal) return false;
 
-  std::vector<std::pair<size_t, std::vector<size_t>>> facet_tasks;
+  std::pair<size_t, std::vector<size_t>> facet_task;
   // We aren't just taking the worker task but also all the "Wait" tasks
   // associated with it as well. Grab them all in one go.
-  if (task_queue_.TryPopN(facet_tasks, n_work_size)) {
-    for (size_t i = 0; i < n_work_size - 1; ++i) {
-      const size_t task_id = facet_tasks[i].first;
-      TaskData& task_data = task_data_map_[task_id];
-      if (task_data.task.operation == GriddingTask::Wait) {
-        // We take over ownership of the existing wait task and re-use that.
-        // So immediately remove the new wait task as if it is completed.
-        task_data_map_.erase(task_id);
-      } else {
-        Logger::Debug << "[TaskSteal] Fatal error, wait tasks not in expected "
-                         "order in queue.\n";
-        throw std::runtime_error(
-            "Invalid task order encountered in "
-            "ThreadedScheduler::TryStealTask");
-      }
-    }
-    const size_t& task_id = facet_tasks[n_work_size - 1].first;
-    const std::vector<size_t>& facet_indexes = facet_tasks[n_work_size - 1].second;
+  if (task_queue_->TryPop(facet_task)) {
+    const size_t& task_id = facet_task.first;
+    const std::vector<size_t>& facet_indexes = facet_task.second;
     TaskData& task_data = task_data_map_[task_id];
-    if (task_data.task.operation != GriddingTask::Wait) {
-      Logger::Debug << "[TaskSteal] Success.\n";
-      // Take over ownership of wait tasks from parent task.
-      task_data.task.lock_excess_scheduler_tasks_ = parent_task_completion_signal;
-      parent_task_completion_signal.reset();
-      signal_stolen_task_completion = task_data.task.lock_excess_scheduler_tasks_;
-      std::thread([&, facet_indexes, task_id, scheduler = std::move(scheduler)]() mutable {
-        ProcessTask(task_id, facet_indexes, task_data, task_data.task.lock_excess_scheduler_tasks_,
-                    std::move(scheduler));
-      }).detach();
-    } else {
-      Logger::Debug << "[TaskSteal] Fatal error, worker tasks not in expected "
-                       "order in queue.\n";
-      throw std::runtime_error("Invalid task order encountered in ThreadedScheduler::TryStealTask");
-    }
+
+    Logger::Debug << "[TaskSteal] Success.\n";
+    task_data.task.lock_excess_scheduler_tasks_ = parent_task_completion_signal;
+    parent_task_completion_signal.reset();
+    signal_stolen_task_completion = task_data.task.lock_excess_scheduler_tasks_;
+    std::thread([&, facet_indexes, task_id, scheduler = std::move(scheduler)]() mutable {
+      ProcessTask(task_id, facet_indexes, task_data, task_data.task.lock_excess_scheduler_tasks_,
+                  std::move(scheduler));
+    }).detach();
     return true;
   }
   Logger::Debug << "[TaskSteal] Failed to steal, no tasks available.\n";
@@ -193,29 +129,16 @@ void ThreadedScheduler::ProcessTask(size_t task_id, const std::vector<size_t>& f
     // gridding tasks internally instead of just a single one it is necessary
     // to allocate it the appropriate resources for all N tasks.
     Resources task_resources = resources_per_task_.GetCombined(task_size);
-    if (task_data.task.operation == GriddingTask::Wait) {
-      // Wait tasks occupy a thread from the pool by waiting on
-      // a completion signal.
-      assert(signal_task_completion);
-      signal_task_completion->WaitForCompletion();
-    } else {
-      RunDirect(
-          task_data.task, facet_indexes, task_resources, task_data.result, task_data.result_mutex,
-          [&](std::unique_ptr<MSGridderManagerScheduler>& parent_scheduler) {
-            TryStealTask(signal_task_completion, signal_stolen_task_completion, parent_scheduler,
-                         thread_list_.size());
-          },
-          std::move(scheduler));
-    }
+    RunDirect(
+        task_data.task, facet_indexes, task_resources, task_data.result, task_data.result_mutex,
+        [&](std::unique_ptr<MSGridderManagerScheduler>& parent_scheduler) {
+          TryStealTask(signal_task_completion, signal_stolen_task_completion, parent_scheduler,
+                       thread_list_.size());
+        },
+        std::move(scheduler));
   } catch (std::exception&) {
     std::lock_guard<std::mutex> lock(mutex_);
     latest_exception_ = std::current_exception();
-  }
-
-  if (task_data.task.operation == GriddingTask::Wait) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    task_data_map_.erase(task_id);
-    return;
   }
 
   // Prevent further stealing from this point.
@@ -276,7 +199,7 @@ void ThreadedScheduler::ProcessTask(size_t task_id, const std::vector<size_t>& f
 
 void ThreadedScheduler::ProcessQueue() {
   std::pair<size_t, std::vector<size_t>> facet_task_pair;
-  while (task_queue_.Pop(facet_task_pair)) {
+  while (task_queue_->Pop(facet_task_pair)) {
     const size_t task_id = facet_task_pair.first;
     const std::vector<size_t>& facet_indexes = facet_task_pair.second;
     TaskData* task_data;
@@ -290,11 +213,28 @@ void ThreadedScheduler::ProcessQueue() {
   }
 }
 
-void ThreadedScheduler::Start(size_t nWriterGroups) {
+void ThreadedScheduler::Start(size_t num_writer_groups, size_t num_parallel_tasks) {
   assert(ready_list_.empty());
-  GriddingTaskManager::Start(nWriterGroups);
-  if (writer_group_locks_.size() < nWriterGroups)
-    writer_group_locks_ = std::vector<std::mutex>(nWriterGroups);
+  if (writer_group_locks_.size() < num_writer_groups) {
+    writer_group_locks_ = std::vector<std::mutex>(num_writer_groups);
+  }
+
+  // Reset the task queue and resources to the new work size.
+  if (num_parallel_tasks_ != num_parallel_tasks) {
+    num_parallel_tasks_ = num_parallel_tasks;
+    resources_per_task_ = GetResources().GetPart(num_parallel_tasks);
+    Logger::Debug << "[ThreadedScheduler] Using " + std::to_string(num_parallel_tasks) +
+                         " workers with " + std::to_string(resources_per_task_.NCpus()) +
+                         " threads per worker.\n";
+    if (task_queue_) {
+      FinishTaskQueue();
+      thread_list_.clear();
+    }
+    task_queue_ = std::make_shared<TaskQueueType>(num_parallel_tasks_);
+    for (size_t i = 0; i < num_parallel_tasks_; ++i) {
+      thread_list_.emplace_back(&ThreadedScheduler::ProcessQueue, this);
+    }
+  }
 }
 
 std::unique_ptr<GriddingTaskManager::WriterLock> ThreadedScheduler::GetLock(
@@ -304,7 +244,7 @@ std::unique_ptr<GriddingTaskManager::WriterLock> ThreadedScheduler::GetLock(
 }
 
 void ThreadedScheduler::Finish() {
-  task_queue_.WaitForIdle(GetSettings().parallelGridding);
+  task_queue_->WaitForIdle(GetSettings().parallelGridding);
 
   ProcessReadyList();
 }

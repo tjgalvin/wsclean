@@ -17,7 +17,9 @@ constexpr int kTag = 0;
 }  // namespace
 
 MpiWorkerScheduler::MpiWorkerScheduler(const Settings& settings)
-    : GriddingTaskManager{settings}, rank_{-1}, local_scheduler_{settings} {
+    : GriddingTaskManager{settings},
+      rank_{-1},
+      local_scheduler_{settings.parallelGridding, settings} {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
   local_scheduler_.SetWriterLockManager(*this);
 }

@@ -33,7 +33,7 @@ void Worker::Run() {
 
     switch (message.type) {
       case TaskMessage::Type::kStart:
-        scheduler_.Start(message.n_writer_groups);
+        scheduler_.Start(message.n_writer_groups, message.n_parallel_tasks);
         break;
 
       case TaskMessage::Type::kFinish:

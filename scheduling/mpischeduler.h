@@ -34,7 +34,7 @@ class MPIScheduler final : public GriddingTaskManager {
 
   void Finish() final;
 
-  void Start(size_t n_writer_groups) final;
+  void Start(size_t num_writer_groups, size_t num_parallel_tasks) final;
 
   std::unique_ptr<WriterLock> GetLock(size_t writer_group_index) final {
     // Since WSClean uses a static outputchannel-to-node mapping,
