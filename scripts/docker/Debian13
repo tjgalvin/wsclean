@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:trixie
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     apt-get install -y \
@@ -10,6 +10,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && apt-get update && \
     libboost-filesystem-dev \
     libboost-program-options-dev \
     libcfitsio-dev \
+    libdeflate-dev \
     libfftw3-dev \
     libgsl-dev \
     libhdf5-dev \
