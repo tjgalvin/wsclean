@@ -16,6 +16,8 @@
 #include "../rowproviders/msrowprovider.h"
 #include "../operations.h"
 
+using schaapcommon::reordering::ChannelRange;
+
 namespace wsclean {
 
 void WriteReorderedToMS(const schaapcommon::reordering::HandleData& handle) {
@@ -92,9 +94,9 @@ void WriteReorderedToMS(const schaapcommon::reordering::HandleData& handle) {
 
       size_t file_index = 0;
       for (size_t part = 0; part != channel_parts; ++part) {
-        const schaapcommon::reordering::ChannelRange& range =
-            handle.channels_[part][write_info.data_desc_id];
-        if (!range.Empty()) {
+        const aocommon::VectorMap<ChannelRange>& part_channels = handle.channels_[part];
+        if (schaapcommon::reordering::ContainsDataDescId(part_channels, write_info.data_desc_id)) {
+          const ChannelRange& range = part_channels[write_info.data_desc_id];
           const size_t part_start_ch = range.start;
           const size_t part_end_ch = range.end;
           const std::set<aocommon::PolarizationEnum>& ms_polarizations =
