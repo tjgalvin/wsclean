@@ -208,6 +208,8 @@ class Settings {
   radler::MultiscaleShape multiscaleShapeFunction = radler::MultiscaleShape::kTaperedQuadraticShape;
   double deconvolutionBorderRatio = 0.0;
   std::string fitsDeconvolutionMask, casaDeconvolutionMask;
+  // Bit-mapped per-scale clean mask for multi-scale deconvolution
+  std::string fitsScalesMask;
   bool horizonMask = false;
   double horizonMaskDistance = 0.0;
   std::string localRMSImage;
