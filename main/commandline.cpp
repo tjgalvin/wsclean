@@ -528,6 +528,9 @@ but subtract components from individual channels.
    With an image size of 1000 and clean border of 1%, each border is 10 pixels. Default: 0%
 -fits-mask <mask>
    Use the specified fits-file as mask during cleaning.
+-multiscale-fits-mask <scalemask>
+   Use the specified fits-file as per-scale mask during multi-scale cleaning. The n'th bit of a pixel
+   value allows the n'th scale at that pixel. Uses about one byte of memory per pixel per scale in use.
 -casa-mask <mask>
    Use the specified CASA mask as mask during cleaning.
 -horizon-mask <distance>
@@ -1146,6 +1149,9 @@ bool CommandLine::ParseWithoutValidation(WSClean& wsclean, int argc, const char*
     } else if (param == "fits-mask") {
       IncArgi(argi, argc);
       settings.fitsDeconvolutionMask = argv[argi];
+    } else if (param == "multiscale-fits-mask") {
+      IncArgi(argi, argc);
+      settings.fitsScalesMask = argv[argi];
     } else if (param == "casa-mask") {
       IncArgi(argi, argc);
       settings.casaDeconvolutionMask = argv[argi];

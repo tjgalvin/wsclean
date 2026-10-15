@@ -154,6 +154,10 @@ void Settings::Validate() const {
     }
   }
 
+  if (!fitsScalesMask.empty() && algorithmType != radler::AlgorithmType::kMultiscale) {
+    throw std::runtime_error("Parameter -multiscale-fits-mask can only be used with multi-scale deconvolution (-multiscale).");
+  }
+
   if (facetRegionFilename.empty() && featherSize && *featherSize != 0) {
     throw std::runtime_error("Parameter -feather-size was specified without enabling facetting.");
   }
@@ -617,6 +621,7 @@ radler::Settings Settings::GetRadlerSettings() const {
       radler_settings.multiscale.scale_list.assign(multiscaleScaleList.begin(),
                                                    multiscaleScaleList.end());
       radler_settings.multiscale.shape = multiscaleShapeFunction;
+      radler_settings.multiscale.scale_mask_filename = fitsScalesMask;
       break;
     case radler::AlgorithmType::kMoreSane:
       radler_settings.more_sane.location = moreSaneLocation;
