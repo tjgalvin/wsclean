@@ -256,7 +256,14 @@ void ThreadedScheduler::ProcessQueue() {
   while (task_queue_.Pop(facet_task_pair)) {
     const size_t task_id = facet_task_pair.first;
     const std::vector<size_t>& facet_indexes = facet_task_pair.second;
-    TaskData& task_data = task_data_map_[task_id];
+    // The map is modified by other threads (under mutex_), so the lookup must
+    // also hold the lock. References to map elements remain valid afterwards.
+    TaskData* task_data_ptr;
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      task_data_ptr = &task_data_map_.at(task_id);
+    }
+    TaskData& task_data = *task_data_ptr;
     std::shared_ptr<CompletionSignal>& signal_task_completion =
         task_data.task.lock_excess_scheduler_tasks_;
     ProcessTask(task_id, facet_indexes, task_data, signal_task_completion);
@@ -304,7 +311,12 @@ void ThreadedScheduler::ProcessReadyList() {
 
   // Call callbacks for any finished tasks
   for (std::size_t task_id : local_ready_list) {
-    TaskData& task_data = task_data_map_[task_id];
+    TaskData* task_data_ptr;
+    {
+      std::lock_guard<std::mutex> lock{mutex_};
+      task_data_ptr = &task_data_map_.at(task_id);
+    }
+    TaskData& task_data = *task_data_ptr;
     task_data.callback(task_data.result);
   }
 
