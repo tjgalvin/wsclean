@@ -282,6 +282,7 @@ class VisibilityModifier {
                          size_t& time_offset);
 
   const SolutionsResponseMap& GetCachedParmResponse(size_t ms_index) const {
+    assert(_cachedParmResponse.count(ms_index));
     return _cachedParmResponse.find(ms_index)->second;
   }
 

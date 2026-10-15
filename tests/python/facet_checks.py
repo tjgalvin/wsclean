@@ -474,8 +474,11 @@ class TestFacets:
     @pytest.mark.parametrize(
         "dd_facets", ["with_dd_facets", "without_dd_facets"]
     )
+    @pytest.mark.parametrize(
+        "solutions", ["with_solutions", "without_solutions"]
+    )
     def test_shared_facet_reads_and_writes(
-        self, apply_facet_beam, polarization, dd_facets
+        self, apply_facet_beam, polarization, dd_facets, solutions
     ):
         names = [
             "facets-no-shared",
@@ -514,6 +517,14 @@ class TestFacets:
         else:
             suffixes.append("no-beam")
 
+        if solutions == "with_solutions":
+            optional_args.append(
+                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000"
+            )
+            suffixes.append("solutions")
+        else:
+            suffixes.append("no-solutions")
+
         use_dd_facets = dd_facets == "with_dd_facets"
         if use_dd_facets:
             optional_args.append(
@@ -549,7 +560,6 @@ class TestFacets:
                 "-parallel-gridding 3 "
                 "-channels-out 3 -join-channels "
                 "-no-update-model-required "
-                f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} {tcf.DIMS_SMALL} "
                 f"{loop_settings} -mgain 0.8 "
                 f"{tcf.MWA_MOCK_MS}"

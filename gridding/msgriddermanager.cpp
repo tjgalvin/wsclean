@@ -607,7 +607,13 @@ size_t MSGridderManager::ReadChunkForInvertImplementation(const std::vector<MsGr
   // A PreallocatedVector is used to prevent race conditions, and it is over allocated (@sa
   // StartProcessingChunk()) as min(n_chunk_rows, unique_times), because timesteps may be unevenly
   // distributed across chunks, and computing the exact count requires iterating the full rows.
-  const size_t n_max_beam_time_steps = std::min(n_chunk_rows, ms_data.unique_times->size());
+  // The unique times are only known when solutions are applied. Otherwise, the number of rows is
+  // used, because a chunk can not hold more timesteps than rows. Without beam, nothing is cached.
+  size_t n_max_beam_time_steps = 0;
+  if constexpr (ApplyBeam) {
+    n_max_beam_time_steps =
+        ms_data.unique_times ? std::min(n_chunk_rows, ms_data.unique_times->size()) : n_chunk_rows;
+  }
 
   // Visibility modifier needs to know when we are starting a new chunk in order
   // to track the beam correctly.
@@ -836,9 +842,12 @@ void MSGridderManager::GridChunkForFacet(MsGridder& gridder, size_t facet_index,
                                          size_t chunk_index) {
   Logger::Info << "Gridding facet " + std::to_string(facet_index) + "\n";
 
+  // Solution responses are only cached when solutions are applied.
+  static const std::vector<std::complex<float>> kNoParmResponse;
+  const VisibilityModifier& modifier = gridder.GetVisibilityModifier();
   const std::vector<std::complex<float>>& parm_response =
-      gridder.GetVisibilityModifier().GetCachedParmResponse(
-          ms_data.original_ms_index)[data_desc_id];
+      modifier.HasH5Parm() ? modifier.GetCachedParmResponse(ms_data.original_ms_index)[data_desc_id]
+                           : kNoParmResponse;
 
   std::shared_ptr<BeamResponseCacheChunk> beam_response =
       gridder.GetVisibilityModifier().TakeCachedBeamResponseChunk(chunk_index);
