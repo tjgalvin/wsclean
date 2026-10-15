@@ -203,6 +203,13 @@ class MSGridderManager {
   template <typename T>
   void ExecuteForAllGridders(T&& operation, bool wait_for_idle = true);
 
+  /**
+   * Calls StartMeasurementSet() for shared_data and all gridders of the
+   * batch, in parallel if the provider is thread safe.
+   */
+  void StartBatchMeasurementSet(MsGridderData& shared_data, size_t ms_count,
+                                const MsProviderCollection::MsData& ms_data, bool is_predict);
+
   /** Call `operation()` once per gridder, for all gridders, running as many as
    * possible in parallel while using `n_cores_per_gridder` threads per
    * operation.

@@ -77,6 +77,8 @@ class ReorderedMsProvider final : public MSProvider {
 
   std::optional<SynchronizedMS> MsIfAvailable() final { return MS(); }
 
+  bool IsThreadSafe() const final { return true; }
+
  private:
   SynchronizedMS MS() { return SynchronizedMS(handle_.data_->ms_path_.data()); }
 

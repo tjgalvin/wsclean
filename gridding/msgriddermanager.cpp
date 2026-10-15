@@ -945,6 +945,26 @@ void MSGridderManager::GridChunks(
       "Gridding");
 }
 
+void MSGridderManager::StartBatchMeasurementSet(MsGridderData& shared_data, size_t ms_count,
+                                                const MsProviderCollection::MsData& ms_data,
+                                                bool is_predict) {
+  // In a batch, only shared_data reads the measurement set, and the batch
+  // itself writes the predicted visibilities. The gridders are therefore
+  // started without a predict reader and model data buffer, which they would
+  // not use (is_predict = false), also for predicts.
+  if (ms_data.ms_provider->IsThreadSafe()) {
+    ExecuteForAllGridders(
+        [&](MsGridder* gridder) { gridder->StartMeasurementSet(ms_count, ms_data, false); }, false);
+    shared_data.StartMeasurementSet(ms_count, ms_data, is_predict);
+    scheduler_->GetWorkerTaskQueue().WaitForIdle(available_cores_);
+  } else {
+    shared_data.StartMeasurementSet(ms_count, ms_data, is_predict);
+    for (GriddingFacetTask& task : facet_tasks_) {
+      task.facet_gridder->StartMeasurementSet(ms_count, ms_data, false);
+    }
+  }
+}
+
 void MSGridderManager::BatchInvert(std::function<void()> signal_last_gridding_work_has_started) {
   assert(facet_tasks_.size() > 1);
   assert(scheduler_);
@@ -975,13 +995,7 @@ void MSGridderManager::BatchInvert(std::function<void()> signal_last_gridding_wo
       MsGridderData shared_data(settings_);
       shared_data.CopyTaskData((*gridders[0]), solution_data_, ms_data);
 
-      ExecuteForAllGridders(
-          [&](MsGridder* gridder) {
-            gridder->StartMeasurementSet(providers.Count(), ms_data, false);
-          },
-          false);
-      shared_data.StartMeasurementSet(providers.Count(), ms_data, false);
-      scheduler_->GetWorkerTaskQueue().WaitForIdle(available_cores_);
+      StartBatchMeasurementSet(shared_data, providers.Count(), ms_data, false);
 
       const aocommon::MultiBandData& bands(ms_data.ms_provider->SelectedBands());
       const size_t n_max_channels = bands.MaxBandChannels();
@@ -1236,13 +1250,7 @@ void MSGridderManager::BatchPredict(std::function<void()> signal_last_predict_wo
                            std::to_string(providers.ms_data_vector_.size()) + "\n";
       MsGridderData shared_data(settings_);
       shared_data.CopyTaskData((*gridders[0]), solution_data_, ms_data);
-      ExecuteForAllGridders(
-          [&](MsGridder* gridder) {
-            gridder->StartMeasurementSet(providers.Count(), ms_data, true);
-          },
-          false);
-      shared_data.StartMeasurementSet(providers.Count(), ms_data, true);
-      scheduler_->GetWorkerTaskQueue().WaitForIdle(available_cores_);
+      StartBatchMeasurementSet(shared_data, providers.Count(), ms_data, true);
 
       // TODO
       if (!ms_data.ms_provider->IsRegular())

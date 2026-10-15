@@ -482,6 +482,7 @@ class TestFacets:
             "facets-shared-reads",
             "facets-shared-writes",
             "facets-shared-reads-and-writes",
+            "facets-shared-reads-and-writes-no-reorder",
         ]
         if not RUN_EXPENSIVE_TESTS:
             if not (
@@ -493,6 +494,7 @@ class TestFacets:
             names = [
                 "facets-no-shared",
                 "facets-shared-reads-and-writes",
+                "facets-shared-reads-and-writes-no-reorder",
             ]
 
         suffixes = []
@@ -533,6 +535,11 @@ class TestFacets:
                 shared_args = "-shared-facet-writes"
             elif name == "facets-shared-reads-and-writes":
                 shared_args = "-shared-facet-reads -shared-facet-writes"
+            elif name == "facets-shared-reads-and-writes-no-reorder":
+                # Without reordering, the measurement set is read directly
+                shared_args = (
+                    "-shared-facet-reads -shared-facet-writes -no-reorder"
+                )
 
             s = (
                 f"{tcf.WSCLEAN} -name {name}{name_suffix} "

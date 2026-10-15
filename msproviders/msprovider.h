@@ -192,6 +192,12 @@ class MSProvider {
   virtual std::optional<SynchronizedMS> MsIfAvailable() { return {}; }
 
   /**
+   * Whether metadata can safely be read from this provider by multiple threads
+   * at the same time.
+   */
+  virtual bool IsThreadSafe() const { return false; }
+
+  /**
    * Reset model data in the MSProvider to zeros.
    */
   virtual void ResetModelColumn();

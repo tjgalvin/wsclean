@@ -63,6 +63,8 @@ class TimestepBuffer final : public MSProvider {
 
   std::optional<SynchronizedMS> MsIfAvailable() final { return ms_provider_->MsIfAvailable(); }
 
+  bool IsThreadSafe() const final { return ms_provider_->IsThreadSafe(); }
+
   std::string PartDescription() const final { return ms_provider_->PartDescription(); }
 
  private:
