@@ -51,6 +51,10 @@
 #include <memory>
 #include <ranges>
 
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
+
 using aocommon::CoordinateSystem;
 using aocommon::Image;
 using aocommon::Logger;
@@ -1500,6 +1504,13 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
       _deconvolutionWatch.Start();
       _deconvolution->Perform(reachedMajorThreshold, _majorIterationNr);
       _deconvolutionWatch.Pause();
+#ifdef __GLIBC__
+      // The deconvolution threads free many large buffers inside glibc's
+      // per-thread arenas. While the memory is available for WSClean, glibc
+      // only returns free memory at the top of an arena to the OS, so without
+      // this most of it stays mapped after deconvolution.
+      malloc_trim(0);
+#endif
 
       if (_majorIterationNr == 1 && _settings.deconvolutionMGain != 1.0 &&
           _settings.isFirstResidualSaved)
