@@ -13,8 +13,8 @@ namespace wsclean {
 template <typename T>
 concept NumericRangeLike =
     std::ranges::input_range<T> && requires(std::ranges::range_value_t<T> v) {
-  {std::to_string(v)}->std::convertible_to<std::string>;
-};
+      { std::to_string(v) } -> std::convertible_to<std::string>;
+    };
 
 class NumberList {
  public:
