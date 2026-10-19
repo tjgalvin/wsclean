@@ -41,9 +41,9 @@ MWA_MS = "MWA-1052736496-averaged.ms"
 # Mock MWA measurement set
 MWA_MOCK_ARCHIVE = "MWA_ARCHIVE.tar.bz2"
 MWA_MOCK_MS = "MWA_MOCK.ms"
+# Names of per test copies of MWA_MOCK_MS, which are made in a tmp_path
 MWA_MOCK_FULL = "MWA_MOCK_FULL.ms"
 MWA_MOCK_FACET = "MWA_MOCK_FACET.ms"
-# Copies for multi measurement set tests
 MWA_MOCK_COPY_1 = "MWA_MOCK_COPY_1.ms"
 MWA_MOCK_COPY_2 = "MWA_MOCK_COPY_2.ms"
 

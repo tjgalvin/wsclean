@@ -61,29 +61,40 @@ def prepare_large_ms():
 
 @pytest.fixture(scope="class")
 def prepare_mock_ms():
-    os.makedirs(tcf.MWA_MOCK_MS, exist_ok=True)
-
+    """
+    Get a fresh MWA_MOCK_MS from original archive file.
+    This is to avoid the situation that changes from previous test or previous
+    test runs (e.g. writing a MODEL_DATA column) can change the results of the test run by this class.
+    The working directory is shared between test runs. Tests that write to a measurement set and depend on its
+    contents should use a private copy. e.g. from the tmp_mwa_mock_* fixtures.
+    """
     if not os.path.isfile(tcf.MWA_MOCK_ARCHIVE):
         url = os.path.join(
             tcf.EVERYBEAM_DATA_URL, "MWA-single-timeslot.tar.bz2"
         )
         check_call(f"wget -q {url} -O {tcf.MWA_MOCK_ARCHIVE}".split())
-        check_call(
-            f"tar -xf {tcf.MWA_MOCK_ARCHIVE} -C {tcf.MWA_MOCK_MS} --strip-components=1".split()
-        )
 
-    # From python 3.8 onwards, use copytree(..., dirs_exist_ok=True)
-    if not os.path.isdir(tcf.MWA_MOCK_FULL):
-        shutil.copytree(tcf.MWA_MOCK_MS, tcf.MWA_MOCK_FULL)
-
-    if not os.path.isdir(tcf.MWA_MOCK_FACET):
-        shutil.copytree(tcf.MWA_MOCK_MS, tcf.MWA_MOCK_FACET)
+    if os.path.isdir(tcf.MWA_MOCK_MS):
+        shutil.rmtree(tcf.MWA_MOCK_MS)
+    os.makedirs(tcf.MWA_MOCK_MS)
+    check_call(
+        f"tar -xf {tcf.MWA_MOCK_ARCHIVE} -C {tcf.MWA_MOCK_MS} --strip-components=1".split()
+    )
 
 
 @pytest.fixture(scope="function")
-def tmp_mwa_mock_facet(tmp_path):
+def tmp_mwa_mock_full(prepare_mock_ms, tmp_path):
+    """Private copy of MWA_MOCK_MS, used as reference for faceted runs."""
+    mwa_mock_full_path = tmp_path / tcf.MWA_MOCK_FULL
+    shutil.copytree(tcf.MWA_MOCK_MS, mwa_mock_full_path)
+    return mwa_mock_full_path
+
+
+@pytest.fixture(scope="function")
+def tmp_mwa_mock_facet(prepare_mock_ms, tmp_path):
+    """Private copy of MWA_MOCK_MS, used for faceted runs."""
     mwa_mock_facet_path = tmp_path / tcf.MWA_MOCK_FACET
-    shutil.copytree(tcf.MWA_MOCK_FACET, mwa_mock_facet_path)
+    shutil.copytree(tcf.MWA_MOCK_MS, mwa_mock_facet_path)
     return mwa_mock_facet_path
 
 

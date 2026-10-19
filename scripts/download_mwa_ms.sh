@@ -22,6 +22,7 @@ if [ ! -f ${MWA_MOCK_MS}/table.f1 ]; then
 
     mkdir -p $MWA_MOCK_MS
 
+    # The archive is kept: the python tests recreate a fresh
+    # MWA_MOCK_MS from it, because tests may modify the measurement set.
     tar -xf $MWA_MOCK_ARCHIVE  -C $MWA_MOCK_MS --strip-components=1
-    rm $MWA_MOCK_ARCHIVE
 fi

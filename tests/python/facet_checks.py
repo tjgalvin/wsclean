@@ -230,7 +230,9 @@ class TestFacets:
     @pytest.mark.parametrize(
         "apply_facet_beam", ["without_facet_beam", "with_facet_beam"]
     )
-    def test_predict(self, gridder, apply_facet_beam, tmp_mwa_mock_facet):
+    def test_predict(
+        self, gridder, apply_facet_beam, tmp_mwa_mock_full, tmp_mwa_mock_facet
+    ):
         """
         Test predict only run
 
@@ -248,8 +250,8 @@ class TestFacets:
 
         # A numerical check can only be performed in case no DD effects were applied.
         if not do_apply_facet_beam:
-            predict_full_image(tcf.MWA_MOCK_FULL, gridder)
-            taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tmp_mwa_mock_facet} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
+            predict_full_image(tmp_mwa_mock_full, gridder)
+            taql_command = f"select from {tmp_mwa_mock_full} t1, {tmp_mwa_mock_facet} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,5e-3))"
             assert_taql(taql_command)
 
     def test_predict_selected_facet(self):
@@ -309,7 +311,9 @@ class TestFacets:
     @pytest.mark.parametrize("gridder", ["wgridder", "facet-idg"])
     @pytest.mark.parametrize("reorder", ["without_reorder", "with_reorder"])
     @pytest.mark.parametrize("mpi", ["without_mpi", "with_mpi"])
-    def test_facetdeconvolution(self, gridder, reorder, mpi):
+    def test_facetdeconvolution(
+        self, gridder, reorder, mpi, tmp_path, tmp_mwa_mock_full
+    ):
         """
         Test facet-based deconvolution on model visibilties containing three point sources.
 
@@ -328,35 +332,31 @@ class TestFacets:
 
         # Parametrization causes some overhead in that predict of full image is run for
         # every parametrization
-        predict_full_image(tcf.MWA_MOCK_FULL, gridder)
-
-        # Make sure old versions of the facet mock ms are removed
-        shutil.rmtree(tcf.MWA_MOCK_FACET)
+        predict_full_image(tmp_mwa_mock_full, gridder)
 
         # Copy the predicted visibilities to new MS, put them in the DATA column instead of the MODEL_DATA column, and remove MODEL_DATA.
-        validate_call(
-            f"cp -r {tcf.MWA_MOCK_FULL} {tcf.MWA_MOCK_FACET}".split()
-        )
+        facet_ms = tmp_path / tcf.MWA_MOCK_FACET
+        shutil.copytree(tmp_mwa_mock_full, facet_ms)
         assert shutil.which("taql") is not None, "taql executable not found!"
 
         validate_call(
             [
                 "taql",
                 "-noph",
-                f"UPDATE {tcf.MWA_MOCK_FACET} SET DATA=MODEL_DATA",
+                f"UPDATE {facet_ms} SET DATA=MODEL_DATA",
             ]
         )
         validate_call(
             [
                 "taql",
                 "-noph",
-                f"ALTER TABLE {tcf.MWA_MOCK_FACET} DROP COLUMN MODEL_DATA",
+                f"ALTER TABLE {facet_ms} DROP COLUMN MODEL_DATA",
             ]
         )
 
         # if gridder == "wgridder":
         # Check that the predicted visibilities have been properly copied to the new MS.
-        taql_command = f"select from {tcf.MWA_MOCK_FULL} t1, {tcf.MWA_MOCK_FACET} t2 where not all(near(t1.MODEL_DATA,t2.DATA, 5e-3))"
+        taql_command = f"select from {tmp_mwa_mock_full} t1, {facet_ms} t2 where not all(near(t1.MODEL_DATA,t2.DATA, 5e-3))"
         assert_taql(taql_command)
 
         do_reorder = reorder == "with_reorder"
@@ -369,7 +369,7 @@ class TestFacets:
         # hence, we disable it for test variants involving IDG.
         n_threads = 1 if "idg" in gridder else 4
         image_prefix = deconvolve_facets(
-            tcf.MWA_MOCK_FACET,
+            facet_ms,
             gridder,
             do_reorder,
             use_mpi,
@@ -382,7 +382,7 @@ class TestFacets:
         # for facet-idg, likely due to some residual artiacts in the visibilities, even though it was able to
         # deconvolve the three point sources succesfully. This test remains to check for any regressions.
         if gridder == "wgridder":
-            taql_command = f"select from {tcf.MWA_MOCK_FACET} where not all(near(DATA,MODEL_DATA, 5e-2))"
+            taql_command = f"select from {facet_ms} where not all(near(DATA,MODEL_DATA, 5e-2))"
             assert_taql(taql_command)
 
         # To check that (facet) decolvolution was succesful, we verify that the
@@ -391,8 +391,8 @@ class TestFacets:
         rms_residual = compute_rms(residual_image)
         assert rms_residual < 1e-4
 
-    def test_read_only_ms(self):
-        chmod = f"chmod a-w -R {tcf.MWA_MOCK_FULL}"
+    def test_read_only_ms(self, tmp_mwa_mock_full):
+        chmod = f"chmod a-w -R {tmp_mwa_mock_full}"
         validate_call(chmod.split())
         try:
             # When "-no-update-model-required" is specified, processing a read-only measurement set should be possible.
@@ -401,11 +401,11 @@ class TestFacets:
                 "-no-update-model-required -auto-threshold 0.5 -auto-mask 3 "
                 "-mgain 0.95 -nmiter 2 -multiscale -niter 100000 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} "
-                f"{tcf.DIMS_SMALL} {tcf.MWA_MOCK_FULL}"
+                f"{tcf.DIMS_SMALL} {tmp_mwa_mock_full}"
             )
             validate_call(s.split())
         finally:
-            chmod = f"chmod u+w -R {tcf.MWA_MOCK_FULL}"
+            chmod = f"chmod u+w -R {tmp_mwa_mock_full}"
             validate_call(chmod.split())
 
     @pytest.mark.parametrize("mpi", ["without_mpi", "with_mpi"])
@@ -441,7 +441,7 @@ class TestFacets:
             ).split()
         )
 
-    def test_diagonal_solutions(self):
+    def test_diagonal_solutions_smoke(self):
         validate_call(
             (
                 f"{tcf.WSCLEAN} -name faceted-diagonal-solutions "
@@ -719,7 +719,7 @@ class TestFacets:
                 command += " -compound-tasks"
 
             ms = tmp_path / name
-            shutil.copytree(tcf.MWA_MOCK_FACET, ms)
+            shutil.copytree(tcf.MWA_MOCK_MS, ms)
             predict_facet_image(ms, wsclean_command=command)
             assert_taql(
                 f"select from {tmp_mwa_mock_facet} t1, {ms} t2 "
@@ -791,19 +791,22 @@ class TestFacets:
             [tcf.MOCK_SOLTAB_2POL, tcf.MOCK_SOLTAB_2POL],
         ],
     )
-    def test_multi_ms(self, beam, h5file):
+    def test_multi_ms(self, beam, h5file, tmp_path, tmp_mwa_mock_full):
         """
         Check that identical images are obtained in case multiple (identical) MSets and H5Parm
         files are provided compared to imaging one MSet
         """
         # Make a new copy of tcf.MWA_MOCK_MS into two MSets
-        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {tcf.MWA_MOCK_COPY_1}".split())
-        validate_call(f"cp -r {tcf.MWA_MOCK_MS} {tcf.MWA_MOCK_COPY_2}".split())
+        single_ms = tmp_mwa_mock_full
+        copy_1 = tmp_path / tcf.MWA_MOCK_COPY_1
+        copy_2 = tmp_path / tcf.MWA_MOCK_COPY_2
+        shutil.copytree(tcf.MWA_MOCK_MS, copy_1)
+        shutil.copytree(tcf.MWA_MOCK_MS, copy_2)
 
         names = ["facets-single-ms", "facets-multiple-ms"]
         commands = [
-            f"{tcf.MWA_MOCK_MS}",
-            f"{tcf.MWA_MOCK_COPY_1} {tcf.MWA_MOCK_COPY_2}",
+            f"{single_ms}",
+            f"{copy_1} {copy_2}",
         ]
         use_beam = beam == "with_beam"
         if use_beam:
@@ -835,10 +838,10 @@ class TestFacets:
 
         # Model data columns should be equal
         taql_commands = [
-            f"select from {tcf.MWA_MOCK_MS} t1, {tcf.MWA_MOCK_COPY_1} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
+            f"select from {single_ms} t1, {copy_1} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
         ]
         taql_commands.append(
-            f"select from {tcf.MWA_MOCK_COPY_1} t1, {tcf.MWA_MOCK_COPY_2} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
+            f"select from {copy_1} t1, {copy_2} t2 where not all(near(t1.MODEL_DATA,t2.MODEL_DATA,1e-6))"
         )
         # assert_taql(taql_command for taql_command in taql_commands)
         for taql_command in taql_commands:
@@ -1094,7 +1097,7 @@ class TestFacets:
             assert np.sum(np.abs(r**2)) < 10
 
     @pytest.mark.parametrize("gridder", ["wgridder", "facet-idg"])
-    def test_predict_with_solutions(self, gridder):
+    def test_predict_with_solutions(self, gridder, tmp_mwa_mock_facet):
         # This is a more advanced prediction run which at some point failed
         shutil.copyfile(
             "point-source-model.fits", "point-source-0000-model-fpb.fits"
@@ -1115,24 +1118,24 @@ class TestFacets:
                 "-apply-facet-beam -facet-beam-update 60 "
                 f"-facet-regions {tcf.FACETFILE_4FACETS} "
                 f"-apply-facet-solutions {tcf.MOCK_SOLTAB_2POL} ampl000,phase000 "
-                f"-mwa-path . {tcf.MWA_MOCK_FACET}"
+                f"-mwa-path . {tmp_mwa_mock_facet}"
             ).split()
         )
 
-    def test_facet_continuing(self):
+    def test_facet_continuing(self, tmp_mwa_mock_full):
         nthreads = 4
         s = (
             f"{tcf.WSCLEAN} -parallel-gridding {nthreads} "
             f"{tcf.DIMS_SMALL} -niter 100 -auto-threshold 5 -mgain 0.8 -channels-out 2 "
             f"-facet-regions {tcf.FACETFILE_4FACETS} "
-            f"-name facet-continuing-a {tcf.MWA_MOCK_FULL}"
+            f"-name facet-continuing-a {tmp_mwa_mock_full}"
         )
         validate_call(s.split())
         s = (
             f"{tcf.WSCLEAN} -reuse-psf facet-continuing-a -reuse-dirty facet-continuing-a "
             f"-parallel-gridding {nthreads} {tcf.DIMS_SMALL} -niter 100 "
             f"-auto-threshold 5 -mgain 0.8 -channels-out 2 -facet-regions {tcf.FACETFILE_4FACETS} "
-            f"-name facet-continuing-b -v {tcf.MWA_MOCK_FULL}"
+            f"-name facet-continuing-b -v {tmp_mwa_mock_full}"
         )
         validate_call(s.split())
         basic_facet_image_check("facet-continuing-b-0000-dirty.fits")
