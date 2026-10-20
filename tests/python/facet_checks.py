@@ -694,16 +694,18 @@ class TestFacets:
     ):
         """
         Run a single predict/degridding cycle (no deconvolution / gridding).
-        Compare serial, threaded, mpi and hybrid runs.
+        Compare serial, threaded, mpi and hybrid runs, and an mpi run in which
+        only the workers predict, so they need the image settings of the model.
         Do all parallel runs with and without enabling compound tasks.
         """
         require_mpi()
 
-        names = ["threaded", "mpi", "hybrid"]
+        names = ["threaded", "mpi", "hybrid", "mpi_no_work_on_master"]
         wsclean_commands = [
             f"{tcf.WSCLEAN} -j 3 -parallel-gridding 3",
             f"{tcf.MPIRUN} -np 3 {tcf.WSCLEAN_MP} -max-mpi-message-size 42k",
             f"{tcf.MPIRUN} -np 3 {tcf.WSCLEAN_MP} -j 3 -parallel-gridding 3",
+            f"{tcf.MPIRUN} -np 3 {tcf.WSCLEAN_MP} -no-work-on-master",
         ]
 
         # Create reference output using a basic sequential run.

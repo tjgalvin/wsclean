@@ -67,6 +67,12 @@ class WSClean {
   void RunPredict();
 
   /**
+   * Sets the image size and pixel scale from the first model image, if they were not provided on
+   * the command line.
+   */
+  void InitializePredictImageSettings();
+
+  /**
    * @brief Create a FITS image based on a skymodel.
    */
   void DrawModel();

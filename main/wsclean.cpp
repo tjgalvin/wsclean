@@ -1279,6 +1279,13 @@ void WSClean::readExistingModelImages(size_t num_facets, const ImagingTableEntry
   }
 }
 
+void WSClean::InitializePredictImageSettings() {
+  const std::string prefix =
+      ImageFilename::GetPrefix(_settings, *_settings.polarizations.begin(), 0, 0, false);
+  aocommon::FitsReader reader(prefix + PredictModelFileSuffix());
+  overrideImageSettings(reader);
+}
+
 bool WSClean::overrideImageSettings(const aocommon::FitsReader& reader) {
   bool resetGridder = false;
   if (_settings.trimmedImageWidth == 0 && _settings.trimmedImageHeight == 0) {

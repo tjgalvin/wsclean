@@ -85,6 +85,9 @@ int main(int argc, char* argv[]) {
           MPI_Send(msgStream.data(), msgStream.size(), MPI_BYTE, i, 0, MPI_COMM_WORLD);
         }
       } else {
+        if (settings.mode == Settings::PredictMode) {
+          wsclean.InitializePredictImageSettings();
+        }
         Worker worker(settings);
         worker.Run();
       }
