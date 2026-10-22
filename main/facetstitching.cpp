@@ -183,28 +183,8 @@ void StitchSingleGroup(const ImagingTable::Group& facetGroup, size_t imageIndex,
     }
 
     if (feather_size != 0) {
-      aocommon::Image mask = facetImage.MakeMask();
-      const schaapcommon::facets::Facet& facet = *facetEntry->facet;
-      const bool needs_padding = facet.GetConvolutionBox() != facet.GetTrimmedBoundingBox();
-      size_t left = 0;
-      size_t top = 0;
-      if (needs_padding) {
-        const auto clipped_subtract = [](size_t a, size_t b) { return a > b ? a - b : 0; };
-        left = clipped_subtract(facet.GetTrimmedBoundingBox().Min().x,
-                                facet.GetConvolutionBox().Min().x);
-        top = clipped_subtract(facet.GetTrimmedBoundingBox().Min().y,
-                               facet.GetConvolutionBox().Min().y);
-        const size_t right = clipped_subtract(facet.GetConvolutionBox().Max().x,
-                                              facet.GetTrimmedBoundingBox().Max().x);
-        const size_t bottom = clipped_subtract(facet.GetConvolutionBox().Max().y,
-                                               facet.GetTrimmedBoundingBox().Max().y);
-        mask = mask.Pad(left, top, right, bottom);
-      }
-      tophat_convolution::Convolve(mask, feather_size);
-      if (needs_padding) {
-        mask = mask.TrimBox(left, top, facet.GetTrimmedBoundingBox().Width(),
-                            facet.GetTrimmedBoundingBox().Height());
-      }
+      const aocommon::Image mask =
+          CreateFeatheredFacetMask(facetImage, *facetEntry->facet, feather_size);
       facetImage.AddWithMask(fullImage.Data(), weight_image->Data(), mask, 0);
     } else {
       facetImage.AddToImage({fullImage.Data()});
@@ -246,6 +226,50 @@ void StitchSingleGroup(const ImagingTable::Group& facetGroup, size_t imageIndex,
 }
 
 }  // namespace
+
+aocommon::Image CreateFeatheredFacetMask(const schaapcommon::facets::FacetImage& facetImage,
+                                         const schaapcommon::facets::Facet& facet,
+                                         size_t feather_size) {
+  aocommon::Image mask = facetImage.MakeMask();
+  const bool needs_padding = facet.GetConvolutionBox() != facet.GetTrimmedBoundingBox();
+  size_t left = 0;
+  size_t top = 0;
+  if (needs_padding) {
+    // The convolution box can extend beyond the edges of the image, so its
+    // minimum coordinates can be negative. The padding therefore has to be
+    // calculated with signed arithmetic: with unsigned arithmetic, a negative
+    // minimum coordinate wraps around and no padding is added on the left/top.
+    // The tophat kernel would then reach beyond the edge of the mask, which
+    // makes the FFT convolution wrap around and contaminate the mask with
+    // values from the other side of the facet.
+    const int trimmed_min_x = facet.GetTrimmedBoundingBox().Min().x;
+    const int trimmed_min_y = facet.GetTrimmedBoundingBox().Min().y;
+    const int trimmed_max_x = facet.GetTrimmedBoundingBox().Max().x;
+    const int trimmed_max_y = facet.GetTrimmedBoundingBox().Max().y;
+    const int convolution_min_x = facet.GetConvolutionBox().Min().x;
+    const int convolution_min_y = facet.GetConvolutionBox().Min().y;
+    const int convolution_max_x = facet.GetConvolutionBox().Max().x;
+    const int convolution_max_y = facet.GetConvolutionBox().Max().y;
+    left = std::max<int>(0, trimmed_min_x - convolution_min_x);
+    top = std::max<int>(0, trimmed_min_y - convolution_min_y);
+    const size_t right = std::max<int>(0, convolution_max_x - trimmed_max_x);
+    const size_t bottom = std::max<int>(0, convolution_max_y - trimmed_max_y);
+    mask = mask.Pad(left, top, right, bottom);
+  }
+  tophat_convolution::Convolve(mask, feather_size);
+  if (needs_padding) {
+    mask = mask.TrimBox(left, top, facet.GetTrimmedBoundingBox().Width(),
+                        facet.GetTrimmedBoundingBox().Height());
+  }
+  // The convolution is done with FFTs, which leave rounding noise of either
+  // sign where the mask should be zero. Dividing by the sum of these noise
+  // values below would turn pixels that no facet covers into arbitrary
+  // values. The smallest real value of the convolved mask is one over the
+  // number of pixels of the tophat kernel, which is at least half of this
+  // threshold.
+  tophat_convolution::RemoveMaskNoise(mask, feather_size);
+  return mask;
+}
 
 void StitchFacets(const ImagingTable& table, CachedImageSet& image_cache, StitchImageType type,
                   const StitchFacetsConfig& config) {

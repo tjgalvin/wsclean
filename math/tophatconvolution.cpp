@@ -4,6 +4,8 @@
 
 #include <mutex>
 
+#include <cmath>
+
 using aocommon::Image;
 
 namespace wsclean::tophat_convolution {
@@ -13,6 +15,13 @@ namespace {
 void EnsureFftwfPlannerThreadSafe() {
   static std::once_flag once;
   std::call_once(once, []() { schaapcommon::math::MakeFftwfPlannerThreadSafe(); });
+}
+
+/// The size of the tophat kernel that Convolve() uses for a given radius.
+size_t KernelSize(double radius) {
+  size_t kernel_size = static_cast<size_t>(std::floor(radius)) * 2 + 1;
+  if (kernel_size % 2 == 0) ++kernel_size;
+  return kernel_size;
 }
 
 }  // namespace
@@ -40,11 +49,22 @@ Image MakeTopHatImage(size_t width, size_t height, double tophat_radius) {
 
 void Convolve(Image& input, double radius) {
   EnsureFftwfPlannerThreadSafe();
-  size_t kernel_size = static_cast<size_t>(std::floor(radius)) * 2 + 1;
-  if (kernel_size % 2 == 0) ++kernel_size;
+  const size_t kernel_size = KernelSize(radius);
   const Image kernel = MakeTopHatImage(kernel_size, kernel_size, radius);
   schaapcommon::math::ResizeAndConvolve(input.Data(), input.Width(), input.Height(), kernel.Data(),
                                         kernel_size);
+}
+
+float MaskNoiseThreshold(double radius) {
+  const float kernel_size = static_cast<float>(KernelSize(radius));
+  return 0.5f / (kernel_size * kernel_size);
+}
+
+void RemoveMaskNoise(Image& mask, double radius) {
+  const float threshold = MaskNoiseThreshold(radius);
+  for (float& value : mask) {
+    if (value < threshold) value = 0.0f;
+  }
 }
 
 }  // namespace wsclean::tophat_convolution

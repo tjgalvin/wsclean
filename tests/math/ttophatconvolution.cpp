@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <limits>
 
 #include "../../math/tophatconvolution.h"
 
@@ -112,6 +113,52 @@ BOOST_AUTO_TEST_CASE(convolve_multi_pixel) {
       const float value_c = ref_value(x - 1 - mid_x + ref_mid_x, y - 2 - mid_y + ref_mid_y) * -2.0;
       const float reference = value_a + value_b + value_c;
       BOOST_CHECK_LT(std::fabs(image[y * kWidth + x] - reference), 1e-6);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(mask_noise_threshold_is_below_the_smallest_real_value) {
+  // The smallest value that a mask convolved with a tophat kernel can have is
+  // one divided by the number of pixels of the kernel, because a single
+  // kernel pixel overlapping the edge of the mask is the smallest possible
+  // contribution. The noise threshold must be below that value, otherwise
+  // real mask data would be removed.
+  for (size_t feather_size : {1, 5, 10, 50, 100}) {
+    const size_t kernel_size = 2 * feather_size + 1;
+    const Image kernel =
+        tophat_convolution::MakeTopHatImage(kernel_size, kernel_size, feather_size);
+    // The kernel is normalized such that it sums to one, so the smallest
+    // non-zero value is one divided by the number of pixels in the kernel.
+    float smallest_real_value = std::numeric_limits<float>::max();
+    for (float value : kernel) {
+      if (value != 0.0f) smallest_real_value = std::min(smallest_real_value, value);
+    }
+    BOOST_CHECK_LT(tophat_convolution::MaskNoiseThreshold(feather_size), smallest_real_value);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(remove_mask_noise_removes_the_fft_rounding_noise) {
+  constexpr size_t kWidth = 128;
+  constexpr size_t kHeight = 128;
+  constexpr size_t kRadius = 10;
+  Image image(kWidth, kHeight, 0.0f);
+  image[kWidth * 32 + 32] = 1.0f;
+  tophat_convolution::Convolve(image, kRadius);
+
+  // The convolution is performed with FFTs, which leave rounding noise of
+  // either sign in the whole image.
+  size_t negative_value_count = 0;
+  for (float value : image) {
+    if (value < 0.0f) ++negative_value_count;
+  }
+  BOOST_CHECK_GT(negative_value_count, 0u);
+
+  const float threshold = tophat_convolution::MaskNoiseThreshold(kRadius);
+  tophat_convolution::RemoveMaskNoise(image, kRadius);
+  for (float value : image) {
+    BOOST_CHECK_GE(value, 0.0f);
+    if (value != 0.0f) {
+      BOOST_CHECK_GE(value, threshold);
     }
   }
 }

@@ -13,6 +13,7 @@ add_executable(
   io/tcachedimageset.cpp
   io/tparsetreader.cpp
   main/tcommandline.cpp
+  main/tfacetstitching.cpp
   math/timageoperations.cpp
   main/tmshelper.cpp
   math/trenderer.cpp
