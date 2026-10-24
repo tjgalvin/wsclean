@@ -8,7 +8,7 @@ include(CMakeVersionInfo.txt)
 
 set(AOCOMMON_COMMIT 97bbc3e3b6dcd9b392271ec45d0c528a62e530ab)
 set(SCHAAPCOMMON_COMMIT 5be414b11d8e70e3cc078c643f858c9603217034)
-set(RADLER_COMMIT bf29139b02cbd2be8e2fe29fdb614d5f3c6ef575)
+set(RADLER_COMMIT 2040d31fc55fce90e8353d30927335ff160c57ca)
 
 add_compile_options(
   -O3
@@ -70,7 +70,7 @@ include_directories("${SCHAAPCOMMON_SOURCE_DIR}/include")
 
 FetchContent_Declare(
   radler
-  GIT_REPOSITORY https://git.astron.nl/RD/radler.git
+  GIT_REPOSITORY https://github.com/tjgalvin/radler.git
   GIT_TAG ${RADLER_COMMIT})
 FetchContent_MakeAvailable(radler)
 set(RADLER_SOURCE_DIR "${radler_SOURCE_DIR}")
