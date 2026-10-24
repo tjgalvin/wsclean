@@ -1,0 +1,96 @@
+# Apptainer definition for WSClean on Ubuntu 24.04, built from this source tree.
+#
+# Build from the root of the WSClean repository, e.g. for AMD EPYC 7003 (Zen 3):
+#   apptainer build --fakeroot --build-arg TARGET_CPU=znver3 \
+#     wsclean.sif scripts/docker/Ubuntu24-apptainer.def
+# TARGET_CPU is passed to -march (default: native, i.e. the CPU of the build
+# machine). `gcc -march=native -Q --help=target | grep march=` on a compute node
+# shows the value for that node. The build takes a few GB of temporary space;
+# set APPTAINER_TMPDIR and APPTAINER_CACHEDIR to change where that goes.
+#
+# Run:
+#   apptainer run --bind /path/to/data wsclean.sif <wsclean arguments>
+#   apptainer exec wsclean.sif chgcentre ...
+
+Bootstrap: docker
+From: ubuntu:24.04
+
+%arguments
+    TARGET_CPU=native
+
+%files
+    . /opt/build/wsclean
+
+%environment
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+    export PATH=/opt/wsclean/bin:$PATH
+    # WSClean refuses to run with multi-threaded OpenBLAS, whose threads would
+    # interfere with its own (see aocommon/checkblas.h).
+    export OPENBLAS_NUM_THREADS=1
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    # Everything is built under /opt/build inside the image: during a build,
+    # /tmp is the host's /tmp, which would keep the files of failed builds.
+    BUILD=/opt/build
+
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        build-essential cmake git ca-certificates wget pkg-config \
+        bison flex gfortran \
+        libfftw3-dev libboost-date-time-dev libboost-program-options-dev \
+        libboost-system-dev libboost-filesystem-dev libboost-test-dev \
+        libcfitsio-dev libgsl-dev libhdf5-dev \
+        libopenblas-dev liblapack-dev zlib1g-dev \
+        python3-dev pybind11-dev
+
+    # The casacore measures data, downloaded from ASTRON as in the Docker
+    # files (it is updated daily; rebuild when leap-second warnings appear).
+    mkdir -p /usr/share/casacore/data
+    ln -s /usr/share/casacore /var/lib/casacore
+    wget -qO - https://www.astron.nl/iers/WSRT_Measures.ztar | \
+        tar -C /usr/share/casacore/data -xzf -
+
+    # The casacore version in Ubuntu is too old to support C++20.
+    git clone --depth 1 --branch v3.6.1 https://github.com/casacore/casacore.git ${BUILD}/casacore
+    cmake -S ${BUILD}/casacore -B ${BUILD}/casacore-build \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/casacore \
+        -DMODULE=ms -DBUILD_TESTING=OFF -DBUILD_PYTHON3=OFF \
+        -DUSE_OPENMP=ON -DUSE_THREADS=ON -DUSE_READLINE=OFF \
+        -DDATA_DIR=/usr/share/casacore/data \
+        -DCMAKE_C_FLAGS="-march={{ TARGET_CPU }}" \
+        -DCMAKE_CXX_FLAGS="-march={{ TARGET_CPU }}" \
+        -DCMAKE_Fortran_FLAGS="-march={{ TARGET_CPU }}"
+    cmake --build ${BUILD}/casacore-build -j $(nproc)
+    cmake --install ${BUILD}/casacore-build
+
+    # WSClean, from the source tree that was copied in by %files
+    cmake -S ${BUILD}/wsclean -B ${BUILD}/wsclean-build \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTARGET_CPU={{ TARGET_CPU }} \
+        -DCMAKE_PREFIX_PATH=/opt/casacore \
+        -DCMAKE_INSTALL_PREFIX=/opt/wsclean \
+        -DCMAKE_INSTALL_RPATH="/opt/casacore/lib;/opt/wsclean/lib" \
+        -DPython3_EXECUTABLE=/usr/bin/python3
+    cmake --build ${BUILD}/wsclean-build -j $(nproc)
+    cmake --install ${BUILD}/wsclean-build
+
+    {
+        echo "Built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        echo "TARGET_CPU: {{ TARGET_CPU }}"
+        echo "Radler: $(git -C ${BUILD}/wsclean-build/_deps/radler-src remote get-url origin) $(git -C ${BUILD}/wsclean-build/_deps/radler-src rev-parse HEAD)"
+        echo "Casacore: 3.6.1"
+        echo "Compiler: $(gcc --version | head -1)"
+        OPENBLAS_NUM_THREADS=1 /opt/wsclean/bin/wsclean --version | grep -i "version\|commit"
+    } > /opt/BUILD_INFO
+
+    rm -rf ${BUILD}
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%runscript
+    exec /opt/wsclean/bin/wsclean "$@"
+
+%test
+    /opt/wsclean/bin/wsclean --version
