@@ -155,7 +155,9 @@ void Settings::Validate() const {
   }
 
   if (!fitsScalesMask.empty() && algorithmType != radler::AlgorithmType::kMultiscale) {
-    throw std::runtime_error("Parameter -multiscale-fits-mask can only be used with multi-scale deconvolution (-multiscale).");
+    throw std::runtime_error(
+        "Parameter -multiscale-fits-mask can only be used with multi-scale deconvolution "
+        "(-multiscale).");
   }
 
   if (facetRegionFilename.empty() && featherSize && *featherSize != 0) {
