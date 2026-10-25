@@ -16,6 +16,7 @@
 #include "../structures/imageweights.h"
 #include "../structures/msselection.h"
 #include "../structures/primarybeam.h"
+#include "../structures/resources.h"
 
 #include <radler/radler.h>
 
@@ -43,12 +44,15 @@
 #include <schaapcommon/math/resampler.h>
 #include <schaapcommon/math/restoreimage.h>
 #include <schaapcommon/fitters/nlplfitter.h>
+#include <schaapcommon/threading/recursivefor.h>
+#include <schaapcommon/threading/staticfor.h>
 
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <ranges>
 
 #ifdef __GLIBC__
@@ -1048,8 +1052,43 @@ void WSClean::runIndependentGroup(ImagingTable& groupTable,
                << ", deconvolution: " << _deconvolutionWatch.ToString() << '\n';
 }
 
-void WSClean::saveRestoredImagesForGroup(const ImagingTable::Group& group,
-                                         std::unique_ptr<PrimaryBeam>& primaryBeam) const {
+void WSClean::SaveRestoredImages(const ImagingTable::Groups& facet_groups,
+                                 std::unique_ptr<PrimaryBeam>& primary_beam) const {
+  // Restoring more groups at the same time gains little, because the FITS
+  // reads and writes are serialized, but it costs memory: a restoration holds
+  // the residual and the model image, and RestoreImage() allocates five more
+  // images of the same size.
+  constexpr size_t kMaxParallelRestorations = 4;
+  const int64_t restore_memory =
+      int64_t{7} * sizeof(float) * _settings.trimmedImageWidth * _settings.trimmedImageHeight;
+  const int64_t available_memory = GetAvailableMemory(_settings.memFraction, _settings.absMemLimit);
+  const size_t max_parallel = std::max<size_t>(
+      1, std::min<size_t>({kMaxParallelRestorations, _settings.threadCount, facet_groups.size(),
+                           static_cast<size_t>(available_memory / restore_memory)}));
+  Logger::Info << "Rendering sources to restored images (" << max_parallel << " at a time)...\n";
+  {
+    // Threads that are not restoring a group help with the FFTs of the
+    // restorations that are still running.
+    std::optional<schaapcommon::RecursiveFor> recursive_for;
+    if (max_parallel > 1 && schaapcommon::RecursiveFor::GetInstance() == nullptr) {
+      recursive_for.emplace();
+    }
+    schaapcommon::StaticFor<size_t> loop;
+    loop.ConstrainedRun(0, facet_groups.size(), max_parallel, [&](size_t start, size_t end) {
+      for (size_t i = start; i != end; ++i) saveRestoredImagesForGroup(facet_groups[i]);
+    });
+  }
+
+  // The corrections use all polarizations of a channel. They are applied with
+  // the group of the last polarization, after all groups are restored.
+  for (const ImagingTable::Group& facet_group : facet_groups) {
+    if (facet_group.front()->polarization == *_settings.polarizations.rbegin()) {
+      SavePbCorrectedImages(facet_group, primary_beam);
+    }
+  }
+}
+
+void WSClean::saveRestoredImagesForGroup(const ImagingTable::Group& group) const {
   const ImagingTableEntry& tableEntry = *group.front();
   assert(tableEntry.facetIndex == 0);
 
@@ -1085,44 +1124,49 @@ void WSClean::saveRestoredImagesForGroup(const ImagingTable::Group& group,
       beamMin = 0.0;
       beamPA = 0.0;
     }
-    Logger::Info << "Rendering sources to restored image " + beamStr + "... ";
-    Logger::Info.Flush();
     schaapcommon::math::RestoreImage(restoredImage.Data(), modelImage.Data(),
                                      _settings.trimmedImageWidth, _settings.trimmedImageHeight,
                                      beamMaj, beamMin, beamPA, _settings.pixelScaleX,
                                      _settings.pixelScaleY);
-    Logger::Info << "DONE\n";
     modelImage.Reset();
 
-    Logger::Info << "Writing restored image... ";
-    Logger::Info.Flush();
     writer.WriteImage("image.fits", restoredImage);
-    Logger::Info << "DONE\n";
     restoredImage.Reset();
+    // Logged in one call, so that the lines of parallel restorations stay whole.
+    Logger::Info << "Restored " +
+                        ImageFilename::GetPrefix(_settings, curPol, channel_index,
+                                                 tableEntry.outputIntervalIndex, isImaginary) +
+                        "-image.fits " + beamStr + "\n";
+  }
+}
 
-    const bool has_facet_solutions = !_settings.facetSolutionFiles.empty();
-    ImageFilename imageName = ImageFilename(channel_index, tableEntry.outputIntervalIndex);
+void WSClean::SavePbCorrectedImages(const ImagingTable::Group& group,
+                                    std::unique_ptr<PrimaryBeam>& primary_beam) const {
+  const ImagingTableEntry& tableEntry = *group.front();
+  const size_t channel_index = tableEntry.outputChannelIndex;
+  const OutputChannelInfo& channel_info = _infoPerChannel[channel_index];
+  const bool has_facet_solutions = !_settings.facetSolutionFiles.empty();
+  ImageFilename imageName = ImageFilename(channel_index, tableEntry.outputIntervalIndex);
 
-    // Checking for the _last_ polarization ensures that all images are
-    // available before applying the primarybeam
-    if (curPol == *_settings.polarizations.rbegin()) {
-      if (griddingUsesATerms()) {
-        IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image", _settings);
-        if (_settings.savePsfPb)
-          IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "psf", _settings);
-        if (_settings.deconvolutionIterationCount != 0) {
-          IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "residual", _settings);
-          IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "model", _settings);
-        }
-      } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam || has_facet_solutions) {
-        if (has_facet_solutions)
-          primaryBeam->CorrectBeamForFacetGain(imageName, group, channel_info);
-        primaryBeam->CorrectImages(writer.Writer(), imageName, "image");
-        if (_settings.savePsfPb) primaryBeam->CorrectImages(writer.Writer(), imageName, "psf");
-        if (_settings.deconvolutionIterationCount != 0) {
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "residual");
-          primaryBeam->CorrectImages(writer.Writer(), imageName, "model");
-        }
+  for (size_t imageIter = 0; imageIter != tableEntry.imageCount; ++imageIter) {
+    const bool isImaginary = (imageIter == 1);
+    WSCFitsWriter writer(createWSCFitsWriter(tableEntry, isImaginary, false));
+    if (griddingUsesATerms()) {
+      IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "image", _settings);
+      if (_settings.savePsfPb)
+        IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "psf", _settings);
+      if (_settings.deconvolutionIterationCount != 0) {
+        IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "residual", _settings);
+        IdgMsGridder::SavePBCorrectedImages(writer.Writer(), imageName, "model", _settings);
+      }
+    } else if (_settings.applyPrimaryBeam || _settings.applyFacetBeam || has_facet_solutions) {
+      if (has_facet_solutions)
+        primary_beam->CorrectBeamForFacetGain(imageName, group, channel_info);
+      primary_beam->CorrectImages(writer.Writer(), imageName, "image");
+      if (_settings.savePsfPb) primary_beam->CorrectImages(writer.Writer(), imageName, "psf");
+      if (_settings.deconvolutionIterationCount != 0) {
+        primary_beam->CorrectImages(writer.Writer(), imageName, "residual");
+        primary_beam->CorrectImages(writer.Writer(), imageName, "model");
       }
     }
   }
@@ -1623,9 +1667,7 @@ void WSClean::runMajorIterations(ImagingTable& groupTable,
     stitchFacets(tableWithoutDdPsf, _modelImages, StitchImageType::kFacetPbModel);
   }
 
-  for (const ImagingTable::Group& facet_group : facet_groups) {
-    saveRestoredImagesForGroup(facet_group, primaryBeam);
-  }
+  SaveRestoredImages(facet_groups, primaryBeam);
 
   if (_settings.saveSourceList) {
     std::unique_ptr<radler::WorkTable> deconvolution_table =

@@ -83,8 +83,19 @@ class WSClean {
 
  private:
   void runIndependentGroup(ImagingTable& groupTable, std::unique_ptr<PrimaryBeam>& primaryBeam);
-  void saveRestoredImagesForGroup(const ImagingTable::Group& group,
-                                  std::unique_ptr<PrimaryBeam>& primaryBeam) const;
+  /**
+   * Restores the images of all groups, several groups at the same time, and
+   * then applies the primary beam corrections.
+   */
+  void SaveRestoredImages(const ImagingTable::Groups& facet_groups,
+                          std::unique_ptr<PrimaryBeam>& primary_beam) const;
+  /**
+   * Restores and writes the images of a group. This may be called for several
+   * groups in parallel.
+   */
+  void saveRestoredImagesForGroup(const ImagingTable::Group& group) const;
+  void SavePbCorrectedImages(const ImagingTable::Group& group,
+                             std::unique_ptr<PrimaryBeam>& primary_beam) const;
   void predictGroup(const ImagingTable& groupTable);
 
   void runFirstInversions(ImagingTable& groupTable, std::unique_ptr<PrimaryBeam>& primaryBeam);
