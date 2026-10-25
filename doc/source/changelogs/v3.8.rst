@@ -12,6 +12,7 @@ Full change list
 * Added point-scale deconvolution algorithms that work in Faraday-depth space (option ``-rm-deconvolution``).
 * ...as well as a multi-scale algorithm (enabled with ``-multiscale -rm-deconvolution``).
 * Radler's "squared channel" polarimetric multiscale algorithm has been improved (options ``-multiscale -squared-channel-joining``).
+* The padded image size is rounded up to a size without prime factors above 7, which makes the FFTs at that size faster (e.g. 8640 instead of 8632 for a 7192 x 7192 image).
 
 Bug fixes and refactoring
 -------------------------

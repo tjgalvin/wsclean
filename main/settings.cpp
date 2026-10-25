@@ -10,6 +10,7 @@
 #include <casacore/tables/Tables/TableRecord.h>
 
 #include "../io/facetreader.h"
+#include "../math/calculatefftsize.h"
 
 using aocommon::Logger;
 using aocommon::Polarization;
@@ -535,9 +536,13 @@ void Settings::Propagate(bool verbose) {
 void Settings::RecalculateDerivedDimensions(bool verbose) {
   paddedImageWidth = static_cast<size_t>(ceil(trimmedImageWidth * imagePadding));
   paddedImageHeight = static_cast<size_t>(ceil(trimmedImageHeight * imagePadding));
-  // Make the width and height divisable by four.
+  // Make the width and height divisable by four and free of prime factors
+  // above 7, because FFTs of sizes with large prime factors are slow (e.g.
+  // three times slower for 8632 = 2^3 x 13 x 83 than for 8640).
   paddedImageWidth += (4 - (paddedImageWidth % 4)) % 4;
   paddedImageHeight += (4 - (paddedImageHeight % 4)) % 4;
+  while (!detail::hasLowPrimeFactors(paddedImageWidth)) paddedImageWidth += 4;
+  while (!detail::hasLowPrimeFactors(paddedImageHeight)) paddedImageHeight += 4;
   if (trimmedImageWidth != 0 && trimmedImageHeight != 0) {
     if (verbose)
       Logger::Debug << "Using image size of " << trimmedImageWidth << " x " << trimmedImageHeight

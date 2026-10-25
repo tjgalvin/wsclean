@@ -34,6 +34,23 @@ BOOST_AUTO_TEST_CASE(get_feather_size_override) {
   BOOST_CHECK_EQUAL(settings.GetFeatherSize(), 100);
 }
 
+BOOST_AUTO_TEST_CASE(padded_size_has_low_prime_factors) {
+  Settings settings;
+  settings.trimmedImageWidth = 7192;
+  settings.trimmedImageHeight = 1500;
+  settings.RecalculateDerivedDimensions(false);
+  // 7192 x 1.2 rounded up to a multiple of four is 8632 = 2^3 x 13 x 83.
+  BOOST_CHECK_EQUAL(settings.paddedImageWidth, 8640);
+  // 1500 x 1.2 = 1800 = 2^3 x 3^2 x 5^2 is kept.
+  BOOST_CHECK_EQUAL(settings.paddedImageHeight, 1800);
+
+  settings.imagePadding = 1.0;
+  settings.trimmedImageWidth = 4292;
+  settings.RecalculateDerivedDimensions(false);
+  // Without padding, 4292 = 2^2 x 29 x 37 is still rounded up.
+  BOOST_CHECK_EQUAL(settings.paddedImageWidth, 4320);
+}
+
 BOOST_AUTO_TEST_CASE(validate_default_settings) {
   Settings settings = ValidSettings();
   BOOST_CHECK_NO_THROW(settings.Validate());

@@ -235,7 +235,8 @@ Options can be:
 -size <width> <height>
    Set the output image size in number of pixels (without padding).
 -padding <factor>
-   Pad images by the given factor during inversion to avoid aliasing. Default: 1.2 (=20%).
+   Pad images by the given factor during inversion to avoid aliasing. The padded size is
+   rounded up to a size without prime factors above 7, for fast FFTs. Default: 1.2 (=20%).
 -scale <pixel-scale>
    Scale of a pixel. Default unit is degrees, but can be specificied, e.g. -scale 20asec. Default: 0.01deg.
 -predict
